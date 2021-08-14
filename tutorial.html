@@ -105,7 +105,13 @@
 <li class="toctree-l2"><a class="reference internal" href="#multiple-gpu-tips">Multiple GPU TIPs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#start-from-the-middle-stage-or-stop-at-specified-stage">Start from the middle stage or stop at specified stage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#ctc-attention-and-hybrid-ctc-attention">CTC, attention, and hybrid CTC/attention</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#transducer">Transducer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#transducer">Transducer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#architecture">Architecture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#augmented-training">Augmented training</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inference">Inference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#additional-notes">Additional notes</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#changing-the-training-configuration">Changing the training configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#how-to-set-minibatch">How to set minibatch</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#how-to-use-finetuning">How to use finetuning</a><ul>
@@ -466,22 +472,23 @@ minlenratio: <span class="m">0</span>.3
 </div>
 <div class="section" id="transducer">
 <h2>Transducer<a class="headerlink" href="#transducer" title="Permalink to this headline">¶</a></h2>
-<p>ESPnet also supports transducer-based models.
-To switch to transducer mode, the following should be set in the training config:</p>
+<p>ESPnet supports models trained with Transducer loss, aka Transducer models. To train such model, the following should be set in the training config:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">criterion</span><span class="p">:</span> <span class="n">loss</span>
 <span class="n">model</span><span class="o">-</span><span class="n">module</span><span class="p">:</span> <span class="s2">&quot;espnet.nets.pytorch_backend.e2e_asr_transducer:E2E&quot;</span>
 </pre></div>
 </div>
-<p>Several transducer architectures are currently available:</p>
+<div class="section" id="architecture">
+<h3>Architecture<a class="headerlink" href="#architecture" title="Permalink to this headline">¶</a></h3>
+<p>Several Transducer architectures are currently available in ESPnet:</p>
 <ul class="simple">
-<li><p>RNN-Transducer (default)</p></li>
-<li><p>Custom-Transducer (<code class="docutils literal notranslate"><span class="pre">etype:</span> <span class="pre">custom</span></code> and <code class="docutils literal notranslate"><span class="pre">dtype:</span> <span class="pre">custom</span></code>)</p></li>
+<li><p>RNN-Transducer (default, e.g.: <code class="docutils literal notranslate"><span class="pre">etype:</span> <span class="pre">blstm</span></code> with <code class="docutils literal notranslate"><span class="pre">dtype:</span> <span class="pre">lstm</span></code>)</p></li>
+<li><p>Custom-Transducer (e.g.: <code class="docutils literal notranslate"><span class="pre">etype:</span> <span class="pre">custom</span></code> and <code class="docutils literal notranslate"><span class="pre">dtype:</span> <span class="pre">custom</span></code>)</p></li>
 <li><p>Mixed Custom/RNN-Transducer (e.g: <code class="docutils literal notranslate"><span class="pre">etype:</span> <span class="pre">custom</span></code> with <code class="docutils literal notranslate"><span class="pre">dtype:</span> <span class="pre">lstm</span></code>)</p></li>
 </ul>
-<p>The architecture specification is separated for the encoder and decoder parts, and defined by the user through, respectively, <code class="docutils literal notranslate"><span class="pre">etype</span></code> and <code class="docutils literal notranslate"><span class="pre">dtype</span></code> in training config. If <code class="docutils literal notranslate"><span class="pre">custom</span></code> is specified for either, a customizable architecture will be used for the corresponding part, otherwise a RNN-based architecture will be selected.</p>
-<p>While defining a RNN architecture is done in an usual manner (similarly to CTC, Att and MTL) with global parameters, a customizable architecture definition for transducer is different:</p>
+<p>The architecture specification is separated for the encoder and decoder part, and defined by the user through, respectively, <code class="docutils literal notranslate"><span class="pre">etype</span></code> and <code class="docutils literal notranslate"><span class="pre">dtype</span></code> in the training config. If <code class="docutils literal notranslate"><span class="pre">custom</span></code> is specified for either, a customizable architecture will be used for the corresponding part. Otherwise, an RNN-based architecture will be selected.</p>
+<p>Here, the <em>custom</em> architecture is a unique feature of the Transducer model in ESPnet. It was made available to add some flexibility in the architecture definition and ease the reproduction of some SOTA Transducer models mixing  different layers types or parameters within the same model part (encoder or decoder). As such, the architecture definition is different compared to the RNN architecture :</p>
 <ol>
-<li><p>Each blocks (or layers) for both network part should be specified individually through <code class="docutils literal notranslate"><span class="pre">enc-block-arch</span></code> or/and <code class="docutils literal notranslate"><span class="pre">dec-block-arch</span></code>:</p>
+<li><p>Each block (or layer) of the custom architecture should be specified individually through <code class="docutils literal notranslate"><span class="pre">enc-block-arch</span></code> or/and <code class="docutils literal notranslate"><span class="pre">dec-block-arch</span></code> parameters:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span> <span class="c1"># e.g: TDNN-Transformer encoder</span>
  <span class="n">etype</span><span class="p">:</span> <span class="n">custom</span>
  <span class="n">enc</span><span class="o">-</span><span class="n">block</span><span class="o">-</span><span class="n">arch</span><span class="p">:</span>
@@ -498,44 +505,48 @@ To switch to transducer mode, the following should be set in the training config
 </pre></div>
 </div>
 </li>
-<li><p>Each part has different allowed block type: <code class="docutils literal notranslate"><span class="pre">tdnn</span></code>, <code class="docutils literal notranslate"><span class="pre">conformer</span></code> or <code class="docutils literal notranslate"><span class="pre">transformer</span></code> for encoder and <code class="docutils literal notranslate"><span class="pre">causal-conv1d</span></code> or <code class="docutils literal notranslate"><span class="pre">transformer</span></code> for decoder. For each block type, a set of parameters are needed:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> # TDNN
- - type: tdnn
-   idim: input dimension
-   odim: output dimension
-   ctx_size: size of the context window
-   dilation: parameter to control the stride of elements within the neighborhood
-   stride: stride of the sliding blocks
-   [optional: dropout-rate]
+<li><p>Different block types are allowed for the custom encoder (<code class="docutils literal notranslate"><span class="pre">tdnn</span></code>, <code class="docutils literal notranslate"><span class="pre">conformer</span></code> or <code class="docutils literal notranslate"><span class="pre">transformer</span></code>) and the custom decoder (<code class="docutils literal notranslate"><span class="pre">causal-conv1d</span></code> or <code class="docutils literal notranslate"><span class="pre">transformer</span></code>). Each one has a set of mandatory and optional parameters :</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> <span class="c1"># TDNN</span>
+ <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">tdnn</span>
+   <span class="n">idim</span><span class="p">:</span> <span class="p">[</span><span class="n">Input</span> <span class="n">dimension</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">odim</span><span class="p">:</span> <span class="p">[</span><span class="n">Output</span> <span class="n">dimension</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">ctx_size</span><span class="p">:</span> <span class="p">[</span><span class="n">Size</span> <span class="n">of</span> <span class="n">the</span> <span class="n">context</span> <span class="n">window</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">dilation</span><span class="p">:</span> <span class="p">[</span><span class="n">Parameter</span> <span class="n">to</span> <span class="n">control</span> <span class="n">the</span> <span class="n">stride</span> <span class="n">of</span> <span class="n">elements</span> <span class="n">within</span> <span class="n">the</span> <span class="n">neighborhood</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">stride</span><span class="p">:</span> <span class="p">[</span><span class="n">Stride</span> <span class="n">of</span> <span class="n">the</span> <span class="n">sliding</span> <span class="n">blocks</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">TDNN</span> <span class="n">block</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
 
- # Transformer
- - type: transformer
-   d_hidden: input/output dimension
-   d_ff: feed-forward hidden dimension
-   heads: number of heads in multi-head attention
-   [optional: dropout-rate, pos-dropout-rate, att-dropout-rate]
+ <span class="c1"># Transformer</span>
+ <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">transformer</span>
+   <span class="n">d_hidden</span><span class="p">:</span> <span class="p">[</span><span class="n">Input</span><span class="o">/</span><span class="n">output</span> <span class="n">dimension</span> <span class="n">of</span> <span class="n">Transformer</span> <span class="n">block</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">d_ff</span><span class="p">:</span> <span class="p">[</span><span class="n">Hidden</span> <span class="n">dimension</span> <span class="n">of</span> <span class="n">the</span> <span class="n">Feed</span><span class="o">-</span><span class="n">forward</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">heads</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">heads</span> <span class="ow">in</span> <span class="n">multi</span><span class="o">-</span><span class="n">head</span> <span class="n">attention</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">Transformer</span> <span class="n">block</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
+   <span class="n">pos</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">positional</span> <span class="n">encoding</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
+   <span class="n">att</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">attention</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
 
- # Conformer
- - type: conformer
-   d_hidden: input/output dimension
-   d_ff: feed-forward hidden dimension
-   heads: number of heads in multi-head attention
-   macaron_style: whether to use macaron style
-   use_conv_mod: whether to use convolutional module
-   conv_mod_kernel: number of kernel in convolutional module (optional if `use_conv_mod=True`)
-   [optional: dropout-rate, pos-dropout-rate, att-dropout-rate]
+ <span class="c1"># Conformer</span>
+ <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">conformer</span>
+   <span class="n">d_hidden</span><span class="p">:</span> <span class="p">[</span><span class="n">Input</span><span class="o">/</span><span class="n">output</span> <span class="n">dimension</span> <span class="n">of</span> <span class="n">Conformer</span> <span class="n">block</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">d_ff</span><span class="p">:</span> <span class="p">[</span><span class="n">Hidden</span> <span class="n">dimension</span> <span class="n">of</span> <span class="n">the</span> <span class="n">Feed</span><span class="o">-</span><span class="n">forward</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">heads</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">heads</span> <span class="ow">in</span> <span class="n">multi</span><span class="o">-</span><span class="n">head</span> <span class="n">attention</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">macaron_style</span><span class="p">:</span> <span class="p">[</span><span class="n">Whether</span> <span class="n">to</span> <span class="n">use</span> <span class="n">macaron</span> <span class="n">style</span><span class="o">.</span> <span class="p">(</span><span class="n">boolean</span><span class="p">)]</span>
+   <span class="n">use_conv_mod</span><span class="p">:</span> <span class="p">[</span><span class="n">Whether</span> <span class="n">to</span> <span class="n">use</span> <span class="n">convolutional</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="n">boolean</span><span class="p">)]</span>
+   <span class="n">conv_mod_kernel</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">kernel</span> <span class="ow">in</span> <span class="n">convolutional</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">Transformer</span> <span class="n">block</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
+   <span class="n">pos</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">positional</span> <span class="n">encoding</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
+   <span class="n">att</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">attention</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
 
- # Causal Conv1d
- - type: causal-conv1d
-   idim: input dimension
-   odim: output dimension
-   kernel_size: size of convolving kernel
-   stride: stride of the convolution
-   dilation: spacing between the kernel points
+ <span class="c1"># Causal Conv1d</span>
+ <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">causal</span><span class="o">-</span><span class="n">conv1d</span>
+   <span class="n">idim</span><span class="p">:</span> <span class="p">[</span><span class="n">Input</span> <span class="n">dimension</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">odim</span><span class="p">:</span> <span class="p">[</span><span class="n">Output</span> <span class="n">dimension</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">kernel_size</span><span class="p">:</span> <span class="p">[</span><span class="n">Size</span> <span class="n">of</span> <span class="n">convolving</span> <span class="n">kernel</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">stride</span><span class="p">:</span> <span class="p">[</span><span class="n">Stride</span> <span class="n">of</span> <span class="n">the</span> <span class="n">convolution</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">dilation</span><span class="p">:</span> <span class="p">[</span><span class="n">Spacing</span> <span class="n">between</span> <span class="n">the</span> <span class="n">kernel</span> <span class="n">points</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
 </pre></div>
 </div>
 </li>
-<li><p>Each specified block(s) for each network part can be repeated by specifying the number of duplications through <code class="docutils literal notranslate"><span class="pre">enc-block-repeat</span></code> or <code class="docutils literal notranslate"><span class="pre">dec-block-repeat</span></code> parameters:</p>
+<li><p>The defined architecture can be repeated by specifying the total number of blocks/layers in the architecture through <code class="docutils literal notranslate"><span class="pre">enc-block-repeat</span></code> or/and <code class="docutils literal notranslate"><span class="pre">dec-block-repeat</span></code> parameters:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span> <span class="c1"># e.g.: 2x (Causal-Conv1d + Transformer) decoder</span>
  <span class="n">dtype</span><span class="p">:</span> <span class="n">transformer</span>
  <span class="n">dec</span><span class="o">-</span><span class="n">block</span><span class="o">-</span><span class="n">arch</span><span class="p">:</span>
@@ -554,46 +565,90 @@ To switch to transducer mode, the following should be set in the training config
 </div>
 </li>
 </ol>
-<p>For more information about the customizable architecture, please refer to <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs/vivos/asr1/conf/tuning/transducer">vivos config examples</a> which cover all cases.</p>
-<p>Various decoding algorithms are also available for transducer by setting <code class="docutils literal notranslate"><span class="pre">search-type</span></code> parameter in decode config:</p>
+</div>
+<div class="section" id="augmented-training">
+<h3>Augmented training<a class="headerlink" href="#augmented-training" title="Permalink to this headline">¶</a></h3>
+<p>We also support augmented Transducer model training with various auxiliary tasks, such as CTC loss, LM loss (label-smoothing), auxiliary Transducer loss, and symmetric KL divergence loss.
+The five losses can be simultaneously trained and jointly optimize the total loss function defined as:</p>
+<p><img alt="augmented Transducer training" src="http://www.sciweavers.org/tex2img.php?eq=%5Cmathcal%7BL%7D_%7Btot%7D%20%3D%20%5Clambda_%7B1%7D%5Cmathcal%7BL%7D_%7B1%7D%20%2B%20%5Clambda_%7B2%7D%5Cmathcal%7BL%7D_%7B2%7D%20%2B%20%5Clambda_%7B3%7D%5Cmathcal%7BL%7D_%7B3%7D%20%2B%20%5Clambda_%7B4%7D%20%5Cmathcal%7BL%7D_%7B4%7D%20%2B%20%5Clambda_%7B5%7D%20%5Cmathcal%7BL%7D_%7B5%7D&amp;bc=White&amp;fc=Black&amp;im=jpg&amp;fs=12&amp;ff=arev&amp;edit=" /></p>
+<p>where the losses are respectively, in order: The main Transducer loss, the CTC loss, the auxiliary Transducer loss, the symmetric KL divergence loss, and the LM loss. Lambda values define their respective contribution to the overall loss. Additionally, each loss can be independently selected or omitted depending on the task.</p>
+<p>Each loss can be defined in the training config alongside its specific options, such as follow:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="c1"># Transducer loss (L1)</span>
+    <span class="n">transducer</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">weight</span><span class="p">:</span> <span class="p">[</span><span class="n">Weight</span> <span class="n">of</span> <span class="n">the</span> <span class="n">main</span> <span class="n">Transducer</span> <span class="n">loss</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
+
+    <span class="c1"># CTC loss (L2)</span>
+    <span class="n">use</span><span class="o">-</span><span class="n">ctc</span><span class="o">-</span><span class="n">loss</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="n">ctc</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">weight</span><span class="p">:</span> <span class="p">[</span><span class="n">Weight</span> <span class="n">of</span> <span class="n">the</span> <span class="n">CTC</span> <span class="n">loss</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
+    <span class="n">ctc</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span><span class="p">:</span> <span class="p">[</span><span class="n">Dropout</span> <span class="n">rate</span> <span class="k">for</span> <span class="n">encoder</span> <span class="n">output</span> <span class="n">representation</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
+
+    <span class="c1"># Auxiliary Transducer loss (L3)</span>
+    <span class="n">use</span><span class="o">-</span><span class="n">aux</span><span class="o">-</span><span class="n">transducer</span><span class="o">-</span><span class="n">loss</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="n">aux</span><span class="o">-</span><span class="n">transducer</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">weight</span><span class="p">:</span> <span class="p">[</span><span class="n">Weight</span> <span class="n">of</span> <span class="n">the</span> <span class="n">auxiliary</span> <span class="n">Transducer</span> <span class="n">loss</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
+    <span class="n">aux</span><span class="o">-</span><span class="n">transducer</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">enc</span><span class="o">-</span><span class="n">output</span><span class="o">-</span><span class="n">layers</span><span class="p">:</span> <span class="p">[</span><span class="n">List</span> <span class="n">of</span> <span class="n">intermediate</span> <span class="n">encoder</span> <span class="n">layer</span> <span class="n">IDs</span> <span class="n">to</span> <span class="n">compute</span> <span class="n">auxiliary</span> <span class="n">Transducer</span> <span class="n">loss</span><span class="p">(</span><span class="n">es</span><span class="p">)</span><span class="o">.</span> <span class="p">(</span><span class="nb">list</span><span class="p">)]</span>
+    <span class="n">aux</span><span class="o">-</span><span class="n">transducer</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">mlp</span><span class="o">-</span><span class="n">dim</span><span class="p">:</span> <span class="p">[</span><span class="n">Hidden</span> <span class="n">dimension</span> <span class="k">for</span> <span class="n">the</span> <span class="n">MLP</span> <span class="n">network</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+    <span class="n">aux</span><span class="o">-</span><span class="n">transducer</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">mlp</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span><span class="p">:</span> <span class="p">[</span><span class="n">Dropout</span> <span class="n">rate</span> <span class="k">for</span> <span class="n">the</span> <span class="n">MLP</span> <span class="n">network</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
+
+    <span class="c1"># Symmetric KL divergence loss (L4)</span>
+    <span class="c1"># Note: It can be only used paired with the auxiliary Transducer loss.</span>
+    <span class="n">use</span><span class="o">-</span><span class="n">symm</span><span class="o">-</span><span class="n">kl</span><span class="o">-</span><span class="n">div</span><span class="o">-</span><span class="n">loss</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="n">symm</span><span class="o">-</span><span class="n">kl</span><span class="o">-</span><span class="n">div</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">weight</span><span class="p">:</span> <span class="p">[</span><span class="n">Weight</span> <span class="n">of</span> <span class="n">the</span> <span class="n">symmetric</span> <span class="n">KL</span> <span class="n">divergence</span> <span class="n">loss</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
+
+    <span class="c1"># LM loss (L5)</span>
+    <span class="n">use</span><span class="o">-</span><span class="n">lm</span><span class="o">-</span><span class="n">loss</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="n">lm</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">weight</span><span class="p">:</span> <span class="p">[</span><span class="n">Weight</span> <span class="n">of</span> <span class="n">the</span> <span class="n">LM</span> <span class="n">loss</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
+    <span class="n">lm</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">smoothing</span><span class="o">-</span><span class="n">rate</span><span class="p">:</span> <span class="p">[</span><span class="n">Smoothing</span> <span class="n">rate</span> <span class="k">for</span> <span class="n">LM</span> <span class="n">loss</span><span class="o">.</span> <span class="n">If</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">label</span> <span class="n">smoothing</span> <span class="ow">is</span> <span class="n">enabled</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="inference">
+<h3>Inference<a class="headerlink" href="#inference" title="Permalink to this headline">¶</a></h3>
+<p>Various decoding algorithms are also available for Transducer by setting <code class="docutils literal notranslate"><span class="pre">beam-size</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type</span></code> parameters in decode config.</p>
 <ul class="simple">
-<li><p>Default beam search (<code class="docutils literal notranslate"><span class="pre">default</span></code>)</p></li>
-<li><p>Time-synchronous decoding (<code class="docutils literal notranslate"><span class="pre">tsd</span></code>)</p></li>
-<li><p>Alignment-length decoding (<code class="docutils literal notranslate"><span class="pre">alsd</span></code>)</p></li>
-<li><p>N-step Constrained beam search (<code class="docutils literal notranslate"><span class="pre">nsc</span></code>)</p></li>
+<li><p>Greedy search  constrained to one emission by timestep (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">1</span></code>)</p></li>
+<li><p>Beam search algorithm without prefix search. (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">default</span></code>)</p></li>
+<li><p>Time Synchronous Decoding <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/9053040">Saon et al. (2020)</a>. (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">tsd</span></code>)</p></li>
+<li><p>Alignment-Length Synchronous Decoding <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/9053040">Saon et al. (2020)</a>. (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">alsd</span></code>)</p></li>
+<li><p>N-step Constrained beam search modified from <a class="reference external" href="https://arxiv.org/abs/2002.03577">Kim et al., 2020</a>. (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">default</span></code>)</p></li>
+<li><p>modified Adaptive Expansion Search, based on <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/9250505">Kim et al. (2021)</a> and NSC. (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">maes</span></code>)</p></li>
 </ul>
-<p>All algorithms share a common parameter to control beam size (<code class="docutils literal notranslate"><span class="pre">beam-size</span></code>) but each ones have its own parameters:</p>
+<p>The algorithms share two parameters to control beam size (<code class="docutils literal notranslate"><span class="pre">beam-size</span></code>) and final hypotheses normalization (<code class="docutils literal notranslate"><span class="pre">score-norm-transducer</span></code>). The specific parameters for each algorithm are:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="c1"># Default beam search</span>
     <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">default</span>
-    <span class="n">score</span><span class="o">-</span><span class="n">norm</span><span class="o">-</span><span class="n">transducer</span><span class="p">:</span> <span class="n">normalize</span> <span class="n">final</span> <span class="n">scores</span> <span class="n">by</span> <span class="n">length</span>
 
     <span class="c1"># Time-synchronous decoding</span>
     <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">tsd</span>
-    <span class="nb">max</span><span class="o">-</span><span class="n">sym</span><span class="o">-</span><span class="n">exp</span><span class="p">:</span> <span class="n">number</span> <span class="n">of</span> <span class="n">maximum</span> <span class="n">symbol</span> <span class="n">expansions</span> <span class="n">at</span> <span class="n">each</span> <span class="n">time</span> <span class="n">step</span>
+    <span class="nb">max</span><span class="o">-</span><span class="n">sym</span><span class="o">-</span><span class="n">exp</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">maximum</span> <span class="n">symbol</span> <span class="n">expansions</span> <span class="n">at</span> <span class="n">each</span> <span class="n">time</span> <span class="n">step</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
 
     <span class="c1"># Alignement-length decoding</span>
     <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">alsd</span>
-    <span class="n">u</span><span class="o">-</span><span class="nb">max</span><span class="p">:</span> <span class="n">maximum</span> <span class="n">output</span> <span class="n">sequence</span> <span class="n">length</span>
+    <span class="n">u</span><span class="o">-</span><span class="nb">max</span><span class="p">:</span> <span class="p">[</span><span class="n">Maximum</span> <span class="n">output</span> <span class="n">sequence</span> <span class="n">length</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
 
     <span class="c1"># N-step Constrained beam search</span>
     <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">nsc</span>
-    <span class="n">nstep</span><span class="p">:</span> <span class="n">number</span> <span class="n">of</span> <span class="n">maximum</span> <span class="n">expansion</span> <span class="n">steps</span> <span class="n">at</span> <span class="n">each</span> <span class="n">time</span> <span class="n">step</span>
-           <span class="p">(</span><span class="n">N</span> <span class="n">exp</span><span class="o">.</span> <span class="n">step</span> <span class="o">=</span> <span class="n">N</span> <span class="n">symbol</span> <span class="n">expansion</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">prefix</span><span class="o">-</span><span class="n">alpha</span><span class="p">:</span> <span class="n">maximum</span> <span class="n">prefix</span> <span class="n">length</span> <span class="ow">in</span> <span class="n">prefix</span> <span class="n">search</span>
+    <span class="n">nstep</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">maximum</span> <span class="n">expansion</span> <span class="n">steps</span> <span class="n">at</span> <span class="n">each</span> <span class="n">time</span> <span class="n">step</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+           <span class="c1"># nstep = max-sym-exp + 1 (blank transition)</span>
+    <span class="n">prefix</span><span class="o">-</span><span class="n">alpha</span><span class="p">:</span> <span class="p">[</span><span class="n">Maximum</span> <span class="n">prefix</span> <span class="n">length</span> <span class="ow">in</span> <span class="n">prefix</span> <span class="n">search</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+
+    <span class="c1"># modified Adaptive Expansion Search</span>
+    <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">maes</span>
+    <span class="n">nstep</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">maximum</span> <span class="n">expansion</span> <span class="n">steps</span> <span class="n">at</span> <span class="n">each</span> <span class="n">time</span> <span class="n">step</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)]</span>
+    <span class="n">prefix</span><span class="o">-</span><span class="n">alpha</span><span class="p">:</span> <span class="p">[</span><span class="n">Maximum</span> <span class="n">prefix</span> <span class="n">length</span> <span class="ow">in</span> <span class="n">prefix</span> <span class="n">search</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+    <span class="n">expansion</span><span class="o">-</span><span class="n">gamma</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">additional</span> <span class="n">candidates</span> <span class="ow">in</span> <span class="n">expanded</span> <span class="n">hypotheses</span> <span class="n">selection</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+    <span class="n">expansion</span><span class="o">-</span><span class="n">beta</span><span class="p">:</span> <span class="p">[</span><span class="n">Allowed</span> <span class="n">logp</span> <span class="n">difference</span> <span class="k">for</span> <span class="n">prune</span><span class="o">-</span><span class="n">by</span><span class="o">-</span><span class="n">value</span> <span class="n">method</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)]</span>
 </pre></div>
 </div>
 <p>Except for the default algorithm, performance and decoding time can be controlled through described parameters. A high value will increase performance but also decoding time while a low value will decrease decoding time but will negatively impact performance.</p>
-<p>IMPORTANT (temporary) note: ALSD, TSD and NSC have their execution time degraded because of the current batching implementation. We decided to keep it as if for internal discussions but it can be manually removed by the user to speed up inference. In a near future, the inference part for transducer will be replaced by our own torch lib.</p>
-<p>The algorithm references can be found in <a class="reference external" href="https://github.com/espnet/espnet/tree/master/espnet/nets/beam_search_transducer.py">methods documentation</a>. For more information about decoding usage, refer to <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs/vivos/asr1/conf/tuning/transducer">vivos config examples</a>.</p>
-<p>Additional notes:</p>
+</div>
+<div class="section" id="additional-notes">
+<h3>Additional notes<a class="headerlink" href="#additional-notes" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
-<li><p>Similarly to CTC training mode, transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., –recog_model model.loss.best).</p></li>
-<li><p>There are several differences between MTL and transducer training/decoding options. The users should refer to <code class="docutils literal notranslate"><span class="pre">espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py</span></code> for an overview.</p></li>
-<li><p>RNN-decoder pre-initialization using a LM is supported. The LM state dict keys (<code class="docutils literal notranslate"><span class="pre">predictor.*</span></code>) will be matched to AM state dict keys (<code class="docutils literal notranslate"><span class="pre">dec.*</span></code>).</p></li>
-<li><p>Transformer-decoder pre-initialization using a transformer LM is not supported yet.</p></li>
-<li><p>Transformer and conformer blocks within the same architecture part (i.e: encoder) is not supported yet.</p></li>
-<li><p>Customizable architecture is a in-progress work and will be eventually extended to RNN. Please report any encountered error or usage issue.</p></li>
+<li><p>Similarly to training with CTC, Transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., –recog_model model.loss.best).</p></li>
+<li><p>There are several differences between MTL and Transducer training/decoding options. The users should refer to <code class="docutils literal notranslate"><span class="pre">espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py</span></code> for an overview and <code class="docutils literal notranslate"><span class="pre">espnet/espnet/nets/pytorch_backend/transducer/arguments</span></code> for all possible arguments.</p></li>
+<li><p>Memory usage during training can be reduced with minor training time augmentation using efficient encoder and decoder output combination <a class="reference external" href="https://arxiv.org/pdf/1909.12415.pdf">Li et al. (2019)</a>. To enable the feature, <code class="docutils literal notranslate"><span class="pre">joint-memory-reduction</span></code> can be set to True in training config.</p></li>
+<li><p>RNN-decoder pre-initialization using an LM is supported. The LM state dict keys (<code class="docutils literal notranslate"><span class="pre">predictor.*</span></code>) will be matched to AM state dict keys (<code class="docutils literal notranslate"><span class="pre">dec.*</span></code>).</p></li>
+<li><p>Transformer-decoder pre-initialization using a Transformer LM is not supported yet.</p></li>
 </ul>
+</div>
 </div>
 <div class="section" id="changing-the-training-configuration">
 <h2>Changing the training configuration<a class="headerlink" href="#changing-the-training-configuration" title="Permalink to this headline">¶</a></h2>
@@ -671,7 +726,7 @@ Example 3 (espnet2): <code class="docutils literal notranslate"><span class="pre
 <h2>Important notes<a class="headerlink" href="#important-notes" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Given a pre-trained source model, the modules specified for transfer learning are expected to have the same parameters (i.e.: layers and units) as the target model modules.</p></li>
-<li><p>We also support initialization with a pre-trained RNN LM for the RNN-transducer decoder.</p></li>
+<li><p>We also support initialization with a pre-trained RNN LM for the RNN-Transducer decoder.</p></li>
 <li><p>RNN models use different key names for encoder and decoder parts compared to Transformer, Conformer or Custom models:</p>
 <ul>
 <li><p>RNN model use <code class="docutils literal notranslate"><span class="pre">enc.</span></code> for encoder part and <code class="docutils literal notranslate"><span class="pre">dec.</span></code> for decoder part.</p></li>

@@ -214,6 +214,10 @@
 <span></span><span class="sd">&quot;&quot;&quot;Set of methods to create custom architecture.&quot;&quot;&quot;</span>
 
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
@@ -226,7 +230,7 @@
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.causal_conv1d</span> <span class="kn">import</span> <span class="n">CausalConv1d</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.transformer_decoder_layer</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">DecoderLayer</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">TransformerDecoderLayer</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.tdnn</span> <span class="kn">import</span> <span class="n">TDNN</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.vgg2l</span> <span class="kn">import</span> <span class="n">VGG2L</span>
@@ -248,20 +252,22 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.subsampling</span> <span class="kn">import</span> <span class="n">Conv2dSubsampling</span>
 
 
-<div class="viewcode-block" id="check_and_prepare"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.check_and_prepare">[docs]</a><span class="k">def</span> <span class="nf">check_and_prepare</span><span class="p">(</span><span class="n">net_part</span><span class="p">,</span> <span class="n">blocks_arch</span><span class="p">,</span> <span class="n">input_layer</span><span class="p">):</span>
+<div class="viewcode-block" id="check_and_prepare"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.check_and_prepare">[docs]</a><span class="k">def</span> <span class="nf">check_and_prepare</span><span class="p">(</span>
+    <span class="n">net_part</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">blocks_arch</span><span class="p">:</span> <span class="n">List</span><span class="p">,</span> <span class="n">input_layer_type</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Check consecutive block shapes match and prepare input parameters.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        net_part (str): either &#39;encoder&#39; or &#39;decoder&#39;</span>
-<span class="sd">        blocks_arch (list): list of blocks for network part (type and parameters)</span>
-<span class="sd">        input_layer (str): input layer type</span>
+<span class="sd">        net_part: Network part, either &#39;encoder&#39; or &#39;decoder&#39;.</span>
+<span class="sd">        blocks_arch: Block architecture (types and parameters) for network part.</span>
+<span class="sd">        input_layer_type: Input layer type.</span>
 
 <span class="sd">    Return:</span>
-<span class="sd">        input_layer (str): input layer type</span>
-<span class="sd">        input_layer_odim (int): output dim of input layer</span>
-<span class="sd">        input_dropout_rate (float): dropout rate of input layer</span>
-<span class="sd">        input_pos_dropout_rate (float): dropout rate of input layer positional enc.</span>
-<span class="sd">        out_dim (int): output dim of last block</span>
+<span class="sd">        input_layer_type: Input layer type.</span>
+<span class="sd">        input_layer_odim: Input layer output dimension.</span>
+<span class="sd">        input_dropout_rate: Dropout rate for input layer.</span>
+<span class="sd">        input_pos_dropout_rate: Dropout rate for input layer positional encoding.</span>
+<span class="sd">        net_out_dim: Network output dimension.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">input_dropout_rate</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
@@ -354,7 +360,7 @@
                 <span class="p">)</span>
 
             <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">input_layer</span> <span class="o">=</span> <span class="s2">&quot;c-embed&quot;</span>
+                <span class="n">input_layer_type</span> <span class="o">=</span> <span class="s2">&quot;c-embed&quot;</span>
 
             <span class="n">cmp_io</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">blocks_arch</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;idim&quot;</span><span class="p">],</span> <span class="n">blocks_arch</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;odim&quot;</span><span class="p">]))</span>
         <span class="k">elif</span> <span class="n">block_type</span> <span class="o">==</span> <span class="s2">&quot;tdnn&quot;</span><span class="p">:</span>
@@ -405,30 +411,35 @@
         <span class="n">input_layer_odim</span> <span class="o">=</span> <span class="n">blocks_arch</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;d_hidden&quot;</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">blocks_arch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;tdnn&quot;</span><span class="p">,</span> <span class="s2">&quot;causal-conv1d&quot;</span><span class="p">):</span>
-        <span class="n">out_dim</span> <span class="o">=</span> <span class="n">blocks_arch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;odim&quot;</span><span class="p">]</span>
+        <span class="n">net_out_dim</span> <span class="o">=</span> <span class="n">blocks_arch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;odim&quot;</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">out_dim</span> <span class="o">=</span> <span class="n">blocks_arch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;d_hidden&quot;</span><span class="p">]</span>
+        <span class="n">net_out_dim</span> <span class="o">=</span> <span class="n">blocks_arch</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;d_hidden&quot;</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="p">(</span>
-        <span class="n">input_layer</span><span class="p">,</span>
+        <span class="n">input_layer_type</span><span class="p">,</span>
         <span class="n">input_layer_odim</span><span class="p">,</span>
         <span class="n">input_dropout_rate</span><span class="p">,</span>
         <span class="n">input_pos_dropout_rate</span><span class="p">,</span>
-        <span class="n">out_dim</span><span class="p">,</span>
+        <span class="n">net_out_dim</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="get_pos_enc_and_att_class"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.get_pos_enc_and_att_class">[docs]</a><span class="k">def</span> <span class="nf">get_pos_enc_and_att_class</span><span class="p">(</span><span class="n">net_part</span><span class="p">,</span> <span class="n">pos_enc_type</span><span class="p">,</span> <span class="n">self_attn_type</span><span class="p">):</span>
+<div class="viewcode-block" id="get_pos_enc_and_att_class"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.get_pos_enc_and_att_class">[docs]</a><span class="k">def</span> <span class="nf">get_pos_enc_and_att_class</span><span class="p">(</span>
+    <span class="n">net_part</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pos_enc_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">self_attn_type</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
+    <span class="n">Union</span><span class="p">[</span><span class="n">PositionalEncoding</span><span class="p">,</span> <span class="n">ScaledPositionalEncoding</span><span class="p">,</span> <span class="n">RelPositionalEncoding</span><span class="p">],</span>
+    <span class="n">Union</span><span class="p">[</span><span class="n">MultiHeadedAttention</span><span class="p">,</span> <span class="n">RelPositionMultiHeadedAttention</span><span class="p">],</span>
+<span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Get positional encoding and self attention module class.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        net_part (str): either &#39;encoder&#39; or &#39;decoder&#39;</span>
-<span class="sd">        pos_enc_type (str): positional encoding type</span>
-<span class="sd">        self_attn_type (str): self-attention type</span>
+<span class="sd">        net_part: Network part, either &#39;encoder&#39; or &#39;decoder&#39;.</span>
+<span class="sd">        pos_enc_type: Positional encoding type.</span>
+<span class="sd">        self_attn_type: Self-attention type.</span>
 
 <span class="sd">    Return:</span>
-<span class="sd">        pos_enc_class (torch.nn.Module): positional encoding class</span>
-<span class="sd">        self_attn_class (torch.nn.Module): self-attention class</span>
+<span class="sd">        pos_enc_class: Positional encoding class.</span>
+<span class="sd">        self_attn_class: Self-attention class.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">pos_enc_type</span> <span class="o">==</span> <span class="s2">&quot;abs_pos&quot;</span><span class="p">:</span>
@@ -453,30 +464,30 @@
 
 
 <div class="viewcode-block" id="build_input_layer"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_input_layer">[docs]</a><span class="k">def</span> <span class="nf">build_input_layer</span><span class="p">(</span>
-    <span class="n">input_layer</span><span class="p">,</span>
-    <span class="n">idim</span><span class="p">,</span>
-    <span class="n">odim</span><span class="p">,</span>
-    <span class="n">pos_enc_class</span><span class="p">,</span>
-    <span class="n">dropout_rate_embed</span><span class="p">,</span>
-    <span class="n">dropout_rate</span><span class="p">,</span>
-    <span class="n">pos_dropout_rate</span><span class="p">,</span>
-    <span class="n">padding_idx</span><span class="p">,</span>
-<span class="p">):</span>
+    <span class="n">input_layer</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">odim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">pos_enc_class</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">dropout_rate_embed</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">pos_dropout_rate</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Conv2dSubsampling</span><span class="p">,</span> <span class="n">VGG2L</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">],</span> <span class="nb">int</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Build input layer.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        input_layer (str): input layer type</span>
-<span class="sd">        idim (int): input dimension</span>
-<span class="sd">        odim (int): output dimension</span>
-<span class="sd">        pos_enc_class (class): positional encoding class</span>
-<span class="sd">        dropout_rate_embed (float): dropout rate for embedding layer</span>
-<span class="sd">        dropout_rate (float): dropout rate for input layer</span>
-<span class="sd">        pos_dropout_rate (float): dropout rate for positional encoding</span>
-<span class="sd">        padding_idx (int): padding index for embedding input layer (if specified)</span>
+<span class="sd">        input_layer: Input layer type.</span>
+<span class="sd">        idim: Input dimension.</span>
+<span class="sd">        odim: Output dimension.</span>
+<span class="sd">        pos_enc_class: Positional encoding class.</span>
+<span class="sd">        dropout_rate_embed: Dropout rate for embedding layer.</span>
+<span class="sd">        dropout_rate: Dropout rate for input layer.</span>
+<span class="sd">        pos_dropout_rate: Dropout rate for positional encoding.</span>
+<span class="sd">        padding_idx: Padding symbol ID for embedding layer.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        (torch.nn.*): input layer module</span>
-<span class="sd">        subsampling_factor (int): subsampling factor</span>
+<span class="sd">        : Input layer module.</span>
+<span class="sd">        subsampling_factor: subsampling factor.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">pos_enc_class</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;RelPositionalEncoding&quot;</span><span class="p">:</span>
@@ -519,17 +530,19 @@
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Support: linear, conv2d, vgg2l and embed&quot;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="build_transformer_block"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_transformer_block">[docs]</a><span class="k">def</span> <span class="nf">build_transformer_block</span><span class="p">(</span><span class="n">net_part</span><span class="p">,</span> <span class="n">block_arch</span><span class="p">,</span> <span class="n">pw_layer_type</span><span class="p">,</span> <span class="n">pw_activation_type</span><span class="p">):</span>
+<div class="viewcode-block" id="build_transformer_block"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_transformer_block">[docs]</a><span class="k">def</span> <span class="nf">build_transformer_block</span><span class="p">(</span>
+    <span class="n">net_part</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">block_arch</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">pw_layer_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pw_activation_type</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">EncoderLayer</span><span class="p">,</span> <span class="n">TransformerDecoderLayer</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Build function for transformer block.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        net_part (str): either &#39;encoder&#39; or &#39;decoder&#39;</span>
-<span class="sd">        block_arch (dict): transformer block parameters</span>
-<span class="sd">        pw_layer_type (str): positionwise layer type</span>
-<span class="sd">        pw_activation_type (str): positionwise activation type</span>
+<span class="sd">        net_part: Network part, either &#39;encoder&#39; or &#39;decoder&#39;.</span>
+<span class="sd">        block_arch: Transformer block parameters.</span>
+<span class="sd">        pw_layer_type: Positionwise layer type.</span>
+<span class="sd">        pw_activation_type: Positionwise activation type.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        (function): function to create transformer block</span>
+<span class="sd">        : Function to create transformer (encoder or decoder) block.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">d_hidden</span> <span class="o">=</span> <span class="n">block_arch</span><span class="p">[</span><span class="s2">&quot;d_hidden&quot;</span><span class="p">]</span>
@@ -554,7 +567,7 @@
     <span class="k">if</span> <span class="n">net_part</span> <span class="o">==</span> <span class="s2">&quot;encoder&quot;</span><span class="p">:</span>
         <span class="n">transformer_layer_class</span> <span class="o">=</span> <span class="n">EncoderLayer</span>
     <span class="k">elif</span> <span class="n">net_part</span> <span class="o">==</span> <span class="s2">&quot;decoder&quot;</span><span class="p">:</span>
-        <span class="n">transformer_layer_class</span> <span class="o">=</span> <span class="n">DecoderLayer</span>
+        <span class="n">transformer_layer_class</span> <span class="o">=</span> <span class="n">TransformerDecoderLayer</span>
 
     <span class="k">return</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">transformer_layer_class</span><span class="p">(</span>
         <span class="n">d_hidden</span><span class="p">,</span>
@@ -565,23 +578,23 @@
 
 
 <div class="viewcode-block" id="build_conformer_block"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_conformer_block">[docs]</a><span class="k">def</span> <span class="nf">build_conformer_block</span><span class="p">(</span>
-    <span class="n">block_arch</span><span class="p">,</span>
-    <span class="n">self_attn_class</span><span class="p">,</span>
-    <span class="n">pw_layer_type</span><span class="p">,</span>
-    <span class="n">pw_activation_type</span><span class="p">,</span>
-    <span class="n">conv_mod_activation_type</span><span class="p">,</span>
-<span class="p">):</span>
+    <span class="n">block_arch</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span>
+    <span class="n">self_attn_class</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">pw_layer_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">pw_activation_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">conv_mod_activation_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConformerEncoderLayer</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Build function for conformer block.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        block_arch (dict): conformer block parameters</span>
-<span class="sd">        self_attn_type (str): self-attention module type</span>
-<span class="sd">        pw_layer_type (str): positionwise layer type</span>
-<span class="sd">        pw_activation_type (str): positionwise activation type</span>
-<span class="sd">        conv_mod_activation_type (str): convolutional module activation type</span>
+<span class="sd">        block_arch: Conformer block parameters.</span>
+<span class="sd">        self_attn_type: Self-attention module type.</span>
+<span class="sd">        pw_layer_type: Positionwise layer type.</span>
+<span class="sd">        pw_activation_type: Positionwise activation type.</span>
+<span class="sd">        conv_mod_activation_type: Convolutional module activation type.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        (function): function to create conformer block</span>
+<span class="sd">        : Function to create conformer (encoder) block.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">d_hidden</span> <span class="o">=</span> <span class="n">block_arch</span><span class="p">[</span><span class="s2">&quot;d_hidden&quot;</span><span class="p">]</span>
@@ -620,14 +633,14 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="build_causal_conv1d_block"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_causal_conv1d_block">[docs]</a><span class="k">def</span> <span class="nf">build_causal_conv1d_block</span><span class="p">(</span><span class="n">block_arch</span><span class="p">):</span>
+<div class="viewcode-block" id="build_causal_conv1d_block"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_causal_conv1d_block">[docs]</a><span class="k">def</span> <span class="nf">build_causal_conv1d_block</span><span class="p">(</span><span class="n">block_arch</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CausalConv1d</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Build function for causal conv1d block.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        block_arch (dict): causal conv1d block parameters</span>
+<span class="sd">        block_arch: Causal conv1D block parameters.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        (function): function to create causal conv1d block</span>
+<span class="sd">        : Function to create causal conv1d (decoder) block.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">idim</span> <span class="o">=</span> <span class="n">block_arch</span><span class="p">[</span><span class="s2">&quot;idim&quot;</span><span class="p">]</span>
@@ -637,14 +650,14 @@
     <span class="k">return</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">CausalConv1d</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="build_tdnn_block"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_tdnn_block">[docs]</a><span class="k">def</span> <span class="nf">build_tdnn_block</span><span class="p">(</span><span class="n">block_arch</span><span class="p">):</span>
+<div class="viewcode-block" id="build_tdnn_block"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_tdnn_block">[docs]</a><span class="k">def</span> <span class="nf">build_tdnn_block</span><span class="p">(</span><span class="n">block_arch</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TDNN</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Build function for tdnn block.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        block_arch (dict): tdnn block parameters</span>
+<span class="sd">        block_arch: TDNN block parameters.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        (function): function to create tdnn block</span>
+<span class="sd">        : function to create tdnn (encoder) block.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">idim</span> <span class="o">=</span> <span class="n">block_arch</span><span class="p">[</span><span class="s2">&quot;idim&quot;</span><span class="p">]</span>
@@ -673,57 +686,59 @@
 
 
 <div class="viewcode-block" id="build_blocks"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_blocks">[docs]</a><span class="k">def</span> <span class="nf">build_blocks</span><span class="p">(</span>
-    <span class="n">net_part</span><span class="p">,</span>
-    <span class="n">idim</span><span class="p">,</span>
-    <span class="n">input_layer</span><span class="p">,</span>
-    <span class="n">blocks_arch</span><span class="p">,</span>
-    <span class="n">repeat_block</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-    <span class="n">self_attn_type</span><span class="o">=</span><span class="s2">&quot;self_attn&quot;</span><span class="p">,</span>
-    <span class="n">positional_encoding_type</span><span class="o">=</span><span class="s2">&quot;abs_pos&quot;</span><span class="p">,</span>
-    <span class="n">positionwise_layer_type</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>
-    <span class="n">positionwise_activation_type</span><span class="o">=</span><span class="s2">&quot;relu&quot;</span><span class="p">,</span>
-    <span class="n">conv_mod_activation_type</span><span class="o">=</span><span class="s2">&quot;relu&quot;</span><span class="p">,</span>
-    <span class="n">dropout_rate_embed</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-    <span class="n">padding_idx</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-<span class="p">):</span>
+    <span class="n">net_part</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">input_layer_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">blocks_arch</span><span class="p">:</span> <span class="n">List</span><span class="p">,</span>
+    <span class="n">repeat_block</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">self_attn_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;self_attn&quot;</span><span class="p">,</span>
+    <span class="n">positional_encoding_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;abs_pos&quot;</span><span class="p">,</span>
+    <span class="n">positionwise_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;linear&quot;</span><span class="p">,</span>
+    <span class="n">positionwise_activation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;relu&quot;</span><span class="p">,</span>
+    <span class="n">conv_mod_activation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;relu&quot;</span><span class="p">,</span>
+    <span class="n">dropout_rate_embed</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
+    <span class="n">Union</span><span class="p">[</span><span class="n">Conv2dSubsampling</span><span class="p">,</span> <span class="n">VGG2L</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">],</span> <span class="n">MultiSequential</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span>
+<span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Build block for customizable architecture.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        net_part (str): either &#39;encoder&#39; or &#39;decoder&#39;</span>
-<span class="sd">        idim (int): dimension of inputs</span>
-<span class="sd">        input_layer (str): input layer type</span>
-<span class="sd">        blocks_arch (list): list of blocks for network part (type and parameters)</span>
-<span class="sd">        repeat_block (int): repeat provided blocks N times if N &gt; 1</span>
-<span class="sd">        positional_encoding_type (str): positional encoding layer type</span>
-<span class="sd">        positionwise_layer_type (str): linear</span>
-<span class="sd">        positionwise_activation_type (str): positionwise activation type</span>
-<span class="sd">        conv_mod_activation_type (str): convolutional module activation type</span>
-<span class="sd">        dropout_rate_embed (float): dropout rate for embedding</span>
-<span class="sd">        padding_idx (int): padding index for embedding input layer (if specified)</span>
+<span class="sd">        net_part: Network part, either &#39;encoder&#39; or &#39;decoder&#39;.</span>
+<span class="sd">        idim: Input dimension.</span>
+<span class="sd">        input_layer: Input layer type.</span>
+<span class="sd">        blocks_arch: Block architecture (types and parameters) for network part.</span>
+<span class="sd">        repeat_block: Number of times blocks_arch is repeated.</span>
+<span class="sd">        positional_encoding_type: Positional encoding layer type.</span>
+<span class="sd">        positionwise_layer_type: Positionwise layer type.</span>
+<span class="sd">        positionwise_activation_type: Positionwise activation type.</span>
+<span class="sd">        conv_mod_activation_type: Convolutional module activation type.</span>
+<span class="sd">        dropout_rate_embed: Dropout rate for embedding layer.</span>
+<span class="sd">        padding_idx: Padding symbol ID for embedding layer.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        in_layer (torch.nn.*): input layer</span>
-<span class="sd">        all_blocks (MultiSequential): all blocks for network part</span>
-<span class="sd">        out_dim (int): dimension of last block output</span>
-<span class="sd">        conv_subsampling_factor (int): subsampling factor in frontend CNN</span>
+<span class="sd">        in_layer: Input layer</span>
+<span class="sd">        all_blocks: (Encoder or Decoder) network.</span>
+<span class="sd">        out_dim: Network output dimension.</span>
+<span class="sd">        conv_subsampling_factor: Subsampling factor in frontend CNN.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">fn_modules</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="p">(</span>
-        <span class="n">input_layer</span><span class="p">,</span>
+        <span class="n">input_layer_type</span><span class="p">,</span>
         <span class="n">input_layer_odim</span><span class="p">,</span>
         <span class="n">input_dropout_rate</span><span class="p">,</span>
         <span class="n">input_pos_dropout_rate</span><span class="p">,</span>
         <span class="n">out_dim</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">=</span> <span class="n">check_and_prepare</span><span class="p">(</span><span class="n">net_part</span><span class="p">,</span> <span class="n">blocks_arch</span><span class="p">,</span> <span class="n">input_layer</span><span class="p">)</span>
+    <span class="p">)</span> <span class="o">=</span> <span class="n">check_and_prepare</span><span class="p">(</span><span class="n">net_part</span><span class="p">,</span> <span class="n">blocks_arch</span><span class="p">,</span> <span class="n">input_layer_type</span><span class="p">)</span>
 
     <span class="n">pos_enc_class</span><span class="p">,</span> <span class="n">self_attn_class</span> <span class="o">=</span> <span class="n">get_pos_enc_and_att_class</span><span class="p">(</span>
         <span class="n">net_part</span><span class="p">,</span> <span class="n">positional_encoding_type</span><span class="p">,</span> <span class="n">self_attn_type</span>
     <span class="p">)</span>
 
     <span class="n">in_layer</span><span class="p">,</span> <span class="n">conv_subsampling_factor</span> <span class="o">=</span> <span class="n">build_input_layer</span><span class="p">(</span>
-        <span class="n">input_layer</span><span class="p">,</span>
+        <span class="n">input_layer_type</span><span class="p">,</span>
         <span class="n">idim</span><span class="p">,</span>
         <span class="n">input_layer_odim</span><span class="p">,</span>
         <span class="n">pos_enc_class</span><span class="p">,</span>

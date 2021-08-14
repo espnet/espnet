@@ -213,11 +213,11 @@
   <h1>Source code for espnet.asr.pytorch_backend.asr_init</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Finetuning methods.&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 
 <span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">get_model_conf</span>
 <span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">torch_load</span>
@@ -232,17 +232,17 @@
     <span class="sd">&quot;&quot;&quot;Freeze model parameters according to modules list.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        model (torch.nn.Module): main model to update</span>
-<span class="sd">        modules (list): specified module list for freezing</span>
+<span class="sd">        model (torch.nn.Module): Main model.</span>
+<span class="sd">        modules (List): Specified module(s) to freeze.</span>
 
 <span class="sd">    Return:</span>
-<span class="sd">        model (torch.nn.Module): updated model</span>
-<span class="sd">        model_params (filter): filtered model parameters</span>
+<span class="sd">        model (torch.nn.Module) : Updated main model.</span>
+<span class="sd">        model_params (filter): Filtered model parameters.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">mod</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
         <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">mod</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">modules</span><span class="p">):</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;freezing </span><span class="si">{</span><span class="n">mod</span><span class="si">}</span><span class="s2">, it will not be updated.&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Freezing </span><span class="si">{</span><span class="n">mod</span><span class="si">}</span><span class="s2">. It will not be updated during training.&quot;</span><span class="p">)</span>
             <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="n">model_params</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span>
@@ -254,45 +254,50 @@
     <span class="sd">&quot;&quot;&quot;Verify tuples (key, shape) for input model modules match specified modules.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        model_state_dict (OrderedDict): the initial model state_dict</span>
-<span class="sd">        partial_state_dict (OrderedDict): the trained model state_dict</span>
-<span class="sd">        modules (list): specified module list for transfer</span>
+<span class="sd">        model_state_dict (Dict) : Main model state dict.</span>
+<span class="sd">        partial_state_dict (Dict): Pre-trained model state dict.</span>
+<span class="sd">        modules (List): Specified module(s) to transfer.</span>
 
 <span class="sd">    Return:</span>
-<span class="sd">        (boolean): allow transfer</span>
+<span class="sd">        (bool): Whether transfer learning is allowed.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">modules_model</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">model_modules</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">partial_modules</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">key_m</span><span class="p">,</span> <span class="n">value_m</span> <span class="ow">in</span> <span class="n">model_state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">key_m</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">modules</span><span class="p">):</span>
+            <span class="n">model_modules</span> <span class="o">+=</span> <span class="p">[(</span><span class="n">key_m</span><span class="p">,</span> <span class="n">value_m</span><span class="o">.</span><span class="n">shape</span><span class="p">)]</span>
+    <span class="n">model_modules</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">model_modules</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
 
     <span class="k">for</span> <span class="n">key_p</span><span class="p">,</span> <span class="n">value_p</span> <span class="ow">in</span> <span class="n">partial_state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">key_p</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">modules</span><span class="p">):</span>
             <span class="n">partial_modules</span> <span class="o">+=</span> <span class="p">[(</span><span class="n">key_p</span><span class="p">,</span> <span class="n">value_p</span><span class="o">.</span><span class="n">shape</span><span class="p">)]</span>
+    <span class="n">partial_modules</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">partial_modules</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
 
-    <span class="k">for</span> <span class="n">key_m</span><span class="p">,</span> <span class="n">value_m</span> <span class="ow">in</span> <span class="n">model_state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">key_m</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">modules</span><span class="p">):</span>
-            <span class="n">modules_model</span> <span class="o">+=</span> <span class="p">[(</span><span class="n">key_m</span><span class="p">,</span> <span class="n">value_m</span><span class="o">.</span><span class="n">shape</span><span class="p">)]</span>
+    <span class="n">module_match</span> <span class="o">=</span> <span class="n">model_modules</span> <span class="o">==</span> <span class="n">partial_modules</span>
 
-    <span class="n">len_match</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">modules_model</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">partial_modules</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">module_match</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Some specified modules from the pre-trained model &quot;</span>
+            <span class="s2">&quot;don&#39;t match with the new model modules:&quot;</span>
+        <span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Pre-trained: </span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">partial_modules</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">model_modules</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;New model: </span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">model_modules</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">partial_modules</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="n">module_match</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">modules_model</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span>
-        <span class="n">partial_modules</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">len_match</span> <span class="ow">and</span> <span class="n">module_match</span></div>
+    <span class="k">return</span> <span class="n">module_match</span></div>
 
 
 <div class="viewcode-block" id="get_partial_state_dict"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.get_partial_state_dict">[docs]</a><span class="k">def</span> <span class="nf">get_partial_state_dict</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">modules</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Create state_dict with specified modules matching input model modules.</span>
-
-<span class="sd">    Note that get_partial_lm_state_dict is used if a LM specified.</span>
+    <span class="sd">&quot;&quot;&quot;Create state dict with specified modules matching input model modules.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        model_state_dict (OrderedDict): trained model state_dict</span>
-<span class="sd">        modules (list): specified module list for transfer</span>
+<span class="sd">        model_state_dict (Dict): Pre-trained model state dict.</span>
+<span class="sd">        modules (Dict): Specified module(s) to transfer.</span>
 
 <span class="sd">    Return:</span>
-<span class="sd">        new_state_dict (OrderedDict): the updated state_dict</span>
+<span class="sd">        new_state_dict (Dict): State dict with specified modules weights.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">new_state_dict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
@@ -308,10 +313,10 @@
     <span class="sd">&quot;&quot;&quot;Create compatible ASR decoder state dict from LM state dict.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        lm_state_dict (OrderedDict): pre-trained LM state_dict</span>
+<span class="sd">        lm_state_dict (Dict): Pre-trained LM state dict.</span>
 
 <span class="sd">    Return:</span>
-<span class="sd">        new_state_dict (OrderedDict): LM state_dict with updated keys</span>
+<span class="sd">        new_state_dict (Dict): State dict with compatible key names.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">new_state_dict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
@@ -329,14 +334,14 @@
 
 
 <div class="viewcode-block" id="filter_modules"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.filter_modules">[docs]</a><span class="k">def</span> <span class="nf">filter_modules</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">modules</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Filter non-matched modules in module_state_dict.</span>
+    <span class="sd">&quot;&quot;&quot;Filter non-matched modules in model state dict.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        model_state_dict (OrderedDict): trained model state_dict</span>
-<span class="sd">        modules (list): specified module list for transfer</span>
+<span class="sd">        model_state_dict (Dict): Pre-trained model state dict.</span>
+<span class="sd">        modules (List): Specified module(s) to transfer.</span>
 
 <span class="sd">    Return:</span>
-<span class="sd">        new_mods (list): the update module list</span>
+<span class="sd">        new_mods (List): Filtered module list.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">new_mods</span> <span class="o">=</span> <span class="p">[]</span>
@@ -350,15 +355,58 @@
             <span class="n">incorrect_mods</span> <span class="o">+=</span> <span class="p">[</span><span class="n">mod</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">incorrect_mods</span><span class="p">:</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="s2">&quot;module(s) </span><span class="si">%s</span><span class="s2"> don&#39;t match or (partially match) &quot;</span>
-            <span class="s2">&quot;available modules in model.&quot;</span><span class="p">,</span>
-            <span class="n">incorrect_mods</span><span class="p">,</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Specified module(s) don&#39;t match or (partially match) &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;available modules in model. You specified: </span><span class="si">{</span><span class="n">incorrect_mods</span><span class="si">}</span><span class="s2">.&quot;</span>
         <span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;for information, the existing modules in model are:&quot;</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">mods_model</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;The existing modules in model are:&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mods_model</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">new_mods</span></div>
+
+
+<div class="viewcode-block" id="create_transducer_compatible_state_dict"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.create_transducer_compatible_state_dict">[docs]</a><span class="k">def</span> <span class="nf">create_transducer_compatible_state_dict</span><span class="p">(</span>
+    <span class="n">model_state_dict</span><span class="p">,</span> <span class="n">encoder_type</span><span class="p">,</span> <span class="n">encoder_units</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a compatible transducer model state dict for transfer learning.</span>
+
+<span class="sd">    If RNN encoder modules from a non-Transducer model are found in</span>
+<span class="sd">    the pre-trained model state dict, the corresponding modules keys are</span>
+<span class="sd">    renamed for compatibility.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model_state_dict (Dict): Pre-trained model state dict</span>
+<span class="sd">        encoder_type (str): Type of pre-trained encoder.</span>
+<span class="sd">        encoder_units (int): Number of encoder units in pre-trained model.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        new_state_dict (Dict): Transducer compatible pre-trained model state dict.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">encoder_type</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">encoder_type</span><span class="o">.</span><span class="n">endswith</span><span class="p">((</span><span class="s2">&quot;lstm&quot;</span><span class="p">,</span> <span class="s2">&quot;gru&quot;</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">model_state_dict</span>
+
+    <span class="n">new_state_dict</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="n">rnn_key_name</span> <span class="o">=</span> <span class="s2">&quot;birnn&quot;</span> <span class="k">if</span> <span class="s2">&quot;b&quot;</span> <span class="ow">in</span> <span class="n">encoder_type</span> <span class="k">else</span> <span class="s2">&quot;rnn&quot;</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">model_state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">k</span> <span class="ow">in</span> <span class="n">key</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;l_last&quot;</span><span class="p">,</span> <span class="s2">&quot;nbrnn&quot;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="s2">&quot;nbrnn&quot;</span> <span class="ow">in</span> <span class="n">key</span><span class="p">:</span>
+                <span class="n">layer_name</span> <span class="o">=</span> <span class="n">rnn_key_name</span> <span class="o">+</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s2">&quot;_l([0-9]+)&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+                <span class="n">key</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
+                    <span class="s2">&quot;_l([0-9]+)&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;_l0&quot;</span><span class="p">,</span>
+                    <span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;nbrnn&quot;</span><span class="p">,</span> <span class="n">layer_name</span><span class="p">),</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">encoder_units</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="n">value</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="p">[:,</span> <span class="p">:</span><span class="n">encoder_units</span><span class="p">]</span> <span class="o">+</span> <span class="n">value</span><span class="p">[:,</span> <span class="n">encoder_units</span><span class="p">:]</span>
+
+        <span class="n">new_state_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">return</span> <span class="n">new_state_dict</span></div>
 
 
 <div class="viewcode-block" id="load_trained_model"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.load_trained_model">[docs]</a><span class="k">def</span> <span class="nf">load_trained_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">training</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -366,18 +414,24 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        model_path (str): Path to model.***.best</span>
+<span class="sd">        training (bool): Training mode specification for transducer model.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        model (torch.nn.Module): Trained model.</span>
+<span class="sd">        train_args (Namespace): Trained model arguments.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">train_args</span> <span class="o">=</span> <span class="n">get_model_conf</span><span class="p">(</span>
         <span class="n">model_path</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">model_path</span><span class="p">),</span> <span class="s2">&quot;model.json&quot;</span><span class="p">)</span>
     <span class="p">)</span>
 
-    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;reading model parameters from &quot;</span> <span class="o">+</span> <span class="n">model_path</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reading model parameters from </span><span class="si">{</span><span class="n">model_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">train_args</span><span class="p">,</span> <span class="s2">&quot;model_module&quot;</span><span class="p">):</span>
         <span class="n">model_module</span> <span class="o">=</span> <span class="n">train_args</span><span class="o">.</span><span class="n">model_module</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">model_module</span> <span class="o">=</span> <span class="s2">&quot;espnet.nets.pytorch_backend.e2e_asr:E2E&quot;</span>
+
     <span class="c1"># CTC Loss is not needed, default to builtin to prevent import errors</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">train_args</span><span class="p">,</span> <span class="s2">&quot;ctc_type&quot;</span><span class="p">):</span>
         <span class="n">train_args</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">=</span> <span class="s2">&quot;builtin&quot;</span>
@@ -394,26 +448,25 @@
     <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">train_args</span></div>
 
 
-<div class="viewcode-block" id="get_trained_model_state_dict"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.get_trained_model_state_dict">[docs]</a><span class="k">def</span> <span class="nf">get_trained_model_state_dict</span><span class="p">(</span><span class="n">model_path</span><span class="p">):</span>
+<div class="viewcode-block" id="get_trained_model_state_dict"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.get_trained_model_state_dict">[docs]</a><span class="k">def</span> <span class="nf">get_trained_model_state_dict</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">new_is_transducer</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Extract the trained model state dict for pre-initialization.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        model_path (str): Path to model.***.best</span>
+<span class="sd">        model_path (str): Path to trained model.</span>
+<span class="sd">        new_is_transducer (bool): Whether the new model is Transducer-based.</span>
 
 <span class="sd">    Return:</span>
-<span class="sd">        model.state_dict() (OrderedDict): the loaded model state_dict</span>
-<span class="sd">        (bool): Boolean defining whether the model is an LM</span>
+<span class="sd">        (Dict): Trained model state dict.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">conf_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">model_path</span><span class="p">),</span> <span class="s2">&quot;model.json&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="s2">&quot;rnnlm&quot;</span> <span class="ow">in</span> <span class="n">model_path</span><span class="p">:</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;reading model parameters from </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">model_path</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reading model parameters from </span><span class="si">{</span><span class="n">model_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
+    <span class="n">conf_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">model_path</span><span class="p">),</span> <span class="s2">&quot;model.json&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">&quot;rnnlm&quot;</span> <span class="ow">in</span> <span class="n">model_path</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">get_lm_state_dict</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_path</span><span class="p">))</span>
 
     <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">get_model_conf</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">conf_path</span><span class="p">)</span>
-
-    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;reading model parameters from &quot;</span> <span class="o">+</span> <span class="n">model_path</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;model_module&quot;</span><span class="p">):</span>
         <span class="n">model_module</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">model_module</span>
@@ -423,34 +476,42 @@
     <span class="n">model_class</span> <span class="o">=</span> <span class="n">dynamic_import</span><span class="p">(</span><span class="n">model_module</span><span class="p">)</span>
     <span class="n">model</span> <span class="o">=</span> <span class="n">model_class</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
     <span class="n">torch_load</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+
     <span class="k">assert</span> <span class="p">(</span>
         <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">MTInterface</span><span class="p">)</span>
         <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">ASRInterface</span><span class="p">)</span>
         <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">TTSInterface</span><span class="p">)</span>
     <span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">new_is_transducer</span> <span class="ow">and</span> <span class="s2">&quot;transducer&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">model_module</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">create_transducer_compatible_state_dict</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">etype</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">eunits</span><span class="p">,</span>
+        <span class="p">)</span>
+
     <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="load_trained_modules"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.pytorch_backend.asr_init.load_trained_modules">[docs]</a><span class="k">def</span> <span class="nf">load_trained_modules</span><span class="p">(</span><span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">interface</span><span class="o">=</span><span class="n">ASRInterface</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Load model encoder or/and decoder modules with ESPNET pre-trained model(s).</span>
+    <span class="sd">&quot;&quot;&quot;Load ASR/MT/TTS model with pre-trained weights for specified modules.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        idim (int): initial input dimension.</span>
-<span class="sd">        odim (int): initial output dimension.</span>
-<span class="sd">        args (Namespace): The initial model arguments.</span>
-<span class="sd">        interface (Interface): ASRInterface or STInterface or TTSInterface.</span>
+<span class="sd">        idim (int): Input dimension.</span>
+<span class="sd">        odim (int): Output dimension.</span>
+<span class="sd">        args Namespace: Model arguments.</span>
+<span class="sd">        interface (ASRInterface|MTInterface|TTSInterface): Model interface.</span>
 
 <span class="sd">    Return:</span>
-<span class="sd">        model (torch.nn.Module): The model with pretrained modules.</span>
+<span class="sd">        main_model (torch.nn.Module): Model with pre-initialized weights.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">print_new_keys</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">modules</span><span class="p">,</span> <span class="n">model_path</span><span class="p">):</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;loading </span><span class="si">%s</span><span class="s2"> from model: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">modules</span><span class="p">,</span> <span class="n">model_path</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading </span><span class="si">{</span><span class="n">modules</span><span class="si">}</span><span class="s2"> from model: </span><span class="si">{</span><span class="n">model_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;override </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">k</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Overriding module </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="n">enc_model_path</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">enc_init</span>
     <span class="n">dec_model_path</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">dec_init</span>
@@ -462,16 +523,17 @@
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">main_model</span><span class="p">,</span> <span class="n">interface</span><span class="p">)</span>
 
     <span class="n">main_state_dict</span> <span class="o">=</span> <span class="n">main_model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Model(s) found for pre-initialization.&quot;</span><span class="p">)</span>
 
-    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;model(s) found for pre-initialization&quot;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">model_path</span><span class="p">,</span> <span class="n">modules</span> <span class="ow">in</span> <span class="p">[</span>
         <span class="p">(</span><span class="n">enc_model_path</span><span class="p">,</span> <span class="n">enc_modules</span><span class="p">),</span>
         <span class="p">(</span><span class="n">dec_model_path</span><span class="p">,</span> <span class="n">dec_modules</span><span class="p">),</span>
     <span class="p">]:</span>
         <span class="k">if</span> <span class="n">model_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">model_path</span><span class="p">):</span>
-                <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">get_trained_model_state_dict</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
-
+                <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">get_trained_model_state_dict</span><span class="p">(</span>
+                    <span class="n">model_path</span><span class="p">,</span> <span class="s2">&quot;transducer&quot;</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">model_module</span>
+                <span class="p">)</span>
                 <span class="n">modules</span> <span class="o">=</span> <span class="n">filter_modules</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">modules</span><span class="p">)</span>
 
                 <span class="n">partial_state_dict</span> <span class="o">=</span> <span class="n">get_partial_state_dict</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">modules</span><span class="p">)</span>
@@ -482,13 +544,9 @@
                     <span class="p">):</span>
                         <span class="n">print_new_keys</span><span class="p">(</span><span class="n">partial_state_dict</span><span class="p">,</span> <span class="n">modules</span><span class="p">,</span> <span class="n">model_path</span><span class="p">)</span>
                         <span class="n">main_state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">partial_state_dict</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;modules </span><span class="si">{</span><span class="n">modules</span><span class="si">}</span><span class="s2"> in model </span><span class="si">{</span><span class="n">model_path</span><span class="si">}</span><span class="s2"> &quot;</span>
-                            <span class="sa">f</span><span class="s2">&quot;don&#39;t match your training config&quot;</span><span class="p">,</span>
-                        <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;model was not found : </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">model_path</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Specified model was not found: </span><span class="si">{</span><span class="n">model_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="n">main_model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">main_state_dict</span><span class="p">)</span>
 

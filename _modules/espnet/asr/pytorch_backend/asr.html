@@ -727,16 +727,23 @@
     <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">opt</span> <span class="o">==</span> <span class="s2">&quot;noam&quot;</span><span class="p">:</span>
         <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.optimizer</span> <span class="kn">import</span> <span class="n">get_std_opt</span>
 
-        <span class="c1"># For transformer-transducer, adim declaration is within the block definition.</span>
-        <span class="c1"># Thus, we need retrieve the most dominant value (d_hidden) for Noam scheduler.</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;enc_block_arch&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;dec_block_arch&quot;</span><span class="p">):</span>
-            <span class="n">adim</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">most_dom_dim</span>
+        <span class="k">if</span> <span class="s2">&quot;transducer&quot;</span> <span class="ow">in</span> <span class="n">mtl_mode</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">noam_adim</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">optimizer</span> <span class="o">=</span> <span class="n">get_std_opt</span><span class="p">(</span>
+                    <span class="n">model_params</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">noam_adim</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">optimizer_warmup_steps</span><span class="p">,</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">noam_lr</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;noam-adim option should be set to use Noam scheduler&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">adim</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span>
-
-        <span class="n">optimizer</span> <span class="o">=</span> <span class="n">get_std_opt</span><span class="p">(</span>
-            <span class="n">model_params</span><span class="p">,</span> <span class="n">adim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">transformer_warmup_steps</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">transformer_lr</span>
-        <span class="p">)</span>
+            <span class="n">optimizer</span> <span class="o">=</span> <span class="n">get_std_opt</span><span class="p">(</span>
+                <span class="n">model_params</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">adim</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">transformer_warmup_steps</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">transformer_lr</span><span class="p">,</span>
+            <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;unknown optimizer: &quot;</span> <span class="o">+</span> <span class="n">args</span><span class="o">.</span><span class="n">opt</span><span class="p">)</span>
 
@@ -955,23 +962,52 @@
             <span class="s2">&quot;main/cer_ctc</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">num_encs</span><span class="p">)</span>
         <span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;validation/main/cer_ctc</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">num_encs</span><span class="p">)]</span>
 
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;is_rnnt&quot;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;is_transducer&quot;</span><span class="p">):</span>
+        <span class="n">trans_keys</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;main/loss&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;validation/main/loss&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;main/loss_trans&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;validation/main/loss_trans&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+
+        <span class="n">ctc_keys</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[</span><span class="s2">&quot;main/loss_ctc&quot;</span><span class="p">,</span> <span class="s2">&quot;validation/main/loss_ctc&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">use_ctc_loss</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="p">)</span>
+
+        <span class="n">aux_trans_keys</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[</span>
+                <span class="s2">&quot;main/loss_aux_trans&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;validation/main/loss_aux_trans&quot;</span><span class="p">,</span>
+            <span class="p">]</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">use_aux_transducer_loss</span>
+            <span class="k">else</span> <span class="p">[]</span>
+        <span class="p">)</span>
+
+        <span class="n">symm_kl_div_keys</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[</span>
+                <span class="s2">&quot;main/loss_symm_kl_div&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;validation/main/loss_symm_kl_div&quot;</span><span class="p">,</span>
+            <span class="p">]</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">use_symm_kl_div_loss</span>
+            <span class="k">else</span> <span class="p">[]</span>
+        <span class="p">)</span>
+
+        <span class="n">lm_keys</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[</span>
+                <span class="s2">&quot;main/loss_lm&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;validation/main/loss_lm&quot;</span><span class="p">,</span>
+            <span class="p">]</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">use_lm_loss</span>
+            <span class="k">else</span> <span class="p">[]</span>
+        <span class="p">)</span>
+
+        <span class="n">transducer_keys</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">trans_keys</span> <span class="o">+</span> <span class="n">ctc_keys</span> <span class="o">+</span> <span class="n">aux_trans_keys</span> <span class="o">+</span> <span class="n">symm_kl_div_keys</span> <span class="o">+</span> <span class="n">lm_keys</span>
+        <span class="p">)</span>
+
         <span class="n">trainer</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
             <span class="n">extensions</span><span class="o">.</span><span class="n">PlotReport</span><span class="p">(</span>
-                <span class="p">[</span>
-                    <span class="s2">&quot;main/loss&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;validation/main/loss&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;main/loss_trans&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;validation/main/loss_trans&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;main/loss_ctc&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;validation/main/loss_ctc&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;main/loss_lm&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;validation/main/loss_lm&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;main/loss_aux_trans&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;validation/main/loss_aux_trans&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;main/loss_aux_symm_kl&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;validation/main/loss_aux_symm_kl&quot;</span><span class="p">,</span>
-                <span class="p">],</span>
+                <span class="n">transducer_keys</span><span class="p">,</span>
                 <span class="s2">&quot;epoch&quot;</span><span class="p">,</span>
                 <span class="n">file_name</span><span class="o">=</span><span class="s2">&quot;loss.png&quot;</span><span class="p">,</span>
             <span class="p">)</span>
@@ -1082,24 +1118,15 @@
         <span class="n">extensions</span><span class="o">.</span><span class="n">LogReport</span><span class="p">(</span><span class="n">trigger</span><span class="o">=</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">report_interval_iters</span><span class="p">,</span> <span class="s2">&quot;iteration&quot;</span><span class="p">))</span>
     <span class="p">)</span>
 
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;is_rnnt&quot;</span><span class="p">):</span>
-        <span class="n">report_keys</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="s2">&quot;epoch&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;iteration&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;main/loss&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;main/loss_trans&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;main/loss_ctc&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;main/loss_lm&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;main/loss_aux_trans&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;main/loss_aux_symm_kl&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;validation/main/loss&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;validation/main/loss_trans&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;validation/main/loss_ctc&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;validation/main/loss_lm&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;validation/main/loss_aux_trans&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;validation/main/loss_aux_symm_kl&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;elapsed_time&quot;</span><span class="p">,</span>
-        <span class="p">]</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;is_transducer&quot;</span><span class="p">):</span>
+        <span class="n">report_keys</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">[</span>
+                <span class="s2">&quot;epoch&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;iteration&quot;</span><span class="p">,</span>
+            <span class="p">]</span>
+            <span class="o">+</span> <span class="n">transducer_keys</span>
+            <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;elapsed_time&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">report_keys</span> <span class="o">=</span> <span class="p">[</span>
             <span class="s2">&quot;epoch&quot;</span><span class="p">,</span>
@@ -1262,18 +1289,17 @@
     <span class="p">)</span>
 
     <span class="c1"># load transducer beam search</span>
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;is_rnnt&quot;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;is_transducer&quot;</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;dec&quot;</span><span class="p">):</span>
             <span class="n">trans_decoder</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">dec</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">trans_decoder</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">decoder</span>
-        <span class="n">joint_network</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">joint_network</span>
+        <span class="n">joint_network</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transducer_tasks</span><span class="o">.</span><span class="n">joint_network</span>
 
         <span class="n">beam_search_transducer</span> <span class="o">=</span> <span class="n">BeamSearchTransducer</span><span class="p">(</span>
             <span class="n">decoder</span><span class="o">=</span><span class="n">trans_decoder</span><span class="p">,</span>
             <span class="n">joint_network</span><span class="o">=</span><span class="n">joint_network</span><span class="p">,</span>
             <span class="n">beam_size</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span>
-            <span class="n">nbest</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">nbest</span><span class="p">,</span>
             <span class="n">lm</span><span class="o">=</span><span class="n">rnnlm</span><span class="p">,</span>
             <span class="n">lm_weight</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">lm_weight</span><span class="p">,</span>
             <span class="n">search_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">search_type</span><span class="p">,</span>
@@ -1281,7 +1307,11 @@
             <span class="n">u_max</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">u_max</span><span class="p">,</span>
             <span class="n">nstep</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">nstep</span><span class="p">,</span>
             <span class="n">prefix_alpha</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">prefix_alpha</span><span class="p">,</span>
+            <span class="n">expansion_gamma</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">expansion_gamma</span><span class="p">,</span>
+            <span class="n">expansion_beta</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">expansion_beta</span><span class="p">,</span>
             <span class="n">score_norm</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">score_norm</span><span class="p">,</span>
+            <span class="n">softmax_temperature</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">softmax_temperature</span><span class="p">,</span>
+            <span class="n">nbest</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">nbest</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">batchsize</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -1339,7 +1369,7 @@
                             <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">nbest</span><span class="p">):</span>
                                 <span class="n">nbest_hyps</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s2">&quot;yseq&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">hyps</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s2">&quot;yseq&quot;</span><span class="p">])</span>
                                 <span class="n">nbest_hyps</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">hyps</span><span class="p">[</span><span class="n">n</span><span class="p">][</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
-                <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;is_rnnt&quot;</span><span class="p">):</span>
+                <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;is_transducer&quot;</span><span class="p">):</span>
                     <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">recognize</span><span class="p">(</span><span class="n">feat</span><span class="p">,</span> <span class="n">beam_search_transducer</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">recognize</span><span class="p">(</span>

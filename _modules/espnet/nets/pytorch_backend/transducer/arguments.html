@@ -213,11 +213,12 @@
   <h1>Source code for espnet.nets.pytorch_backend.transducer.arguments</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Transducer model arguments.&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">_ArgumentGroup</span>
 <span class="kn">import</span> <span class="nn">ast</span>
 <span class="kn">from</span> <span class="nn">distutils.util</span> <span class="kn">import</span> <span class="n">strtobool</span>
 
 
-<div class="viewcode-block" id="add_encoder_general_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_encoder_general_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_encoder_general_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+<div class="viewcode-block" id="add_encoder_general_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_encoder_general_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_encoder_general_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Define general arguments for encoder.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--etype&quot;</span><span class="p">,</span>
@@ -254,7 +255,7 @@
     <span class="k">return</span> <span class="n">group</span></div>
 
 
-<div class="viewcode-block" id="add_rnn_encoder_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_rnn_encoder_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_rnn_encoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+<div class="viewcode-block" id="add_rnn_encoder_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_rnn_encoder_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_rnn_encoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Define arguments for RNN encoder.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--elayers&quot;</span><span class="p">,</span>
@@ -284,7 +285,7 @@
     <span class="k">return</span> <span class="n">group</span></div>
 
 
-<div class="viewcode-block" id="add_custom_encoder_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_custom_encoder_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_custom_encoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+<div class="viewcode-block" id="add_custom_encoder_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_custom_encoder_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_custom_encoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Define arguments for Custom encoder.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--enc-block-arch&quot;</span><span class="p">,</span>
@@ -338,7 +339,7 @@
     <span class="k">return</span> <span class="n">group</span></div>
 
 
-<div class="viewcode-block" id="add_decoder_general_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_decoder_general_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_decoder_general_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+<div class="viewcode-block" id="add_decoder_general_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_decoder_general_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_decoder_general_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Define general arguments for encoder.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--dtype&quot;</span><span class="p">,</span>
@@ -363,7 +364,7 @@
     <span class="k">return</span> <span class="n">group</span></div>
 
 
-<div class="viewcode-block" id="add_rnn_decoder_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_rnn_decoder_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_rnn_decoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+<div class="viewcode-block" id="add_rnn_decoder_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_rnn_decoder_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_rnn_decoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Define arguments for RNN decoder.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--dec-embed-dim&quot;</span><span class="p">,</span>
@@ -381,7 +382,7 @@
     <span class="k">return</span> <span class="n">group</span></div>
 
 
-<div class="viewcode-block" id="add_custom_decoder_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_custom_decoder_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_custom_decoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+<div class="viewcode-block" id="add_custom_decoder_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_custom_decoder_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_custom_decoder_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Define arguments for Custom decoder.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--dec-block-arch&quot;</span><span class="p">,</span>
@@ -414,33 +415,53 @@
     <span class="k">return</span> <span class="n">group</span></div>
 
 
-<div class="viewcode-block" id="add_custom_training_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_custom_training_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_custom_training_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+<div class="viewcode-block" id="add_custom_training_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_custom_training_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_custom_training_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Define arguments for training with Custom architecture.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--transformer-warmup-steps&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--optimizer-warmup-steps&quot;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">25000</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Optimizer warmup steps&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--transformer-lr&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--noam-lr&quot;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Initial value of learning rate&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--noam-adim&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Most dominant attention dimension for scheduler.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--transformer-warmup-steps&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Optimizer warmup steps. The parameter is deprecated, &quot;</span>
+        <span class="s2">&quot;please use --optimizer-warmup-steps instead.&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;optimizer_warmup_steps&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--transformer-lr&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Initial value of learning rate. The parameter is deprecated, &quot;</span>
+        <span class="s2">&quot;please use --noam-lr instead.&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;noam_lr&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--adim&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Most dominant attention dimension for scheduler. &quot;</span>
+        <span class="s2">&quot;The parameter is deprecated, please use --noam-adim instead.&quot;</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;noam_adim&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">group</span></div>
 
 
-<div class="viewcode-block" id="add_transducer_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_transducer_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_transducer_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+<div class="viewcode-block" id="add_transducer_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_transducer_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_transducer_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Define general arguments for transducer model.&quot;&quot;&quot;</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--trans-type&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;warp-transducer&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;warp-transducer&quot;</span><span class="p">,</span> <span class="s2">&quot;warp-rnnt&quot;</span><span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Type of transducer implementation to calculate loss.&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--transducer-weight&quot;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
@@ -471,64 +492,91 @@
     <span class="k">return</span> <span class="n">group</span></div>
 
 
-<div class="viewcode-block" id="add_auxiliary_task_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_auxiliary_task_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_auxiliary_task_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+<div class="viewcode-block" id="add_auxiliary_task_arguments"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.arguments.add_auxiliary_task_arguments">[docs]</a><span class="k">def</span> <span class="nf">add_auxiliary_task_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">:</span> <span class="n">_ArgumentGroup</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_ArgumentGroup</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Add arguments for auxiliary task.&quot;&quot;&quot;</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--aux-task-type&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--use-ctc-loss&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">strtobool</span><span class="p">,</span>
         <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;?&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="s2">&quot;symm_kl_div&quot;</span><span class="p">,</span> <span class="s2">&quot;both&quot;</span><span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Type of auxiliary task.&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to compute auxiliary CTC loss.&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--aux-task-layer-list&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--ctc-loss-weight&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Weight of auxiliary CTC loss.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--ctc-loss-dropout-rate&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Dropout rate for auxiliary CTC.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--use-lm-loss&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">strtobool</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;?&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to compute auxiliary LM loss (label smoothing).&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--lm-loss-weight&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Weight of auxiliary LM loss.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--lm-loss-smoothing-rate&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Smoothing rate for LM loss. If &gt; 0, label smoothing is enabled.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--use-aux-transducer-loss&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">strtobool</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;?&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to compute auxiliary transducer loss with &quot;</span>
+        <span class="s2">&quot;intermediate encoder layers.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--aux-transducer-loss-weight&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Weight of auxiliary transducer loss.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--aux-transducer-loss-enc-output-layers&quot;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;List of layers to use for auxiliary task.&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;List of intermediate encoder layers for auxiliary &quot;</span>
+        <span class="s2">&quot;transducer loss computation.&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--aux-task-weight&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+        <span class="s2">&quot;--aux-transducer-loss-mlp-dim&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">320</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Multi-layer perceptron hidden dimension for auxiliary transducer loss.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--aux-transducer-loss-mlp-dropout-rate&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Weight of auxiliary task loss.&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Multi-layer perceptron dropout rate for auxiliary transducer loss.&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--aux-ctc&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--use-symm-kl-div-loss&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">strtobool</span><span class="p">,</span>
         <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;?&quot;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to use CTC as auxiliary task.&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to compute symmetric KL divergence loss.&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--aux-ctc-weight&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Weight of auxiliary task loss&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--aux-ctc-dropout-rate&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--symm-kl-div-loss-weight&quot;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Dropout rate for auxiliary CTC&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--aux-cross-entropy&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">strtobool</span><span class="p">,</span>
-        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;?&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to use CE as auxiliary task for the prediction network.&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--aux-cross-entropy-smoothing&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Smoothing rate for cross-entropy. If &gt; 0, enables label smoothing loss.&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--aux-cross-entropy-weight&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Weight of auxiliary task loss&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Weight of symmetric KL divergence loss.&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">group</span></div>

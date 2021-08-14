@@ -213,6 +213,10 @@
   <h1>Source code for espnet.nets.pytorch_backend.transducer.custom_encoder</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Cutom encoder definition for transducer models.&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
 <span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.blocks</span> <span class="kn">import</span> <span class="n">build_blocks</span>
@@ -226,35 +230,33 @@
     <span class="sd">&quot;&quot;&quot;Custom encoder module for transducer models.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        idim (int): input dim</span>
-<span class="sd">        enc_arch (list): list of encoder blocks (type and parameters)</span>
-<span class="sd">        input_layer (str): input layer type</span>
-<span class="sd">        repeat_block (int): repeat provided block N times if N &gt; 1</span>
-<span class="sd">        self_attn_type (str): type of self-attention</span>
-<span class="sd">        positional_encoding_type (str): positional encoding type</span>
-<span class="sd">        positionwise_layer_type (str): linear</span>
-<span class="sd">        positionwise_activation_type (str): positionwise activation type</span>
-<span class="sd">        conv_mod_activation_type (str): convolutional module activation type</span>
-<span class="sd">        normalize_before (bool): whether to use layer_norm before the first block</span>
-<span class="sd">        aux_task_layer_list (list): list of layer ids for intermediate output</span>
-<span class="sd">        padding_idx (int): padding_idx for embedding input layer (if specified)</span>
+<span class="sd">        idim: Input dimension.</span>
+<span class="sd">        enc_arch: Encoder block architecture (type and parameters).</span>
+<span class="sd">        input_layer: Input layer type.</span>
+<span class="sd">        repeat_block: Number of times blocks_arch is repeated.</span>
+<span class="sd">        self_attn_type: Self-attention type.</span>
+<span class="sd">        positional_encoding_type: Positional encoding type.</span>
+<span class="sd">        positionwise_layer_type: Positionwise layer type.</span>
+<span class="sd">        positionwise_activation_type: Positionwise activation type.</span>
+<span class="sd">        conv_mod_activation_type: Convolutional module activation type.</span>
+<span class="sd">        aux_enc_output_layers: Layer IDs for auxiliary encoder output sequences.</span>
+<span class="sd">        padding_idx: Padding symbol ID for embedding layer.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">idim</span><span class="p">,</span>
-        <span class="n">enc_arch</span><span class="p">,</span>
-        <span class="n">input_layer</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>
-        <span class="n">repeat_block</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-        <span class="n">self_attn_type</span><span class="o">=</span><span class="s2">&quot;selfattn&quot;</span><span class="p">,</span>
-        <span class="n">positional_encoding_type</span><span class="o">=</span><span class="s2">&quot;abs_pos&quot;</span><span class="p">,</span>
-        <span class="n">positionwise_layer_type</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>
-        <span class="n">positionwise_activation_type</span><span class="o">=</span><span class="s2">&quot;relu&quot;</span><span class="p">,</span>
-        <span class="n">conv_mod_activation_type</span><span class="o">=</span><span class="s2">&quot;relu&quot;</span><span class="p">,</span>
-        <span class="n">normalize_before</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">aux_task_layer_list</span><span class="o">=</span><span class="p">[],</span>
-        <span class="n">padding_idx</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">enc_arch</span><span class="p">:</span> <span class="n">List</span><span class="p">,</span>
+        <span class="n">input_layer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;linear&quot;</span><span class="p">,</span>
+        <span class="n">repeat_block</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">self_attn_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;selfattn&quot;</span><span class="p">,</span>
+        <span class="n">positional_encoding_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;abs_pos&quot;</span><span class="p">,</span>
+        <span class="n">positionwise_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;linear&quot;</span><span class="p">,</span>
+        <span class="n">positionwise_activation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;relu&quot;</span><span class="p">,</span>
+        <span class="n">conv_mod_activation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;relu&quot;</span><span class="p">,</span>
+        <span class="n">aux_enc_output_layers</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="p">[],</span>
+        <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Construct an CustomEncoder object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -278,63 +280,63 @@
             <span class="n">padding_idx</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span> <span class="o">=</span> <span class="n">normalize_before</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc_out</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc_out</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">n_blocks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc_arch</span><span class="p">)</span> <span class="o">*</span> <span class="n">repeat_block</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">aux_task_layer_list</span> <span class="o">=</span> <span class="n">aux_task_layer_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aux_enc_output_layers</span> <span class="o">=</span> <span class="n">aux_enc_output_layers</span>
 
-<div class="viewcode-block" id="CustomEncoder.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.custom_encoder.CustomEncoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Encode input sequence.</span>
+<div class="viewcode-block" id="CustomEncoder.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.custom_encoder.CustomEncoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">feats</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Encode feature sequences.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            xs (torch.Tensor): input tensor</span>
-<span class="sd">            masks (torch.Tensor): input mask</span>
+<span class="sd">            feats: Feature sequences. (B, F, D_feats)</span>
+<span class="sd">            feats_mask: Feature mask sequences. (B, 1, F)</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            xs (torch.Tensor or tuple):</span>
-<span class="sd">                position embedded output or</span>
-<span class="sd">                (position embedded output, auxiliary outputs)</span>
-<span class="sd">            mask (torch.Tensor): position embedded mask</span>
+<span class="sd">            enc_out: Encoder output sequences. (B, T, D_enc) with/without</span>
+<span class="sd">                     Auxiliary encoder output sequences. (B, T, D_enc_aux)</span>
+<span class="sd">            enc_out_mask: Mask for encoder output sequences. (B, 1, T) with/without</span>
+<span class="sd">                          Mask for auxiliary encoder output sequences. (B, T, D_enc_aux)</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">,</span> <span class="p">(</span><span class="n">Conv2dSubsampling</span><span class="p">,</span> <span class="n">VGG2L</span><span class="p">)):</span>
-            <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
+            <span class="n">enc_out</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+            <span class="n">enc_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">feats</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_task_layer_list</span><span class="p">:</span>
-            <span class="n">aux_xs_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_enc_output_layers</span><span class="p">:</span>
+            <span class="n">aux_custom_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">aux_custom_lens</span> <span class="o">=</span> <span class="p">[]</span>
 
             <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_blocks</span><span class="p">):</span>
-                <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">[</span><span class="n">b</span><span class="p">](</span><span class="n">xs</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
+                <span class="n">enc_out</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">[</span><span class="n">b</span><span class="p">](</span><span class="n">enc_out</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
 
-                <span class="k">if</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_task_layer_list</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-                        <span class="n">aux_xs</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_enc_output_layers</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">enc_out</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                        <span class="n">aux_custom_output</span> <span class="o">=</span> <span class="n">enc_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="n">aux_xs</span> <span class="o">=</span> <span class="n">xs</span>
+                        <span class="n">aux_custom_output</span> <span class="o">=</span> <span class="n">enc_out</span>
 
-                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
-                        <span class="n">aux_xs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">aux_xs</span><span class="p">))</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">aux_xs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">aux_xs</span><span class="p">)</span>
+                    <span class="n">aux_custom_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">aux_custom_output</span><span class="p">))</span>
+                    <span class="n">aux_custom_lens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
+            <span class="n">enc_out</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">(</span><span class="n">enc_out</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-            <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">enc_out</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">enc_out</span> <span class="o">=</span> <span class="n">enc_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
-            <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">enc_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">enc_out</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_task_layer_list</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">aux_xs_list</span><span class="p">),</span> <span class="n">masks</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_enc_output_layers</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">enc_out</span><span class="p">,</span> <span class="n">aux_custom_outputs</span><span class="p">),</span> <span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">aux_custom_lens</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span></div></div>
+        <span class="k">return</span> <span class="n">enc_out</span><span class="p">,</span> <span class="n">mask</span></div></div>
 </pre></div>
 
            </div>

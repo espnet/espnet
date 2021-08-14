@@ -213,6 +213,9 @@
   <h1>Source code for espnet.nets.pytorch_backend.transducer.causal_conv1d</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;CausalConv1d module definition for custom decoder.&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+
 <span class="kn">import</span> <span class="nn">torch</span>
 
 
@@ -220,18 +223,25 @@
     <span class="sd">&quot;&quot;&quot;CausalConv1d module for custom decoder.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        idim (int): dimension of inputs</span>
-<span class="sd">        odim (int): dimension of outputs</span>
-<span class="sd">        kernel_size (int): size of convolving kernel</span>
-<span class="sd">        stride (int): stride of the convolution</span>
-<span class="sd">        dilation (int): spacing between the kernel points</span>
-<span class="sd">        groups (int): number of blocked connections from ichannels to ochannels</span>
-<span class="sd">        bias (bool): whether to add a learnable bias to the output</span>
+<span class="sd">        idim: Input dimension.</span>
+<span class="sd">        odim: Output dimension.</span>
+<span class="sd">        kernel_size: Size of the convolving kernel.</span>
+<span class="sd">        stride: Stride of the convolution.</span>
+<span class="sd">        dilation: Spacing between the kernel points.</span>
+<span class="sd">        groups: Number of blocked connections from input channels to output channels.</span>
+<span class="sd">        bias: Whether to add a learnable bias to the output.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dilation</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">odim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">stride</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">dilation</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">groups</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Construct a CausalConv1d object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -249,27 +259,32 @@
             <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="CausalConv1d.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.causal_conv1d.CausalConv1d.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;CausalConv1d forward for x.</span>
+<div class="viewcode-block" id="CausalConv1d.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.causal_conv1d.CausalConv1d.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sequence</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">cache</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Forward CausalConv1d for custom decoder.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            x (torch.Tensor): input torch (B, U, idim)</span>
-<span class="sd">            x_mask (torch.Tensor): (B, 1, U)</span>
+<span class="sd">            sequence: CausalConv1d input sequences. (B, U, D_in)</span>
+<span class="sd">            mask: Mask of CausalConv1d input sequences. (B, 1, U)</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            x (torch.Tensor): input torch (B, sub(U), attention_dim)</span>
-<span class="sd">            x_mask (torch.Tensor): (B, 1, sub(U))</span>
+<span class="sd">            sequence: CausalConv1d output sequences. (B, sub(U), D_out)</span>
+<span class="sd">            mask: Mask of CausalConv1d output sequences. (B, 1, sub(U))</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_conv1d</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="n">sequence</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_conv1d</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pad</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_pad</span><span class="p">]</span>
+            <span class="n">sequence</span> <span class="o">=</span> <span class="n">sequence</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_pad</span><span class="p">]</span>
 
-        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="n">sequence</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span></div></div>
+        <span class="k">return</span> <span class="n">sequence</span><span class="p">,</span> <span class="n">mask</span></div></div>
 </pre></div>
 
            </div>

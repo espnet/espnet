@@ -540,9 +540,13 @@
                     <span class="p">[</span><span class="o">--</span><span class="n">ctc</span><span class="o">-</span><span class="n">weight</span> <span class="n">CTC_WEIGHT</span><span class="p">]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">weights</span><span class="o">-</span><span class="n">ctc</span><span class="o">-</span><span class="n">dec</span> <span class="n">WEIGHTS_CTC_DEC</span><span class="p">]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">ctc</span><span class="o">-</span><span class="n">window</span><span class="o">-</span><span class="n">margin</span> <span class="n">CTC_WINDOW_MARGIN</span><span class="p">]</span>
-                    <span class="p">[</span><span class="o">--</span><span class="n">search</span><span class="o">-</span><span class="nb">type</span> <span class="p">{</span><span class="n">default</span><span class="p">,</span><span class="n">nsc</span><span class="p">,</span><span class="n">tsd</span><span class="p">,</span><span class="n">alsd</span><span class="p">}]</span> <span class="p">[</span><span class="o">--</span><span class="n">nstep</span> <span class="n">NSTEP</span><span class="p">]</span>
-                    <span class="p">[</span><span class="o">--</span><span class="n">prefix</span><span class="o">-</span><span class="n">alpha</span> <span class="n">PREFIX_ALPHA</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="nb">max</span><span class="o">-</span><span class="n">sym</span><span class="o">-</span><span class="n">exp</span> <span class="n">MAX_SYM_EXP</span><span class="p">]</span>
-                    <span class="p">[</span><span class="o">--</span><span class="n">u</span><span class="o">-</span><span class="nb">max</span> <span class="n">U_MAX</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">score</span><span class="o">-</span><span class="n">norm</span> <span class="p">[</span><span class="n">SCORE_NORM</span><span class="p">]]</span>
+                    <span class="p">[</span><span class="o">--</span><span class="n">search</span><span class="o">-</span><span class="nb">type</span> <span class="p">{</span><span class="n">default</span><span class="p">,</span><span class="n">nsc</span><span class="p">,</span><span class="n">tsd</span><span class="p">,</span><span class="n">alsd</span><span class="p">,</span><span class="n">maes</span><span class="p">}]</span>
+                    <span class="p">[</span><span class="o">--</span><span class="n">nstep</span> <span class="n">NSTEP</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">prefix</span><span class="o">-</span><span class="n">alpha</span> <span class="n">PREFIX_ALPHA</span><span class="p">]</span>
+                    <span class="p">[</span><span class="o">--</span><span class="nb">max</span><span class="o">-</span><span class="n">sym</span><span class="o">-</span><span class="n">exp</span> <span class="n">MAX_SYM_EXP</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">u</span><span class="o">-</span><span class="nb">max</span> <span class="n">U_MAX</span><span class="p">]</span>
+                    <span class="p">[</span><span class="o">--</span><span class="n">expansion</span><span class="o">-</span><span class="n">gamma</span> <span class="n">EXPANSION_GAMMA</span><span class="p">]</span>
+                    <span class="p">[</span><span class="o">--</span><span class="n">expansion</span><span class="o">-</span><span class="n">beta</span> <span class="n">EXPANSION_BETA</span><span class="p">]</span>
+                    <span class="p">[</span><span class="o">--</span><span class="n">score</span><span class="o">-</span><span class="n">norm</span> <span class="p">[</span><span class="n">SCORE_NORM</span><span class="p">]]</span>
+                    <span class="p">[</span><span class="o">--</span><span class="n">softmax</span><span class="o">-</span><span class="n">temperature</span> <span class="n">SOFTMAX_TEMPERATURE</span><span class="p">]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">rnnlm</span> <span class="n">RNNLM</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">rnnlm</span><span class="o">-</span><span class="n">conf</span> <span class="n">RNNLM_CONF</span><span class="p">]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">word</span><span class="o">-</span><span class="n">rnnlm</span> <span class="n">WORD_RNNLM</span><span class="p">]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">word</span><span class="o">-</span><span class="n">rnnlm</span><span class="o">-</span><span class="n">conf</span> <span class="n">WORD_RNNLM_CONF</span><span class="p">]</span>
@@ -674,36 +678,53 @@ If margin=0 (default), this function is disabled</p>
 <p>Default: 0</p>
 </dd>
 <dt><kbd>--search-type</kbd></dt>
-<dd><p>Possible choices: default, nsc, tsd, alsd</p>
+<dd><p>Possible choices: default, nsc, tsd, alsd, maes</p>
 <dl class="simple">
-<dt>Type of beam search implementation to use during inference.</dt><dd><p>Can be either: default beam search, n-step constrained beam search (“nsc”),
-time-synchronous decoding (“tsd”) or alignment-length synchronous decoding
-(“alsd”).
-Additional associated parameters: “nstep” + “prefix-alpha” (for nsc),
-“max-sym-exp” (for tsd) and “u-max” (for alsd)</p>
+<dt>Type of beam search implementation to use during inference.</dt><dd><p>Can be either: default beam search (“default”),
+N-Step Constrained beam search (“nsc”), Time-Synchronous Decoding (“tsd”),
+Alignment-Length Synchronous Decoding (“alsd”) or
+modified Adaptive Expansion Search (“maes”).</p>
 </dd>
 </dl>
 <p>Default: “default”</p>
 </dd>
 <dt><kbd>--nstep</kbd></dt>
-<dd><p>Number of expansion steps allowed in NSC beam search.</p>
+<dd><dl class="simple">
+<dt>Number of expansion steps allowed in NSC beam search or mAES</dt><dd><p>(nstep &gt; 0 for NSC and nstep &gt; 1 for mAES).</p>
+</dd>
+</dl>
 <p>Default: 1</p>
 </dd>
 <dt><kbd>--prefix-alpha</kbd></dt>
-<dd><p>Length prefix difference allowed in NSC beam search.</p>
+<dd><p>Length prefix difference allowed in NSC beam search or mAES.</p>
 <p>Default: 2</p>
 </dd>
 <dt><kbd>--max-sym-exp</kbd></dt>
-<dd><p>Number of symbol expansions allowed in TSD decoding.</p>
+<dd><p>Number of symbol expansions allowed in TSD.</p>
 <p>Default: 2</p>
 </dd>
 <dt><kbd>--u-max</kbd></dt>
-<dd><p>Length prefix difference allowed in ALSD beam search.</p>
+<dd><p>Length prefix difference allowed in ALSD.</p>
 <p>Default: 400</p>
 </dd>
+<dt><kbd>--expansion-gamma</kbd></dt>
+<dd><p>Allowed logp difference for prune-by-value method in mAES.</p>
+<p>Default: 2.3</p>
+</dd>
+<dt><kbd>--expansion-beta</kbd></dt>
+<dd><dl class="simple">
+<dt>Number of additional candidates for expanded hypotheses</dt><dd><p>selection in mAES.</p>
+</dd>
+</dl>
+<p>Default: 2</p>
+</dd>
 <dt><kbd>--score-norm</kbd></dt>
-<dd><p>Normalize transducer scores by length</p>
+<dd><p>Normalize final hypotheses’ score by length</p>
 <p>Default: True</p>
+</dd>
+<dt><kbd>--softmax-temperature</kbd></dt>
+<dd><p>Penalization term for softmax function.</p>
+<p>Default: 1.0</p>
 </dd>
 <dt><kbd>--rnnlm</kbd></dt>
 <dd><p>RNNLM model file to read</p>

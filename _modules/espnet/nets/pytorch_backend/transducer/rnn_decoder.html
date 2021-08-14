@@ -211,51 +211,60 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet.nets.pytorch_backend.transducer.rnn_decoder</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;RNN decoder for transducer-based models.&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;RNN decoder definition for transducer model.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
+<span class="kn">from</span> <span class="nn">espnet.nets.transducer_decoder_interface</span> <span class="kn">import</span> <span class="n">ExtendedHypothesis</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.transducer_decoder_interface</span> <span class="kn">import</span> <span class="n">Hypothesis</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.transducer_decoder_interface</span> <span class="kn">import</span> <span class="n">TransducerDecoderInterface</span>
 
 
-<div class="viewcode-block" id="DecoderRNNT"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.DecoderRNNT">[docs]</a><span class="k">class</span> <span class="nc">DecoderRNNT</span><span class="p">(</span><span class="n">TransducerDecoderInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;RNN-T Decoder module.</span>
+<div class="viewcode-block" id="RNNDecoder"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.RNNDecoder">[docs]</a><span class="k">class</span> <span class="nc">RNNDecoder</span><span class="p">(</span><span class="n">TransducerDecoderInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;RNN decoder module for transducer model.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        odim (int): dimension of outputs</span>
-<span class="sd">        dtype (str): gru or lstm</span>
-<span class="sd">        dlayers (int): # prediction layers</span>
-<span class="sd">        dunits (int): # prediction units</span>
-<span class="sd">        blank (int): blank symbol id</span>
-<span class="sd">        embed_dim (int): dimension of embeddings</span>
-<span class="sd">        dropout (float): dropout rate</span>
-<span class="sd">        dropout_embed (float): embedding dropout rate</span>
+<span class="sd">        odim: Output dimension.</span>
+<span class="sd">        dtype: Decoder units type.</span>
+<span class="sd">        dlayers: Number of decoder layers.</span>
+<span class="sd">        dunits: Number of decoder units per layer..</span>
+<span class="sd">        embed_dim: Embedding layer dimension.</span>
+<span class="sd">        dropout_rate: Dropout rate for decoder layers.</span>
+<span class="sd">        dropout_rate_embed: Dropout rate for embedding layer.</span>
+<span class="sd">        blank_id: Blank symbol ID.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">odim</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="p">,</span>
-        <span class="n">dlayers</span><span class="p">,</span>
-        <span class="n">dunits</span><span class="p">,</span>
-        <span class="n">blank</span><span class="p">,</span>
-        <span class="n">embed_dim</span><span class="p">,</span>
-        <span class="n">dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">dropout_embed</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">odim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">dlayers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">dunits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">dropout_rate_embed</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">blank_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Transducer initializer.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">embed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">odim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="n">blank</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dropout_embed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">dropout_embed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">embed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">odim</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="n">blank_id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout_embed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">dropout_rate_embed</span><span class="p">)</span>
 
         <span class="n">dec_net</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span> <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;lstm&quot;</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">GRU</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
             <span class="p">[</span><span class="n">dec_net</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">dunits</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)]</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dropout_dec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">dropout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout_dec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dlayers</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">+=</span> <span class="p">[</span><span class="n">dec_net</span><span class="p">(</span><span class="n">dunits</span><span class="p">,</span> <span class="n">dunits</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)]</span>
@@ -267,37 +276,29 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">=</span> <span class="n">odim</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">blank</span> <span class="o">=</span> <span class="n">blank</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span> <span class="o">=</span> <span class="n">blank_id</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">multi_gpus</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">device_count</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span>
 
-<div class="viewcode-block" id="DecoderRNNT.set_device"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.DecoderRNNT.set_device">[docs]</a>    <span class="k">def</span> <span class="nf">set_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<div class="viewcode-block" id="RNNDecoder.set_device"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.RNNDecoder.set_device">[docs]</a>    <span class="k">def</span> <span class="nf">set_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Set GPU device to use.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            device (torch.device): device id</span>
+<span class="sd">            device: Device ID.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span></div>
 
-<div class="viewcode-block" id="DecoderRNNT.set_data_type"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.DecoderRNNT.set_data_type">[docs]</a>    <span class="k">def</span> <span class="nf">set_data_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_type</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Set GPU device to use.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            data_type (torch.dtype): Tensor data type</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span> <span class="o">=</span> <span class="n">data_type</span></div>
-
-<div class="viewcode-block" id="DecoderRNNT.init_state"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.DecoderRNNT.init_state">[docs]</a>    <span class="k">def</span> <span class="nf">init_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+<div class="viewcode-block" id="RNNDecoder.init_state"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.RNNDecoder.init_state">[docs]</a>    <span class="k">def</span> <span class="nf">init_state</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">]]:</span>
         <span class="sd">&quot;&quot;&quot;Initialize decoder states.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            batch_size (int): Batch size</span>
+<span class="sd">            batch_size: Batch size.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (tuple): batch of decoder states</span>
-<span class="sd">                ((L, B, dec_dim), (L, B, dec_dim))</span>
+<span class="sd">            : Initial decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">h_n</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
@@ -305,7 +306,6 @@
             <span class="n">batch_size</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dunits</span><span class="p">,</span>
             <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_type</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;lstm&quot;</span><span class="p">:</span>
@@ -314,113 +314,113 @@
                 <span class="n">batch_size</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">dunits</span><span class="p">,</span>
                 <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_type</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="k">return</span> <span class="p">(</span><span class="n">h_n</span><span class="p">,</span> <span class="n">c_n</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="p">(</span><span class="n">h_n</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DecoderRNNT.rnn_forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.DecoderRNNT.rnn_forward">[docs]</a>    <span class="k">def</span> <span class="nf">rnn_forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;RNN forward.</span>
+<div class="viewcode-block" id="RNNDecoder.rnn_forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.RNNDecoder.rnn_forward">[docs]</a>    <span class="k">def</span> <span class="nf">rnn_forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sequence</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">state</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]]:</span>
+        <span class="sd">&quot;&quot;&quot;Encode source label sequences.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            y (torch.Tensor): batch of input features (B, emb_dim)</span>
-<span class="sd">            state (tuple): batch of decoder states</span>
-<span class="sd">                ((L, B, dec_dim), (L, B, dec_dim))</span>
+<span class="sd">            sequence: RNN input sequences. (B, D_emb)</span>
+<span class="sd">            state: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            y (torch.Tensor): batch of output features (B, dec_dim)</span>
-<span class="sd">            (tuple): batch of decoder states</span>
-<span class="sd">                (L, B, dec_dim), (L, B, dec_dim))</span>
+<span class="sd">            sequence: RNN output sequences. (B, D_dec)</span>
+<span class="sd">            (h_next, c_next): Decoder hidden states. (N, B, D_dec), (N, B, D_dec))</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">h_prev</span><span class="p">,</span> <span class="n">c_prev</span> <span class="o">=</span> <span class="n">state</span>
-        <span class="n">h_next</span><span class="p">,</span> <span class="n">c_next</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_state</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">h_next</span><span class="p">,</span> <span class="n">c_next</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_state</span><span class="p">(</span><span class="n">sequence</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
 
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dlayers</span><span class="p">):</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;lstm&quot;</span><span class="p">:</span>
-                <span class="n">y</span><span class="p">,</span> <span class="p">(</span>
+                <span class="n">sequence</span><span class="p">,</span> <span class="p">(</span>
                     <span class="n">h_next</span><span class="p">[</span><span class="n">layer</span> <span class="p">:</span> <span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span>
                     <span class="n">c_next</span><span class="p">[</span><span class="n">layer</span> <span class="p">:</span> <span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span>
                 <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">[</span><span class="n">layer</span><span class="p">](</span>
-                    <span class="n">y</span><span class="p">,</span> <span class="n">hx</span><span class="o">=</span><span class="p">(</span><span class="n">h_prev</span><span class="p">[</span><span class="n">layer</span> <span class="p">:</span> <span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">c_prev</span><span class="p">[</span><span class="n">layer</span> <span class="p">:</span> <span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+                    <span class="n">sequence</span><span class="p">,</span> <span class="n">hx</span><span class="o">=</span><span class="p">(</span><span class="n">h_prev</span><span class="p">[</span><span class="n">layer</span> <span class="p">:</span> <span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">c_prev</span><span class="p">[</span><span class="n">layer</span> <span class="p">:</span> <span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">y</span><span class="p">,</span> <span class="n">h_next</span><span class="p">[</span><span class="n">layer</span> <span class="p">:</span> <span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">[</span><span class="n">layer</span><span class="p">](</span>
-                    <span class="n">y</span><span class="p">,</span> <span class="n">hx</span><span class="o">=</span><span class="n">h_prev</span><span class="p">[</span><span class="n">layer</span> <span class="p">:</span> <span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="n">sequence</span><span class="p">,</span> <span class="n">h_next</span><span class="p">[</span><span class="n">layer</span> <span class="p">:</span> <span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">[</span><span class="n">layer</span><span class="p">](</span>
+                    <span class="n">sequence</span><span class="p">,</span> <span class="n">hx</span><span class="o">=</span><span class="n">h_prev</span><span class="p">[</span><span class="n">layer</span> <span class="p">:</span> <span class="n">layer</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
                 <span class="p">)</span>
 
-            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout_dec</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout_dec</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="p">(</span><span class="n">h_next</span><span class="p">,</span> <span class="n">c_next</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">sequence</span><span class="p">,</span> <span class="p">(</span><span class="n">h_next</span><span class="p">,</span> <span class="n">c_next</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DecoderRNNT.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.DecoderRNNT.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">,</span> <span class="n">ys_in_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward function for transducer.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            hs_pad (torch.Tensor):</span>
-<span class="sd">                batch of padded hidden state sequences (B, Tmax, D)</span>
-<span class="sd">            ys_in_pad (torch.Tensor):</span>
-<span class="sd">                batch of padded character id sequence tensor (B, Lmax+1)</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            z (torch.Tensor): output (B, T, U, odim)</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">set_device</span><span class="p">(</span><span class="n">hs_pad</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">set_data_type</span><span class="p">(</span><span class="n">hs_pad</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-
-        <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_state</span><span class="p">(</span><span class="n">hs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
-        <span class="n">eys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout_embed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">ys_in_pad</span><span class="p">))</span>
-
-        <span class="n">h_dec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_forward</span><span class="p">(</span><span class="n">eys</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">h_dec</span></div>
-
-<div class="viewcode-block" id="DecoderRNNT.score"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.DecoderRNNT.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyp</span><span class="p">,</span> <span class="n">cache</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward one step.</span>
+<div class="viewcode-block" id="RNNDecoder.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.RNNDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Encode source label sequences.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            hyp (dataclass): hypothesis</span>
-<span class="sd">            cache (dict): states cache</span>
+<span class="sd">            labels: Label ID sequences. (B, L)</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            y (torch.Tensor): decoder outputs (1, dec_dim)</span>
-<span class="sd">            state (tuple): decoder states</span>
-<span class="sd">                ((L, 1, dec_dim), (L, 1, dec_dim)),</span>
-<span class="sd">            (torch.Tensor): token id for LM (1,)</span>
+<span class="sd">            dec_out: Decoder output sequences. (B, T, U, D_dec)</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">vy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">init_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_state</span><span class="p">(</span><span class="n">labels</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">dec_embed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout_embed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">labels</span><span class="p">))</span>
 
-        <span class="n">str_yseq</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">)))</span>
+        <span class="n">dec_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_forward</span><span class="p">(</span><span class="n">dec_embed</span><span class="p">,</span> <span class="n">init_state</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">str_yseq</span> <span class="ow">in</span> <span class="n">cache</span><span class="p">:</span>
-            <span class="n">y</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">str_yseq</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">dec_out</span></div>
+
+<div class="viewcode-block" id="RNNDecoder.score"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.RNNDecoder.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">hyp</span><span class="p">:</span> <span class="n">Hypothesis</span><span class="p">,</span> <span class="n">cache</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;One-step forward hypothesis.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            hyp: Hypothesis.</span>
+<span class="sd">            cache: Pairs of (dec_out, state) for each label sequence. (key)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            dec_out: Decoder output sequence. (1, D_dec)</span>
+<span class="sd">            new_state: Decoder hidden states. ((N, 1, D_dec), (N, 1, D_dec))</span>
+<span class="sd">            label: Label ID for LM. (1,)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">str_labels</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">)))</span>
+
+        <span class="k">if</span> <span class="n">str_labels</span> <span class="ow">in</span> <span class="n">cache</span><span class="p">:</span>
+            <span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_state</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">str_labels</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">ey</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">vy</span><span class="p">)</span>
+            <span class="n">dec_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
 
-            <span class="n">y</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_forward</span><span class="p">(</span><span class="n">ey</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">dec_state</span><span class="p">)</span>
-            <span class="n">cache</span><span class="p">[</span><span class="n">str_yseq</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+            <span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_forward</span><span class="p">(</span><span class="n">dec_emb</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">dec_state</span><span class="p">)</span>
+            <span class="n">cache</span><span class="p">[</span><span class="n">str_labels</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">state</span><span class="p">,</span> <span class="n">vy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="n">dec_out</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">dec_state</span><span class="p">,</span> <span class="n">label</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="DecoderRNNT.batch_score"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.DecoderRNNT.batch_score">[docs]</a>    <span class="k">def</span> <span class="nf">batch_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">,</span> <span class="n">batch_states</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">use_lm</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Forward batch one step.</span>
+<div class="viewcode-block" id="RNNDecoder.batch_score"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.RNNDecoder.batch_score">[docs]</a>    <span class="k">def</span> <span class="nf">batch_score</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">hyps</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">ExtendedHypothesis</span><span class="p">]],</span>
+        <span class="n">dec_states</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
+        <span class="n">cache</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">use_lm</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;One-step forward hypotheses.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            hyps (list): batch of hypotheses</span>
-<span class="sd">            batch_states (tuple): batch of decoder states</span>
-<span class="sd">                ((L, B, dec_dim), (L, B, dec_dim))</span>
-<span class="sd">            cache (dict): states cache</span>
-<span class="sd">            use_lm (bool): whether a LM is used for decoding</span>
+<span class="sd">            hyps: Hypotheses.</span>
+<span class="sd">            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</span>
+<span class="sd">            cache: Pairs of (dec_out, dec_states) for each label sequences. (keys)</span>
+<span class="sd">            use_lm: Whether to compute label ID sequences for LM.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            batch_y (torch.Tensor): decoder output (B, dec_dim)</span>
-<span class="sd">            batch_states (tuple): batch of decoder states</span>
-<span class="sd">                ((L, B, dec_dim), (L, B, dec_dim))</span>
-<span class="sd">            lm_tokens (torch.Tensor): batch of token ids for LM (B)</span>
+<span class="sd">            dec_out: Decoder output sequences. (B, D_dec)</span>
+<span class="sd">            dec_states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</span>
+<span class="sd">            lm_labels: Label ID sequences for LM. (B,)</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">final_batch</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyps</span><span class="p">)</span>
@@ -429,77 +429,80 @@
         <span class="n">done</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">final_batch</span>
 
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">hyps</span><span class="p">):</span>
-            <span class="n">str_yseq</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">)))</span>
+            <span class="n">str_labels</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">)))</span>
 
-            <span class="k">if</span> <span class="n">str_yseq</span> <span class="ow">in</span> <span class="n">cache</span><span class="p">:</span>
-                <span class="n">done</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">str_yseq</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">str_labels</span> <span class="ow">in</span> <span class="n">cache</span><span class="p">:</span>
+                <span class="n">done</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">str_labels</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">process</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">str_yseq</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">hyp</span><span class="o">.</span><span class="n">dec_state</span><span class="p">))</span>
+                <span class="n">process</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">str_labels</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">hyp</span><span class="o">.</span><span class="n">dec_state</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">process</span><span class="p">:</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([[</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">process</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-            <span class="n">dec_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_batch_states</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">init_state</span><span class="p">(</span><span class="n">tokens</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)),</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">process</span><span class="p">]</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([[</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">process</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">p_dec_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_batch_states</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">init_state</span><span class="p">(</span><span class="n">labels</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)),</span> <span class="p">[</span><span class="n">p</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">process</span><span class="p">]</span>
             <span class="p">)</span>
 
-            <span class="n">ey</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
-            <span class="n">y</span><span class="p">,</span> <span class="n">dec_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_forward</span><span class="p">(</span><span class="n">ey</span><span class="p">,</span> <span class="n">dec_state</span><span class="p">)</span>
+            <span class="n">dec_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+            <span class="n">dec_out</span><span class="p">,</span> <span class="n">new_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_forward</span><span class="p">(</span><span class="n">dec_emb</span><span class="p">,</span> <span class="n">p_dec_states</span><span class="p">)</span>
 
         <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">final_batch</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">done</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">new_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_state</span><span class="p">(</span><span class="n">dec_state</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_state</span><span class="p">(</span><span class="n">new_states</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
 
-                <span class="n">done</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">new_state</span><span class="p">)</span>
-                <span class="n">cache</span><span class="p">[</span><span class="n">process</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">new_state</span><span class="p">)</span>
+                <span class="n">done</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dec_out</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">state</span><span class="p">)</span>
+                <span class="n">cache</span><span class="p">[</span><span class="n">process</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dec_out</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">state</span><span class="p">)</span>
 
                 <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
 
-        <span class="n">batch_y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">done</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">batch_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_batch_states</span><span class="p">(</span><span class="n">batch_states</span><span class="p">,</span> <span class="p">[</span><span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">done</span><span class="p">])</span>
+        <span class="n">dec_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">d</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">done</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">dec_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_batch_states</span><span class="p">(</span><span class="n">dec_states</span><span class="p">,</span> <span class="p">[</span><span class="n">d</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">done</span><span class="p">])</span>
 
         <span class="k">if</span> <span class="n">use_lm</span><span class="p">:</span>
-            <span class="n">lm_tokens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="n">h</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">lm_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="n">h</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
-            <span class="k">return</span> <span class="n">batch_y</span><span class="p">,</span> <span class="n">batch_states</span><span class="p">,</span> <span class="n">lm_tokens</span>
+            <span class="k">return</span> <span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_states</span><span class="p">,</span> <span class="n">lm_labels</span>
 
-        <span class="k">return</span> <span class="n">batch_y</span><span class="p">,</span> <span class="n">batch_states</span><span class="p">,</span> <span class="kc">None</span></div>
+        <span class="k">return</span> <span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_states</span><span class="p">,</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="DecoderRNNT.select_state"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.DecoderRNNT.select_state">[docs]</a>    <span class="k">def</span> <span class="nf">select_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_states</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get decoder state from batch of states, for given id.</span>
+<div class="viewcode-block" id="RNNDecoder.select_state"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.RNNDecoder.select_state">[docs]</a>    <span class="k">def</span> <span class="nf">select_state</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">idx</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Get specified ID state from decoder hidden states.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            batch_states (tuple): batch of decoder states</span>
-<span class="sd">                ((L, B, dec_dim), (L, B, dec_dim))</span>
-<span class="sd">            idx (int): index to extract state from batch of states</span>
+<span class="sd">            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</span>
+<span class="sd">            idx: State ID to extract.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (tuple): decoder states for given id</span>
-<span class="sd">                ((L, 1, dec_dim), (L, 1, dec_dim))</span>
+<span class="sd">            : Decoder hidden state for given ID.</span>
+<span class="sd">              ((N, 1, D_dec), (N, 1, D_dec))</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">(</span>
-            <span class="n">batch_states</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span> <span class="n">idx</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:],</span>
-            <span class="n">batch_states</span><span class="p">[</span><span class="mi">1</span><span class="p">][:,</span> <span class="n">idx</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;lstm&quot;</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">states</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span> <span class="n">idx</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="n">states</span><span class="p">[</span><span class="mi">1</span><span class="p">][:,</span> <span class="n">idx</span> <span class="p">:</span> <span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;lstm&quot;</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="DecoderRNNT.create_batch_states"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.DecoderRNNT.create_batch_states">[docs]</a>    <span class="k">def</span> <span class="nf">create_batch_states</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_states</span><span class="p">,</span> <span class="n">l_states</span><span class="p">,</span> <span class="n">l_tokens</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Create batch of decoder states.</span>
+<div class="viewcode-block" id="RNNDecoder.create_batch_states"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.rnn_decoder.RNNDecoder.create_batch_states">[docs]</a>    <span class="k">def</span> <span class="nf">create_batch_states</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">states</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
+        <span class="n">new_states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]],</span>
+        <span class="n">check_list</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]]:</span>
+        <span class="sd">&quot;&quot;&quot;Create decoder hidden states.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            batch_states (tuple): batch of decoder states</span>
-<span class="sd">               ((L, B, dec_dim), (L, B, dec_dim))</span>
-<span class="sd">            l_states (list): list of decoder states</span>
-<span class="sd">               [L x ((1, dec_dim), (1, dec_dim))]</span>
+<span class="sd">            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</span>
+<span class="sd">            new_states: Decoder hidden states. [N x ((1, D_dec), (1, D_dec))]</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            batch_states (tuple): batch of decoder states</span>
-<span class="sd">                ((L, B, dec_dim), (L, B, dec_dim))</span>
+<span class="sd">            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec))</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">l_states</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">l_states</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">new_states</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">new_states</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;lstm&quot;</span>
             <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">)</span></div></div>

@@ -991,21 +991,45 @@ only supports E2E and RNNLM</p>
 <span id="id8"></span><h2>espnet.asr.pytorch_backend.asr_init<a class="headerlink" href="#espnet-asr-pytorch-backend-asr-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.asr.pytorch_backend.asr_init"></span><p>Finetuning methods.</p>
 <dl class="function">
-<dt id="espnet.asr.pytorch_backend.asr_init.filter_modules">
-<code class="sig-prename descclassname">espnet.asr.pytorch_backend.asr_init.</code><code class="sig-name descname">filter_modules</code><span class="sig-paren">(</span><em class="sig-param">model_state_dict</em>, <em class="sig-param">modules</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/asr/pytorch_backend/asr_init.html#filter_modules"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.asr.pytorch_backend.asr_init.filter_modules" title="Permalink to this definition">¶</a></dt>
-<dd><p>Filter non-matched modules in module_state_dict.</p>
+<dt id="espnet.asr.pytorch_backend.asr_init.create_transducer_compatible_state_dict">
+<code class="sig-prename descclassname">espnet.asr.pytorch_backend.asr_init.</code><code class="sig-name descname">create_transducer_compatible_state_dict</code><span class="sig-paren">(</span><em class="sig-param">model_state_dict</em>, <em class="sig-param">encoder_type</em>, <em class="sig-param">encoder_units</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/asr/pytorch_backend/asr_init.html#create_transducer_compatible_state_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.asr.pytorch_backend.asr_init.create_transducer_compatible_state_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a compatible transducer model state dict for transfer learning.</p>
+<p>If RNN encoder modules from a non-Transducer model are found in
+the pre-trained model state dict, the corresponding modules keys are
+renamed for compatibility.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model_state_dict</strong> (<em>OrderedDict</em>) – trained model state_dict</p></li>
-<li><p><strong>modules</strong> (<em>list</em>) – specified module list for transfer</p></li>
+<li><p><strong>model_state_dict</strong> (<em>Dict</em>) – Pre-trained model state dict</p></li>
+<li><p><strong>encoder_type</strong> (<em>str</em>) – Type of pre-trained encoder.</p></li>
+<li><p><strong>encoder_units</strong> (<em>int</em>) – Number of encoder units in pre-trained model.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>the update module list</p>
+<dd class="field-even"><p>Transducer compatible pre-trained model state dict.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>new_mods (list)</p>
+<dd class="field-odd"><p>new_state_dict (Dict)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.asr.pytorch_backend.asr_init.filter_modules">
+<code class="sig-prename descclassname">espnet.asr.pytorch_backend.asr_init.</code><code class="sig-name descname">filter_modules</code><span class="sig-paren">(</span><em class="sig-param">model_state_dict</em>, <em class="sig-param">modules</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/asr/pytorch_backend/asr_init.html#filter_modules"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.asr.pytorch_backend.asr_init.filter_modules" title="Permalink to this definition">¶</a></dt>
+<dd><p>Filter non-matched modules in model state dict.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_state_dict</strong> (<em>Dict</em>) – Pre-trained model state dict.</p></li>
+<li><p><strong>modules</strong> (<em>List</em>) – Specified module(s) to transfer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Filtered module list.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>new_mods (List)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1017,13 +1041,13 @@ only supports E2E and RNNLM</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>torch.nn.Module</em>) – main model to update</p></li>
-<li><p><strong>modules</strong> (<em>list</em>) – specified module list for freezing</p></li>
+<li><p><strong>model</strong> (<em>torch.nn.Module</em>) – Main model.</p></li>
+<li><p><strong>modules</strong> (<em>List</em>) – Specified module(s) to freeze.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>updated model
-model_params (filter): filtered model parameters</p>
+<dd class="field-even"><p>Updated main model.
+model_params (filter): Filtered model parameters.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>model (torch.nn.Module)</p>
@@ -1037,13 +1061,13 @@ model_params (filter): filtered model parameters</p>
 <dd><p>Create compatible ASR decoder state dict from LM state dict.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>lm_state_dict</strong> (<em>OrderedDict</em>) – pre-trained LM state_dict</p>
+<dd class="field-odd"><p><strong>lm_state_dict</strong> (<em>Dict</em>) – Pre-trained LM state dict.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>LM state_dict with updated keys</p>
+<dd class="field-even"><p>State dict with compatible key names.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>new_state_dict (OrderedDict)</p>
+<dd class="field-odd"><p>new_state_dict (Dict)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1051,38 +1075,39 @@ model_params (filter): filtered model parameters</p>
 <dl class="function">
 <dt id="espnet.asr.pytorch_backend.asr_init.get_partial_state_dict">
 <code class="sig-prename descclassname">espnet.asr.pytorch_backend.asr_init.</code><code class="sig-name descname">get_partial_state_dict</code><span class="sig-paren">(</span><em class="sig-param">model_state_dict</em>, <em class="sig-param">modules</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/asr/pytorch_backend/asr_init.html#get_partial_state_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.asr.pytorch_backend.asr_init.get_partial_state_dict" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create state_dict with specified modules matching input model modules.</p>
-<p>Note that get_partial_lm_state_dict is used if a LM specified.</p>
+<dd><p>Create state dict with specified modules matching input model modules.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model_state_dict</strong> (<em>OrderedDict</em>) – trained model state_dict</p></li>
-<li><p><strong>modules</strong> (<em>list</em>) – specified module list for transfer</p></li>
+<li><p><strong>model_state_dict</strong> (<em>Dict</em>) – Pre-trained model state dict.</p></li>
+<li><p><strong>modules</strong> (<em>Dict</em>) – Specified module(s) to transfer.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>the updated state_dict</p>
+<dd class="field-even"><p>State dict with specified modules weights.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>new_state_dict (OrderedDict)</p>
+<dd class="field-odd"><p>new_state_dict (Dict)</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="espnet.asr.pytorch_backend.asr_init.get_trained_model_state_dict">
-<code class="sig-prename descclassname">espnet.asr.pytorch_backend.asr_init.</code><code class="sig-name descname">get_trained_model_state_dict</code><span class="sig-paren">(</span><em class="sig-param">model_path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/asr/pytorch_backend/asr_init.html#get_trained_model_state_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.asr.pytorch_backend.asr_init.get_trained_model_state_dict" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">espnet.asr.pytorch_backend.asr_init.</code><code class="sig-name descname">get_trained_model_state_dict</code><span class="sig-paren">(</span><em class="sig-param">model_path</em>, <em class="sig-param">new_is_transducer</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/asr/pytorch_backend/asr_init.html#get_trained_model_state_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.asr.pytorch_backend.asr_init.get_trained_model_state_dict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extract the trained model state dict for pre-initialization.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>model_path</strong> (<em>str</em>) – Path to model.***.best</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_path</strong> (<em>str</em>) – Path to trained model.</p></li>
+<li><p><strong>new_is_transducer</strong> (<em>bool</em>) – Whether the new model is Transducer-based.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>the loaded model state_dict
-(bool): Boolean defining whether the model is an LM</p>
+<dd class="field-even"><p>Trained model state dict.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>model.state_dict() (OrderedDict)</p>
+<dd class="field-odd"><p>(Dict)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1093,7 +1118,17 @@ model_params (filter): filtered model parameters</p>
 <dd><p>Load the trained model for recognition.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>model_path</strong> (<em>str</em>) – Path to model.***.best</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_path</strong> (<em>str</em>) – Path to model.***.best</p></li>
+<li><p><strong>training</strong> (<em>bool</em>) – Training mode specification for transducer model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Trained model.
+train_args (Namespace): Trained model arguments.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>model (torch.nn.Module)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1101,21 +1136,21 @@ model_params (filter): filtered model parameters</p>
 <dl class="function">
 <dt id="espnet.asr.pytorch_backend.asr_init.load_trained_modules">
 <code class="sig-prename descclassname">espnet.asr.pytorch_backend.asr_init.</code><code class="sig-name descname">load_trained_modules</code><span class="sig-paren">(</span><em class="sig-param">idim</em>, <em class="sig-param">odim</em>, <em class="sig-param">args</em>, <em class="sig-param">interface=&lt;class 'espnet.nets.asr_interface.ASRInterface'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/asr/pytorch_backend/asr_init.html#load_trained_modules"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.asr.pytorch_backend.asr_init.load_trained_modules" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load model encoder or/and decoder modules with ESPNET pre-trained model(s).</p>
+<dd><p>Load ASR/MT/TTS model with pre-trained weights for specified modules.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>idim</strong> (<em>int</em>) – initial input dimension.</p></li>
-<li><p><strong>odim</strong> (<em>int</em>) – initial output dimension.</p></li>
-<li><p><strong>args</strong> (<em>Namespace</em>) – The initial model arguments.</p></li>
-<li><p><strong>interface</strong> (<em>Interface</em>) – ASRInterface or STInterface or TTSInterface.</p></li>
+<li><p><strong>idim</strong> (<em>int</em>) – Input dimension.</p></li>
+<li><p><strong>odim</strong> (<em>int</em>) – Output dimension.</p></li>
+<li><p><strong>Namespace</strong> (<em>args</em>) – Model arguments.</p></li>
+<li><p><strong>interface</strong> (<em>ASRInterface|MTInterface|TTSInterface</em>) – Model interface.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The model with pretrained modules.</p>
+<dd class="field-even"><p>Model with pre-initialized weights.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>model (torch.nn.Module)</p>
+<dd class="field-odd"><p>main_model (torch.nn.Module)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1127,16 +1162,16 @@ model_params (filter): filtered model parameters</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model_state_dict</strong> (<em>OrderedDict</em>) – the initial model state_dict</p></li>
-<li><p><strong>partial_state_dict</strong> (<em>OrderedDict</em>) – the trained model state_dict</p></li>
-<li><p><strong>modules</strong> (<em>list</em>) – specified module list for transfer</p></li>
+<li><p><strong>model_state_dict</strong> (<em>Dict</em>) – Main model state dict.</p></li>
+<li><p><strong>partial_state_dict</strong> (<em>Dict</em>) – Pre-trained model state dict.</p></li>
+<li><p><strong>modules</strong> (<em>List</em>) – Specified module(s) to transfer.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>allow transfer</p>
+<dd class="field-even"><p>Whether transfer learning is allowed.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>(boolean)</p>
+<dd class="field-odd"><p>(bool)</p>
 </dd>
 </dl>
 </dd></dl>

@@ -361,44 +361,63 @@
         <span class="s2">&quot;--search-type&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="s2">&quot;nsc&quot;</span><span class="p">,</span> <span class="s2">&quot;tsd&quot;</span><span class="p">,</span> <span class="s2">&quot;alsd&quot;</span><span class="p">],</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="s2">&quot;nsc&quot;</span><span class="p">,</span> <span class="s2">&quot;tsd&quot;</span><span class="p">,</span> <span class="s2">&quot;alsd&quot;</span><span class="p">,</span> <span class="s2">&quot;maes&quot;</span><span class="p">],</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;Type of beam search implementation to use during inference.</span>
-<span class="s2">        Can be either: default beam search, n-step constrained beam search (&quot;nsc&quot;),</span>
-<span class="s2">        time-synchronous decoding (&quot;tsd&quot;) or alignment-length synchronous decoding</span>
-<span class="s2">        (&quot;alsd&quot;).</span>
-<span class="s2">        Additional associated parameters: &quot;nstep&quot; + &quot;prefix-alpha&quot; (for nsc),</span>
-<span class="s2">        &quot;max-sym-exp&quot; (for tsd) and &quot;u-max&quot; (for alsd)&quot;&quot;&quot;</span><span class="p">,</span>
+<span class="s2">        Can be either: default beam search (&quot;default&quot;),</span>
+<span class="s2">        N-Step Constrained beam search (&quot;nsc&quot;), Time-Synchronous Decoding (&quot;tsd&quot;),</span>
+<span class="s2">        Alignment-Length Synchronous Decoding (&quot;alsd&quot;) or</span>
+<span class="s2">        modified Adaptive Expansion Search (&quot;maes&quot;).&quot;&quot;&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--nstep&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of expansion steps allowed in NSC beam search.&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;Number of expansion steps allowed in NSC beam search or mAES</span>
+<span class="s2">        (nstep &gt; 0 for NSC and nstep &gt; 1 for mAES).&quot;&quot;&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--prefix-alpha&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Length prefix difference allowed in NSC beam search.&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Length prefix difference allowed in NSC beam search or mAES.&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--max-sym-exp&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of symbol expansions allowed in TSD decoding.&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of symbol expansions allowed in TSD.&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--u-max&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Length prefix difference allowed in ALSD beam search.&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Length prefix difference allowed in ALSD.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--expansion-gamma&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">2.3</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Allowed logp difference for prune-by-value method in mAES.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--expansion-beta&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;Number of additional candidates for expanded hypotheses</span>
+<span class="s2">                selection in mAES.&quot;&quot;&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--score-norm&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">strtobool</span><span class="p">,</span>
         <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;?&quot;</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Normalize transducer scores by length&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Normalize final hypotheses&#39; score by length&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--softmax-temperature&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Penalization term for softmax function.&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="c1"># rnnlm related</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>

@@ -222,14 +222,17 @@
     <span class="sd">&quot;&quot;&quot;Transducer joint network module.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        joint_space_size: Dimension of joint space</span>
-<span class="sd">        joint_activation_type: Activation type for joint network</span>
+<span class="sd">        joint_output_size: Joint network output dimension</span>
+<span class="sd">        encoder_output_size: Encoder output dimension.</span>
+<span class="sd">        decoder_output_size: Decoder output dimension.</span>
+<span class="sd">        joint_space_size: Dimension of joint space.</span>
+<span class="sd">        joint_activation_type: Type of activation for joint network.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">joint_output_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">encoder_output_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">decoder_output_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">joint_space_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -243,30 +246,32 @@
             <span class="n">decoder_output_size</span><span class="p">,</span> <span class="n">joint_space_size</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">lin_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">joint_space_size</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lin_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">joint_space_size</span><span class="p">,</span> <span class="n">joint_output_size</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">joint_activation</span> <span class="o">=</span> <span class="n">get_activation</span><span class="p">(</span><span class="n">joint_activation_type</span><span class="p">)</span>
 
 <div class="viewcode-block" id="JointNetwork.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.joint_network.JointNetwork.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">h_enc</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">h_dec</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">is_aux</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">dec_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">is_aux</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Joint computation of z.</span>
+        <span class="sd">&quot;&quot;&quot;Joint computation of encoder and decoder hidden state sequences.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            h_enc: Batch of expanded hidden state (B, T, 1, D_enc)</span>
-<span class="sd">            h_dec: Batch of expanded hidden state (B, 1, U, D_dec)</span>
+<span class="sd">            enc_out: Expanded encoder output state sequences (B, T, 1, D_enc)</span>
+<span class="sd">            dec_out: Expanded decoder output state sequences (B, 1, U, D_dec)</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            z: Output (B, T, U, vocab_size)</span>
+<span class="sd">            joint_out: Joint output state sequences. (B, T, U, D_out)</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">is_aux</span><span class="p">:</span>
-            <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">joint_activation</span><span class="p">(</span><span class="n">h_enc</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lin_dec</span><span class="p">(</span><span class="n">h_dec</span><span class="p">))</span>
+            <span class="n">joint_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">joint_activation</span><span class="p">(</span><span class="n">enc_out</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lin_dec</span><span class="p">(</span><span class="n">dec_out</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">joint_activation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lin_enc</span><span class="p">(</span><span class="n">h_enc</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lin_dec</span><span class="p">(</span><span class="n">h_dec</span><span class="p">))</span>
-        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lin_out</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+            <span class="n">joint_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">joint_activation</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lin_enc</span><span class="p">(</span><span class="n">enc_out</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lin_dec</span><span class="p">(</span><span class="n">dec_out</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">joint_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lin_out</span><span class="p">(</span><span class="n">joint_out</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">z</span></div></div>
+        <span class="k">return</span> <span class="n">joint_out</span></div></div>
 </pre></div>
 
            </div>

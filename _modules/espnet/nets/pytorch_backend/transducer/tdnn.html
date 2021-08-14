@@ -211,9 +211,8 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet.nets.pytorch_backend.transducer.tdnn</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;TDNN modules definition for transformer encoder.&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;TDNN modules definition for custom encoder.&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
 
@@ -221,17 +220,16 @@
 
 
 <div class="viewcode-block" id="TDNN"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.tdnn.TDNN">[docs]</a><span class="k">class</span> <span class="nc">TDNN</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;TDNN implementation with symmetric context.</span>
+    <span class="sd">&quot;&quot;&quot;TDNN module with symmetric context.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        idim: Dimension of inputs</span>
-<span class="sd">        odim: Dimension of outputs</span>
-<span class="sd">        ctx_size: Size of context window</span>
-<span class="sd">        stride: Stride of the sliding blocks</span>
-<span class="sd">        dilation: Parameter to control the stride of</span>
-<span class="sd">                  elements within the neighborhood</span>
-<span class="sd">        batch_norm: Whether to use batch normalization</span>
-<span class="sd">        relu: Whether to use non-linearity layer (ReLU)</span>
+<span class="sd">        idim: Input dimension.</span>
+<span class="sd">        odim: Output dimension.</span>
+<span class="sd">        ctx_size: Size of the context window.</span>
+<span class="sd">        stride: Stride of the sliding blocks.</span>
+<span class="sd">        dilation: Control the stride of elements within the neighborhood.</span>
+<span class="sd">        batch_norm: Whether to apply batch normalization.</span>
+<span class="sd">        relu: Whether to use a final non-linearity layer (ReLU).</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -273,86 +271,89 @@
 
 <div class="viewcode-block" id="TDNN.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.tdnn.TDNN.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">x_input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
-        <span class="n">masks</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">sequence</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Forward TDNN.</span>
+        <span class="sd">&quot;&quot;&quot;Forward TDNN for custom encoder.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            x_input: Input tensor (B, T, idim) or ((B, T, idim), (B, T, att_dim))</span>
-<span class="sd">            or ((B, T, idim), (B, 2*T-1, att_dim))</span>
-<span class="sd">            masks: Input mask (B, 1, T)</span>
+<span class="sd">            sequence: TDNN input sequences.</span>
+<span class="sd">                        (B, T, D_in) or ((B, T, D_in), (B, T, D_att))</span>
+<span class="sd">                        or ((B, T, D_in), (B, 2 * (T - 1), D_att))</span>
+<span class="sd">            mask: Mask of TDNN input sequences. (B, 1, T)</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            x_output: Output tensor (B, sub(T), odim)</span>
-<span class="sd">                          or ((B, sub(T), odim), (B, sub(T), att_dim))</span>
-<span class="sd">            mask: Output mask (B, 1, sub(T))</span>
+<span class="sd">            sequenceput: TDNN output sequences.</span>
+<span class="sd">                         (B, sub(T), D_out)</span>
+<span class="sd">                         or ((B, sub(T), D_out), (B, sub(T), att_dim))</span>
+<span class="sd">                         or ((B, T, D_out), (B, 2 * (sub(T) - 1), D_att)</span>
+<span class="sd">            mask: Mask of TDNN output sequences. (B, 1, sub(T))</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x_input</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-            <span class="n">xs</span><span class="p">,</span> <span class="n">pos_emb</span> <span class="o">=</span> <span class="n">x_input</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x_input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">sequence</span><span class="p">,</span> <span class="n">pos_emb</span> <span class="o">=</span> <span class="n">sequence</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sequence</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">xs</span><span class="p">,</span> <span class="n">pos_emb</span> <span class="o">=</span> <span class="n">x_input</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="n">sequence</span><span class="p">,</span> <span class="n">pos_emb</span> <span class="o">=</span> <span class="n">sequence</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="n">sequence</span> <span class="o">=</span> <span class="n">sequence</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
         <span class="c1"># The bidirect_pos is used to distinguish legacy_rel_pos and rel_pos in</span>
         <span class="c1"># Conformer model. Note the `legacy_rel_pos` will be deprecated in the future.</span>
         <span class="c1"># Details can be found in https://github.com/espnet/espnet/pull/2816.</span>
-        <span class="k">if</span> <span class="n">pos_emb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pos_emb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">xs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Using bidirectional relative postitional encoding.&quot;</span><span class="p">)</span>
-            <span class="n">bidirect_pos</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">pos_emb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pos_emb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">sequence</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">bidir_pos_emb</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">bidirect_pos</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">bidir_pos_emb</span> <span class="o">=</span> <span class="kc">False</span>
 
-        <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tdnn</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tdnn</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu</span><span class="p">:</span>
-            <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu_func</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+            <span class="n">sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">relu_func</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
 
-        <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
-            <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+            <span class="n">sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="p">(</span><span class="n">sequence</span><span class="p">)</span>
 
-        <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="n">sequence</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_outputs</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">pos_emb</span><span class="p">,</span> <span class="n">masks</span><span class="p">,</span> <span class="n">bidirect_pos</span><span class="o">=</span><span class="n">bidirect_pos</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_outputs</span><span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="n">pos_emb</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">bidir_pos_emb</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TDNN.create_outputs"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.tdnn.TDNN.create_outputs">[docs]</a>    <span class="k">def</span> <span class="nf">create_outputs</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">sequence</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">pos_emb</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">masks</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">bidirect_pos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">bidir_pos_emb</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Create outputs with subsampled version of pos_emb and masks.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            xs: Output tensor (B, sub(T), odim)</span>
-<span class="sd">            pos_emb: Input positional embedding tensor (B, T, att_dim)</span>
-<span class="sd">            or (B, 2*T-1, att_dim)</span>
-<span class="sd">            masks: Input mask (B, 1, T)</span>
-<span class="sd">            bidirect_pos: whether to use bidirectional positional embedding</span>
+<span class="sd">            sequence: TDNN output sequences. (B, sub(T), D_out)</span>
+<span class="sd">            pos_emb: Input positional embedding.</span>
+<span class="sd">                     (B, T, att_dim) or (B, 2 * (T - 1), D_att)</span>
+<span class="sd">            mask: Mask of TDNN input sequences. (B, 1, T)</span>
+<span class="sd">            bidir_pos_emb: Whether to use bidirectional positional embedding.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            xs: Output tensor (B, sub(T), odim)</span>
-<span class="sd">            pos_emb: Output positional embedding tensor (B, sub(T), att_dim)</span>
-<span class="sd">            or (B, 2*sub(T)-1, att_dim)</span>
-<span class="sd">            masks: Output mask (B, 1, sub(T))</span>
+<span class="sd">            sequence: TDNN output sequences. (B, sub(T), D_out)</span>
+<span class="sd">            pos_emb: Output positional embedding.</span>
+<span class="sd">                     (B, sub(T), D_att) or (B, 2 * (sub(T) - 1), D_att)</span>
+<span class="sd">            mask: Mask of TDNN output sequences. (B, 1, sub(T))</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">sub</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctx_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span>
 
-        <span class="k">if</span> <span class="n">masks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">sub</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="n">sub</span><span class="p">]</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="n">sub</span><span class="p">]</span>
 
-            <span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">]</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">::</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">pos_emb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># If the bidirect_pos is true, the pos_emb will include both positive and</span>
             <span class="c1"># negative embeddings. Refer to https://github.com/espnet/espnet/pull/2816.</span>
-            <span class="k">if</span> <span class="n">bidirect_pos</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">bidir_pos_emb</span><span class="p">:</span>
                 <span class="n">pos_emb_positive</span> <span class="o">=</span> <span class="n">pos_emb</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">pos_emb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
                 <span class="n">pos_emb_negative</span> <span class="o">=</span> <span class="n">pos_emb</span><span class="p">[:,</span> <span class="n">pos_emb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:,</span> <span class="p">:]</span>
 
@@ -362,6 +363,7 @@
 
                 <span class="n">pos_emb_positive</span> <span class="o">=</span> <span class="n">pos_emb_positive</span><span class="p">[:,</span> <span class="p">::</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="p">:]</span>
                 <span class="n">pos_emb_negative</span> <span class="o">=</span> <span class="n">pos_emb_negative</span><span class="p">[:,</span> <span class="p">::</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="p">:]</span>
+
                 <span class="n">pos_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
                     <span class="p">[</span><span class="n">pos_emb_positive</span><span class="p">,</span> <span class="n">pos_emb_negative</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:,</span> <span class="p">:]],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span>
                 <span class="p">)</span>
@@ -371,9 +373,9 @@
 
                 <span class="n">pos_emb</span> <span class="o">=</span> <span class="n">pos_emb</span><span class="p">[:,</span> <span class="p">::</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span> <span class="p">:]</span>
 
-            <span class="k">return</span> <span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">pos_emb</span><span class="p">),</span> <span class="n">masks</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">sequence</span><span class="p">,</span> <span class="n">pos_emb</span><span class="p">),</span> <span class="n">mask</span>
 
-        <span class="k">return</span> <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span></div></div>
+        <span class="k">return</span> <span class="n">sequence</span><span class="p">,</span> <span class="n">mask</span></div></div>
 </pre></div>
 
            </div>

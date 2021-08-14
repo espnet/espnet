@@ -211,7 +211,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet.nets.pytorch_backend.transducer.vgg2l</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;VGG2L module definition for transformer encoder.&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;VGG2L module definition for custom encoder.&quot;&quot;&quot;</span>
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
@@ -223,9 +223,9 @@
     <span class="sd">&quot;&quot;&quot;VGG2L module for custom encoder.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        idim: Dimension of inputs</span>
-<span class="sd">        odim: Dimension of outputs</span>
-<span class="sd">        pos_enc: Positional encoding class</span>
+<span class="sd">        idim: Input dimension.</span>
+<span class="sd">        odim: Output dimension.</span>
+<span class="sd">        pos_enc: Positional encoding class.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -254,52 +254,56 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">128</span> <span class="o">*</span> <span class="p">((</span><span class="n">idim</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">),</span> <span class="n">odim</span><span class="p">)</span>
 
 <div class="viewcode-block" id="VGG2L.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.vgg2l.VGG2L.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">feats</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">feats_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span>
         <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
         <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;VGG2L forward for x.</span>
+        <span class="sd">&quot;&quot;&quot;Forward VGG2L bottleneck.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            x: Input tensor (B, T, idim)</span>
-<span class="sd">            x_mask: Input mask (B, 1, T)</span>
+<span class="sd">            feats: Feature sequences. (B, F, D_feats)</span>
+<span class="sd">            feats_mask: Mask of feature sequences. (B, 1, F)</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            x: Output tensor (B, sub(T), odim)</span>
-<span class="sd">                   or ((B, sub(T), odim), (B, sub(T), att_dim))</span>
-<span class="sd">            x_mask: Output mask (B, 1, sub(T))</span>
+<span class="sd">            vgg_output: VGG output sequences.</span>
+<span class="sd">                   (B, sub(F), D_out) or ((B, sub(F), D_out), (B, sub(F), D_att))</span>
+<span class="sd">            vgg_mask: Mask of VGG output sequences. (B, 1, sub(F))</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vgg2l</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">vgg_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vgg2l</span><span class="p">(</span><span class="n">feats</span><span class="p">)</span>
 
-        <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+        <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="n">vgg_output</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
 
-        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">c</span> <span class="o">*</span> <span class="n">f</span><span class="p">))</span>
+        <span class="n">vgg_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span>
+            <span class="n">vgg_output</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">c</span> <span class="o">*</span> <span class="n">f</span><span class="p">)</span>
+        <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">x_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">x_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_new_mask</span><span class="p">(</span><span class="n">x_mask</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">feats_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">vgg_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_new_mask</span><span class="p">(</span><span class="n">feats_mask</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">vgg_mask</span> <span class="o">=</span> <span class="n">feats_mask</span>
 
-        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span></div>
+        <span class="k">return</span> <span class="n">vgg_output</span><span class="p">,</span> <span class="n">vgg_mask</span></div>
 
-<div class="viewcode-block" id="VGG2L.create_new_mask"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.vgg2l.VGG2L.create_new_mask">[docs]</a>    <span class="k">def</span> <span class="nf">create_new_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Create a subsampled version of x_mask.</span>
+<div class="viewcode-block" id="VGG2L.create_new_mask"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.vgg2l.VGG2L.create_new_mask">[docs]</a>    <span class="k">def</span> <span class="nf">create_new_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feats_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Create a subsampled mask of feature sequences.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            x_mask: Input mask (B, 1, T)</span>
+<span class="sd">            feats_mask: Mask of feature sequences. (B, 1, F)</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            x_mask: Output mask (B, 1, sub(T))</span>
+<span class="sd">            vgg_mask: Mask of VGG2L output sequences. (B, 1, sub(F))</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">x_t1</span> <span class="o">=</span> <span class="n">x_mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">x_mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="mi">3</span><span class="p">)</span>
-        <span class="n">x_mask</span> <span class="o">=</span> <span class="n">x_mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">x_t1</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">::</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">vgg1_t_len</span> <span class="o">=</span> <span class="n">feats_mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">feats_mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="n">vgg_mask</span> <span class="o">=</span> <span class="n">feats_mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">vgg1_t_len</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">::</span><span class="mi">3</span><span class="p">]</span>
 
-        <span class="n">x_t2</span> <span class="o">=</span> <span class="n">x_mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">x_mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">x_mask</span> <span class="o">=</span> <span class="n">x_mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">x_t2</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">::</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">vgg2_t_len</span> <span class="o">=</span> <span class="n">vgg_mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">vgg_mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">vgg_mask</span> <span class="o">=</span> <span class="n">vgg_mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">vgg2_t_len</span><span class="p">][:,</span> <span class="p">:,</span> <span class="p">::</span><span class="mi">2</span><span class="p">]</span>
 
-        <span class="k">return</span> <span class="n">x_mask</span></div></div>
+        <span class="k">return</span> <span class="n">vgg_mask</span></div></div>
 </pre></div>
 
            </div>

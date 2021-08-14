@@ -211,39 +211,44 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet.nets.pytorch_backend.transducer.error_calculator</h1><div class="highlight"><pre>
-<span></span><span class="ch">#!/usr/bin/env python3</span>
-<span class="c1"># encoding: utf-8</span>
+<span></span><span class="sd">&quot;&quot;&quot;CER/WER computation for transducer model.&quot;&quot;&quot;</span>
 
-<span class="sd">&quot;&quot;&quot;CER/WER monitoring for transducer models.&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">editdistance</span>
+<span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.beam_search_transducer</span> <span class="kn">import</span> <span class="n">BeamSearchTransducer</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.custom_decoder</span> <span class="kn">import</span> <span class="n">CustomDecoder</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.joint_network</span> <span class="kn">import</span> <span class="n">JointNetwork</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.rnn_decoder</span> <span class="kn">import</span> <span class="n">RNNDecoder</span>
 
 
 <div class="viewcode-block" id="ErrorCalculator"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator">[docs]</a><span class="k">class</span> <span class="nc">ErrorCalculator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate CER and WER for transducer models.</span>
+    <span class="sd">&quot;&quot;&quot;CER and WER computation for transducer model.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        decoder (torch.nn.Module|TransducerDecoderInterface): decoder module</span>
-<span class="sd">        joint_network (torch.nn.Module): joint network module</span>
-<span class="sd">        token_list (list): list of tokens</span>
-<span class="sd">        sym_space (str): space symbol</span>
-<span class="sd">        sym_blank (str): blank symbol</span>
-<span class="sd">        report_cer (boolean): compute CER option</span>
-<span class="sd">        report_wer (boolean): compute WER option</span>
+<span class="sd">        decoder: Decoder module.</span>
+<span class="sd">        joint_network: Joint network module.</span>
+<span class="sd">        token_list: Set of unique labels.</span>
+<span class="sd">        sym_space: Space symbol.</span>
+<span class="sd">        sym_blank: Blank symbol.</span>
+<span class="sd">        report_cer: Whether to compute CER.</span>
+<span class="sd">        report_wer: Whether to compute WER.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">decoder</span><span class="p">,</span>
-        <span class="n">joint_network</span><span class="p">,</span>
-        <span class="n">token_list</span><span class="p">,</span>
-        <span class="n">sym_space</span><span class="p">,</span>
-        <span class="n">sym_blank</span><span class="p">,</span>
-        <span class="n">report_cer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">report_wer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">decoder</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">RNNDecoder</span><span class="p">,</span> <span class="n">CustomDecoder</span><span class="p">],</span>
+        <span class="n">joint_network</span><span class="p">:</span> <span class="n">JointNetwork</span><span class="p">,</span>
+        <span class="n">token_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">sym_space</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">sym_blank</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">report_cer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">report_wer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Construct an ErrorCalculator object for transducer model.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -251,7 +256,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span> <span class="o">=</span> <span class="n">BeamSearchTransducer</span><span class="p">(</span>
             <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
             <span class="n">joint_network</span><span class="o">=</span><span class="n">joint_network</span><span class="p">,</span>
-            <span class="n">beam_size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">beam_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+            <span class="n">search_type</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
@@ -263,117 +269,115 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">report_cer</span> <span class="o">=</span> <span class="n">report_cer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">report_wer</span> <span class="o">=</span> <span class="n">report_wer</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs_pad</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate sentence-level WER/CER score for transducer models.</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Calculate sentence-level CER/WER score for hypotheses sequences.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            hs_pad (torch.Tensor): batch of padded input sequence (batch, T, D)</span>
-<span class="sd">            ys_pad (torch.Tensor): reference (batch, seqlen)</span>
+<span class="sd">            enc_out: Encoder output sequences. (B, T, D_enc)</span>
+<span class="sd">            target: Target label ID sequences. (B, L)</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (float): sentence-level CER score</span>
-<span class="sd">            (float): sentence-level WER score</span>
+<span class="sd">            cer: Sentence-level CER score.</span>
+<span class="sd">            wer: Sentence-level WER score.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">cer</span><span class="p">,</span> <span class="n">wer</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
 
-        <span class="n">batchsize</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">batchsize</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">enc_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
         <span class="n">batch_nbest</span> <span class="o">=</span> <span class="p">[]</span>
 
-        <span class="n">hs_pad</span> <span class="o">=</span> <span class="n">hs_pad</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">enc_out</span> <span class="o">=</span> <span class="n">enc_out</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batchsize</span><span class="p">):</span>
-            <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">[</span><span class="n">b</span><span class="p">])</span>
+            <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="p">(</span><span class="n">enc_out</span><span class="p">[</span><span class="n">b</span><span class="p">])</span>
             <span class="n">batch_nbest</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
-        <span class="n">ys_hat</span> <span class="o">=</span> <span class="p">[</span><span class="n">nbest_hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">for</span> <span class="n">nbest_hyp</span> <span class="ow">in</span> <span class="n">batch_nbest</span><span class="p">]</span>
+        <span class="n">batch_nbest</span> <span class="o">=</span> <span class="p">[</span><span class="n">nbest_hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">for</span> <span class="n">nbest_hyp</span> <span class="ow">in</span> <span class="n">batch_nbest</span><span class="p">]</span>
 
-        <span class="n">seqs_hat</span><span class="p">,</span> <span class="n">seqs_true</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_to_char</span><span class="p">(</span><span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+        <span class="n">hyps</span><span class="p">,</span> <span class="n">refs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_to_char</span><span class="p">(</span><span class="n">batch_nbest</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_cer</span><span class="p">:</span>
-            <span class="n">cer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_cer</span><span class="p">(</span><span class="n">seqs_hat</span><span class="p">,</span> <span class="n">seqs_true</span><span class="p">)</span>
+            <span class="n">cer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_cer</span><span class="p">(</span><span class="n">hyps</span><span class="p">,</span> <span class="n">refs</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_wer</span><span class="p">:</span>
-            <span class="n">wer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_wer</span><span class="p">(</span><span class="n">seqs_hat</span><span class="p">,</span> <span class="n">seqs_true</span><span class="p">)</span>
+            <span class="n">wer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_wer</span><span class="p">(</span><span class="n">hyps</span><span class="p">,</span> <span class="n">refs</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">cer</span><span class="p">,</span> <span class="n">wer</span>
 
-<div class="viewcode-block" id="ErrorCalculator.convert_to_char"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator.convert_to_char">[docs]</a>    <span class="k">def</span> <span class="nf">convert_to_char</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Convert index to character.</span>
+<div class="viewcode-block" id="ErrorCalculator.convert_to_char"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator.convert_to_char">[docs]</a>    <span class="k">def</span> <span class="nf">convert_to_char</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">refs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">,</span> <span class="n">List</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Convert label ID sequences to character.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            ys_hat (torch.Tensor): prediction (batch, seqlen)</span>
-<span class="sd">            ys_pad (torch.Tensor): reference (batch, seqlen)</span>
+<span class="sd">            hyps: Hypotheses sequences. (B, L)</span>
+<span class="sd">            refs: References sequences. (B, L)</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (list): token list of prediction</span>
-<span class="sd">            (list): token list of reference</span>
+<span class="sd">            char_hyps: Character list of hypotheses.</span>
+<span class="sd">            char_hyps: Character list of references.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">seqs_hat</span><span class="p">,</span> <span class="n">seqs_true</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="n">char_hyps</span><span class="p">,</span> <span class="n">char_refs</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
 
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">y_hat</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ys_hat</span><span class="p">):</span>
-            <span class="n">y_true</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">hyps</span><span class="p">):</span>
+            <span class="n">hyp_i</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">token_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">h</span><span class="p">)]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hyp</span><span class="p">]</span>
+            <span class="n">ref_i</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">token_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">r</span><span class="p">)]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">refs</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
 
-            <span class="n">seq_hat</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">token_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">y_hat</span><span class="p">]</span>
-            <span class="n">seq_true</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">token_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">y_true</span> <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">char_hyp</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">hyp_i</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
+            <span class="n">char_hyp</span> <span class="o">=</span> <span class="n">char_hyp</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blank</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">char_ref</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ref_i</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
 
-            <span class="n">seq_hat_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">seq_hat</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
-            <span class="n">seq_hat_text</span> <span class="o">=</span> <span class="n">seq_hat_text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blank</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-            <span class="n">seq_true_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">seq_true</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
+            <span class="n">char_hyps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">char_hyp</span><span class="p">)</span>
+            <span class="n">char_refs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">char_ref</span><span class="p">)</span>
 
-            <span class="n">seqs_hat</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_hat_text</span><span class="p">)</span>
-            <span class="n">seqs_true</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_true_text</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">char_hyps</span><span class="p">,</span> <span class="n">char_refs</span></div>
 
-        <span class="k">return</span> <span class="n">seqs_hat</span><span class="p">,</span> <span class="n">seqs_true</span></div>
-
-<div class="viewcode-block" id="ErrorCalculator.calculate_cer"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator.calculate_cer">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_cer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seqs_hat</span><span class="p">,</span> <span class="n">seqs_true</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate sentence-level CER score for transducer model.</span>
+<div class="viewcode-block" id="ErrorCalculator.calculate_cer"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator.calculate_cer">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_cer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">refs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Calculate sentence-level CER score.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            seqs_hat (torch.Tensor): prediction (batch, seqlen)</span>
-<span class="sd">            seqs_true (torch.Tensor): reference (batch, seqlen)</span>
+<span class="sd">            hyps: Hypotheses sequences. (B, L)</span>
+<span class="sd">            refs: References sequences. (B, L)</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (float): average sentence-level CER score</span>
+<span class="sd">            : Average sentence-level CER score.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">char_eds</span><span class="p">,</span> <span class="n">char_ref_lens</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="n">distances</span><span class="p">,</span> <span class="n">lens</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
 
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">seq_hat_text</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">seqs_hat</span><span class="p">):</span>
-            <span class="n">seq_true_text</span> <span class="o">=</span> <span class="n">seqs_true</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">hyps</span><span class="p">):</span>
+            <span class="n">char_hyp</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">char_ref</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
 
-            <span class="n">hyp_chars</span> <span class="o">=</span> <span class="n">seq_hat_text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-            <span class="n">ref_chars</span> <span class="o">=</span> <span class="n">seq_true_text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">distances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">editdistance</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">char_hyp</span><span class="p">,</span> <span class="n">char_ref</span><span class="p">))</span>
+            <span class="n">lens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">char_ref</span><span class="p">))</span>
 
-            <span class="n">char_eds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">editdistance</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">hyp_chars</span><span class="p">,</span> <span class="n">ref_chars</span><span class="p">))</span>
-            <span class="n">char_ref_lens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ref_chars</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">distances</span><span class="p">))</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">lens</span><span class="p">)</span></div>
 
-        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">char_eds</span><span class="p">))</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">char_ref_lens</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="ErrorCalculator.calculate_wer"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator.calculate_wer">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_wer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seqs_hat</span><span class="p">,</span> <span class="n">seqs_true</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Calculate sentence-level WER score for transducer model.</span>
+<div class="viewcode-block" id="ErrorCalculator.calculate_wer"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.error_calculator.ErrorCalculator.calculate_wer">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_wer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">refs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Calculate sentence-level WER score.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            seqs_hat (torch.Tensor): prediction (batch, seqlen)</span>
-<span class="sd">            seqs_true (torch.Tensor): reference (batch, seqlen)</span>
+<span class="sd">            hyps: Hypotheses sequences. (B, L)</span>
+<span class="sd">            refs: References sequences. (B, L)</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (float): average sentence-level WER score</span>
+<span class="sd">            : Average sentence-level WER score.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">word_eds</span><span class="p">,</span> <span class="n">word_ref_lens</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="n">distances</span><span class="p">,</span> <span class="n">lens</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
 
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">seq_hat_text</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">seqs_hat</span><span class="p">):</span>
-            <span class="n">seq_true_text</span> <span class="o">=</span> <span class="n">seqs_true</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">hyps</span><span class="p">):</span>
+            <span class="n">word_hyp</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">word_ref</span> <span class="o">=</span> <span class="n">refs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
 
-            <span class="n">hyp_words</span> <span class="o">=</span> <span class="n">seq_hat_text</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
-            <span class="n">ref_words</span> <span class="o">=</span> <span class="n">seq_true_text</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">distances</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">editdistance</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">word_hyp</span><span class="p">,</span> <span class="n">word_ref</span><span class="p">))</span>
+            <span class="n">lens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">word_ref</span><span class="p">))</span>
 
-            <span class="n">word_eds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">editdistance</span><span class="o">.</span><span class="n">eval</span><span class="p">(</span><span class="n">hyp_words</span><span class="p">,</span> <span class="n">ref_words</span><span class="p">))</span>
-            <span class="n">word_ref_lens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ref_words</span><span class="p">))</span>
-
-        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">word_eds</span><span class="p">))</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">word_ref_lens</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">distances</span><span class="p">))</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">lens</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

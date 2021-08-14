@@ -642,17 +642,6 @@ espnet.nets.pytorch_backend.transducer.causal_conv1d
     :show-inheritance:
 
 
-.. _espnet.nets.pytorch_backend.transducer.loss:
-
-espnet.nets.pytorch_backend.transducer.loss
--------------------------------------------
-
-.. automodule:: espnet.nets.pytorch_backend.transducer.loss
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet.nets.pytorch_backend.transducer.tdnn:
 
 espnet.nets.pytorch_backend.transducer.tdnn
@@ -774,23 +763,23 @@ espnet.nets.pytorch_backend.transducer.utils
     :show-inheritance:
 
 
-.. _espnet.nets.pytorch_backend.transducer.auxiliary_task:
-
-espnet.nets.pytorch_backend.transducer.auxiliary_task
------------------------------------------------------
-
-.. automodule:: espnet.nets.pytorch_backend.transducer.auxiliary_task
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet.nets.pytorch_backend.transducer.rnn_decoder:
 
 espnet.nets.pytorch_backend.transducer.rnn_decoder
 --------------------------------------------------
 
 .. automodule:: espnet.nets.pytorch_backend.transducer.rnn_decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.transducer.transducer_tasks:
+
+espnet.nets.pytorch_backend.transducer.transducer_tasks
+-------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transducer.transducer_tasks
     :members:
     :undoc-members:
     :show-inheritance:
