@@ -389,7 +389,7 @@
 <p class="rubric">Examples</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">soundfile</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">text2speech</span> <span class="o">=</span> <span class="n">Text2Speech</span><span class="p">(</span><span class="s2">&quot;config.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;model.pth&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">wav</span> <span class="o">=</span> <span class="n">text2speech</span><span class="p">(</span><span class="s2">&quot;Hello World&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">wav</span> <span class="o">=</span> <span class="n">text2speech</span><span class="p">(</span><span class="s2">&quot;Hello World&quot;</span><span class="p">)[</span><span class="s2">&quot;wav&quot;</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">soundfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;out.wav&quot;</span><span class="p">,</span> <span class="n">wav</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">text2speech</span><span class="o">.</span><span class="n">fs</span><span class="p">,</span> <span class="s2">&quot;PCM_16&quot;</span><span class="p">)</span>
 </pre></div>
 </div>

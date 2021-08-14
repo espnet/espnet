@@ -593,7 +593,7 @@
         <span class="n">backward_window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">forward_window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
         <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
 
 <span class="sd">        Args:</span>
@@ -609,9 +609,10 @@
 <span class="sd">            use_teacher_forcing (bool, optional): Whether to use teacher forcing.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tensor: Output sequence of features (L, odim).</span>
-<span class="sd">            Tensor: Output sequence of stop probabilities (L,).</span>
-<span class="sd">            Tensor: Attention weights (L, T).</span>
+<span class="sd">            Dict[str, Tensor]: Output dict including the following items:</span>
+<span class="sd">                * feat_gen (Tensor): Output sequence of features (L, odim).</span>
+<span class="sd">                * prob (Tensor): Output sequence of stop probabilities (L,).</span>
+<span class="sd">                * att_w (Tensor): Attention weights (L, T).</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">text</span>
@@ -631,7 +632,7 @@
             <span class="n">olens</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">new_tensor</span><span class="p">([</span><span class="n">ys</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)])</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
             <span class="n">outs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">att_ws</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">olens</span><span class="p">,</span> <span class="n">spembs</span><span class="p">)</span>
 
-            <span class="k">return</span> <span class="n">outs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="n">att_ws</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">feat_gen</span><span class="o">=</span><span class="n">outs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">att_w</span><span class="o">=</span><span class="n">att_ws</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
         <span class="c1"># inference</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
@@ -641,7 +642,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">hs</span><span class="p">,</span> <span class="n">spembs</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">spemb</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
             <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_integrate_with_spk_embed</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">spembs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">outs</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">att_ws</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span>
+        <span class="n">out</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span>
             <span class="n">h</span><span class="p">,</span>
             <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
             <span class="n">minlenratio</span><span class="o">=</span><span class="n">minlenratio</span><span class="p">,</span>
@@ -651,7 +652,7 @@
             <span class="n">forward_window</span><span class="o">=</span><span class="n">forward_window</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">att_ws</span></div>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">feat_gen</span><span class="o">=</span><span class="n">out</span><span class="p">,</span> <span class="n">prob</span><span class="o">=</span><span class="n">prob</span><span class="p">,</span> <span class="n">att_w</span><span class="o">=</span><span class="n">att_w</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_integrate_with_spk_embed</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>

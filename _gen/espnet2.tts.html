@@ -283,8 +283,14 @@ registered hooks while the latter silently ignores them.</p>
 
 <dl class="method">
 <dt id="espnet2.tts.abs_tts.AbsTTS.inference">
-<em class="property">abstract </em><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/abs_tts.html#AbsTTS.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.abs_tts.AbsTTS.inference" title="Permalink to this definition">¶</a></dt>
+<em class="property">abstract </em><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/abs_tts.html#AbsTTS.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.abs_tts.AbsTTS.inference" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.abs_tts.AbsTTS.require_vocoder">
+<em class="property">property </em><code class="sig-name descname">require_vocoder</code><a class="headerlink" href="#espnet2.tts.abs_tts.AbsTTS.require_vocoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether or not vocoder is required.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -316,7 +322,7 @@ registered hooks while the latter silently ignores them.</p>
 
 <dl class="method">
 <dt id="espnet2.tts.espnet_model.ESPnetTTSModel.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">pitch: torch.Tensor = None</em>, <em class="sig-param">energy: torch.Tensor = None</em>, <em class="sig-param">**decode_config</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">pitch: torch.Tensor = None</em>, <em class="sig-param">energy: torch.Tensor = None</em>, <em class="sig-param">**decode_config</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel.inference" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -371,7 +377,7 @@ Tensor: Weight value.</p>
 
 <dl class="method">
 <dt id="espnet2.tts.fastspeech2.FastSpeech2.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">pitch: torch.Tensor = None</em>, <em class="sig-param">energy: torch.Tensor = None</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech2.html#FastSpeech2.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech2.FastSpeech2.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">pitch: torch.Tensor = None</em>, <em class="sig-param">energy: torch.Tensor = None</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech2.html#FastSpeech2.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech2.FastSpeech2.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate the sequence of features given the sequences of characters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -388,12 +394,19 @@ If true, groundtruth of duration, pitch and energy will be used.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Output sequence of features (L, odim).
-None: Dummy for compatibility.
-None: Dummy for compatibility.</p>
+<dd class="field-even"><p><dl class="simple">
+<dt>Output dict including the following items:</dt><dd><ul class="simple">
+<li><p>feat_gen (Tensor): Output sequence of features (L, odim).</p></li>
+<li><p>duration (Tensor): Duration sequence (T + 1,).</p></li>
+<li><p>pitch (Tensor): Pitch sequence (T + 1,).</p></li>
+<li><p>energy (Tensor): Energy sequence (T + 1,).</p></li>
+</ul>
+</dd>
+</dl>
+</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Tensor</p>
+<dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -560,7 +573,7 @@ Tensor: Weight value.</p>
 
 <dl class="method">
 <dt id="espnet2.tts.transformer.Transformer.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">threshold: float = 0.5</em>, <em class="sig-param">minlenratio: float = 0.0</em>, <em class="sig-param">maxlenratio: float = 10.0</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/transformer.html#Transformer.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.transformer.Transformer.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">threshold: float = 0.5</em>, <em class="sig-param">minlenratio: float = 0.0</em>, <em class="sig-param">maxlenratio: float = 10.0</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/transformer.html#Transformer.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.transformer.Transformer.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate the sequence of features given the sequences of characters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -575,12 +588,18 @@ Tensor: Weight value.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Output sequence of features (L, odim).
-Tensor: Output sequence of stop probabilities (L,).
-Tensor: Encoder-decoder (source) attention weights (#layers, #heads, L, T).</p>
+<dd class="field-even"><p><dl class="simple">
+<dt>Output dict including the following items:</dt><dd><ul class="simple">
+<li><p>feat_gen (Tensor): Output sequence of features (L, odim).</p></li>
+<li><p>prob (Tensor): Output sequence of stop probabilities (L,).</p></li>
+<li><p>att_w (Tensor): Source attention weights (#layers, #heads, L, T).</p></li>
+</ul>
+</dd>
+</dl>
+</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Tensor</p>
+<dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -711,7 +730,7 @@ Tensor: Weight value.</p>
 
 <dl class="method">
 <dt id="espnet2.tts.tacotron2.Tacotron2.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">threshold: float = 0.5</em>, <em class="sig-param">minlenratio: float = 0.0</em>, <em class="sig-param">maxlenratio: float = 10.0</em>, <em class="sig-param">use_att_constraint: bool = False</em>, <em class="sig-param">backward_window: int = 1</em>, <em class="sig-param">forward_window: int = 3</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/tacotron2.html#Tacotron2.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.tacotron2.Tacotron2.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">threshold: float = 0.5</em>, <em class="sig-param">minlenratio: float = 0.0</em>, <em class="sig-param">maxlenratio: float = 10.0</em>, <em class="sig-param">use_att_constraint: bool = False</em>, <em class="sig-param">backward_window: int = 1</em>, <em class="sig-param">forward_window: int = 3</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/tacotron2.html#Tacotron2.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.tacotron2.Tacotron2.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate the sequence of features given the sequences of characters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -729,12 +748,18 @@ Tensor: Weight value.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Output sequence of features (L, odim).
-Tensor: Output sequence of stop probabilities (L,).
-Tensor: Attention weights (L, T).</p>
+<dd class="field-even"><p><dl class="simple">
+<dt>Output dict including the following items:</dt><dd><ul class="simple">
+<li><p>feat_gen (Tensor): Output sequence of features (L, odim).</p></li>
+<li><p>prob (Tensor): Output sequence of stop probabilities (L,).</p></li>
+<li><p>att_w (Tensor): Attention weights (L, T).</p></li>
+</ul>
+</dd>
+</dl>
+</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Tensor</p>
+<dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -875,7 +900,7 @@ Tensor: Weight value.</p>
 
 <dl class="method">
 <dt id="espnet2.tts.fastspeech.FastSpeech.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech.html#FastSpeech.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech.FastSpeech.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech.html#FastSpeech.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech.FastSpeech.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate the sequence of features given the sequences of characters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -890,12 +915,17 @@ If true, groundtruth of duration, pitch and energy will be used.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Output sequence of features (L, odim).
-None: Dummy for compatibility.
-None: Dummy for compatibility.</p>
+<dd class="field-even"><p><dl class="simple">
+<dt>Output dict including the following items:</dt><dd><ul class="simple">
+<li><p>feat_gen (Tensor): Output sequence of features (L, odim).</p></li>
+<li><p>duration (Tensor): Duration sequence (T + 1,).</p></li>
+</ul>
+</dd>
+</dl>
+</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Tensor</p>
+<dd class="field-odd"><p>Dict[str, Tensor]</p>
 </dd>
 </dl>
 </dd></dl>

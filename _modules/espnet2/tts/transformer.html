@@ -788,7 +788,7 @@
         <span class="n">minlenratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">maxlenratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
         <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
 
 <span class="sd">        Args:</span>
@@ -801,9 +801,10 @@
 <span class="sd">            use_teacher_forcing (bool, optional): Whether to use teacher forcing.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tensor: Output sequence of features (L, odim).</span>
-<span class="sd">            Tensor: Output sequence of stop probabilities (L,).</span>
-<span class="sd">            Tensor: Encoder-decoder (source) attention weights (#layers, #heads, L, T).</span>
+<span class="sd">            Dict[str, Tensor]: Output dict including the following items:</span>
+<span class="sd">                * feat_gen (Tensor): Output sequence of features (L, odim).</span>
+<span class="sd">                * prob (Tensor): Output sequence of stop probabilities (L,).</span>
+<span class="sd">                * att_w (Tensor): Source attention weights (#layers, #heads, L, T).</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">text</span>
@@ -830,7 +831,7 @@
                 <span class="n">att_ws</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">decoders</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">src_attn</span><span class="o">.</span><span class="n">attn</span><span class="p">]</span>
             <span class="n">att_ws</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">att_ws</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (B, L, H, T_out, T_in)</span>
 
-            <span class="k">return</span> <span class="n">outs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="n">att_ws</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">feat_gen</span><span class="o">=</span><span class="n">outs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">att_w</span><span class="o">=</span><span class="n">att_ws</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
         <span class="c1"># forward encoder</span>
         <span class="n">xs</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -907,7 +908,7 @@
         <span class="c1"># concatenate attention weights -&gt; (#layers, #heads, L, T)</span>
         <span class="n">att_ws</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">att_ws</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">att_ws</span></div>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">feat_gen</span><span class="o">=</span><span class="n">outs</span><span class="p">,</span> <span class="n">prob</span><span class="o">=</span><span class="n">probs</span><span class="p">,</span> <span class="n">att_w</span><span class="o">=</span><span class="n">att_ws</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_add_first_frame_and_remove_last_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">ys_in</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>

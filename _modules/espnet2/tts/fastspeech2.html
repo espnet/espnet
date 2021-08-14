@@ -785,7 +785,7 @@
         <span class="n">energy</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
 
 <span class="sd">        Args:</span>
@@ -800,9 +800,11 @@
 <span class="sd">                If true, groundtruth of duration, pitch and energy will be used.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tensor: Output sequence of features (L, odim).</span>
-<span class="sd">            None: Dummy for compatibility.</span>
-<span class="sd">            None: Dummy for compatibility.</span>
+<span class="sd">            Dict[str, Tensor]: Output dict including the following items:</span>
+<span class="sd">                * feat_gen (Tensor): Output sequence of features (L, odim).</span>
+<span class="sd">                * duration (Tensor): Duration sequence (T + 1,).</span>
+<span class="sd">                * pitch (Tensor): Pitch sequence (T + 1,).</span>
+<span class="sd">                * energy (Tensor): Energy sequence (T + 1,).</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">text</span><span class="p">,</span> <span class="n">speech</span>
@@ -822,7 +824,7 @@
         <span class="k">if</span> <span class="n">use_teacher_forcing</span><span class="p">:</span>
             <span class="c1"># use groundtruth of duration, pitch, and energy</span>
             <span class="n">ds</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">es</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">e</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-            <span class="n">_</span><span class="p">,</span> <span class="n">outs</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">outs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">p_outs</span><span class="p">,</span> <span class="n">e_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
                 <span class="n">xs</span><span class="p">,</span>
                 <span class="n">ilens</span><span class="p">,</span>
                 <span class="n">ys</span><span class="p">,</span>
@@ -832,7 +834,7 @@
                 <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
             <span class="p">)</span>  <span class="c1"># (1, L, odim)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">_</span><span class="p">,</span> <span class="n">outs</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">outs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">p_outs</span><span class="p">,</span> <span class="n">e_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
                 <span class="n">xs</span><span class="p">,</span>
                 <span class="n">ilens</span><span class="p">,</span>
                 <span class="n">ys</span><span class="p">,</span>
@@ -841,7 +843,12 @@
                 <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
             <span class="p">)</span>  <span class="c1"># (1, L, odim)</span>
 
-        <span class="k">return</span> <span class="n">outs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">feat_gen</span><span class="o">=</span><span class="n">outs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">duration</span><span class="o">=</span><span class="n">d_outs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">pitch</span><span class="o">=</span><span class="n">p_outs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">energy</span><span class="o">=</span><span class="n">e_outs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_integrate_with_spk_embed</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
