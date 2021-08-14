@@ -50,6 +50,7 @@ audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark  (only i
 min_wav_duration=0.1       # Minimum duration in second.
 max_wav_duration=20        # Maximum duration in second.
 use_xvector=false          # Whether to use x-vector (Require Kaldi).
+use_sid=false              # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 # Only used for feats_type != raw
 feats_extract=fbank        # Feature extractor.
 feats_normalize=global_mvn # Feature normalizer.
@@ -135,6 +136,7 @@ Options:
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
     --use_xvector      # Whether to use X-vector (Require Kaldi, default="${use_xvector}").
+    --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
     --feats_extract    # On the fly feature extractor (default="${feats_extract}").
     --feats_normalize  # Feature normalizer for on the fly feature extractor (default="${feats_normalize}")
     --fs               # Sampling rate (default="${fs}").
@@ -417,6 +419,30 @@ if ! "${skip_data_prep}"; then
                 utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
             done
         fi
+
+        # Prepare spk id input
+        if "${use_sid}"; then
+            log "Stage 2+: Prepare speaker id: data/ -> ${dumpdir}/${data_feats}"
+            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                    _suf="/org"
+                else
+                    _suf=""
+                fi
+                if [ "${dset}" = "${train_set}" ]; then
+                    # Make spk2sid
+                    # NOTE(kan-bayashi): 0 is reverved for unknown spk
+                    echo "<unk> 0" > "${data_feats}${_suf}/${dset}/spk2sid"
+                    cut -f 2 -d " " "${data_feats}${_suf}/${dset}/utt2spk" | sort | uniq | \
+                        awk '{print $1 " " NR}' >> "data/${train_set}/spk2sid"
+                fi
+                pyscripts/utils/utt2spk_to_utt2sid.py \
+                    "${data_feats}/org/${train_set}/spk2sid" \
+                    "${data_feats}${_suf}/${dset}/utt2spk" \
+                    > "${data_feats}${_suf}/${dset}/utt2sid"
+            done
+        fi
+
     fi
 
 
@@ -428,6 +454,9 @@ if ! "${skip_data_prep}"; then
             # Copy data dir
             utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
+            if [ -e "${data_feats}/org/${dset}/utt2sid" ]; then
+                cp "${data_feats}/org/${dset}/utt2sid" "${data_feats}/${dset}/utt2sid"
+            fi
 
             # Remove short utterances
             _feats_type="$(<${data_feats}/${dset}/feats_type)"
@@ -580,6 +609,13 @@ if ! "${skip_train}"; then
             _xvector_valid_dir="${dumpdir}/xvector/${valid_set}"
             _opts+="--train_data_path_and_name_and_type ${_xvector_train_dir}/xvector.scp,spembs,kaldi_ark "
             _opts+="--valid_data_path_and_name_and_type ${_xvector_valid_dir}/xvector.scp,spembs,kaldi_ark "
+        fi
+
+        if "${use_sid}"; then
+            _xvector_train_dir="${dumpdir}/xvector/${train_set}"
+            _xvector_valid_dir="${dumpdir}/xvector/${valid_set}"
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/utt2sid,sids,text_int "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2sid,sids,text_int "
         fi
 
         # 1. Split the key file
@@ -824,6 +860,12 @@ if ! "${skip_train}"; then
             _xvector_valid_dir="${dumpdir}/xvector/${valid_set}"
             _opts+="--train_data_path_and_name_and_type ${_xvector_train_dir}/xvector.scp,spembs,kaldi_ark "
             _opts+="--valid_data_path_and_name_and_type ${_xvector_valid_dir}/xvector.scp,spembs,kaldi_ark "
+        fi
+
+        # Add spekaer ID to the inputs if needed
+        if "${use_sid}"; then
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/utt2sid,sids,text_int "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2sid,sids,text_int "
         fi
 
         if [ "${feats_normalize}" = "global_mvn" ]; then
