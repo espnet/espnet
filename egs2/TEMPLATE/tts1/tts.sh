@@ -422,7 +422,7 @@ if ! "${skip_data_prep}"; then
 
         # Prepare spk id input
         if "${use_sid}"; then
-            log "Stage 2+: Prepare speaker id: data/ -> ${dumpdir}/${data_feats}"
+            log "Stage 2+: Prepare speaker id: data/ -> ${data_feats}/"
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                     _suf="/org"
@@ -434,7 +434,7 @@ if ! "${skip_data_prep}"; then
                     # NOTE(kan-bayashi): 0 is reserved for unknown speakers
                     echo "<unk> 0" > "${data_feats}${_suf}/${dset}/spk2sid"
                     cut -f 2 -d " " "${data_feats}${_suf}/${dset}/utt2spk" | sort | uniq | \
-                        awk '{print $1 " " NR}' >> "data/${train_set}/spk2sid"
+                        awk '{print $1 " " NR}' >> "${data_feats}${_suf}/${dset}/spk2sid"
                 fi
                 pyscripts/utils/utt2spk_to_utt2sid.py \
                     "${data_feats}/org/${train_set}/spk2sid" \
@@ -504,7 +504,12 @@ if ! "${skip_data_prep}"; then
                 awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
 
             # fix_data_dir.sh leaves only utts which exist in all files
-            utils/fix_data_dir.sh "${data_feats}/${dset}"
+            _fix_opts=""
+            if [ -e "${data_feats}/org/${dset}/utt2sid" ]; then
+                _fix_opts="--utt_extra_files utt2sid "
+            fi
+            # shellcheck disable=SC2086
+            utils/fix_data_dir.sh ${_fix_opts} "${data_feats}/${dset}"
 
             # Filter x-vector
             if "${use_xvector}"; then
@@ -513,6 +518,7 @@ if ! "${skip_data_prep}"; then
                     utils/filter_scp.pl "${data_feats}/${dset}/wav.scp"  \
                     >"${dumpdir}/xvector/${dset}/xvector.scp"
             fi
+
         done
 
         # shellcheck disable=SC2002
