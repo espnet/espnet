@@ -269,7 +269,7 @@ class VITSGenerator(torch.nn.Module):
             text_lengths (Tensor): Text length tensor (B,).
             feats (Tensor): Feature tensor (B, aux_channels, T_feats).
             feats_lengths (Tensor): Feature length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,).
+            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
 
         Returns:
             Tensor: Waveform tensor (B, 1, segment_size * upsample_factor).
@@ -294,7 +294,7 @@ class VITSGenerator(torch.nn.Module):
         g = None
         if self.spks > 0:
             # (B, global_channels, 1)
-            g = self.global_emb(sids).unsqueeze(-1)
+            g = self.global_emb(sids.view(-1)).unsqueeze(-1)
 
         # forward posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(feats, feats_lengths, g=g)
@@ -438,7 +438,7 @@ class VITSGenerator(torch.nn.Module):
         Args:
             text (Tensor): Input text index tensor (B, T_text,).
             text_lengths (Tensor): Text length tensor (B,).
-            sid (Optional[Tensor]): Speaker index tensor (B,).
+            sid (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
             dur (Optional[Tensor]): Ground-truth duration (B, T_text,). If provided,
                 skip the prediction of durations (i.e., teacher forcing).
             noise_scale (float): Noise scale value for flow.
@@ -455,7 +455,7 @@ class VITSGenerator(torch.nn.Module):
         # encoder
         x, m_p, logs_p, x_mask = self.text_encoder(text, text_lengths)
         if self.spks > 0:
-            g = self.global_emb(sids).unsqueeze(-1)  # (B, global_channels, 1)
+            g = self.global_emb(sids.view(-1)).unsqueeze(-1)  # (B, global_channels, 1)
         else:
             g = None
 
