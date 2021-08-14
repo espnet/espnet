@@ -1017,6 +1017,11 @@ if ! "${skip_eval}"; then
                 _ex_opts+="--data_path_and_name_and_type ${_xvector_dir}/xvector.scp,spembs,kaldi_ark "
             fi
 
+            # Add spekaer ID to the inputs if needed
+            if "${use_sid}"; then
+                _ex_opts+="--data_path_and_name_and_type ${_data}/utt2sid,sids,text_int "
+            fi
+
             # 0. Copy feats_type
             cp "${_data}/feats_type" "${_dir}/feats_type"
 
