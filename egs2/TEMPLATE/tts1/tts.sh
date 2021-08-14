@@ -431,7 +431,7 @@ if ! "${skip_data_prep}"; then
                 fi
                 if [ "${dset}" = "${train_set}" ]; then
                     # Make spk2sid
-                    # NOTE(kan-bayashi): 0 is reverved for unknown spk
+                    # NOTE(kan-bayashi): 0 is reserved for unknown speakers
                     echo "<unk> 0" > "${data_feats}${_suf}/${dset}/spk2sid"
                     cut -f 2 -d " " "${data_feats}${_suf}/${dset}/utt2spk" | sort | uniq | \
                         awk '{print $1 " " NR}' >> "data/${train_set}/spk2sid"
@@ -612,8 +612,6 @@ if ! "${skip_train}"; then
         fi
 
         if "${use_sid}"; then
-            _xvector_train_dir="${dumpdir}/xvector/${train_set}"
-            _xvector_valid_dir="${dumpdir}/xvector/${valid_set}"
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/utt2sid,sids,text_int "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2sid,sids,text_int "
         fi
