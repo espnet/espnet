@@ -94,7 +94,7 @@ class E2E(ChainerASRInterface):
         """E2E forward propagation.
 
         Args:
-            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)
+            xs (chainer.Variable): Batch of padded character ids. (B, Tmax)
             ilens (chainer.Variable): Batch of length of each input batch. (B,)
             ys (chainer.Variable): Batch of padded target features. (B, Lmax, odim)
 
@@ -150,7 +150,7 @@ class E2E(ChainerASRInterface):
         Args:
             x (chainer.Variable): Input tensor for recognition.
             recog_args (parser.args): Arguments of config file.
-            char_list (List[str]): List of Charactors.
+            char_list (List[str]): List of Characters.
             rnnlm (Module): RNNLM module defined at `espnet.lm.chainer_backend.lm`.
 
         Returns:

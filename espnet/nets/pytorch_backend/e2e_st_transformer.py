@@ -207,7 +207,7 @@ class E2E(STInterface, torch.nn.Module):
         tgt_lang_ids = None
         if self.multilingual:
             tgt_lang_ids = ys_pad[:, 0:1]
-            ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
+            ys_pad = ys_pad[:, 1:]  # remove target language ID in the beginning
 
         # 1. forward encoder
         xs_pad = xs_pad[:, : max(ilens)]  # for data parallel
@@ -478,7 +478,7 @@ class E2E(STInterface, torch.nn.Module):
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
-                logging.info("adding <eos> in the last postion in the loop")
+                logging.info("adding <eos> in the last position in the loop")
                 for hyp in hyps:
                     hyp["yseq"].append(self.eos)
 

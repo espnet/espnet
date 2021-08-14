@@ -62,8 +62,8 @@ class GuidedAttentionLoss(torch.nn.Module):
 
         Args:
             att_ws (Tensor): Batch of attention weights (B, T_max_out, T_max_in).
-            ilens (LongTensor): Batch of input lenghts (B,).
-            olens (LongTensor): Batch of output lenghts (B,).
+            ilens (LongTensor): Batch of input lengths (B,).
+            olens (LongTensor): Batch of output lengths (B,).
 
         Returns:
             Tensor: Guided attention loss value.
@@ -256,7 +256,7 @@ class Tacotron2Loss(torch.nn.Module):
         unexpected_keys,
         error_msgs,
     ):
-        """Apply pre hook fucntion before loading state dict.
+        """Apply pre hook function before loading state dict.
 
         From v.0.6.1 `bce_criterion.pos_weight` param is registered as a parameter but
         old models do not include it and as a result, it causes missing key error when
@@ -747,7 +747,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                 labels, 1, (olens - 1).unsqueeze(1), 1.0
             )  # see #3388
 
-        # caluculate taco2 loss
+        # calculate taco2 loss
         l1_loss, mse_loss, bce_loss = self.taco2_loss(
             after_outs, before_outs, logits, ys, labels, olens
         )
@@ -758,7 +758,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             {"bce_loss": bce_loss.item()},
         ]
 
-        # caluculate attention loss
+        # calculate attention loss
         if self.use_guided_attn_loss:
             # NOTE(kan-bayashi):
             # length of output for auto-regressive input will be changed when r > 1
@@ -772,13 +772,13 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                 {"attn_loss": attn_loss.item()},
             ]
 
-        # caluculate cbhg loss
+        # calculate cbhg loss
         if self.use_cbhg:
             # remove unnecessary padded part (for multi-gpus)
             if max_out != extras.shape[1]:
                 extras = extras[:, :max_out]
 
-            # caluculate cbhg outputs & loss and report them
+            # calculate cbhg outputs & loss and report them
             cbhg_outs, _ = self.cbhg(after_outs, olens)
             cbhg_l1_loss, cbhg_mse_loss = self.cbhg_loss(cbhg_outs, extras, olens)
             loss = loss + cbhg_l1_loss + cbhg_mse_loss

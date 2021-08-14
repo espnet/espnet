@@ -1,4 +1,4 @@
-"""Lightweight 2-Dimentional Convolution module."""
+"""Lightweight 2-Dimensional Convolution module."""
 
 import numpy
 import torch
@@ -10,7 +10,7 @@ MIN_VALUE = float(numpy.finfo(numpy.float32).min)
 
 
 class LightweightConvolution2D(nn.Module):
-    """Lightweight 2-Dimentional Convolution layer.
+    """Lightweight 2-Dimensional Convolution layer.
 
     This implementation is based on
     https://github.com/pytorch/fairseq/tree/master/fairseq
@@ -34,7 +34,7 @@ class LightweightConvolution2D(nn.Module):
         use_kernel_mask=False,
         use_bias=False,
     ):
-        """Construct Lightweight 2-Dimentional Convolution layer."""
+        """Construct Lightweight 2-Dimensional Convolution layer."""
         super(LightweightConvolution2D, self).__init__()
 
         assert n_feat % wshare == 0
@@ -64,7 +64,7 @@ class LightweightConvolution2D(nn.Module):
         self.kernel_mask = torch.cat((kernel_mask1, kernel_mask0), dim=-1).unsqueeze(1)
 
     def forward(self, query, key, value, mask):
-        """Forward of 'Lightweight 2-Dimentional Convolution'.
+        """Forward of 'Lightweight 2-Dimensional Convolution'.
 
         This function takes query, key and value but uses only query.
         This is just for compatibility with self-attention layer (attention.py)
@@ -76,7 +76,7 @@ class LightweightConvolution2D(nn.Module):
             mask (torch.Tensor): (batch, time1, time2) mask
 
         Return:
-            x (torch.Tensor): (batch, time1, d_model) ouput
+            x (torch.Tensor): (batch, time1, d_model) output
 
         """
         # linear -> GLU -> lightconv -> linear

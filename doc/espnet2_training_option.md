@@ -326,7 +326,7 @@ and the shape information is required only when `--batch_type numel`.
 
 ### `--batch_type folded`
 
-**In ESPnet1, this mode is refered as seq.**
+**In ESPnet1, this mode is referred as seq.**
 
 
 This mode creates mini-batch which has the size of `base_batch_size // max_i(1 + L_i // f_i)`. 

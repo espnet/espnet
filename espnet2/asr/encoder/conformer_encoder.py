@@ -47,7 +47,7 @@ class ConformerEncoder(AbsEncoder):
 
     Args:
         input_size (int): Input dimension.
-        output_size (int): Dimention of attention.
+        output_size (int): Dimension of attention.
         attention_heads (int): The number of heads of multi head attention.
         linear_units (int): The number of units of position-wise feed forward.
         num_blocks (int): The number of decoder blocks.

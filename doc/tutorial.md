@@ -142,7 +142,7 @@ echo 2
 `run.sh` has multiple stages including data prepration, traning, and etc., so you may likely want to start
 from the specified stage if some stages are failed by some reason for example.
 
-You can start from specified stage as following and stop the process at the specifed stage:
+You can start from specified stage as following and stop the process at the specified stage:
 
 ```bash
 # Start from 3rd stage and stop at 5th stage
@@ -252,7 +252,7 @@ While defining a RNN architecture is done in an usual manner (similarly to CTC, 
           d_hidden: input/output dimension
           d_ff: feed-forward hidden dimension
           heads: number of heads in multi-head attention
-          macaron_style: wheter to use macaron style
+          macaron_style: whether to use macaron style
           use_conv_mod: whether to use convolutional module
           conv_mod_kernel: number of kernel in convolutional module (optional if `use_conv_mod=True`)
           [optional: dropout-rate, pos-dropout-rate, att-dropout-rate]

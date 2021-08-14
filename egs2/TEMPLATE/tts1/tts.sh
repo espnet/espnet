@@ -73,8 +73,8 @@ train_config=""    # Config for training.
 train_args=""      # Arguments for training, e.g., "--max_epoch 1".
                    # Note that it will overwrite args in train config.
 tag=""             # Suffix for training directory.
-tts_exp=""         # Specify the direcotry path for experiment. If this option is specified, tag is ignored.
-tts_stats_dir=""   # Specify the direcotry path for statistics. If empty, automatically decided.
+tts_exp=""         # Specify the directory path for experiment. If this option is specified, tag is ignored.
+tts_stats_dir=""   # Specify the directory path for statistics. If empty, automatically decided.
 num_splits=1       # Number of splitting for tts corpus.
 teacher_dumpdir="" # Directory of teacher outputs (needed if tts=fastspeech).
 write_collected_feats=false # Whether to dump features in stats collection.
@@ -157,9 +157,9 @@ Options:
                     # e.g., --train_args "--max_epoch 1"
                     # Note that it will overwrite args in train config.
     --tag           # Suffix for training directory (default="${tag}").
-    --tts_exp       # Specify the direcotry path for experiment.
+    --tts_exp       # Specify the directory path for experiment.
                     # If this option is specified, tag is ignored (default="${tts_exp}").
-    --tts_stats_dir # Specify the direcotry path for statistics.
+    --tts_stats_dir # Specify the directory path for statistics.
                     # If empty, automatically decided (default="${tts_stats_dir}").
     --num_splits    # Number of splitting for tts corpus (default="${num_splits}").
     --write_collected_feats # Whether to dump features in statistics collection (default="${write_collected_feats}").
