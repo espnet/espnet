@@ -319,9 +319,7 @@ class GANTrainer(Trainer):
                 )
                 turn_start_time = time.perf_counter()
 
-            reporter.register(
-                {"train_time": time.perf_counter() - start_time}
-            )
+            reporter.register({"train_time": time.perf_counter() - start_time})
             start_time = time.perf_counter()
 
             # NOTE(kamo): Call log_message() after next()
