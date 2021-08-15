@@ -72,6 +72,14 @@ echo "=== ASR (backend=pytorch, model=conformer-transducer) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_conformer_transducer.yaml \
         --decode-config conf/decode_transducer.yaml
 
+# test transducer with auxiliary task recipe
+echo "=== ASR (backend=pytorch, model=rnnt, tasks=L1+L2+L3+L4+L5)"
+./run.sh --python "${python}" --stage 4 --train-config conf/train_transducer_aux.yaml \
+         --decode-config conf/decode_transducer.yaml
+echo "=== ASR (backend=pytorch, model=conformer-transducer, tasks=L1+L2+L5) ==="
+./run.sh --python "${python}" --stage 4 --train-config conf/train_conformer_transducer_aux.yaml \
+        --decode-config conf/decode_transducer.yaml
+
 # test finetuning
 ## test transfer learning
 echo "=== ASR (backend=pytorch, model=rnnt, transfer_learning=enc) ==="

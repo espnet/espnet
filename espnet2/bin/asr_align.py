@@ -155,7 +155,7 @@ class CTCSegmentation:
         (2) ``prepare_segmentation_task``: prepare the task, and
         (3) ``get_segments``: perform CTC segmentation.
         Note that the function `get_segments` is a staticmethod and therefore
-        independent of an already initialized CTCSegmentation obj́ect.
+        independent of an already initialized CTCSegmentation object.
 
     References:
         CTC-Segmentation of Large Corpora for German End-to-end Speech Recognition
@@ -417,7 +417,7 @@ class CTCSegmentation:
             speech = torch.tensor(speech)
         # data: (Nsamples,) -> (1, Nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-        # lenghts: (1,)
+        # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         batch = {"speech": speech, "speech_lengths": lengths}
         batch = to_device(batch, device=self.device)

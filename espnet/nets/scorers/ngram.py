@@ -10,7 +10,7 @@ from espnet.nets.scorer_interface import PartialScorerInterface
 
 
 class Ngrambase(ABC):
-    """Ngram base implemented throught ScorerInterface."""
+    """Ngram base implemented through ScorerInterface."""
 
     def __init__(self, ngram_model, token_list):
         """Initialize Ngrambase.

@@ -46,7 +46,7 @@ def get_parser():
         "--win_length",
         type=int,
         default=1200,
-        help="Analisys window length in point.",
+        help="Analysis window length in point.",
     )
     parser.add_argument(
         "--shift_length",

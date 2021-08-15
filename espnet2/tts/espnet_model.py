@@ -56,6 +56,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         energy: torch.Tensor = None,
         energy_lengths: torch.Tensor = None,
         spembs: torch.Tensor = None,
+        sids: torch.Tensor = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         with autocast(False):
@@ -94,6 +95,8 @@ class ESPnetTTSModel(AbsESPnetModel):
         # Update kwargs for additional auxiliary inputs
         if spembs is not None:
             kwargs.update(spembs=spembs)
+        if sids is not None:
+            kwargs.update(sids=sids)
         if durations is not None:
             kwargs.update(durations=durations, durations_lengths=durations_lengths)
         if self.pitch_extract is not None and pitch is not None:
@@ -122,6 +125,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         energy: torch.Tensor = None,
         energy_lengths: torch.Tensor = None,
         spembs: torch.Tensor = None,
+        sids: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
         if self.feats_extract is not None:
             feats, feats_lengths = self.feats_extract(speech, speech_lengths)
@@ -157,11 +161,12 @@ class ESPnetTTSModel(AbsESPnetModel):
         text: torch.Tensor,
         speech: torch.Tensor = None,
         spembs: torch.Tensor = None,
+        sids: torch.Tensor = None,
         durations: torch.Tensor = None,
         pitch: torch.Tensor = None,
         energy: torch.Tensor = None,
         **decode_config,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Dict[str, torch.Tensor]:
         kwargs = {}
         if decode_config["use_teacher_forcing"] or getattr(self.tts, "use_gst", False):
             if speech is None:
@@ -202,12 +207,15 @@ class ESPnetTTSModel(AbsESPnetModel):
 
         if spembs is not None:
             kwargs["spembs"] = spembs
+        if sids is not None:
+            kwargs["sids"] = sids
 
-        outs, probs, att_ws = self.tts.inference(text=text, **kwargs, **decode_config)
+        output_dict = self.tts.inference(text=text, **kwargs, **decode_config)
 
-        if self.normalize is not None:
+        if self.normalize is not None and output_dict.get("feat_gen") is not None:
             # NOTE: normalize.inverse is in-place operation
-            outs_denorm = self.normalize.inverse(outs.clone()[None])[0][0]
-        else:
-            outs_denorm = outs
-        return outs, outs_denorm, probs, att_ws
+            output_dict["feat_gen_denorm"] = self.normalize.inverse(
+                output_dict["feat_gen"].clone()[None]
+            )[0][0]
+
+        return output_dict

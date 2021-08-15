@@ -2,7 +2,7 @@
 # This configuration reuqires 1 gpu in the case of each gpu memory = 12GB.
 # This configuration assumes that durations and features are already dumped,
 # in other words, the training will be followed knowledge distilation manner.
-# You need to additionaly specify pretrained teacher model path in `run.sh`
+# You need to additionally specify pretrained teacher model path in `run.sh`
 # if you want to use this configuration.
 
 # network architecture related
