@@ -39,8 +39,10 @@ class WaveNet(torch.nn.Module):
         use_weight_norm: bool = True,
         use_first_conv: bool = False,
         use_last_conv: bool = False,
+        scale_residual: bool = False,
+        scale_skip_connect: bool = False,
     ):
-        """Initialize WaveNet  module.
+        """Initialize WaveNet module.
 
         Args:
             in_channels (int): Number of input channels.
@@ -60,19 +62,18 @@ class WaveNet(torch.nn.Module):
                 be applied to all of the conv layers.
             use_first_conv (bool): Whether to use the first conv layers.
             use_last_conv (bool): Whether to use the last conv layers.
+            scale_residual (bool): Whether to scale the residual outputs.
+            scale_skip_connect (bool): Whether to scale the skip connection outputs.
 
         """
         super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.global_channels = global_channels
-        self.skip_channels = skip_channels
         self.layers = layers
         self.stacks = stacks
         self.kernel_size = kernel_size
+        self.base_dilation = base_dilation
         self.use_first_conv = use_first_conv
         self.use_last_conv = use_last_conv
-        self.base_dilation = base_dilation
+        self.scale_skip_connect = scale_skip_connect
 
         # check the number of layers and stacks
         assert layers % stacks == 0
@@ -96,12 +97,12 @@ class WaveNet(torch.nn.Module):
                 dilation=dilation,
                 dropout_rate=dropout_rate,
                 bias=bias,
+                scale_residual=scale_residual,
             )
             self.conv_layers += [conv]
 
         # define output layers
         if self.use_last_conv:
-            assert self.skip_channels > 0
             self.last_conv = torch.nn.Sequential(
                 torch.nn.ReLU(inplace=True),
                 Conv1d1x1(skip_channels, skip_channels, bias=True),
@@ -116,7 +117,7 @@ class WaveNet(torch.nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        x_masks: Optional[torch.Tensor] = None,
+        x_mask: Optional[torch.Tensor] = None,
         c: Optional[torch.Tensor] = None,
         g: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
@@ -137,26 +138,19 @@ class WaveNet(torch.nn.Module):
         # encode to hidden representation
         if self.use_first_conv:
             x = self.first_conv(x)
-        skips = 0
+
+        # residual block
+        skips = 0.0
         for f in self.conv_layers:
-            x, h = f(x, c, g)
-
-            if x_masks is not None:
-                x = x * x_masks
-
-            if self.skip_channels > 0:
-                skips += h
-
-        if self.skip_channels > 0:
-            skips *= math.sqrt(1.0 / len(self.conv_layers))
-            x = skips
+            x, h = f(x, x_mask=x_mask, c=c, g=g)
+            skips = skips + h
+        x = skips
+        if self.scale_skip_connect:
+            x = x * math.sqrt(1.0 / len(self.conv_layers))
 
         # apply final layers
         if self.use_last_conv:
             x = self.last_conv(x)
-
-        if x_masks is not None:
-            x = x * x_masks
 
         return x
 

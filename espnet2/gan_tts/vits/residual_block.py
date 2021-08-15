@@ -57,6 +57,7 @@ class WaveNetResidualBlock(torch.nn.Module):
         dropout_rate: float = 0.0,
         dilation: int = 1,
         bias: bool = True,
+        scale_residual: bool = False,
     ):
         """Initialize WaveNetResidualBlock module.
 
@@ -68,12 +69,14 @@ class WaveNetResidualBlock(torch.nn.Module):
             dropout (float): Dropout probability.
             dilation (int): Dilation factor.
             bias (bool): Whether to add bias parameter in convolution layers.
+            scale_residual (bool): Whether to scale the residual outputs.
 
         """
         super().__init__()
         self.dropout_rate = dropout_rate
         self.residual_channels = residual_channels
         self.skip_channels = skip_channels
+        self.scale_residual = scale_residual
 
         # check
         assert (kernel_size - 1) % 2 == 0, "Not support even number kernel size."
@@ -114,6 +117,7 @@ class WaveNetResidualBlock(torch.nn.Module):
     def forward(
         self,
         x: torch.Tensor,
+        x_mask: Optional[torch.Tensor] = None,
         c: Optional[torch.Tensor] = None,
         g: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -121,6 +125,7 @@ class WaveNetResidualBlock(torch.nn.Module):
 
         Args:
             x (Tensor): Input tensor (B, residual_channels, T).
+            x_mask Optional[torch.Tensor]: Mask tensor (B, 1, T).
             c (Optional[Tensor]): Local conditioning tensor (B, aux_channels, T).
             g (Optional[Tensor]): Global conditioning tensor (B, global_channels, 1).
 
@@ -153,6 +158,8 @@ class WaveNetResidualBlock(torch.nn.Module):
 
         # residual + skip 1x1 conv
         x = self.conv1x1_out(x)
+        if x_mask is not None:
+            x = x * x_mask
 
         s = None
         if self.skip_channels > 0:
@@ -160,7 +167,9 @@ class WaveNetResidualBlock(torch.nn.Module):
             x, s = x.split([self.residual_channels, self.skip_channels], dim=1)
 
         # for residual connection
-        x = (x + residual) * math.sqrt(0.5)
+        x = x + residual
+        if self.scale_residual:
+            x = x * math.sqrt(0.5)
 
         return x, s
 
