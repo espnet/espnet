@@ -221,7 +221,9 @@ class TTSTask(AbsTask):
     ]:
         assert check_argument_types()
         return CommonCollateFn(
-            float_pad_value=0.0, int_pad_value=0, not_sequence=["spembs"]
+            float_pad_value=0.0,
+            int_pad_value=0,
+            not_sequence=["spembs", "sids"],
         )
 
     @classmethod
@@ -260,10 +262,10 @@ class TTSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "durations", "pitch", "energy")
+            retval = ("spembs", "durations", "pitch", "energy", "sids")
         else:
             # Inference mode
-            retval = ("spembs", "speech", "durations")
+            retval = ("spembs", "speech", "durations", "sids")
         return retval
 
     @classmethod

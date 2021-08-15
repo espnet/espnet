@@ -105,7 +105,7 @@ class Encoder(chainer.Chain):
         """Compute Encoder layer.
 
         Args:
-            e (chainer.Variable): Batch of padded charactor. (B, Tmax)
+            e (chainer.Variable): Batch of padded character. (B, Tmax)
             ilens (chainer.Variable): Batch of length of each input batch. (B,)
 
         Returns:

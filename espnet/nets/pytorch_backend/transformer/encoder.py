@@ -47,7 +47,7 @@ class Encoder(torch.nn.Module):
 
     Args:
         idim (int): Input dimension.
-        attention_dim (int): Dimention of attention.
+        attention_dim (int): Dimension of attention.
         attention_heads (int): The number of heads of multi head attention.
         conv_wshare (int): The number of kernel of convolution. Only used in
             self_attention_layer_type == "lightconv*" or "dynamiconv*".
@@ -186,7 +186,7 @@ class Encoder(torch.nn.Module):
         elif selfattention_layer_type == "lightconv2d":
             logging.info(
                 "encoder self-attention layer "
-                "type = lightweight convolution 2-dimentional"
+                "type = lightweight convolution 2-dimensional"
             )
             encoder_selfattn_layer = LightweightConvolution2D
             encoder_selfattn_layer_args = [
@@ -216,7 +216,7 @@ class Encoder(torch.nn.Module):
             ]
         elif selfattention_layer_type == "dynamicconv2d":
             logging.info(
-                "encoder self-attention layer type = dynamic convolution 2-dimentional"
+                "encoder self-attention layer type = dynamic convolution 2-dimensional"
             )
             encoder_selfattn_layer = DynamicConvolution2D
             encoder_selfattn_layer_args = [

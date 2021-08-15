@@ -94,7 +94,7 @@ awk '{print $1}' $tmpdir/segments | \
           print "$1$2$3 $1$2\n";' > $tmpdir/utt2spk_stm || exit 1;
 
 #check and correct case when segment timings for a given speaker overlap themself
-#(important for simulatenous asclite scoring to proceed).
+#(important for simultaneous asclite scoring to proceed).
 #There is actually only one such case for devset and automatic segmentetions
 join $tmpdir/utt2spk_stm $tmpdir/segments | \
   awk '{ utt=$1; spk=$2; wav=$3; t_beg=$4; t_end=$5;
@@ -122,7 +122,7 @@ for f in spk2utt utt2spk utt2spk_stm wav.scp text segments reco2file_and_channel
 done
 
 cp local/english.glm $dir/glm
-#note, although utt2spk contains mappings to the whole meetings for simulatenous scoring
+#note, although utt2spk contains mappings to the whole meetings for simultaneous scoring
 #we need to know which speakers overlap at meeting level, hence we generate an extra utt2spk_stm file
 local/convert2stm.pl $dir utt2spk_stm > $dir/stm
 

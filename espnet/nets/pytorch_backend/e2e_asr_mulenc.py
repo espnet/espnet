@@ -839,7 +839,7 @@ class E2E(ASRInterface, torch.nn.Module):
             # 1. Encoder
             if self.replace_sos:
                 tgt_lang_ids = ys_pad[:, 0:1]
-                ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
+                ys_pad = ys_pad[:, 1:]  # remove target language ID in the beginning
             else:
                 tgt_lang_ids = None
 
