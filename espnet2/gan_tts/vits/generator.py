@@ -45,6 +45,7 @@ class VITSGenerator(torch.nn.Module):
         aux_channels: int = 513,
         hidden_channels: int = 192,
         spks: int = -1,
+        spk_embed_dim: int = -1,
         global_channels: int = -1,
         segment_size: int = 32,
         text_encoder_attention_heads: int = 2,
@@ -233,6 +234,10 @@ class VITSGenerator(torch.nn.Module):
         if self.spks > 1:
             assert global_channels > 0
             self.global_emb = torch.nn.Embedding(spks, global_channels)
+        self.spk_embed_dim = spk_embed_dim
+        if self.spk_embed_dim > 0:
+            assert global_channels > 0
+            self.spemb_proj = torch.nn.Linear(spk_embed_dim, global_channels)
 
         # delayed import
         from espnet2.gan_tts.vits.monotonic_align import maximum_path
@@ -246,6 +251,7 @@ class VITSGenerator(torch.nn.Module):
         feats: torch.Tensor,
         feats_lengths: torch.Tensor,
         sids: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
     ) -> Tuple[
         torch.Tensor,
         torch.Tensor,
@@ -270,6 +276,7 @@ class VITSGenerator(torch.nn.Module):
             feats (Tensor): Feature tensor (B, aux_channels, T_feats).
             feats_lengths (Tensor): Feature length tensor (B,).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
+            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
 
         Returns:
             Tensor: Waveform tensor (B, 1, segment_size * upsample_factor).
@@ -293,8 +300,15 @@ class VITSGenerator(torch.nn.Module):
         # calculate global conditioning
         g = None
         if self.spks > 0:
-            # (B, global_channels, 1)
+            # speaker one-hot vector embedding: (B, global_channels, 1)
             g = self.global_emb(sids.view(-1)).unsqueeze(-1)
+        if self.spk_embed_dim > 0:
+            # pretreined speaker embedding, e.g., X-vector (B, global_channels, 1)
+            g_ = self.spemb_proj(F.normalize(spembs)).unsqueeze(-1)
+            if g is None:
+                g = g_
+            else:
+                g = g + g_
 
         # forward posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(feats, feats_lengths, g=g)
@@ -427,10 +441,11 @@ class VITSGenerator(torch.nn.Module):
         text: torch.Tensor,
         text_lengths: torch.Tensor,
         sids: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
         dur: Optional[torch.Tensor] = None,
-        noise_scale: float = 1.0,
-        length_scale: float = 1.0,
-        noise_scale_w: float = 1.0,
+        noise_scale: float = 0.667,
+        noise_scale_dur: float = 0.8,
+        alpha: float = 1.0,
         max_len: Optional[int] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Run inference.
@@ -439,11 +454,12 @@ class VITSGenerator(torch.nn.Module):
             text (Tensor): Input text index tensor (B, T_text,).
             text_lengths (Tensor): Text length tensor (B,).
             sid (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
+            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
             dur (Optional[Tensor]): Ground-truth duration (B, T_text,). If provided,
                 skip the prediction of durations (i.e., teacher forcing).
             noise_scale (float): Noise scale value for flow.
-            length_scale (float): Length scaling value.
-            noise_scale_w (float): Noise scale value for duration predictor.
+            noise_scale_dur (float): Noise scale value for duration predictor.
+            alpha (float): Alpha parameter to control the speed of generated speech.
             max_len (Optional[int]): Maximum length.
 
         Returns:
@@ -454,10 +470,17 @@ class VITSGenerator(torch.nn.Module):
         """
         # encoder
         x, m_p, logs_p, x_mask = self.text_encoder(text, text_lengths)
+        g = None
         if self.spks > 0:
-            g = self.global_emb(sids.view(-1)).unsqueeze(-1)  # (B, global_channels, 1)
-        else:
-            g = None
+            # (B, global_channels, 1)
+            g = self.global_emb(sids.view(-1)).unsqueeze(-1)
+        if self.spk_embed_dim > 0:
+            # (B, global_channels, 1)
+            g_ = self.spemb_proj(F.normalize(spembs.unsqueeze(0))).unsqueeze(-1)
+            if g is None:
+                g = g_
+            else:
+                g = g + g_
 
         # duration
         if dur is None:
@@ -466,9 +489,9 @@ class VITSGenerator(torch.nn.Module):
                 x_mask,
                 g=g,
                 inverse=True,
-                noise_scale=noise_scale_w,
+                noise_scale=noise_scale_dur,
             )
-            w = torch.exp(logw) * x_mask * length_scale
+            w = torch.exp(logw) * x_mask * alpha
             dur = torch.ceil(w)
         y_lengths = torch.clamp_min(torch.sum(dur, [1, 2]), 1).long()
         y_mask = make_non_pad_mask(y_lengths).unsqueeze(1).to(text.device)
