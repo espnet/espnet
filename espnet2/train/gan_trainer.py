@@ -165,6 +165,7 @@ class GANTrainer(Trainer):
                 all_steps_are_invalid = False
                 continue
 
+            turn_start_time = time.perf_counter()
             if generator_first:
                 turns = ["generator", "discriminator"]
             else:
@@ -314,9 +315,14 @@ class GANTrainer(Trainer):
                     },
                 )
                 reporter.register(
-                    {f"{turn}_train_time": time.perf_counter() - start_time}
+                    {f"{turn}_train_time": time.perf_counter() - turn_start_time}
                 )
-                start_time = time.perf_counter()
+                turn_start_time = time.perf_counter()
+
+            reporter.register(
+                {"train_time": time.perf_counter() - start_time}
+            )
+            start_time = time.perf_counter()
 
             # NOTE(kamo): Call log_message() after next()
             reporter.next()
