@@ -272,7 +272,7 @@ class E2E(MTInterface, torch.nn.Module):
         :rtype: torch.Tensor (B, 1)
         """
         if self.multilingual:
-            # remove language ID in the beggining
+            # remove language ID in the beginning
             tgt_lang_ids = ys_pad[:, 0].unsqueeze(1)
             xs_pad = xs_pad[:, 1:]  # remove source language IDs here
             ys_pad = ys_pad[:, 1:]

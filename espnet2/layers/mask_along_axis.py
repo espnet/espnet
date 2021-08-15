@@ -16,7 +16,7 @@ def mask_along_axis(
 
     Args:
         spec: (Batch, Length, Freq)
-        spec_lengths: (Length): Not using lenghts in this implementation
+        spec_lengths: (Length): Not using lengths in this implementation
         mask_width_range: Select the width randomly between this range
     """
 

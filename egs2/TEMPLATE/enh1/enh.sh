@@ -52,7 +52,7 @@ min_wav_duration=0.1   # Minimum duration in second
 max_wav_duration=20    # Maximum duration in second
 
 # Enhancement model related
-enh_exp=    # Specify the direcotry path for enhancement experiment. If this option is specified, enh_tag is ignored.
+enh_exp=    # Specify the directory path for enhancement experiment. If this option is specified, enh_tag is ignored.
 enh_tag=    # Suffix to the result dir for enhancement model training.
 enh_config= # Config for ehancement model training.
 enh_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".

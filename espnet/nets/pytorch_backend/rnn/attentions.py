@@ -305,7 +305,7 @@ class AttLoc(torch.nn.Module):
         backward_window=1,
         forward_window=3,
     ):
-        """Calcualte AttLoc forward propagation.
+        """Calculate AttLoc forward propagation.
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)

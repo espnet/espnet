@@ -540,7 +540,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             hs = torch.cat([hs, spembs], dim=-1)
         after_outs, before_outs, logits, att_ws = self.dec(hs, hlens, ys)
 
-        # caluculate src reconstruction
+        # calculate src reconstruction
         if self.src_reconstruction_loss_lambda > 0:
             B, _in_length, _adim = hs.shape
             xt, xtlens = self.src_reconstructor(hs, hlens)
@@ -548,7 +548,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             if self.encoder_reduction_factor > 1:
                 xt = xt.view(B, -1, self.idim)
 
-        # caluculate trg reconstruction
+        # calculate trg reconstruction
         if self.trg_reconstruction_loss_lambda > 0:
             olens_trg_cp = olens.new(
                 sorted([olen // self.reduction_factor for olen in olens], reverse=True)
@@ -589,7 +589,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             max_in = max(ilens)
             xs = xs[:, :max_in]
 
-        # caluculate taco2 loss
+        # calculate taco2 loss
         l1_loss, mse_loss, bce_loss = self.taco2_loss(
             after_outs, before_outs, logits, ys, labels, olens
         )
@@ -600,7 +600,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
             {"bce_loss": bce_loss.item()},
         ]
 
-        # caluculate context_perservation loss
+        # calculate context_preservation loss
         if self.src_reconstruction_loss_lambda > 0:
             src_recon_l1_loss, src_recon_mse_loss = self.src_reconstruction_loss(
                 xt, xs, ilens
@@ -620,7 +620,7 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                 {"trg_recon_mse_loss": trg_recon_mse_loss.item()},
             ]
 
-        # caluculate attention loss
+        # calculate attention loss
         if self.use_guided_attn_loss:
             # NOTE(kan-bayashi): length of output for auto-regressive input
             #   will be changed when r > 1
@@ -640,13 +640,13 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                 {"attn_loss": attn_loss.item()},
             ]
 
-        # caluculate cbhg loss
+        # calculate cbhg loss
         if self.use_cbhg:
             # remove unnecessary padded part (for multi-gpus)
             if max_out != spcs.shape[1]:
                 spcs = spcs[:, :max_out]
 
-            # caluculate cbhg outputs & loss and report them
+            # calculate cbhg outputs & loss and report them
             cbhg_outs, _ = self.cbhg(after_outs, olens)
             cbhg_l1_loss, cbhg_mse_loss = self.cbhg_loss(cbhg_outs, spcs, olens)
             loss = loss + cbhg_l1_loss + cbhg_mse_loss
