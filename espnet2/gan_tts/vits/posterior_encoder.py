@@ -71,14 +71,15 @@ class PosteriorEncoder(torch.nn.Module):
             residual_channels=hidden_channels,
             aux_channels=-1,
             gate_channels=hidden_channels * 2,
-            # no skip connection to output layer in wavenet
-            skip_channels=-1,
+            skip_channels=hidden_channels,
             global_channels=global_channels,
             dropout_rate=dropout_rate,
             bias=bias,
             use_weight_norm=use_weight_norm,
             use_first_conv=False,
             use_last_conv=False,
+            scale_residual=False,
+            scale_skip_connect=True,
         )
         self.proj = Conv1d(hidden_channels, out_channels * 2, 1)
 

@@ -163,13 +163,15 @@ class ResidualAffineCouplingLayer(torch.nn.Module):
             residual_channels=hidden_channels,
             aux_channels=-1,
             gate_channels=hidden_channels * 2,
-            skip_channels=-1,
+            skip_channels=hidden_channels,
             global_channels=global_channels,
             dropout_rate=dropout_rate,
             bias=bias,
             use_weight_norm=use_weight_norm,
             use_first_conv=False,
             use_last_conv=False,
+            scale_residual=False,
+            scale_skip_connect=True,
         )
         if use_only_mean:
             self.proj = torch.nn.Conv1d(
