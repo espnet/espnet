@@ -115,8 +115,8 @@ class TextEncoder(torch.nn.Module):
 
         Returns:
             Tensor: Encoded hidden representation (B, attention_dim, T_text).
-            Tensor: VAE mean tensor (B, attention_dim, T_text).
-            Tensor: VAE scale tensor (B, attention_dim, T_text).
+            Tensor: Projected mean tensor (B, attention_dim, T_text).
+            Tensor: Projected scale tensor (B, attention_dim, T_text).
             Tensor: Mask tensor for input tensor (B, 1, T_text).
 
         """
