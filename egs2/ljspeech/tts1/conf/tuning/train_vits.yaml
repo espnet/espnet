@@ -1,10 +1,11 @@
 # This configuration is for ESPnet2 to train VITS, which
 # is truely end-to-end text-to-waveform model. To run
 # this config, you need to specify the options for tts.sh
-# "--tts_task gan_tts" options at least.
-# This configuration uses fp16 mix precision training and
-# rquires 4 V100 GPU with 12GB GPU memory. It takes around
-# 1~2 weeks to finish the training.
+# "--tts_task gan_tts" options at least and use 22050 hz
+# audio as the training data (mainly tested on LJspeech).
+# This configuration rquires a single GPU with 32GB GPU
+# memory. It takes around 2 weeks to finish the training
+# but 100k iters model should generate reasonable results.
 
 ##########################################################
 #                  TTS MODEL SETTING                     #
@@ -32,9 +33,9 @@ tts_conf:
         text_encoder_attention_dropout_rate: 0.1
         use_macaron_style_in_text_encoder: true
         # NOTE(kan-bayashi): Conformer conv requires BatchNorm1d which causes
-        #   errors when using mixed precision training with multiple GPUs.
-        #   Therefore, we disable it as a default. We need to consider the
-        #   alternative normalization or newer pytorch may solve this issue.
+        #   errors when multiple GPUs in pytorch 1.7.1. Therefore, we disable
+        #   it as a default. We need to consider the alternative normalization
+        #   or different version pytorch may solve this issue.
         use_conformer_conv_in_text_encoder: false
         text_encoder_conformer_kernel_size: -1
         decoder_kernel_size: 7
@@ -157,17 +158,17 @@ generator_first: false # whether to start updating generator first
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 1000 # number of iterations per epoch
-max_epoch: 5000           # number of epochs
+num_iters_per_epoch: 500  # number of iterations per epoch
+max_epoch: 1000           # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_bins: 10000000      # batch bins (feats_type=raw)
+batch_bins: 5000000       # batch bins (feats_type=raw)
 batch_type: numel         # how to make batch
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
 sort_in_batch: descending # how to sort data in making batch
 sort_batch: descending    # how to sort created batches
 num_workers: 4            # number of workers of data loader
-use_amp: true             # whether to use pytorch amp
+use_amp: false            # whether to use pytorch amp
 log_interval: 50          # log interval in iterations
 keep_nbest_models: 5      # number of models to keep
 num_att_plot: 3           # number of attention figures to be saved in every check
