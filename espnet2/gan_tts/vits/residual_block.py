@@ -57,7 +57,7 @@ class WaveNetResidualBlock(torch.nn.Module):
         dropout_rate: float = 0.0,
         dilation: int = 1,
         bias: bool = True,
-        use_causal_conv: bool = False,
+        scale_residual: bool = False,
     ):
         """Initialize WaveNetResidualBlock module.
 
@@ -69,21 +69,21 @@ class WaveNetResidualBlock(torch.nn.Module):
             dropout (float): Dropout probability.
             dilation (int): Dilation factor.
             bias (bool): Whether to add bias parameter in convolution layers.
-            use_causal_conv (bool): Whether to use causal conv.
+            scale_residual (bool): Whether to scale the residual outputs.
 
         """
         super().__init__()
         self.dropout_rate = dropout_rate
+        self.residual_channels = residual_channels
         self.skip_channels = skip_channels
-        # no future time stamps available
-        if use_causal_conv:
-            padding = (kernel_size - 1) * dilation
-        else:
-            assert (kernel_size - 1) % 2 == 0, "Not support even number kernel size."
-            padding = (kernel_size - 1) // 2 * dilation
-        self.use_causal_conv = use_causal_conv
+        self.scale_residual = scale_residual
+
+        # check
+        assert (kernel_size - 1) % 2 == 0, "Not support even number kernel size."
+        assert gate_channels % 2 == 0
 
         # dilation conv
+        padding = (kernel_size - 1) // 2 * dilation
         self.conv = Conv1d(
             residual_channels,
             gate_channels,
@@ -107,13 +107,17 @@ class WaveNetResidualBlock(torch.nn.Module):
 
         # conv output is split into two groups
         gate_out_channels = gate_channels // 2
-        self.conv1x1_out = Conv1d1x1(gate_out_channels, residual_channels, bias=bias)
-        if skip_channels > 0:
-            self.conv1x1_skip = Conv1d1x1(gate_out_channels, skip_channels, bias=bias)
+
+        # NOTE(kan-bayashi): concat two convs into a single conv for the efficiency
+        #   (integrate res 1x1 + skip 1x1 convs)
+        self.conv1x1_out = Conv1d1x1(
+            gate_out_channels, residual_channels + skip_channels, bias=bias
+        )
 
     def forward(
         self,
         x: torch.Tensor,
+        x_mask: Optional[torch.Tensor] = None,
         c: Optional[torch.Tensor] = None,
         g: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -121,6 +125,7 @@ class WaveNetResidualBlock(torch.nn.Module):
 
         Args:
             x (Tensor): Input tensor (B, residual_channels, T).
+            x_mask Optional[torch.Tensor]: Mask tensor (B, 1, T).
             c (Optional[Tensor]): Local conditioning tensor (B, aux_channels, T).
             g (Optional[Tensor]): Global conditioning tensor (B, global_channels, 1).
 
@@ -151,13 +156,20 @@ class WaveNetResidualBlock(torch.nn.Module):
 
         x = torch.tanh(xa) * torch.sigmoid(xb)
 
-        # for skip connection
+        # residual + skip 1x1 conv
+        x = self.conv1x1_out(x)
+        if x_mask is not None:
+            x = x * x_mask
+
         s = None
         if self.skip_channels > 0:
-            s = self.conv1x1_skip(x)
+            # split integrated conv results
+            x, s = x.split([self.residual_channels, self.skip_channels], dim=1)
 
         # for residual connection
-        x = (self.conv1x1_out(x) + residual) * math.sqrt(0.5)
+        x = x + residual
+        if self.scale_residual:
+            x = x * math.sqrt(0.5)
 
         return x, s
 
@@ -175,7 +187,7 @@ class HiFiGANResidualBlock(torch.nn.Module):
         nonlinear_activation: str = "LeakyReLU",
         nonlinear_activation_params: Dict[str, Any] = {"negative_slope": 0.1},
     ):
-        """Initialize WaveNetResidualBlock module.
+        """Initialize HiFiGANResidualBlock module.
 
         Args:
             kernel_size (int): Kernel size of dilation convolution layer.
