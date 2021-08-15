@@ -19,6 +19,7 @@ def make_vits_generator_args(**kwargs):
             "aux_channels": 5,
             "hidden_channels": 4,
             "spks": -1,
+            "spk_embed_dim": -1,
             "global_channels": -1,
             "segment_size": 4,
             "text_encoder_attention_heads": 2,
@@ -345,7 +346,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
     "See https://github.com/pytorch/pytorch/issues/42446.",
 )
 @pytest.mark.parametrize(
-    "gen_dict, dis_dict, loss_dict",
+    "gen_dict, dis_dict, loss_dict,",
     [
         ({}, {}, {}),
         ({}, {}, {"cache_generator_outputs": True}),
@@ -470,13 +471,16 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         ),
     ],
 )
-def test_multi_speaker_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
+@pytest.mark.parametrize("spks, spk_embed_dim", [(10, -1), (-1, 5), (5, 5)])
+def test_multi_speaker_vits_is_trainable_and_decodable(
+    gen_dict, dis_dict, loss_dict, spks, spk_embed_dim
+):
     idim = 10
     odim = 5
-    spks = 10
     global_channels = 8
     gen_args = make_vits_generator_args(**gen_dict)
     gen_args["generator_params"]["spks"] = spks
+    gen_args["generator_params"]["spk_embed_dim"] = spk_embed_dim
     gen_args["generator_params"]["global_channels"] = global_channels
     dis_args = make_vits_discriminator_args(**dis_dict)
     loss_args = make_vits_loss_args(**loss_dict)
@@ -496,8 +500,11 @@ def test_multi_speaker_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
         speech=torch.randn(2, 16 * upsample_factor),
         speech_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
-        sids=torch.randint(0, spks, (2,)),
     )
+    if spks > 0:
+        inputs["sids"] = torch.randint(0, spks, (2, 1))
+    if spk_embed_dim > 0:
+        inputs["spembs"] = torch.randn(2, spk_embed_dim)
     gen_loss = model(forward_generator=True, **inputs)["loss"]
     gen_loss.backward()
     dis_loss = model(forward_generator=False, **inputs)["loss"]
@@ -513,8 +520,11 @@ def test_multi_speaker_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_
                 idim,
                 (5,),
             ),
-            sids=torch.randint(0, spks, (1,))[0],
         )
+        if spks > 0:
+            inputs["sids"] = torch.randint(0, spks, (1,))
+        if spk_embed_dim > 0:
+            inputs["spembs"] = torch.randn(spk_embed_dim)
         model.inference(**inputs)
 
         # check inference with teacher forcing
@@ -524,9 +534,12 @@ def test_multi_speaker_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_
                 idim,
                 (5,),
             ),
-            sids=torch.randint(0, spks, (1,))[0],
             durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
         )
+        if spks > 0:
+            inputs["sids"] = torch.randint(0, spks, (1,))
+        if spk_embed_dim > 0:
+            inputs["spembs"] = torch.randn(spk_embed_dim)
         output_dict = model.inference(**inputs)
         assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
 
@@ -868,15 +881,16 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
         ),
     ],
 )
+@pytest.mark.parametrize("spks, spk_embed_dim", [(10, -1), (-1, 5), (5, 5)])
 def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
-    gen_dict, dis_dict, loss_dict
+    gen_dict, dis_dict, loss_dict, spks, spk_embed_dim
 ):
     idim = 10
     odim = 5
-    spks = 10
     global_channels = 8
     gen_args = make_vits_generator_args(**gen_dict)
     gen_args["generator_params"]["spks"] = spks
+    gen_args["generator_params"]["spk_embed_dim"] = spk_embed_dim
     gen_args["generator_params"]["global_channels"] = global_channels
     dis_args = make_vits_discriminator_args(**dis_dict)
     loss_args = make_vits_loss_args(**loss_dict)
@@ -896,8 +910,11 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
         speech=torch.randn(2, 16 * upsample_factor),
         speech_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
-        sids=torch.randint(0, spks, (2,)),
     )
+    if spks > 0:
+        inputs["sids"] = torch.randint(0, spks, (2, 1))
+    if spk_embed_dim > 0:
+        inputs["spembs"] = torch.randn(2, spk_embed_dim)
     device = torch.device("cuda")
     model.to(device)
     inputs = {k: v.to(device) for k, v in inputs.items()}
@@ -916,8 +933,11 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
                 idim,
                 (5,),
             ),
-            sids=torch.randint(0, spks, (1,))[0],
         )
+        if spks > 0:
+            inputs["sids"] = torch.randint(0, spks, (1,))
+        if spk_embed_dim > 0:
+            inputs["spembs"] = torch.randn(spk_embed_dim)
         inputs = {k: v.to(device) for k, v in inputs.items()}
         model.inference(**inputs)
 
@@ -928,9 +948,12 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
                 idim,
                 (5,),
             ),
-            sids=torch.randint(0, spks, (1,))[0],
             durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
         )
+        if spks > 0:
+            inputs["sids"] = torch.randint(0, spks, (1,))
+        if spk_embed_dim > 0:
+            inputs["spembs"] = torch.randn(spk_embed_dim)
         inputs = {k: v.to(device) for k, v in inputs.items()}
         output_dict = model.inference(**inputs)
         assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
