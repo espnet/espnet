@@ -20,13 +20,15 @@ def make_wavenet_args(**kwargs):
         residual_channels=4,
         aux_channels=-1,
         gate_channels=8,
-        skip_channels=-1,
+        skip_channels=8,
         global_channels=-1,
         dropout_rate=0.0,
         bias=True,
         use_weight_norm=True,
         use_first_conv=True,
         use_last_conv=False,
+        scale_residual=False,
+        scale_skip_connect=False,
     )
     defaults.update(kwargs)
     return defaults
@@ -37,9 +39,11 @@ def make_wavenet_args(**kwargs):
     [
         ({}),
         ({"use_first_conv": False}),
-        ({"use_last_conv": True, "skip_channels": 6}),
+        ({"use_last_conv": True}),
         ({"global_channels": 3}),
         ({"aux_channels": 3}),
+        ({"scale_residual": True}),
+        ({"scale_skip_connect": True}),
     ],
 )
 def test_wavenet_forward(model_dict):
@@ -59,7 +63,5 @@ def test_wavenet_forward(model_dict):
     out = model(y, c=c, g=g)
     if args["use_last_conv"]:
         out.size(1) == args["out_channels"]
-    elif args["skip_channels"] > 0:
-        out.size(1) == args["skip_channels"]
     else:
-        out.size(1) == args["residual_channels"]
+        out.size(1) == args["skip_channels"]
