@@ -58,6 +58,7 @@ class VITS(AbsGANTTS):
         generator_params: Dict[str, Any] = {
             "hidden_channels": 192,
             "spks": -1,
+            "spk_embed_dim": -1,
             "global_channels": -1,
             "segment_size": 32,
             "text_encoder_attention_heads": 2,
@@ -265,6 +266,7 @@ class VITS(AbsGANTTS):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         sids: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
         forward_generator: bool = True,
     ) -> Dict[str, Any]:
         """Perform generator forward.
@@ -276,7 +278,8 @@ class VITS(AbsGANTTS):
             feats_lengths (Tensor): Feature length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,).
+            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
+            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
             forward_generator (bool): Whether to forward generator.
 
         Returns:
@@ -296,6 +299,7 @@ class VITS(AbsGANTTS):
                 speech=speech,
                 speech_lengths=speech_lengths,
                 sids=sids,
+                spembs=spembs,
             )
         else:
             return self._forward_discrminator(
@@ -306,6 +310,7 @@ class VITS(AbsGANTTS):
                 speech=speech,
                 speech_lengths=speech_lengths,
                 sids=sids,
+                spembs=spembs,
             )
 
     def _forward_generator(
@@ -317,6 +322,7 @@ class VITS(AbsGANTTS):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         sids: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
     ) -> Dict[str, Any]:
         """Perform generator forward.
 
@@ -327,7 +333,8 @@ class VITS(AbsGANTTS):
             feats_lengths (Tensor): Feature length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,).
+            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
+            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
 
         Returns:
             Dict[str, Any]:
@@ -346,7 +353,14 @@ class VITS(AbsGANTTS):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            outs = self.generator(text, text_lengths, feats, feats_lengths, sids)
+            outs = self.generator(
+                text=text,
+                text_lengths=text_lengths,
+                feats=feats,
+                feats_lengths=feats_lengths,
+                sids=sids,
+                spembs=spembs,
+            )
         else:
             outs = self._cache
 
@@ -414,6 +428,7 @@ class VITS(AbsGANTTS):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         sids: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
     ) -> Dict[str, Any]:
         """Perform discriminator forward.
 
@@ -424,7 +439,8 @@ class VITS(AbsGANTTS):
             feats_lengths (Tensor): Feature length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,).
+            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
+            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
 
         Returns:
             Dict[str, Any]:
@@ -443,7 +459,14 @@ class VITS(AbsGANTTS):
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            outs = self.generator(text, text_lengths, feats, feats_lengths, sids)
+            outs = self.generator(
+                text=text,
+                text_lengths=text_lengths,
+                feats=feats,
+                feats_lengths=feats_lengths,
+                sids=sids,
+                spembs=spembs,
+            )
         else:
             outs = self._cache
 
@@ -489,21 +512,24 @@ class VITS(AbsGANTTS):
         self,
         text: torch.Tensor,
         sids: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
         durations: Optional[torch.Tensor] = None,
-        noise_scale: float = 1.0,
-        length_scale: float = 1.0,
-        noise_scale_w: float = 1.0,
+        noise_scale: float = 0.667,
+        noise_scale_dur: float = 0.8,
+        alpha: float = 1.0,
         max_len: Optional[int] = None,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Run inference.
 
         Args:
             text (Tensor): Input text index tensor (T_text,).
             sids (Tensor): Speaker index tensor (1,).
+            spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).
             durations (Tensor): Ground-truth duration tensor (T_text,).
             noise_scale (float): Noise scale value for flow.
-            length_scale (float): Length scaling value.
-            noise_scale_w (float): Noise scale value for duration predictor.
+            noise_scale_dur (float): Noise scale value for duration predictor.
+            alpha (float): Alpha parameter to control the speed of generated speech.
             max_len (Optional[int]): Maximum length.
 
         Returns:
@@ -529,11 +555,12 @@ class VITS(AbsGANTTS):
             text=text,
             text_lengths=text_lengths,
             sids=sids,
+            spembs=spembs,
             dur=durations,
             noise_scale=noise_scale,
-            length_scale=length_scale,
-            noise_scale_w=noise_scale_w,
+            noise_scale_dur=noise_scale_dur,
+            alpha=alpha,
             max_len=max_len,
         )
 
-        return dict(wav=wav.view(-1), att_w=att_w[0], dur=dur[0])
+        return dict(wav=wav.view(-1), att_w=att_w[0], duration=dur[0])
