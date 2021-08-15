@@ -27,34 +27,27 @@ def get_default_train_args(**kwargs):
         dlayers=1,
         dunits=4,
         dec_embed_dim=4,
-        atype="location",
-        adim=4,
-        aheads=2,
-        awin=2,
-        aconv_chans=2,
-        aconv_filts=5,
         dropout_rate=0.0,
         dropout_rate_decoder=0.0,
         dropout_rate_embed_decoder=0.0,
         joint_dim=2,
         joint_activation_type="tanh",
-        transducer_weight=1.0,
-        aux_task_type=None,
-        aux_task_weight=0.1,
-        aux_task_layer_list=[],
-        aux_ctc=False,
-        aux_ctc_weight=1.0,
-        aux_ctc_dropout_rate=0.0,
-        use_frontend=False,
-        trans_type="warp-transducer",
+        transducer_loss_weight=1.0,
+        use_ctc_loss=False,
+        ctc_loss_weight=0.0,
+        ctc_loss_dropout_rate=0.0,
+        use_lm_loss=False,
+        lm_loss_weight=0.0,
+        use_aux_transducer_loss=False,
+        aux_transducer_loss_weight=0.0,
+        aux_transducer_loss_enc_output_layers=[],
+        use_symm_kl_div_loss=False,
+        symm_kl_div_loss_weight=0.0,
         char_list=["a", "b", "c", "d"],
         sym_space="<space>",
         sym_blank="<blank>",
         report_cer=False,
         report_wer=False,
-        score_norm_transducer=True,
-        beam_size=1,
-        nbest=1,
         verbose=0,
         outdir=None,
         rnnlm=None,
@@ -76,6 +69,8 @@ def get_default_recog_args(**kwargs):
         max_sym_exp=2,
         prefix_alpha=2,
         u_max=5,
+        expansion_gamma=2,
+        expansion_beta=0.2,
         score_norm_transducer=True,
         rnnlm=None,
         lm_weight=0.1,
@@ -131,20 +126,21 @@ def get_wordlm():
 def prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
     np.random.seed(1)
 
-    xs = [np.random.randn(ilen, idim).astype(np.float32) for ilen in ilens]
-    ys = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens]
-    ilens = np.array([x.shape[0] for x in xs], dtype=np.int32)
+    feats = [np.random.randn(ilen, idim).astype(np.float32) for ilen in ilens]
+    labels = [np.random.randint(1, odim, olen).astype(np.int32) for olen in olens]
+    feats_len = np.array([x.shape[0] for x in feats], dtype=np.int32)
 
-    xs_pad = pad_list([torch.from_numpy(x).float() for x in xs], 0)
-    ys_pad = pad_list([torch.from_numpy(y).long() for y in ys], -1)
-    ilens = torch.from_numpy(ilens).long()
+    feats = pad_list([torch.from_numpy(x).float() for x in feats], 0)
+    labels = pad_list([torch.from_numpy(y).long() for y in labels], -1)
+
+    feats_len = torch.from_numpy(feats_len).long()
 
     if is_cuda:
-        xs_pad = xs_pad.cuda()
-        ys_pad = ys_pad.cuda()
-        ilens = ilens.cuda()
+        feats = feats.cuda()
+        labels = labels.cuda()
+        feats_len = feats_len.cuda()
 
-    return xs_pad, ilens, ys_pad
+    return feats, feats_len, labels
 
 
 @pytest.mark.parametrize(
@@ -175,6 +171,7 @@ def prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
         ({}, {"beam_size": 2, "search_type": "tsd", "max-sym-exp": 3}),
         ({}, {"beam_size": 2, "search_type": "alsd"}),
         ({}, {"beam_size": 2, "search_type": "alsd", "u_max": 10}),
+        ({}, {"beam_size": 2, "search_type": "maes", "nstep": 2}),
         (
             {},
             {
@@ -208,6 +205,10 @@ def prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
         ),
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_lm()}),
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_wordlm()}),
+        (
+            {},
+            {"beam_size": 2, "search_type": "maes", "nstep": 2, "rnnlm": get_wordlm()},
+        ),
     ],
 )
 def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic):
@@ -230,7 +231,7 @@ def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic):
 
     beam_search = BeamSearchTransducer(
         decoder=model.dec,
-        joint_network=model.joint_network,
+        joint_network=model.transducer_tasks.joint_network,
         beam_size=recog_args.beam_size,
         lm=recog_args.rnnlm,
         lm_weight=recog_args.lm_weight,
@@ -248,28 +249,6 @@ def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic):
         model.recognize(in_data, beam_search)
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="gpu required")
-@pytest.mark.parametrize("trans_type", ["warp-transducer", "warp-rnnt"])
-def test_pytorch_transducer_gpu_trainable(trans_type):
-    idim, odim, ilens, olens = get_default_scope_inputs()
-    train_args = get_default_train_args(trans_type=trans_type)
-
-    if trans_type == "warp-rnnt" and torch.version.cuda != "10.0":
-        with pytest.raises(ImportError):
-            model = E2E(idim, odim, train_args)
-
-        return
-
-    model = E2E(idim, odim, train_args)
-
-    model.cuda()
-
-    batch = prepare_inputs(idim, odim, ilens, olens, is_cuda=True)
-
-    loss = model(*batch)
-    loss.backward()
-
-
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
 @pytest.mark.parametrize(
     "train_dic",
@@ -277,7 +256,7 @@ def test_pytorch_transducer_gpu_trainable(trans_type):
         {"report_cer": True, "report_wer": True},
     ],
 )
-@pytest.mark.execution_timeout(2.8)
+@pytest.mark.execution_timeout(3.2)
 def test_pytorch_multi_gpu_trainable(train_dic):
     idim, odim, ilens, olens = get_default_scope_inputs()
     train_args = get_default_train_args(**train_dic)
@@ -309,21 +288,27 @@ def test_calculate_plot_attention():
 @pytest.mark.parametrize(
     "train_dic",
     [
-        {"elayers": 2, "aux_task_type": "default", "aux_task_layer_list": [0]},
+        {
+            "elayers": 3,
+            "use_aux_transducer_loss": True,
+            "aux_transducer_loss_enc_output_layers": [1],
+        },
+        {
+            "elayers": 2,
+            "use_ctc_loss": True,
+            "ctc_loss_weight": 0.5,
+            "ctc_loss_dropout_rate": 0.1,
+        },
         {
             "etype": "vggblstm",
             "elayers": 3,
-            "aux_task_type": "symm_kl_div",
-            "aux_task_layer_list": [0, 1],
+            "use_aux_transducer_loss": True,
+            "aux_transducer_loss": True,
+            "use_symm_kl_div_loss": True,
+            "symm_kl_div_loss_weight": 0.5,
+            "aux_transducer_loss_enc_output_layers": [0, 1],
         },
-        {
-            "etype": "blstm",
-            "elayers": 2,
-            "aux_task_type": "both",
-            "aux_task_layer_list": [0],
-        },
-        {"elayers": 2, "aux_ctc": True, "aux_ctc_weight": 0.5},
-        {"elayers": 2, "aux_cross_entropy": True, "aux_cross_entropy_weight": 0.5},
+        {"dlayers": 2, "use_lm_loss": True, "lm_loss_weight": 0.5},
     ],
 )
 def test_auxiliary_task(train_dic):
@@ -341,7 +326,7 @@ def test_auxiliary_task(train_dic):
 
     beam_search = BeamSearchTransducer(
         decoder=model.dec,
-        joint_network=model.joint_network,
+        joint_network=model.transducer_tasks.joint_network,
         beam_size=recog_args.beam_size,
         lm=recog_args.rnnlm,
         lm_weight=recog_args.lm_weight,
@@ -374,22 +359,34 @@ def test_auxiliary_task(train_dic):
         model.recognize(in_data, beam_search)
 
 
-def test_invalid_aux_task_layer_list():
+def test_invalid_aux_transducer_loss_enc_layers():
     idim, odim, ilens, olens = get_default_scope_inputs()
-    train_args = get_default_train_args(aux_task_type="default")
+    train_args = get_default_train_args(use_aux_transducer_loss=True)
 
     with pytest.raises(ValueError):
         E2E(idim, odim, train_args)
 
     train_args = get_default_train_args(
-        aux_task_type="default", aux_task_layer_list="foo"
+        use_aux_transducer_loss=True, aux_transducer_loss_enc_output_layers="foo"
     )
 
     with pytest.raises(ValueError):
         E2E(idim, odim, train_args)
 
     train_args = get_default_train_args(
-        aux_task_type="default", aux_task_layer_list=[0, 4]
+        use_aux_transducer_loss=True, aux_transducer_loss_enc_output_layers=[0, 4]
+    )
+
+    with pytest.raises(ValueError):
+        E2E(idim, odim, train_args)
+
+    train_args = get_default_train_args(
+        use_aux_transducer_loss=True,
+        use_symm_kl_div_loss=True,
+        aux_transducer_loss_enc_output_layers=[0],
+        elayers=3,
+        etype="blstmp",
+        subsample="1_2_1",
     )
 
     with pytest.raises(ValueError):

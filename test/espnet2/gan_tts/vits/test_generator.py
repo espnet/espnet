@@ -17,6 +17,7 @@ def make_generator_args(**kwargs):
         aux_channels=5,
         hidden_channels=4,
         spks=-1,
+        spk_embed_dim=-1,
         global_channels=-1,
         segment_size=4,
         text_encoder_attention_heads=2,
@@ -89,6 +90,7 @@ def make_generator_args(**kwargs):
                 "text_encoder_self_attention_layer_type": "selfattn",
             }
         ),
+        ({"spk_embed_dim": 16, "global_channels": 4}),
     ],
 )
 def test_vits_generator_forward(model_dict):
@@ -104,6 +106,8 @@ def test_vits_generator_forward(model_dict):
         feats=torch.randn(2, odim, 16),
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
     )
+    if args["spk_embed_dim"] > 0:
+        inputs["spembs"] = torch.randn(2, args["spk_embed_dim"])
     outputs = model(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
@@ -124,6 +128,8 @@ def test_vits_generator_forward(model_dict):
         ),
         text_lengths=torch.tensor([5, 3], dtype=torch.long),
     )
+    if args["spk_embed_dim"] > 0:
+        inputs["spembs"] = torch.randn(args["spk_embed_dim"])
     outputs = model.inference(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
@@ -145,6 +151,8 @@ def test_vits_generator_forward(model_dict):
         text_lengths=torch.tensor([5], dtype=torch.long),
         dur=torch.tensor([[[1, 2, 3, 4, 5]]], dtype=torch.long),
     )
+    if args["spk_embed_dim"] > 0:
+        inputs["spembs"] = torch.randn(args["spk_embed_dim"])
     outputs = model.inference(**inputs)
     assert outputs[0].size(1) == inputs["dur"].sum() * model.upsample_factor
     for i, output in enumerate(outputs):
@@ -180,6 +188,7 @@ def test_vits_generator_forward(model_dict):
                 "text_encoder_self_attention_layer_type": "selfattn",
             }
         ),
+        ({"spk_embed_dim": 16}),
     ],
 )
 def test_multi_speaker_vits_generator_forward(model_dict):
@@ -204,6 +213,8 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         feats_lengths=torch.tensor([16, 13], dtype=torch.long),
         sids=torch.randint(0, spks, (2,)),
     )
+    if args["spk_embed_dim"] > 0:
+        inputs["spembs"] = torch.randn(2, args["spk_embed_dim"])
     outputs = model(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
@@ -225,6 +236,8 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         text_lengths=torch.tensor([5, 3], dtype=torch.long),
         sids=torch.randint(0, spks, (1,)),
     )
+    if args["spk_embed_dim"] > 0:
+        inputs["spembs"] = torch.randn(args["spk_embed_dim"])
     outputs = model.inference(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
@@ -247,6 +260,8 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         sids=torch.randint(0, spks, (1,)),
         dur=torch.tensor([[[1, 2, 3, 4, 5]]], dtype=torch.long),
     )
+    if args["spk_embed_dim"] > 0:
+        inputs["spembs"] = torch.randn(args["spk_embed_dim"])
     outputs = model.inference(**inputs)
     assert outputs[0].size(1) == inputs["dur"].sum() * model.upsample_factor
     for i, output in enumerate(outputs):
