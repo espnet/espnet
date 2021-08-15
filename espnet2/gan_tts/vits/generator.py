@@ -280,7 +280,7 @@ class VITSGenerator(torch.nn.Module):
 
         Returns:
             Tensor: Waveform tensor (B, 1, segment_size * upsample_factor).
-            Tensor: Duration negative lower bound tensor (B,).
+            Tensor: Duration negative log-likelihood (NLL) tensor (B,).
             Tensor: Monotonic attention weight tensor (B, 1, T_feats, T_text).
             Tensor: Segments start index tensor (B,).
             Tensor: Text mask tensor (B, 1, T_text).
@@ -288,10 +288,10 @@ class VITSGenerator(torch.nn.Module):
             tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
                 - Tensor: Posterior encoder hidden representation (B, H, T_feats).
                 - Tensor: Flow hidden representation (B, H, T_feats).
-                - Tensor: Expanded text encoder VAE mean (B, H, T_feats).
-                - Tensor: Expanded text encoder VAE scale (B, H, T_feats).
-                - Tensor: Posterior encoder VAE mean (B, H, T_feats).
-                - Tensor: Posterior encoder VAE scale (B, H, T_feats).
+                - Tensor: Expanded text encoder projected mean (B, H, T_feats).
+                - Tensor: Expanded text encoder projected scale (B, H, T_feats).
+                - Tensor: Posterior encoder projected mean (B, H, T_feats).
+                - Tensor: Posterior encoder projected scale (B, H, T_feats).
 
         """
         # forward text encoder
@@ -453,14 +453,14 @@ class VITSGenerator(torch.nn.Module):
         Args:
             text (Tensor): Input text index tensor (B, T_text,).
             text_lengths (Tensor): Text length tensor (B,).
-            sid (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
+            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
             dur (Optional[Tensor]): Ground-truth duration (B, T_text,). If provided,
                 skip the prediction of durations (i.e., teacher forcing).
-            noise_scale (float): Noise scale value for flow.
-            noise_scale_dur (float): Noise scale value for duration predictor.
+            noise_scale (float): Noise scale parameter for flow.
+            noise_scale_dur (float): Noise scale parameter for duration predictor.
             alpha (float): Alpha parameter to control the speed of generated speech.
-            max_len (Optional[int]): Maximum length.
+            max_len (Optional[int]): Maximum length of acoustic feature sequence.
 
         Returns:
             Tensor: Generated waveform tensor (B, T_wav).

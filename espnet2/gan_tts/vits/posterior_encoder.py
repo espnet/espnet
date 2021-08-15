@@ -94,8 +94,8 @@ class PosteriorEncoder(torch.nn.Module):
 
         Returns:
             Tensor: Encoded hidden representation tensor (B, out_channels, T_feats).
-            Tensor: VAE mean tensor (B, out_channels, T_feats).
-            Tensor: VAE scale tensor (B, out_channels, T_feats).
+            Tensor: Projected mean tensor (B, out_channels, T_feats).
+            Tensor: Projected scale tensor (B, out_channels, T_feats).
             Tensor: Mask tensor for input tensor (B, 1, T_feats).
 
         """

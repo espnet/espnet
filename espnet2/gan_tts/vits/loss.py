@@ -315,9 +315,9 @@ class KLDivergenceLoss(torch.nn.Module):
 
         Args:
             z_p (Tensor): Flow hidden representation (B, H, T_feats).
-            logs_q (Tensor): Posterior encoder VAE scale (B, H, T_feats).
-            m_p (Tensor): Expanded text encoder VAE mean (B, H, T_feats).
-            logs_p (Tensor): Expanded text encoder VAE scale (B, H, T_feats).
+            logs_q (Tensor): Posterior encoder projected scale (B, H, T_feats).
+            m_p (Tensor): Expanded text encoder projected mean (B, H, T_feats).
+            logs_p (Tensor): Expanded text encoder projected scale (B, H, T_feats).
             z_mask (Tensor): Mask tensor (B, 1, T_feats).
 
         Returns:

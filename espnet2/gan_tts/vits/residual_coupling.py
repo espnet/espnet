@@ -57,7 +57,7 @@ class ResidualAffineCouplingBlock(torch.nn.Module):
             dropout_rate (float): Dropout rate.
             use_weight_norm (bool): Whether to use weight normalization in WaveNet.
             bias (bool): Whether to use bias paramters in WaveNet.
-            use_only_mean (bool): Whether to estimate only VAE mean.
+            use_only_mean (bool): Whether to estimate only mean.
 
         """
         super().__init__()
@@ -139,7 +139,7 @@ class ResidualAffineCouplingLayer(torch.nn.Module):
             dropout_rate (float): Dropout rate.
             use_weight_norm (bool): Whether to use weight normalization in WaveNet.
             bias (bool): Whether to use bias paramters in WaveNet.
-            use_only_mean (bool): Whether to estimate only VAE mean.
+            use_only_mean (bool): Whether to estimate only mean.
 
         """
         assert in_channels % 2 == 0, "in_channels should be divisible by 2"
@@ -203,7 +203,7 @@ class ResidualAffineCouplingLayer(torch.nn.Module):
 
         Returns:
             Tensor: Output tensor (B, in_channels, T).
-            Tensor: Determinant tensor (B,) if inverse.
+            Tensor: Log-determinant tensor for NLL (B,) if not inverse.
 
         """
         xa, xb = x.split(x.size(1) // 2, dim=1)

@@ -113,15 +113,16 @@ class StochasticDurationPredictor(torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            x (Tensor): Input tensor (B, channels, T).
-            x_mask (Tensor): Mask tensor (B, 1, T).
-            w (Optional[Tensor]): Duration tensor (B, 1, T).
+            x (Tensor): Input tensor (B, channels, T_text).
+            x_mask (Tensor): Mask tensor (B, 1, T_text).
+            w (Optional[Tensor]): Duration tensor (B, 1, T_text).
             g (Optional[Tensor]): Global conditioning tensor (B, channels, 1)
             inverse (bool): Whether to inverse the flow.
             noise_scale (float): Noise scale value.
 
         Returns:
-            Tensor: Negative lower bound tensor (B,).
+            Tensor: If not inverse, negative log-likelihood (NLL) tensor (B,).
+                If inverse, log-duration tensor (B, 1, T_text).
 
         """
         x = x.detach()  # stop gradient

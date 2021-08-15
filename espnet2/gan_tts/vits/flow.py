@@ -32,7 +32,7 @@ class FlipFlow(torch.nn.Module):
 
         Returns:
             Tensor: Flipped tensor (B, channels, T).
-            Tensor: Determinant tensor (B,) if not inverse.
+            Tensor: Log-determinant tensor for NLL (B,) if not inverse.
 
         """
         x = torch.flip(x, [1])
@@ -64,7 +64,7 @@ class LogFlow(torch.nn.Module):
 
         Returns:
             Tensor: Output tensor (B, channels, T).
-            Tensor: Determinant tensor (B,) if not inverse.
+            Tensor: Log-determinant tensor for NLL (B,) if not inverse.
 
         """
         if not inverse:
@@ -103,7 +103,7 @@ class ElementwiseAffineFlow(torch.nn.Module):
 
         Returns:
             Tensor: Output tensor (B, channels, T).
-            Tensor: Determinant tensor (B,).
+            Tensor: Log-determinant tensor for NLL (B,) if not inverse.
 
         """
         if not inverse:
@@ -279,7 +279,7 @@ class ConvFlow(torch.nn.Module):
 
         Returns:
             Tensor: Output tensor (B, channels, T).
-            Tensor: Determinant tensor (B,) if not inverse.
+            Tensor: Log-determinant tensor for NLL (B,) if not inverse.
 
         """
         xa, xb = x.split(x.size(1) // 2, 1)
