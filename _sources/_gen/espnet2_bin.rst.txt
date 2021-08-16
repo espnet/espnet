@@ -192,7 +192,9 @@ asr_inference.py
                             Input length ratio to obtain max output length. If
                             maxlenratio=0.0 (default), it uses a end-detect
                             function to automatically find maximum hypothesis
-                            lengths (default: 0.0)
+                            lengths.If maxlenratio<0.0, its absolute value is
+                            interpretedas a constant max output length (default:
+                            0.0)
       --minlenratio MINLENRATIO
                             Input length ratio to obtain min output length
                             (default: 0.0)

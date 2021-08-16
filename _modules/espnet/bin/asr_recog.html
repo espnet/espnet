@@ -330,7 +330,9 @@
         <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;Input length ratio to obtain max output length.</span>
 <span class="s2">                        If maxlenratio=0.0 (default), it uses a end-detect function</span>
-<span class="s2">                        to automatically find maximum hypothesis lengths&quot;&quot;&quot;</span><span class="p">,</span>
+<span class="s2">                        to automatically find maximum hypothesis lengths.</span>
+<span class="s2">                        If maxlenratio&lt;0.0, its absolute value is interpreted</span>
+<span class="s2">                        as a constant max output length&quot;&quot;&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--minlenratio&quot;</span><span class="p">,</span>

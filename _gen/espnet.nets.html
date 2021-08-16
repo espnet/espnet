@@ -1897,7 +1897,9 @@ Their shapes are <cite>(self.beam_size,)</cite></p>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Encoded speech feature (T, D)</p></li>
 <li><p><strong>maxlenratio</strong> (<em>float</em>) – Input length ratio to obtain max output length.
 If maxlenratio=0.0 (default), it uses a end-detect function
-to automatically find maximum hypothesis lengths</p></li>
+to automatically find maximum hypothesis lengths
+If maxlenratio&lt;0.0, its absolute value is interpreted
+as a constant max output length.</p></li>
 <li><p><strong>minlenratio</strong> (<em>float</em>) – Input length ratio to obtain min output length.</p></li>
 </ul>
 </dd>

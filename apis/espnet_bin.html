@@ -653,7 +653,9 @@
 <dt><kbd>--maxlenratio</kbd></dt>
 <dd><dl class="simple">
 <dt>Input length ratio to obtain max output length.</dt><dd><p>If maxlenratio=0.0 (default), it uses a end-detect function
-to automatically find maximum hypothesis lengths</p>
+to automatically find maximum hypothesis lengths.
+If maxlenratio&lt;0.0, its absolute value is interpreted
+as a constant max output length</p>
 </dd>
 </dl>
 <p>Default: 0.0</p>
