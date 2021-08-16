@@ -12,20 +12,36 @@ log() {
 
 stage=1
 stop_stage=100
-ngpu=4
 
-# pretrain_mfcc_config=conf/tuning/train_asr_hubert_base_960h_full_pretrain.yaml
-pretrain_mfcc_config=conf/tuning/train_asr_hubert_base_960h_full_pretrain_gpu32.yaml
-pretrain_iter1_config=conf/tuning/train_asr_hubert_base_960h_full_pretrain_it1.yaml
-pretrain_iter2_config=conf/tuning/train_asr_hubert_base_960h_full_pretrain_it2.yaml
+start_iter=0
+stop_iter=2
+pretrain_config_iter0=conf/tuning/train_asr_hubert_base_960h_full_pretrain_gpu32.yaml
+pretrain_config_iter1=conf/tuning/train_asr_hubert_base_960h_full_pretrain_it1.yaml
+pretrain_config_iter2=conf/tuning/train_asr_hubert_base_960h_full_pretrain_it2.yaml
+
 lm_config=conf/tuning/train_lm_transformer2.yaml # didnt' use
 inference_config=conf/decode_asr.yaml
 
-mfcc_n_clusters=100
-hubert_n_clusters=500
-feature_mfcc="mfcc"
-feature_hubert_iter1="HuBERT6"
-feature_hubert_iter2="HuBERT9"
+finetune_train_set="train_10h"
+finetune_valid_set="dev_other"
+finetune_test_sets="dev_clean" #"test_clean test_other dev_clean dev_other"
+
+finetune_asr_config=conf/tuning/train_asr_hubert_base_10h_finetuning.yaml
+lm_config=conf/tuning/train_lm_transformer2.yaml
+inference_config=conf/decode_asr.yaml
+
+n_clusters_iter0=100
+n_clusters_iter1=500
+n_clusters_iter2=500
+feature_iter0="mfcc"
+feature_iter1="HuBERT6"
+feature_iter2="HuBERT9"
+
+for ((iter=${start_iter}; iter<=${stop_iter};iter++)); do
+    pretrain_config_list[${iter}]=pretrain_config_iter${iter}
+    n_clusters_list[${iter}]=n_clusters_iter${iter}
+    feature_list[${iter}]=feature_list_iter${iter}
+done
 
 # Feature extraction related
 #!/usr/bin/env bash
@@ -56,11 +72,15 @@ SECONDS=0
 stage=1              # Processes starts from the specified stage.
 stop_stage=10000     # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages.
-skip_train=false     # Skip training stages.
+skip_km=false        # Skip k-means training stage.
+skip_pretrain=false  # Skip Hubert pretraining stage.
+skip_finetune=false  # Skip ASR finetune training stage.
 skip_eval=false      # Skip decoding and evaluation stages.
 skip_upload=true     # Skip packing and uploading stages.
-ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
-num_nodes=1          # The number of nodes.
+pretrain_ngpu=1      # The number of gpus in pretrain stage ("0" uses cpu, otherwise use gpu).
+pretrain_num_nodes=1 # The number of nodes in pretrain stage.
+finetune_ngpu=1      # The number of gpus in finetune stage("0" uses cpu, otherwise use gpu).
+finetune_num_nodes=1 # The number of nodes in finetune stage.
 nj=32                # The number of parallel jobs.
 inference_nj=32      # The number of parallel jobs in decoding.
 gpu_inference=false  # Whether to perform gpu decoding.
@@ -82,7 +102,7 @@ min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
 
 # Tokenization related
-token_type=bpe      # Tokenization type (char or bpe).
+token_type=char      # Tokenization type (char or bpe).
 nbpe=30             # The number of BPE vocabulary.
 bpemode=unigram     # Mode of BPE (unigram or bpe).
 oov="<unk>"         # Out of vocabulary symbol.
@@ -158,11 +178,8 @@ Options:
     --stage          # Processes starts from the specified stage (default="${stage}").
     --stop_stage     # Processes is stopped at the specified stage (default="${stop_stage}").
     --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
-    --skip_train     # Skip training stages (default="${skip_train}").
     --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
     --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
-    --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
-    --num_nodes      # The number of nodes (default="${num_nodes}").
     --nj             # The number of parallel jobs (default="${nj}").
     --inference_nj   # The number of parallel jobs in decoding (default="${inference_nj}").
     --gpu_inference  # Whether to perform gpu decoding (default="${gpu_inference}").
@@ -433,28 +450,28 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    # sbatch --export=PATH  --time 48:00:00 -p RM-shared --mem-per-cpu 32G -c 1 --open-mode=append \
-	#     -e log/km_stage2.log -o log/km_stage2.log \
-	#     run_pretrain.sh --stage 1 --stop-stage 1
-    log "Stage 2: Running K-means on ${feature} feature."
-    feats_km=${feature_mfcc}
-    n_clusters=${mfcc_n_clusters}
-    ./local/km.s \
-        --stage 1 --stop-stage 3 \
-        --nclusters ${n_clusters} \
-        --feature-type ${feats_km} \
-        --datadir "./data" \
-        --kmrootdir "./exp" \
-        --dictdir "./data/${feats_km}_km${n_clusters}_token_list/word"
+    for ((iter=${start_iter}; iter<=${stop_iter};iter++)); do
+	train_set="train_960_${feature_list[${iter}]}_km${n_clusters_list[${iter}]}"
+	valid_set="dev_${feature_mfcc}_km${mfcc_n_clusters}"
 
-    # train valid test set for mfcc pretrain
-    train_set="train_960_${feature_mfcc}_km${mfcc_n_clusters}"
-    valid_set="dev_${feature_mfcc}_km${mfcc_n_clusters}"
-    
-    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+	echo ${train_set}
+	echo ${valid_set}
+	exit 0
+	
+	if ! "${skip_km}"; then
+	    log "Stage 2.0: Running K-means on ${feature} feature."
+	    feats_km=${features_list[${n_iter}]}
+	    n_clusters=${n_clusters_list[${n_iter}]}
+	    ./local/km.s \
+		--nclusters ${n_clusters} \
+		--feature-type ${feats_km} \
+		--datadir "./data" \
+		--kmrootdir "./exp" \
+		--dictdir "./data/${feats_km}_km${n_clusters}_token_list/word"
+
 	if [ "${feats_type}" = raw ]; then
-            log "Stage 3: Format wav.scp: data/ -> ${data_feats}"
-            for dset in "${train_set}" "${valid_set}"; do
+	    log "Stage 2.1: Format wav.scp: data/ -> ${data_feats}"
+	    for dset in "${train_set}" "${valid_set}"; do
 		utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}/${dset}"
 		rm -f ${data_feats}$/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
 		_opts=
@@ -470,14 +487,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 	    log "Error: not supported: --feats_type ${feats_type}"
 	    exit 2
 	fi
-    fi		
-
-    ######################train mfcc iteration
-    if [ ${hubert_stage} -le 1 ] && [ ${stop_hubert_stage} -ge 1 ]; then
-	asr_config=${pretrain_configs}[${hubert_n_iteraions}]
+    fi
+    ######################pretrain with mfcc label
+    if ! "${skip_pretrain}"; then
+	asr_config=${pretrain_configs}[${n_iteraions}]
 	_asr_train_dir="${data_feats}/${train_set}"
 	_asr_valid_dir="${data_feats}/${valid_set}"
-	log "Stage 4: ${feature_mfcc} pretrain model collect stats: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
+	log "Stage 2.2: ${feature_mfcc} pretrain model collect stats: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
     
 	_opts=
 	if [ -n "${asr_config}" ]; then
@@ -572,10 +588,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 	<"${asr_stats_dir}/valid/text_shape" \
          awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
          >"${asr_stats_dir}/valid/text_shape.${token_type}"
-    fi
 
 
-    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+	# if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	asr_config=${pretrain_mfcc_config}
 	_asr_train_dir="${data_feats}/${train_set}"
 	_asr_valid_dir="${data_feats}/${valid_set}"
@@ -689,64 +704,25 @@ else
     log "Skip the training stages"
 fi
 
-##################################
-#if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-#    log "Stage 4: Pretrain HuBERT model using MFCC K-means pseudo-labels."
 
-#    ./hubert_asr.sh \
-#        --stage 10 --stop-stage 10 \
-#        --lang ${feature_mfcc}_km${mfcc_n_clusters} \
-#        --ngpu ${ngpu} \
-#        --nj 32 \
-#        --max_wav_duration 30 \
-#        --asr_config "${pretrain_mfcc_config}" \
-#        --dumpdir "dump/${feature_mfcc}_km${mfcc_n_clusters}" \
-#        --train-set "${train_set}" \
-#        --valid-set "${valid_set}" \
-#        --test_sets "${test_sets}" \
-#        --feats-normalize null \
-#        --token_type word "$@"
-#fi
-
-# Secend iteration, extract feature from hubert layer6 and re-generate label
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    log "Stage 4: Running K-means on Hubert feature for iteration 1."
-    ./local/km.sh \
-        --stage 1 --stop-stage 3 \
-        --ncluster ${hubert_n_clusters} \
-        --feature-type ${feature_hubert_iter1} \
-        --datadir "./data" \
-        --kmrootdir "./exp"
-        --dictdir "./data/${feature_hubert_iter1}_km${hubert_n_clusters}_token_list/word"
-fi
-
-train_set="train_960_${feature_hubert_iter1}_km${hubert_n_clusters}"
-valid_set="dev_clean_${feature_hubert_iter1}_km${hubert_n_clusters}"
-test_sets="test_clean_${feature_hubert_iter1}_km${hubert_n_clusters} \
-    test_other_${feature_hubert_iter1}_km${hubert_n_clusters} \
-    dev_clean_${feature_hubert_iter1}_km${hubert_n_clusters} \
-    dev_other_${feature_hubert_iter1}_km${hubert_n_clusters}"
-#TODO(use asr.sh stage 4 to dump data)
-# mkdir -p dump/${feature_hubert_iter1}_km${hubert_n_clusters}/raw
-# for task in ${train_set} ${valid_set} ${test_sets}; do
-#     cp -r data/${task} dump/${feature_hubert_iter1}_km${hubert_n_clusters}/raw
-# done
-
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    log "Stage 5: Pretrain HuBERT model using ${feature_hubert_iter1} K-means pseudo-labels."
-
-    ./hubert_asr.sh \
-        --stage 9 --stop-stage 10 \
-        --lang ${feature_hubert_iter1}_km${hubert_n_clusters} \
-        --ngpu ${ngpu} \
-        --nj 32 \
-        --max_wav_duration 30 \
-        --asr_config "${pretrain_iter1_config}" \
-        --dumpdir "dump/${feature_hubert_iter1}_km${hubert_n_clusters}" \
-        --train-set "${train_set}" \
-        --valid-set "${valid_set}" \
-        --test_sets "${test_sets}" \
-        --feats-normalize null \
-        --token_type word "$@"
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "Stage 3: Finetune Training: train_set=${finetune_train}, dev_set=${finetune_dev}"
+    ./asr.sh \
+	--lang en \
+	--ngpu ${finetune_ngpu} \
+	--nj ${nj} \
+	--max_wav_duration 30 \
+	--asr_config "${finetune_config}" \
+	--use_lm ${use_lm} \
+	--lm_config "${lm_config}" \
+	--inference_config "${inference_config}" \
+	--train_set "${finetune_train_set}" \
+	--valid_set "${finetune_valid_set}" \
+	--test_sets "${finetune_test_sets}" \
+	--bpe_train_text "data/${finetune_train_set}/text" \
+	--token_type char \
+	--lm_train_text "data/${finetune_train_set}/text" \
+	--inference_asr_model valid.loss.ave.pth \
+	--feats-normalize null  "$@" 
 fi
 
