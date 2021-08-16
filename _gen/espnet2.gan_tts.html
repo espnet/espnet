@@ -1,0 +1,1007 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>espnet2.gan_tts package &mdash; ESPnet 0.10.2a1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="espnet2.torch_utils package" href="espnet2.torch_utils.html" />
+    <link rel="prev" title="espnet2.schedulers package" href="espnet2.schedulers.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.10.2a1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p class="caption"><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Package Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.gan_tts package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-init">espnet2.gan_tts.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-loss">espnet2.gan_tts.vits.loss</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-init">espnet2.gan_tts.vits.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-residual-block">espnet2.gan_tts.vits.residual_block</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-wavenet">espnet2.gan_tts.vits.wavenet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-hifigan">espnet2.gan_tts.vits.hifigan</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>espnet2.gan_tts package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/_gen/espnet2.gan_tts.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<div class="section" id="espnet2-gan-tts-package">
+<h1>espnet2.gan_tts package<a class="headerlink" href="#espnet2-gan-tts-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="espnet2-gan-tts-init">
+<span id="id1"></span><h2>espnet2.gan_tts.__init__<a class="headerlink" href="#espnet2-gan-tts-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.__init__"></span></div>
+<div class="section" id="espnet2-gan-tts-vits-loss">
+<span id="id2"></span><h2>espnet2.gan_tts.vits.loss<a class="headerlink" href="#espnet2-gan-tts-vits-loss" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.vits.loss"></span><p>VITS-related loss modules.</p>
+<p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.loss.DiscriminatorAdversarialLoss">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.loss.</code><code class="sig-name descname">DiscriminatorAdversarialLoss</code><span class="sig-paren">(</span><em class="sig-param">average_by_discriminators: bool = True</em>, <em class="sig-param">loss_type: str = 'mse'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/loss.html#DiscriminatorAdversarialLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.loss.DiscriminatorAdversarialLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Discriminator adversarial loss module.</p>
+<p>Initialize DiscriminatorAversarialLoss module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>average_by_discriminators</strong> (<em>bool</em>) – Whether to average the loss by
+the number of discriminators.</p></li>
+<li><p><strong>loss_type</strong> (<em>str</em>) – Loss type, “mse” or “hinge”.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.loss.DiscriminatorAdversarialLoss.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">outputs_hat: Union[List[List[torch.Tensor]], List[torch.Tensor], torch.Tensor], outputs: Union[List[List[torch.Tensor]], List[torch.Tensor], torch.Tensor]</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/loss.html#DiscriminatorAdversarialLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.loss.DiscriminatorAdversarialLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calcualate discriminator adversarial loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>outputs_hat</strong> (<em>Union</em><em>[</em><em>List</em><em>[</em><em>List</em><em>[</em><em>Tensor</em><em>]</em><em>]</em><em>, </em><em>List</em><em>[</em><em>Tensor</em><em>]</em><em>, </em><em>Tensor</em><em>]</em>) – Discriminator
+outputs, list of discriminator outputs, or list of list of discriminator
+outputs calculated from generator.</p></li>
+<li><p><strong>outputs</strong> (<em>Union</em><em>[</em><em>List</em><em>[</em><em>List</em><em>[</em><em>Tensor</em><em>]</em><em>]</em><em>, </em><em>List</em><em>[</em><em>Tensor</em><em>]</em><em>, </em><em>Tensor</em><em>]</em>) – Discriminator
+outputs, list of discriminator outputs, or list of list of discriminator
+outputs calculated from groundtruth.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Discriminator real loss value.
+Tensor: Discriminator fake loss value.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.loss.FeatureMatchLoss">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.loss.</code><code class="sig-name descname">FeatureMatchLoss</code><span class="sig-paren">(</span><em class="sig-param">average_by_layers: bool = True</em>, <em class="sig-param">average_by_discriminators: bool = True</em>, <em class="sig-param">include_final_outputs: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/loss.html#FeatureMatchLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.loss.FeatureMatchLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Feature matching loss module.</p>
+<p>Initialize FeatureMatchLoss module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>average_by_layers</strong> (<em>bool</em>) – Whether to average the loss by the number
+of layers.</p></li>
+<li><p><strong>average_by_discriminators</strong> (<em>bool</em>) – Whether to average the loss by
+the number of discriminators.</p></li>
+<li><p><strong>include_final_outputs</strong> (<em>bool</em>) – Whether to include the final output of
+each discriminator for loss calculation.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.loss.FeatureMatchLoss.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">feats_hat: Union[List[List[torch.Tensor]], List[torch.Tensor]], feats: Union[List[List[torch.Tensor]], List[torch.Tensor]]</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/loss.html#FeatureMatchLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.loss.FeatureMatchLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate feature matching loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>feats_hat</strong> (<em>Union</em><em>[</em><em>List</em><em>[</em><em>List</em><em>[</em><em>Tensor</em><em>]</em><em>]</em><em>, </em><em>List</em><em>[</em><em>Tensor</em><em>]</em><em>]</em>) – List of list of
+discriminator outputs or list of discriminator outputs calcuated
+from generator’s outputs.</p></li>
+<li><p><strong>feats</strong> (<em>Union</em><em>[</em><em>List</em><em>[</em><em>List</em><em>[</em><em>Tensor</em><em>]</em><em>]</em><em>, </em><em>List</em><em>[</em><em>Tensor</em><em>]</em><em>]</em>) – List of list of
+discriminator outputs or list of discriminator outputs calcuated
+from groundtruth..</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Feature matching loss value.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.loss.GeneratorAdversarialLoss">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.loss.</code><code class="sig-name descname">GeneratorAdversarialLoss</code><span class="sig-paren">(</span><em class="sig-param">average_by_discriminators: bool = True</em>, <em class="sig-param">loss_type: str = 'mse'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/loss.html#GeneratorAdversarialLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.loss.GeneratorAdversarialLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Generator adversarial loss module.</p>
+<p>Initialize GeneratorAversarialLoss module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>average_by_discriminators</strong> (<em>bool</em>) – Whether to average the loss by
+the number of discriminators.</p></li>
+<li><p><strong>loss_type</strong> (<em>str</em>) – Loss type, “mse” or “hinge”.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.loss.GeneratorAdversarialLoss.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">outputs: Union[List[List[torch.Tensor]], List[torch.Tensor], torch.Tensor]</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/loss.html#GeneratorAdversarialLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.loss.GeneratorAdversarialLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calcualate generator adversarial loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>outputs</strong> (<em>Union</em><em>[</em><em>List</em><em>[</em><em>List</em><em>[</em><em>Tensor</em><em>]</em><em>]</em><em>, </em><em>List</em><em>[</em><em>Tensor</em><em>]</em><em>, </em><em>Tensor</em><em>]</em>) – Discriminator
+outputs, list of discriminator outputs, or list of list of discriminator
+outputs..</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Generator adversarial loss value.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.loss.MelSpectrogramLoss">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.loss.</code><code class="sig-name descname">MelSpectrogramLoss</code><span class="sig-paren">(</span><em class="sig-param">fs: int = 22050</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">win_length: Optional[int] = None</em>, <em class="sig-param">window: str = 'hann'</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">fmin: Optional[int] = 0</em>, <em class="sig-param">fmax: Optional[int] = None</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em>, <em class="sig-param">log_base: Optional[float] = 10.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/loss.html#MelSpectrogramLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.loss.MelSpectrogramLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Mel-spectrogram loss.</p>
+<p>Initialize Mel-spectrogram loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fs</strong> (<em>int</em>) – Sampling rate.</p></li>
+<li><p><strong>n_fft</strong> (<em>int</em>) – FFT points.</p></li>
+<li><p><strong>hop_length</strong> (<em>int</em>) – Hop length.</p></li>
+<li><p><strong>win_length</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Window length.</p></li>
+<li><p><strong>window</strong> (<em>str</em>) – Window type.</p></li>
+<li><p><strong>n_mels</strong> (<em>int</em>) – Number of Mel basis.</p></li>
+<li><p><strong>fmin</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Minimum frequency for Mel.</p></li>
+<li><p><strong>fmax</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Maximum frequency for Mel.</p></li>
+<li><p><strong>center</strong> (<em>bool</em>) – Whether to use center window.</p></li>
+<li><p><strong>normalized</strong> (<em>bool</em>) – Whether to use normalized one.</p></li>
+<li><p><strong>onesided</strong> (<em>bool</em>) – Whether to use oneseded one.</p></li>
+<li><p><strong>log_base</strong> (<em>Optional</em><em>[</em><em>float</em><em>]</em>) – Log base value.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.loss.MelSpectrogramLoss.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">y_hat: torch.Tensor</em>, <em class="sig-param">y: torch.Tensor</em>, <em class="sig-param">spec: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/loss.html#MelSpectrogramLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.loss.MelSpectrogramLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate Mel-spectrogram loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y_hat</strong> (<em>Tensor</em>) – Generated waveform tensor (B, 1, T).</p></li>
+<li><p><strong>y</strong> (<em>Tensor</em>) – Groundtruth waveform tensor (B, 1, T).</p></li>
+<li><p><strong>spec</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Groundtruth linear amplitude spectrum tensor
+(B, n_fft, T). if provided, use it instead of groundtruth waveform.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Mel-spectrogram loss value.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-gan-tts-vits-init">
+<span id="id3"></span><h2>espnet2.gan_tts.vits.__init__<a class="headerlink" href="#espnet2-gan-tts-vits-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.vits.__init__"></span></div>
+<div class="section" id="espnet2-gan-tts-vits-residual-block">
+<span id="id4"></span><h2>espnet2.gan_tts.vits.residual_block<a class="headerlink" href="#espnet2-gan-tts-vits-residual-block" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.vits.residual_block"></span><p>Residual block modules.</p>
+<p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.residual_block.Conv1d">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.residual_block.</code><code class="sig-name descname">Conv1d</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/residual_block.html#Conv1d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.residual_block.Conv1d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.conv.Conv1d</span></code></p>
+<p>Conv1d module with customized initialization.</p>
+<p>Initialize Conv1d module.</p>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.residual_block.Conv1d.reset_parameters">
+<code class="sig-name descname">reset_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/residual_block.html#Conv1d.reset_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.residual_block.Conv1d.reset_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset parameters.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.residual_block.Conv1d1x1">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.residual_block.</code><code class="sig-name descname">Conv1d1x1</code><span class="sig-paren">(</span><em class="sig-param">in_channels: int</em>, <em class="sig-param">out_channels: int</em>, <em class="sig-param">bias: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/residual_block.html#Conv1d1x1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.residual_block.Conv1d1x1" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.gan_tts.vits.residual_block.Conv1d" title="espnet2.gan_tts.vits.residual_block.Conv1d"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.gan_tts.vits.residual_block.Conv1d</span></code></a></p>
+<p>1x1 Conv1d with customized initialization.</p>
+<p>Initialize 1x1 Conv1d module.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.residual_block.HiFiGANResidualBlock">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.residual_block.</code><code class="sig-name descname">HiFiGANResidualBlock</code><span class="sig-paren">(</span><em class="sig-param">kernel_size: int = 3, channels: int = 512, dilations: List[int] = [1, 3, 5], bias: bool = True, use_additional_convs: bool = True, nonlinear_activation: str = 'LeakyReLU', nonlinear_activation_params: Dict[str, Any] = {'negative_slope': 0.1}</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/residual_block.html#HiFiGANResidualBlock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.residual_block.HiFiGANResidualBlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Residual block module in HiFiGAN.</p>
+<p>Initialize HiFiGANResidualBlock module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Kernel size of dilation convolution layer.</p></li>
+<li><p><strong>channels</strong> (<em>int</em>) – Number of channels for convolution layer.</p></li>
+<li><p><strong>dilations</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of dilation factors.</p></li>
+<li><p><strong>use_additional_convs</strong> (<em>bool</em>) – Whether to use additional convolution layers.</p></li>
+<li><p><strong>bias</strong> (<em>bool</em>) – Whether to add bias parameter in convolution layers.</p></li>
+<li><p><strong>nonlinear_activation</strong> (<em>str</em>) – Activation function module name.</p></li>
+<li><p><strong>nonlinear_activation_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Hyperparameters for activation
+function.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.residual_block.HiFiGANResidualBlock.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/residual_block.html#HiFiGANResidualBlock.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.residual_block.HiFiGANResidualBlock.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, channels, T).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor (B, channels, T).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.residual_block.WaveNetResidualBlock">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.residual_block.</code><code class="sig-name descname">WaveNetResidualBlock</code><span class="sig-paren">(</span><em class="sig-param">kernel_size: int = 3</em>, <em class="sig-param">residual_channels: int = 64</em>, <em class="sig-param">gate_channels: int = 128</em>, <em class="sig-param">skip_channels: int = 64</em>, <em class="sig-param">aux_channels: int = 80</em>, <em class="sig-param">global_channels: int = -1</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">dilation: int = 1</em>, <em class="sig-param">bias: bool = True</em>, <em class="sig-param">scale_residual: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/residual_block.html#WaveNetResidualBlock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.residual_block.WaveNetResidualBlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Residual block module in WaveNet.</p>
+<p>Initialize WaveNetResidualBlock module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Kernel size of dilation convolution layer.</p></li>
+<li><p><strong>residual_channels</strong> (<em>int</em>) – Number of channels for residual connection.</p></li>
+<li><p><strong>skip_channels</strong> (<em>int</em>) – Number of channels for skip connection.</p></li>
+<li><p><strong>aux_channels</strong> (<em>int</em>) – Number of local conditioning channels.</p></li>
+<li><p><strong>dropout</strong> (<em>float</em>) – Dropout probability.</p></li>
+<li><p><strong>dilation</strong> (<em>int</em>) – Dilation factor.</p></li>
+<li><p><strong>bias</strong> (<em>bool</em>) – Whether to add bias parameter in convolution layers.</p></li>
+<li><p><strong>scale_residual</strong> (<em>bool</em>) – Whether to scale the residual outputs.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.residual_block.WaveNetResidualBlock.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_mask: Optional[torch.Tensor] = None</em>, <em class="sig-param">c: Optional[torch.Tensor] = None</em>, <em class="sig-param">g: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/residual_block.html#WaveNetResidualBlock.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.residual_block.WaveNetResidualBlock.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, residual_channels, T).</p></li>
+<li><p><strong>Optional</strong><strong>[</strong><strong>torch.Tensor</strong><strong>]</strong> (<em>x_mask</em>) – Mask tensor (B, 1, T).</p></li>
+<li><p><strong>c</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Local conditioning tensor (B, aux_channels, T).</p></li>
+<li><p><strong>g</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Global conditioning tensor (B, global_channels, 1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor for residual connection (B, residual_channels, T).
+Tensor: Output tensor for skip connection (B, skip_channels, T).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-gan-tts-vits-wavenet">
+<span id="id5"></span><h2>espnet2.gan_tts.vits.wavenet<a class="headerlink" href="#espnet2-gan-tts-vits-wavenet" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.vits.wavenet"></span><p>WaveNet modules.</p>
+<p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.wavenet.WaveNet">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.wavenet.</code><code class="sig-name descname">WaveNet</code><span class="sig-paren">(</span><em class="sig-param">in_channels: int = 1</em>, <em class="sig-param">out_channels: int = 1</em>, <em class="sig-param">kernel_size: int = 3</em>, <em class="sig-param">layers: int = 30</em>, <em class="sig-param">stacks: int = 3</em>, <em class="sig-param">base_dilation: int = 2</em>, <em class="sig-param">residual_channels: int = 64</em>, <em class="sig-param">aux_channels: int = -1</em>, <em class="sig-param">gate_channels: int = 128</em>, <em class="sig-param">skip_channels: int = 64</em>, <em class="sig-param">global_channels: int = -1</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">bias: bool = True</em>, <em class="sig-param">use_weight_norm: bool = True</em>, <em class="sig-param">use_first_conv: bool = False</em>, <em class="sig-param">use_last_conv: bool = False</em>, <em class="sig-param">scale_residual: bool = False</em>, <em class="sig-param">scale_skip_connect: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/wavenet.html#WaveNet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.wavenet.WaveNet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>WaveNet with global conditioning.</p>
+<p>Initialize WaveNet module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_channels</strong> (<em>int</em>) – Number of input channels.</p></li>
+<li><p><strong>out_channels</strong> (<em>int</em>) – Number of output channels.</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Kernel size of dilated convolution.</p></li>
+<li><p><strong>layers</strong> (<em>int</em>) – Number of residual block layers.</p></li>
+<li><p><strong>stacks</strong> (<em>int</em>) – Number of stacks i.e., dilation cycles.</p></li>
+<li><p><strong>base_dilation</strong> (<em>int</em>) – Base dilation factor.</p></li>
+<li><p><strong>residual_channels</strong> (<em>int</em>) – Number of channels in residual conv.</p></li>
+<li><p><strong>gate_channels</strong> (<em>int</em>) – Number of channels in gated conv.</p></li>
+<li><p><strong>skip_channels</strong> (<em>int</em>) – Number of channels in skip conv.</p></li>
+<li><p><strong>aux_channels</strong> (<em>int</em>) – Number of channels for local conditioning feature.</p></li>
+<li><p><strong>global_channels</strong> (<em>int</em>) – Number of channels for global conditioning feature.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate. 0.0 means no dropout applied.</p></li>
+<li><p><strong>bias</strong> (<em>bool</em>) – Whether to use bias parameter in conv layer.</p></li>
+<li><p><strong>use_weight_norm</strong> (<em>bool</em>) – Whether to use weight norm. If set to true, it will
+be applied to all of the conv layers.</p></li>
+<li><p><strong>use_first_conv</strong> (<em>bool</em>) – Whether to use the first conv layers.</p></li>
+<li><p><strong>use_last_conv</strong> (<em>bool</em>) – Whether to use the last conv layers.</p></li>
+<li><p><strong>scale_residual</strong> (<em>bool</em>) – Whether to scale the residual outputs.</p></li>
+<li><p><strong>scale_skip_connect</strong> (<em>bool</em>) – Whether to scale the skip connection outputs.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.wavenet.WaveNet.apply_weight_norm">
+<code class="sig-name descname">apply_weight_norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/wavenet.html#WaveNet.apply_weight_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.wavenet.WaveNet.apply_weight_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply weight normalization module from all of the layers.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.wavenet.WaveNet.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_mask: Optional[torch.Tensor] = None</em>, <em class="sig-param">c: Optional[torch.Tensor] = None</em>, <em class="sig-param">g: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/wavenet.html#WaveNet.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.wavenet.WaveNet.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input noise signal (B, 1, T) if use_first_conv else
+(B, residual_channels, T).</p></li>
+<li><p><strong>x_mask</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Mask tensor (B, 1, T).</p></li>
+<li><p><strong>c</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Local conditioning features (B, aux_channels, T).</p></li>
+<li><p><strong>g</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Global conditioning features (B, global_channels, 1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Output tensor (B, out_channels, T) if use_last_conv else</dt><dd><p>(B, residual_channels, T).</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.wavenet.WaveNet.receptive_field_size">
+<em class="property">property </em><code class="sig-name descname">receptive_field_size</code><a class="headerlink" href="#espnet2.gan_tts.vits.wavenet.WaveNet.receptive_field_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return receptive field size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.wavenet.WaveNet.remove_weight_norm">
+<code class="sig-name descname">remove_weight_norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/wavenet.html#WaveNet.remove_weight_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.wavenet.WaveNet.remove_weight_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove weight normalization module from all of the layers.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-gan-tts-vits-hifigan">
+<span id="id6"></span><h2>espnet2.gan_tts.vits.hifigan<a class="headerlink" href="#espnet2-gan-tts-vits-hifigan" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.vits.hifigan"></span><p>HiFi-GAN Modules.</p>
+<p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANGenerator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.hifigan.</code><code class="sig-name descname">HiFiGANGenerator</code><span class="sig-paren">(</span><em class="sig-param">in_channels: int = 80, out_channels: int = 1, channels: int = 512, global_channels: int = -1, kernel_size: int = 7, upsample_scales: List[int] = [8, 8, 2, 2], upsample_kernal_sizes: List[int] = [16, 16, 4, 4], resblock_kernel_sizes: List[int] = [3, 7, 11], resblock_dilations: List[List[int]] = [[1, 3, 5], [1, 3, 5], [1, 3, 5]], use_additional_convs: bool = True, bias: bool = True, nonlinear_activation: str = 'LeakyReLU', nonlinear_activation_params: Dict[str, Any] = {'negative_slope': 0.1}, use_weight_norm: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANGenerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>HiFiGAN generator module.</p>
+<p>Initialize HiFiGANGenerator module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_channels</strong> (<em>int</em>) – Number of input channels.</p></li>
+<li><p><strong>out_channels</strong> (<em>int</em>) – Number of output channels.</p></li>
+<li><p><strong>channels</strong> (<em>int</em>) – Number of hidden representation channels.</p></li>
+<li><p><strong>global_channels</strong> (<em>int</em>) – Number of global conditioning channels.</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Kernel size of initial and final conv layer.</p></li>
+<li><p><strong>upsample_scales</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of upsampling scales.</p></li>
+<li><p><strong>upsample_kernal_sizes</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of kernal sizes for upsample layers.</p></li>
+<li><p><strong>resblock_kernal_sizes</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of kernal sizes for residual blocks.</p></li>
+<li><p><strong>resblock_dilations</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><em>int</em><em>]</em><em>]</em>) – List of list of dilations for residual
+blocks.</p></li>
+<li><p><strong>use_additional_convs</strong> (<em>bool</em>) – Whether to use additional conv layers in
+residual blocks.</p></li>
+<li><p><strong>bias</strong> (<em>bool</em>) – Whether to add bias parameter in convolution layers.</p></li>
+<li><p><strong>nonlinear_activation</strong> (<em>str</em>) – Activation function module name.</p></li>
+<li><p><strong>nonlinear_activation_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Hyperparameters for activation
+function.</p></li>
+<li><p><strong>use_weight_norm</strong> (<em>bool</em>) – Whether to use weight norm. If set to true, it will
+be applied to all of the conv layers.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANGenerator.apply_weight_norm">
+<code class="sig-name descname">apply_weight_norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANGenerator.apply_weight_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANGenerator.apply_weight_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply weight normalization module from all of the layers.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANGenerator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">c: torch.Tensor</em>, <em class="sig-param">g: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANGenerator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANGenerator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> (<em>Tensor</em>) – Input tensor (B, in_channels, T).</p></li>
+<li><p><strong>g</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Global conditioning tensor (B, global_channels, 1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor (B, out_channels, T).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANGenerator.remove_weight_norm">
+<code class="sig-name descname">remove_weight_norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANGenerator.remove_weight_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANGenerator.remove_weight_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove weight normalization module from all of the layers.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANGenerator.reset_parameters">
+<code class="sig-name descname">reset_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANGenerator.reset_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANGenerator.reset_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset parameters.</p>
+<p>This initialization follows the official implementation manner.
+<a class="reference external" href="https://github.com/jik876/hifi-gan/blob/master/models.py">https://github.com/jik876/hifi-gan/blob/master/models.py</a></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANMultiPeriodDiscriminator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.hifigan.</code><code class="sig-name descname">HiFiGANMultiPeriodDiscriminator</code><span class="sig-paren">(</span><em class="sig-param">periods: List[int] = [2, 3, 5, 7, 11], discriminator_params: Dict[str, Any] = {'bias': True, 'channels': 32, 'downsample_scales': [3, 3, 3, 3, 1], 'in_channels': 1, 'kernel_sizes': [5, 3], 'max_downsample_channels': 1024, 'nonlinear_activation': 'LeakyReLU', 'nonlinear_activation_params': {'negative_slope': 0.1}, 'out_channels': 1, 'use_spectral_norm': False, 'use_weight_norm': True}</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANMultiPeriodDiscriminator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANMultiPeriodDiscriminator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>HiFiGAN multi-period discriminator module.</p>
+<p>Initialize HiFiGANMultiPeriodDiscriminator module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>periods</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of periods.</p></li>
+<li><p><strong>discriminator_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameters for hifi-gan period
+discriminator module. The period parameter will be overwritten.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANMultiPeriodDiscriminator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANMultiPeriodDiscriminator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANMultiPeriodDiscriminator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>Tensor</em>) – Input noise signal (B, 1, T).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>List of list of each discriminator outputs, which consists of each</dt><dd><p>layer output tensors.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>List</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANMultiScaleDiscriminator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.hifigan.</code><code class="sig-name descname">HiFiGANMultiScaleDiscriminator</code><span class="sig-paren">(</span><em class="sig-param">scales: int = 3, downsample_pooling: str = 'AvgPool1d', downsample_pooling_params: Dict[str, Any] = {'kernel_size': 4, 'padding': 2, 'stride': 2}, discriminator_params: Dict[str, Any] = {'bias': True, 'channels': 128, 'downsample_scales': [2, 2, 4, 4, 1], 'in_channels': 1, 'kernel_sizes': [15, 41, 5, 3], 'max_downsample_channels': 1024, 'max_groups': 16, 'nonlinear_activation': 'LeakyReLU', 'nonlinear_activation_params': {'negative_slope': 0.1}, 'out_channels': 1}, follow_official_norm: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANMultiScaleDiscriminator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANMultiScaleDiscriminator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>HiFi-GAN multi-scale discriminator module.</p>
+<p>Initilize HiFiGAN multi-scale discriminator module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scales</strong> (<em>int</em>) – Number of multi-scales.</p></li>
+<li><p><strong>downsample_pooling</strong> (<em>str</em>) – Pooling module name for downsampling of the
+inputs.</p></li>
+<li><p><strong>downsample_pooling_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameters for the above pooling
+module.</p></li>
+<li><p><strong>discriminator_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameters for hifi-gan scale
+discriminator module.</p></li>
+<li><p><strong>follow_official_norm</strong> (<em>bool</em>) – Whether to follow the norm setting of the
+official implementaion. The first discriminator uses spectral norm
+and the other discriminators use weight norm.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANMultiScaleDiscriminator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; List[List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANMultiScaleDiscriminator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANMultiScaleDiscriminator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>Tensor</em>) – Input noise signal (B, 1, T).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>List of list of each discriminator outputs,</dt><dd><p>which consists of eachlayer output tensors.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>List[List[torch.Tensor]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANMultiScaleMultiPeriodDiscriminator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.hifigan.</code><code class="sig-name descname">HiFiGANMultiScaleMultiPeriodDiscriminator</code><span class="sig-paren">(</span><em class="sig-param">scales: int = 3, scale_downsample_pooling: str = 'AvgPool1d', scale_downsample_pooling_params: Dict[str, Any] = {'kernel_size': 4, 'padding': 2, 'stride': 2}, scale_discriminator_params: Dict[str, Any] = {'bias': True, 'channels': 128, 'downsample_scales': [2, 2, 4, 4, 1], 'in_channels': 1, 'kernel_sizes': [15, 41, 5, 3], 'max_downsample_channels': 1024, 'max_groups': 16, 'nonlinear_activation': 'LeakyReLU', 'nonlinear_activation_params': {'negative_slope': 0.1}, 'out_channels': 1}, follow_official_norm: bool = True, periods: List[int] = [2, 3, 5, 7, 11], period_discriminator_params: Dict[str, Any] = {'bias': True, 'channels': 32, 'downsample_scales': [3, 3, 3, 3, 1], 'in_channels': 1, 'kernel_sizes': [5, 3], 'max_downsample_channels': 1024, 'nonlinear_activation': 'LeakyReLU', 'nonlinear_activation_params': {'negative_slope': 0.1}, 'out_channels': 1, 'use_spectral_norm': False, 'use_weight_norm': True}</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANMultiScaleMultiPeriodDiscriminator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANMultiScaleMultiPeriodDiscriminator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>HiFi-GAN multi-scale + multi-period discriminator module.</p>
+<p>Initilize HiFiGAN multi-scale + multi-period discriminator module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scales</strong> (<em>int</em>) – Number of multi-scales.</p></li>
+<li><p><strong>scale_downsample_pooling</strong> (<em>str</em>) – Pooling module name for downsampling of the
+inputs.</p></li>
+<li><p><strong>scale_downsample_pooling_params</strong> (<em>dict</em>) – Parameters for the above pooling
+module.</p></li>
+<li><p><strong>scale_discriminator_params</strong> (<em>dict</em>) – Parameters for hifi-gan scale
+discriminator module.</p></li>
+<li><p><strong>follow_official_norm</strong> (<em>bool</em>) – Whether to follow the norm setting of the
+official implementaion. The first discriminator uses spectral norm and
+the other discriminators use weight norm.</p></li>
+<li><p><strong>periods</strong> (<em>list</em>) – List of periods.</p></li>
+<li><p><strong>period_discriminator_params</strong> (<em>dict</em>) – Parameters for hifi-gan period
+discriminator module. The period parameter will be overwritten.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANMultiScaleMultiPeriodDiscriminator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; List[List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANMultiScaleMultiPeriodDiscriminator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANMultiScaleMultiPeriodDiscriminator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>Tensor</em>) – Input noise signal (B, 1, T).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>List of list of each discriminator outputs,</dt><dd><p>which consists of each layer output tensors. Multi scale and
+multi period ones are concatenated.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>List[List[Tensor]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANPeriodDiscriminator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.hifigan.</code><code class="sig-name descname">HiFiGANPeriodDiscriminator</code><span class="sig-paren">(</span><em class="sig-param">in_channels: int = 1, out_channels: int = 1, period: int = 3, kernel_sizes: List[int] = [5, 3], channels: int = 32, downsample_scales: List[int] = [3, 3, 3, 3, 1], max_downsample_channels: int = 1024, bias: bool = True, nonlinear_activation: str = 'LeakyReLU', nonlinear_activation_params: Dict[str, Any] = {'negative_slope': 0.1}, use_weight_norm: bool = True, use_spectral_norm: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANPeriodDiscriminator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANPeriodDiscriminator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>HiFiGAN period discriminator module.</p>
+<p>Initialize HiFiGANPeriodDiscriminator module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_channels</strong> (<em>int</em>) – Number of input channels.</p></li>
+<li><p><strong>out_channels</strong> (<em>int</em>) – Number of output channels.</p></li>
+<li><p><strong>period</strong> (<em>int</em>) – Period.</p></li>
+<li><p><strong>kernel_sizes</strong> (<em>list</em>) – Kernel sizes of initial conv layers and the final conv
+layer.</p></li>
+<li><p><strong>channels</strong> (<em>int</em>) – Number of initial channels.</p></li>
+<li><p><strong>downsample_scales</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of downsampling scales.</p></li>
+<li><p><strong>max_downsample_channels</strong> (<em>int</em>) – Number of maximum downsampling channels.</p></li>
+<li><p><strong>use_additional_convs</strong> (<em>bool</em>) – Whether to use additional conv layers in
+residual blocks.</p></li>
+<li><p><strong>bias</strong> (<em>bool</em>) – Whether to add bias parameter in convolution layers.</p></li>
+<li><p><strong>nonlinear_activation</strong> (<em>str</em>) – Activation function module name.</p></li>
+<li><p><strong>nonlinear_activation_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Hyperparameters for activation
+function.</p></li>
+<li><p><strong>use_weight_norm</strong> (<em>bool</em>) – Whether to use weight norm.
+If set to true, it will be applied to all of the conv layers.</p></li>
+<li><p><strong>use_spectral_norm</strong> (<em>bool</em>) – Whether to use spectral norm.
+If set to true, it will be applied to all of the conv layers.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANPeriodDiscriminator.apply_spectral_norm">
+<code class="sig-name descname">apply_spectral_norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANPeriodDiscriminator.apply_spectral_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANPeriodDiscriminator.apply_spectral_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply spectral normalization module from all of the layers.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANPeriodDiscriminator.apply_weight_norm">
+<code class="sig-name descname">apply_weight_norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANPeriodDiscriminator.apply_weight_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANPeriodDiscriminator.apply_weight_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply weight normalization module from all of the layers.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANPeriodDiscriminator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANPeriodDiscriminator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANPeriodDiscriminator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>c</strong> (<em>Tensor</em>) – Input tensor (B, in_channels, T).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of each layer’s tensors.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANScaleDiscriminator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.hifigan.</code><code class="sig-name descname">HiFiGANScaleDiscriminator</code><span class="sig-paren">(</span><em class="sig-param">in_channels: int = 1, out_channels: int = 1, kernel_sizes: List[int] = [15, 41, 5, 3], channels: int = 128, max_downsample_channels: int = 1024, max_groups: int = 16, bias: int = True, downsample_scales: List[int] = [2, 2, 4, 4, 1], nonlinear_activation: str = 'LeakyReLU', nonlinear_activation_params: Dict[str, Any] = {'negative_slope': 0.1}, use_weight_norm: bool = True, use_spectral_norm: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANScaleDiscriminator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANScaleDiscriminator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>HiFi-GAN scale discriminator module.</p>
+<p>Initilize HiFiGAN scale discriminator module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_channels</strong> (<em>int</em>) – Number of input channels.</p></li>
+<li><p><strong>out_channels</strong> (<em>int</em>) – Number of output channels.</p></li>
+<li><p><strong>kernel_sizes</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of four kernel sizes. The first will be used
+for the first conv layer, and the second is for downsampling part, and
+the remaining two are for the last two output layers.</p></li>
+<li><p><strong>channels</strong> (<em>int</em>) – Initial number of channels for conv layer.</p></li>
+<li><p><strong>max_downsample_channels</strong> (<em>int</em>) – Maximum number of channels for downsampling
+layers.</p></li>
+<li><p><strong>bias</strong> (<em>bool</em>) – Whether to add bias parameter in convolution layers.</p></li>
+<li><p><strong>downsample_scales</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of downsampling scales.</p></li>
+<li><p><strong>nonlinear_activation</strong> (<em>str</em>) – Activation function module name.</p></li>
+<li><p><strong>nonlinear_activation_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Hyperparameters for activation
+function.</p></li>
+<li><p><strong>use_weight_norm</strong> (<em>bool</em>) – Whether to use weight norm. If set to true, it will
+be applied to all of the conv layers.</p></li>
+<li><p><strong>use_spectral_norm</strong> (<em>bool</em>) – Whether to use spectral norm. If set to true, it
+will be applied to all of the conv layers.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANScaleDiscriminator.apply_spectral_norm">
+<code class="sig-name descname">apply_spectral_norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANScaleDiscriminator.apply_spectral_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANScaleDiscriminator.apply_spectral_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply spectral normalization module from all of the layers.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANScaleDiscriminator.apply_weight_norm">
+<code class="sig-name descname">apply_weight_norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANScaleDiscriminator.apply_weight_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANScaleDiscriminator.apply_weight_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply weight normalization module from all of the layers.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.hifigan.HiFiGANScaleDiscriminator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; List[torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/hifigan.html#HiFiGANScaleDiscriminator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.hifigan.HiFiGANScaleDiscriminator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>Tensor</em>) – Input noise signal (B, 1, T).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of output tensors of each layer.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>List[Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="espnet2.torch_utils.html" class="btn btn-neutral float-right" title="espnet2.torch_utils package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="espnet2.schedulers.html" class="btn btn-neutral float-left" title="espnet2.schedulers package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2017, Shinji Watanabe.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
