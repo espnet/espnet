@@ -285,7 +285,7 @@ def ctc_align(args, device):
         subsampling_factor = args.subsampling_factor
     if args.frame_duration is not None:
         frame_duration_ms = args.frame_duration
-    # Backwards compability to ctc_segmentation <= 1.5.3
+    # Backwards compatibility to ctc_segmentation <= 1.5.3
     if hasattr(config, "index_duration"):
         config.index_duration = frame_duration_ms * subsampling_factor / 1000
     else:

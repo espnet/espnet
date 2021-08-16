@@ -116,7 +116,7 @@ def get_parser():
         type=int,
         default=None,
         nargs="?",
-        help="Analisys window length in point",
+        help="Analysis window length in point",
     )
     parser.add_argument(
         "--n_mels", type=int, default=None, nargs="?", help="Number of mel basis"

@@ -8,12 +8,12 @@ lang=$2
 
 if [ $# != 2 ]; then
     echo "Usage: $0 <db_root_dir> <spk>"
-    echo "Available langauges for mucs subtask2: ${available_languages[*]}"
+    echo "Available languages for mucs subtask2: ${available_languages[*]}"
     exit 1
 fi
 
 if ! $(echo ${available_languages[*]} | grep -q ${lang}); then
-    echo "Specified langauge (${lang}) is not available or not supported." >&2
+    echo "Specified language (${lang}) is not available or not supported." >&2
     echo "Choose from: ${available_languages[*]}"
     exit 1
 fi

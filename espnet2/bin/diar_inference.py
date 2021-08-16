@@ -99,7 +99,7 @@ class DiarizeSpeech:
         assert speech.dim() > 1, speech.size()
         batch_size = speech.size(0)
         speech = speech.to(getattr(torch, self.dtype))
-        # lenghts: (B,)
+        # lengths: (B,)
         lengths = speech.new_full(
             [batch_size], dtype=torch.long, fill_value=speech.size(1)
         )

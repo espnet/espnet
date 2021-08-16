@@ -108,6 +108,44 @@ class G2p_en:
         return phones
 
 
+class G2pk:
+    """On behalf of g2pk.G2p.
+
+    g2pk.G2p isn't pickalable and it can't be copied to the other processes
+    via multiprocessing module.
+    As a workaround, g2pk.G2p is instantiated upon calling this class.
+
+    """
+
+    def __init__(
+        self, descritive=False, group_vowels=False, to_syl=False, no_space=False
+    ):
+        self.descritive = descritive
+        self.group_vowels = group_vowels
+        self.to_syl = to_syl
+        self.no_space = no_space
+        self.g2p = None
+
+    def __call__(self, text) -> List[str]:
+        if self.g2p is None:
+            import g2pk
+
+            self.g2p = g2pk.G2p()
+
+        phones = list(
+            self.g2p(
+                text,
+                descriptive=self.descritive,
+                group_vowels=self.group_vowels,
+                to_syl=self.to_syl,
+            )
+        )
+        if self.no_space:
+            # remove space which represents word serapater
+            phones = list(filter(lambda s: s != " ", phones))
+        return phones
+
+
 class Phonemizer:
     """Phonemizer module for various languages.
 
@@ -171,7 +209,44 @@ class PhonemeTokenizer(AbsTokenizer):
         elif g2p_type == "pypinyin_g2p_phone":
             self.g2p = pypinyin_g2p_phone
         elif g2p_type == "espeak_ng_arabic":
-            self.g2p = Phonemizer(language="ar", backend="espeak", with_stress=True)
+            self.g2p = Phonemizer(
+                language="ar",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_german":
+            self.g2p = Phonemizer(
+                language="de",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_french":
+            self.g2p = Phonemizer(
+                language="fr-fr",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_spanish":
+            self.g2p = Phonemizer(
+                language="es",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_russian":
+            self.g2p = Phonemizer(
+                language="ru",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "g2pk":
+            self.g2p = G2pk(no_space=False)
+        elif g2p_type == "g2pk_no_space":
+            self.g2p = G2pk(no_space=True)
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 

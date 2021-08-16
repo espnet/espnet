@@ -39,7 +39,7 @@ def get_split(text, maxlen=200, overlap=50):
 
 
 def get_args():
-    # Get some basic command line arguements
+    # Get some basic command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-f", "--file_dir", help="Directory of text to be segmented", type=str
