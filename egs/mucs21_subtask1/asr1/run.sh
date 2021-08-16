@@ -66,7 +66,7 @@ set -o pipefail
 
 train_set=train
 train_sp=train_sp
-train_dev=test
+train_dev="test"
 recog_set="test"
 
 
