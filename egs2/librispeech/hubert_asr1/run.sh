@@ -18,8 +18,8 @@ feature_iter0="mfcc"
 feature_iter1="HuBERT6"
 feature_iter2="HuBERT9"
 
-pretrain_train_set="dev_clean"
-pretrain_valid_set="dev_clean"
+pretrain_train_set="train_960"
+pretrain_valid_set="dev"
 
 pretrain_config_iter0=conf/tuning/train_asr_hubert_base_960h_pretrain_it0.yaml
 pretrain_config_iter1=conf/tuning/train_asr_hubert_base_960h_pretrain_it1.yaml
