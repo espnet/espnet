@@ -62,7 +62,7 @@ In the case of `feats_type=raw`, reformat `wav.scp` in date directories.
 In the other cases (`feats_type=fbank` and `feats_type=stft`), feature extraction with Librosa will be performed.
 Since the performance is almost the same, we recommend using `feats_type=raw`.
 
-Additionaly, we support X-vector extraction in this stage as you can use in ESPnet1.
+Additionally, we support X-vector extraction in this stage as you can use in ESPnet1.
 If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract mfcc features, vad decision, and X-vector.
 This processing requires the compiled kaldi, please be careful.
 
@@ -314,6 +314,14 @@ You can change via `--g2p` option in `tts.sh`.
 - `espeak_ng_spanish`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
     - e.g. `Hola Mundo.` -> `[ˈo, l, a, m, ˈu, n, d, o, .]`
     - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `espeak_ng_russian`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - e.g. `Привет мир.` -> `[p, rʲ, i, vʲ, ˈe, t, mʲ, ˈi, r, .]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `g2pk`: [Kyubyong/g2pK](https://github.com/Kyubyong/g2pK)
+    - e.g. `안녕하세요 세계입니다.` -> `[ᄋ, ᅡ, ᆫ, ᄂ, ᅧ, ᆼ, ᄒ, ᅡ, ᄉ, ᅦ, ᄋ, ᅭ,  , ᄉ, ᅦ, ᄀ, ᅨ, ᄋ, ᅵ, ᆷ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
+- `g2pk_no_space`: [Kyubyong/g2pK](https://github.com/Kyubyong/g2pK)
+    - Same G2P but do not use word separator
+    - e.g. `안녕하세요 세계입니다.` -> `[ᄋ, ᅡ, ᆫ, ᄂ, ᅧ, ᆼ, ᄒ, ᅡ, ᄉ, ᅦ, ᄋ, ᅭ, ᄉ, ᅦ, ᄀ, ᅨ, ᄋ, ᅵ, ᆷ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
 
 You can see the code example from [here](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/test/espnet2/text/test_phoneme_tokenizer.py).
 

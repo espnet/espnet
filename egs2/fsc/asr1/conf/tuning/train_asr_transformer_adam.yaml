@@ -24,8 +24,8 @@ decoder_conf:
     src_attention_dropout_rate: 0.0
 optim: adam
 optim_conf:
-    lr: 0.002
+    lr: 0.00002
 scheduler: warmuplr     # pytorch v1.1.0+ required
 scheduler_conf:
     warmup_steps: 25000
-max_epoch: 80
+max_epoch: 200

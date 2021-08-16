@@ -25,7 +25,7 @@ class Decoder(chainer.Chain):
         h (int): Number of attention heads.
         dropout (float): Dropout rate.
         initialW (Initializer): Initializer to initialize the weight.
-        initial_bias (Initializer): Initializer to initialize teh bias.
+        initial_bias (Initializer): Initializer to initialize the bias.
 
     """
 
