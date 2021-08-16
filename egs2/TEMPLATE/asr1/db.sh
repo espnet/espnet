@@ -84,6 +84,7 @@ NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
 SUNDA=downloads
+CMU_INDIC=downloads
 MUCS_subtask2=downloads
 
 # For only JHU environment
@@ -164,6 +165,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     LRS2=
     JAVA=
     SUNDA=
+    CMU_INDIC=
     MUCS_subtask2=downloads
 
 fi
