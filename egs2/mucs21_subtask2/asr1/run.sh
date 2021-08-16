@@ -4,21 +4,24 @@
 set -e
 set -u
 set -o pipefail
+
 lang=hi-en
+
 train_set="hi-en/train/transcripts"
 valid_set="hi-en/test/transcripts"
 test_set="hi-en/test/transcripts"
 
-asr_config=conf/train2.yaml
+asr_config=conf/train.yaml
 lm_config_=conf/lm.yaml
+
 ./asr.sh \
-    --lang hi-en \
+    --lang $lang \
     --ngpu 2 \
+    --expdir exp \
+    --local_data_opts $lang \
     --use_lm true \
-    --skip_data_prep true \
+    --skip_upload false \
     --lm_config "${lm_config_}" \
-    --nbpe 5000 \
-    --token_type char\
     --audio_format wav\
     --feats_type fbank_pitch\
     --max_wav_duration 30 \

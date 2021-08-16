@@ -5,7 +5,7 @@
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
-lang=hi-en #hi-en oe bn-en
+lang=$1 #hi-en oe bn-en
 
 . utils/parse_options.sh || exit 1;
 
@@ -22,10 +22,6 @@ fi
 set -e
 set -u
 set -o pipefail
-
-train_set=train
-train_dev=valid
-test_set=valid
 
 log "data preparation started"
 
