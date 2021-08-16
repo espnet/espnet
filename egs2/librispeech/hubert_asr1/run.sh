@@ -34,7 +34,7 @@ inference_config=conf/decode_asr.yaml
 pretrain_config_list[0]=0
 n_clusters_list[0]=0
 feature_list[0]=0
-for ((iter=${pretrain_start_iter}; iter<=${pretrain_stop_iter};iter++)); do
+for ((iter=pretrain_start_iter; iter<=pretrain_stop_iter;iter++)); do
     pretrain_config_list[${iter}]=$(eval "echo \${pretrain_config_iter${iter}}")
     n_clusters_list[${iter}]=$(eval "echo \${n_clusters_iter${iter}}")
     feature_list[${iter}]=$(eval "echo \${feature_iter${iter}}")
