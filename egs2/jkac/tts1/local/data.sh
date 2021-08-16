@@ -42,7 +42,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    # make evaluation and devlopment sets
+    # make evaluation and development sets
     utils/subset_data_dir.sh --first data/train 500 data/deveval
     utils/subset_data_dir.sh --first data/deveval 250 data/${recog_set}
     utils/subset_data_dir.sh --last data/deveval 250 data/${train_dev}

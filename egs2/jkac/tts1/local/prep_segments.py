@@ -25,9 +25,6 @@ class JKACPath(namedtuple("JKACPath", ["label_path",
         else:
             return "{} {}".format(self.recording_id(), self.wav_path)
 
-    def utt2spk_str(self, speaker_id):
-        return "{} {}".format(self.recording_id(), speaker_id)
-
 
 class JKACLabel(namedtuple("JKACLabel", ["path",
                                          "chapter_id",
@@ -55,13 +52,16 @@ class JKACLabel(namedtuple("JKACLabel", ["path",
                                             self.time_end)
 
     def kanji_sentence(self):
-        return re.sub('\[(.+?)\|(.+?)\]', r'\1', self.sentence)
+        return re.sub('\[(.+?)\|(.+?)\]', r'\1', self.sentence).replace("　", ' ')
 
     def furigana_sentence(self):
-        return re.sub('\[(.+?)\|(.+?)\]', r'\2', self.sentence)
+        return re.sub('\[(.+?)\|(.+?)\]', r'\2', self.sentence).replace("　", ' ')
 
     def text_file_str(self):
         return "{} {}".format(self.utt_id(), self.kanji_sentence())
+
+    def utt2spk_str(self, speaker_id):
+        return "{} {}".format(self.utt_id(), speaker_id)
 
 
 def get_parser():
@@ -132,9 +132,9 @@ if __name__ == "__main__":
                     paths.sort(key=lambda p: p.recording_id())
                     for path in paths:
                         wav_scp_f.write(path.wav_scp_str(sample_rate=sample_rate) + "\n")
-                        utt2spk_f.write(path.utt2spk_str(speaker_id="JKAC") + "\n")
                         labels = list(read_label(path))
                         labels.sort(key=lambda l: l.utt_id())
                         for label in labels:
                             text_f.write(label.text_file_str() + "\n")
                             segments_f.write(label.segment_file_str() + "\n")
+                            utt2spk_f.write(label.utt2spk_str(speaker_id="JKAC") + "\n")
