@@ -8,7 +8,6 @@
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
-lang=pooled
 
  . utils/parse_options.sh || exit 1;
 
