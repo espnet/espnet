@@ -45,7 +45,6 @@ use_lm_valbest_average=false # if true, the validation `lm_n_average`-best langu
 
 # Set this to somewhere where you want to put your data, or where
 # someone else has already put it.
-datadir=
 
 # base url for downloads.
 # data_url=www.openslr.org/resources/12
