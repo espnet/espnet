@@ -15,6 +15,7 @@ lm_config_=conf/lm.yaml
     --lang hi-en \
     --ngpu 2 \
     --use_lm true \
+    --skip_data_prep true \
     --lm_config "${lm_config_}" \
     --nbpe 5000 \
     --token_type char\
