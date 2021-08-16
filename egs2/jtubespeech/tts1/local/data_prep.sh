@@ -10,7 +10,7 @@ scorethresh=$4
 ROOTDIR="$(cd $(dirname $(dirname $0)); pwd)"
 
 # check arguments
-if [ $# != 3 ]; then
+if [ $# != 4 ]; then
     echo "Usage: $0 <db_raw> <db_split> <data_dir> <ctcscore_threshold>"
     echo "e.g.: $0 downloads/jtuberaw downloads/jtubesplit data/all -0.5"
     exit 1

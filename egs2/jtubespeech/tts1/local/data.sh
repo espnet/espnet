@@ -48,7 +48,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 1: local/data_prep.sh"
     # Initial normalization of the data
     # Doesn't change sampling frequency and it's done after stages
-    local/data_prep.sh "${db_root}/jtuberaw" "${db_root}/jtubesplit" data/train ${ctcscore_pruning_threshold}
+    local/data_prep.sh "${db_root}/jtuberaw" "${db_root}/jtubesplit" data/train "${ctcscore_pruning_threshold}"
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then

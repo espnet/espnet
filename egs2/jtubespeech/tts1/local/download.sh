@@ -23,8 +23,8 @@ cwd=$(pwd)
 if [ ! -e ${download_dir}/jtuberaw ]; then
     mkdir -p ${download_dir}
     cd ${download_dir}
-    FILE_NAME=jtubetest.tar.gz
-    gdrive_download 1Ogk7NlLfqzYYFyhjXVmIecnIdEmy_t1g ${FILE_NAME}
+    FILE_NAME=jtuberaw.tar.gz
+    gdrive_download 1X_harC0e1tjMX1FtCldD67XOysQuq_Ib ${FILE_NAME}
     tar -zxvf ${FILE_NAME} jtuberaw
     rm -rf ${FILE_NAME}
     cd ${cwd}
