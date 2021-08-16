@@ -15,8 +15,6 @@ lm_config_=conf/lm.yaml
     --ngpu 2 \
     --use_lm true \
     --lm_config "${lm_config_}" \
-    --nbpe 5000 \
-    --token_type char\
     --audio_format wav\
     --feats_type fbank_pitch\
     --max_wav_duration 30 \
