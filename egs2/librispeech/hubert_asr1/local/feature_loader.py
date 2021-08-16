@@ -24,8 +24,10 @@ class MfccFeatureReader(object):
         self.fs = fs
 
     def load_audio(self, path):
-        wav, sr = sf.read(path, channels=1)
+        wav, sr = sf.read(path)
         assert sr == self.fs, sr
+        if wav.ndim == 2:
+            wav = wav.mean(-1)
         return wav
 
     def get_feats(self, path):
@@ -40,7 +42,7 @@ class MfccFeatureReader(object):
             ).transpose(0, 1)  # (freq, time)
             delta = torchaudio.functional.compute_deltas(mfcc)
             ddelta = torchaudio.functional.compute_deltas(delta)
-            concat = torch.cat([mfccs, delta, ddelta], dim=0)\
+            concat = torch.cat([mfcc, delta, ddelta], dim=0)\
                           .transpose(0, 1).contiguous()
             return concat
 

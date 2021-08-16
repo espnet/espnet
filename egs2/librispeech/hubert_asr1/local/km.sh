@@ -10,8 +10,8 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
-stage=1
-stop_stage=3
+stage=0
+stop_stage=100
 train_set="train_960"
 dev_set="dev"
 test_set="dev_clean dev_other test_clean test_other"
@@ -27,6 +27,7 @@ feature_type=mfcc
 hubert_url="https://dl.fbaipublicfiles.com/hubert/hubert_base_ls960.pt"
 hubert_dir_path="./downloads/hubert_pretrained_models/hubert_base_ls960.pt"
 portion=0.1
+nj=1
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -41,7 +42,6 @@ if [ $# -ne 0 ]; then
 fi
 
 python=python3       # Specify python to execute espnet commands.
-nj=32
 
 km_path="${kmrootdir}/km_${train_set}_${feature_type}/km_${nclusters}clusters.mdl"
 mkdir -p $(dirname ${km_path})
@@ -106,7 +106,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         awk '{for (i=1; i<=NF; i++) {count[$i]+=1}} END{for (k in count) {print(k, count[k])}}' | \
         sort -n -r -k 2  | \
         awk -v oov=${oov} -v blank=${blank} -v sos_eos=${sos_eos} -v pad=${pad} \
-        'BEGIN{print(blank); print(oov)} {print($1)} END{print(sos_eos)}' > ${datadir}/tokens.txt
+        'BEGIN{print(blank); print(oov)} {print($1)} END{print(sos_eos)}' > ${dictdir}/tokens.txt
 
 	log "Successfully generate the ${dictdir}/{dict,tokens}.txt"
 

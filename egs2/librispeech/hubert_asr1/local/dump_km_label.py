@@ -43,12 +43,6 @@ class ApplyKmeans(object):
         self.nc = self.km_model.cluster_centers_.transpose()
         self.nc_norm = (self.nc ** 2).sum(0, keepdims=True)
 
-        self.nc_np = torch.from_numpy(self.nc)
-        self.nc_norm = torch.from_numpy(self.nc_norm)
-        if torch.cuda.is_available():
-            self.nc = self.nc.cuda()
-            self.nc_norm = self.nc_norm.cuda()
-
     def __call__(self, x):
         if isinstance(x, torch.Tensor):
             x = x.cpu().numpy()

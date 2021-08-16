@@ -77,7 +77,7 @@ fi
 
 
 if [ ${stage} -le 6 ] && [ ${stage} -ge 6 ]; then
-    log "Stage 5: Download and Preparation Finetune Data"
+    log "Stage 5: Download and Preparation Librilight Data"
     ./local/prepare_librilight.sh ${LIBRILIGHT}
 fi
 

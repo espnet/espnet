@@ -123,7 +123,7 @@ def load_feature(
     return feat
 
 
-def km_model(
+def train_km_model(
     n_clusters,
     init,
     max_iter,
@@ -160,7 +160,7 @@ def learn_kmeans(
     n_init,
     reassignment_ratio,
 ):
-    km_model = km_model(
+    km_model = train_km_model(
         n_clusters,
         init,
         max_iter,
