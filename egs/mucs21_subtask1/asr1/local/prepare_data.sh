@@ -51,8 +51,16 @@ for lang in Tamil Telugu Gujarati; do
       cp -r ../microsoftspeechcorpusindianlanguages/${msrdata_test[$lang]} test
       mkdir train/audio
       mkdir test/audio
-      $cwd/local/down_sample.sh "$DIR/$lang/train/Audios/*" $DIR/$lang/train/'audio'/
-      $cwd/local/down_sample.sh "$DIR/$lang/test/Audios/*" $DIR/$lang/test/'audio'/
+      DIR="$DIR/$lang/train/Audios/*"
+      reDir=$DIR/$lang/train/'audio'/
+      for i in $DIR; do
+          ffmpeg -y  -i "$i" -ar 8000 "$reDir${i##*/}"
+      done
+      DIR="$DIR/$lang/test/Audios/*"
+      reDir=$DIR/$lang/test/'audio'/
+      for i in $DIR; do
+          ffmpeg -y  -i "$i" -ar 8000 "$reDir${i##*/}"
+      done
       rm -r train/Audios
       rm -r test/Audios
       touch ${DIR}/${lang}.done
