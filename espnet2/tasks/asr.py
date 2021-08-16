@@ -42,8 +42,10 @@ from espnet2.asr.encoder.hubert_encoder import (
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
+from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
@@ -65,7 +67,11 @@ from espnet2.utils.types import str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",
-    classes=dict(default=DefaultFrontend, sliding_window=SlidingWindow),
+    classes=dict(
+        default=DefaultFrontend,
+        sliding_window=SlidingWindow,
+        s3prl=S3prlFrontend,
+    ),
     type_check=AbsFrontend,
     default="default",
 )
@@ -90,6 +96,7 @@ preencoder_choices = ClassChoices(
     name="preencoder",
     classes=dict(
         sinc=LightweightSincConvs,
+        linear=LinearProjection,
     ),
     type_check=AbsPreEncoder,
     default=None,
@@ -104,7 +111,7 @@ encoder_choices = ClassChoices(
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
         wav2vec2=FairSeqWav2Vec2Encoder,
-        hubert=FairseqHubertEncoder,
+	hubert=FairseqHubertEncoder,
         hubert_pretrain=FairseqHubertPretrainEncoder,
     ),
     type_check=AbsEncoder,
@@ -367,6 +374,7 @@ class ASRTask(AbsTask):
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
+
             # Overwriting token_list to keep it as "portable".
             args.token_list = list(token_list)
         elif isinstance(args.token_list, (tuple, list)):
@@ -397,7 +405,6 @@ class ASRTask(AbsTask):
             specaug = None
 
         # 3. Normalization layer
-
         if args.normalize is not None:
             normalize_class = normalize_choices.get_class(args.normalize)
             normalize = normalize_class(**args.normalize_conf)
@@ -415,9 +422,8 @@ class ASRTask(AbsTask):
 
         # 4. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
-        # need to change, move to hubert task
-        #encoder = encoder_class(input_size=input_size, **args.encoder_conf)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
+
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
 
@@ -449,11 +455,11 @@ class ASRTask(AbsTask):
             token_list=token_list,
             **args.model_conf,
         )
+
         # FIXME(kamo): Should be done in model?
         # 9. Initialize
-        
         if args.init is not None:
             initialize(model, args.init)
-            
+
         assert check_return_type(model)
         return model

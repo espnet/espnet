@@ -76,7 +76,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 fi
 
 
-if [ ${stage} -le 6 ] && [ ${stage} -ge 6 ]; then
+if [ ${stage} -le 5 ] && [ ${stage} -ge 5 ]; then
     log "Stage 5: Download and Preparation Librilight Data"
     ./local/prepare_librilight.sh ${LIBRILIGHT}
 fi

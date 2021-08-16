@@ -42,7 +42,8 @@ done
 
 ./hubert_asr.sh \
     --lang en \
-    --pretrain_ngpu 1 \
+    --pretrain_ngpu 8 \
+    --pretrain_num_nodes 4 \
     --pretrain_start_iter "${pretrain_start_iter}"\
     --pretrain_stop_iter "${pretrain_stop_iter}" \
     --nj 4 \
