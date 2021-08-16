@@ -161,10 +161,8 @@ class WaveNetResidualBlock(torch.nn.Module):
         if x_mask is not None:
             x = x * x_mask
 
-        s = None
-        if self.skip_channels > 0:
-            # split integrated conv results
-            x, s = x.split([self.residual_channels, self.skip_channels], dim=1)
+        # split integrated conv results
+        x, s = x.split([self.residual_channels, self.skip_channels], dim=1)
 
         # for residual connection
         x = x + residual
