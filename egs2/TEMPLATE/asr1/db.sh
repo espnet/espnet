@@ -90,6 +90,7 @@ NOISY_REVERBERANT_SPEECH=
 LRS2=
 SUNDA=downloads
 CMU_INDIC=downloads
+JKAC=
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
@@ -176,5 +177,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     RUSLAN=downloads
     SUNDA=
     CMU_INDIC=
+    JKAC=
 
 fi
