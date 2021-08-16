@@ -1,9 +1,47 @@
+#!/usr/bin/env bash
+
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
+. ./db.sh || exit 1;
+
+# general configuration
+stage=0       # start from 0 if you need to start from data preparation
+stop_stage=100
+SECONDS=0
+lang=pooled
+
+ . utils/parse_options.sh || exit 1;
+
+ log() {
+     local fname=${BASH_SOURCE[1]##*/}
+     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
+ }
+
+ if [ ! -e "${MUCS_subtask1}" ]; then
+     log "Specify path for data in db.sh."
+     log "Download data from Tamil, Telugu & Gujarati from https://navana-tech.github.io/MUCS2021/data.html."
+     log "Place it inside data path."
+     exit 1
+ fi
+
+ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+     log "stage1: Download data to ${MUCS_subtask1}"
+     mkdir -p ${MUCS_subtask1}
+     local/download_data.sh ${MUCS_subtask1}
+ fi
+
+ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+     log "stage2: Preparing data for MUCS subtask1"
+     ### Task dependent. You have to make data the following preparation part by yourself.
+    mkdir -p data
+    local/prepare_data.sh ${MUCS_subtask1}
+    local/check_audio_data_folder.sh ${MUCS_subtask1}
+    local/test_data_prep.sh ${MUCS_subtask1} data/test
+    local/train_data_prep.sh ${MUCS_subtask1} data/train
+
+ fi
+
+ log "Successfully finished. [elapsed=${SECONDS}s]"
 
 
-echo "Data preparation"
-local/download_data.sh raw_data
-mkdir -p data
-local/prepare_data.sh raw_data
-local/check_audio_data_folder.sh raw_data
-local/test_data_prep.sh raw_data data/test
-local/train_data_prep.sh raw_data data/train
+#
