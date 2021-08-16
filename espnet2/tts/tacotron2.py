@@ -305,11 +305,16 @@ class Tacotron2(AbsTTS):
 
         # modify mod part of groundtruth
         if self.reduction_factor > 1:
+            assert olens.ge(
+                self.reduction_factor
+            ).all(), "Output length must be greater than or equal to reduction factor."
             olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_out = max(olens)
             ys = ys[:, :max_out]
             labels = labels[:, :max_out]
-            labels[:, -1] = 1.0  # make sure at least one frame has 1
+            labels = torch.scatter(
+                labels, 1, (olens - 1).unsqueeze(1), 1.0
+            )  # see #3388
 
         # calculate taco2 loss
         l1_loss, mse_loss, bce_loss = self.taco2_loss(
@@ -375,7 +380,7 @@ class Tacotron2(AbsTTS):
         backward_window: int = 1,
         forward_window: int = 3,
         use_teacher_forcing: bool = False,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Dict[str, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
@@ -391,9 +396,10 @@ class Tacotron2(AbsTTS):
             use_teacher_forcing (bool, optional): Whether to use teacher forcing.
 
         Returns:
-            Tensor: Output sequence of features (L, odim).
-            Tensor: Output sequence of stop probabilities (L,).
-            Tensor: Attention weights (L, T).
+            Dict[str, Tensor]: Output dict including the following items:
+                * feat_gen (Tensor): Output sequence of features (L, odim).
+                * prob (Tensor): Output sequence of stop probabilities (L,).
+                * att_w (Tensor): Attention weights (L, T).
 
         """
         x = text
@@ -413,7 +419,7 @@ class Tacotron2(AbsTTS):
             olens = y.new_tensor([ys.size(1)]).long()
             outs, _, _, att_ws = self._forward(xs, ilens, ys, olens, spembs)
 
-            return outs[0], None, att_ws[0]
+            return dict(feat_gen=outs[0], att_w=att_ws[0])
 
         # inference
         h = self.enc.inference(x)
@@ -423,7 +429,7 @@ class Tacotron2(AbsTTS):
         if self.spk_embed_dim is not None:
             hs, spembs = h.unsqueeze(0), spemb.unsqueeze(0)
             h = self._integrate_with_spk_embed(hs, spembs)[0]
-        outs, probs, att_ws = self.dec.inference(
+        out, prob, att_w = self.dec.inference(
             h,
             threshold=threshold,
             minlenratio=minlenratio,
@@ -433,7 +439,7 @@ class Tacotron2(AbsTTS):
             forward_window=forward_window,
         )
 
-        return outs, probs, att_ws
+        return dict(feat_gen=out, prob=prob, att_w=att_w)
 
     def _integrate_with_spk_embed(
         self, hs: torch.Tensor, spembs: torch.Tensor

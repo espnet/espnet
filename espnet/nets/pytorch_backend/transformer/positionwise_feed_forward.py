@@ -28,5 +28,5 @@ class PositionwiseFeedForward(torch.nn.Module):
         self.activation = activation
 
     def forward(self, x):
-        """Forward funciton."""
+        """Forward function."""
         return self.w_2(self.dropout(self.activation(self.w_1(x))))

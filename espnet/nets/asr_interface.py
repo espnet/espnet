@@ -77,7 +77,7 @@ class ASRInterface:
         raise NotImplementedError("Batch decoding is not supported yet.")
 
     def calculate_all_attentions(self, xs, ilens, ys):
-        """Caluculate attention.
+        """Calculate attention.
 
         :param list xs: list of padded input sequences [(T1, idim), (T2, idim), ...]
         :param ndarray ilens: batch of lengths of input sequences (B)
@@ -88,7 +88,7 @@ class ASRInterface:
         raise NotImplementedError("calculate_all_attentions method is not implemented")
 
     def calculate_all_ctc_probs(self, xs, ilens, ys):
-        """Caluculate CTC probability.
+        """Calculate CTC probability.
 
         :param list xs_pad: list of padded input sequences [(T1, idim), (T2, idim), ...]
         :param ndarray ilens: batch of lengths of input sequences (B)

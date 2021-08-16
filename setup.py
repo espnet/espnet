@@ -32,8 +32,7 @@ requirements = {
         # Signal processing related
         "librosa>=0.8.0",
         # Natural language processing related
-        # FIXME(kamo): Sentencepiece 0.1.90 breaks backwardcompatibility?
-        "sentencepiece<0.1.90,>=0.1.82",
+        "sentencepiece",
         "nltk>=3.4.5",
         # File IO related
         "PyYAML>=5.1.2",
@@ -164,6 +163,7 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "Operating System :: POSIX :: Linux",

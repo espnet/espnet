@@ -121,7 +121,7 @@ class SeparateSpeech:
         assert speech_mix.dim() > 1, speech_mix.size()
         batch_size = speech_mix.size(0)
         speech_mix = speech_mix.to(getattr(torch, self.dtype))
-        # lenghts: (B,)
+        # lengths: (B,)
         lengths = speech_mix.new_full(
             [batch_size], dtype=torch.long, fill_value=speech_mix.size(1)
         )
