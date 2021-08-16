@@ -48,9 +48,9 @@ done
     --pretrain_stop_iter "${pretrain_stop_iter}" \
     --nj 4 \
     --max_wav_duration 30 \
-    --pretrain_config_list "${pretrain_config_list}" \
-    --n_clusters_list "${n_clusters_list}" \
-    --feature_list "${feature_list}" \
+    --pretrain_config_list "${pretrain_config_list[@]}" \
+    --n_clusters_list "${n_clusters_list[@]}" \
+    --feature_list "${feature_list[@]}" \
     --use_lm false \
     --finetune_ngpu 1 \
     --pretrain_train_set "${pretrain_train_set}" \
