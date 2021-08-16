@@ -381,6 +381,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 			 --train_shape_file "${_logdir}/train.JOB.scp" \
 			 --valid_shape_file "${_logdir}/valid.JOB.scp" \
 			 --output_dir "${_logdir}/stats.JOB" \
+			 --hubert_dict ${dictdir} \
 			 ${_opts} || { cat "${_logdir}"/stats.1.log; exit 1; }
 	    
 	    # 4. Aggregate shape files
@@ -518,6 +519,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                       --fold_length "${_fold_length}" \
                       --fold_length "${asr_text_fold_length}" \
                       --output_dir "${asr_exp}" \
+		      --hubert_dict ${dictdir} \
                       ${_opts}
 	else
 	    log "Skip the training stages"

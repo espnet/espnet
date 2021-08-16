@@ -75,6 +75,7 @@ class FairseqHubertEncoder(AbsEncoder):
         assert check_argument_types()
         super().__init__()
         self.apply_mask = apply_mask
+        # For more information, please refer to:
         # https://github.com/pytorch/fairseq/blob/master/fairseq/models/hubert/hubert_asr.py#L241
         arg_overrides = {
             "dropout": dropout_rate,
@@ -106,7 +107,7 @@ class FairseqHubertEncoder(AbsEncoder):
         if hubert_url == "espnet":
             self.hubert_model_path = hubert_dir_path
             s = torch.load(
-                os.path.join(self.hubert_model_path, "valid.acc.ave.pth"),
+                self.hubert_model_path,
                 map_location=torch.device('cpu'),
             )
 
@@ -120,7 +121,7 @@ class FairseqHubertEncoder(AbsEncoder):
                     raise e                    
 
             config_file = os.path.join(
-                self.hubert_model_path, "config.yaml",
+                '/'.join(self.hubert_model_path.split('/')[:-1]), "config.yaml",
             )
             config_file = Path(config_file)
 
@@ -266,70 +267,16 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         dropout_rate: float = 0.0, #
         attention_dropout_rate: float = 0.0, #
         activation_dropout_rate: float = 0.0, #
-        hubert_dict_dir = './',
+        hubert_dict: str = './',
         label_rate: int = 100,
         sample_rate: int = 16000,
         use_amp: bool = False,
         **kwargs,
     ):
-        """
-        activation_fn: str = "gelu", #
-        encoder_layerdrop: float = 0.0,
-        dropout_input: float = 0.0,
-        dropout_features: float = 0.0,
-        # output
-        final_dim: int = 0,
-        untie_final_proj: bool = False,
-        layer_norm_first: bool = False,
-        conv_feature_layers: str = "[(512,10,5)] + [(512,3,2)] * 4 + [(512,2,2)] * 2",
-        conv_bias: bool = False,
-        logit_temp: float = 0.1,
-        target_glu: bool = False,
-        feature_grad_mult: float = 1.0,
-        #masking
-        mask_length: int = 10,
-        mask_prob: float = 0.65,
-        mask_selection: str = "static",
-        mask_other: int = 0,
-        no_mask_overlap: bool = False,
-        mask_min_space: int = 1,
-        # channel masking
-        mask_channel_length: int = 64,
-        mask_channel_prob: float = 0.0,
-        mask_channel_selection: str =  "static",
-        mask_channel_other: int = 0,
-        no_mask_channel_overlap: bool = False,
-        mask_channel_min_space: int = 1,
-        # positional embeddings
-        conv_pos: int = 128,
-        conv_pos_groups: int = 16,
-        # loss computation
-        skip_masked: bool = False,
-        skip_nomask: bool = False,
-        # dictionary:
-        hubert_dict_path: "./",
-        ):
-        """
         assert check_argument_types()
         super().__init__()
         self._output_size = output_size
         self.use_amp = use_amp
-        """
-        if hubert_url.startswith("http"):
-            self.hubert_model_path = download_hubert(hubert_url, hubert_dir_path)
-
-            #state = fairseq.checkpoint_utils.load_checkpoint_to_cpu(
-            #    self.hubert_model_path, arg_overrides=arg_overrides,
-            #)
-            #self.pretrained_cfg = state.get("cfg", None)
-            models, self.pretrained_cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task(
-                [self.hubert_model_path],
-                strict=False,
-            )
-            model = models[0]
-            d = self.pretrained_cfg.model.encoder_embed_dim
-            self.pretrained_params = copy.deepcopy(model.state_dict())
-        """
         cfg_overides = {
             "encoder_embed_dim": output_size,
             "encoder_ffn_embed_dim": linear_units,
@@ -356,8 +303,8 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
             if hasattr(hubert_task_cfg, key):
                 setattr(hubert_task_cfg, key, value)
 
-        self.dictionaries = [F2E_Dictionary.load(f"{hubert_dict_dir}")
-                             if os.path.exists(f"{hubert_dict_dir}")
+        self.dictionaries = [F2E_Dictionary.load(f"{hubert_dict}")
+                             if os.path.exists(f"{hubert_dict}")
             else None
         ]
         self.encoder = HubertModel(self.cfg, hubert_task_cfg, self.dictionaries)

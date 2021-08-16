@@ -33,9 +33,8 @@ encoder_conf:
     encoder_layerdrop: 0.05
     feature_grad_mult: 0.1
     untie_final_proj: true
-    label_rate: 100
+    label_rate: 50
     sample_rate: 16000
-    hubert_dict_dir: ./data/train_960_mfcc_km100/dict.txt
 
 model_conf:
     ctc_weight: 0.0
