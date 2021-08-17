@@ -17,6 +17,7 @@ from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
         "microsoft/mpnet-base",
     ],
 )
+@pytest.mark.execution_timeout(30)
 def test_transformers_forward(model_name_or_path):
     idim = 400
     postencoder = HuggingFaceTransformersPostEncoder(idim, model_name_or_path)
@@ -29,6 +30,7 @@ def test_transformers_forward(model_name_or_path):
     assert torch.equal(y_lengths, x_lengths)
 
 
+@pytest.mark.execution_timeout(30)
 def test_reload_pretrained_parameters():
     postencoder = HuggingFaceTransformersPostEncoder(400, "t5-small")
     saved_param = postencoder.parameters().__next__().detach().clone()
