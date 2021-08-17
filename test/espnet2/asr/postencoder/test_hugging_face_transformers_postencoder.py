@@ -1,7 +1,9 @@
 import pytest
 import torch
 
-from espnet2.asr.postencoder.transformers import Transformers
+from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
+    HuggingFaceTransformersPostEncoder,  # noqa: H301
+)
 
 
 @pytest.mark.parametrize(
@@ -17,7 +19,7 @@ from espnet2.asr.postencoder.transformers import Transformers
 )
 def test_transformers_forward(model_name_or_path):
     idim = 400
-    postencoder = Transformers(idim, model_name_or_path)
+    postencoder = HuggingFaceTransformersPostEncoder(idim, model_name_or_path)
     x = torch.randn([4, 50, idim], requires_grad=True)
     x_lengths = torch.LongTensor([20, 5, 50, 15])
     y, y_lengths = postencoder(x, x_lengths)
@@ -28,7 +30,7 @@ def test_transformers_forward(model_name_or_path):
 
 
 def test_reload_pretrained_parameters():
-    postencoder = Transformers(400, "t5-small")
+    postencoder = HuggingFaceTransformersPostEncoder(400, "t5-small")
     saved_param = postencoder.parameters().__next__().detach().clone()
 
     postencoder.parameters().__next__().data *= 0

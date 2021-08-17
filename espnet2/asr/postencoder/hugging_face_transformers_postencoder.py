@@ -15,7 +15,7 @@ import logging
 import torch
 
 
-class Transformers(AbsPostEncoder):
+class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
     """Hugging Face Transformers PostEncoder."""
 
     def __init__(

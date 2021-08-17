@@ -41,7 +41,9 @@ from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from espnet2.asr.postencoder.transformers import Transformers
+from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
+    HuggingFaceTransformersPostEncoder,  # noqa: H301
+)
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
@@ -116,7 +118,7 @@ encoder_choices = ClassChoices(
 postencoder_choices = ClassChoices(
     name="postencoder",
     classes=dict(
-        transformers=Transformers,
+        hugging_face_transformers=HuggingFaceTransformersPostEncoder,
     ),
     type_check=AbsPostEncoder,
     default=None,
