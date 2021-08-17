@@ -103,7 +103,7 @@ fi
 declare -A g2p_dict=(
     ["de"]="espeak_ng_german"
     ["el"]="espeak_ng_greek"
-    ["es"]="espeak_ng_spansh"
+    ["es"]="espeak_ng_spanish"
     ["fi"]="espeak_ng_finnish"
     ["fr"]="espeak_ng_french"
     ["hu"]="espeak_ng_hungarian"
