@@ -13,18 +13,12 @@ fi
 
 set -euo pipefail
 
-function gdrive_download () {
-  CONFIRM=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate "https://docs.google.com/uc?export=download&id=$1" -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')
-  wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$CONFIRM&id=$1" -O $2
-  rm -rf /tmp/cookies.txt
-}
-
 cwd=$(pwd)
 if [ ! -e ${download_dir}/jtuberaw ]; then
     mkdir -p ${download_dir}
     cd ${download_dir}
     FILE_NAME=jtuberaw.tar.gz
-    gdrive_download 1X_harC0e1tjMX1FtCldD67XOysQuq_Ib ${FILE_NAME}
+    gdown "https://drive.google.com/uc?id=1X_harC0e1tjMX1FtCldD67XOysQuq_Ib" 
     tar -zxvf ${FILE_NAME} jtuberaw
     rm -rf ${FILE_NAME}
     cd ${cwd}

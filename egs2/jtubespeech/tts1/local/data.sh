@@ -15,7 +15,7 @@ SECONDS=0
 
 stage=-1
 stop_stage=2
-
+nj=32
 ctcscore_pruning_threshold=-0.1
 
 log "$0 $*"
