@@ -32,6 +32,10 @@ try:
     params.extend(["espeak_ng_french"])
     params.extend(["espeak_ng_spanish"])
     params.extend(["espeak_ng_russian"])
+    params.extend(["espeak_ng_greek"])
+    params.extend(["espeak_ng_finnish"])
+    params.extend(["espeak_ng_hungarian"])
+    params.extend(["espeak_ng_dutch"])
     del phonemizer
 except ImportError:
     pass
@@ -301,6 +305,18 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
     elif phoneme_tokenizer.g2p_type == "espeak_ng_russian":
         input = "Привет мир."
         output = ["p", "rʲ", "i", "vʲ", "ˈe", "t", "mʲ", "ˈi", "r", "."]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_greek":
+        input = "Γειά σου Κόσμε."
+        output = ["j", "ˈa", "s", "u", "k", "ˈo", "s", "m", "e", "."]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_finnish":
+        input = "Hei maailma."
+        output = ["h", "ˈei", "m", "ˈaː", "ɪ", "l", "m", "a", "."]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_hungarian":
+        input = "Helló Világ."
+        output = ["h", "ˈɛ", "l", "l", "oː", "v", "ˈi", "l", "aː", "ɡ", "."]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_dutch":
+        input = "Hallo Wereld."
+        output = ["h", "ˈɑ", "l", "oː", "ʋ", "ˈɪː", "r", "ə", "l", "t", "."]
     elif phoneme_tokenizer.g2p_type == "g2pk":
         input = "안녕하세요 세계입니다."
         output = [
