@@ -57,10 +57,10 @@ all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_inst
 
 ifneq ($(strip $(CHAINER_VERSION)),)
 python: activate_python.sh espnet.done pytorch.done chainer.done
-extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done
+extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done
 else
 python: activate_python.sh espnet.done pytorch.done
-extra: warp-ctc.done warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done
+extra: warp-ctc.done warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done
 endif
 
 
@@ -224,10 +224,6 @@ s3prl.done: espnet.done
 k2.done: espnet.done
 	. ./activate_python.sh && ./installers/install_k2.sh
 	touch k2.done
-
-transformers.done: espnet.done
-	. ./activate_python.sh && ./installers/install_transformers.sh
-	touch transformers.done
 
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py

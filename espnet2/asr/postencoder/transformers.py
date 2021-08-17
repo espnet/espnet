@@ -6,6 +6,7 @@
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
+from transformers import AutoModel
 from typeguard import check_argument_types
 from typing import Tuple
 
@@ -25,16 +26,6 @@ class Transformers(AbsPostEncoder):
         """Initialize the module."""
         assert check_argument_types()
         super().__init__()
-
-        try:
-            from transformers import AutoModel
-        except Exception as e:
-            print("Error: Transformers is not properly installed.")
-            print(
-                "Please install Transformers: "
-                + "cd ${MAIN_ROOT}/tools && make transformers.done"
-            )
-            raise e
 
         model = AutoModel.from_pretrained(model_name_or_path)
 
