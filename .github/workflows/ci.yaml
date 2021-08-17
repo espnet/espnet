@@ -12,6 +12,7 @@ jobs:
   linter_and_test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       max-parallel: 20
       matrix:
         os: [ubuntu-18.04]
