@@ -157,9 +157,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     combine_dev_dirs=""
     combine_eval_dirs=""
     for lang in ${langs}; do
-        utils/subset_data_dir.sh "data/lang${suffix}" 100 "data/${lang}_deveval${suffix}"
-        utils/subset_data_dir.sh --first "data/${lang}_deveval" 50 "data/${lang}_${dev_set}${suffix}"
-        utils/subset_data_dir.sh --last "data/${lang}_deveval" 50 "data/${lang}_${eval_set}${suffix}"
+        utils/subset_data_dir.sh "data/${lang}${suffix}" 100 "data/${lang}_deveval${suffix}"
+        utils/subset_data_dir.sh --first "data/${lang}_deveval${suffix}" 50 "data/${lang}_${dev_set}${suffix}"
+        utils/subset_data_dir.sh --last "data/${lang}_deveval${suffix}" 50 "data/${lang}_${eval_set}${suffix}"
         utils/copy_data_dir.sh "data/${lang}${suffix}" "data/${lang}_${train_set}${suffix}"
         utils/filter_scp.pl --exclude "data/${lang}_deveval${suffix}/wav.scp" \
             "data/${lang}${suffix}/wav.scp" > "data/${lang}_${train_set}${suffix}/wav.scp"
