@@ -43,12 +43,6 @@ lm_n_average=0               # the number of languge models to be averaged
 use_lm_valbest_average=false # if true, the validation `lm_n_average`-best language models will be averaged.
                              # if false, the last `lm_n_average` language models will be averaged.
 
-# Set this to somewhere where you want to put your data, or where
-# someone else has already put it.
-
-# base url for downloads.
-# data_url=www.openslr.org/resources/12
-
 # bpemode (unigram or bpe)
 nbpe=5000
 bpemode=unigram
