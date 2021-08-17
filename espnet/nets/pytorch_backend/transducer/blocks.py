@@ -1,6 +1,10 @@
 """Set of methods to create custom architecture."""
 
 from collections import Counter
+from typing import Dict
+from typing import List
+from typing import Tuple
+from typing import Union
 
 import torch
 
@@ -13,7 +17,7 @@ from espnet.nets.pytorch_backend.nets_utils import get_activation
 
 from espnet.nets.pytorch_backend.transducer.causal_conv1d import CausalConv1d
 from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
-    DecoderLayer,  # noqa: H301
+    TransformerDecoderLayer,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transducer.tdnn import TDNN
 from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
@@ -35,20 +39,22 @@ from espnet.nets.pytorch_backend.transformer.repeat import MultiSequential
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 
 
-def check_and_prepare(net_part, blocks_arch, input_layer):
+def check_and_prepare(
+    net_part: str, blocks_arch: List, input_layer_type: str
+) -> Tuple[str, int, float, float, int]:
     """Check consecutive block shapes match and prepare input parameters.
 
     Args:
-        net_part (str): either 'encoder' or 'decoder'
-        blocks_arch (list): list of blocks for network part (type and parameters)
-        input_layer (str): input layer type
+        net_part: Network part, either 'encoder' or 'decoder'.
+        blocks_arch: Block architecture (types and parameters) for network part.
+        input_layer_type: Input layer type.
 
     Return:
-        input_layer (str): input layer type
-        input_layer_odim (int): output dim of input layer
-        input_dropout_rate (float): dropout rate of input layer
-        input_pos_dropout_rate (float): dropout rate of input layer positional enc.
-        out_dim (int): output dim of last block
+        input_layer_type: Input layer type.
+        input_layer_odim: Input layer output dimension.
+        input_dropout_rate: Dropout rate for input layer.
+        input_pos_dropout_rate: Dropout rate for input layer positional encoding.
+        net_out_dim: Network output dimension.
 
     """
     input_dropout_rate = sorted(
@@ -141,7 +147,7 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
                 )
 
             if i == 0:
-                input_layer = "c-embed"
+                input_layer_type = "c-embed"
 
             cmp_io.append((blocks_arch[i]["idim"], blocks_arch[i]["odim"]))
         elif block_type == "tdnn":
@@ -192,30 +198,35 @@ def check_and_prepare(net_part, blocks_arch, input_layer):
         input_layer_odim = blocks_arch[0]["d_hidden"]
 
     if blocks_arch[-1]["type"] in ("tdnn", "causal-conv1d"):
-        out_dim = blocks_arch[-1]["odim"]
+        net_out_dim = blocks_arch[-1]["odim"]
     else:
-        out_dim = blocks_arch[-1]["d_hidden"]
+        net_out_dim = blocks_arch[-1]["d_hidden"]
 
     return (
-        input_layer,
+        input_layer_type,
         input_layer_odim,
         input_dropout_rate,
         input_pos_dropout_rate,
-        out_dim,
+        net_out_dim,
     )
 
 
-def get_pos_enc_and_att_class(net_part, pos_enc_type, self_attn_type):
+def get_pos_enc_and_att_class(
+    net_part: str, pos_enc_type: str, self_attn_type: str
+) -> Tuple[
+    Union[PositionalEncoding, ScaledPositionalEncoding, RelPositionalEncoding],
+    Union[MultiHeadedAttention, RelPositionMultiHeadedAttention],
+]:
     """Get positional encoding and self attention module class.
 
     Args:
-        net_part (str): either 'encoder' or 'decoder'
-        pos_enc_type (str): positional encoding type
-        self_attn_type (str): self-attention type
+        net_part: Network part, either 'encoder' or 'decoder'.
+        pos_enc_type: Positional encoding type.
+        self_attn_type: Self-attention type.
 
     Return:
-        pos_enc_class (torch.nn.Module): positional encoding class
-        self_attn_class (torch.nn.Module): self-attention class
+        pos_enc_class: Positional encoding class.
+        self_attn_class: Self-attention class.
 
     """
     if pos_enc_type == "abs_pos":
@@ -240,30 +251,30 @@ def get_pos_enc_and_att_class(net_part, pos_enc_type, self_attn_type):
 
 
 def build_input_layer(
-    input_layer,
-    idim,
-    odim,
-    pos_enc_class,
-    dropout_rate_embed,
-    dropout_rate,
-    pos_dropout_rate,
-    padding_idx,
-):
+    input_layer: str,
+    idim: int,
+    odim: int,
+    pos_enc_class: torch.nn.Module,
+    dropout_rate_embed: float,
+    dropout_rate: float,
+    pos_dropout_rate: float,
+    padding_idx: int,
+) -> Tuple[Union[Conv2dSubsampling, VGG2L, torch.nn.Sequential], int]:
     """Build input layer.
 
     Args:
-        input_layer (str): input layer type
-        idim (int): input dimension
-        odim (int): output dimension
-        pos_enc_class (class): positional encoding class
-        dropout_rate_embed (float): dropout rate for embedding layer
-        dropout_rate (float): dropout rate for input layer
-        pos_dropout_rate (float): dropout rate for positional encoding
-        padding_idx (int): padding index for embedding input layer (if specified)
+        input_layer: Input layer type.
+        idim: Input dimension.
+        odim: Output dimension.
+        pos_enc_class: Positional encoding class.
+        dropout_rate_embed: Dropout rate for embedding layer.
+        dropout_rate: Dropout rate for input layer.
+        pos_dropout_rate: Dropout rate for positional encoding.
+        padding_idx: Padding symbol ID for embedding layer.
 
     Returns:
-        (torch.nn.*): input layer module
-        subsampling_factor (int): subsampling factor
+        : Input layer module.
+        subsampling_factor: subsampling factor.
 
     """
     if pos_enc_class.__name__ == "RelPositionalEncoding":
@@ -306,17 +317,19 @@ def build_input_layer(
         raise NotImplementedError("Support: linear, conv2d, vgg2l and embed")
 
 
-def build_transformer_block(net_part, block_arch, pw_layer_type, pw_activation_type):
+def build_transformer_block(
+    net_part: str, block_arch: Dict, pw_layer_type: str, pw_activation_type: str
+) -> Union[EncoderLayer, TransformerDecoderLayer]:
     """Build function for transformer block.
 
     Args:
-        net_part (str): either 'encoder' or 'decoder'
-        block_arch (dict): transformer block parameters
-        pw_layer_type (str): positionwise layer type
-        pw_activation_type (str): positionwise activation type
+        net_part: Network part, either 'encoder' or 'decoder'.
+        block_arch: Transformer block parameters.
+        pw_layer_type: Positionwise layer type.
+        pw_activation_type: Positionwise activation type.
 
     Returns:
-        (function): function to create transformer block
+        : Function to create transformer (encoder or decoder) block.
 
     """
     d_hidden = block_arch["d_hidden"]
@@ -341,7 +354,7 @@ def build_transformer_block(net_part, block_arch, pw_layer_type, pw_activation_t
     if net_part == "encoder":
         transformer_layer_class = EncoderLayer
     elif net_part == "decoder":
-        transformer_layer_class = DecoderLayer
+        transformer_layer_class = TransformerDecoderLayer
 
     return lambda: transformer_layer_class(
         d_hidden,
@@ -352,23 +365,23 @@ def build_transformer_block(net_part, block_arch, pw_layer_type, pw_activation_t
 
 
 def build_conformer_block(
-    block_arch,
-    self_attn_class,
-    pw_layer_type,
-    pw_activation_type,
-    conv_mod_activation_type,
-):
+    block_arch: Dict,
+    self_attn_class: str,
+    pw_layer_type: str,
+    pw_activation_type: str,
+    conv_mod_activation_type: str,
+) -> ConformerEncoderLayer:
     """Build function for conformer block.
 
     Args:
-        block_arch (dict): conformer block parameters
-        self_attn_type (str): self-attention module type
-        pw_layer_type (str): positionwise layer type
-        pw_activation_type (str): positionwise activation type
-        conv_mod_activation_type (str): convolutional module activation type
+        block_arch: Conformer block parameters.
+        self_attn_type: Self-attention module type.
+        pw_layer_type: Positionwise layer type.
+        pw_activation_type: Positionwise activation type.
+        conv_mod_activation_type: Convolutional module activation type.
 
     Returns:
-        (function): function to create conformer block
+        : Function to create conformer (encoder) block.
 
     """
     d_hidden = block_arch["d_hidden"]
@@ -407,14 +420,14 @@ def build_conformer_block(
     )
 
 
-def build_causal_conv1d_block(block_arch):
+def build_causal_conv1d_block(block_arch: Dict) -> CausalConv1d:
     """Build function for causal conv1d block.
 
     Args:
-        block_arch (dict): causal conv1d block parameters
+        block_arch: Causal conv1D block parameters.
 
     Returns:
-        (function): function to create causal conv1d block
+        : Function to create causal conv1d (decoder) block.
 
     """
     idim = block_arch["idim"]
@@ -424,14 +437,14 @@ def build_causal_conv1d_block(block_arch):
     return lambda: CausalConv1d(idim, odim, kernel_size)
 
 
-def build_tdnn_block(block_arch):
+def build_tdnn_block(block_arch: Dict) -> TDNN:
     """Build function for tdnn block.
 
     Args:
-        block_arch (dict): tdnn block parameters
+        block_arch: TDNN block parameters.
 
     Returns:
-        (function): function to create tdnn block
+        : function to create tdnn (encoder) block.
 
     """
     idim = block_arch["idim"]
@@ -460,57 +473,59 @@ def build_tdnn_block(block_arch):
 
 
 def build_blocks(
-    net_part,
-    idim,
-    input_layer,
-    blocks_arch,
-    repeat_block=0,
-    self_attn_type="self_attn",
-    positional_encoding_type="abs_pos",
-    positionwise_layer_type="linear",
-    positionwise_activation_type="relu",
-    conv_mod_activation_type="relu",
-    dropout_rate_embed=0.0,
-    padding_idx=-1,
-):
+    net_part: str,
+    idim: int,
+    input_layer_type: str,
+    blocks_arch: List,
+    repeat_block: int = 0,
+    self_attn_type: str = "self_attn",
+    positional_encoding_type: str = "abs_pos",
+    positionwise_layer_type: str = "linear",
+    positionwise_activation_type: str = "relu",
+    conv_mod_activation_type: str = "relu",
+    dropout_rate_embed: float = 0.0,
+    padding_idx: int = -1,
+) -> Tuple[
+    Union[Conv2dSubsampling, VGG2L, torch.nn.Sequential], MultiSequential, int, int
+]:
     """Build block for customizable architecture.
 
     Args:
-        net_part (str): either 'encoder' or 'decoder'
-        idim (int): dimension of inputs
-        input_layer (str): input layer type
-        blocks_arch (list): list of blocks for network part (type and parameters)
-        repeat_block (int): repeat provided blocks N times if N > 1
-        positional_encoding_type (str): positional encoding layer type
-        positionwise_layer_type (str): linear
-        positionwise_activation_type (str): positionwise activation type
-        conv_mod_activation_type (str): convolutional module activation type
-        dropout_rate_embed (float): dropout rate for embedding
-        padding_idx (int): padding index for embedding input layer (if specified)
+        net_part: Network part, either 'encoder' or 'decoder'.
+        idim: Input dimension.
+        input_layer: Input layer type.
+        blocks_arch: Block architecture (types and parameters) for network part.
+        repeat_block: Number of times blocks_arch is repeated.
+        positional_encoding_type: Positional encoding layer type.
+        positionwise_layer_type: Positionwise layer type.
+        positionwise_activation_type: Positionwise activation type.
+        conv_mod_activation_type: Convolutional module activation type.
+        dropout_rate_embed: Dropout rate for embedding layer.
+        padding_idx: Padding symbol ID for embedding layer.
 
     Returns:
-        in_layer (torch.nn.*): input layer
-        all_blocks (MultiSequential): all blocks for network part
-        out_dim (int): dimension of last block output
-        conv_subsampling_factor (int): subsampling factor in frontend CNN
+        in_layer: Input layer
+        all_blocks: (Encoder or Decoder) network.
+        out_dim: Network output dimension.
+        conv_subsampling_factor: Subsampling factor in frontend CNN.
 
     """
     fn_modules = []
 
     (
-        input_layer,
+        input_layer_type,
         input_layer_odim,
         input_dropout_rate,
         input_pos_dropout_rate,
         out_dim,
-    ) = check_and_prepare(net_part, blocks_arch, input_layer)
+    ) = check_and_prepare(net_part, blocks_arch, input_layer_type)
 
     pos_enc_class, self_attn_class = get_pos_enc_and_att_class(
         net_part, positional_encoding_type, self_attn_type
     )
 
     in_layer, conv_subsampling_factor = build_input_layer(
-        input_layer,
+        input_layer_type,
         idim,
         input_layer_odim,
         pos_enc_class,

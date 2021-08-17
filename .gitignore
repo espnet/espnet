@@ -39,6 +39,8 @@ egs*/*/*/mfcc
 egs*/*/*/stft
 egs*/*/*/tensorboard
 egs*/*/*/wav*
+egs*/*/*/nltk*
+egs*/*/*/.cache*
 
 # tools related
 tools/bin

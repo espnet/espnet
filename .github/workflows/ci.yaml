@@ -28,6 +28,12 @@ jobs:
             k2-version: 1.2.dev20210726+cpu
             chainer-verssion: 6.0.0
             use-conda: false
+          - os: ubuntu-20.04
+            python-version: 3.9
+            pytorch-version: 1.8.1
+            k2-version: 1.2.dev20210726+cpu
+            chainer-verssion: 6.0.0
+            use-conda: false
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v1

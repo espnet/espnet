@@ -1,4 +1,4 @@
-"""Dynamic 2-Dimentional Convolution module."""
+"""Dynamic 2-Dimensional Convolution module."""
 
 import numpy
 import torch
@@ -10,7 +10,7 @@ MIN_VALUE = float(numpy.finfo(numpy.float32).min)
 
 
 class DynamicConvolution2D(nn.Module):
-    """Dynamic 2-Dimentional Convolution layer.
+    """Dynamic 2-Dimensional Convolution layer.
 
     This implementation is based on
     https://github.com/pytorch/fairseq/tree/master/fairseq
@@ -34,7 +34,7 @@ class DynamicConvolution2D(nn.Module):
         use_kernel_mask=False,
         use_bias=False,
     ):
-        """Construct Dynamic 2-Dimentional Convolution layer."""
+        """Construct Dynamic 2-Dimensional Convolution layer."""
         super(DynamicConvolution2D, self).__init__()
 
         assert n_feat % wshare == 0
@@ -63,7 +63,7 @@ class DynamicConvolution2D(nn.Module):
             self.bias = nn.Parameter(torch.Tensor(n_feat))
 
     def forward(self, query, key, value, mask):
-        """Forward of 'Dynamic 2-Dimentional Convolution'.
+        """Forward of 'Dynamic 2-Dimensional Convolution'.
 
         This function takes query, key and value but uses only query.
         This is just for compatibility with self-attention layer (attention.py)
@@ -75,7 +75,7 @@ class DynamicConvolution2D(nn.Module):
             mask (torch.Tensor): (batch, time1, time2) mask
 
         Return:
-            x (torch.Tensor): (batch, time1, d_model) ouput
+            x (torch.Tensor): (batch, time1, d_model) output
 
         """
         # linear -> GLU -- -> lightconv -> linear

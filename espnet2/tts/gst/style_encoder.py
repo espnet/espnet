@@ -94,7 +94,7 @@ class StyleEncoder(torch.nn.Module):
 class ReferenceEncoder(torch.nn.Module):
     """Reference encoder module.
 
-    This module is refernece encoder introduced in `Style Tokens: Unsupervised Style
+    This module is reference encoder introduced in `Style Tokens: Unsupervised Style
     Modeling, Control and Transfer in End-to-End Speech Synthesis`.
 
     .. _`Style Tokens: Unsupervised Style Modeling, Control and Transfer in End-to-End

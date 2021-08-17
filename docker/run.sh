@@ -3,11 +3,10 @@
 docker_gpu=0
 docker_egs=
 docker_folders=
-docker_cuda=10.1
+docker_tag=latest
 
 docker_env=
 docker_cmd=
-docker_os=u18
 
 is_root=false
 is_local=false
@@ -69,25 +68,19 @@ fi
 
 from_tag="cpu"
 if [ ! "${docker_gpu}" == "-1" ]; then
-    if [ -z "${docker_cuda}" ]; then
-        # If the docker_cuda is not set, the program will automatically 
-        # search the installed version with default configurations (apt)
-        docker_cuda=$( nvcc -V | grep release )
-        docker_cuda=${docker_cuda#*"release "}
-        docker_cuda=${docker_cuda%,*}
-    fi
+    docker_cuda=$( nvcc -V | grep release )
+    docker_cuda=${docker_cuda#*"release "}
+    docker_cuda=${docker_cuda%,*}
+
     # After search for your cuda version, if the variable docker_cuda is empty the program will raise an error
     if [ -z "${docker_cuda}" ]; then
-        echo "CUDA was not found in your system. Use CPU image or install NVIDIA-DOCKER, CUDA and NVCC for GPU image."
+        echo "CUDA was not found in your system. Use CPU image or install NVIDIA-DOCKER, CUDA for GPU image."
         exit 1
-    else
-        from_tag="gpu-cuda${docker_cuda}-cudnn7"
     fi
+        from_tag="gpu"
 fi
 
-if [ ! -z "${docker_os}" ]; then
-    from_tag="${from_tag}-${docker_os}"
-fi
+from_tag="${from_tag}-${docker_tag}"
 
 EXTRAS=${is_extras}
 
