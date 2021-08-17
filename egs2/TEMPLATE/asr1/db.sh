@@ -84,6 +84,7 @@ ZEROTH_KOREAN=downloads
 JAVA=downloads
 RU_OPEN_STT=downloads
 RUSLAN=downloads
+SIWIS=downloads
 GIGASPEECH=
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
@@ -173,6 +174,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     JAVA=
     RU_OPEN_STT=downloads
     RUSLAN=downloads
+    SIWIS=downloads
     SUNDA=
-
 fi
