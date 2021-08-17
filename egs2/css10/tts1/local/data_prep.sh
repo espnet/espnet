@@ -42,7 +42,7 @@ echo "Successfully finished making wav.scp, utt2spk, spk2utt."
 
 # make text
 find "${db_root}" -name "transcript*.txt" | sort | while read -r filename; do
-   sed < "${filename}" -e "s;^[^/.]*/;;g" -e "s/.wav//g" |
+   sed < "${filename}" -e "s;^[^/.]*/;;g" -e "s/.wav//g" -e "s/　//g" |
         awk -F "|" -v spk="${lang}" '{print spk "_" $1 " " $2}' |
         sort >> "${text}"
 done
