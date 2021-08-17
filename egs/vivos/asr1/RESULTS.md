@@ -78,7 +78,7 @@
 |-|NSC|11.4|26.0|0.107|
 |-|mAES|11.5|26.3|0.053|
 
-* Summary benchmark was performed on the test set only.
+\* Summary benchmark was performed on the test set only.
 ² RTF was computed using `line-profiler` tool applied to the Transducer's `recognize(...)` method. Thus, we don't take into account the feature computation part here.
 The reported value is averaged on 5 runs with `nj=1`. All experiments were performed using a AMD EPYC 7502P.
 
