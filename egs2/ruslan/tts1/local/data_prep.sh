@@ -9,7 +9,7 @@ data_dir=$2
 # check arguments
 if [ $# != 2 ]; then
     echo "Usage: $0 <db_root> <data_dir>"
-    echo "e.g.: $0 downloads/RUNLAN data/train"
+    echo "e.g.: $0 downloads/RUSLAN data/train"
     exit 1
 fi
 
