@@ -5,6 +5,7 @@ set -e
 set -u
 set -o pipefail
 
+#select language: hi-en or bn-en
 lang=hi-en
 
 train_set="hi-en/train/transcripts"
@@ -20,7 +21,6 @@ lm_config_=conf/lm.yaml
     --expdir exp \
     --local_data_opts $lang \
     --use_lm true \
-    --skip_upload false \
     --lm_config "${lm_config_}" \
     --audio_format wav\
     --feats_type fbank_pitch\
