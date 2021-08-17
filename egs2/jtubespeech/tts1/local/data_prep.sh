@@ -17,17 +17,18 @@ if [ $# != 4 ]; then
 fi
 
 set -euo pipefail
+. ./path.sh
 
 # split wavfiles
 python local/split.py \
---db_raw ${dbr} \
---db_split ${dbs}
+    --db_raw ${dbr} \
+    --db_split ${dbs}
 
 # prune wavfiles with pre-computed ctcscore
 python local/prune.py \
---score_thresh ${scorethresh} \
---db_raw ${dbr} \
---db_split ${dbs}
+    --score_thresh ${scorethresh} \
+    --db_raw ${dbr} \
+    --db_split ${dbs}
 
 # check directory existence
 [ ! -e "${data_dir}" ] && mkdir -p "${data_dir}"

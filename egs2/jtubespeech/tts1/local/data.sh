@@ -36,29 +36,44 @@ fi
 db_root=${JTUBESPEECH}
 
 train_set=tr_no_dev
-train_dev=dev
-recog_set=eval1
+eval_set=dev
+test_set=test
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    log "stage 0: Data Download"
+    log "stage -1: Data Download"
     local/download.sh "${db_root}"
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    log "stage 1: local/data_prep.sh"
+    log "stage 0: local/data_prep.sh"
     # Initial normalization of the data
     # Doesn't change sampling frequency and it's done after stages
-    local/data_prep.sh "${db_root}/jtuberaw" "${db_root}/jtubesplit" data/train "${ctcscore_pruning_threshold}"
+    local/data_prep.sh "${db_root}/jtuberaw" "${db_root}/jtubesplit" data/all "${ctcscore_pruning_threshold}"
+fi
+
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    log "stage 1: scripts/audio/trim_silence.sh"
+    # shellcheck disable=SC2154
+    scripts/audio/trim_silence.sh \
+        --cmd "${train_cmd}" \
+        --nj "${nj}" \
+        --fs 16000 \
+        --win_length 1024 \
+        --shift_length 256 \
+        --threshold "${threshold}" \
+        data/all data/all/log
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: utils/subset_data_dir.sh"
     # make evaluation and devlopment sets
-    utils/subset_data_dir.sh --first data/train 500 data/devtest
-    utils/subset_data_dir.sh --first data/devtest 250 data/dev
-    utils/subset_data_dir.sh --last data/devtest 250 data/test
-    n=$(( $(wc -l < data/train/wav.scp) - 500 ))
-    utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
+    utils/subset_data_dir.sh --first data/all 500 data/devtest
+    utils/subset_data_dir.sh --first data/devtest 250 "data/${eval_set}"
+    utils/subset_data_dir.sh --last data/devtest 250 "data/${test_set}"
+    utils/copy_data_dir.sh data/all "data/${train_set}" 
+    utils/filter_scp.pl --exclude data/devtest/wav.scp \ 
+        data/all/wav.scp > "data/${train_set}/wav.scp" 
+    utils/fix_data_dir.sh "data/${train_set}"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
