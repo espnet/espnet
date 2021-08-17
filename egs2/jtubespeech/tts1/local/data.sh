@@ -16,7 +16,7 @@ SECONDS=0
 stage=-1
 stop_stage=2
 
-ctcscore_pruning_threshold=-0.5
+ctcscore_pruning_threshold=-0.1
 
 log "$0 $*"
 . utils/parse_options.sh
