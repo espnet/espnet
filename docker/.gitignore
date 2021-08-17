@@ -1,1 +1,4 @@
 espnet-local.tar
+.custom_args
+*.log
+*.done

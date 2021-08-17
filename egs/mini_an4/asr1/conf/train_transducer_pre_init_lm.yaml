@@ -29,4 +29,4 @@ joint-dim: 4
 # transducer related
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
 dec-init: exp/train_rnnlm_pytorch_lm/rnnlm.model.best
-enc-init-mods: "dec."
+dec-init-mods: "dec."

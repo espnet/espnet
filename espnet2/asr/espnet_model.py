@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from distutils.version import LooseVersion
+import logging
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -59,6 +60,7 @@ class ESPnetASRModel(AbsESPnetModel):
         report_wer: bool = True,
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
+        extract_feats_in_collect_stats: bool = True,
     ):
         assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
@@ -105,6 +107,8 @@ class ESPnetASRModel(AbsESPnetModel):
             )
         else:
             self.error_calculator = None
+
+        self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
     def forward(
         self,
@@ -185,7 +189,16 @@ class ESPnetASRModel(AbsESPnetModel):
         text: torch.Tensor,
         text_lengths: torch.Tensor,
     ) -> Dict[str, torch.Tensor]:
-        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
+        if self.extract_feats_in_collect_stats:
+            feats, feats_lengths = self._extract_feats(speech, speech_lengths)
+        else:
+            # Generate dummy stats if extract_feats_in_collect_stats is False
+            logging.warning(
+                "Generating dummy stats for feats and feats_lengths, "
+                "because encoder_conf.extract_feats_in_collect_stats is "
+                f"{self.extract_feats_in_collect_stats}"
+            )
+            feats, feats_lengths = speech, speech_lengths
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(

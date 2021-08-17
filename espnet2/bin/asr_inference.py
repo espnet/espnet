@@ -202,7 +202,7 @@ class Speech2Text:
 
         # data: (Nsamples,) -> (1, Nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-        # lenghts: (1,)
+        # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         batch = {"speech": speech, "speech_lengths": lengths}
 
@@ -434,7 +434,9 @@ def get_parser():
         help="Input length ratio to obtain max output length. "
         "If maxlenratio=0.0 (default), it uses a end-detect "
         "function "
-        "to automatically find maximum hypothesis lengths",
+        "to automatically find maximum hypothesis lengths."
+        "If maxlenratio<0.0, its absolute value is interpreted"
+        "as a constant max output length",
     )
     group.add_argument(
         "--minlenratio",

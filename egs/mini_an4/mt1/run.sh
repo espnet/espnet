@@ -100,7 +100,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     n=$(($(wc -l < data/train/text) - 2))
     utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
 
-    # add pseudo case infomation
+    # add pseudo case information
     for x in train_nodev train_dev test; do
         cp data/${x}/text data/${x}/text.tc
         cp data/${x}/text data/${x}/text.lc
