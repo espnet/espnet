@@ -100,9 +100,11 @@ class Speech2Text:
         if ngram_file is not None:
             if ngram_scorer == "full":
                 from espnet.nets.scorers.ngram import NgramFullScorer
+
                 ngram = NgramFullScorer(ngram_file, token_list)
             else:
                 from espnet.nets.scorers.ngram import NgramPartScorer
+
                 ngram = NgramPartScorer(ngram_file, token_list)
         else:
             ngram = None
