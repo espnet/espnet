@@ -1,6 +1,6 @@
-# This configuration is for ESPnet2 to train FastSpeech2.
-# It requires only a single GPU with 12 GB memory and it
-# takes ~4 days to finish the training on Titan V.
+# This configuration is for ESPnet2 to train GST-Conformer-based
+# FastSpeech2. It requires only a single GPU with 12 GB memory
+# and it takes ~7 days to finish the training on Titan V.
 
 # Compared to the original FastSpeech2 paper, we use token
 # averaged pitch and energy as the same as FastPitch.
@@ -30,13 +30,19 @@ tts_conf:             # keyword arguments for the selected model
     postnet_filts: 5                  # filter size of conv layers in postnet
     postnet_chans: 256                # number of channels of conv layers in postnet
     use_masking: True                 # whether to apply masking for padded part in loss calculation
-    use_scaled_pos_enc: True          # whether to use scaled positional encoding
     encoder_normalize_before: True    # whether to perform layer normalization before the input
     decoder_normalize_before: True    # whether to perform layer normalization before the input
     reduction_factor: 1               # reduction factor
-    init_type: xavier_uniform         # initialization type
-    init_enc_alpha: 1.0               # initial value of alpha of encoder scaled position encoding
-    init_dec_alpha: 1.0               # initial value of alpha of decoder scaled position encoding
+    encoder_type: conformer           # encoder type
+    decoder_type: conformer           # decoder type
+    conformer_pos_enc_layer_type: rel_pos        # conformer positional encoding type
+    conformer_self_attn_layer_type: rel_selfattn # conformer self-attention type
+    conformer_activation_type: swish             # conformer activation type
+    use_macaron_style_in_conformer: true         # whether to use macaron style in conformer
+    use_cnn_in_conformer: true                   # whether to use CNN in conformer
+    conformer_enc_kernel_size: 7                 # kernel size in CNN module of conformer-based encoder
+    conformer_dec_kernel_size: 31                # kernel size in CNN module of conformer-based decoder
+    init_type: xavier_uniform                    # initialization type
     transformer_enc_dropout_rate: 0.2            # dropout rate for transformer encoder layer
     transformer_enc_positional_dropout_rate: 0.2 # dropout rate for transformer encoder positional encoding
     transformer_enc_attn_dropout_rate: 0.2       # dropout rate for transformer encoder attention layer
@@ -57,6 +63,9 @@ tts_conf:             # keyword arguments for the selected model
     energy_embed_kernel_size: 1                # kernel size of conv embedding layer for energy
     energy_embed_dropout: 0.0                  # dropout rate after conv embedding layer for energy
     stop_gradient_from_energy_predictor: false # whether to stop the gradient from energy predictor to encoder
+    use_gst: true                              # whether to use GST embedding
+    gst_heads: 8                               # number of heads in GST multi-head attention
+    gst_tokens: 128                            # number of global style tokens
 
 # extra module for additional inputs
 pitch_extract: dio           # pitch extractor type
@@ -78,12 +87,12 @@ scheduler_conf:        # keyword arguments for selected scheduler
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 800  # number of iterations per epoch
-max_epoch: 1000           # number of epochs
+num_iters_per_epoch: 1000  # number of iterations per epoch
+max_epoch: 1500           # number of epochs
 grad_clip: 1.0            # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
-accum_grad: 8             # gradient accumulation
-batch_bins: 3000000       # batch bins (feats_type=raw)
+accum_grad: 10            # gradient accumulation
+batch_bins: 2400000       # batch bins (feats_type=raw)
 batch_type: numel         # how to make batch
 sort_in_batch: descending # how to sort data in making batch
 sort_batch: descending    # how to sort created batches

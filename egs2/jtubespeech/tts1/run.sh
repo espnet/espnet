@@ -50,6 +50,7 @@ g2p=pyopenjtalk
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
     --win_length "${win_length}" \
+    --use_xvector true \ 
     --token_type phn \
     --cleaner jaconv \
     --g2p "${g2p}" \

@@ -1,8 +1,8 @@
-# This configuration is for ESPnet2 to train Transformer-TTS. Compared to the
-# original paper, this configuration additionally use the guided attention
-# loss to accelerate the learning of the diagonal attention. It requires
-# 4 GPUs with 32 GB memory and it will finish within 1 day to finish the
-# training on Tesla V100.
+# This configuration is for ESPnet2 to train Transformer-TTS with
+# GST + X-vector. This configuration additionally use the guided
+# attention loss to accelerate the learning of the diagonal attention.
+# It requires 4 GPUs with 32 GB memory and it takes around 3 days
+# to finish the training on Tesla V100.
 
 ##########################################################
 #                  TTS MODEL SETTING                     #
@@ -27,6 +27,8 @@ tts_conf:                  # keyword arguments for the selected model
     postnet_layers: 5                # number of layers of postnset
     postnet_filts: 5                 # filter size of conv layers in postnet
     postnet_chans: 256               # number of channels of conv layers in postnet
+    spk_embed_dim: 512               # dimension of speaker embedding
+    spk_embed_integration_type: add  # how to integrate speaker embedding
     use_masking: True                # whether to apply masking for padded part in loss calculation
     bce_pos_weight: 5.0              # weight of positive sample in binary cross entropy calculation
     use_scaled_pos_enc: True         # whether to use scaled positional encoding
@@ -62,13 +64,13 @@ optim_conf:             # keyword arguments for selected optimizer
 scheduler: noamlr       # scheduler type
 scheduler_conf:         # keyword arguments for selected scheduler
     model_size: 512     # model size, a.k.a., attention dimenstion
-    warmup_steps: 8000  # the number of warmup steps
+    warmup_steps: 12000 # the number of warmup steps
 
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 1000   # number of iterations per epoch
-max_epoch: 200              # number of epochs
+max_epoch: 500              # number of epochs
 grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 2               # gradient accumulation
