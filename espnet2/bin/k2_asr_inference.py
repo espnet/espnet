@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import argparse
+import datetime
 import logging
+import os
 from pathlib import Path
 import sys
 from typing import Dict
@@ -19,6 +21,9 @@ from typing import List
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.fst.common import compile_HLG
+from espnet2.fst.common import find_first_disambig_symbol
+from espnet2.fst.lm_rescore import rescore_with_whole_lattice
 from espnet2.tasks.asr import ASRTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
@@ -137,6 +142,9 @@ class k2Speech2Text:
         nbest: int = 1,
         streaming: bool = False,
         output_beam_size: int = 8,
+        is_ctc_decoding: bool = True,
+        lang_dir: Optional[str] = None,
+        use_fgram_rescoring: bool = False,
     ):
         assert check_argument_types()
 
@@ -147,10 +155,73 @@ class k2Speech2Text:
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         token_list = asr_model.token_list
-        self.decode_graph = k2.arc_sort(
-            build_ctc_topo(list(range(len(token_list))))
-        ).to(device)
 
+        self.is_ctc_decoding = is_ctc_decoding
+        self.use_fgram_rescoring = use_fgram_rescoring
+        ctc_topo = k2.arc_sort(build_ctc_topo(list(range(len(token_list)))))
+        if self.is_ctc_decoding:
+            self.decode_graph = ctc_topo
+        else:
+            assert lang_dir is not None
+            lang_dir = Path(lang_dir)
+            self.symbol_table = k2.SymbolTable.from_file(lang_dir / "words.txt")
+            token_symbol_table = k2.SymbolTable.from_file(lang_dir / "tokens.txt")
+            if not os.path.exists(lang_dir / "HLG.pt"):
+                logging.debug("Loading L_disambig.fst.txt")
+                with open(lang_dir / "L_disambig.fst.txt") as f:
+                    L = k2.Fsa.from_openfst(f.read(), acceptor=False)
+                logging.debug("Loading G.fst.txt")
+                with open(lang_dir / "G.fst.txt") as f:
+                    G = k2.Fsa.from_openfst(f.read(), acceptor=False)
+                first_token_disambig_id = find_first_disambig_symbol(token_symbol_table)
+                first_word_disambig_id = find_first_disambig_symbol(self.symbol_table)
+                HLG = compile_HLG(
+                    L=L,
+                    G=G,
+                    H=ctc_topo,
+                    labels_disambig_id_start=first_token_disambig_id,
+                    aux_labels_disambig_id_start=first_word_disambig_id,
+                )
+                torch.save(HLG.as_dict(), lang_dir / "HLG.pt")
+            else:
+                logging.debug("Loading pre-compiled HLG")
+                d = torch.load(lang_dir / "HLG.pt")
+                HLG = k2.Fsa.from_dict(d)
+
+            self.decode_graph = HLG
+
+            if self.use_fgram_rescoring:
+                first_word_disambig_id = find_first_disambig_symbol(self.symbol_table)
+                if not os.path.exists(lang_dir / "G_4_gram.pt"):
+                    logging.debug("Loading G_4_gram.fst.txt")
+                    with open(lang_dir / "G_4_gram.fst.txt") as f:
+                        G = k2.Fsa.from_openfst(f.read(), acceptor=False)
+                        # G.aux_labels is not needed in later computations, so
+                        # remove it here.
+                        del G.aux_labels
+                        # CAUTION(fangjun): The following line is crucial.
+                        # Arcs entering the back-off state have label equal to #0.
+                        # We have to change it to 0 here.
+                        G.labels[G.labels >= first_word_disambig_id] = 0
+                        G = k2.create_fsa_vec([G]).to(device)
+                        G = k2.arc_sort(G)
+                        torch.save(G.as_dict(), lang_dir / "G_4_gram.pt")
+                else:
+                    logging.debug("Loading pre-compiled G_4_gram.pt")
+                    d = torch.load(lang_dir / "G_4_gram.pt")
+                    G = k2.Fsa.from_dict(d).to(device)
+
+                # Add epsilon self-loops to G as we will compose
+                # it with the whole lattice later
+                G = k2.add_epsilon_self_loops(G)
+                G = k2.arc_sort(G)
+                G = G.to(device)
+                # G.lm_scores is used to replace HLG.lm_scores during
+                # LM rescoring.
+                G.lm_scores = G.scores.clone()
+                self.G = G
+
+        self.decode_graph = self.decode_graph.to(device)
         if token_type is None:
             token_type = asr_train_args.token_type
         if bpemodel is None:
@@ -180,7 +251,7 @@ class k2Speech2Text:
     @torch.no_grad()
     def __call__(
         self, batch: Dict[str, Union[torch.Tensor, np.ndarray]]
-    ) -> List[Tuple[Optional[str], List[str], List[int], float]]:
+    ) -> List[Tuple[Optional[str], Optional[List[str]], List[int], float]]:
         """Inference
 
         Args:
@@ -221,6 +292,10 @@ class k2Speech2Text:
         lattices = k2.intersect_dense_pruned(
             self.decode_graph, dense_fsa_vec, 20.0, self.output_beam_size, 30, 10000
         )
+        if self.use_fgram_rescoring:
+            lattices = rescore_with_whole_lattice(
+                lattices, self.G, lm_scale_list=None, need_rescored_lats=True
+            )
 
         best_paths = k2.shortest_path(lattices, use_double_scores=True)
         scores = best_paths.get_tot_scores(
@@ -234,12 +309,22 @@ class k2Speech2Text:
 
         for token_int, score in zip(hyps, scores):
             # Change integer-ids to tokens
-            token = self.converter.ids2tokens(token_int)
+            if self.is_ctc_decoding:
+                # convert token_id to text with self.tokenizer
+                token = self.converter.ids2tokens(token_int)
 
-            if self.tokenizer is not None:
-                text = self.tokenizer.tokens2text(token)
+                if self.tokenizer is not None:
+                    text = self.tokenizer.tokens2text(token)
+                else:
+                    text = None
             else:
-                text = None
+                # decode with TLG
+                # Now token_int, actually stores word indexes.
+                # which is lattice.aux_labels
+                token = None
+                text = " ".join(
+                    [self.symbol_table.get(word_idx) for word_idx in token_int]
+                )
             results.append((text, token, token_int, score))
 
         assert check_return_type(results)
@@ -273,6 +358,9 @@ def inference(
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
     streaming: bool,
+    is_ctc_decoding: bool,
+    lang_dir: Optional[str],
+    use_fgram_rescoring: bool,
 ):
     assert check_argument_types()
     if ngpu > 1:
@@ -309,6 +397,9 @@ def inference(
         penalty=penalty,
         nbest=nbest,
         streaming=streaming,
+        is_ctc_decoding=is_ctc_decoding,
+        lang_dir=lang_dir,
+        use_fgram_rescoring=use_fgram_rescoring,
     )
 
     # 3. Build data-iterator
@@ -325,6 +416,7 @@ def inference(
     )
 
     with DatadirWriter(output_dir) as writer:
+        start_decoding_time = datetime.datetime.now()
         for batch_idx, (keys, batch) in enumerate(loader):
             if batch_idx % 10 == 0:
                 logging.info(f"Processing {batch_idx} batch")
@@ -340,12 +432,16 @@ def inference(
                 key = keys[key_idx]
                 best_writer = writer["1best_recog"]
                 # Write the result to each file
-                best_writer["token"][key] = " ".join(token)
+                if token is not None:
+                    best_writer["token"][key] = " ".join(token)
                 best_writer["token_int"][key] = " ".join(map(str, token_int))
                 best_writer["score"][key] = str(score)
 
                 if text is not None:
                     best_writer["text"][key] = text
+        end_decoding_time = datetime.datetime.now()
+        decoding_duration = end_decoding_time - start_decoding_time
+        logging.info(f"Decoding duration is {decoding_duration.seconds} seconds")
 
 
 def get_parser():
@@ -453,6 +549,9 @@ def get_parser():
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
     )
+    group.add_argument("--is_ctc_decoding", type=str2bool, default=True)
+    group.add_argument("--lang_dir", type=str, default=None)
+    group.add_argument("--use_fgram_rescoring", type=str2bool, default=False)
 
     return parser
 
