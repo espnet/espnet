@@ -72,7 +72,6 @@ class EncoderLayer(nn.Module):
             torch.Tensor: Mask tensor (#batch, time).
 
         """
-
         skip_layer = False
         # with stochastic depth, residual connection `x + f(x)` becomes
         # `x <- x + 1 / (1 - p) * f(x)` at training time.
