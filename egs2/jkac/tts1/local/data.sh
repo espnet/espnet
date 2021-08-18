@@ -36,9 +36,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # Initial normalization of the data
     local/data_prep.sh ${db_root} data/train ${fs}
     utils/validate_data_dir.sh --no-feats data/train
-
-    # changing the sampling rate option in pitch.conf and fbank.conf
-    # local/change_sampling_rate.sh ${fs}
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
