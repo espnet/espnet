@@ -34,9 +34,6 @@ if [ -z "${AISHELL3}" ]; then
 fi
 db_root=${AISHELL3}
 
-train_set=train
-eval_set=test
-
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage -1: download data from openslr"
     local/download_and_untar.sh "${db_root}" "https://www.openslr.org/resources/93/data_aishell3.tgz" data_aishell3.tgz 

@@ -34,12 +34,6 @@ if [ -z "${THCHS30}" ]; then
 fi
 db_root=${THCHS30}
 
-train_set=train
-train_dev=dev
-eval_set=test
-
-H=`pwd` # exp home
-
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage -1: download data from openslr"
     local/download_and_untar.sh "${db_root}" "https://www.openslr.org/resources/18/data_thchs30.tgz" data_thchs30.tgz 
@@ -47,8 +41,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: prepare thchs30 data"
-    echo "$H"
-    local/thchs-30_data_prep.sh $H "${db_root}"/data_thchs30 || exit 1;
+    local/thchs-30_data_prep.sh $(pwd) "${db_root}"/data_thchs30 || exit 1;
 fi
 
 
