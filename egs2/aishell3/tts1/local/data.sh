@@ -10,14 +10,13 @@ log() {
 }
 SECONDS=0
 
-stage=1
+stage=0
 stop_stage=3
 threshold=35
 nj=40
 
 log "$0 $*"
 . utils/parse_options.sh
-
 
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
