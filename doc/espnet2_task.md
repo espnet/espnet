@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
 ## Data input system
 Espnet2 also provides a command line interface to describe the training corpus.
-On the contrary, unlike `fairseq` or training system such as `pytorch-lightining`, 
+On the contrary, unlike `fairseq` or training system such as `pytorch-lightning`,
 our `Task` class doesn't have an interface for building the dataset explicitly.
 This is because we aim at the task related to speech/text only, 
 so we don't need such general system so far.

@@ -106,7 +106,7 @@ class ChunkIterFactory(AbsIterFactory):
 
         # NOTE(kamo):
         #   This iterator supports multiple chunk lengths and
-        #   keep chunks for each lenghts here until collecting specified numbers
+        #   keep chunks for each lengths here until collecting specified numbers
         cache_chunks_dict = {}
         cache_id_list_dict = {}
         for ids, batch in per_sample_loader:

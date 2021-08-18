@@ -92,8 +92,12 @@ def test_k2Speech2Text(asr_config_file, lm_config_file):
     k2speech2text = k2Speech2Text(
         asr_train_config=asr_config_file, lm_train_config=lm_config_file, beam_size=1
     )
-    speech = np.random.randn(100000)
-    results = k2speech2text(speech)
+    batch_size = 5
+    num_samples = 100000
+    speech = np.random.randn(batch_size, num_samples).astype("f")
+    speech_lengths = np.repeat(num_samples, batch_size).astype(np.int_)
+    batch = {"speech": speech, "speech_lengths": speech_lengths}
+    results = k2speech2text(batch)
     for text, token, token_int, score in results:
         assert isinstance(text, str)
         assert isinstance(token[0], str)

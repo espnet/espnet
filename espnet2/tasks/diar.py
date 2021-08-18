@@ -167,7 +167,7 @@ class DiarizationTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
-            # FIXME (jiatong): add more arugment here
+            # FIXME (jiatong): add more argument here
             retval = CommonPreprocessor(train=train)
         else:
             retval = None

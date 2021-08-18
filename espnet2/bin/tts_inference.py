@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import sys
 import time
+from typing import Dict
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -44,7 +45,7 @@ class Text2Speech:
     Examples:
         >>> import soundfile
         >>> text2speech = Text2Speech("config.yml", "model.pth")
-        >>> wav = text2speech("Hello World")[0]
+        >>> wav = text2speech("Hello World")["wav"]
         >>> soundfile.write("out.wav", wav.numpy(), text2speech.fs, "PCM_16")
 
     """
@@ -112,7 +113,7 @@ class Text2Speech:
             vocoder_conf = {}
         if self.feats_extract is not None:
             vocoder_conf.update(self.feats_extract.get_parameters())
-        if (
+        if self.tts.require_vocoder and (
             "n_fft" in vocoder_conf
             and "n_shift" in vocoder_conf
             and "fs" in vocoder_conf
@@ -121,7 +122,7 @@ class Text2Speech:
             logging.info(f"Vocoder: {self.spc2wav}")
         else:
             self.spc2wav = None
-            logging.info("Vocoder is not used because vocoder_conf is not sufficient")
+            logging.info("Vocoder is not used.")
 
     @torch.no_grad()
     def __call__(
@@ -130,8 +131,9 @@ class Text2Speech:
         speech: Union[torch.Tensor, np.ndarray] = None,
         durations: Union[torch.Tensor, np.ndarray] = None,
         spembs: Union[torch.Tensor, np.ndarray] = None,
+        sids: Union[torch.Tensor, np.ndarray] = None,
         speed_control_alpha: Optional[float] = None,
-    ):
+    ) -> Dict[str, torch.Tensor]:
         assert check_argument_types()
 
         if self.use_speech and speech is None:
@@ -147,6 +149,8 @@ class Text2Speech:
             batch["durations"] = durations
         if spembs is not None:
             batch["spembs"] = spembs
+        if sids is not None:
+            batch["sids"] = sids
 
         cfg = self.decode_config
         if speed_control_alpha is not None and isinstance(
@@ -156,24 +160,26 @@ class Text2Speech:
             cfg.update({"alpha": speed_control_alpha})
 
         batch = to_device(batch, self.device)
-        outs, outs_denorm, probs, att_ws = self.model.inference(**batch, **cfg)
+        output_dict = self.model.inference(**batch, **cfg)
 
-        if att_ws is not None:
-            duration, focus_rate = self.duration_calculator(att_ws)
-        else:
-            duration, focus_rate = None, None
+        if output_dict.get("att_w") is not None:
+            duration, focus_rate = self.duration_calculator(output_dict["att_w"])
 
         if self.spc2wav is not None:
-            wav = torch.tensor(self.spc2wav(outs_denorm.cpu().numpy()))
-        else:
-            wav = None
+            if output_dict.get("feat_gen_denorm") is not None:
+                input_feat = output_dict["feat_gen_denorm"]
+            else:
+                input_feat = output_dict["feat_gen"]
+            output_dict["wav"] = torch.tensor(self.spc2wav(input_feat.cpu().numpy()))
 
-        return wav, outs, outs_denorm, probs, att_ws, duration, focus_rate
+        return output_dict
 
     @property
     def fs(self) -> Optional[int]:
         if self.spc2wav is not None:
             return self.spc2wav.fs
+        elif hasattr(self.tts, "fs"):
+            return self.tts.fs
         else:
             return None
 
@@ -303,53 +309,72 @@ def inference(
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
             start_time = time.perf_counter()
-            wav, outs, outs_denorm, probs, att_ws, duration, focus_rate = text2speech(
-                **batch
-            )
+            output_dict = text2speech(**batch)
 
             key = keys[0]
             insize = next(iter(batch.values())).size(0) + 1
-            logging.info(
-                "inference speed = {:.1f} frames / sec.".format(
-                    int(outs.size(0)) / (time.perf_counter() - start_time)
+            if output_dict.get("feat_gen") is not None:
+                # standard text2mel model case
+                feat_gen = output_dict["feat_gen"]
+                logging.info(
+                    "inference speed = {:.1f} frames / sec.".format(
+                        int(feat_gen.size(0)) / (time.perf_counter() - start_time)
+                    )
                 )
-            )
-            logging.info(f"{key} (size:{insize}->{outs.size(0)})")
-            if outs.size(0) == insize * maxlenratio:
-                logging.warning(f"output length reaches maximum length ({key}).")
+                logging.info(f"{key} (size:{insize}->{feat_gen.size(0)})")
+                if feat_gen.size(0) == insize * maxlenratio:
+                    logging.warning(f"output length reaches maximum length ({key}).")
 
-            norm_writer[key] = outs.cpu().numpy()
-            shape_writer.write(f"{key} " + ",".join(map(str, outs.shape)) + "\n")
+                norm_writer[key] = output_dict["feat_gen"].cpu().numpy()
+                shape_writer.write(
+                    f"{key} " + ",".join(map(str, output_dict["feat_gen"].shape)) + "\n"
+                )
+                if output_dict.get("feat_gen_denorm") is not None:
+                    denorm_writer[key] = output_dict["feat_gen_denorm"].cpu().numpy()
+            else:
+                # end-to-end text2wav model case
+                wav = output_dict["wav"]
+                logging.info(
+                    "inference speed = {:.1f} points / sec.".format(
+                        int(wav.size(0)) / (time.perf_counter() - start_time)
+                    )
+                )
+                logging.info(f"{key} (size:{insize}->{wav.size(0)})")
 
-            denorm_writer[key] = outs_denorm.cpu().numpy()
-
-            if duration is not None:
+            if output_dict.get("duration") is not None:
                 # Save duration and fucus rates
                 duration_writer.write(
-                    f"{key} " + " ".join(map(str, duration.cpu().numpy())) + "\n"
+                    f"{key} "
+                    + " ".join(map(str, output_dict["duration"].long().cpu().numpy()))
+                    + "\n"
                 )
-                focus_rate_writer.write(f"{key} {float(focus_rate):.5f}\n")
 
+            if output_dict.get("focus_rate") is not None:
+                focus_rate_writer.write(
+                    f"{key} {float(output_dict['focus_rate']):.5f}\n"
+                )
+
+            if output_dict.get("att_w") is not None:
                 # Plot attention weight
-                att_ws = att_ws.cpu().numpy()
+                att_w = output_dict["att_w"].cpu().numpy()
 
-                if att_ws.ndim == 2:
-                    att_ws = att_ws[None][None]
-                elif att_ws.ndim != 4:
-                    raise RuntimeError(f"Must be 2 or 4 dimension: {att_ws.ndim}")
+                if att_w.ndim == 2:
+                    att_w = att_w[None][None]
+                elif att_w.ndim != 4:
+                    raise RuntimeError(f"Must be 2 or 4 dimension: {att_w.ndim}")
 
-                w, h = plt.figaspect(att_ws.shape[0] / att_ws.shape[1])
+                w, h = plt.figaspect(att_w.shape[0] / att_w.shape[1])
                 fig = plt.Figure(
                     figsize=(
-                        w * 1.3 * min(att_ws.shape[0], 2.5),
-                        h * 1.3 * min(att_ws.shape[1], 2.5),
+                        w * 1.3 * min(att_w.shape[0], 2.5),
+                        h * 1.3 * min(att_w.shape[1], 2.5),
                     )
                 )
                 fig.suptitle(f"{key}")
-                axes = fig.subplots(att_ws.shape[0], att_ws.shape[1])
-                if len(att_ws) == 1:
+                axes = fig.subplots(att_w.shape[0], att_w.shape[1])
+                if len(att_w) == 1:
                     axes = [[axes]]
-                for ax, att_w in zip(axes, att_ws):
+                for ax, att_w in zip(axes, att_w):
                     for ax_, att_w_ in zip(ax, att_w):
                         ax_.imshow(att_w_.astype(np.float32), aspect="auto")
                         ax_.set_xlabel("Input")
@@ -361,13 +386,13 @@ def inference(
                 fig.savefig(output_dir / f"att_ws/{key}.png")
                 fig.clf()
 
-            if probs is not None:
+            if output_dict.get("prob") is not None:
                 # Plot stop token prediction
-                probs = probs.cpu().numpy()
+                prob = output_dict["prob"].cpu().numpy()
 
                 fig = plt.Figure()
                 ax = fig.add_subplot(1, 1, 1)
-                ax.plot(probs)
+                ax.plot(prob)
                 ax.set_title(f"{key}")
                 ax.set_xlabel("Output")
                 ax.set_ylabel("Stop probability")
@@ -378,19 +403,30 @@ def inference(
                 fig.savefig(output_dir / f"probs/{key}.png")
                 fig.clf()
 
-            # TODO(kamo): Write scp
-            if wav is not None:
+            if output_dict.get("wav") is not None:
+                # TODO(kamo): Write scp
                 sf.write(
-                    f"{output_dir}/wav/{key}.wav", wav.numpy(), text2speech.fs, "PCM_16"
+                    f"{output_dir}/wav/{key}.wav",
+                    output_dict["wav"].cpu().numpy(),
+                    text2speech.fs,
+                    "PCM_16",
                 )
 
-    # remove duration related files if attention is not provided
-    if att_ws is None:
+    # remove files if those are not included in output dict
+    if output_dict.get("feat_gen") is None:
+        shutil.rmtree(output_dir / "norm")
+    if output_dict.get("feat_gen_denorm") is None:
+        shutil.rmtree(output_dir / "denorm")
+    if output_dict.get("att_w") is None:
         shutil.rmtree(output_dir / "att_ws")
+    if output_dict.get("duration") is None:
         shutil.rmtree(output_dir / "durations")
+    if output_dict.get("focus_rate") is None:
         shutil.rmtree(output_dir / "focus_rates")
-    if probs is None:
+    if output_dict.get("prob") is None:
         shutil.rmtree(output_dir / "probs")
+    if output_dict.get("wav") is None:
+        shutil.rmtree(output_dir / "wav")
 
 
 def get_parser():

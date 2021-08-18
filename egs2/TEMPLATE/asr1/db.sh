@@ -18,12 +18,12 @@ CSJDATATOP=
 CSJVER=dvd  ## Set your CSJ format (dvd or usb).
             ## Usage    :
             ## Case DVD : We assume CSJ DVDs are copied in this directory with the names dvd1, dvd2,...,dvd17.
-            ##            Neccesary directory is dvd3 - dvd17.
+            ##            Necessary directory is dvd3 - dvd17.
             ##            e.g. $ ls $CSJDATATOP(DVD) => 00README.txt dvd1 dvd2 ... dvd17
             ##
-            ## Case USB : Neccesary directory is MORPH/SDB and WAV
+            ## Case USB : Necessary directory is MORPH/SDB and WAV
             ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
-            ## Case merl :MERL setup. Neccesary directory is WAV and sdb
+            ## Case merl :MERL setup. Necessary directory is WAV and sdb
 CSMSC=downloads
 HKUST1=
 HKUST2=
@@ -84,6 +84,7 @@ ZEROTH_KOREAN=downloads
 JAVA=downloads
 RU_OPEN_STT=downloads
 RUSLAN=downloads
+SIWIS=downloads
 GIGASPEECH=
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
@@ -91,6 +92,8 @@ LRS2=
 SUNDA=downloads
 CMU_INDIC=downloads
 JKAC=
+MUCS_SUBTASK1=downloads
+MUCS_SUBTASK2=downloads
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
@@ -111,12 +114,12 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     CSJVER=usb  ## Set your CSJ format (dvd or usb).
                 ## Usage    :
                 ## Case DVD : We assume CSJ DVDs are copied in this directory with the names dvd1, dvd2,...,dvd17.
-                ##            Neccesary directory is dvd3 - dvd17.
+                ##            Necessary directory is dvd3 - dvd17.
                 ##            e.g. $ ls $CSJDATATOP(DVD) => 00README.txt dvd1 dvd2 ... dvd17
                 ##
-                ## Case USB : Neccesary directory is MORPH/SDB and WAV
+                ## Case USB : Necessary directory is MORPH/SDB and WAV
                 ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
-                ## Case merl :MERL setup. Neccesary directory is WAV and sdb
+                ## Case merl :MERL setup. Necessary directory is WAV and sdb
     CSMSC=downloads
     HKUST1=
     HKUST2=
@@ -175,8 +178,10 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     JAVA=
     RU_OPEN_STT=downloads
     RUSLAN=downloads
+    SIWIS=downloads
     SUNDA=
     CMU_INDIC=
     JKAC=
-
+    MUCS_SUBTASK1=downloads
+    MUCS_SUBTASK2=downloads
 fi
