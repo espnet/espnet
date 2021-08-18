@@ -73,6 +73,11 @@ class Encoder(torch.nn.Module):
         positionwise_conv_kernel_size (int): Kernel size of positionwise conv1d layer.
         selfattention_layer_type (str): Encoder attention layer type.
         padding_idx (int): Padding idx for input_layer=embed.
+        stochastic_depth_rate (float): Maximum probability to skip the encoder layer.
+        intermediate_layers (Union[List[int], None]): indices of intermediate CTC layer.
+            indices start from 1.
+            if not None, intermediate outputs are returned (which changes return type
+            signature.)
 
     """
 
@@ -97,6 +102,8 @@ class Encoder(torch.nn.Module):
         positionwise_conv_kernel_size=1,
         selfattention_layer_type="selfattn",
         padding_idx=-1,
+        stochastic_depth_rate=0.0,
+        intermediate_layers=None,
     ):
         """Construct an Encoder object."""
         super(Encoder, self).__init__()
@@ -242,10 +249,13 @@ class Encoder(torch.nn.Module):
                 dropout_rate,
                 normalize_before,
                 concat_after,
+                stochastic_depth_rate * float(1 + lnum) / num_blocks,
             ),
         )
         if self.normalize_before:
             self.after_norm = LayerNorm(attention_dim)
+
+        self.intermediate_layers = intermediate_layers
 
     def get_positionwise_layer(
         self,
@@ -298,9 +308,29 @@ class Encoder(torch.nn.Module):
             xs, masks = self.embed(xs, masks)
         else:
             xs = self.embed(xs)
-        xs, masks = self.encoders(xs, masks)
+
+        if self.intermediate_layers is None:
+            xs, masks = self.encoders(xs, masks)
+        else:
+            intermediate_outputs = []
+            for layer_idx, encoder_layer in enumerate(self.encoders):
+                xs, masks = encoder_layer(xs, masks)
+
+                if (
+                    self.intermediate_layers is not None
+                    and layer_idx + 1 in self.intermediate_layers
+                ):
+                    encoder_output = xs
+                    # intermediate branches also require normalization.
+                    if self.normalize_before:
+                        encoder_output = self.after_norm(encoder_output)
+                    intermediate_outputs.append(encoder_output)
+
         if self.normalize_before:
             xs = self.after_norm(xs)
+
+        if self.intermediate_layers is not None:
+            return xs, masks, intermediate_outputs
         return xs, masks
 
     def forward_one_step(self, xs, masks, cache=None):
