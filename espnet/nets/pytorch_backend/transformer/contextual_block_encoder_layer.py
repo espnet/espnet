@@ -59,7 +59,7 @@ class ContextualBlockEncoderLayer(nn.Module):
             self.concat_linear = nn.Linear(size + size, size)
 
     def forward(self, x, mask, past_ctx=None, next_ctx=None, is_short_segment=False, layer_idx=0, cache=None):
-        if self.training:
+        if self.training or x.size(0)>1:
             return self.forward_train(x, mask, past_ctx, next_ctx, layer_idx, cache)
         else:
             return self.forward_infer(x, mask, past_ctx, next_ctx, is_short_segment, layer_idx, cache)
