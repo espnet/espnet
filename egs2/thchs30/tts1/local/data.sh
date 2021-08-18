@@ -10,14 +10,13 @@ log() {
 }
 SECONDS=0
 
-stage=0
+stage=2
 stop_stage=2
-
-
+threshold=35
+nj=16
 
 log "$0 $*"
 . utils/parse_options.sh
-
 
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
@@ -44,5 +43,21 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     local/thchs-30_data_prep.sh $(pwd) "${db_root}"/data_thchs30 || exit 1;
 fi
 
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    log "stage 2: scripts/audio/trim_silence.sh"
+    for x in train dev test train_phn dev_phn test_phn; do
+        # shellcheck disable=SC2154
+        scripts/audio/trim_silence.sh \
+             --cmd "${train_cmd}" \
+             --nj "${nj}" \
+             --fs 16000 \
+             --win_length 512 \
+             --shift_length 128 \
+             --threshold "${threshold}" \
+             data/${x} data/${x}/log 
+        
+        utils/fix_data_dir.sh data/${x}
+    done
+fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -12,19 +12,19 @@ corpus_dir=$2
 
 cd $dir
 
-echo "creating data/{train,dev,test}"
-mkdir -p data/{train,dev,test}
+echo "creating data/{train,dev,test,train_phn,dev_phn,test_phn}"
+mkdir -p data/{train,dev,test,train_phn,dev_phn,test_phn}
 
 #create wav.scp, utt2spk.scp, spk2utt.scp, text
 (
 for x in train dev test; do
-  echo "cleaning data/$x"
-  subset_dir=$dir/data/$x
+  echo "cleaning data/${x}"
+  subset_dir=${dir}/data/${x}
+  subset_phn_dir=${dir}/data/${x}_phn
   for f in wav.scp utt2spk spk2utt word.txt phone.txt text; do
       rm -rf "${subset_dir}/${f}"
   done
   echo "preparing scps and text in data/$x"
-  #for nn in `find  $corpus_dir/$x/*.wav | sort -u | xargs -i basename {} .wav`; do
   for nn in `find  $corpus_dir/$x -name "*.wav" | sort -u | xargs -I {} basename {} .wav`; do
       spkid=`echo $nn | awk -F"_" '{print "" $1}'`
       spk_char=`echo $spkid | sed 's/\([A-Z]\).*/\1/'`
@@ -37,21 +37,19 @@ for x in train dev test; do
       echo $uttid `sed -n 1p $corpus_dir/data/$nn.wav.trn` >> "${subset_dir}"/word.txt
       echo $uttid `sed -n 3p $corpus_dir/data/$nn.wav.trn` >> "${subset_dir}"/phone.txt
   done 
+
   cp "${subset_dir}"/word.txt "${subset_dir}"/text
-  sort "${subset_dir}"/wav.scp -o "${subset_dir}"/wav.scp
-  sort "${subset_dir}"/utt2spk -o "${subset_dir}"/utt2spk
-  sort "${subset_dir}"/text -o "${subset_dir}"/text
-  sort "${subset_dir}"/phone.txt -o "${subset_dir}"/phone.txt
+  for f in wav.scp utt2spk text phone.txt; do
+      sort "${subset_dir}"/${f} -o "${subset_dir}"/${f}
+  done
+  cp "${subset_dir}"/wav.scp "${subset_phn_dir}"/wav.scp
+  cp "${subset_dir}"/phone.txt "${subset_phn_dir}"/text
+  cp "${subset_dir}"/utt2spk "${subset_phn_dir}"/utt2spk
 done
 ) || exit 1
 
-utils/utt2spk_to_spk2utt.pl data/train/utt2spk > data/train/spk2utt
-utils/utt2spk_to_spk2utt.pl data/dev/utt2spk > data/dev/spk2utt
-utils/utt2spk_to_spk2utt.pl data/test/utt2spk > data/test/spk2utt
-
-echo "creating test_phone for phone decoding"
-(
-  rm -rf data/test_phone && cp -R data/test data/test_phone  || exit 1
-  cd data/test_phone && rm text &&  cp phone.txt text || exit 1
-)
+for x in train dev test train_phn dev_phn test_phn; do
+    utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
+    utils/fix_data_dir.sh data/${x}
+done
 
