@@ -8761,7 +8761,7 @@ and not store pre_compute_k and pre_compute_v</p></li>
 <span class="target" id="module-espnet.nets.pytorch_backend.conformer.encoder"></span><p>Encoder definition.</p>
 <dl class="class">
 <dt id="espnet.nets.pytorch_backend.conformer.encoder.Encoder">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.conformer.encoder.</code><code class="sig-name descname">Encoder</code><span class="sig-paren">(</span><em class="sig-param">idim</em>, <em class="sig-param">attention_dim=256</em>, <em class="sig-param">attention_heads=4</em>, <em class="sig-param">linear_units=2048</em>, <em class="sig-param">num_blocks=6</em>, <em class="sig-param">dropout_rate=0.1</em>, <em class="sig-param">positional_dropout_rate=0.1</em>, <em class="sig-param">attention_dropout_rate=0.0</em>, <em class="sig-param">input_layer='conv2d'</em>, <em class="sig-param">normalize_before=True</em>, <em class="sig-param">concat_after=False</em>, <em class="sig-param">positionwise_layer_type='linear'</em>, <em class="sig-param">positionwise_conv_kernel_size=1</em>, <em class="sig-param">macaron_style=False</em>, <em class="sig-param">pos_enc_layer_type='abs_pos'</em>, <em class="sig-param">selfattention_layer_type='selfattn'</em>, <em class="sig-param">activation_type='swish'</em>, <em class="sig-param">use_cnn_module=False</em>, <em class="sig-param">zero_triu=False</em>, <em class="sig-param">cnn_module_kernel=31</em>, <em class="sig-param">padding_idx=-1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/conformer/encoder.html#Encoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.conformer.encoder.Encoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.conformer.encoder.</code><code class="sig-name descname">Encoder</code><span class="sig-paren">(</span><em class="sig-param">idim</em>, <em class="sig-param">attention_dim=256</em>, <em class="sig-param">attention_heads=4</em>, <em class="sig-param">linear_units=2048</em>, <em class="sig-param">num_blocks=6</em>, <em class="sig-param">dropout_rate=0.1</em>, <em class="sig-param">positional_dropout_rate=0.1</em>, <em class="sig-param">attention_dropout_rate=0.0</em>, <em class="sig-param">input_layer='conv2d'</em>, <em class="sig-param">normalize_before=True</em>, <em class="sig-param">concat_after=False</em>, <em class="sig-param">positionwise_layer_type='linear'</em>, <em class="sig-param">positionwise_conv_kernel_size=1</em>, <em class="sig-param">macaron_style=False</em>, <em class="sig-param">pos_enc_layer_type='abs_pos'</em>, <em class="sig-param">selfattention_layer_type='selfattn'</em>, <em class="sig-param">activation_type='swish'</em>, <em class="sig-param">use_cnn_module=False</em>, <em class="sig-param">zero_triu=False</em>, <em class="sig-param">cnn_module_kernel=31</em>, <em class="sig-param">padding_idx=-1</em>, <em class="sig-param">stochastic_depth_rate=0.0</em>, <em class="sig-param">intermediate_layers=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/conformer/encoder.html#Encoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.conformer.encoder.Encoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Conformer encoder module.</p>
 <dl class="field-list simple">
@@ -8791,6 +8791,11 @@ if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
 <li><p><strong>zero_triu</strong> (<em>bool</em>) – Whether to zero the upper triangular part of attention matrix.</p></li>
 <li><p><strong>cnn_module_kernel</strong> (<em>int</em>) – Kernerl size of convolution module.</p></li>
 <li><p><strong>padding_idx</strong> (<em>int</em>) – Padding idx for input_layer=embed.</p></li>
+<li><p><strong>stochastic_depth_rate</strong> (<em>float</em>) – Maximum probability to skip the encoder layer.</p></li>
+<li><p><strong>intermediate_layers</strong> (<em>Union</em><em>[</em><em>List</em><em>[</em><em>int</em><em>]</em><em>, </em><em>None</em><em>]</em>) – indices of intermediate CTC layer.
+indices start from 1.
+if not None, intermediate outputs are returned (which changes return type
+signature.)</p></li>
 </ul>
 </dd>
 </dl>
@@ -8861,7 +8866,7 @@ torch.Tensor: Mask tensor (#batch, time).</p>
 <span class="target" id="module-espnet.nets.pytorch_backend.conformer.encoder_layer"></span><p>Encoder self-attention layer definition.</p>
 <dl class="class">
 <dt id="espnet.nets.pytorch_backend.conformer.encoder_layer.EncoderLayer">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.conformer.encoder_layer.</code><code class="sig-name descname">EncoderLayer</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">self_attn</em>, <em class="sig-param">feed_forward</em>, <em class="sig-param">feed_forward_macaron</em>, <em class="sig-param">conv_module</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">normalize_before=True</em>, <em class="sig-param">concat_after=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/conformer/encoder_layer.html#EncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.conformer.encoder_layer.EncoderLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.conformer.encoder_layer.</code><code class="sig-name descname">EncoderLayer</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">self_attn</em>, <em class="sig-param">feed_forward</em>, <em class="sig-param">feed_forward_macaron</em>, <em class="sig-param">conv_module</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">normalize_before=True</em>, <em class="sig-param">concat_after=False</em>, <em class="sig-param">stochastic_depth_rate=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/conformer/encoder_layer.html#EncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.conformer.encoder_layer.EncoderLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Encoder layer module.</p>
 <dl class="field-list simple">
@@ -8885,6 +8890,9 @@ can be used as the argument.</p></li>
 if True, additional linear will be applied.
 i.e. x -&gt; x + linear(concat(x, att(x)))
 if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
+<li><p><strong>stochastic_depth_rate</strong> (<em>float</em>) – Proability to skip this layer.
+During training, the layer may skip residual computation and return input
+as-is with given probability.</p></li>
 </ul>
 </dd>
 </dl>
@@ -11001,7 +11009,7 @@ between one and the target sequence’s length.
 <span class="target" id="module-espnet.nets.pytorch_backend.transformer.encoder"></span><p>Encoder definition.</p>
 <dl class="class">
 <dt id="espnet.nets.pytorch_backend.transformer.encoder.Encoder">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.encoder.</code><code class="sig-name descname">Encoder</code><span class="sig-paren">(</span><em class="sig-param">idim</em>, <em class="sig-param">attention_dim=256</em>, <em class="sig-param">attention_heads=4</em>, <em class="sig-param">conv_wshare=4</em>, <em class="sig-param">conv_kernel_length='11'</em>, <em class="sig-param">conv_usebias=False</em>, <em class="sig-param">linear_units=2048</em>, <em class="sig-param">num_blocks=6</em>, <em class="sig-param">dropout_rate=0.1</em>, <em class="sig-param">positional_dropout_rate=0.1</em>, <em class="sig-param">attention_dropout_rate=0.0</em>, <em class="sig-param">input_layer='conv2d'</em>, <em class="sig-param">pos_enc_class=&lt;class 'espnet.nets.pytorch_backend.transformer.embedding.PositionalEncoding'&gt;</em>, <em class="sig-param">normalize_before=True</em>, <em class="sig-param">concat_after=False</em>, <em class="sig-param">positionwise_layer_type='linear'</em>, <em class="sig-param">positionwise_conv_kernel_size=1</em>, <em class="sig-param">selfattention_layer_type='selfattn'</em>, <em class="sig-param">padding_idx=-1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/encoder.html#Encoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.encoder.Encoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.encoder.</code><code class="sig-name descname">Encoder</code><span class="sig-paren">(</span><em class="sig-param">idim</em>, <em class="sig-param">attention_dim=256</em>, <em class="sig-param">attention_heads=4</em>, <em class="sig-param">conv_wshare=4</em>, <em class="sig-param">conv_kernel_length='11'</em>, <em class="sig-param">conv_usebias=False</em>, <em class="sig-param">linear_units=2048</em>, <em class="sig-param">num_blocks=6</em>, <em class="sig-param">dropout_rate=0.1</em>, <em class="sig-param">positional_dropout_rate=0.1</em>, <em class="sig-param">attention_dropout_rate=0.0</em>, <em class="sig-param">input_layer='conv2d'</em>, <em class="sig-param">pos_enc_class=&lt;class 'espnet.nets.pytorch_backend.transformer.embedding.PositionalEncoding'&gt;</em>, <em class="sig-param">normalize_before=True</em>, <em class="sig-param">concat_after=False</em>, <em class="sig-param">positionwise_layer_type='linear'</em>, <em class="sig-param">positionwise_conv_kernel_size=1</em>, <em class="sig-param">selfattention_layer_type='selfattn'</em>, <em class="sig-param">padding_idx=-1</em>, <em class="sig-param">stochastic_depth_rate=0.0</em>, <em class="sig-param">intermediate_layers=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/encoder.html#Encoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.encoder.Encoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Transformer encoder module.</p>
 <dl class="field-list simple">
@@ -11034,6 +11042,11 @@ if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
 <li><p><strong>positionwise_conv_kernel_size</strong> (<em>int</em>) – Kernel size of positionwise conv1d layer.</p></li>
 <li><p><strong>selfattention_layer_type</strong> (<em>str</em>) – Encoder attention layer type.</p></li>
 <li><p><strong>padding_idx</strong> (<em>int</em>) – Padding idx for input_layer=embed.</p></li>
+<li><p><strong>stochastic_depth_rate</strong> (<em>float</em>) – Maximum probability to skip the encoder layer.</p></li>
+<li><p><strong>intermediate_layers</strong> (<em>Union</em><em>[</em><em>List</em><em>[</em><em>int</em><em>]</em><em>, </em><em>None</em><em>]</em>) – indices of intermediate CTC layer.
+indices start from 1.
+if not None, intermediate outputs are returned (which changes return type
+signature.)</p></li>
 </ul>
 </dd>
 </dl>
@@ -11737,7 +11750,7 @@ List[torch.Tensor]: List of cache tensors of each decoder layer.</p>
 <span class="target" id="module-espnet.nets.pytorch_backend.transformer.encoder_layer"></span><p>Encoder self-attention layer definition.</p>
 <dl class="class">
 <dt id="espnet.nets.pytorch_backend.transformer.encoder_layer.EncoderLayer">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.encoder_layer.</code><code class="sig-name descname">EncoderLayer</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">self_attn</em>, <em class="sig-param">feed_forward</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">normalize_before=True</em>, <em class="sig-param">concat_after=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/encoder_layer.html#EncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.encoder_layer.EncoderLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.encoder_layer.</code><code class="sig-name descname">EncoderLayer</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">self_attn</em>, <em class="sig-param">feed_forward</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">normalize_before=True</em>, <em class="sig-param">concat_after=False</em>, <em class="sig-param">stochastic_depth_rate=0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/encoder_layer.html#EncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.encoder_layer.EncoderLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Encoder layer module.</p>
 <dl class="field-list simple">
@@ -11756,6 +11769,9 @@ can be used as the argument.</p></li>
 if True, additional linear will be applied.
 i.e. x -&gt; x + linear(concat(x, att(x)))
 if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
+<li><p><strong>stochastic_depth_rate</strong> (<em>float</em>) – Proability to skip this layer.
+During training, the layer may skip residual computation and return input
+as-is with given probability.</p></li>
 </ul>
 </dd>
 </dl>

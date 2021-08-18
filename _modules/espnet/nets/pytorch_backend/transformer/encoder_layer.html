@@ -244,7 +244,9 @@
 <span class="sd">            if True, additional linear will be applied.</span>
 <span class="sd">            i.e. x -&gt; x + linear(concat(x, att(x)))</span>
 <span class="sd">            if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</span>
-
+<span class="sd">        stochastic_depth_rate (float): Proability to skip this layer.</span>
+<span class="sd">            During training, the layer may skip residual computation and return input</span>
+<span class="sd">            as-is with given probability.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -255,6 +257,7 @@
         <span class="n">dropout_rate</span><span class="p">,</span>
         <span class="n">normalize_before</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">concat_after</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">stochastic_depth_rate</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Construct an EncoderLayer object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">EncoderLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -268,6 +271,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">concat_after</span> <span class="o">=</span> <span class="n">concat_after</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">concat_after</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">concat_linear</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">size</span> <span class="o">+</span> <span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stochastic_depth_rate</span> <span class="o">=</span> <span class="n">stochastic_depth_rate</span>
 
 <div class="viewcode-block" id="EncoderLayer.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.encoder_layer.EncoderLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Compute encoded features.</span>
@@ -282,6 +286,19 @@
 <span class="sd">            torch.Tensor: Mask tensor (#batch, time).</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">skip_layer</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># with stochastic depth, residual connection `x + f(x)` becomes</span>
+        <span class="c1"># `x &lt;- x + 1 / (1 - p) * f(x)` at training time.</span>
+        <span class="n">stoch_layer_coeff</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">stochastic_depth_rate</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">skip_layer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">stochastic_depth_rate</span>
+            <span class="n">stoch_layer_coeff</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">stochastic_depth_rate</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">skip_layer</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">cache</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span>
+
         <span class="n">residual</span> <span class="o">=</span> <span class="n">x</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
             <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
@@ -296,16 +313,18 @@
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">concat_after</span><span class="p">:</span>
             <span class="n">x_concat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_attn</span><span class="p">(</span><span class="n">x_q</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">concat_linear</span><span class="p">(</span><span class="n">x_concat</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">+</span> <span class="n">stoch_layer_coeff</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">concat_linear</span><span class="p">(</span><span class="n">x_concat</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">self_attn</span><span class="p">(</span><span class="n">x_q</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">))</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">+</span> <span class="n">stoch_layer_coeff</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">self_attn</span><span class="p">(</span><span class="n">x_q</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+            <span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
             <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
         <span class="n">residual</span> <span class="o">=</span> <span class="n">x</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
             <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feed_forward</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">+</span> <span class="n">stoch_layer_coeff</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feed_forward</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
             <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 

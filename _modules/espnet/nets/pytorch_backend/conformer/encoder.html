@@ -274,6 +274,11 @@
 <span class="sd">        zero_triu (bool): Whether to zero the upper triangular part of attention matrix.</span>
 <span class="sd">        cnn_module_kernel (int): Kernerl size of convolution module.</span>
 <span class="sd">        padding_idx (int): Padding idx for input_layer=embed.</span>
+<span class="sd">        stochastic_depth_rate (float): Maximum probability to skip the encoder layer.</span>
+<span class="sd">        intermediate_layers (Union[List[int], None]): indices of intermediate CTC layer.</span>
+<span class="sd">            indices start from 1.</span>
+<span class="sd">            if not None, intermediate outputs are returned (which changes return type</span>
+<span class="sd">            signature.)</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -300,6 +305,8 @@
         <span class="n">zero_triu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">cnn_module_kernel</span><span class="o">=</span><span class="mi">31</span><span class="p">,</span>
         <span class="n">padding_idx</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">stochastic_depth_rate</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">intermediate_layers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Construct an Encoder object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Encoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -428,10 +435,13 @@
                 <span class="n">dropout_rate</span><span class="p">,</span>
                 <span class="n">normalize_before</span><span class="p">,</span>
                 <span class="n">concat_after</span><span class="p">,</span>
+                <span class="n">stochastic_depth_rate</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">lnum</span><span class="p">)</span> <span class="o">/</span> <span class="n">num_blocks</span><span class="p">,</span>
             <span class="p">),</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="n">attention_dim</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_layers</span> <span class="o">=</span> <span class="n">intermediate_layers</span>
 
 <div class="viewcode-block" id="Encoder.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.conformer.encoder.Encoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Encode input sequence.</span>
@@ -450,12 +460,33 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
 
-        <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_layers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">intermediate_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="n">encoder_layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">):</span>
+                <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span> <span class="o">=</span> <span class="n">encoder_layer</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_layers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="ow">and</span> <span class="n">layer_idx</span> <span class="o">+</span> <span class="mi">1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_layers</span>
+                <span class="p">):</span>
+                    <span class="c1"># intermediate branches also require normalization.</span>
+                    <span class="n">encoder_output</span> <span class="o">=</span> <span class="n">xs</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">encoder_output</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                        <span class="n">encoder_output</span> <span class="o">=</span> <span class="n">encoder_output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
+                            <span class="n">encoder_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">encoder_output</span><span class="p">)</span>
+                    <span class="n">intermediate_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">encoder_output</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
             <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
             <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_layers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span><span class="p">,</span> <span class="n">intermediate_outputs</span>
         <span class="k">return</span> <span class="n">xs</span><span class="p">,</span> <span class="n">masks</span></div></div>
 </pre></div>
 

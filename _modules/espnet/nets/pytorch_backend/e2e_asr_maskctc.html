@@ -291,6 +291,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">odim</span> <span class="o">-</span> <span class="mi">2</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">=</span> <span class="n">odim</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_weight</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">intermediate_ctc_weight</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_layers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">intermediate_ctc_layer</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_layers</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">intermediate_ctc_layer</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+            <span class="p">]</span>
+
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">maskctc_use_conformer_encoder</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">transformer_attn_dropout_rate</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">args</span><span class="o">.</span><span class="n">transformer_attn_dropout_rate</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">conformer_dropout_rate</span>
@@ -310,6 +317,8 @@
                 <span class="n">macaron_style</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">macaron_style</span><span class="p">,</span>
                 <span class="n">use_cnn_module</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">use_cnn_module</span><span class="p">,</span>
                 <span class="n">cnn_module_kernel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cnn_module_kernel</span><span class="p">,</span>
+                <span class="n">stochastic_depth_rate</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">stochastic_depth_rate</span><span class="p">,</span>
+                <span class="n">intermediate_layers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_layers</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_parameters</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
@@ -329,7 +338,7 @@
         <span class="c1"># 1. forward encoder</span>
         <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="p">[:,</span> <span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="n">ilens</span><span class="p">)]</span>  <span class="c1"># for data parallel</span>
         <span class="n">src_mask</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">xs_pad</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
-        <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hs_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">src_mask</span><span class="p">)</span>
+        <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hs_mask</span><span class="p">,</span> <span class="n">hs_intermediates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">src_mask</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hs_pad</span> <span class="o">=</span> <span class="n">hs_pad</span>
 
         <span class="c1"># 2. forward decoder</span>
@@ -348,6 +357,7 @@
 
         <span class="c1"># 4. compute ctc loss</span>
         <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="n">loss_intermediate_ctc</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">batch_size</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
             <span class="n">hs_len</span> <span class="o">=</span> <span class="n">hs_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
@@ -358,6 +368,15 @@
             <span class="c1"># for visualization</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_weight</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_layers</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">hs_intermediate</span> <span class="ow">in</span> <span class="n">hs_intermediates</span><span class="p">:</span>
+                    <span class="c1"># assuming hs_intermediates and hs_pad has same length / padding</span>
+                    <span class="n">loss_inter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="p">(</span>
+                        <span class="n">hs_intermediate</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">adim</span><span class="p">),</span> <span class="n">hs_len</span><span class="p">,</span> <span class="n">ys_pad</span>
+                    <span class="p">)</span>
+                    <span class="n">loss_intermediate_ctc</span> <span class="o">+=</span> <span class="n">loss_inter</span>
+
+                <span class="n">loss_intermediate_ctc</span> <span class="o">/=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_layers</span><span class="p">)</span>
 
         <span class="c1"># 5. compute cer/wer</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -372,7 +391,11 @@
             <span class="n">loss_att_data</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss_att</span><span class="p">)</span>
             <span class="n">loss_ctc_data</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">loss_ctc</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">loss_att</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">alpha</span> <span class="o">*</span> <span class="n">loss_ctc</span>
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_weight</span> <span class="o">*</span> <span class="n">loss_intermediate_ctc</span>
+                <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">loss_att</span>
+            <span class="p">)</span>
             <span class="n">loss_att_data</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss_att</span><span class="p">)</span>
             <span class="n">loss_ctc_data</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss_ctc</span><span class="p">)</span>
 
