@@ -14,7 +14,6 @@ from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 
-is_torch_1_2_plus = LooseVersion(torch.__version__) >= LooseVersion("1.2.0")
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
@@ -93,9 +92,6 @@ transformer_separator = TransformerSeparator(
 def test_single_channel_model(
     encoder, decoder, separator, stft_consistency, loss_type, mask_type, training
 ):
-    if not is_torch_1_2_plus:
-        pytest.skip("Pytorch Version Under 1.2 is not supported for Enh task")
-
     if loss_type == "ci_sdr":
         inputs = torch.randn(2, 300)
         ilens = torch.LongTensor([300, 200])
@@ -212,9 +208,6 @@ def test_forward_with_beamformer_net(
     stft_consistency,
     use_builtin_complex,
 ):
-    if not is_torch_1_2_plus:
-        pytest.skip("Pytorch Version Under 1.2 is not supported for Enh task")
-
     # Skip some testing cases
     if not loss_type.startswith("mask") and mask_type != "IBM":
         # `mask_type` has no effect when `loss_type` is not "mask..."
@@ -267,14 +260,8 @@ def test_forward_with_beamformer_net(
     )
     if training:
         enh_model.train()
-        if stft_consistency and not is_torch_1_2_plus:
-            # torchaudio.functional.istft is only available with pytorch 1.2+
-            return
     else:
         enh_model.eval()
-        if not is_torch_1_2_plus:
-            # torchaudio.functional.istft is only available with pytorch 1.2+
-            return
 
     kwargs = {
         "speech_mix": inputs,

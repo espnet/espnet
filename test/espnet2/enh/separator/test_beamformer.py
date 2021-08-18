@@ -227,7 +227,18 @@ def test_neural_beamformer_wpe_output(
         "wpd",
     ],
 )
-def test_neural_beamformer_bf_output(num_spk, use_noise_mask, beamformer_type):
+@pytest.mark.parametrize(
+    "diagonal_loading, mask_flooring, use_torch_solver",
+    [(True, True, True), (False, False, False)],
+)
+def test_neural_beamformer_bf_output(
+    num_spk,
+    use_noise_mask,
+    beamformer_type,
+    diagonal_loading,
+    mask_flooring,
+    use_torch_solver,
+):
     ch = 2
     inputs = random_speech[..., :ch].float()
     ilens = torch.LongTensor([16, 12])
@@ -247,6 +258,9 @@ def test_neural_beamformer_bf_output(num_spk, use_noise_mask, beamformer_type):
         badim=2,
         use_noise_mask=use_noise_mask,
         beamformer_type=beamformer_type,
+        diagonal_loading=diagonal_loading,
+        mask_flooring=mask_flooring,
+        use_torch_solver=use_torch_solver,
     )
     model.eval()
     input_spectrum, flens = stft(inputs, ilens)
