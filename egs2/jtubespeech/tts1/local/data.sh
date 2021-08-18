@@ -69,12 +69,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: utils/subset_data_dir.sh"
     # make evaluation and devlopment sets
     utils/subset_data_dir.sh --first data/all 500 data/devtest
-    utils/subset_data_dir.sh --first data/devtest 250 "data/${eval_set}"
-    utils/subset_data_dir.sh --last data/devtest 250 "data/${test_set}"
-    utils/copy_data_dir.sh data/all "data/${train_set}" 
-    utils/filter_scp.pl --exclude data/devtest/wav.scp \ 
-        data/all/wav.scp > "data/${train_set}/wav.scp" 
-    utils/fix_data_dir.sh "data/${train_set}"
+    utils/subset_data_dir.sh --first data/devtest 250 data/dev
+    utils/subset_data_dir.sh --last data/devtest 250 data/test
+    n=$(( $(wc -l < data/all/wav.scp) - 500 ))
+    utils/subset_data_dir.sh --last data/all ${n} data/${train_set}
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

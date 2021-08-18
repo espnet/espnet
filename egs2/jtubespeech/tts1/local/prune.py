@@ -57,26 +57,3 @@ if __name__ == '__main__':
                         fa.write(line)
             except KeyError:
                 pass
-
-    # test
-    """
-    from collections import defaultdict
-
-    dd_transcript = defaultdict(int)
-    dd_ctcscore = defaultdict(int)
-
-    with open(raw_transcript_path, 'r') as fr:
-        for line in fr:
-            line_list = line.strip().split()
-            stem = line_list[0][:11]
-            dd_transcript[stem] += 1
-
-    with open(ctcscore_path, 'r') as fr:
-        for line in fr:
-            line_list = line.strip().split()
-            dd_ctcscore[line_list[1]] += 1
-
-    for key in dd_transcript.keys():
-        assert dd_ctcscore[key] == dd_ctcscore[key]]
-    """
-

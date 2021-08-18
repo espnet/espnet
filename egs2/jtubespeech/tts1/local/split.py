@@ -49,20 +49,4 @@ if __name__ == '__main__':
                 stem_seg = stem + '_' + idx
                 sf.write(os.path.join(outdata_dir, 'wav16k', stem, "{}.wav".format(stem_seg)), wav_seg, sr)
                 with open(transcript_path, 'a') as fa:
-                    fa.write("{} {}\n".format(stem_seg, transcript))
-
-
-
-
-
-
-
-
-
-        
-
-
-
-
-
-    
+                    fa.write("{} {}\n".format(stem_seg, transcript)) 
