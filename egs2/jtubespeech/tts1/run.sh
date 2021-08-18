@@ -9,6 +9,7 @@ fs=16000
 n_fft=1024
 n_shift=256
 win_length=1024
+nj=8
 
 opts=
 if [ "${fs}" -eq 16000 ]; then
@@ -54,6 +55,7 @@ g2p=pyopenjtalk
     --token_type phn \
     --cleaner jaconv \
     --g2p "${g2p}" \
+    --nj "${nj}" \
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
