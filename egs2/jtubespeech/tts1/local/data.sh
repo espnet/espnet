@@ -36,10 +36,6 @@ if [ -z "${JTUBESPEECH}" ]; then
 fi
 db_root=${JTUBESPEECH}
 
-train_set=tr_no_dev
-eval_set=dev
-test_set=test
-
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data Download"
     local/download.sh "${db_root}"
@@ -71,8 +67,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     utils/subset_data_dir.sh data/all 500 data/devtest
     utils/subset_data_dir.sh --first data/devtest 250 data/dev
     utils/subset_data_dir.sh --last data/devtest 250 data/test
-    n=$(( $(wc -l < data/all/wav.scp) - 500 ))
-    utils/subset_data_dir.sh --last data/all ${n} data/${train_set}
+    utils/copy_data_dir.sh data/all data/tr_no_dev
+    utils/filter_scp.pl --exclude data/deveval/wav.scp \
+        data/all/wav.scp > data/tr_no_dev/wav.scp
+    utils/fix_data_dir.sh data/tr_no_dev
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
