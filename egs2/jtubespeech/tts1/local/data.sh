@@ -68,7 +68,7 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: utils/subset_data_dir.sh"
     # make evaluation and devlopment sets
-    utils/subset_data_dir.sh --first data/all 500 data/devtest
+    utils/subset_data_dir.sh data/all 500 data/devtest
     utils/subset_data_dir.sh --first data/devtest 250 data/dev
     utils/subset_data_dir.sh --last data/devtest 250 data/test
     n=$(( $(wc -l < data/all/wav.scp) - 500 ))
