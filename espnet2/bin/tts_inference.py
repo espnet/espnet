@@ -164,6 +164,8 @@ class Text2Speech:
 
         if output_dict.get("att_w") is not None:
             duration, focus_rate = self.duration_calculator(output_dict["att_w"])
+            output_dict["duration"] = duration
+            output_dict["focus_rate"] = focus_rate
 
         if self.spc2wav is not None:
             if output_dict.get("feat_gen_denorm") is not None:
