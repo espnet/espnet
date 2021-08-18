@@ -10,7 +10,7 @@ log() {
 }
 SECONDS=0
 
-stage=2
+stage=0
 stop_stage=2
 threshold=35
 nj=16

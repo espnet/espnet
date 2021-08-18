@@ -38,7 +38,7 @@ g2p=pypinyin_g2p_phone
 ./tts.sh \
     --lang zh \
     --feats_type raw \
-    --stage 1 \
+    --stage 2 \
     --fs "${fs}" \
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
