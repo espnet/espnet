@@ -378,6 +378,8 @@
 
         <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;att_w&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">duration</span><span class="p">,</span> <span class="n">focus_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_calculator</span><span class="p">(</span><span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;att_w&quot;</span><span class="p">])</span>
+            <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;duration&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">duration</span>
+            <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;focus_rate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">focus_rate</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spc2wav</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;feat_gen_denorm&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
