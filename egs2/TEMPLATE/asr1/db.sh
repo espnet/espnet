@@ -43,6 +43,7 @@ JVS=downloads
 KSS=
 SPGISPEECH=
 SWBD=
+SWBD_NXT=
 TIMIT=$(realpath ../../../../TIMIT)
 VOXFORGE=downloads
 AMI=
