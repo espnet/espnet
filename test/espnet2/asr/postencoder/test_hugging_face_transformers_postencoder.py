@@ -17,7 +17,7 @@ from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
         "microsoft/mpnet-base",
     ],
 )
-@pytest.mark.execution_timeout(30)
+@pytest.mark.execution_timeout(50)
 def test_transformers_forward(model_name_or_path):
     idim = 400
     postencoder = HuggingFaceTransformersPostEncoder(idim, model_name_or_path)
