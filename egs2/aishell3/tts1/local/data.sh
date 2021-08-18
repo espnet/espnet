@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+set -e
+set -u
+set -o pipefail
+
+log() {
+    local fname=${BASH_SOURCE[1]##*/}
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
+}
+SECONDS=0
+
+stage=1
+stop_stage=2
+
+
+
+log "$0 $*"
+. utils/parse_options.sh
+
+
+if [ $# -ne 0 ]; then
+    log "Error: No positional arguments are required."
+    exit 2
+fi
+
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
+. ./db.sh || exit 1;
+
+if [ -z "${AISHELL3}" ]; then
+   log "Fill the value of 'AISHELL3' of db.sh"
+   exit 1
+fi
+db_root=${AISHELL3}
+
+train_set=train
+eval_set=test
+
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    log "stage -1: download data from openslr"
+    local/download_and_untar.sh "${db_root}" "https://www.openslr.org/resources/93/data_aishell3.tgz" data_aishell3.tgz 
+fi
+
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    log "stage 1: prepare aishell3 data"
+    mkdir -p data
+    for x in train test; do
+        mkdir -p data/${x}
+        python local/data_prep.py --src "${db_root}"/${x}/ --dest data/${x}
+        sort data/${x}/utt2spk -o data/${x}/utt2spk
+        sort data/${x}/wav.scp -o data/${x}/wav.scp
+        sort data/${x}/text -o data/${x}/text
+        utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
+        utils/validate_data_dir.sh --no-feats data/${x}
+    done
+fi
+
+log "Successfully finished. [elapsed=${SECONDS}s]"
+

@@ -2,6 +2,7 @@
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
 AISHELL=downloads
+AISHELL3=downloads
 AN4=downloads
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
@@ -43,6 +44,7 @@ JVS=downloads
 KSS=
 SPGISPEECH=
 SWBD=
+THCHS30=downloads
 TIMIT=$(realpath ../../../../TIMIT)
 VOXFORGE=downloads
 AMI=
@@ -94,6 +96,7 @@ CMU_INDIC=downloads
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AISHELL=
+    AISHELL3=downloads
     AN4=
     DIRHA_ENGLISH_PHDEV=
     DIRHA_WSJ=
@@ -132,6 +135,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     JSUT=downloads
     JVS=downloads
     KSS=
+    THCHS30=downloads
     TIMIT=
     VOXFORGE=
     AMI=/export/corpora4/ami/amicorpus
