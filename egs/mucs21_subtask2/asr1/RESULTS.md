@@ -5,7 +5,6 @@
   - preprocess config file: `conf/specaug.yaml`
 
 - Results
-WER:
 ```
 Test Set (UnA):
     Ben-Eng:
