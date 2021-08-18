@@ -70,6 +70,39 @@ espnet2.asr.specaug.specaug
     :show-inheritance:
 
 
+.. _espnet2.asr.postencoder.abs_postencoder:
+
+espnet2.asr.postencoder.abs_postencoder
+---------------------------------------
+
+.. automodule:: espnet2.asr.postencoder.abs_postencoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.postencoder.hugging_face_transformers_postencoder:
+
+espnet2.asr.postencoder.hugging_face_transformers_postencoder
+-------------------------------------------------------------
+
+.. automodule:: espnet2.asr.postencoder.hugging_face_transformers_postencoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.postencoder.__init__:
+
+espnet2.asr.postencoder.__init__
+--------------------------------
+
+.. automodule:: espnet2.asr.postencoder.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.decoder.__init__:
 
 espnet2.asr.decoder.__init__

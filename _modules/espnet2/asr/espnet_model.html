@@ -234,6 +234,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.postencoder.abs_postencoder</span> <span class="kn">import</span> <span class="n">AbsPostEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.abs_preencoder</span> <span class="kn">import</span> <span class="n">AbsPreEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.abs_specaug</span> <span class="kn">import</span> <span class="n">AbsSpecAug</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
@@ -261,6 +262,7 @@
         <span class="n">normalize</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsNormalize</span><span class="p">],</span>
         <span class="n">preencoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsPreEncoder</span><span class="p">],</span>
         <span class="n">encoder</span><span class="p">:</span> <span class="n">AbsEncoder</span><span class="p">,</span>
+        <span class="n">postencoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsPostEncoder</span><span class="p">],</span>
         <span class="n">decoder</span><span class="p">:</span> <span class="n">AbsDecoder</span><span class="p">,</span>
         <span class="n">ctc</span><span class="p">:</span> <span class="n">CTC</span><span class="p">,</span>
         <span class="n">rnnt_decoder</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
@@ -291,6 +293,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">specaug</span> <span class="o">=</span> <span class="n">specaug</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">preencoder</span> <span class="o">=</span> <span class="n">preencoder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">postencoder</span> <span class="o">=</span> <span class="n">postencoder</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span>
         <span class="c1"># we set self.decoder = None in the CTC mode since</span>
         <span class="c1"># self.decoder parameters were never used and PyTorch complained</span>
@@ -441,6 +444,12 @@
         <span class="c1"># feats: (Batch, Length, Dim)</span>
         <span class="c1"># -&gt; encoder_out: (Batch, Length2, Dim2)</span>
         <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">)</span>
+
+        <span class="c1"># Post-encoder, e.g. NLU</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">postencoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">postencoder</span><span class="p">(</span>
+                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span>
+            <span class="p">)</span>
 
         <span class="k">assert</span> <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="p">(</span>
             <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span>

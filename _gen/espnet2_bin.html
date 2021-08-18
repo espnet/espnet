@@ -537,6 +537,8 @@ Text converter related:
                     [--preencoder_conf PREENCODER_CONF]
                     [--encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,wav2vec2}]
                     [--encoder_conf ENCODER_CONF]
+                    [--postencoder {hugging_face_transformers,None}]
+                    [--postencoder_conf POSTENCODER_CONF]
                     [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}]
                     [--decoder_conf DECODER_CONF]
 
@@ -905,6 +907,10 @@ Optimizer related:
                         The encoder type (default: rnn)
   --encoder_conf ENCODER_CONF
                         The keyword arguments for encoder (default: {})
+  --postencoder {hugging_face_transformers,None}
+                        The postencoder type (default: None)
+  --postencoder_conf POSTENCODER_CONF
+                        The keyword arguments for postencoder (default: {})
   --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}
                         The decoder type (default: rnn)
   --decoder_conf DECODER_CONF

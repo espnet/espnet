@@ -307,7 +307,11 @@
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;frontend&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span>
             <span class="n">model</span><span class="o">.</span><span class="n">frontend</span><span class="p">,</span> <span class="s2">&quot;reload_pretrained_parameters&quot;</span><span class="p">,</span> <span class="kc">None</span>
         <span class="p">):</span>
-            <span class="n">model</span><span class="o">.</span><span class="n">frontend</span><span class="o">.</span><span class="n">reload_pretrained_parameters</span><span class="p">()</span></div>
+            <span class="n">model</span><span class="o">.</span><span class="n">frontend</span><span class="o">.</span><span class="n">reload_pretrained_parameters</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;postencoder&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">postencoder</span><span class="p">,</span> <span class="s2">&quot;reload_pretrained_parameters&quot;</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">postencoder</span><span class="o">.</span><span class="n">reload_pretrained_parameters</span><span class="p">()</span></div>
 </pre></div>
 
            </div>

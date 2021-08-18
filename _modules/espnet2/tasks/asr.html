@@ -254,6 +254,10 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.default</span> <span class="kn">import</span> <span class="n">DefaultFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.s3prl</span> <span class="kn">import</span> <span class="n">S3prlFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.windowing</span> <span class="kn">import</span> <span class="n">SlidingWindow</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.postencoder.abs_postencoder</span> <span class="kn">import</span> <span class="n">AbsPostEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.postencoder.hugging_face_transformers_postencoder</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">HuggingFaceTransformersPostEncoder</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.abs_preencoder</span> <span class="kn">import</span> <span class="n">AbsPreEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.linear</span> <span class="kn">import</span> <span class="n">LinearProjection</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.sinc</span> <span class="kn">import</span> <span class="n">LightweightSincConvs</span>
@@ -325,6 +329,15 @@
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsEncoder</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;rnn&quot;</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="n">postencoder_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;postencoder&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">hugging_face_transformers</span><span class="o">=</span><span class="n">HuggingFaceTransformersPostEncoder</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsPostEncoder</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">optional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="n">decoder_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
     <span class="s2">&quot;decoder&quot;</span><span class="p">,</span>
     <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
@@ -356,6 +369,8 @@
         <span class="n">preencoder_choices</span><span class="p">,</span>
         <span class="c1"># --encoder and --encoder_conf</span>
         <span class="n">encoder_choices</span><span class="p">,</span>
+        <span class="c1"># --postencoder and --postencoder_conf</span>
+        <span class="n">postencoder_choices</span><span class="p">,</span>
         <span class="c1"># --decoder and --decoder_conf</span>
         <span class="n">decoder_choices</span><span class="p">,</span>
     <span class="p">]</span>
@@ -636,18 +651,30 @@
         <span class="n">encoder_class</span> <span class="o">=</span> <span class="n">encoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">encoder</span><span class="p">)</span>
         <span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder_class</span><span class="p">(</span><span class="n">input_size</span><span class="o">=</span><span class="n">input_size</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">encoder_conf</span><span class="p">)</span>
 
+        <span class="c1"># 5. Post-encoder block</span>
+        <span class="c1"># NOTE(kan-bayashi): Use getattr to keep the compatibility</span>
+        <span class="n">encoder_output_size</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;postencoder&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">postencoder_class</span> <span class="o">=</span> <span class="n">postencoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">postencoder</span><span class="p">)</span>
+            <span class="n">postencoder</span> <span class="o">=</span> <span class="n">postencoder_class</span><span class="p">(</span>
+                <span class="n">input_size</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">postencoder_conf</span>
+            <span class="p">)</span>
+            <span class="n">encoder_output_size</span> <span class="o">=</span> <span class="n">postencoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">postencoder</span> <span class="o">=</span> <span class="kc">None</span>
+
         <span class="c1"># 5. Decoder</span>
         <span class="n">decoder_class</span> <span class="o">=</span> <span class="n">decoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">decoder</span><span class="p">)</span>
 
         <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_class</span><span class="p">(</span>
             <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
-            <span class="n">encoder_output_size</span><span class="o">=</span><span class="n">encoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">(),</span>
+            <span class="n">encoder_output_size</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span>
             <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># 6. CTC</span>
         <span class="n">ctc</span> <span class="o">=</span> <span class="n">CTC</span><span class="p">(</span>
-            <span class="n">odim</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">encoder_output_sizse</span><span class="o">=</span><span class="n">encoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">(),</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">ctc_conf</span>
+            <span class="n">odim</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">encoder_output_sizse</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">ctc_conf</span>
         <span class="p">)</span>
 
         <span class="c1"># 7. RNN-T Decoder (Not implemented)</span>
@@ -661,6 +688,7 @@
             <span class="n">normalize</span><span class="o">=</span><span class="n">normalize</span><span class="p">,</span>
             <span class="n">preencoder</span><span class="o">=</span><span class="n">preencoder</span><span class="p">,</span>
             <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span>
+            <span class="n">postencoder</span><span class="o">=</span><span class="n">postencoder</span><span class="p">,</span>
             <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
             <span class="n">ctc</span><span class="o">=</span><span class="n">ctc</span><span class="p">,</span>
             <span class="n">rnnt_decoder</span><span class="o">=</span><span class="n">rnnt_decoder</span><span class="p">,</span>
