@@ -13,6 +13,7 @@ SECONDS=0
 stage=1
 stop_stage=3
 threshold=35
+nj=40
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -41,6 +42,7 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: prepare aishell3 data"
     mkdir -p data
+    echo '''
     for x in train test; do
         mkdir -p data/${x}
         python local/data_prep.py --src "${db_root}"/${x}/ --dest data/${x}
@@ -49,16 +51,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         sort data/${x}/text -o data/${x}/text
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
         utils/validate_data_dir.sh --no-feats data/${x}
-    done
+    done'''
 
     for x in train_phn test_phn; do
         mkdir -p data/${x}
-        python local/data_prep.py --src "${db_root}"/${x}/ --dest data/${x} --external_phn false
+        python local/data_prep.py --src "${db_root}"/$(echo ${x} | cut -d'_' -f 1)/ --dest data/${x} --external_g2p false
         sort data/${x}/utt2spk -o data/${x}/utt2spk
         sort data/${x}/wav.scp -o data/${x}/wav.scp
         sort data/${x}/text -o data/${x}/text
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
-        utils/validate_data_dir.sh --no_feats data/${x}
+        utils/validate_data_dir.sh --no-feats data/${x}
     done
 fi
 
@@ -66,13 +68,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: scripts/audio/trim_silence.sh"
     for x in train test train_phn test_phn; do
         # shellcheck disable=SC2154
-        scripts/audio/trim_silence.sh \ 
-             --cmd "${train_cmd}" \ 
-             --nj "${nj}" \ 
-             --fs 44100 \ 
-             --win_length 2048 \ 
-             --shift_length 512 \ 
-             --threshold "${threshold}" \ 
+        scripts/audio/trim_silence.sh \
+             --cmd "${train_cmd}" \
+             --nj "${nj}" \
+             --fs 44100 \
+             --win_length 2048 \
+             --shift_length 512 \
+             --threshold "${threshold}" \
              data/${x} data/${x}/log
 
         utils/fix_data_dir.sh data/${x}
