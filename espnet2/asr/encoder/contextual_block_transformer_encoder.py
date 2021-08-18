@@ -190,7 +190,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         Returns:
             position embedded tensor and mask
         """
-        if self.training:
+        if self.training or xs_pad.size(0)>1:
             return self.forward_train(xs_pad, ilens, prev_states)
         else:
             return self.forward_infer(xs_pad, ilens, prev_states, is_final)
@@ -403,7 +403,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                     "n_processed_blocks": n_processed_blocks,
                     "past_encoder_ctx": past_encoder_ctx
                 }
-                return xs_pad.new_zeros(bsize, 0, 512), \
+                return xs_pad.new_zeros(bsize, 0, self._output_size), \
                     xs_pad.new_zeros(bsize), next_states
         
             n_res_samples = xs_pad.size(1) % 6 + 12
@@ -444,7 +444,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                     "n_processed_blocks": n_processed_blocks,
                     "past_encoder_ctx": past_encoder_ctx
                 }
-                return xs_pad.new_zeros(bsize, 0, 512), \
+                return xs_pad.new_zeros(bsize, 0, self._output_size), \
                     xs_pad.new_zeros(bsize), next_states
 
             overlap_size = self.block_size - self.hop_size
