@@ -86,12 +86,16 @@ ZEROTH_KOREAN=downloads
 JAVA=downloads
 RU_OPEN_STT=downloads
 RUSLAN=downloads
+SIWIS=downloads
 GIGASPEECH=
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
 SUNDA=downloads
 CMU_INDIC=downloads
+JKAC=
+MUCS_SUBTASK1=downloads
+MUCS_SUBTASK2=downloads
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
@@ -178,7 +182,10 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     JAVA=
     RU_OPEN_STT=downloads
     RUSLAN=downloads
+    SIWIS=downloads
     SUNDA=
     CMU_INDIC=
-
+    JKAC=
+    MUCS_SUBTASK1=downloads
+    MUCS_SUBTASK2=downloads
 fi

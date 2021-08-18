@@ -243,6 +243,34 @@ class PhonemeTokenizer(AbsTokenizer):
                 with_stress=True,
                 preserve_punctuation=True,
             )
+        elif g2p_type == "espeak_ng_greek":
+            self.g2p = Phonemizer(
+                language="el",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_finnish":
+            self.g2p = Phonemizer(
+                language="fi",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_hungarian":
+            self.g2p = Phonemizer(
+                language="hu",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_dutch":
+            self.g2p = Phonemizer(
+                language="nl",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
         elif g2p_type == "g2pk":
             self.g2p = G2pk(no_space=False)
         elif g2p_type == "g2pk_no_space":

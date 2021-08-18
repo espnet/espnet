@@ -7,8 +7,8 @@
 |ubuntu20/python3.9/pip|||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
 |ubuntu20/python3.8/pip|||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
 |ubuntu18/python3.7/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|debian9/python3.6/conda|||||||[![debian9](https://github.com/espnet/espnet/workflows/debian9/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adebian9)|
-|centos7/python3.6/conda||||||[![centos7](https://github.com/espnet/espnet/workflows/centos7/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Acentos7)||
+|debian9/python3.7/conda|||||||[![debian9](https://github.com/espnet/espnet/workflows/debian9/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adebian9)|
+|centos7/python3.7/conda||||||[![centos7](https://github.com/espnet/espnet/workflows/centos7/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Acentos7)||
 |doc/python3.8|||||||[![doc](https://github.com/espnet/espnet/workflows/doc/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adoc)|
 
 [![PyPI version](https://badge.fury.io/py/espnet.svg)](https://badge.fury.io/py/espnet)
@@ -66,7 +66,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
     - modified Adaptive Expansion Search based on [Kim et al. (2021)](https://ieeexplore.ieee.org/abstract/document/9250505) and NSC.
   - Features:
     - Multi-task learning with various auxiliary tasks: CTC, Label smoothing, auxiliary RNN-T and symmetric KL divergence.
-    - Transfer learning with acoustic model and/or language model.  
+    - Transfer learning with acoustic model and/or language model.
   > Please refer to the [tutorial page](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
 - CTC segmentation
 - Non-autoregressive model based on Mask-CTC
@@ -507,7 +507,7 @@ You can download converted samples of the cascade ASR+TTS baseline system [here]
 
 - Transformer based SLU for Fluent Speech Command Dataset
 
-In SLU, The objective is to infer the meaning or intent of spoken utterance. The [Fluent Speech Command Dataset](https://fluent.ai/fluent-speech-commands-a-dataset-for-spoken-language-understanding-research/) describes an intent as combination of 3 slot values: action, object and location. You can see baseline results on this dataset [here](https://github.com/espnet/espnet/blob/master/egs2/fsc/asr1/RESULTS.md) 
+In SLU, The objective is to infer the meaning or intent of spoken utterance. The [Fluent Speech Command Dataset](https://fluent.ai/fluent-speech-commands-a-dataset-for-spoken-language-understanding-research/) describes an intent as combination of 3 slot values: action, object and location. You can see baseline results on this dataset [here](https://github.com/espnet/espnet/blob/master/egs2/fsc/asr1/RESULTS.md)
 
 
 </div></details>
