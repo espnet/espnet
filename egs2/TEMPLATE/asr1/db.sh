@@ -44,6 +44,7 @@ JVS=downloads
 KSS=
 SPGISPEECH=
 SWBD=
+SWBD_NXT=
 THCHS30=downloads
 TIMIT=$(realpath ../../../../TIMIT)
 VOXFORGE=downloads
