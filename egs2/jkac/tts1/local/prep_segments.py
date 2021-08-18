@@ -11,51 +11,54 @@ import sys
 import yaml
 
 
-class JKACPath(namedtuple("JKACPath", ["label_path",
-                                       "wav_path",
-                                       "category",
-                                       "title"])):
-
+class JKACPath(namedtuple("JKACPath", ["label_path", "wav_path", "category", "title"])):
     def recording_id(self):
         return "{}_{}".format(self.category, self.title)
 
     def wav_scp_str(self, sample_rate=None):
         if sample_rate is not None:
-            return "{} sox {} -t wav -r {} - |".format(self.recording_id(),
-                                                       self.wav_path,
-                                                       sample_rate)
+            return "{} sox {} -t wav -r {} - |".format(
+                self.recording_id(), self.wav_path, sample_rate
+            )
         else:
             return "{} {}".format(self.recording_id(), self.wav_path)
 
 
-class JKACLabel(namedtuple("JKACLabel", ["path",
-                                         "chapter_id",
-                                         "paragraph_id",
-                                         "style_id",
-                                         "sentence_id",
-                                         "sentence",
-                                         "time_begin",
-                                         "time_end"])):
-
+class JKACLabel(
+    namedtuple(
+        "JKACLabel",
+        [
+            "path",
+            "chapter_id",
+            "paragraph_id",
+            "style_id",
+            "sentence_id",
+            "sentence",
+            "time_begin",
+            "time_end",
+        ],
+    )
+):
     def utt_id(self):
-        return "{}_{}_{}_{}_{}_{}".format(self.path.category,
-                                          self.path.title,
-                                          self.chapter_id,
-                                          self.paragraph_id,
-                                          self.style_id,
-                                          self.sentence_id)
+        return "{}_{}_{}_{}_{}_{}".format(
+            self.path.category,
+            self.path.title,
+            self.chapter_id,
+            self.paragraph_id,
+            self.style_id,
+            self.sentence_id,
+        )
 
     def segment_file_str(self):
-        return "{} {} {:.3f} {:.3f}".format(self.utt_id(),
-                                            self.path.recording_id(),
-                                            self.time_begin,
-                                            self.time_end)
+        return "{} {} {:.3f} {:.3f}".format(
+            self.utt_id(), self.path.recording_id(), self.time_begin, self.time_end
+        )
 
     def kanji_sentence(self):
-        return re.sub(r'\[(.+?)\|(.+?)\]', r'\1', self.sentence).replace("　", ' ')
+        return re.sub(r"\[(.+?)\|(.+?)\]", r"\1", self.sentence).replace("　", " ")
 
     def furigana_sentence(self):
-        return re.sub(r'\[(.+?)\|(.+?)\]', r'\2', self.sentence).replace("　", ' ')
+        return re.sub(r"\[(.+?)\|(.+?)\]", r"\2", self.sentence).replace("　", " ")
 
     def text_file_str(self):
         return "{} {}".format(self.utt_id(), self.kanji_sentence())
@@ -73,8 +76,9 @@ def get_parser():
     parser.add_argument("wav_scp_path", type=str, help="path to output 'wav.scp' file")
     parser.add_argument("utt2spk_path", type=str, help="path to output 'utt2spk' file")
     parser.add_argument("text_path", type=str, help="path to output 'text' file")
-    parser.add_argument("segments_path", type=str,
-                        help="path to output 'segments' file")
+    parser.add_argument(
+        "segments_path", type=str, help="path to output 'segments' file"
+    )
     parser.add_argument("sample_rate", type=str, help="sampling rate")
     return parser
 
@@ -91,10 +95,12 @@ def list_labels(root_path):
                 title = label_filename.replace(".yaml", "")
                 label_path = os.path.join(category_txt_path, label_filename)
                 wav_path = os.path.join(category_wav_path, title + ".wav")
-                yield JKACPath(label_path=label_path,
-                               wav_path=wav_path,
-                               category=category,
-                               title=title)
+                yield JKACPath(
+                    label_path=label_path,
+                    wav_path=wav_path,
+                    category=category,
+                    title=title,
+                )
 
 
 def read_label(path):
@@ -111,24 +117,27 @@ def parse_label(book_dict, path):
             for style_id in paragraph.keys():
                 style = paragraph[style_id]
                 for sentence_id, sentence in enumerate(style):
-                    yield JKACLabel(path=path,
-                                    chapter_id=chapter_id,
-                                    paragraph_id=paragraph_id,
-                                    style_id=style_id,
-                                    sentence_id=sentence_id + 1,
-                                    sentence=sentence["sent"],
-                                    time_begin=sentence["time"][0],
-                                    time_end=sentence["time"][1])
+                    yield JKACLabel(
+                        path=path,
+                        chapter_id=chapter_id,
+                        paragraph_id=paragraph_id,
+                        style_id=style_id,
+                        sentence_id=sentence_id + 1,
+                        sentence=sentence["sent"],
+                        time_begin=sentence["time"][0],
+                        time_end=sentence["time"][1],
+                    )
 
 
 if __name__ == "__main__":
     args = get_parser().parse_args(sys.argv[1:])
     sample_rate = None if args.sample_rate == "48000" else args.sample_rate
 
-    with open(args.wav_scp_path, "w") as wav_scp_f, \
-            open(args.utt2spk_path, "w") as utt2spk_f, \
-            open(args.text_path, "w") as text_f, \
-            open(args.segments_path, "w") as segments_f:
+    with open(args.wav_scp_path, "w") as wav_scp_f, open(
+        args.utt2spk_path, "w"
+    ) as utt2spk_f, open(args.text_path, "w") as text_f, open(
+        args.segments_path, "w"
+    ) as segments_f:
         paths = list(list_labels(args.input_dir))
         paths.sort(key=lambda p: p.recording_id())
         for path in paths:
