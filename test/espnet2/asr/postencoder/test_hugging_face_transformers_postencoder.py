@@ -9,12 +9,12 @@ from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
-        "bert-base-cased",
-        "gpt2",
-        "xlnet-base-cased",
-        "t5-small",
-        "facebook/bart-base",
-        "microsoft/mpnet-base",
+        "hf-internal-testing/tiny-random-bert",
+        "hf-internal-testing/tiny-random-gpt2",
+        "hf-internal-testing/tiny-random-xlnet",
+        "hf-internal-testing/tiny-random-t5",
+        "hf-internal-testing/tiny-random-mbart",
+        "hf-internal-testing/tiny-random-mpnet",
     ],
 )
 @pytest.mark.execution_timeout(50)
@@ -32,7 +32,9 @@ def test_transformers_forward(model_name_or_path):
 
 @pytest.mark.execution_timeout(30)
 def test_reload_pretrained_parameters():
-    postencoder = HuggingFaceTransformersPostEncoder(400, "t5-small")
+    postencoder = HuggingFaceTransformersPostEncoder(
+        400, "hf-internal-testing/tiny-random-bert"
+    )
     saved_param = postencoder.parameters().__next__().detach().clone()
 
     postencoder.parameters().__next__().data *= 0
