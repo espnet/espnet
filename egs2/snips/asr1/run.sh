@@ -10,7 +10,7 @@ valid_set=dev
 test_sets="dev test"
 
 asr_config=conf/tuning/train_asr_transformer_adam.yaml
-inference_config=conf/decode_asr_rnn.yaml
+inference_config=conf/decode_asr_transformer.yaml
 
 
 # speed perturbation related
@@ -19,6 +19,7 @@ speed_perturb_factors="0.9 1.0 1.1"
 
 ./asr.sh                                               \
     --use_lm false                                     \
+    # need to remove this during score stage
     --nlsyms_txt  "data/non_linguistic_symbols.txt"    \
     --audio_format wav                                 \
     --feats_type raw                                   \

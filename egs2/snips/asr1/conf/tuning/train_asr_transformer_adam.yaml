@@ -22,10 +22,14 @@ decoder_conf:
     positional_dropout_rate: 0.1
     self_attention_dropout_rate: 0.0
     src_attention_dropout_rate: 0.0
+
 optim: adam
 optim_conf:
     lr: 0.001
 scheduler: warmuplr     # pytorch v1.1.0+ required
 scheduler_conf:
-    warmup_steps: 2000
-max_epoch: 80
+    warmup_steps: 800
+max_epoch: 10
+
+model_conf:
+        ctc_weight: 0.0
