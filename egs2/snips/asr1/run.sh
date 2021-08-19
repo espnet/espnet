@@ -19,11 +19,11 @@ speed_perturb_factors="0.9 1.0 1.1"
 
 ./asr.sh                                               \
     --use_lm false                                     \
-    # need to remove this during score stage
+    # need to remove this during score stage, keep this for made char dict
     --nlsyms_txt  "data/non_linguistic_symbols.txt"    \
     --audio_format wav                                 \
     --feats_type raw                                   \
-    --token_type char                                  \
+    --token_type word                                  \
     --asr_config "${asr_config}"                       \
     --inference_config "${inference_config}"           \
     --train_set "${train_set}"                         \
