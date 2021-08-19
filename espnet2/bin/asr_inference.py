@@ -54,6 +54,8 @@ class Speech2Text:
         asr_model_file: Union[Path, str] = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
+        ngram_scorer: str = "full",
+        ngram_file: Union[Path, str] = None,
         token_type: str = None,
         bpemodel: str = None,
         device: str = "cpu",
@@ -64,6 +66,7 @@ class Speech2Text:
         beam_size: int = 20,
         ctc_weight: float = 0.5,
         lm_weight: float = 1.0,
+        ngram_weight: float = 0.9,
         penalty: float = 0.0,
         nbest: int = 1,
         streaming: bool = False,
@@ -93,11 +96,26 @@ class Speech2Text:
             )
             scorers["lm"] = lm.lm
 
-        # 3. Build BeamSearch object
+        # 3. Build ngram model
+        if ngram_file is not None:
+            if ngram_scorer == "full":
+                from espnet.nets.scorers.ngram import NgramFullScorer
+
+                ngram = NgramFullScorer(ngram_file, token_list)
+            else:
+                from espnet.nets.scorers.ngram import NgramPartScorer
+
+                ngram = NgramPartScorer(ngram_file, token_list)
+        else:
+            ngram = None
+        scorers["ngram"] = ngram
+
+        # 4. Build BeamSearch object
         weights = dict(
             decoder=1.0 - ctc_weight,
             ctc=ctc_weight,
             lm=lm_weight,
+            ngram=ngram_weight,
             length_bonus=penalty,
         )
         beam_search = BeamSearch(
@@ -186,7 +204,7 @@ class Speech2Text:
 
         # data: (Nsamples,) -> (1, Nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-        # lenghts: (1,)
+        # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         batch = {"speech": speech, "speech_lengths": lengths}
 
@@ -237,6 +255,7 @@ def inference(
     seed: int,
     ctc_weight: float,
     lm_weight: float,
+    ngram_weight: float,
     penalty: float,
     nbest: int,
     num_workers: int,
@@ -249,6 +268,7 @@ def inference(
     lm_file: Optional[str],
     word_lm_train_config: Optional[str],
     word_lm_file: Optional[str],
+    ngram_file: Optional[str],
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
@@ -281,6 +301,7 @@ def inference(
         asr_model_file=asr_model_file,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
+        ngram_file=ngram_file,
         token_type=token_type,
         bpemodel=bpemodel,
         device=device,
@@ -290,6 +311,7 @@ def inference(
         beam_size=beam_size,
         ctc_weight=ctc_weight,
         lm_weight=lm_weight,
+        ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
         streaming=streaming,
@@ -395,6 +417,7 @@ def get_parser():
     group.add_argument("--lm_file", type=str)
     group.add_argument("--word_lm_train_config", type=str)
     group.add_argument("--word_lm_file", type=str)
+    group.add_argument("--ngram_file", type=str)
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
@@ -413,7 +436,9 @@ def get_parser():
         help="Input length ratio to obtain max output length. "
         "If maxlenratio=0.0 (default), it uses a end-detect "
         "function "
-        "to automatically find maximum hypothesis lengths",
+        "to automatically find maximum hypothesis lengths."
+        "If maxlenratio<0.0, its absolute value is interpreted"
+        "as a constant max output length",
     )
     group.add_argument(
         "--minlenratio",
@@ -428,6 +453,7 @@ def get_parser():
         help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
+    group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
     group.add_argument("--streaming", type=str2bool, default=False)
 
     group = parser.add_argument_group("Text converter related")

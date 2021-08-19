@@ -4,11 +4,11 @@
 """Training/decoding definition for the speech recognition task."""
 
 import copy
+import itertools
 import json
 import logging
 import math
 import os
-import sys
 
 from chainer import reporter as reporter_module
 from chainer import training
@@ -58,11 +58,6 @@ from espnet.utils.training.train_utils import set_early_stop
 import matplotlib
 
 matplotlib.use("Agg")
-
-if sys.version_info[0] == 2:
-    from itertools import izip_longest as zip_longest
-else:
-    from itertools import zip_longest as zip_longest
 
 
 def _recursive_to(xs, device):
@@ -519,16 +514,23 @@ def train(args):
     elif args.opt == "noam":
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
-        # For transformer-transducer, adim declaration is within the block definition.
-        # Thus, we need retrieve the most dominant value (d_hidden) for Noam scheduler.
-        if hasattr(args, "enc_block_arch") or hasattr(args, "dec_block_arch"):
-            adim = model.most_dom_dim
+        if "transducer" in mtl_mode:
+            if args.noam_adim > 0:
+                optimizer = get_std_opt(
+                    model_params,
+                    args.noam_adim,
+                    args.optimizer_warmup_steps,
+                    args.noam_lr,
+                )
+            else:
+                raise ValueError("noam-adim option should be set to use Noam scheduler")
         else:
-            adim = args.adim
-
-        optimizer = get_std_opt(
-            model_params, adim, args.transformer_warmup_steps, args.transformer_lr
-        )
+            optimizer = get_std_opt(
+                model_params,
+                args.adim,
+                args.transformer_warmup_steps,
+                args.transformer_lr,
+            )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
 
@@ -747,23 +749,52 @@ def train(args):
             "main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)
         ] + ["validation/main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)]
 
-    if hasattr(model, "is_rnnt"):
+    if hasattr(model, "is_transducer"):
+        trans_keys = [
+            "main/loss",
+            "validation/main/loss",
+            "main/loss_trans",
+            "validation/main/loss_trans",
+        ]
+
+        ctc_keys = (
+            ["main/loss_ctc", "validation/main/loss_ctc"] if args.use_ctc_loss else []
+        )
+
+        aux_trans_keys = (
+            [
+                "main/loss_aux_trans",
+                "validation/main/loss_aux_trans",
+            ]
+            if args.use_aux_transducer_loss
+            else []
+        )
+
+        symm_kl_div_keys = (
+            [
+                "main/loss_symm_kl_div",
+                "validation/main/loss_symm_kl_div",
+            ]
+            if args.use_symm_kl_div_loss
+            else []
+        )
+
+        lm_keys = (
+            [
+                "main/loss_lm",
+                "validation/main/loss_lm",
+            ]
+            if args.use_lm_loss
+            else []
+        )
+
+        transducer_keys = (
+            trans_keys + ctc_keys + aux_trans_keys + symm_kl_div_keys + lm_keys
+        )
+
         trainer.extend(
             extensions.PlotReport(
-                [
-                    "main/loss",
-                    "validation/main/loss",
-                    "main/loss_trans",
-                    "validation/main/loss_trans",
-                    "main/loss_ctc",
-                    "validation/main/loss_ctc",
-                    "main/loss_lm",
-                    "validation/main/loss_lm",
-                    "main/loss_aux_trans",
-                    "validation/main/loss_aux_trans",
-                    "main/loss_aux_symm_kl",
-                    "validation/main/loss_aux_symm_kl",
-                ],
+                transducer_keys,
                 "epoch",
                 file_name="loss.png",
             )
@@ -874,24 +905,15 @@ def train(args):
         extensions.LogReport(trigger=(args.report_interval_iters, "iteration"))
     )
 
-    if hasattr(model, "is_rnnt"):
-        report_keys = [
-            "epoch",
-            "iteration",
-            "main/loss",
-            "main/loss_trans",
-            "main/loss_ctc",
-            "main/loss_lm",
-            "main/loss_aux_trans",
-            "main/loss_aux_symm_kl",
-            "validation/main/loss",
-            "validation/main/loss_trans",
-            "validation/main/loss_ctc",
-            "validation/main/loss_lm",
-            "validation/main/loss_aux_trans",
-            "validation/main/loss_aux_symm_kl",
-            "elapsed_time",
-        ]
+    if hasattr(model, "is_transducer"):
+        report_keys = (
+            [
+                "epoch",
+                "iteration",
+            ]
+            + transducer_keys
+            + ["elapsed_time"]
+        )
     else:
         report_keys = [
             "epoch",
@@ -958,6 +980,20 @@ def recog(args):
     assert isinstance(model, ASRInterface)
     model.recog_args = args
 
+    if args.quantize_config is not None:
+        q_config = set([getattr(torch.nn, q) for q in args.quantize_config])
+    else:
+        q_config = {torch.nn.Linear}
+
+    if args.quantize_asr_model:
+        assert (
+            "transducer" not in train_args.model_module
+        ), "Quantization of transducer model is not supported yet."
+        logging.info("Use quantized asr model for decoding")
+
+        dtype = getattr(torch, args.quantize_dtype)
+        model = torch.quantization.quantize_dynamic(model, q_config, dtype=dtype)
+
     if args.streaming_mode and "transformer" in train_args.model_module:
         raise NotImplementedError("streaming mode for transformer is not implemented")
     logging.info(
@@ -981,6 +1017,9 @@ def recog(args):
             )
         )
         torch_load(args.rnnlm, rnnlm)
+        if args.quantize_lm_model:
+            dtype = getattr(torch, args.quantize_dtype)
+            rnnlm = torch.quantization.quantize_dynamic(rnnlm, q_config, dtype=dtype)
         rnnlm.eval()
     else:
         rnnlm = None
@@ -1037,18 +1076,17 @@ def recog(args):
     )
 
     # load transducer beam search
-    if hasattr(model, "is_rnnt"):
+    if hasattr(model, "is_transducer"):
         if hasattr(model, "dec"):
             trans_decoder = model.dec
         else:
             trans_decoder = model.decoder
-        joint_network = model.joint_network
+        joint_network = model.transducer_tasks.joint_network
 
         beam_search_transducer = BeamSearchTransducer(
             decoder=trans_decoder,
             joint_network=joint_network,
             beam_size=args.beam_size,
-            nbest=args.nbest,
             lm=rnnlm,
             lm_weight=args.lm_weight,
             search_type=args.search_type,
@@ -1056,7 +1094,11 @@ def recog(args):
             u_max=args.u_max,
             nstep=args.nstep,
             prefix_alpha=args.prefix_alpha,
+            expansion_gamma=args.expansion_gamma,
+            expansion_beta=args.expansion_beta,
             score_norm=args.score_norm,
+            softmax_temperature=args.softmax_temperature,
+            nbest=args.nbest,
         )
 
     if args.batchsize == 0:
@@ -1114,7 +1156,7 @@ def recog(args):
                             for n in range(args.nbest):
                                 nbest_hyps[n]["yseq"].extend(hyps[n]["yseq"])
                                 nbest_hyps[n]["score"] += hyps[n]["score"]
-                elif hasattr(model, "is_rnnt"):
+                elif hasattr(model, "is_transducer"):
                     nbest_hyps = model.recognize(feat, beam_search_transducer)
                 else:
                     nbest_hyps = model.recognize(
@@ -1128,7 +1170,7 @@ def recog(args):
 
         def grouper(n, iterable, fillvalue=None):
             kargs = [iter(iterable)] * n
-            return zip_longest(*kargs, fillvalue=fillvalue)
+            return itertools.zip_longest(*kargs, fillvalue=fillvalue)
 
         # sort data if batchsize > 1
         keys = list(js.keys())
@@ -1306,7 +1348,7 @@ def enhance(args):
 
     def grouper(n, iterable, fillvalue=None):
         kargs = [iter(iterable)] * n
-        return zip_longest(*kargs, fillvalue=fillvalue)
+        return itertools.zip_longest(*kargs, fillvalue=fillvalue)
 
     num_images = 0
     if not os.path.exists(args.image_dir):
@@ -1413,88 +1455,3 @@ def enhance(args):
             if num_images >= args.num_images and enh_writer is None:
                 logging.info("Breaking the process.")
                 break
-
-
-def ctc_align(args):
-    """CTC forced alignments with the given args.
-
-    Args:
-        args (namespace): The program arguments.
-    """
-
-    def add_alignment_to_json(js, alignment, char_list):
-        """Add N-best results to json.
-
-        Args:
-            js (dict[str, Any]): Groundtruth utterance dict.
-            alignment (list[int]): List of alignment.
-            char_list (list[str]): List of characters.
-
-        Returns:
-            dict[str, Any]: N-best results added utterance dict.
-
-        """
-        # copy old json info
-        new_js = dict()
-        new_js["ctc_alignment"] = []
-
-        alignment_tokens = []
-        for idx, a in enumerate(alignment):
-            alignment_tokens.append(char_list[a])
-        alignment_tokens = " ".join(alignment_tokens)
-
-        new_js["ctc_alignment"] = alignment_tokens
-
-        return new_js
-
-    set_deterministic_pytorch(args)
-    model, train_args = load_trained_model(args.model)
-    assert isinstance(model, ASRInterface)
-    model.eval()
-
-    load_inputs_and_targets = LoadInputsAndTargets(
-        mode="asr",
-        load_output=True,
-        sort_in_input_length=False,
-        preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None
-        else args.preprocess_conf,
-        preprocess_args={"train": False},
-    )
-
-    if args.ngpu > 1:
-        raise NotImplementedError("only single GPU decoding is supported")
-    if args.ngpu == 1:
-        device = "cuda"
-    else:
-        device = "cpu"
-    dtype = getattr(torch, args.dtype)
-    logging.info(f"Decoding device={device}, dtype={dtype}")
-    model.to(device=device, dtype=dtype).eval()
-
-    # read json data
-    with open(args.align_json, "rb") as f:
-        js = json.load(f)["utts"]
-    new_js = {}
-    if args.batchsize == 0:
-        with torch.no_grad():
-            for idx, name in enumerate(js.keys(), 1):
-                logging.info("(%d/%d) aligning " + name, idx, len(js.keys()))
-                batch = [(name, js[name])]
-                feat, label = load_inputs_and_targets(batch)
-                feat = feat[0]
-                label = label[0]
-                enc = model.encode(torch.as_tensor(feat).to(device)).unsqueeze(0)
-                alignment = model.ctc.forced_align(enc, label)
-                new_js[name] = add_alignment_to_json(
-                    js[name], alignment, train_args.char_list
-                )
-    else:
-        raise NotImplementedError("Align_batch is not implemented.")
-
-    with open(args.result_label, "wb") as f:
-        f.write(
-            json.dumps(
-                {"utts": new_js}, indent=4, ensure_ascii=False, sort_keys=True
-            ).encode("utf_8")
-        )

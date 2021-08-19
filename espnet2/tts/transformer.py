@@ -361,7 +361,7 @@ class Transformer(AbsTTS):
         self._reset_parameters(
             init_type=init_type,
             init_enc_alpha=init_enc_alpha,
-            init_dec_alpha=init_enc_alpha,
+            init_dec_alpha=init_dec_alpha,
         )
 
     def _reset_parameters(self, init_type, init_enc_alpha=1.0, init_dec_alpha=1.0):
@@ -420,14 +420,19 @@ class Transformer(AbsTTS):
         # modifiy mod part of groundtruth
         olens_in = olens
         if self.reduction_factor > 1:
+            assert olens.ge(
+                self.reduction_factor
+            ).all(), "Output length must be greater than or equal to reduction factor."
             olens_in = olens.new([olen // self.reduction_factor for olen in olens])
             olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_olen = max(olens)
             ys = ys[:, :max_olen]
             labels = labels[:, :max_olen]
-            labels[:, -1] = 1.0  # make sure at least one frame has 1
+            labels = torch.scatter(
+                labels, 1, (olens - 1).unsqueeze(1), 1.0
+            )  # see #3388
 
-        # caluculate loss values
+        # calculate loss values
         l1_loss, l2_loss, bce_loss = self.criterion(
             after_outs, before_outs, logits, ys, labels, olens
         )
@@ -570,7 +575,7 @@ class Transformer(AbsTTS):
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
         use_teacher_forcing: bool = False,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Dict[str, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
@@ -583,9 +588,10 @@ class Transformer(AbsTTS):
             use_teacher_forcing (bool, optional): Whether to use teacher forcing.
 
         Returns:
-            Tensor: Output sequence of features (L, odim).
-            Tensor: Output sequence of stop probabilities (L,).
-            Tensor: Encoder-decoder (source) attention weights (#layers, #heads, L, T).
+            Dict[str, Tensor]: Output dict including the following items:
+                * feat_gen (Tensor): Output sequence of features (L, odim).
+                * prob (Tensor): Output sequence of stop probabilities (L,).
+                * att_w (Tensor): Source attention weights (#layers, #heads, L, T).
 
         """
         x = text
@@ -612,7 +618,7 @@ class Transformer(AbsTTS):
                 att_ws += [self.decoder.decoders[i].src_attn.attn]
             att_ws = torch.stack(att_ws, dim=1)  # (B, L, H, T_out, T_in)
 
-            return outs[0], None, att_ws[0]
+            return dict(feat_gen=outs[0], att_w=att_ws[0])
 
         # forward encoder
         xs = x.unsqueeze(0)
@@ -689,7 +695,7 @@ class Transformer(AbsTTS):
         # concatenate attention weights -> (#layers, #heads, L, T)
         att_ws = torch.stack(att_ws, dim=0)
 
-        return outs, probs, att_ws
+        return dict(feat_gen=outs, prob=probs, att_w=att_ws)
 
     def _add_first_frame_and_remove_last_frame(self, ys: torch.Tensor) -> torch.Tensor:
         ys_in = torch.cat(

@@ -524,7 +524,7 @@ class FastSpeech(AbsTTS):
         durations: torch.Tensor = None,
         alpha: float = 1.0,
         use_teacher_forcing: bool = False,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Dict[str, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
@@ -537,9 +537,9 @@ class FastSpeech(AbsTTS):
                 If true, groundtruth of duration, pitch and energy will be used.
 
         Returns:
-            Tensor: Output sequence of features (L, odim).
-            None: Dummy for compatibility.
-            None: Dummy for compatibility.
+            Dict[str, Tensor]: Output dict including the following items:
+                * feat_gen (Tensor): Output sequence of features (L, odim).
+                * duration (Tensor): Duration sequence (T + 1,).
 
         """
         x, y = text, speech
@@ -559,7 +559,7 @@ class FastSpeech(AbsTTS):
         if use_teacher_forcing:
             # use groundtruth of duration, pitch, and energy
             ds = d.unsqueeze(0)
-            _, outs, *_ = self._forward(
+            _, outs, d_outs = self._forward(
                 xs,
                 ilens,
                 ys,
@@ -568,7 +568,7 @@ class FastSpeech(AbsTTS):
             )  # (1, L, odim)
         else:
             # inference
-            _, outs, _ = self._forward(
+            _, outs, d_outs = self._forward(
                 xs,
                 ilens,
                 ys,
@@ -577,7 +577,7 @@ class FastSpeech(AbsTTS):
                 alpha=alpha,
             )  # (1, L, odim)
 
-        return outs[0], None, None
+        return dict(feat_gen=outs[0], duration=d_outs[0])
 
     def _integrate_with_spk_embed(
         self, hs: torch.Tensor, spembs: torch.Tensor

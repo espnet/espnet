@@ -3,6 +3,7 @@ from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Union
+import warnings
 
 import g2p_en
 from typeguard import check_argument_types
@@ -107,6 +108,44 @@ class G2p_en:
         return phones
 
 
+class G2pk:
+    """On behalf of g2pk.G2p.
+
+    g2pk.G2p isn't pickalable and it can't be copied to the other processes
+    via multiprocessing module.
+    As a workaround, g2pk.G2p is instantiated upon calling this class.
+
+    """
+
+    def __init__(
+        self, descritive=False, group_vowels=False, to_syl=False, no_space=False
+    ):
+        self.descritive = descritive
+        self.group_vowels = group_vowels
+        self.to_syl = to_syl
+        self.no_space = no_space
+        self.g2p = None
+
+    def __call__(self, text) -> List[str]:
+        if self.g2p is None:
+            import g2pk
+
+            self.g2p = g2pk.G2p()
+
+        phones = list(
+            self.g2p(
+                text,
+                descriptive=self.descritive,
+                group_vowels=self.group_vowels,
+                to_syl=self.to_syl,
+            )
+        )
+        if self.no_space:
+            # remove space which represents word serapater
+            phones = list(filter(lambda s: s != " ", phones))
+        return phones
+
+
 class Phonemizer:
     """Phonemizer module for various languages.
 
@@ -170,7 +209,72 @@ class PhonemeTokenizer(AbsTokenizer):
         elif g2p_type == "pypinyin_g2p_phone":
             self.g2p = pypinyin_g2p_phone
         elif g2p_type == "espeak_ng_arabic":
-            self.g2p = Phonemizer(language="ar", backend="espeak", with_stress=True)
+            self.g2p = Phonemizer(
+                language="ar",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_german":
+            self.g2p = Phonemizer(
+                language="de",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_french":
+            self.g2p = Phonemizer(
+                language="fr-fr",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_spanish":
+            self.g2p = Phonemizer(
+                language="es",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_russian":
+            self.g2p = Phonemizer(
+                language="ru",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_greek":
+            self.g2p = Phonemizer(
+                language="el",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_finnish":
+            self.g2p = Phonemizer(
+                language="fi",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_hungarian":
+            self.g2p = Phonemizer(
+                language="hu",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_dutch":
+            self.g2p = Phonemizer(
+                language="nl",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "g2pk":
+            self.g2p = G2pk(no_space=False)
+        elif g2p_type == "g2pk_no_space":
+            self.g2p = G2pk(no_space=True)
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 
@@ -180,8 +284,12 @@ class PhonemeTokenizer(AbsTokenizer):
             self.non_linguistic_symbols = set()
         elif isinstance(non_linguistic_symbols, (Path, str)):
             non_linguistic_symbols = Path(non_linguistic_symbols)
-            with non_linguistic_symbols.open("r", encoding="utf-8") as f:
-                self.non_linguistic_symbols = set(line.rstrip() for line in f)
+            try:
+                with non_linguistic_symbols.open("r", encoding="utf-8") as f:
+                    self.non_linguistic_symbols = set(line.rstrip() for line in f)
+            except FileNotFoundError:
+                warnings.warn(f"{non_linguistic_symbols} doesn't exist.")
+                self.non_linguistic_symbols = set()
         else:
             self.non_linguistic_symbols = set(non_linguistic_symbols)
         self.remove_non_linguistic_symbols = remove_non_linguistic_symbols

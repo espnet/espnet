@@ -59,7 +59,7 @@ class RNNP(chainer.Chain):
         """RNNP forward.
 
         Args:
-            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)
+            xs (chainer.Variable): Batch of padded character ids. (B, Tmax)
             ilens (chainer.Variable): Batch of length of each input batch. (B,)
 
         Returns:
@@ -122,7 +122,7 @@ class RNN(chainer.Chain):
         """BRNN forward propagation.
 
         Args:
-            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)
+            xs (chainer.Variable): Batch of padded character ids. (B, Tmax)
             ilens (chainer.Variable): Batch of length of each input batch. (B,)
 
         Returns:
@@ -175,7 +175,7 @@ class VGG2L(chainer.Chain):
         """VGG2L forward propagation.
 
         Args:
-            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)
+            xs (chainer.Variable): Batch of padded character ids. (B, Tmax)
             ilens (chainer.Variable): Batch of length of each features. (B,)
 
         Returns:
@@ -294,7 +294,7 @@ class Encoder(chainer.Chain):
         """Encoder forward.
 
         Args:
-            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)
+            xs (chainer.Variable): Batch of padded character ids. (B, Tmax)
             ilens (chainer.variable): Batch of length of each features. (B,)
 
         Returns:

@@ -10,7 +10,7 @@ $ ./run.sh --docker-gpu 0 --docker-egs chime4/asr1 --docker-folders /export/corp
 Optionally, you can set the CUDA version with the arguments `--docker-cuda` respectively (default version set at CUDA=9.1). The docker container can be built based on the CUDA installed in your computer if you empty this arguments.
 By default, all GPU-based images are built with NCCL v2 and CUDNN v7.
 The arguments required for the docker configuration have a prefix "--docker" (e.g., `--docker-gpu`, `--docker-egs`, `--docker-folders`). `run.sh` accept all normal ESPnet arguments, which must be followed by these docker arguments.
-All docker containers are executed using the same user as your login account. If you want to run the docker in root access, add the flag `--is-root` to command line. In addition, you can pass any enviroment variable using `--docker-env` (e.g., `--docker-env "foo=path"`)
+All docker containers are executed using the same user as your login account. If you want to run the docker in root access, add the flag `--is-root` to command line. In addition, you can pass any environment variable using `--docker-env` (e.g., `--docker-env "foo=path"`)
 
 ### ESPnet 2 Recipes
 

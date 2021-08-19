@@ -14,13 +14,12 @@ requirements = {
         "setuptools>=38.5.1",
         "configargparse>=1.2.1",
         "typeguard>=2.7.0",
-        "dataclasses; python_version < '3.7'",
         "humanfriendly",
         "scipy>=1.4.1",
         "matplotlib==3.1.0",
         "pillow>=6.1.0",
         "editdistance==0.5.2",
-        "ctc-segmentation<1.6,>=1.4.0",
+        "ctc-segmentation<1.8,>=1.6.6",
         "wandb",
         "filelock",
         # DNN related packages are installed by Makefile
@@ -32,8 +31,7 @@ requirements = {
         # Signal processing related
         "librosa>=0.8.0",
         # Natural language processing related
-        # FIXME(kamo): Sentencepiece 0.1.90 breaks backwardcompatibility?
-        "sentencepiece<0.1.90,>=0.1.82",
+        "sentencepiece",
         "nltk>=3.4.5",
         # File IO related
         "PyYAML>=5.1.2",
@@ -47,6 +45,9 @@ requirements = {
         "nara_wpe>=0.0.5",
         "torch_complex",
         "pytorch_wpe",
+        "ci_sdr",
+        # NLU postencoder related
+        "transformers>=4.9.1",
     ],
     "recipe": [
         "espnet_model_zoo",
@@ -81,7 +82,6 @@ requirements = {
         "sphinx-argparse>=0.2.5",
         "commonmark==0.8.1",
         "recommonmark>=0.4.0",
-        "travis-sphinx>=2.0.1",
         "nbsphinx>=0.4.2",
         "sphinx-markdown-tables>=0.0.12",
     ],
@@ -95,7 +95,11 @@ try:
     if LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
         requirements["install"].append("fairscale")
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.8.1"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.9.1"):
+        raise NotImplementedError("Not yet supported")
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.9.0"):
+        requirements["install"].append("torchaudio==0.9.0")
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.8.1"):
         requirements["install"].append("torchaudio==0.8.1")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
         requirements["install"].append("torchaudio==0.8.0")
@@ -153,13 +157,13 @@ setup(
     setup_requires=setup_requires,
     tests_require=tests_require,
     extras_require=extras_require,
-    python_requires=">=3.6.0",
+    python_requires=">=3.7.0",
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "Operating System :: POSIX :: Linux",

@@ -20,6 +20,11 @@ echo "==== ASR (backend=pytorch, lm=TransformerLM) ==="
 ./run.sh --python "${python}" --stage 5 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
 echo "==== ASR (backend=pytorch, dtype=float64) ==="
 ./run.sh --python "${python}" --stage 3 --train-config "$(change_yaml.py conf/train.yaml -a train-dtype=float64)" --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2 -a dtype=float64)"
+echo "==== ASR (backend=pytorch, quantize-asr-model true, quantize-lm-model true) ==="
+./run.sh --python "${python}" --stage 5 --decode-config "$(change_yaml.py conf/decode.yaml -a quantize-asr-model=true -a quantize-lm-model=true)"
+echo "==== ASR (backend=pytorch, quantize-asr-model true, quantize-lm-model true api v2) ==="
+./run.sh --python "${python}" --stage 5 --decode-config "$(change_yaml.py conf/decode.yaml -a quantize-asr-model=true -a quantize-lm-model=true -a quantize-config=['Linear'] -a api=v2)"
+
 echo "==== ASR (backend=chainer) ==="
 ./run.sh --python "${python}" --stage 3 --backend chainer
 
@@ -65,6 +70,14 @@ echo "=== ASR (backend=pytorch, model=transformer-transducer) ==="
         --decode-config conf/decode_transducer.yaml
 echo "=== ASR (backend=pytorch, model=conformer-transducer) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_conformer_transducer.yaml \
+        --decode-config conf/decode_transducer.yaml
+
+# test transducer with auxiliary task recipe
+echo "=== ASR (backend=pytorch, model=rnnt, tasks=L1+L2+L3+L4+L5)"
+./run.sh --python "${python}" --stage 4 --train-config conf/train_transducer_aux.yaml \
+         --decode-config conf/decode_transducer.yaml
+echo "=== ASR (backend=pytorch, model=conformer-transducer, tasks=L1+L2+L5) ==="
+./run.sh --python "${python}" --stage 4 --train-config conf/train_conformer_transducer_aux.yaml \
         --decode-config conf/decode_transducer.yaml
 
 # test finetuning
@@ -192,6 +205,10 @@ for t in ${feats_types}; do
             --asr-args "--max_epoch=1" --lm-args "--max_epoch=1" --python "${python}"
     done
 done
+echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
+./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
+    --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
+    --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}" || exit 1
@@ -219,7 +236,7 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
     feats_types="raw"
     for t in ${feats_types}; do
         echo "==== feats_type=${t} ==="
-        ./run.sh --ngpu 0 --stage 2 --stop-stage 9 --skip-upload false --feats-type "${t}" --spk-num 1 --enh-args "--max_epoch=1" --python "${python}"
+        ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --spk-num 1 --enh-args "--max_epoch=1" --python "${python}"
     done
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data

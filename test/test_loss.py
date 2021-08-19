@@ -1,10 +1,5 @@
-# coding: utf-8
-
 # Copyright 2017 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
-from distutils.version import LooseVersion
-
 import chainer.functions as F
 import numpy
 import pytest
@@ -19,15 +14,12 @@ from espnet.nets.pytorch_backend.nets_utils import th_accuracy
     "in_length,out_length", [([11, 17, 15], [4, 2, 3]), ([4], [1])]
 )
 def test_ctc_loss(in_length, out_length, ctc_type):
-    pytest.importorskip("torch")
     if ctc_type == "warpctc":
         pytest.importorskip("warpctc_pytorch")
         import warpctc_pytorch
 
         torch_ctcloss = warpctc_pytorch.CTCLoss(size_average=True)
     elif ctc_type == "builtin" or ctc_type == "cudnnctc":
-        if LooseVersion(torch.__version__) < LooseVersion("1.0"):
-            pytest.skip("pytorch < 1.0 doesn't support CTCLoss")
         _ctcloss_sum = torch.nn.CTCLoss(reduction="sum")
 
         def torch_ctcloss(th_pred, th_target, th_ilen, th_olen):
@@ -111,12 +103,11 @@ def test_attn_loss():
     th_ignore = 0
     th_pred = torch.from_numpy(y_all.data)
     th_target = pad_list([torch.from_numpy(t.data).long() for t in ys_out], th_ignore)
-    if LooseVersion(torch.__version__) < LooseVersion("1.0"):
-        reduction_str = "elementwise_mean"
-    else:
-        reduction_str = "mean"
     th_loss = torch.nn.functional.cross_entropy(
-        th_pred, th_target.view(-1), ignore_index=th_ignore, reduction=reduction_str
+        th_pred,
+        th_target.view(-1),
+        ignore_index=th_ignore,
+        reduction="mean",
     )
     print(ch_loss)
     print(th_loss)

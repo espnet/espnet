@@ -16,7 +16,6 @@ module_list = [
     ("torch_optimizer", None, None),
     ("warpctc_pytorch", None, "installers/install_warp-ctc.sh"),
     ("warprnnt_pytorch", None, "installers/install_warp-transducer.sh"),
-    ("warp_rnnt", None, "installers/install_warp-rnnt.sh"),
     ("chainer_ctc", None, "installers/install_chainer_ctc.sh"),
     ("pyopenjtalk", None, "installers/install_pyopenjtalk.sh"),
     ("kenlm", None, "installers/install_kenlm.sh"),
@@ -25,6 +24,7 @@ module_list = [
     ("fairseq", None, "installers/install_fairseq.sh"),
     ("phonemizer", None, "installers/install_phonemizer.sh"),
     ("gtn", None, "installers/install_gtn.sh"),
+    ("s3prl", None, "installers/install_s3prl.sh"),
 ]
 
 executable_list = [

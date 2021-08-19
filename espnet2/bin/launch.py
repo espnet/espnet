@@ -283,7 +283,7 @@ EOF
                 str(args.num_nodes),
                 args.log,
                 "srun",
-                # Inherit all enviroment variable from parent process
+                # Inherit all environment variable from parent process
                 "--export=ALL",
             ]
             # arguments for *_train.py

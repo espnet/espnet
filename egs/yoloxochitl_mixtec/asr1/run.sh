@@ -21,7 +21,7 @@ annotation_type=eaf
 annotation_id=mixtec_surface
 text_format=surface # underlying_full, underlying_reduce
 
-# wav and transcription data directoy
+# wav and transcription data directory
 download_dir=
 wavdir=${download_dir}/Sound-files-Narratives-for-ASR
 annodir=${download_dir}/Transcriptions-for-ASR/ELAN-files-with-underlying-and-surface-tiers
@@ -75,10 +75,13 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
                               -m ${annotation_type} -i local/speaker_wav_mapping_mixtec_remove_reserve.csv \
                               -f ${text_format}
 
-    data/${annotation_id}/remix_script.sh
+    chmod +x ./data/${annotation_id}/remix_script.sh
+    ./data/${annotation_id}/remix_script.sh
 
-    # split by speakers ( official split of data)
-    local/split_tr_dt_et.sh ${annotation_id} ${train_set} ${train_dev} ${test_set} local/spk-train-test-split.txt
+    # ESPNet Version (same as voxforge)
+    # consider duplicated sentences (does not consider speaker split)
+    # filter out the same sentences (also same text) of test&dev set from validated set
+    local/split_tr_dt_et.sh data/${annotation_id} data/${train_set} data/${train_dev} data/${test_set}
 
     # add speed perturbation
     train_set_org=${train_set}

@@ -132,7 +132,7 @@ class PartialScorerInterface(ScorerInterface):
     """Partial scorer interface for beam search.
 
     The partial scorer performs scoring when non-partial scorer finished scoring,
-    and recieves pre-pruned next tokens to score because it is too heavy to score
+    and receives pre-pruned next tokens to score because it is too heavy to score
     all the tokens.
 
     Examples:

@@ -26,6 +26,7 @@ from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
+from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tts.tacotron2 import Tacotron2
@@ -38,7 +39,11 @@ from espnet2.utils.types import str_or_none
 
 feats_extractor_choices = ClassChoices(
     "feats_extract",
-    classes=dict(fbank=LogMelFbank, spectrogram=LogSpectrogram),
+    classes=dict(
+        fbank=LogMelFbank,
+        spectrogram=LogSpectrogram,
+        linear_spectrogram=LinearSpectrogram,
+    ),
     type_check=AbsFeatsExtract,
     default="fbank",
 )
@@ -191,6 +196,16 @@ class TTSTask(AbsTask):
                 "pypinyin_g2p",
                 "pypinyin_g2p_phone",
                 "espeak_ng_arabic",
+                "espeak_ng_german",
+                "espeak_ng_french",
+                "espeak_ng_spanish",
+                "espeak_ng_russian",
+                "espeak_ng_greek",
+                "espeak_ng_finnish",
+                "espeak_ng_hungarian",
+                "espeak_ng_dutch",
+                "g2pk",
+                "g2pk_no_space",
             ],
             default=None,
             help="Specify g2p method if --token_type=phn",
@@ -210,7 +225,9 @@ class TTSTask(AbsTask):
     ]:
         assert check_argument_types()
         return CommonCollateFn(
-            float_pad_value=0.0, int_pad_value=0, not_sequence=["spembs"]
+            float_pad_value=0.0,
+            int_pad_value=0,
+            not_sequence=["spembs", "sids"],
         )
 
     @classmethod
@@ -249,10 +266,10 @@ class TTSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "durations", "pitch", "energy")
+            retval = ("spembs", "durations", "pitch", "energy", "sids")
         else:
             # Inference mode
-            retval = ("spembs", "speech", "durations")
+            retval = ("spembs", "speech", "durations", "sids")
         return retval
 
     @classmethod

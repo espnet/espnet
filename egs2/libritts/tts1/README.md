@@ -24,10 +24,10 @@ See the following pages before asking the question:
 
 ## Pretrained Models
 
-### libritts_tts_train_xvector_trasnformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
+### libritts_tts_train_xvector_transformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
 - https://zenodo.org/record/4409704
 
-### libritts_tts_train_gst+xvector_trasnformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
+### libritts_tts_train_gst+xvector_transformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
 - https://zenodo.org/record/4409702
 
 ### libritts_tts_train_xvector_conformer_fastspeech2_transformer_teacher_raw_phn_tacotron_g2p_en_no_space_train.loss
