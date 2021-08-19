@@ -47,12 +47,16 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
    log "stage 2: Processing the text files"
    mkdir -p data/tmp
+   #TO DO: normalize text.trans here, remove punct, lower casing
+   # text.trans : Hello, world! 1.wav
    sort -u data/text.trans > data/tmp/text.sort
+   awk 'NF{NF-=1};1' <data/text.trans > data/lm_train_text # remove last column wav name
    sort  -o data/wav.scp  data/wav.scp
+   # non_linguistc_symbols for intent and slot types
    sort -uo data/non_linguistic_symbols.txt data/non_linguistic_symbols.txt
    sort -u data/semantics > data/tmp/semantics.sort
    rm -r data/semantics
-   awk '{print $(NF)}' data/tmp/text.sort > data/tmp/wavs
+   awk '{print $(NF)}' data/tmp/text.sort > data/tmp/wavs # keep only last column wav name
    paste -d "|" data/tmp/wavs data/tmp/semantics.sort > data/tmp/wav_sem_text
    cut -d "|" -f 1,3 data/tmp/wav_sem_text > data/tmp/wav_sem
    sed -r 's/\|/ /g' data/tmp/wav_sem > data/text

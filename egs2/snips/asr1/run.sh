@@ -29,4 +29,4 @@ speed_perturb_factors="0.9 1.0 1.1"
     --valid_set "${valid_set}"                         \
     --test_sets "${test_sets}"                         \
     --speed_perturb_factors "${speed_perturb_factors}" \
-    --lm_train_text "data/text.trans" "$@"
+    --lm_train_text "data/lm_train_text" "$@"
