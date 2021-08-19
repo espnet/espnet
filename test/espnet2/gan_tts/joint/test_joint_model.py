@@ -268,7 +268,7 @@ def test_joint_model_is_trainable_and_decodable(
         **loss_args,
     )
     model.train()
-    upsample_factor = model.vocoder.upsample_factor
+    upsample_factor = model.generator["vocoder"].upsample_factor
     inputs = dict(
         text=torch.randint(0, idim, (2, 8)),
         text_lengths=torch.tensor([8, 5], dtype=torch.long),

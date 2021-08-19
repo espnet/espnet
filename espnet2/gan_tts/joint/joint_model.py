@@ -225,15 +225,16 @@ class JointText2Wav(AbsGANTTS):
         self.segment_size = segment_size
 
         # define modules
+        self.generator = torch.nn.ModuleDict()
         text2mel_class = AVAILABLE_TEXT2MEL[text2mel_type]
         text2mel_params.update(idim=idim, odim=odim)
-        self.text2mel = text2mel_class(
+        self.generator["text2mel"] = text2mel_class(
             **text2mel_params,
         )
         vocoder_class = AVAILABLE_VOCODER[vocoder_type]
         if vocoder_type == "hifigan_generator":
             vocoder_params.update(in_channels=odim)
-        self.vocoder = vocoder_class(
+        self.generator["vocoder"] = vocoder_class(
             **vocoder_params,
         )
         discriminator_class = AVAILABLE_DISCRIMINATORS[discriminator_type]
@@ -371,7 +372,7 @@ class JointText2Wav(AbsGANTTS):
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
             # calculate text2mel outputs
-            text2mel_loss, stats, feats_gen = self.text2mel(
+            text2mel_loss, stats, feats_gen = self.generator["text2mel"](
                 text=text,
                 text_lengths=text_lengths,
                 speech=feats,
@@ -386,7 +387,7 @@ class JointText2Wav(AbsGANTTS):
                 segment_size=self.segment_size,
             )
             # calculate vocoder outputs
-            speech_hat_ = self.vocoder(feats_gen_)
+            speech_hat_ = self.generator["vocoder"](feats_gen_)
         else:
             text2mel_loss, stats, speech_hat_, start_idxs = self._cache
 
@@ -396,8 +397,8 @@ class JointText2Wav(AbsGANTTS):
 
         speech_ = self.get_segments(
             x=speech,
-            start_idxs=start_idxs * self.vocoder.upsample_factor,
-            segment_size=self.segment_size * self.vocoder.upsample_factor,
+            start_idxs=start_idxs * self.generator["vocoder"].upsample_factor,
+            segment_size=self.segment_size * self.generator["vocoder"].upsample_factor,
         )
 
         # calculate discriminator outputs
@@ -478,7 +479,7 @@ class JointText2Wav(AbsGANTTS):
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
             # calculate text2mel outputs
-            text2mel_loss, stats, feats_gen = self.text2mel(
+            text2mel_loss, stats, feats_gen = self.generator["text2mel"](
                 text=text,
                 text_lengths=text_lengths,
                 speech=feats,
@@ -493,7 +494,7 @@ class JointText2Wav(AbsGANTTS):
                 segment_size=self.segment_size,
             )
             # calculate vocoder outputs
-            speech_hat_ = self.vocoder(feats_gen_)
+            speech_hat_ = self.generator["vocoder"](feats_gen_)
         else:
             _, _, speech_hat_, start_idxs = self._cache
 
@@ -504,8 +505,8 @@ class JointText2Wav(AbsGANTTS):
         # parse outputs
         speech_ = self.get_segments(
             x=speech,
-            start_idxs=start_idxs * self.vocoder.upsample_factor,
-            segment_size=self.segment_size * self.vocoder.upsample_factor,
+            start_idxs=start_idxs * self.generator["vocoder"].upsample_factor,
+            segment_size=self.segment_size * self.generator["vocoder"].upsample_factor,
         )
 
         # calculate discriminator outputs
@@ -599,11 +600,11 @@ class JointText2Wav(AbsGANTTS):
                 * feat_gan (Tensor): Generated feature tensor (T_text, C).
 
         """
-        output_dict = self.text2mel.inference(
+        output_dict = self.generator["text2mel"].inference(
             text=text,
             **kwargs,
         )
-        wav = self.vocoder.inference(output_dict["feat_gen"])
+        wav = self.generator["vocoder"].inference(output_dict["feat_gen"])
         output_dict.update(wav=wav)
 
         return output_dict
