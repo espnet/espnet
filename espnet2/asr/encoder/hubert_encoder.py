@@ -1,5 +1,10 @@
 # Copyright 2021 Tianzi Wang
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0
+
+# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu (Fackbook)'s help in this implementation,
+# Their origial Hubert work is in:
+#     Paper: https://arxiv.org/pdf/2106.07447.pdf
+#     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
 
 """Encoder definition."""
 import contextlib

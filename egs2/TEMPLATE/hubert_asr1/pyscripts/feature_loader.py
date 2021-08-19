@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+# The feature_loader.py uses code from Fairseq (MIT license):
+#     https://github.com/pytorch/fairseq/blob/master/examples/hubert/simple_kmeans/dump_mfcc_feature.py
+#
+# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu (Fackbook)'s help in this implementation,
+# Their origial Hubert work is in:
+#     Paper: https://arxiv.org/pdf/2106.07447.pdf
+#     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
+
 import logging
 import os
 import sys
@@ -9,12 +17,9 @@ import soundfile as sf
 import torch
 import torchaudio
 
-
 logging.basicConfig(
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    level=os.environ.get("LOGLEVEL", "INFO").upper(),
-    stream=sys.stdout,
+    level=logging.DEBUG,
+    format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
 )
 logger = logging.getLogger("feature_loader")
 

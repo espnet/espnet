@@ -12,12 +12,9 @@ import pdb
 
 from sklearn_km import (MfccFeatureReader, get_path_iterator, HubertFeatureReader)
 
-
 logging.basicConfig(
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    level=os.environ.get("LOGLEVEL", "INFO").upper(),
-    stream=sys.stdout,
+    level=logging.DEBUG,
+    format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
 )
 logger = logging.getLogger("dump_km_label")
 
