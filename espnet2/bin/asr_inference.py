@@ -22,8 +22,6 @@ from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
-from espnet.nets.scorers.ngram import NgramFullScorer
-from espnet.nets.scorers.ngram import NgramPartScorer
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
@@ -101,8 +99,12 @@ class Speech2Text:
         # 3. Build ngram model
         if ngram_file is not None:
             if ngram_scorer == "full":
+                from espnet.nets.scorers.ngram import NgramFullScorer
+
                 ngram = NgramFullScorer(ngram_file, token_list)
             else:
+                from espnet.nets.scorers.ngram import NgramPartScorer
+
                 ngram = NgramPartScorer(ngram_file, token_list)
         else:
             ngram = None
@@ -202,7 +204,7 @@ class Speech2Text:
 
         # data: (Nsamples,) -> (1, Nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-        # lenghts: (1,)
+        # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         batch = {"speech": speech, "speech_lengths": lengths}
 
@@ -434,7 +436,9 @@ def get_parser():
         help="Input length ratio to obtain max output length. "
         "If maxlenratio=0.0 (default), it uses a end-detect "
         "function "
-        "to automatically find maximum hypothesis lengths",
+        "to automatically find maximum hypothesis lengths."
+        "If maxlenratio<0.0, its absolute value is interpreted"
+        "as a constant max output length",
     )
     group.add_argument(
         "--minlenratio",

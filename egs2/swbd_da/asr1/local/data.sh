@@ -34,7 +34,7 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data Preparation"
     mkdir -p data/{train,valid,test}
-    python3 local/data_prep.py ${SWBD}/LDC97S62 ${SWBD}/LDC2009T26
+    python3 local/data_prep.py ${SWBD}/LDC97S62 ${SWBD_NXT}/LDC2009T26
     for x in test valid train; do
         utils/fix_data_dir.sh data/${x} || exit 1
     done

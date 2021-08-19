@@ -168,7 +168,6 @@ warp-transducer.done: pytorch.done conda_packages.done
 ifeq ($(strip $(CPU_ONLY)),)
 	[ -n "${CUDA_HOME}" ] || { echo -e "Error: CUDA_HOME is not set.\n    $$ . ./setup_cuda_env.sh <cuda-root>"; exit 1; }
 	. ./activate_python.sh && ./installers/install_warp-transducer.sh
-	. ./activate_python.sh &&  ./installers/install_warp-rnnt.sh $(CUDA_VERSION)
 	touch warp-transducer.done
 else
 	. ./activate_python.sh && ./installers/install_warp-transducer.sh
@@ -231,12 +230,12 @@ check_install: python
 
 
 clean: clean_extra
-	rm -rf warp-ctc warp-transducer warp-rnnt chainer_ctc
+	rm -rf warp-ctc warp-transducer chainer_ctc
 	rm -rf *.done
 	find . -iname "*.pyc" -delete
 
 clean_python:
-	rm -rf warp-ctc warp-transducer warp-rnnt chainer_ctc
+	rm -rf warp-ctc warp-transducer chainer_ctc
 	rm -f warp-ctc.done chainer_ctc.done espnet.done chainer.done pytorch.done warp-transducer.done
 	find . -iname "*.pyc" -delete
 

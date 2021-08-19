@@ -45,22 +45,25 @@ python=python3       # Specify python to execute espnet commands.
 local_data_opts="" # Options to be passed to local/data.sh.
 
 # Feature extraction related
-feats_type=raw       # Feature type (fbank or stft or raw).
-audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
-min_wav_duration=0.1 # Minimum duration in second.
-max_wav_duration=20  # Maximum duration in second.
-use_xvector=false    # Whether to use x-vector (Require Kaldi).
+feats_type=raw             # Input feature type (fbank or stft or raw).
+audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+min_wav_duration=0.1       # Minimum duration in second.
+max_wav_duration=20        # Maximum duration in second.
+use_xvector=false          # Whether to use x-vector (Require Kaldi).
+use_sid=false              # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 # Only used for feats_type != raw
-fs=16000          # Sampling rate.
-fmin=80           # Minimum frequency of Mel basis.
-fmax=7600         # Maximum frequency of Mel basis.
-n_mels=80         # The number of mel basis.
-n_fft=1024        # The number of fft points.
-n_shift=256       # The number of shift points.
-win_length=null   # Window length.
-# Only used for the model using pitch features (e.g. FastSpeech2)
-f0min=80          # Maximum f0 for pitch extraction.
-f0max=400         # Minimum f0 for pitch extraction.
+feats_extract=fbank        # Feature extractor.
+feats_normalize=global_mvn # Feature normalizer.
+fs=16000                   # Sampling rate.
+n_fft=1024                 # The number of fft points.
+n_shift=256                # The number of shift points.
+win_length=null            # Window length.
+fmin=80                    # Minimum frequency of Mel basis.
+fmax=7600                  # Maximum frequency of Mel basis.
+n_mels=80                  # The number of mel basis.
+# Only used for the model using pitch & energy features (e.g. FastSpeech2)
+f0min=80  # Maximum f0 for pitch extraction.
+f0max=400 # Minimum f0 for pitch extraction.
 
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol.
@@ -71,8 +74,8 @@ train_config=""    # Config for training.
 train_args=""      # Arguments for training, e.g., "--max_epoch 1".
                    # Note that it will overwrite args in train config.
 tag=""             # Suffix for training directory.
-tts_exp=""         # Specify the direcotry path for experiment. If this option is specified, tag is ignored.
-tts_stats_dir=""   # Specify the direcotry path for statistics. If empty, automatically decided.
+tts_exp=""         # Specify the directory path for experiment. If this option is specified, tag is ignored.
+tts_stats_dir=""   # Specify the directory path for statistics. If empty, automatically decided.
 num_splits=1       # Number of splitting for tts corpus.
 teacher_dumpdir="" # Directory of teacher outputs (needed if tts=fastspeech).
 write_collected_feats=false # Whether to dump features in stats collection.
@@ -128,11 +131,14 @@ Options:
     --local_data_opts # Options to be passed to local/data.sh (default="${local_data_opts}").
 
     # Feature extraction related
-    --feats_type       # Feature type (fbank or stft or raw, default="${feats_type}").
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
+    --feats_type       # Input type, if set to raw, features extraction will be performed on the fly (default="${feats_type}").
+    --audio_format     # Audio format, wav, flac, wav.ark, or flac.ark (only in feats_type=raw, default="${audio_format}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
     --use_xvector      # Whether to use X-vector (Require Kaldi, default="${use_xvector}").
+    --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
+    --feats_extract    # On the fly feature extractor (default="${feats_extract}").
+    --feats_normalize  # Feature normalizer for on the fly feature extractor (default="${feats_normalize}")
     --fs               # Sampling rate (default="${fs}").
     --fmax             # Maximum frequency of Mel basis (default="${fmax}").
     --fmin             # Minimum frequency of Mel basis (default="${fmin}").
@@ -152,9 +158,9 @@ Options:
                     # e.g., --train_args "--max_epoch 1"
                     # Note that it will overwrite args in train config.
     --tag           # Suffix for training directory (default="${tag}").
-    --tts_exp       # Specify the direcotry path for experiment.
+    --tts_exp       # Specify the directory path for experiment.
                     # If this option is specified, tag is ignored (default="${tts_exp}").
-    --tts_stats_dir # Specify the direcotry path for statistics.
+    --tts_stats_dir # Specify the directory path for statistics.
                     # If empty, automatically decided (default="${tts_stats_dir}").
     --num_splits    # Number of splitting for tts corpus (default="${num_splits}").
     --write_collected_feats # Whether to dump features in statistics collection (default="${write_collected_feats}").
@@ -386,6 +392,7 @@ if ! "${skip_data_prep}"; then
                 utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
 
                 # 3. Compute VAD decision
+                _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/spk2utt wc -l)")
                 sid/compute_vad_decision.sh --nj ${_nj} --cmd "${train_cmd}" \
                     --vad-config conf/vad.conf \
                     "${dumpdir}/mfcc/${dset}"
@@ -413,6 +420,30 @@ if ! "${skip_data_prep}"; then
                 utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
             done
         fi
+
+        # Prepare spk id input
+        if "${use_sid}"; then
+            log "Stage 2+: Prepare speaker id: data/ -> ${data_feats}/"
+            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                    _suf="/org"
+                else
+                    _suf=""
+                fi
+                if [ "${dset}" = "${train_set}" ]; then
+                    # Make spk2sid
+                    # NOTE(kan-bayashi): 0 is reserved for unknown speakers
+                    echo "<unk> 0" > "${data_feats}${_suf}/${dset}/spk2sid"
+                    cut -f 2 -d " " "${data_feats}${_suf}/${dset}/utt2spk" | sort | uniq | \
+                        awk '{print $1 " " NR}' >> "${data_feats}${_suf}/${dset}/spk2sid"
+                fi
+                pyscripts/utils/utt2spk_to_utt2sid.py \
+                    "${data_feats}/org/${train_set}/spk2sid" \
+                    "${data_feats}${_suf}/${dset}/utt2spk" \
+                    > "${data_feats}${_suf}/${dset}/utt2sid"
+            done
+        fi
+
     fi
 
 
@@ -424,6 +455,9 @@ if ! "${skip_data_prep}"; then
             # Copy data dir
             utils/copy_data_dir.sh "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
+            if [ -e "${data_feats}/org/${dset}/utt2sid" ]; then
+                cp "${data_feats}/org/${dset}/utt2sid" "${data_feats}/${dset}/utt2sid"
+            fi
 
             # Remove short utterances
             _feats_type="$(<${data_feats}/${dset}/feats_type)"
@@ -471,7 +505,12 @@ if ! "${skip_data_prep}"; then
                 awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
 
             # fix_data_dir.sh leaves only utts which exist in all files
-            utils/fix_data_dir.sh "${data_feats}/${dset}"
+            _fix_opts=""
+            if [ -e "${data_feats}/org/${dset}/utt2sid" ]; then
+                _fix_opts="--utt_extra_files utt2sid "
+            fi
+            # shellcheck disable=SC2086
+            utils/fix_data_dir.sh ${_fix_opts} "${data_feats}/${dset}"
 
             # Filter x-vector
             if "${use_xvector}"; then
@@ -480,6 +519,7 @@ if ! "${skip_data_prep}"; then
                     utils/filter_scp.pl "${data_feats}/${dset}/wav.scp"  \
                     >"${dumpdir}/xvector/${dset}/xvector.scp"
             fi
+
         done
 
         # shellcheck disable=SC2002
@@ -535,14 +575,16 @@ if ! "${skip_train}"; then
                 # "sound" supports "wav", "flac", etc.
                 _type=sound
             fi
-            _opts+="--feats_extract fbank "
-            _opts+="--feats_extract_conf fs=${fs} "
+            _opts+="--feats_extract ${feats_extract} "
             _opts+="--feats_extract_conf n_fft=${n_fft} "
-            _opts+="--feats_extract_conf fmin=${fmin} "
-            _opts+="--feats_extract_conf fmax=${fmax} "
-            _opts+="--feats_extract_conf n_mels=${n_mels} "
             _opts+="--feats_extract_conf hop_length=${n_shift} "
             _opts+="--feats_extract_conf win_length=${win_length} "
+            if [ "${feats_extract}" = fbank ]; then
+                _opts+="--feats_extract_conf fs=${fs} "
+                _opts+="--feats_extract_conf fmin=${fmin} "
+                _opts+="--feats_extract_conf fmax=${fmax} "
+                _opts+="--feats_extract_conf n_mels=${n_mels} "
+            fi
         else
             _scp=feats.scp
             _type=kaldi_ark
@@ -574,6 +616,11 @@ if ! "${skip_train}"; then
             _xvector_valid_dir="${dumpdir}/xvector/${valid_set}"
             _opts+="--train_data_path_and_name_and_type ${_xvector_train_dir}/xvector.scp,spembs,kaldi_ark "
             _opts+="--valid_data_path_and_name_and_type ${_xvector_valid_dir}/xvector.scp,spembs,kaldi_ark "
+        fi
+
+        if "${use_sid}"; then
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/utt2sid,sids,text_int "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2sid,sids,text_int "
         fi
 
         # 1. Split the key file
@@ -669,14 +716,16 @@ if ! "${skip_train}"; then
                 # "sound" supports "wav", "flac", etc.
                 _type=sound
                 _fold_length="$((speech_fold_length * n_shift))"
-                _opts+="--feats_extract fbank "
-                _opts+="--feats_extract_conf fs=${fs} "
-                _opts+="--feats_extract_conf fmin=${fmin} "
-                _opts+="--feats_extract_conf fmax=${fmax} "
-                _opts+="--feats_extract_conf n_mels=${n_mels} "
-                _opts+="--feats_extract_conf hop_length=${n_shift} "
+                _opts+="--feats_extract ${feats_extract} "
                 _opts+="--feats_extract_conf n_fft=${n_fft} "
+                _opts+="--feats_extract_conf hop_length=${n_shift} "
                 _opts+="--feats_extract_conf win_length=${win_length} "
+                if [ "${feats_extract}" = fbank ]; then
+                    _opts+="--feats_extract_conf fs=${fs} "
+                    _opts+="--feats_extract_conf fmin=${fmin} "
+                    _opts+="--feats_extract_conf fmax=${fmax} "
+                    _opts+="--feats_extract_conf n_mels=${n_mels} "
+                fi
             else
                 _scp=feats.scp
                 _type=kaldi_ark
@@ -753,14 +802,16 @@ if ! "${skip_train}"; then
                     _scp=wav.scp
                     _type=sound
                     _fold_length="$((speech_fold_length * n_shift))"
-                    _opts+="--feats_extract fbank "
-                    _opts+="--feats_extract_conf fs=${fs} "
-                    _opts+="--feats_extract_conf fmin=${fmin} "
-                    _opts+="--feats_extract_conf fmax=${fmax} "
-                    _opts+="--feats_extract_conf n_mels=${n_mels} "
-                    _opts+="--feats_extract_conf hop_length=${n_shift} "
+                    _opts+="--feats_extract ${feats_extract} "
                     _opts+="--feats_extract_conf n_fft=${n_fft} "
+                    _opts+="--feats_extract_conf hop_length=${n_shift} "
                     _opts+="--feats_extract_conf win_length=${win_length} "
+                    if [ "${feats_extract}" = fbank ]; then
+                        _opts+="--feats_extract_conf fs=${fs} "
+                        _opts+="--feats_extract_conf fmin=${fmin} "
+                        _opts+="--feats_extract_conf fmax=${fmax} "
+                        _opts+="--feats_extract_conf n_mels=${n_mels} "
+                    fi
                 else
                     _scp=feats.scp
                     _type=kaldi_ark
@@ -800,14 +851,12 @@ if ! "${skip_train}"; then
             _opts+="--pitch_extract_conf hop_length=${n_shift} "
             _opts+="--pitch_extract_conf f0max=${f0max} "
             _opts+="--pitch_extract_conf f0min=${f0min} "
-            _opts+="--pitch_normalize_conf stats_file=${tts_stats_dir}/train/pitch_stats.npz "
         fi
         if [ -e "${tts_stats_dir}/train/energy_stats.npz" ]; then
             _opts+="--energy_extract_conf fs=${fs} "
             _opts+="--energy_extract_conf n_fft=${n_fft} "
             _opts+="--energy_extract_conf hop_length=${n_shift} "
             _opts+="--energy_extract_conf win_length=${win_length} "
-            _opts+="--energy_normalize_conf stats_file=${tts_stats_dir}/train/energy_stats.npz "
         fi
 
         # Add X-vector to the inputs if needed
@@ -816,6 +865,16 @@ if ! "${skip_train}"; then
             _xvector_valid_dir="${dumpdir}/xvector/${valid_set}"
             _opts+="--train_data_path_and_name_and_type ${_xvector_train_dir}/xvector.scp,spembs,kaldi_ark "
             _opts+="--valid_data_path_and_name_and_type ${_xvector_valid_dir}/xvector.scp,spembs,kaldi_ark "
+        fi
+
+        # Add spekaer ID to the inputs if needed
+        if "${use_sid}"; then
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/utt2sid,sids,text_int "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2sid,sids,text_int "
+        fi
+
+        if [ "${feats_normalize}" = "global_mvn" ]; then
+            _opts+="--normalize_conf stats_file=${tts_stats_dir}/train/feats_stats.npz "
         fi
 
         log "Generate '${tts_exp}/run.sh'. You can resume the process from stage 6 using this script"
@@ -845,8 +904,7 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --normalize global_mvn \
-                --normalize_conf "stats_file=${tts_stats_dir}/train/feats_stats.npz" \
+                --normalize "${feats_normalize}" \
                 --resume true \
                 --fold_length "${text_fold_length}" \
                 --fold_length "${_fold_length}" \
@@ -960,6 +1018,11 @@ if ! "${skip_eval}"; then
                 _ex_opts+="--data_path_and_name_and_type ${_xvector_dir}/xvector.scp,spembs,kaldi_ark "
             fi
 
+            # Add spekaer ID to the inputs if needed
+            if "${use_sid}"; then
+                _ex_opts+="--data_path_and_name_and_type ${_data}/utt2sid,sids,text_int "
+            fi
+
             # 0. Copy feats_type
             cp "${_data}/feats_type" "${_dir}/feats_type"
 
@@ -989,32 +1052,46 @@ if ! "${skip_eval}"; then
                     ${_opts} ${_ex_opts} ${inference_args}
 
             # 4. Concatenates the output files from each jobs
-            mkdir -p "${_dir}"/{norm,denorm,wav}
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/norm/feats.scp"
-            done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/denorm/feats.scp"
-            done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
-            for i in $(seq "${_nj}"); do
-                 cat "${_logdir}/output.${i}/speech_shape/speech_shape"
-            done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
-            for i in $(seq "${_nj}"); do
-                mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
-                rm -rf "${_logdir}/output.${i}"/wav
-            done
+            if [ -e "${_logdir}/output.${_nj}/norm" ]; then
+                mkdir -p "${_dir}"/norm
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/norm/feats.scp"
+                done | LC_ALL=C sort -k1 > "${_dir}/norm/feats.scp"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/denorm" ]; then
+                mkdir -p "${_dir}"/denorm
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/denorm/feats.scp"
+                done | LC_ALL=C sort -k1 > "${_dir}/denorm/feats.scp"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/speech_shape" ]; then
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/speech_shape/speech_shape"
+                done | LC_ALL=C sort -k1 > "${_dir}/speech_shape"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/wav" ]; then
+                mkdir -p "${_dir}"/wav
+                for i in $(seq "${_nj}"); do
+                    mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
+                    rm -rf "${_logdir}/output.${i}"/wav
+                done
+            fi
             if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
                 mkdir -p "${_dir}"/att_ws
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/durations/durations"
-                done | LC_ALL=C sort -k1 > "${_dir}/durations"
-                for i in $(seq "${_nj}"); do
-                     cat "${_logdir}/output.${i}/focus_rates/focus_rates"
-                done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
                 for i in $(seq "${_nj}"); do
                     mv -u "${_logdir}/output.${i}"/att_ws/*.png "${_dir}"/att_ws
                     rm -rf "${_logdir}/output.${i}"/att_ws
                 done
+            fi
+            if [ -e "${_logdir}/output.${_nj}/durations" ]; then
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/durations/durations"
+                done | LC_ALL=C sort -k1 > "${_dir}/durations"
+            fi
+            if [ -e "${_logdir}/output.${_nj}/focus_rates" ]; then
+                for i in $(seq "${_nj}"); do
+                     cat "${_logdir}/output.${i}/focus_rates/focus_rates"
+                done | LC_ALL=C sort -k1 > "${_dir}/focus_rates"
             fi
             if [ -e "${_logdir}/output.${_nj}/probs" ]; then
                 mkdir -p "${_dir}"/probs

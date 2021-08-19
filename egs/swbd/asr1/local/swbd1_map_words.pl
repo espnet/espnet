@@ -9,7 +9,7 @@ if ($ARGV[0] eq "-f") {
   if ($field_spec =~ m/^\d+$/) {
     $field_begin = $field_spec - 1; $field_end = $field_spec - 1;
   }
-  if ($field_spec =~ m/^(\d*)[-:](\d*)/) { # accept e.g. 1:10 as a courtesty (properly, 1-10)
+  if ($field_spec =~ m/^(\d*)[-:](\d*)/) { # accept e.g. 1:10 as a courtesy (properly, 1-10)
     if ($1 ne "") {
       $field_begin = $1 - 1;    # Change to zero-based indexing.
     }

@@ -61,7 +61,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     wsj0_data=${chime4_data}/data/WSJ0
     local/clean_wsj0_data_prep.sh ${wsj0_data}
     local/clean_chime4_format_data.sh
-    echo "prepartion for chime4 data"
+    echo "preparation for chime4 data"
     local/real_noisy_chime4_data_prep.sh ${chime4_data}
     local/simu_noisy_chime4_data_prep.sh ${chime4_data}
     local/bth_chime4_data_prep.sh ${chime4_data}
