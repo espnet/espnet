@@ -202,19 +202,22 @@ class HiFiGANGenerator(torch.nn.Module):
 
         self.apply(_apply_weight_norm)
 
-    def inference(self, c):
+    def inference(
+        self, c: torch.Tensor, g: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """Perform inference.
 
         Args:
-            c (Union[Tensor, ndarray]): Input tensor (T, in_channels).
+            c (torch.Tensor): Input tensor (T, in_channels).
+            g (Optional[Tensor]): Global conditioning tensor (global_channels, 1).
 
         Returns:
-            Tensor: Output tensor (T ** prod(upsample_scales), out_channels).
+            Tensor: Output tensor (T ** upsample_factor, out_channels).
 
         """
-        if not isinstance(c, torch.Tensor):
-            c = torch.tensor(c, dtype=torch.float).to(next(self.parameters()).device)
-        c = self.forward(c.transpose(1, 0).unsqueeze(0))
+        if g is not None:
+            g = g.unsqueeze(0)
+        c = self.forward(c.transpose(1, 0).unsqueeze(0), g=g)
         return c.squeeze(0).transpose(1, 0)
 
 
