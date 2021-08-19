@@ -381,6 +381,7 @@ class Transformer(AbsTTS):
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
         spembs: torch.Tensor = None,
+        joint_training: bool = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
@@ -390,6 +391,7 @@ class Transformer(AbsTTS):
             speech (Tensor): Batch of padded target features (B, Lmax, odim).
             speech_lengths (LongTensor): Batch of the lengths of each target (B,).
             spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
+            joint_training (bool): Whether to perform joint training with vocoder.
 
         Returns:
             Tensor: Loss scalar value.
@@ -505,8 +507,6 @@ class Transformer(AbsTTS):
                 loss = loss + enc_dec_attn_loss
                 stats.update(enc_dec_attn_loss=enc_dec_attn_loss.item())
 
-        stats.update(loss=loss.item())
-
         # report extra information
         if self.use_scaled_pos_enc:
             stats.update(
@@ -514,8 +514,14 @@ class Transformer(AbsTTS):
                 decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
             )
 
-        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-        return loss, stats, weight
+        if not joint_training:
+            stats.update(loss=loss.item())
+            loss, stats, weight = force_gatherable(
+                (loss, stats, batch_size), loss.device
+            )
+            return loss, stats, weight
+        else:
+            return loss, stats, after_outs, olens
 
     def _forward(
         self,
