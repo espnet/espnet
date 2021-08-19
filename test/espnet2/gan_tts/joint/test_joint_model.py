@@ -168,6 +168,72 @@ def make_loss_args(**kwargs):
     "t2m_dict, voc_dict, dis_dict, loss_dict",
     [
         ({}, {}, {}, {}),
+        (
+            {
+                "text2mel_type": "transformer",
+                "text2mel_params": {
+                    "embed_dim": 4,
+                    "eprenet_conv_layers": 2,
+                    "eprenet_conv_chans": 4,
+                    "eprenet_conv_filts": 3,
+                    "dprenet_layers": 2,
+                    "dprenet_units": 7,
+                    "elayers": 2,
+                    "eunits": 4,
+                    "adim": 4,
+                    "aheads": 2,
+                    "dlayers": 2,
+                    "dunits": 3,
+                    "postnet_layers": 1,
+                    "postnet_chans": 2,
+                    "postnet_filts": 3,
+                    "positionwise_layer_type": "conv1d",
+                    "positionwise_conv_kernel_size": 1,
+                    "reduction_factor": 1,
+                    "spk_embed_dim": None,
+                    "use_gst": False,
+                },
+            },
+            {},
+            {},
+            {},
+        ),
+        (
+            {
+                "text2mel_type": "fastspeech",
+                "text2mel_params": {
+                    # network structure related
+                    "adim": 4,
+                    "aheads": 2,
+                    "elayers": 2,
+                    "eunits": 3,
+                    "dlayers": 2,
+                    "dunits": 3,
+                    "postnet_layers": 2,
+                    "postnet_chans": 3,
+                    "postnet_filts": 5,
+                    "positionwise_layer_type": "conv1d",
+                    "positionwise_conv_kernel_size": 1,
+                    "use_scaled_pos_enc": True,
+                    "use_batch_norm": True,
+                    "encoder_normalize_before": True,
+                    "decoder_normalize_before": True,
+                    "encoder_concat_after": False,
+                    "decoder_concat_after": False,
+                    "duration_predictor_layers": 2,
+                    "duration_predictor_chans": 3,
+                    "duration_predictor_kernel_size": 3,
+                    "reduction_factor": 1,
+                    "encoder_type": "transformer",
+                    "decoder_type": "transformer",
+                    "spk_embed_dim": None,
+                    "use_gst": False,
+                },
+            },
+            {},
+            {},
+            {},
+        ),
     ],
 )
 def test_joint_model_is_trainable_and_decodable(
@@ -198,6 +264,19 @@ def test_joint_model_is_trainable_and_decodable(
         speech=torch.randn(2, 16 * upsample_factor),
         speech_lengths=torch.tensor([16, 13] * upsample_factor, dtype=torch.long),
     )
+    if t2m_args["text2mel_type"] == "fastspeech":
+        inputs.update(
+            durations=torch.tensor(
+                [
+                    # +1 element for <eos>
+                    [2, 2, 2, 2, 2, 2, 2, 2, 0],
+                    [3, 3, 3, 3, 1, 0, 0, 0, 0],
+                ],
+                dtype=torch.long,
+            ),
+            # +1 element for <eos>
+            durations_lengths=torch.tensor([8 + 1, 5 + 1], dtype=torch.long),
+        )
     gen_loss = model(forward_generator=True, **inputs)["loss"]
     gen_loss.backward()
     dis_loss = model(forward_generator=False, **inputs)["loss"]
