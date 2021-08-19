@@ -90,6 +90,7 @@ class Stft(torch.nn.Module, InversibleInterface):
             window=window,
             normalized=self.normalized,
             onesided=self.onesided,
+            return_complex=False
         )
         # output: (Batch, Freq, Frames, 2=real_imag)
         # -> (Batch, Frames, Freq, 2=real_imag)
