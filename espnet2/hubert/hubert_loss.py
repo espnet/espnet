@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Label smoothing module."""
+
+"""Hubert Pretrain Loss module."""
 
 import torch
 from torch import nn
@@ -11,13 +11,11 @@ import torch.nn.functional as F
 
 
 class HubertPretrainLoss(nn.Module):
-    """
-
-    :param int size: the number of class
-    :param int padding_idx: ignored class id
-    :param float smoothing: smoothing rate (0.0 means the conventional CE)
-    :param bool normalize_length: normalize loss by sequence length if True
-    :param torch.nn.Module criterion: loss function to be smoothed
+    """Hubert criterion module.
+    Args:
+        pred_masked_weight: weight for predictive loss for masked frames
+        pred_nomask_weight: weight for predictive loss for unmasked frames
+        loss_weights: weights for additional loss terms (not first one)
     """
 
     def __init__(
@@ -26,21 +24,12 @@ class HubertPretrainLoss(nn.Module):
         pred_nomask_weight: float = 0.0,
         loss_weights: float = 10.0,
     ):
-        """Construct an LabelSmoothingLoss object."""
         super(HubertPretrainLoss, self).__init__()
         self.pred_masked_weight = pred_masked_weight
         self.pred_nomask_weight = pred_nomask_weight
         self.loss_weights = loss_weights
 
     def forward(self, model, enc_outputs, reduce=True):
-        """Compute loss between x and target.
-
-        :param torch.Tensor x: prediction (batch, seqlen, class)
-        :param torch.Tensor target:
-            target signal masked with self.padding_id (batch, seqlen)
-        :return: scalar float value
-        :rtype torch.Tensor
-        """
         loss = 0.
         sample_size = 0
         reduction = "sum" if reduce else "none"

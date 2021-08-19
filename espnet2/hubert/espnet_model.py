@@ -16,8 +16,6 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,  # noqa: H301
 )
 from espnet2.hubert.hubert_loss import HubertPretrainLoss
-from espnet2.asr.ctc import CTC
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
@@ -36,7 +34,7 @@ else:
 
 
 class HubertPretrainModel(AbsESPnetModel):
-    """CTC-attention hybrid Encoder-Decoder model"""
+    """Hubert Pretrain model"""
 
     def __init__(
         self,
@@ -47,10 +45,6 @@ class HubertPretrainModel(AbsESPnetModel):
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
-        decoder: None,
-        ctc: CTC,
-        rnnt_decoder: None,
-        ctc_weight: float = 0.5,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
         length_normalized_loss: bool = False,
@@ -63,8 +57,6 @@ class HubertPretrainModel(AbsESPnetModel):
         loss_weights: float = 0.0,
     ):
         assert check_argument_types()
-        assert 0.0 <= ctc_weight <= 1.0, ctc_weight
-        assert rnnt_decoder is None, "Not implemented"
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
@@ -72,7 +64,6 @@ class HubertPretrainModel(AbsESPnetModel):
         self.eos = vocab_size - 1
         self.vocab_size = vocab_size
         self.ignore_id = ignore_id
-        self.ctc_weight = ctc_weight
         self.token_list = token_list.copy()
 
         self.frontend = frontend
@@ -80,20 +71,6 @@ class HubertPretrainModel(AbsESPnetModel):
         self.normalize = normalize
         self.preencoder = preencoder
         self.encoder = encoder
-        # we set self.decoder = None in the CTC mode since
-        # self.decoder parameters were never used and PyTorch complained
-        # and threw an Exception in the multi-GPU experiment.
-        # thanks Jeff Farris for pointing out the issue.
-        if ctc_weight == 1.0:
-            self.decoder = None
-        else:
-            self.decoder = decoder
-        if ctc_weight == 0.0:
-            self.ctc = None
-        else:
-            self.ctc = ctc
-        self.rnnt_decoder = rnnt_decoder
-        
         self.criterion_att = HubertPretrainLoss(
             pred_masked_weight,
             pred_nomask_weight,
@@ -117,7 +94,7 @@ class HubertPretrainModel(AbsESPnetModel):
         text: torch.Tensor,
         text_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        """Frontend + Encoder + Decoder + Calc loss
+        """Frontend + Encoder + Calc loss
 
         Args:
             speech: (Batch, Length, ...)
@@ -141,40 +118,16 @@ class HubertPretrainModel(AbsESPnetModel):
         # 1. Encoder
         encoder_out = self.encode(speech, speech_lengths, text, text_lengths)
 
-        # 2a. Attention-decoder branch
-        if self.ctc_weight == 1.0:
-            loss_att, acc_att, cer_att, wer_att = None, None, None, None
-        else:
-            loss_att, acc_att_m, acc_att_u = self._calc_att_loss(
-                encoder_out,
-            )
-
-        # 2b. CTC branch
-        if self.ctc_weight == 0.0:
-            loss_ctc, cer_ctc = None, None
-        else:
-            loss_ctc, cer_ctc = self._calc_ctc_loss(
-                encoder_out, encoder_out_lens, text, text_lengths
-            )
-
-        # 2c. RNN-T branch
-        if self.rnnt_decoder is not None:
-            _ = self._calc_rnnt_loss(encoder_out, encoder_out_lens, text, text_lengths)
-
-        if self.ctc_weight == 0.0:
-            loss = loss_att
-        elif self.ctc_weight == 1.0:
-            loss = loss_ctc
-        else:
-            loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
-
+        # 2a. Hubert criterion
+        loss, acc_mask, acc_unmask = self._calc_hubert_loss(
+            encoder_out,
+        )
+        
         stats = dict(
             loss=loss.detach(),
-            loss_att=loss_att.detach() if loss_att is not None else None,
-            loss_ctc=loss_ctc.detach() if loss_ctc is not None else None,
-            acc_att_m=acc_att_m,
-            acc_att_u=acc_att_u,
-            acc=acc_att_m,
+            acc_mask=acc_mask,
+            acc_unmask=acc_unmask,
+            acc=acc_mask,
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
@@ -270,7 +223,7 @@ class HubertPretrainModel(AbsESPnetModel):
             count = max.numel()
             return corr, count
         
-    def _calc_att_loss(
+    def _calc_hubert_loss(
         self,
         encoder_out: Dict[str, torch.Tensor],
     ):
@@ -295,20 +248,3 @@ class HubertPretrainModel(AbsESPnetModel):
         
         return loss_att, acc_att_m, acc_att_u
 
-    def _calc_ctc_loss(
-        self,
-        encoder_out: torch.Tensor,
-        encoder_out_lens: torch.Tensor,
-        ys_pad: torch.Tensor,
-        ys_pad_lens: torch.Tensor,
-    ):
-        raise NotImplementedError
-    
-    def _calc_rnnt_loss(
-        self,
-        encoder_out: torch.Tensor,
-        encoder_out_lens: torch.Tensor,
-        ys_pad: torch.Tensor,
-        ys_pad_lens: torch.Tensor,
-    ):
-        raise NotImplementedError

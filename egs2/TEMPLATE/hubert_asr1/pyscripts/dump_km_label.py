@@ -118,9 +118,11 @@ def dump_label(km_path, label_path, recog_set, feature, nj, sample_rate, hurl, h
                     hdir,
                     hlayer,
                 )
+
             with open(label_path, "w") as f:
                 for utt_id, p_lab in zip(utt_ids, p_labs):
                     f.write(utt_id + " " + " ".join(map(str, p_lab)) + "\n")
+            
     logger.info("finished successfully")
 
 

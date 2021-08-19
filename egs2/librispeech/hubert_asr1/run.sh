@@ -7,6 +7,7 @@ set -o pipefail
 
 . ./db.sh
 
+
 pretrain_start_iter=0
 pretrain_stop_iter=2
 
@@ -31,28 +32,24 @@ finetune_test_sets="test_clean test_other dev_clean dev_other"
 
 finetune_asr_config=conf/tuning/train_asr_hubert_base_10h_finetuning.yaml
 inference_config=conf/decode_asr.yaml
-pretrain_config_list[0]=0
-n_clusters_list[0]=0
-feature_list[0]=0
-for ((iter=pretrain_start_iter; iter<=pretrain_stop_iter;iter++)); do
-    pretrain_config_list[${iter}]=$(eval "echo \${pretrain_config_iter${iter}}")
-    n_clusters_list[${iter}]=$(eval "echo \${n_clusters_iter${iter}}")
-    feature_list[${iter}]=$(eval "echo \${feature_iter${iter}}")
-done
+
+pretrain_configs="${pretrain_config_iter0} ${pretrain_config_iter1} ${pretrain_config_iter2}"
+n_clusters="${n_clusters_iter0} ${n_clusters_iter1} ${n_clusters_iter2}"
+features_km="${feature_iter0} ${feature_iter1} ${feature_iter2}"
 
 ./hubert_asr.sh \
     --lang en \
-    --pretrain_ngpu 8 \
-    --pretrain_num_nodes 4 \
+    --pretrain_ngpu 1 \
+    --pretrain_num_nodes 1 \
     --pretrain_start_iter "${pretrain_start_iter}"\
     --pretrain_stop_iter "${pretrain_stop_iter}" \
-    --nj 4 \
+    --nj 32 \
     --max_wav_duration 30 \
-    --pretrain_config_list "${pretrain_config_list[@]}" \
-    --n_clusters_list "${n_clusters_list[@]}" \
-    --feature_list "${feature_list[@]}" \
+    --pretrain_configs "${pretrain_configs}" \
+    --n_clusters "${n_clusters}" \
+    --features_km "${features_km}" \
     --use_lm false \
-    --finetune_ngpu 1 \
+    --finetune_ngpu 4 \
     --pretrain_train_set "${pretrain_train_set}" \
     --pretrain_valid_set "${pretrain_valid_set}" \
     --finetune_train_set "${finetune_train_set}" \

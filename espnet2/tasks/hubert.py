@@ -12,31 +12,8 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet2.asr.ctc import CTC
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet2.asr.decoder.rnn_decoder import RNNDecoder
-from espnet2.asr.decoder.transformer_decoder import (
-    DynamicConvolution2DTransformerDecoder,  # noqa: H301
-)
-from espnet2.asr.decoder.transformer_decoder import DynamicConvolutionTransformerDecoder
-from espnet2.asr.decoder.transformer_decoder import (
-    LightweightConvolution2DTransformerDecoder,  # noqa: H301
-)
-from espnet2.asr.decoder.transformer_decoder import (
-    LightweightConvolutionTransformerDecoder,  # noqa: H301
-)
-from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
-from espnet2.asr.encoder.rnn_encoder import RNNEncoder
-from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.asr.encoder.contextual_block_transformer_encoder import (
-    ContextualBlockTransformerEncoder,  # noqa: H301
-)
-from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
-from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.encoder.hubert_encoder import (
-    FairseqHubertEncoder,
     FairseqHubertPretrainEncoder,
 )
 from espnet2.hubert.espnet_model import HubertPretrainModel
@@ -98,34 +75,14 @@ preencoder_choices = ClassChoices(
 encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
-        conformer=ConformerEncoder,
-        transformer=TransformerEncoder,
-        contextual_block_transformer=ContextualBlockTransformerEncoder,
-        vgg_rnn=VGGRNNEncoder,
-        rnn=RNNEncoder,
-        wav2vec2=FairSeqWav2Vec2Encoder,
-        hubert=FairseqHubertEncoder,
         hubert_pretrain=FairseqHubertPretrainEncoder,
     ),
     type_check=AbsEncoder,
-    default="rnn",
-)
-decoder_choices = ClassChoices(
-    "decoder",
-    classes=dict(
-        transformer=TransformerDecoder,
-        lightweight_conv=LightweightConvolutionTransformerDecoder,
-        lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
-        dynamic_conv=DynamicConvolutionTransformerDecoder,
-        dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
-        rnn=RNNDecoder,
-    ),
-    type_check=AbsDecoder,
-    default="rnn",
+    default="hubert_pretrain",
 )
 
 
-class ASRTask(AbsTask):
+class HubertTask(AbsTask):
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -141,8 +98,6 @@ class ASRTask(AbsTask):
         preencoder_choices,
         # --encoder and --encoder_conf
         encoder_choices,
-        # --decoder and --decoder_conf
-        decoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -184,13 +139,7 @@ class ASRTask(AbsTask):
             default=None,
             help="The number of input dimension of the feature",
         )
-
-        group.add_argument(
-            "--ctc_conf",
-            action=NestedDictAction,
-            default=get_default_kwargs(CTC),
-            help="The keyword arguments for CTC class.",
-        )
+        
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
@@ -291,6 +240,12 @@ class ASRTask(AbsTask):
             default=0.0,
             help="weights for additional loss terms (not first one)",
         )
+        parser.add_argument(
+            "--hubert_dict",
+            type=str,
+            default="./",
+            help="word-based target dictionary for Hubert pretraining stage",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -305,7 +260,6 @@ class ASRTask(AbsTask):
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
         assert check_argument_types()
-        # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
@@ -415,24 +369,7 @@ class ASRTask(AbsTask):
 
         # 4. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
-        encoder = encoder_class(input_size=input_size, use_amp=args.use_amp, hubert_dict=args.hubert_dict, **args.encoder_conf)
-        # 5. Decoder
-        # decoder_class = decoder_choices.get_class(args.decoder)
-
-        # decoder = decoder_class(
-        #    vocab_size=vocab_size,
-        #    encoder_output_size=encoder.output_size(),
-        #    **args.decoder_conf,
-        #)
-        decoder = None
-
-        # 6. CTC
-        ctc = CTC(
-           odim=vocab_size, encoder_output_sizse=encoder.output_size(), **args.ctc_conf
-        )
-
-        # 7. RNN-T Decoder (Not implemented)
-        rnnt_decoder = None
+        encoder = encoder_class(input_size=input_size, use_amp=args.use_amp, hubert_dict=args.hubert_dict, **args.encoder_conf
 
         # 8. Build model
         model = HubertPretrainModel(
@@ -442,15 +379,11 @@ class ASRTask(AbsTask):
             normalize=normalize,
             preencoder=preencoder,
             encoder=encoder,
-            decoder=decoder,
-            ctc=ctc,
-            rnnt_decoder=rnnt_decoder,
             token_list=token_list,
             **args.model_conf,
         )
-        # FIXME(kamo): Should be done in model?
+                                
         # 9. Initialize
-        
         if args.init is not None:
             initialize(model, args.init)
             

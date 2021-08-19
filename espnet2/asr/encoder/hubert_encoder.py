@@ -38,20 +38,25 @@ except Exception as e:
 
 class FairseqHubertEncoder(AbsEncoder):
     """FairSeq Hubert encoder module.
-
     Args:
         input_size: input dim
-        output_size: dimension of attention
-        hubert_url: url to Wav2Vec2.0 pretrained model
+        hubert_url: url to Hubert pretrained model
         hubert_dir_path: directory to download the Wav2Vec2.0 pretrained model.
+        output_size: dimension of attention
         normalize_before: whether to use layer_norm before the first block
-        finetune_last_n_layers: last n layers to be finetuned in Wav2Vec2.0
-                                0 means to finetune every layer if freeze_w2v=False.
+        freeze_finetune_updates: steps that freeze all layers except output layer 
+                                 before tuning the whole model (nessasary to prevent overfit).
+        dropout_rate: dropout rate
+        activation_dropout: dropout rate in activation function
+        attention_dropout: dropout rate in attention
+    Hubert specific Args:
+        Please refer to:
+        https://github.com/pytorch/fairseq/blob/master/fairseq/models/hubert/hubert.py
     """
 
     def __init__(
         self,
-        input_size: int, # doesn't use here
+        input_size: int,
         hubert_url: str = "./",
         hubert_dir_path: str = "./",
         output_size: int = 256,
@@ -75,8 +80,6 @@ class FairseqHubertEncoder(AbsEncoder):
         assert check_argument_types()
         super().__init__()
         self.apply_mask = apply_mask
-        # For more information, please refer to:
-        # https://github.com/pytorch/fairseq/blob/master/fairseq/models/hubert/hubert_asr.py#L241
         arg_overrides = {
             "dropout": dropout_rate,
             "activation_dropout": activation_dropout,
@@ -115,7 +118,7 @@ class FairseqHubertEncoder(AbsEncoder):
                 try:
                     state = {
                         k.replace("encoder.encoder.", ""):v
-                        for k, v in s.items()
+                        for k, v in s.items() if "label_embs_concat" not in k
                     }
                 except Exception as e:
                     raise e                    
@@ -129,20 +132,19 @@ class FairseqHubertEncoder(AbsEncoder):
                 self.pretrained_cfg = yaml.safe_load(f)
                 
             model = FairseqHubertPretrainEncoder(
-                self.pretrained_cfg["input_size"],
-                **self.pretrained_cfg["encoder_conf"]
+                input_size = self.pretrained_cfg["input_size"],
+                hubert_dict = self.pretrained_cfg["hubert_dict"],
+                **self.pretrained_cfg["encoder_conf"],
             )
             model = model.encoder
 
             d = self.pretrained_cfg["encoder_conf"]["output_size"]
             self.pretrained_params = copy.deepcopy(state)
             
-        else:            
+        else:
+            
             self.hubert_model_path = download_hubert(hubert_url, hubert_dir_path)
 
-            #dictionary = Dictionary.load(f"{hubert_dir_path}/dict.txt")
-            #state["task_state"] = {}
-            #state["task_state"]["target_dictionary"] = dictionary
             models, self.pretrained_cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task(
                 [self.hubert_model_path],
                 arg_overrides=arg_overrides,
@@ -192,7 +194,6 @@ class FairseqHubertEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Forward FairHubert Encoder.
-
         Args:
             xs_pad: input tensor (B, L, D)
             ilens: input length (B)
@@ -200,7 +201,6 @@ class FairseqHubertEncoder(AbsEncoder):
         Returns:
             position embedded tensor and mask
         """
-        #print("model params:", self.encoders.encoder.layers[11].final_layer_norm.bias.sum().item())
         masks = make_pad_mask(ilens).to(xs_pad.device)
         
         ft = self.freeze_finetune_updates <= self.num_updates
@@ -235,38 +235,40 @@ class FairseqHubertEncoder(AbsEncoder):
         if self.normalize_before:
             xs_pad = self.after_norm(xs_pad)
 
-        #if self.normalize_before:
-        #    xs_pad = self.after_norm(xs_pad)
         return xs_pad, olens, None
 
     def reload_pretrained_parameters(self):
-        self.encoders.load_state_dict(self.pretrained_params)
+        self.encoders.load_state_dict(self.pretrained_params, strict=False)
         logging.info("Pretrained Hubert model parameters reloaded!")
 
         
 class FairseqHubertPretrainEncoder(AbsEncoder):
     """FairSeq Hubert encoder module.
-    Ref: 
-        https://github.com/pytorch/fairseq/blob/master/fairseq/models/hubert/hubert.py#L39
     Args:
         input_size: input dim
         output_size: dimension of attention
-
+        linear_units: dimension of feedforward layers
+        attention_heads: the number of heads of multi head attention
+        num_blocks: the number of encoder blocks
+        dropout_rate: dropout rate
+        attention_dropout_rate: dropout rate in attention
+        hubert_dict: target dictionary for Hubert pretraining
+        label_rate: label frame rate. -1 for sequence label
+        sample_rate: target sample rate.
+        use_amp: whether to use automatic mixed precision
         normalize_before: whether to use layer_norm before the first block
     """
 
     def __init__(
         self,
-        # encoder size
-        input_size: int, #
+        input_size: int, 
         output_size: int = 1024,
-        linear_units: int = 1024, #
-        attention_heads: int = 12, #,
-        num_blocks: int = 12, #
-        # dropout
-        dropout_rate: float = 0.0, #
-        attention_dropout_rate: float = 0.0, #
-        activation_dropout_rate: float = 0.0, #
+        linear_units: int = 1024, 
+        attention_heads: int = 12, 
+        num_blocks: int = 12,
+        dropout_rate: float = 0.0,
+        attention_dropout_rate: float = 0.0,
+        activation_dropout_rate: float = 0.0,
         hubert_dict: str = './',
         label_rate: int = 100,
         sample_rate: int = 16000,
@@ -321,7 +323,6 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Forward FairHubert Encoder.
-
         Args:
             xs_pad: input tensor (B, L, D)
             ilens: input length (B)
@@ -375,13 +376,9 @@ def download_hubert(model_url, dir_path):
     model_name = model_url.split("/")[-1]
     model_path = os.path.join(dir_path, model_name)
 
-    #dict_url = "https://dl.fbaipublicfiles.com/fairseq/wav2vec/dict.ltr.txt"
-    #dict_path = os.path.join(dir_path, dict_url.split("/")[-1])
-
     with FileLock(model_path + ".lock"):
         if not os.path.exists(model_path):
             torch.hub.download_url_to_file(model_url, model_path)
-            #torch.hub.download_url_to_file(dict_url, dict_path)
             logging.info(f"Hubert model downloaded {model_path}")
         else:
             logging.info(f"Hubert model {model_path} already exists.")
