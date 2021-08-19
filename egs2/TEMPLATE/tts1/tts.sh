@@ -392,6 +392,7 @@ if ! "${skip_data_prep}"; then
                 utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
 
                 # 3. Compute VAD decision
+                _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/spk2utt wc -l)")
                 sid/compute_vad_decision.sh --nj ${_nj} --cmd "${train_cmd}" \
                     --vad-config conf/vad.conf \
                     "${dumpdir}/mfcc/${dset}"
