@@ -14,13 +14,10 @@ SECONDS=0
 
 stage=1
 stop_stage=100000
-data_url=www.openslr.org/resources/12
 pretrain_train_set="train_960"
 pretrain_valid_set="dev"
 
 finetune_train_set="train_10h"
-finetune_valid_set="dev"
-finetune_test_sets="test_clean test_other dev_clean dev_other"
 
 log "$0 $*"
 . utils/parse_options.sh
