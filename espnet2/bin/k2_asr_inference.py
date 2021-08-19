@@ -278,6 +278,8 @@ class k2Speech2Text:
         logp_encoder_output = torch.nn.functional.log_softmax(
             self.asr_model.ctc.ctc_lo(enc), dim=2
         )
+        blank_bias = -0.0
+        logp_encoder_output[:, :, 0] += blank_bias
 
         batch_size = encoder_out_lens.size(0)
         sequence_idx = torch.arange(0, batch_size).unsqueeze(0).t().to(torch.int32)

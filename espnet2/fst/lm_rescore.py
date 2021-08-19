@@ -70,6 +70,9 @@ def rescore_with_whole_lattice(
     inv_lats = k2.invert(rescoring_lats)
 
     if need_rescored_lats:
+        saved_scores = inv_lats.scores.clone()
+        am_scores = saved_scores - inv_lats.lm_scores
+        inv_lats.scores = am_scores + 0.5 * inv_lats.lm_scores
         return inv_lats
 
     ans = dict()
