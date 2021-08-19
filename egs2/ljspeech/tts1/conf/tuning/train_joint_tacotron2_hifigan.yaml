@@ -1,0 +1,199 @@
+# This configuration is for ESPnet2 to train Tacotron2 +
+# HiFiGAN vocoder jointly. To run this config, you need
+# to specify the options for tts.sh "--tts_task gan_tts"
+# options at least and use 22050 hz audio as the training
+# data (mainly tested on LJspeech).
+# This configuration rquires a single GPU with 32GB GPU
+# memory. It takes around 2 weeks to finish the training
+# but 100k iters model should generate reasonable results.
+
+##########################################################
+#                  TTS MODEL SETTING                     #
+##########################################################
+tts: joint
+tts_conf:
+    # text2mel related
+    text2mel_type: tacotron2
+    text2mel_params:
+        embed_dim: 512
+        elayers: 1
+        eunits: 512
+        econv_layers: 3
+        econv_chans: 512
+        econv_filts: 5
+        atype: "location"
+        adim: 512
+        aconv_chans: 32
+        aconv_filts: 15
+        cumulate_att_w: true
+        dlayers: 2
+        dunits: 1024
+        prenet_layers: 2
+        prenet_units: 256
+        postnet_layers: 5
+        postnet_chans: 512
+        postnet_filts: 5
+        output_activation: null
+        use_batch_norm: true
+        use_concate: true
+        use_residual: false
+        reduction_factor: 1
+        spk_embed_dim: null
+        spk_embed_integration_type: "concat"
+        use_gst: false
+        gst_tokens: 10
+        gst_heads: 4
+        gst_conv_layers: 6
+        gst_conv_chans_list: [32, 32, 64, 64, 128, 128]
+        gst_conv_kernel_size: 3
+        gst_conv_stride: 2
+        gst_gru_layers: 1
+        gst_gru_units: 128
+        dropout_rate: 0.5
+        zoneout_rate: 0.1
+        use_masking: true
+        use_weighted_masking: false
+        bce_pos_weight: 5.0
+        loss_type: "L1+L2"
+        use_guided_attn_loss: true
+        guided_attn_loss_sigma: 0.4
+        guided_attn_loss_lambda: 1.0
+    # vocoder related
+    vocoder_type: hifigan_generator
+    vocoder_params:
+        out_channels: 1
+        channels: 512
+        global_channels: -1
+        kernel_size: 7
+        upsample_scales: [8, 8, 2, 2]
+        upsample_kernal_sizes: [16, 16, 4, 4]
+        resblock_kernel_sizes: [3, 7, 11]
+        resblock_dilations: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
+        use_additional_convs: true
+        bias: true
+        nonlinear_activation: "LeakyReLU"
+        nonlinear_activation_params:
+            negative_slope: 0.1
+        use_weight_norm: true
+    # discriminator related
+    discriminator_type: hifigan_multi_scale_multi_period_discriminator
+    discriminator_params:
+        scales: 1
+        scale_downsample_pooling: "AvgPool1d"
+        scale_downsample_pooling_params:
+            kernel_size: 4
+            stride: 2
+            padding: 2
+        scale_discriminator_params:
+            in_channels: 1
+            out_channels: 1
+            kernel_sizes: [15, 41, 5, 3]
+            channels: 128
+            max_downsample_channels: 1024
+            max_groups: 16
+            bias: True
+            downsample_scales: [2, 2, 4, 4, 1]
+            nonlinear_activation: "LeakyReLU"
+            nonlinear_activation_params:
+                negative_slope: 0.1
+            use_weight_norm: True
+            use_spectral_norm: False
+        follow_official_norm: False
+        periods: [2, 3, 5, 7, 11]
+        period_discriminator_params:
+            in_channels: 1
+            out_channels: 1
+            kernel_sizes: [5, 3]
+            channels: 32
+            downsample_scales: [3, 3, 3, 3, 1]
+            max_downsample_channels: 1024
+            bias: True
+            nonlinear_activation: "LeakyReLU"
+            nonlinear_activation_params:
+                negative_slope: 0.1
+            use_weight_norm: True
+            use_spectral_norm: False
+    # loss function related
+    generator_adv_loss_params:
+        average_by_discriminators: false # whether to average loss value by #discriminators
+        loss_type: mse                   # loss type, "mse" or "hinge"
+    discriminator_adv_loss_params:
+        average_by_discriminators: false # whether to average loss value by #discriminators
+        loss_type: mse                   # loss type, "mse" or "hinge"
+    use_feat_match_loss: true            # whether to use feat match loss
+    feat_match_loss_params:
+        average_by_discriminators: false # whether to average loss value by #discriminators
+        average_by_layers: false         # whether to average loss value by #layers of each discriminator
+        include_final_outputs: true      # whether to include final outputs for loss calculation
+    use_mel_loss: true     # whether to use mel-spectrogram loss
+    mel_loss_params:
+        fs: 22050          # must be the same as the training data
+        n_fft: 1024        # fft points
+        hop_length: 256    # hop size
+        win_length: null   # window length
+        window: hann       # window type
+        n_mels: 80         # number of Mel basis
+        fmin: 0            # minimum frequency for Mel basis
+        fmax: null         # maximum frequency for Mel basis
+        log_base: null     # null represent natural log
+    lambda_text2mel: 1.0   # loss scaling coefficient for text2mel loss
+    lambda_adv: 1.0        # loss scaling coefficient for adversarial loss
+    lambda_mel: 45.0       # loss scaling coefficient for Mel loss
+    lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
+    # others
+    sampling_rate: 22050          # needed in the inference for saving wav
+    segment_size: 32              # segment size for random windowed discriminator
+    cache_generator_outputs: true # whether to cache generator outputs in the training
+
+##########################################################
+#            OPTIMIZER & SCHEDULER SETTING               #
+##########################################################
+# optimizer setting for generator
+optim: adamw
+optim_conf:
+    lr: 2.0e-4
+    betas: [0.8, 0.99]
+    eps: 1.0e-9
+    weight_decay: 0.0
+scheduler: exponentiallr
+scheduler_conf:
+    gamma: 0.999875
+# optimizer setting for discriminator
+optim2: adamw
+optim2_conf:
+    lr: 2.0e-4
+    betas: [0.8, 0.99]
+    eps: 1.0e-9
+    weight_decay: 0.0
+scheduler2: exponentiallr
+scheduler2_conf:
+    gamma: 0.999875
+generator_first: false # whether to start updating generator first
+
+##########################################################
+#                OTHER TRAINING SETTING                  #
+##########################################################
+num_iters_per_epoch: 500  # number of iterations per epoch
+max_epoch: 1000           # number of epochs
+accum_grad: 1             # gradient accumulation
+batch_bins: 5000000       # batch bins (feats_type=raw)
+batch_type: numel         # how to make batch
+grad_clip: -1             # gradient clipping norm
+grad_noise: false         # whether to use gradient noise injection
+sort_in_batch: descending # how to sort data in making batch
+sort_batch: descending    # how to sort created batches
+num_workers: 4            # number of workers of data loader
+use_amp: false            # whether to use pytorch amp
+log_interval: 50          # log interval in iterations
+keep_nbest_models: 5      # number of models to keep
+num_att_plot: 3           # number of attention figures to be saved in every check
+seed: 777                 # random seed number
+patience: null            # patience for early stopping
+unused_parameters: true   # needed for multi gpu case
+best_model_criterion:     # criterion to save the best models
+-   - valid
+    - generator_loss
+    - min
+-   - train
+    - generator_loss
+    - min
