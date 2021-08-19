@@ -5,7 +5,6 @@
 
 from typing import Any
 from typing import Dict
-from typing import Optional
 from typing import Tuple
 
 import torch
@@ -22,6 +21,7 @@ from espnet2.gan_tts.vits.hifigan import HiFiGANScaleDiscriminator
 from espnet2.gan_tts.vits.loss import DiscriminatorAdversarialLoss
 from espnet2.gan_tts.vits.loss import FeatureMatchLoss
 from espnet2.gan_tts.vits.loss import GeneratorAdversarialLoss
+from espnet2.gan_tts.vits.loss import MelSpectrogramLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.tacotron2 import Tacotron2
@@ -171,9 +171,22 @@ class JointText2Wav(AbsGANTTS):
             "average_by_layers": False,
             "include_final_outputs": True,
         },
+        use_mel_loss: bool = True,
+        mel_loss_params: Dict[str, Any] = {
+            "fs": 22050,
+            "n_fft": 1024,
+            "hop_length": 256,
+            "win_length": None,
+            "window": "hann",
+            "n_mels": 80,
+            "fmin": 0,
+            "fmax": None,
+            "log_base": None,
+        },
         lambda_text2mel: float = 1.0,
         lambda_adv: float = 1.0,
         lambda_feat_match: float = 2.0,
+        lambda_mel: float = 45.0,
         cache_generator_outputs: bool = True,
     ):
         """Initialize JointText2Wav module.
@@ -198,9 +211,12 @@ class JointText2Wav(AbsGANTTS):
                 discriminator adversarial loss.
             use_feat_match_loss (bool): Whether to use feat match loss.
             feat_match_loss_params (Dict[str, Any]): Parameter dict for feat match loss.
+            use_mel_loss (bool): Whether to use mel loss.
+            mel_loss_params (Dict[str, Any]): Parameter dict for mel loss.
             lambda_text2mel (float): Loss scaling coefficient for text2mel model loss.
             lambda_adv (float): Loss scaling coefficient for adversarial loss.
             lambda_feat_match (float): Loss scaling coefficient for feat match loss.
+            lambda_mel (float): Loss scaling coefficient for mel loss.
             cache_generator_outputs (bool): Whether to cache generator outputs.
 
         """
@@ -235,12 +251,19 @@ class JointText2Wav(AbsGANTTS):
             self.feat_match_loss = FeatureMatchLoss(
                 **feat_match_loss_params,
             )
+        self.use_mel_loss = use_mel_loss
+        if self.use_mel_loss:
+            self.mel_loss = MelSpectrogramLoss(
+                **mel_loss_params,
+            )
 
         # coefficients
         self.lambda_text2mel = lambda_text2mel
         self.lambda_adv = lambda_adv
         if self.use_feat_match_loss:
             self.lambda_feat_match = lambda_feat_match
+        if self.use_mel_loss:
+            self.lambda_mel = lambda_mel
 
         # cache
         self.cache_generator_outputs = cache_generator_outputs
@@ -298,7 +321,7 @@ class JointText2Wav(AbsGANTTS):
                 feats_lengths=feats_lengths,
                 speech=speech,
                 speech_lengths=speech_lengths,
-                **kwargs
+                **kwargs,
             )
         else:
             return self._forward_discrminator(
@@ -308,7 +331,7 @@ class JointText2Wav(AbsGANTTS):
                 feats_lengths=feats_lengths,
                 speech=speech,
                 speech_lengths=speech_lengths,
-                **kwargs
+                **kwargs,
             )
 
     def _forward_generator(
@@ -393,6 +416,11 @@ class JointText2Wav(AbsGANTTS):
             feat_match_loss = feat_match_loss * self.lambda_feat_match
             loss = loss + feat_match_loss
             stats.update(feat_match_loss=feat_match_loss.item())
+        if self.use_mel_loss:
+            mel_loss = self.mel_loss(speech_hat_, speech_)
+            mel_loss = self.lambda_mel * mel_loss
+            loss = loss + mel_loss
+            stats.update(mel_loss=mel_loss.item())
 
         stats.update(
             adv_loss=adv_loss.item(),

@@ -136,6 +136,7 @@ def make_loss_args(**kwargs):
         lambda_text2mel=1.0,
         lambda_adv=1.0,
         lambda_feat_match=2.0,
+        lambda_mel=1.0,
         generator_adv_loss_params={
             "average_by_discriminators": False,
             "loss_type": "mse",
@@ -149,6 +150,18 @@ def make_loss_args(**kwargs):
             "average_by_discriminators": False,
             "average_by_layers": False,
             "include_final_outputs": True,
+        },
+        use_mel_loss=True,
+        mel_loss_params={
+            "fs": 22050,
+            "n_fft": 16,
+            "hop_length": 4,
+            "win_length": None,
+            "window": "hann",
+            "n_mels": 4,
+            "fmin": 0,
+            "fmax": None,
+            "log_base": None,
         },
     )
     defaults.update(kwargs)
