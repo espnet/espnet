@@ -32,6 +32,7 @@ LABOROTV=
 TEDXJP=
 LIBRISPEECH=
 FSC=
+SLURP=
 MINI_LIBRISPEECH=downloads
 LIBRITTS=
 LJSPEECH=downloads
@@ -121,6 +122,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     TEDXJP=
     LIBRISPEECH=
     FSC=
+    SLURP=
     MINI_LIBRISPEECH=downloads
     LIBRITTS=
     LJSPEECH=downloads
