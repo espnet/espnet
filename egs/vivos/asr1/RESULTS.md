@@ -79,14 +79,13 @@
 |-|mAES|11.5|26.3|0.053|
 
 \* Summary benchmark was performed on the test set only.  
-² RTF was computed using `line-profiler` tool applied to the Transducer's `recognize(...)` method. Thus, we don't take into account the feature computation part here.
-The reported value is averaged on 5 runs with `nj=1`. All experiments were performed using a AMD EPYC 7502P.
+² RTF was computed using `line-profiler` tool applied to [recognize method](https://github.com/espnet/espnet/blob/master/espnet/nets/pytorch_backend/e2e_asr_transducer.py#L470). The reported value is averaged on 5 runs with `nj=1`. All experiments were performed using a single AMD EPYC 7502P.
 
-## RNN-Transducer (Enc: VGG + 4x BLSTM, Dec: 1x LSTM - 256 units)
+## RNN-Transducer (Enc: VGG + 4x BLSTM, Dec: 1x LSTM)
 
 - General information
   - GPU: Nvidia A100 40Gb
-  - Peak VRAM usage during training: ~ 18,84 GiB
+  - Peak VRAM usage during training: ~ 18.9 GiB
   - Training time: ~ 21 minutes
   - Decoding time (8 jobs, `search-type: default`): ~ 44 seconds
 
@@ -129,12 +128,13 @@ The reported value is averaged on 5 runs with `nj=1`. All experiments were perfo
 |decode_train_dev_decode_nsc|100|927|59.1|40.9|0.0|0.0|40.9|99.0|
 |decode_train_dev_decode_tsd|100|927|58.9|41.1|0.0|0.0|41.1|99.0|
 
-## RNN-Transducer (Enc: VGG + 4x BLSTM, Dec: 1x LSTM) + CTC loss + Label Smoothing loss
+## RNN-Transducer (Enc: VGG + 4x BLSTM, Dec: 1x LSTM)
+##   + CTC loss + Label Smoothing loss
 
 - General information
   - GPU: Nvidia A100 40Gb
   - Training time: ~ 21 minutes
-  - Peak memory consumption during training: ~ 18,15 GiB
+  - Peak memory consumption during training: ~ 18.2 GiB
   - Decoding time (8 jobs, `search-type: default`): ~ 43 seconds 
 
 - Environments
@@ -181,9 +181,9 @@ The reported value is averaged on 5 runs with `nj=1`. All experiments were perfo
 - General information
   - GPU: Nvidia A100 40Gb
   - Training time: ~ 1 hour
-  - Peak memory consumption during training: ~ 11.76 GiB
+  - Peak memory consumption during training: ~ 11.8 GiB
   - Decoding time (8 job, `search-type: default`): ~ 28 seconds
-  - Model averaging: based on best ones, N=10
+  - Model averaging: `n_average=10`, `use_valbest_average=true`
 
 - Environments
   - date: `Sun Aug 15 10:39:18 CEST 2021`
@@ -226,14 +226,15 @@ The reported value is averaged on 5 runs with `nj=1`. All experiments were perfo
 |decode_train_dev_decode_nsc|100|927|73.6|26.4|0.0|0.0|26.4|87.0|
 |decode_train_dev_decode_tsd|100|927|73.7|26.3|0.0|0.0|26.3|88.0|
 
-## Conformer/RNN-Transducer (Enc: VGG + 8x Conformer, Dec: 1x LSTM) + CTC loss + Label Smoothing loss
+## Conformer/RNN-Transducer (Enc: VGG + 8x Conformer, Dec: 1x LSTM)
+##   + CTC loss + Label Smoothing loss
 
 - General information
   - GPU: Nvidia A100 40Gb
   - Training time: ~ 1 hour
-  - Peak memory consumption during training: ~ 13.13 GiB
+  - Peak memory consumption during training: ~ 13.2 GiB
   - Decoding time (8 job, `search-type: default`): ~ 27 seconds
-  - Model averaging: based on best ones, N=10
+  - Model averaging: `n_average=10`, `use_valbest_average=true`
 
 - Environments
   - date: `Sun Aug 15 10:39:18 CEST 2021`
