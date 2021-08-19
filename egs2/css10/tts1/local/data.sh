@@ -153,9 +153,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ "${text_format}" = phn ]; then
         suffix="_phn"
     fi
-    combine_train_dirs=""
-    combine_dev_dirs=""
-    combine_eval_dirs=""
+    combine_train_dirs=()
+    combine_dev_dirs=()
+    combine_eval_dirs=()
     for lang in ${langs}; do
         utils/subset_data_dir.sh "data/${lang}${suffix}" 100 "data/${lang}_deveval${suffix}"
         utils/subset_data_dir.sh --first "data/${lang}_deveval${suffix}" 50 "data/${lang}_${dev_set}${suffix}"
@@ -164,16 +164,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         utils/filter_scp.pl --exclude "data/${lang}_deveval${suffix}/wav.scp" \
             "data/${lang}${suffix}/wav.scp" > "data/${lang}_${train_set}${suffix}/wav.scp"
         utils/fix_data_dir.sh "data/${lang}_${train_set}${suffix}"
-        combine_train_dirs+="data/${lang}_${train_set}${suffix} "
-        combine_dev_dirs+="data/${lang}_${dev_set}${suffix} "
-        combine_eval_dirs+="data/${lang}_${eval_set}${suffix} "
+        combine_train_dirs+=("data/${lang}_${train_set}${suffix}")
+        combine_dev_dirs+=("data/${lang}_${dev_set}${suffix}")
+        combine_eval_dirs+=("data/${lang}_${eval_set}${suffix}")
     done
-    # shellcheck disable=SC2086
-    utils/combine_data.sh "data/${train_set}${suffix}" ${combine_train_dirs}
-    # shellcheck disable=SC2086
-    utils/combine_data.sh "data/${dev_set}${suffix}" ${combine_dev_dirs}
-    # shellcheck disable=SC2086
-    utils/combine_data.sh "data/${eval_set}${suffix}" ${combine_eval_dirs}
+    utils/combine_data.sh "data/${train_set}${suffix}" "${combine_train_dirs[@]}"
+    utils/combine_data.sh "data/${dev_set}${suffix}" "${combine_dev_dirs[@]}"
+    utils/combine_data.sh "data/${eval_set}${suffix}" "${combine_eval_dirs[@]}"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
