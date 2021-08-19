@@ -11,6 +11,9 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.layers.inversible_interface import InversibleInterface
 
 
+is_pytorch_17plus = LooseVersion(torch.__version__) >= LooseVersion("1.7")
+
+
 class Stft(torch.nn.Module, InversibleInterface):
     def __init__(
         self,
@@ -81,8 +84,9 @@ class Stft(torch.nn.Module, InversibleInterface):
             )
         else:
             window = None
-        output = torch.stft(
-            input,
+
+        # use stft_kwargs to flexibly control different PyTorch versions' kwargs
+        stft_kwargs = dict(
             n_fft=self.n_fft,
             win_length=self.win_length,
             hop_length=self.hop_length,
@@ -90,8 +94,10 @@ class Stft(torch.nn.Module, InversibleInterface):
             window=window,
             normalized=self.normalized,
             onesided=self.onesided,
-            return_complex=False,
         )
+        if is_pytorch_17plus:
+            stft_kwargs["return_complex"] = False
+        output = torch.stft(input, **stft_kwargs)
         # output: (Batch, Freq, Frames, 2=real_imag)
         # -> (Batch, Frames, Freq, 2=real_imag)
         output = output.transpose(1, 2)
