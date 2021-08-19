@@ -40,10 +40,12 @@ NSC=
 JMD=downloads
 JSSS=downloads
 JSUT=downloads
+JTUBESPEECH=downloads
 JVS=downloads
 KSS=
 SPGISPEECH=
 SWBD=
+SWBD_NXT=
 TIMIT=$(realpath ../../../../TIMIT)
 VOXFORGE=downloads
 AMI=
@@ -92,6 +94,9 @@ NOISY_REVERBERANT_SPEECH=
 LRS2=
 SUNDA=downloads
 CMU_INDIC=downloads
+JKAC=
+MUCS_SUBTASK1=downloads
+MUCS_SUBTASK2=downloads
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
@@ -180,4 +185,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     SIWIS=downloads
     SUNDA=
     CMU_INDIC=
+    JKAC=
+    MUCS_SUBTASK1=downloads
+    MUCS_SUBTASK2=downloads
 fi
