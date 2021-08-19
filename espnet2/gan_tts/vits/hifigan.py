@@ -15,6 +15,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 
@@ -72,6 +73,7 @@ class HiFiGANGenerator(torch.nn.Module):
         assert len(resblock_dilations) == len(resblock_kernel_sizes)
 
         # define modules
+        self.upsample_factor = int(np.prod(upsample_scales))
         self.num_upsamples = len(upsample_kernal_sizes)
         self.num_blocks = len(resblock_kernel_sizes)
         self.input_conv = torch.nn.Conv1d(
@@ -199,6 +201,21 @@ class HiFiGANGenerator(torch.nn.Module):
                 logging.debug(f"Weight norm is applied to {m}.")
 
         self.apply(_apply_weight_norm)
+
+    def inference(self, c):
+        """Perform inference.
+
+        Args:
+            c (Union[Tensor, ndarray]): Input tensor (T, in_channels).
+
+        Returns:
+            Tensor: Output tensor (T ** prod(upsample_scales), out_channels).
+
+        """
+        if not isinstance(c, torch.Tensor):
+            c = torch.tensor(c, dtype=torch.float).to(next(self.parameters()).device)
+        c = self.forward(c.transpose(1, 0).unsqueeze(0))
+        return c.squeeze(0).transpose(1, 0)
 
 
 class HiFiGANPeriodDiscriminator(torch.nn.Module):
