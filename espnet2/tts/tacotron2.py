@@ -279,7 +279,7 @@ class Tacotron2(AbsTTS):
         Returns:
             Tensor: Loss scalar value.
             Dict: Statistics to be monitored.
-            Tensor: Weight value.
+            Tensor: Weight value if not joint training else model outputs.
 
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
@@ -356,8 +356,7 @@ class Tacotron2(AbsTTS):
             )
             return loss, stats, weight
         else:
-            # For joint training
-            return loss, stats, after_outs, olens
+            return loss, stats, after_outs
 
     def _forward(
         self,

@@ -396,7 +396,7 @@ class Transformer(AbsTTS):
         Returns:
             Tensor: Loss scalar value.
             Dict: Statistics to be monitored.
-            Tensor: Weight value.
+            Tensor: Weight value if not joint training else model outputs.
 
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
@@ -521,7 +521,7 @@ class Transformer(AbsTTS):
             )
             return loss, stats, weight
         else:
-            return loss, stats, after_outs, olens
+            return loss, stats, after_outs
 
     def _forward(
         self,

@@ -348,7 +348,7 @@ class JointText2Wav(AbsGANTTS):
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
             # calculate text2mel outputs
-            text2mel_loss, stats, feats_gen, *_ = self.text2mel(
+            text2mel_loss, stats, feats_gen = self.text2mel(
                 text=text,
                 text_lengths=text_lengths,
                 speech=feats,
@@ -432,8 +432,6 @@ class JointText2Wav(AbsGANTTS):
             feats_lengths (Tensor): Feature length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
-            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
 
         Returns:
             Dict[str, Any]:
@@ -452,7 +450,7 @@ class JointText2Wav(AbsGANTTS):
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
             # calculate text2mel outputs
-            text2mel_loss, stats, feats_gen, *_ = self.text2mel(
+            text2mel_loss, stats, feats_gen = self.text2mel(
                 text=text,
                 text_lengths=text_lengths,
                 speech=feats,
