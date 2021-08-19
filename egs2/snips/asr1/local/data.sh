@@ -50,7 +50,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
    #TO DO: normalize text.trans here, remove punct, lower casing
    # text.trans : Hello, world! 1.wav
    sort -u data/text.trans > data/tmp/text.sort
-   awk 'NF{NF-=1};1' <data/text.trans > data/lm_train_text # remove last column wav name
    sort  -o data/wav.scp  data/wav.scp
    # non_linguistc_symbols for intent and slot types
    sort -uo data/non_linguistic_symbols.txt data/non_linguistic_symbols.txt
@@ -59,6 +58,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
    awk '{print $(NF)}' data/tmp/text.sort > data/tmp/wavs # keep only last column wav name
    paste -d "|" data/tmp/wavs data/tmp/semantics.sort > data/tmp/wav_sem_text
    cut -d "|" -f 1,3 data/tmp/wav_sem_text > data/tmp/wav_sem
+   cut -d "|" -f 3- data/tmp/wav_sem_text > data/lm_train_text
    sed -r 's/\|/ /g' data/tmp/wav_sem > data/text
    mkdir -p data/all
    mv data/utt2spk data/text data/wav.scp data/all 
