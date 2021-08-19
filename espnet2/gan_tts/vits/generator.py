@@ -220,6 +220,7 @@ class VITSGenerator(torch.nn.Module):
             use_weight_norm=use_weight_norm_in_flow,
             use_only_mean=use_only_mean_in_flow,
         )
+        # TODO(kan-bayashi): Add deterministic version as an option
         self.duration_predictor = StochasticDurationPredictor(
             channels=hidden_channels,
             kernel_size=stochastic_duration_predictor_kernel_size,
