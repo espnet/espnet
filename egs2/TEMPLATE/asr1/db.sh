@@ -39,6 +39,7 @@ NSC=
 JMD=downloads
 JSSS=downloads
 JSUT=downloads
+JTUBESPEECH=downloads
 JVS=downloads
 KSS=
 SPGISPEECH=
