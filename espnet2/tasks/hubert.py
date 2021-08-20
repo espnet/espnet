@@ -146,7 +146,7 @@ class HubertTask(AbsTask):
             default=None,
             help="The number of input dimension of the feature",
         )
-        
+
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
@@ -376,7 +376,12 @@ class HubertTask(AbsTask):
 
         # 4. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
-        encoder = encoder_class(input_size=input_size, use_amp=args.use_amp, hubert_dict=args.hubert_dict, **args.encoder_conf
+        encoder = encoder_class(
+            input_size=input_size,
+            use_amp=args.use_amp,
+            hubert_dict=args.hubert_dict,
+            **args.encoder_conf,
+        )
 
         # 8. Build model
         model = HubertPretrainModel(
@@ -389,10 +394,10 @@ class HubertTask(AbsTask):
             token_list=token_list,
             **args.model_conf,
         )
-                                
+
         # 9. Initialize
         if args.init is not None:
             initialize(model, args.init)
-            
+
         assert check_return_type(model)
         return model

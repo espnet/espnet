@@ -192,9 +192,9 @@ class Trainer:
                     raise RuntimeError(
                         "Requiring fairscale. Do 'pip install fairscale'"
                     )
-                scaler = fairscale.optim.grad_scaler.ShardedGradScaler(init_scale = 4)
+                scaler = fairscale.optim.grad_scaler.ShardedGradScaler(init_scale=4)
             else:
-                scaler = GradScaler(init_scale = 4)
+                scaler = GradScaler(init_scale=4)
         else:
             scaler = None
 

@@ -28,16 +28,15 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 try:
     import fairseq
-    from fairseq.models.hubert.hubert import (HubertModel,
-                                              HubertConfig,
-                                              HubertPretrainingConfig,
+    from fairseq.models.hubert.hubert import (
+        HubertModel,
+        HubertConfig,
+        HubertPretrainingConfig,
     )
     from fairseq.data.dictionary import Dictionary
 except Exception as e:
     print("Error: FairSeq is not properly installed.")
-    print(
-        "Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done"
-    )
+    print("Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")
     raise e
 
 
@@ -49,7 +48,7 @@ class FairseqHubertEncoder(AbsEncoder):
         hubert_dir_path: directory to download the Wav2Vec2.0 pretrained model.
         output_size: dimension of attention
         normalize_before: whether to use layer_norm before the first block
-        freeze_finetune_updates: steps that freeze all layers except output layer 
+        freeze_finetune_updates: steps that freeze all layers except output layer
                                  before tuning the whole model (nessasary to prevent overfit).
         dropout_rate: dropout rate
         activation_dropout: dropout rate in activation function
@@ -78,7 +77,7 @@ class FairseqHubertEncoder(AbsEncoder):
         mask_channel_length: int = 64,
         mask_channel_prob: float = 0.5,
         mask_channel_other: int = 0,
-        mask_channel_selection: str =  "static",
+        mask_channel_selection: str = "static",
         layerdrop: float = 0.1,
         feature_grad_mult: float = 0.0,
     ):
@@ -100,7 +99,7 @@ class FairseqHubertEncoder(AbsEncoder):
             "encoder_layerdrop": layerdrop,
             "feature_grad_mult": feature_grad_mult,
             "data": hubert_dir_path,
-        }        
+        }
 
         try:
             import fairseq
@@ -108,49 +107,53 @@ class FairseqHubertEncoder(AbsEncoder):
             from fairseq.data import Dictionary
         except Exception as e:
             print("Error: FairSeq is not properly installed.")
-            print(
-                "Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done"
-            )
+            print("Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")
             raise e
         if hubert_url == "espnet":
             self.hubert_model_path = hubert_dir_path
             s = torch.load(
                 self.hubert_model_path,
-                map_location=torch.device('cpu'),
+                map_location=torch.device("cpu"),
             )
 
             if all("encoder.encoder" in k for k in s):
                 try:
                     state = {
-                        k.replace("encoder.encoder.", ""):v
-                        for k, v in s.items() if "label_embs_concat" not in k
+                        k.replace("encoder.encoder.", ""): v
+                        for k, v in s.items()
+                        if "label_embs_concat" not in k
                     }
                 except Exception as e:
-                    raise e                    
+                    raise e
 
             config_file = os.path.join(
-                '/'.join(self.hubert_model_path.split('/')[:-1]), "config.yaml",
+                "/".join(self.hubert_model_path.split("/")[:-1]),
+                "config.yaml",
             )
             config_file = Path(config_file)
 
             with config_file.open("r", encoding="utf-8") as f:
                 self.pretrained_cfg = yaml.safe_load(f)
-                
+
             model = FairseqHubertPretrainEncoder(
-                input_size = self.pretrained_cfg["input_size"],
-                hubert_dict = self.pretrained_cfg["hubert_dict"],
+                input_size=self.pretrained_cfg["input_size"],
+                hubert_dict=self.pretrained_cfg["hubert_dict"],
                 **self.pretrained_cfg["encoder_conf"],
             )
             model = model.encoder
 
             d = self.pretrained_cfg["encoder_conf"]["output_size"]
             self.pretrained_params = copy.deepcopy(state)
-            
+
         else:
-            
+
             self.hubert_model_path = download_hubert(hubert_url, hubert_dir_path)
 
-            models, self.pretrained_cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task(
+            (
+                models,
+                self.pretrained_cfg,
+                task,
+            ) = fairseq.checkpoint_utils.load_model_ensemble_and_task(
                 [self.hubert_model_path],
                 arg_overrides=arg_overrides,
                 strict=False,
@@ -159,7 +162,7 @@ class FairseqHubertEncoder(AbsEncoder):
 
             d = self.pretrained_cfg.model.encoder_embed_dim
             self.pretrained_params = copy.deepcopy(model.state_dict())
-            
+
         self._output_size = output_size
 
         if not isinstance(model, HubertModel):
@@ -171,20 +174,19 @@ class FairseqHubertEncoder(AbsEncoder):
                     "'HubertModel, Hubertctc' classes, etc."
                 )
                 raise e
-            
+
         self.encoders = model
 
         self.normalize_before = normalize_before
         if self.normalize_before:
             self.after_norm = LayerNorm(output_size)
 
-        
         if output_size and output_size != d:
             self.output_layer = torch.nn.Sequential(
                 torch.nn.Linear(d, output_size),
-                )
+            )
         else:
-            self.output_layer = None            
+            self.output_layer = None
 
         self.freeze_finetune_updates = freeze_finetune_updates
         self.register_buffer("num_updates", torch.LongTensor([0]))
@@ -207,7 +209,7 @@ class FairseqHubertEncoder(AbsEncoder):
             position embedded tensor and mask
         """
         masks = make_pad_mask(ilens).to(xs_pad.device)
-        
+
         ft = self.freeze_finetune_updates <= self.num_updates
 
         if self.num_updates <= self.freeze_finetune_updates:
@@ -220,8 +222,8 @@ class FairseqHubertEncoder(AbsEncoder):
         with torch.no_grad() if not ft else contextlib.nullcontext():
             enc_outputs = self.encoders(
                 xs_pad,
-                padding_mask = masks,
-                mask = self.apply_mask and self.training,
+                padding_mask=masks,
+                mask=self.apply_mask and self.training,
                 features_only=True,
                 output_layer=None,
             )
@@ -229,9 +231,9 @@ class FairseqHubertEncoder(AbsEncoder):
         xs_pad = enc_outputs["x"]  # (B,T,C),
         masks = enc_outputs["padding_mask"]  # (B, T)
 
-        #save gpu memory
+        # save gpu memory
         del enc_outputs
-        
+
         olens = (~masks).sum(dim=1)
 
         if self.output_layer is not None:
@@ -246,7 +248,7 @@ class FairseqHubertEncoder(AbsEncoder):
         self.encoders.load_state_dict(self.pretrained_params, strict=False)
         logging.info("Pretrained Hubert model parameters reloaded!")
 
-        
+
 class FairseqHubertPretrainEncoder(AbsEncoder):
     """FairSeq Hubert encoder module.
     Args:
@@ -266,15 +268,15 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
 
     def __init__(
         self,
-        input_size: int, 
+        input_size: int,
         output_size: int = 1024,
-        linear_units: int = 1024, 
-        attention_heads: int = 12, 
+        linear_units: int = 1024,
+        attention_heads: int = 12,
         num_blocks: int = 12,
         dropout_rate: float = 0.0,
         attention_dropout_rate: float = 0.0,
         activation_dropout_rate: float = 0.0,
-        hubert_dict: str = './',
+        hubert_dict: str = "./",
         label_rate: int = 100,
         sample_rate: int = 16000,
         use_amp: bool = False,
@@ -296,7 +298,7 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         }
         cfg_overides = {**cfg_overides, **kwargs}
         self.cfg = HubertConfig()
-        
+
         for key, value in cfg_overides.items():
             if hasattr(self.cfg, key):
                 setattr(self.cfg, key, value)
@@ -310,15 +312,16 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
             if hasattr(hubert_task_cfg, key):
                 setattr(hubert_task_cfg, key, value)
 
-        self.dictionaries = [F2E_Dictionary.load(f"{hubert_dict}")
-                             if os.path.exists(f"{hubert_dict}")
+        self.dictionaries = [
+            F2E_Dictionary.load(f"{hubert_dict}")
+            if os.path.exists(f"{hubert_dict}")
             else None
         ]
         self.encoder = HubertModel(self.cfg, hubert_task_cfg, self.dictionaries)
-    
+
     def output_size(self) -> int:
         return self._output_size
-    
+
     def forward(
         self,
         xs_pad: torch.Tensor,
@@ -337,34 +340,34 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         """
         self.cast_mask_emb()
         masks = make_pad_mask(ilens).to(xs_pad.device)
-        ys_pad = ys_pad[:, :min(ys_pad_length)]
+        ys_pad = ys_pad[:, : min(ys_pad_length)]
         enc_outputs = self.encoder(
             xs_pad,
-            padding_mask = masks,
-            mask = True,
-            target_list = [ys_pad],
-            features_only = False,
+            padding_mask=masks,
+            mask=True,
+            target_list=[ys_pad],
+            features_only=False,
         )
         return enc_outputs
 
     def cast_mask_emb(self):
         if self.use_amp and self.encoder.mask_emb.dtype != torch.cuda.HalfTensor:
-            self.encoder.mask_emb = torch.nn.Parameter(
-                self.encoder.mask_emb.half()
-            )
-    
+            self.encoder.mask_emb = torch.nn.Parameter(self.encoder.mask_emb.half())
+
     def reload_pretrained_parameters(self):
         self.encoder.mask_emb = torch.nn.Parameter(
             torch.HalfTensor(self.cfg.encoder_embed_dim).uniform_()
         )
-        logging.info(f"Hubert mask embedding re-initiallized!, {self.encoder.mask_emb.dtype}, {self.use_amp}")
+        logging.info(
+            f"Hubert mask embedding re-initiallized!, {self.encoder.mask_emb.dtype}, {self.use_amp}"
+        )
 
-    
+
 class F2E_Dictionary(Dictionary):
     def __init__(
-            self,
-            *,  # begin keyword-only arguments
-            extra_special_symbols=None,
+        self,
+        *,  # begin keyword-only arguments
+        extra_special_symbols=None,
     ):
         self.symbols = []
         self.count = []
@@ -374,7 +377,7 @@ class F2E_Dictionary(Dictionary):
                 self.add_symbol(s)
         self.nspecial = len(self.symbols)
 
-    
+
 def download_hubert(model_url, dir_path):
     os.makedirs(dir_path, exist_ok=True)
 
@@ -389,4 +392,3 @@ def download_hubert(model_url, dir_path):
             logging.info(f"Hubert model {model_path} already exists.")
 
     return model_path
-

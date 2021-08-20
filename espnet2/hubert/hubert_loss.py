@@ -36,10 +36,10 @@ class HubertPretrainLoss(nn.Module):
         self.loss_weights = loss_weights
 
     def forward(self, model, enc_outputs, reduce=True):
-        loss = 0.
+        loss = 0.0
         sample_size = 0
         reduction = "sum" if reduce else "none"
-        
+
         loss_m_list = []
         logp_m_list = model.get_logits(enc_outputs, True)
         targ_m_list = model.get_targets(enc_outputs, True)
@@ -72,5 +72,3 @@ class HubertPretrainLoss(nn.Module):
             loss += self.loss_weights * extra_losses.float() * sample_size
 
         return loss, logp_m_list, logp_u_list
-
-

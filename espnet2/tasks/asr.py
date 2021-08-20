@@ -111,7 +111,7 @@ encoder_choices = ClassChoices(
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
         wav2vec2=FairSeqWav2Vec2Encoder,
-	hubert=FairseqHubertEncoder,
+        hubert=FairseqHubertEncoder,
         hubert_pretrain=FairseqHubertPretrainEncoder,
     ),
     type_check=AbsEncoder,

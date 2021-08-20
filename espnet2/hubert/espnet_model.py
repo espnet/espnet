@@ -130,7 +130,7 @@ class HubertPretrainModel(AbsESPnetModel):
         loss, acc_mask, acc_unmask = self._calc_hubert_loss(
             encoder_out,
         )
-        
+
         stats = dict(
             loss=loss.detach(),
             acc_mask=acc_mask,
@@ -153,8 +153,11 @@ class HubertPretrainModel(AbsESPnetModel):
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
-            self, speech: torch.Tensor, speech_lengths: torch.Tensor,
-            y_pad: torch.Tensor, y_pad_length: torch.Tensor,
+        self,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        y_pad: torch.Tensor,
+        y_pad_length: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Frontend + Encoder. Note that this method is used by asr_inference.py
 
@@ -181,14 +184,12 @@ class HubertPretrainModel(AbsESPnetModel):
         # 4. Forward encoder
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
-        encoder_out = self.encoder(
-            feats, feats_lengths, y_pad, y_pad_length
-        )
+        encoder_out = self.encoder(feats, feats_lengths, y_pad, y_pad_length)
 
         if hasattr(self.encoder, "encoder"):
             logp_m_list = self.encoder.encoder.get_logits(encoder_out, True)
             assert self.pred_masked_weight == 0 or len(logp_m_list) > 0
-        
+
             logp_u_list = self.encoder.encoder.get_logits(encoder_out, False)
             assert self.pred_nomask_weight == 0 or len(logp_u_list) > 0
         else:
@@ -217,8 +218,8 @@ class HubertPretrainModel(AbsESPnetModel):
         return feats, feats_lengths
 
     def compute_correct(
-            self,
-            logits,
+        self,
+        logits,
     ):
         if logits.numel() == 0:
             return 0, 0
@@ -230,14 +231,16 @@ class HubertPretrainModel(AbsESPnetModel):
             corr = max.long().sum().item() - both.long().sum().item()
             count = max.numel()
             return corr, count
-        
+
     def _calc_hubert_loss(
         self,
         encoder_out: Dict[str, torch.Tensor],
     ):
 
         # 1. Compute attention loss
-        loss_att, logp_m_list, logp_u_list = self.criterion_att(self.encoder.encoder, encoder_out)
+        loss_att, logp_m_list, logp_u_list = self.criterion_att(
+            self.encoder.encoder, encoder_out
+        )
 
         corr_masked, count_masked = 0, 0
         corr_unmask, count_unmask = 0, 0
@@ -250,9 +253,8 @@ class HubertPretrainModel(AbsESPnetModel):
                 corr_u, count_u = self.compute_correct(logp_u)
                 corr_unmask += corr_u
                 count_unmask += count_u
-        
+
         acc_att_m = corr_masked / count_masked
         acc_att_u = corr_unmask / count_unmask
-        
-        return loss_att, acc_att_m, acc_att_u
 
+        return loss_att, acc_att_m, acc_att_u
