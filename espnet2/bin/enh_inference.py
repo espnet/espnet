@@ -169,10 +169,17 @@ class SeparateSpeech:
                     speech_seg_ = speech_seg
 
                 if self.normalize_segment_scale:
-                    # normalize the energy of each separated stream
-                    # to match the input energy
+                    # normalize the scale to match the input mixture scale
+                    mix_energy = torch.sqrt(
+                        torch.mean(speech_seg_[:, :t].pow(2), dim=1, keepdim=True)
+                    )
+                    enh_energy = torch.sqrt(
+                        torch.mean(
+                            sum(processed_wav)[:, :t].pow(2), dim=1, keepdim=True
+                        )
+                    )
                     processed_wav = [
-                        self.normalize_scale(w, speech_seg_) for w in processed_wav
+                        w * (mix_energy / enh_energy) for w in processed_wav
                     ]
                 # List[torch.Tensor(num_spk, B, T)]
                 enh_waves.append(torch.stack(processed_wav, dim=0))
@@ -222,21 +229,6 @@ class SeparateSpeech:
             waves = [w.cpu().numpy() for w in waves]
 
         return waves
-
-    @staticmethod
-    @torch.no_grad()
-    def normalize_scale(enh_wav, ref_ch_wav):
-        """Normalize the energy of enh_wav to match that of ref_ch_wav.
-
-        Args:
-            enh_wav (torch.Tensor): (B, Nsamples)
-            ref_ch_wav (torch.Tensor): (B, Nsamples)
-        Returns:
-            enh_wav (torch.Tensor): (B, Nsamples)
-        """
-        ref_energy = torch.sqrt(torch.mean(ref_ch_wav.pow(2), dim=1))
-        enh_energy = torch.sqrt(torch.mean(enh_wav.pow(2), dim=1))
-        return enh_wav * (ref_energy / enh_energy)[:, None]
 
     @torch.no_grad()
     def cal_permumation(self, ref_wavs, enh_wavs, criterion="si_snr"):
