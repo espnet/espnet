@@ -15,6 +15,17 @@ espnet2.gan_tts.__init__
     :show-inheritance:
 
 
+.. _espnet2.gan_tts.vits.generator:
+
+espnet2.gan_tts.vits.generator
+------------------------------
+
+.. automodule:: espnet2.gan_tts.vits.generator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.gan_tts.vits.loss:
 
 espnet2.gan_tts.vits.loss
@@ -32,6 +43,50 @@ espnet2.gan_tts.vits.__init__
 -----------------------------
 
 .. automodule:: espnet2.gan_tts.vits.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.vits.flow:
+
+espnet2.gan_tts.vits.flow
+-------------------------
+
+.. automodule:: espnet2.gan_tts.vits.flow
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.vits.duration_predictor:
+
+espnet2.gan_tts.vits.duration_predictor
+---------------------------------------
+
+.. automodule:: espnet2.gan_tts.vits.duration_predictor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.vits.posterior_encoder:
+
+espnet2.gan_tts.vits.posterior_encoder
+--------------------------------------
+
+.. automodule:: espnet2.gan_tts.vits.posterior_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.vits.transform:
+
+espnet2.gan_tts.vits.transform
+------------------------------
+
+.. automodule:: espnet2.gan_tts.vits.transform
     :members:
     :undoc-members:
     :show-inheritance:
@@ -59,12 +114,45 @@ espnet2.gan_tts.vits.wavenet
     :show-inheritance:
 
 
+.. _espnet2.gan_tts.vits.text_encoder:
+
+espnet2.gan_tts.vits.text_encoder
+---------------------------------
+
+.. automodule:: espnet2.gan_tts.vits.text_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.vits.residual_coupling:
+
+espnet2.gan_tts.vits.residual_coupling
+--------------------------------------
+
+.. automodule:: espnet2.gan_tts.vits.residual_coupling
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.gan_tts.vits.hifigan:
 
 espnet2.gan_tts.vits.hifigan
 ----------------------------
 
 .. automodule:: espnet2.gan_tts.vits.hifigan
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.vits.monotonic_align.__init__:
+
+espnet2.gan_tts.vits.monotonic_align.__init__
+---------------------------------------------
+
+.. automodule:: espnet2.gan_tts.vits.monotonic_align.__init__
     :members:
     :undoc-members:
     :show-inheritance:

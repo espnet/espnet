@@ -508,6 +508,47 @@
         <span class="n">mel_loss</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">l1_loss</span><span class="p">(</span><span class="n">mel_hat</span><span class="p">,</span> <span class="n">mel</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">mel_loss</span></div></div>
+
+
+<div class="viewcode-block" id="KLDivergenceLoss"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.loss.KLDivergenceLoss">[docs]</a><span class="k">class</span> <span class="nc">KLDivergenceLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;KL divergence loss.</span>
+
+<span class="sd">    This calculation is based on https://github.com/jaywalnut310/vits.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="KLDivergenceLoss.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.loss.KLDivergenceLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">z_p</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">logs_q</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">m_p</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">logs_p</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">z_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Calculate KL divergence loss.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            z_p (Tensor): Flow hidden representation (B, H, T_feats).</span>
+<span class="sd">            logs_q (Tensor): Posterior encoder projected scale (B, H, T_feats).</span>
+<span class="sd">            m_p (Tensor): Expanded text encoder projected mean (B, H, T_feats).</span>
+<span class="sd">            logs_p (Tensor): Expanded text encoder projected scale (B, H, T_feats).</span>
+<span class="sd">            z_mask (Tensor): Mask tensor (B, 1, T_feats).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: KL divergence loss.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">z_p</span> <span class="o">=</span> <span class="n">z_p</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">logs_q</span> <span class="o">=</span> <span class="n">logs_q</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">m_p</span> <span class="o">=</span> <span class="n">m_p</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">logs_p</span> <span class="o">=</span> <span class="n">logs_p</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">z_mask</span> <span class="o">=</span> <span class="n">z_mask</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+        <span class="n">kl</span> <span class="o">=</span> <span class="n">logs_p</span> <span class="o">-</span> <span class="n">logs_q</span> <span class="o">-</span> <span class="mf">0.5</span>
+        <span class="n">kl</span> <span class="o">+=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">((</span><span class="n">z_p</span> <span class="o">-</span> <span class="n">m_p</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">logs_p</span><span class="p">)</span>
+        <span class="n">kl</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">kl</span> <span class="o">*</span> <span class="n">z_mask</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">kl</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">z_mask</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">loss</span></div></div>
 </pre></div>
 
            </div>

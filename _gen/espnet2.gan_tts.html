@@ -138,11 +138,19 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.gan_tts package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-init">espnet2.gan_tts.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-generator">espnet2.gan_tts.vits.generator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-loss">espnet2.gan_tts.vits.loss</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-init">espnet2.gan_tts.vits.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-flow">espnet2.gan_tts.vits.flow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-duration-predictor">espnet2.gan_tts.vits.duration_predictor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-posterior-encoder">espnet2.gan_tts.vits.posterior_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-transform">espnet2.gan_tts.vits.transform</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-residual-block">espnet2.gan_tts.vits.residual_block</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-wavenet">espnet2.gan_tts.vits.wavenet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-text-encoder">espnet2.gan_tts.vits.text_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-residual-coupling">espnet2.gan_tts.vits.residual_coupling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-hifigan">espnet2.gan_tts.vits.hifigan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-monotonic-align-init">espnet2.gan_tts.vits.monotonic_align.__init__</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
@@ -252,8 +260,215 @@
 <div class="section" id="espnet2-gan-tts-init">
 <span id="id1"></span><h2>espnet2.gan_tts.__init__<a class="headerlink" href="#espnet2-gan-tts-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.__init__"></span></div>
+<div class="section" id="espnet2-gan-tts-vits-generator">
+<span id="id2"></span><h2>espnet2.gan_tts.vits.generator<a class="headerlink" href="#espnet2-gan-tts-vits-generator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.vits.generator"></span><p>Generator module in VITS.</p>
+<p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.generator.VITSGenerator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.generator.</code><code class="sig-name descname">VITSGenerator</code><span class="sig-paren">(</span><em class="sig-param">vocabs: int, aux_channels: int = 513, hidden_channels: int = 192, spks: int = -1, spk_embed_dim: int = -1, global_channels: int = -1, segment_size: int = 32, text_encoder_attention_heads: int = 2, text_encoder_ffn_expand: int = 4, text_encoder_blocks: int = 6, text_encoder_positionwise_layer_type: str = 'conv1d', text_encoder_positionwise_conv_kernel_size: int = 1, text_encoder_positional_encoding_layer_type: str = 'rel_pos', text_encoder_self_attention_layer_type: str = 'rel_selfattn', text_encoder_activation_type: str = 'swish', text_encoder_normalize_before: bool = True, text_encoder_dropout_rate: float = 0.1, text_encoder_positional_dropout_rate: float = 0.0, text_encoder_attention_dropout_rate: float = 0.0, text_encoder_conformer_kernel_size: int = 7, use_macaron_style_in_text_encoder: bool = True, use_conformer_conv_in_text_encoder: bool = True, decoder_kernel_size: int = 7, decoder_channels: int = 512, decoder_upsample_scales: List[int] = [8, 8, 2, 2], decoder_upsample_kernel_sizes: List[int] = [16, 16, 4, 4], decoder_resblock_kernel_sizes: List[int] = [3, 7, 11], decoder_resblock_dilations: List[List[int]] = [[1, 3, 5], [1, 3, 5], [1, 3, 5]], use_weight_norm_in_decoder: bool = True, posterior_encoder_kernel_size: int = 5, posterior_encoder_layers: int = 16, posterior_encoder_stacks: int = 1, posterior_encoder_base_dilation: int = 1, posterior_encoder_dropout_rate: float = 0.0, use_weight_norm_in_posterior_encoder: bool = True, flow_flows: int = 4, flow_kernel_size: int = 5, flow_base_dilation: int = 1, flow_layers: int = 4, flow_dropout_rate: float = 0.0, use_weight_norm_in_flow: bool = True, use_only_mean_in_flow: bool = True, stochastic_duration_predictor_kernel_size: int = 3, stochastic_duration_predictor_dropout_rate: float = 0.5, stochastic_duration_predictor_flows: int = 4, stochastic_duration_predictor_dds_conv_layers: int = 3</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/generator.html#VITSGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.generator.VITSGenerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Generator module in VITS.</p>
+<p>This is a module of VITS described in <a class="reference external" href="https://arxiv.org/abs/2006.04558">Conditional Variational Autoencoder
+with Adversarial Learning for End-to-End Text-to-Speech</a>.</p>
+<p>As text encoder, we use conformer architecture instead of the relative positional
+Transformer, which contains additional convolution layers.</p>
+<p>Initialize VITS generator module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vocabs</strong> (<em>int</em>) – Input vocabulary size.</p></li>
+<li><p><strong>aux_channels</strong> (<em>int</em>) – Number of acoustic feature channels.</p></li>
+<li><p><strong>hidden_channels</strong> (<em>int</em>) – Number of hidden channels.</p></li>
+<li><p><strong>spks</strong> (<em>int</em>) – Number of speakers.</p></li>
+<li><p><strong>global_channels</strong> (<em>int</em>) – Number of global conditioning channels.</p></li>
+<li><p><strong>segment_size</strong> (<em>int</em>) – Segment size for decoder.</p></li>
+<li><p><strong>text_encoder_attention_heads</strong> (<em>int</em>) – Number of heads in conformer block
+of text encoder.</p></li>
+<li><p><strong>text_encoder_ffn_expand</strong> (<em>int</em>) – Expansion ratio of FFN in conformer block
+of text encoder.</p></li>
+<li><p><strong>text_encoder_blocks</strong> (<em>int</em>) – Number of conformer blocks in text encoder.</p></li>
+<li><p><strong>text_encoder_positionwise_layer_type</strong> (<em>str</em>) – Position-wise layer type in
+conformer block of text encoder.</p></li>
+<li><p><strong>text_encoder_positionwise_conv_kernel_size</strong> (<em>int</em>) – Position-wise convolution
+kernal size in conformer block of text encoder. Only used when the
+above layer type is conv1d or conv1d-linear.</p></li>
+<li><p><strong>text_encoder_positional_encoding_layer_type</strong> (<em>str</em>) – Positional encoding layer
+type in conformer block of text encoder.</p></li>
+<li><p><strong>text_encoder_self_attention_layer_type</strong> (<em>str</em>) – Self-attention layer type in
+conformer block of text encoder.</p></li>
+<li><p><strong>text_encoder_activation_type</strong> (<em>str</em>) – Activation function type in conformer
+block of text encoder.</p></li>
+<li><p><strong>text_encoder_normalize_before</strong> (<em>bool</em>) – Whether to apply layer norm before
+self-attention in conformer block of text encoder.</p></li>
+<li><p><strong>text_encoder_dropout_rate</strong> (<em>float</em>) – Dropout rate in conformer block of
+text encoder.</p></li>
+<li><p><strong>text_encoder_positional_dropout_rate</strong> (<em>float</em>) – Dropout rate for positional
+encoding in conformer block of text encoder.</p></li>
+<li><p><strong>text_encoder_attention_dropout_rate</strong> (<em>float</em>) – Dropout rate for attention in
+conformer block of text encoder.</p></li>
+<li><p><strong>text_encoder_conformer_kernel_size</strong> (<em>int</em>) – Conformer conv kernal size. It
+will be used when only use_conformer_conv_in_text_encoder = True.</p></li>
+<li><p><strong>use_macaron_style_in_text_encoder</strong> (<em>bool</em>) – Whether to use macaron style FFN
+in conformer block of text encoder.</p></li>
+<li><p><strong>use_conformer_conv_in_text_encoder</strong> (<em>bool</em>) – Whether to use covolution in
+conformer block of text encoder.</p></li>
+<li><p><strong>decoder_kernel_size</strong> (<em>int</em>) – Decoder kernel size.</p></li>
+<li><p><strong>decoder_channels</strong> (<em>int</em>) – Number of decoder initial channels.</p></li>
+<li><p><strong>decoder_upsample_scales</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of upsampling scales in decoder.</p></li>
+<li><p><strong>decoder_upsample_kernel_sizes</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of kernel size for
+upsampling layers in decoder.</p></li>
+<li><p><strong>decoder_resblock_kernel_sizes</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of kernel size for resblocks
+in decoder.</p></li>
+<li><p><strong>decoder_resblock_dilations</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><em>int</em><em>]</em><em>]</em>) – List of list of dilations for
+resblocks in decoder.</p></li>
+<li><p><strong>use_weight_norm_in_decoder</strong> (<em>bool</em>) – Whether to apply weight normalization in
+decoder.</p></li>
+<li><p><strong>posterior_encoder_kernel_size</strong> (<em>int</em>) – Posterior encoder kernel size.</p></li>
+<li><p><strong>posterior_encoder_layers</strong> (<em>int</em>) – Number of layers of posterior encoder.</p></li>
+<li><p><strong>posterior_encoder_stacks</strong> (<em>int</em>) – Number of stacks of posterior encoder.</p></li>
+<li><p><strong>posterior_encoder_base_dilation</strong> (<em>int</em>) – Base dilation of posterior encoder.</p></li>
+<li><p><strong>posterior_encoder_dropout_rate</strong> (<em>float</em>) – Dropout rate for posterior encoder.</p></li>
+<li><p><strong>use_weight_norm_in_posterior_encoder</strong> (<em>bool</em>) – Whether to apply weight
+normalization in posterior encoder.</p></li>
+<li><p><strong>flow_flows</strong> (<em>int</em>) – Number of flows in flow.</p></li>
+<li><p><strong>flow_kernel_size</strong> (<em>int</em>) – Kernel size in flow.</p></li>
+<li><p><strong>flow_base_dilation</strong> (<em>int</em>) – Base dilation in flow.</p></li>
+<li><p><strong>flow_layers</strong> (<em>int</em>) – Number of layers in flow.</p></li>
+<li><p><strong>flow_dropout_rate</strong> (<em>float</em>) – Dropout rate in flow</p></li>
+<li><p><strong>use_weight_norm_in_flow</strong> (<em>bool</em>) – Whether to apply weight normalization in
+flow.</p></li>
+<li><p><strong>use_only_mean_in_flow</strong> (<em>bool</em>) – Whether to use only mean in flow.</p></li>
+<li><p><strong>stochastic_duration_predictor_kernel_size</strong> (<em>int</em>) – Kernel size in stochastic
+duration predictor.</p></li>
+<li><p><strong>stochastic_duration_predictor_dropout_rate</strong> (<em>float</em>) – Dropout rate in
+stochastic duration predictor.</p></li>
+<li><p><strong>stochastic_duration_predictor_flows</strong> (<em>int</em>) – Number of flows in stochastic
+duration predictor.</p></li>
+<li><p><strong>stochastic_duration_predictor_dds_conv_layers</strong> (<em>int</em>) – Number of DDS conv
+layers in stochastic duration predictor.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.generator.VITSGenerator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/generator.html#VITSGenerator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.generator.VITSGenerator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (B, T_text).</p></li>
+<li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
+<li><p><strong>feats</strong> (<em>Tensor</em>) – Feature tensor (B, aux_channels, T_feats).</p></li>
+<li><p><strong>feats_lengths</strong> (<em>Tensor</em>) – Feature length tensor (B,).</p></li>
+<li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker index tensor (B,) or (B, 1).</p></li>
+<li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding tensor (B, spk_embed_dim).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>Waveform tensor (B, 1, segment_size * upsample_factor).
+Tensor: Duration negative log-likelihood (NLL) tensor (B,).
+Tensor: Monotonic attention weight tensor (B, 1, T_feats, T_text).
+Tensor: Segments start index tensor (B,).
+Tensor: Text mask tensor (B, 1, T_text).
+Tensor: Feature mask tensor (B, 1, T_feats).
+tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Tensor: Posterior encoder hidden representation (B, H, T_feats).</p></li>
+<li><p>Tensor: Flow hidden representation (B, H, T_feats).</p></li>
+<li><p>Tensor: Expanded text encoder projected mean (B, H, T_feats).</p></li>
+<li><p>Tensor: Expanded text encoder projected scale (B, H, T_feats).</p></li>
+<li><p>Tensor: Posterior encoder projected mean (B, H, T_feats).</p></li>
+<li><p>Tensor: Posterior encoder projected scale (B, H, T_feats).</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.generator.VITSGenerator.get_random_segments">
+<code class="sig-name descname">get_random_segments</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_lengths: torch.Tensor</em>, <em class="sig-param">segment_size: int</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/generator.html#VITSGenerator.get_random_segments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.generator.VITSGenerator.get_random_segments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get random segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, C, T).</p></li>
+<li><p><strong>x_lengths</strong> (<em>Tensor</em>) – Length tensor (B,).</p></li>
+<li><p><strong>segment_size</strong> (<em>int</em>) – Segment size.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Segmented tensor (B, C, segment_size).
+Tensor: Start index tensor (B,).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.generator.VITSGenerator.get_segments">
+<code class="sig-name descname">get_segments</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">start_idxs: torch.Tensor</em>, <em class="sig-param">segment_size: int</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/generator.html#VITSGenerator.get_segments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.generator.VITSGenerator.get_segments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, C, T).</p></li>
+<li><p><strong>start_idxs</strong> (<em>Tensor</em>) – Start index tensor (B,).</p></li>
+<li><p><strong>segment_size</strong> (<em>int</em>) – Segment size.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Segmented tensor (B, C, segment_size).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.generator.VITSGenerator.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">dur: Optional[torch.Tensor] = None</em>, <em class="sig-param">noise_scale: float = 0.667</em>, <em class="sig-param">noise_scale_dur: float = 0.8</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">max_len: Optional[int] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/generator.html#VITSGenerator.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.generator.VITSGenerator.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>Tensor</em>) – Input text index tensor (B, T_text,).</p></li>
+<li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
+<li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker index tensor (B,) or (B, 1).</p></li>
+<li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding tensor (B, spk_embed_dim).</p></li>
+<li><p><strong>dur</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Ground-truth duration (B, T_text,). If provided,
+skip the prediction of durations (i.e., teacher forcing).</p></li>
+<li><p><strong>noise_scale</strong> (<em>float</em>) – Noise scale parameter for flow.</p></li>
+<li><p><strong>noise_scale_dur</strong> (<em>float</em>) – Noise scale parameter for duration predictor.</p></li>
+<li><p><strong>alpha</strong> (<em>float</em>) – Alpha parameter to control the speed of generated speech.</p></li>
+<li><p><strong>max_len</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Maximum length of acoustic feature sequence.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Generated waveform tensor (B, T_wav).
+Tensor: Monotonic attention weight tensor (B, T_feats, T_text).
+Tensor: Duration tensor (B, T_text).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="espnet2-gan-tts-vits-loss">
-<span id="id2"></span><h2>espnet2.gan_tts.vits.loss<a class="headerlink" href="#espnet2-gan-tts-vits-loss" title="Permalink to this headline">¶</a></h2>
+<span id="id3"></span><h2>espnet2.gan_tts.vits.loss<a class="headerlink" href="#espnet2-gan-tts-vits-loss" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.loss"></span><p>VITS-related loss modules.</p>
 <p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
 <dl class="class">
@@ -379,6 +594,38 @@ outputs..</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="espnet2.gan_tts.vits.loss.KLDivergenceLoss">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.loss.</code><code class="sig-name descname">KLDivergenceLoss</code><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/loss.html#KLDivergenceLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.loss.KLDivergenceLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>KL divergence loss.</p>
+<p>This calculation is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.loss.KLDivergenceLoss.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">z_p: torch.Tensor</em>, <em class="sig-param">logs_q: torch.Tensor</em>, <em class="sig-param">m_p: torch.Tensor</em>, <em class="sig-param">logs_p: torch.Tensor</em>, <em class="sig-param">z_mask: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/loss.html#KLDivergenceLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.loss.KLDivergenceLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate KL divergence loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>z_p</strong> (<em>Tensor</em>) – Flow hidden representation (B, H, T_feats).</p></li>
+<li><p><strong>logs_q</strong> (<em>Tensor</em>) – Posterior encoder projected scale (B, H, T_feats).</p></li>
+<li><p><strong>m_p</strong> (<em>Tensor</em>) – Expanded text encoder projected mean (B, H, T_feats).</p></li>
+<li><p><strong>logs_p</strong> (<em>Tensor</em>) – Expanded text encoder projected scale (B, H, T_feats).</p></li>
+<li><p><strong>z_mask</strong> (<em>Tensor</em>) – Mask tensor (B, 1, T_feats).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>KL divergence loss.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="espnet2.gan_tts.vits.loss.MelSpectrogramLoss">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.loss.</code><code class="sig-name descname">MelSpectrogramLoss</code><span class="sig-paren">(</span><em class="sig-param">fs: int = 22050</em>, <em class="sig-param">n_fft: int = 1024</em>, <em class="sig-param">hop_length: int = 256</em>, <em class="sig-param">win_length: Optional[int] = None</em>, <em class="sig-param">window: str = 'hann'</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">fmin: Optional[int] = 0</em>, <em class="sig-param">fmax: Optional[int] = None</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em>, <em class="sig-param">log_base: Optional[float] = 10.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/loss.html#MelSpectrogramLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.loss.MelSpectrogramLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
@@ -428,10 +675,338 @@ outputs..</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-init">
-<span id="id3"></span><h2>espnet2.gan_tts.vits.__init__<a class="headerlink" href="#espnet2-gan-tts-vits-init" title="Permalink to this headline">¶</a></h2>
+<span id="id4"></span><h2>espnet2.gan_tts.vits.__init__<a class="headerlink" href="#espnet2-gan-tts-vits-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.__init__"></span></div>
+<div class="section" id="espnet2-gan-tts-vits-flow">
+<span id="id5"></span><h2>espnet2.gan_tts.vits.flow<a class="headerlink" href="#espnet2-gan-tts-vits-flow" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.vits.flow"></span><p>Basic Flow modules used in VITS.</p>
+<p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.flow.ConvFlow">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.flow.</code><code class="sig-name descname">ConvFlow</code><span class="sig-paren">(</span><em class="sig-param">in_channels: int</em>, <em class="sig-param">hidden_channels: int</em>, <em class="sig-param">kernel_size: int</em>, <em class="sig-param">layers: int</em>, <em class="sig-param">bins: int = 10</em>, <em class="sig-param">tail_bound: float = 5.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/flow.html#ConvFlow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.flow.ConvFlow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Convolutional flow module.</p>
+<p>Initialize ConvFlow module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_channels</strong> (<em>int</em>) – Number of input channels.</p></li>
+<li><p><strong>hidden_channels</strong> (<em>int</em>) – Number of hidden channels.</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Kernel size.</p></li>
+<li><p><strong>layers</strong> (<em>int</em>) – Number of layers.</p></li>
+<li><p><strong>bins</strong> (<em>int</em>) – Number of bins.</p></li>
+<li><p><strong>tail_bound</strong> (<em>float</em>) – Tail bound value.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.flow.ConvFlow.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_mask: torch.Tensor</em>, <em class="sig-param">g: Optional[torch.Tensor] = None</em>, <em class="sig-param">inverse: bool = False</em><span class="sig-paren">)</span> &#x2192; Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/flow.html#ConvFlow.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.flow.ConvFlow.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, channels, T).</p></li>
+<li><p><strong>x_mask</strong> (<em>Tensor</em>) – Mask tensor (B,).</p></li>
+<li><p><strong>g</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Global conditioning tensor (B, channels, 1).</p></li>
+<li><p><strong>inverse</strong> (<em>bool</em>) – Whether to inverse the flow.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor (B, channels, T).
+Tensor: Log-determinant tensor for NLL (B,) if not inverse.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.flow.DilatedDepthSeparableConv">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.flow.</code><code class="sig-name descname">DilatedDepthSeparableConv</code><span class="sig-paren">(</span><em class="sig-param">channels: int</em>, <em class="sig-param">kernel_size: int</em>, <em class="sig-param">layers: int</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">eps: float = 1e-05</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/flow.html#DilatedDepthSeparableConv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.flow.DilatedDepthSeparableConv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Dilated depth-separable conv module.</p>
+<p>Initialize DilatedDepthSeparableConv module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channels</strong> (<em>int</em>) – Number of channels.</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Kernel size.</p></li>
+<li><p><strong>layers</strong> (<em>int</em>) – Number of layers.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – Epsilon for layer norm.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.flow.DilatedDepthSeparableConv.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_mask: torch.Tensor</em>, <em class="sig-param">g: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/flow.html#DilatedDepthSeparableConv.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.flow.DilatedDepthSeparableConv.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, in_channels, T).</p></li>
+<li><p><strong>x_mask</strong> (<em>Tensor</em>) – Mask tensor (B, 1, T).</p></li>
+<li><p><strong>g</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Global conditioning tensor (B, global_channels, 1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor (B, channels, T).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.flow.ElementwiseAffineFlow">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.flow.</code><code class="sig-name descname">ElementwiseAffineFlow</code><span class="sig-paren">(</span><em class="sig-param">channels: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/flow.html#ElementwiseAffineFlow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.flow.ElementwiseAffineFlow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Elementwise affine flow module.</p>
+<p>Initialize ElementwiseAffineFlow module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>channels</strong> (<em>int</em>) – Number of channels.</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.flow.ElementwiseAffineFlow.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_mask: torch.Tensor</em>, <em class="sig-param">inverse: bool = False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/flow.html#ElementwiseAffineFlow.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.flow.ElementwiseAffineFlow.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, channels, T).</p></li>
+<li><p><strong>x_lengths</strong> (<em>Tensor</em>) – Length tensor (B,).</p></li>
+<li><p><strong>inverse</strong> (<em>bool</em>) – Whether to inverse the flow.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor (B, channels, T).
+Tensor: Log-determinant tensor for NLL (B,) if not inverse.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.flow.FlipFlow">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.flow.</code><code class="sig-name descname">FlipFlow</code><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/flow.html#FlipFlow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.flow.FlipFlow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Flip flow module.</p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.flow.FlipFlow.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">*args</em>, <em class="sig-param">inverse: bool = False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/flow.html#FlipFlow.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.flow.FlipFlow.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, channels, T).</p></li>
+<li><p><strong>inverse</strong> (<em>bool</em>) – Whether to inverse the flow.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Flipped tensor (B, channels, T).
+Tensor: Log-determinant tensor for NLL (B,) if not inverse.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.flow.LogFlow">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.flow.</code><code class="sig-name descname">LogFlow</code><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/flow.html#LogFlow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.flow.LogFlow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Log flow module.</p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.flow.LogFlow.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_mask: torch.Tensor</em>, <em class="sig-param">inverse: bool = False</em>, <em class="sig-param">eps: float = 1e-05</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/flow.html#LogFlow.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.flow.LogFlow.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, channels, T).</p></li>
+<li><p><strong>x_mask</strong> (<em>Tensor</em>) – Mask tensor (B, 1, T).</p></li>
+<li><p><strong>inverse</strong> (<em>bool</em>) – Whether to inverse the flow.</p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – Epsilon for log.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor (B, channels, T).
+Tensor: Log-determinant tensor for NLL (B,) if not inverse.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.flow.Transpose">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.flow.</code><code class="sig-name descname">Transpose</code><span class="sig-paren">(</span><em class="sig-param">dim1: int</em>, <em class="sig-param">dim2: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/flow.html#Transpose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.flow.Transpose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Transpose module for torch.nn.Sequential().</p>
+<p>Initialize Transpose module.</p>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.flow.Transpose.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/flow.html#Transpose.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.flow.Transpose.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transpose.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-gan-tts-vits-duration-predictor">
+<span id="id6"></span><h2>espnet2.gan_tts.vits.duration_predictor<a class="headerlink" href="#espnet2-gan-tts-vits-duration-predictor" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.vits.duration_predictor"></span><p>Stochastic duration predictor modules in VITS.</p>
+<p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.duration_predictor.StochasticDurationPredictor">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.duration_predictor.</code><code class="sig-name descname">StochasticDurationPredictor</code><span class="sig-paren">(</span><em class="sig-param">channels: int = 192</em>, <em class="sig-param">kernel_size: int = 3</em>, <em class="sig-param">dropout_rate: float = 0.5</em>, <em class="sig-param">flows: int = 4</em>, <em class="sig-param">dds_conv_layers: int = 3</em>, <em class="sig-param">global_channels: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/duration_predictor.html#StochasticDurationPredictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.duration_predictor.StochasticDurationPredictor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Stochastic duration predictor module.</p>
+<p>This is a module of stochastic duration predictor described in <a class="reference external" href="https://arxiv.org/abs/2006.04558">Conditional
+Variational Autoencoder with Adversarial Learning for End-to-End Text-to-Speech</a>.</p>
+<p>Initialize StochasticDurationPredictor module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channels</strong> (<em>int</em>) – Number of channels.</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Kernel size.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>flows</strong> (<em>int</em>) – Number of flows.</p></li>
+<li><p><strong>dds_conv_layers</strong> (<em>int</em>) – Number of conv layers in DDS conv.</p></li>
+<li><p><strong>global_channels</strong> (<em>int</em>) – Number of global conditioning channels.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.duration_predictor.StochasticDurationPredictor.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_mask: torch.Tensor</em>, <em class="sig-param">w: Optional[torch.Tensor] = None</em>, <em class="sig-param">g: Optional[torch.Tensor] = None</em>, <em class="sig-param">inverse: bool = False</em>, <em class="sig-param">noise_scale: float = 1.0</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/duration_predictor.html#StochasticDurationPredictor.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.duration_predictor.StochasticDurationPredictor.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, channels, T_text).</p></li>
+<li><p><strong>x_mask</strong> (<em>Tensor</em>) – Mask tensor (B, 1, T_text).</p></li>
+<li><p><strong>w</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Duration tensor (B, 1, T_text).</p></li>
+<li><p><strong>g</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Global conditioning tensor (B, channels, 1)</p></li>
+<li><p><strong>inverse</strong> (<em>bool</em>) – Whether to inverse the flow.</p></li>
+<li><p><strong>noise_scale</strong> (<em>float</em>) – Noise scale value.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>If not inverse, negative log-likelihood (NLL) tensor (B,).</dt><dd><p>If inverse, log-duration tensor (B, 1, T_text).</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-gan-tts-vits-posterior-encoder">
+<span id="id8"></span><h2>espnet2.gan_tts.vits.posterior_encoder<a class="headerlink" href="#espnet2-gan-tts-vits-posterior-encoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.vits.posterior_encoder"></span><p>Posterior encoder module in VITS.</p>
+<p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.posterior_encoder.PosteriorEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.posterior_encoder.</code><code class="sig-name descname">PosteriorEncoder</code><span class="sig-paren">(</span><em class="sig-param">in_channels: int = 513</em>, <em class="sig-param">out_channels: int = 192</em>, <em class="sig-param">hidden_channels: int = 192</em>, <em class="sig-param">kernel_size: int = 5</em>, <em class="sig-param">layers: int = 16</em>, <em class="sig-param">stacks: int = 1</em>, <em class="sig-param">base_dilation: int = 1</em>, <em class="sig-param">global_channels: int = -1</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">bias: bool = True</em>, <em class="sig-param">use_weight_norm: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/posterior_encoder.html#PosteriorEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.posterior_encoder.PosteriorEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Posterior encoder module in VITS.</p>
+<p>This is a module of posterior encoder described in <a class="reference external" href="https://arxiv.org/abs/2006.04558">Conditional Variational
+Autoencoder with Adversarial Learning for End-to-End Text-to-Speech</a>.</p>
+<p>Initilialize PosteriorEncoder module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_channels</strong> (<em>int</em>) – Number of input channels.</p></li>
+<li><p><strong>out_channels</strong> (<em>int</em>) – Number of output channels.</p></li>
+<li><p><strong>hidden_channels</strong> (<em>int</em>) – Number of hidden channels.</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Kernel size in WaveNet.</p></li>
+<li><p><strong>layers</strong> (<em>int</em>) – Number of layers of WaveNet.</p></li>
+<li><p><strong>stacks</strong> (<em>int</em>) – Number of repeat stacking of WaveNet.</p></li>
+<li><p><strong>base_dilation</strong> (<em>int</em>) – Base dilation factor.</p></li>
+<li><p><strong>global_channels</strong> (<em>int</em>) – Number of global conditioning channels.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>bias</strong> (<em>bool</em>) – Whether to use bias parameters in conv.</p></li>
+<li><p><strong>use_weight_norm</strong> (<em>bool</em>) – Whether to apply weight norm.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.posterior_encoder.PosteriorEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_lengths: torch.Tensor</em>, <em class="sig-param">g: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/posterior_encoder.html#PosteriorEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.posterior_encoder.PosteriorEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, in_channels, T_feats).</p></li>
+<li><p><strong>x_lengths</strong> (<em>Tensor</em>) – Length tensor (B,).</p></li>
+<li><p><strong>g</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Global conditioning tensor (B, global_channels, 1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Encoded hidden representation tensor (B, out_channels, T_feats).
+Tensor: Projected mean tensor (B, out_channels, T_feats).
+Tensor: Projected scale tensor (B, out_channels, T_feats).
+Tensor: Mask tensor for input tensor (B, 1, T_feats).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-gan-tts-vits-transform">
+<span id="id10"></span><h2>espnet2.gan_tts.vits.transform<a class="headerlink" href="#espnet2-gan-tts-vits-transform" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.vits.transform"></span><p>Flow-related transformation.</p>
+<p>This code is derived from <a class="reference external" href="https://github.com/bayesiains/nflows">https://github.com/bayesiains/nflows</a>.</p>
+<dl class="function">
+<dt id="espnet2.gan_tts.vits.transform.piecewise_rational_quadratic_transform">
+<code class="sig-prename descclassname">espnet2.gan_tts.vits.transform.</code><code class="sig-name descname">piecewise_rational_quadratic_transform</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">unnormalized_widths</em>, <em class="sig-param">unnormalized_heights</em>, <em class="sig-param">unnormalized_derivatives</em>, <em class="sig-param">inverse=False</em>, <em class="sig-param">tails=None</em>, <em class="sig-param">tail_bound=1.0</em>, <em class="sig-param">min_bin_width=0.001</em>, <em class="sig-param">min_bin_height=0.001</em>, <em class="sig-param">min_derivative=0.001</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/transform.html#piecewise_rational_quadratic_transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.transform.piecewise_rational_quadratic_transform" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.gan_tts.vits.transform.rational_quadratic_spline">
+<code class="sig-prename descclassname">espnet2.gan_tts.vits.transform.</code><code class="sig-name descname">rational_quadratic_spline</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">unnormalized_widths</em>, <em class="sig-param">unnormalized_heights</em>, <em class="sig-param">unnormalized_derivatives</em>, <em class="sig-param">inverse=False</em>, <em class="sig-param">left=0.0</em>, <em class="sig-param">right=1.0</em>, <em class="sig-param">bottom=0.0</em>, <em class="sig-param">top=1.0</em>, <em class="sig-param">min_bin_width=0.001</em>, <em class="sig-param">min_bin_height=0.001</em>, <em class="sig-param">min_derivative=0.001</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/transform.html#rational_quadratic_spline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.transform.rational_quadratic_spline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.gan_tts.vits.transform.unconstrained_rational_quadratic_spline">
+<code class="sig-prename descclassname">espnet2.gan_tts.vits.transform.</code><code class="sig-name descname">unconstrained_rational_quadratic_spline</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">unnormalized_widths</em>, <em class="sig-param">unnormalized_heights</em>, <em class="sig-param">unnormalized_derivatives</em>, <em class="sig-param">inverse=False</em>, <em class="sig-param">tails='linear'</em>, <em class="sig-param">tail_bound=1.0</em>, <em class="sig-param">min_bin_width=0.001</em>, <em class="sig-param">min_bin_height=0.001</em>, <em class="sig-param">min_derivative=0.001</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/transform.html#unconstrained_rational_quadratic_spline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.transform.unconstrained_rational_quadratic_spline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
 <div class="section" id="espnet2-gan-tts-vits-residual-block">
-<span id="id4"></span><h2>espnet2.gan_tts.vits.residual_block<a class="headerlink" href="#espnet2-gan-tts-vits-residual-block" title="Permalink to this headline">¶</a></h2>
+<span id="id11"></span><h2>espnet2.gan_tts.vits.residual_block<a class="headerlink" href="#espnet2-gan-tts-vits-residual-block" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.residual_block"></span><p>Residual block modules.</p>
 <p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
 <dl class="class">
@@ -542,7 +1117,7 @@ Tensor: Output tensor for skip connection (B, skip_channels, T).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-wavenet">
-<span id="id5"></span><h2>espnet2.gan_tts.vits.wavenet<a class="headerlink" href="#espnet2-gan-tts-vits-wavenet" title="Permalink to this headline">¶</a></h2>
+<span id="id12"></span><h2>espnet2.gan_tts.vits.wavenet<a class="headerlink" href="#espnet2-gan-tts-vits-wavenet" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.wavenet"></span><p>WaveNet modules.</p>
 <p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
 <dl class="class">
@@ -624,8 +1199,175 @@ be applied to all of the conv layers.</p></li>
 </dd></dl>
 
 </div>
+<div class="section" id="espnet2-gan-tts-vits-text-encoder">
+<span id="id13"></span><h2>espnet2.gan_tts.vits.text_encoder<a class="headerlink" href="#espnet2-gan-tts-vits-text-encoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.vits.text_encoder"></span><p>Text encoder module in VITS.</p>
+<p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.text_encoder.TextEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.text_encoder.</code><code class="sig-name descname">TextEncoder</code><span class="sig-paren">(</span><em class="sig-param">vocabs: int</em>, <em class="sig-param">attention_dim: int = 192</em>, <em class="sig-param">attention_heads: int = 2</em>, <em class="sig-param">linear_units: int = 768</em>, <em class="sig-param">blocks: int = 6</em>, <em class="sig-param">positionwise_layer_type: str = 'conv1d'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 3</em>, <em class="sig-param">positional_encoding_layer_type: str = 'rel_pos'</em>, <em class="sig-param">self_attention_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">activation_type: str = 'swish'</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">use_macaron_style: bool = False</em>, <em class="sig-param">use_conformer_conv: bool = False</em>, <em class="sig-param">conformer_kernel_size: int = 7</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.0</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/text_encoder.html#TextEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.text_encoder.TextEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Text encoder module in VITS.</p>
+<p>This is a module of text encoder described in <a class="reference external" href="https://arxiv.org/abs/2006.04558">Conditional Variational Autoencoder
+with Adversarial Learning for End-to-End Text-to-Speech</a>.</p>
+<p>Instead of the relative positional Transformer, we use conformer architecture as
+the encoder module, which contains additional convolution layers.</p>
+<p>Initialize TextEncoder module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vocabs</strong> (<em>int</em>) – Vocabulary size.</p></li>
+<li><p><strong>attention_dim</strong> (<em>int</em>) – Attention dimension.</p></li>
+<li><p><strong>attention_heads</strong> (<em>int</em>) – Number of attention heads.</p></li>
+<li><p><strong>linear_units</strong> (<em>int</em>) – Number of linear units of positionwise layers.</p></li>
+<li><p><strong>blocks</strong> (<em>int</em>) – Number of encoder blocks.</p></li>
+<li><p><strong>positionwise_layer_type</strong> (<em>str</em>) – Positionwise layer type.</p></li>
+<li><p><strong>positionwise_conv_kernel_size</strong> (<em>int</em>) – Positionwise layer’s kernel size.</p></li>
+<li><p><strong>positional_encoding_layer_type</strong> (<em>str</em>) – Positional encoding layer type.</p></li>
+<li><p><strong>self_attention_layer_type</strong> (<em>str</em>) – Self-attention layer type.</p></li>
+<li><p><strong>activation_type</strong> (<em>str</em>) – Activation function type.</p></li>
+<li><p><strong>normalize_before</strong> (<em>bool</em>) – Whether to apply LayerNorm before attention.</p></li>
+<li><p><strong>use_macaron_style</strong> (<em>bool</em>) – Whether to use macaron style components.</p></li>
+<li><p><strong>use_conformer_conv</strong> (<em>bool</em>) – Whether to use conformer conv layers.</p></li>
+<li><p><strong>conformer_kernel_size</strong> (<em>int</em>) – Conformer’s conv kernel size.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>positional_dropout_rate</strong> (<em>float</em>) – Dropout rate for positional encoding.</p></li>
+<li><p><strong>attention_dropout_rate</strong> (<em>float</em>) – Dropout rate for attention.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.text_encoder.TextEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/text_encoder.html#TextEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.text_encoder.TextEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input index tensor (B, T_text).</p></li>
+<li><p><strong>x_lengths</strong> (<em>Tensor</em>) – Length tensor (B,).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Encoded hidden representation (B, attention_dim, T_text).
+Tensor: Projected mean tensor (B, attention_dim, T_text).
+Tensor: Projected scale tensor (B, attention_dim, T_text).
+Tensor: Mask tensor for input tensor (B, 1, T_text).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-gan-tts-vits-residual-coupling">
+<span id="id15"></span><h2>espnet2.gan_tts.vits.residual_coupling<a class="headerlink" href="#espnet2-gan-tts-vits-residual-coupling" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.vits.residual_coupling"></span><p>Residual affine coupling modules in VITS.</p>
+<p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.residual_coupling.ResidualAffineCouplingBlock">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.residual_coupling.</code><code class="sig-name descname">ResidualAffineCouplingBlock</code><span class="sig-paren">(</span><em class="sig-param">in_channels: int = 192</em>, <em class="sig-param">hidden_channels: int = 192</em>, <em class="sig-param">flows: int = 4</em>, <em class="sig-param">kernel_size: int = 5</em>, <em class="sig-param">base_dilation: int = 1</em>, <em class="sig-param">layers: int = 4</em>, <em class="sig-param">global_channels: int = -1</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">use_weight_norm: bool = True</em>, <em class="sig-param">bias: bool = True</em>, <em class="sig-param">use_only_mean: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/residual_coupling.html#ResidualAffineCouplingBlock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.residual_coupling.ResidualAffineCouplingBlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Residual affine coupling block module.</p>
+<p>This is a module of residual affine coupling block, which used as “Flow” in
+<a class="reference external" href="https://arxiv.org/abs/2006.04558">Conditional Variational Autoencoder with Adversarial Learning for End-to-End
+Text-to-Speech</a>.</p>
+<p>Initilize ResidualAffineCouplingBlock module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_channels</strong> (<em>int</em>) – Number of input channels.</p></li>
+<li><p><strong>hidden_channels</strong> (<em>int</em>) – Number of hidden channels.</p></li>
+<li><p><strong>flows</strong> (<em>int</em>) – Number of flows.</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Kernel size for WaveNet.</p></li>
+<li><p><strong>base_dilation</strong> (<em>int</em>) – Base dilation factor for WaveNet.</p></li>
+<li><p><strong>layers</strong> (<em>int</em>) – Number of layers of WaveNet.</p></li>
+<li><p><strong>stacks</strong> (<em>int</em>) – Number of stacks of WaveNet.</p></li>
+<li><p><strong>global_channels</strong> (<em>int</em>) – Number of global channels.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>use_weight_norm</strong> (<em>bool</em>) – Whether to use weight normalization in WaveNet.</p></li>
+<li><p><strong>bias</strong> (<em>bool</em>) – Whether to use bias paramters in WaveNet.</p></li>
+<li><p><strong>use_only_mean</strong> (<em>bool</em>) – Whether to estimate only mean.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.residual_coupling.ResidualAffineCouplingBlock.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_mask: torch.Tensor</em>, <em class="sig-param">g: Optional[torch.Tensor] = None</em>, <em class="sig-param">inverse: bool = False</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/residual_coupling.html#ResidualAffineCouplingBlock.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.residual_coupling.ResidualAffineCouplingBlock.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, in_channels, T).</p></li>
+<li><p><strong>x_lengths</strong> (<em>Tensor</em>) – Length tensor (B,).</p></li>
+<li><p><strong>g</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Global conditioning tensor (B, global_channels, 1).</p></li>
+<li><p><strong>inverse</strong> (<em>bool</em>) – Whether to inverse the flow.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor (B, in_channels, T).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.residual_coupling.ResidualAffineCouplingLayer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.residual_coupling.</code><code class="sig-name descname">ResidualAffineCouplingLayer</code><span class="sig-paren">(</span><em class="sig-param">in_channels: int = 192</em>, <em class="sig-param">hidden_channels: int = 192</em>, <em class="sig-param">kernel_size: int = 5</em>, <em class="sig-param">base_dilation: int = 1</em>, <em class="sig-param">layers: int = 5</em>, <em class="sig-param">stacks: int = 1</em>, <em class="sig-param">global_channels: int = -1</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">use_weight_norm: bool = True</em>, <em class="sig-param">bias: bool = True</em>, <em class="sig-param">use_only_mean: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/residual_coupling.html#ResidualAffineCouplingLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.residual_coupling.ResidualAffineCouplingLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Residual affine coupling layer.</p>
+<p>Initialzie ResidualAffineCouplingLayer module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_channels</strong> (<em>int</em>) – Number of input channels.</p></li>
+<li><p><strong>hidden_channels</strong> (<em>int</em>) – Number of hidden channels.</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Kernel size for WaveNet.</p></li>
+<li><p><strong>base_dilation</strong> (<em>int</em>) – Base dilation factor for WaveNet.</p></li>
+<li><p><strong>layers</strong> (<em>int</em>) – Number of layers of WaveNet.</p></li>
+<li><p><strong>stacks</strong> (<em>int</em>) – Number of stacks of WaveNet.</p></li>
+<li><p><strong>global_channels</strong> (<em>int</em>) – Number of global channels.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>use_weight_norm</strong> (<em>bool</em>) – Whether to use weight normalization in WaveNet.</p></li>
+<li><p><strong>bias</strong> (<em>bool</em>) – Whether to use bias paramters in WaveNet.</p></li>
+<li><p><strong>use_only_mean</strong> (<em>bool</em>) – Whether to estimate only mean.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.residual_coupling.ResidualAffineCouplingLayer.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_mask: torch.Tensor</em>, <em class="sig-param">g: Optional[torch.Tensor] = None</em>, <em class="sig-param">inverse: bool = False</em><span class="sig-paren">)</span> &#x2192; Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/residual_coupling.html#ResidualAffineCouplingLayer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.residual_coupling.ResidualAffineCouplingLayer.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, in_channels, T).</p></li>
+<li><p><strong>x_lengths</strong> (<em>Tensor</em>) – Length tensor (B,).</p></li>
+<li><p><strong>g</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Global conditioning tensor (B, global_channels, 1).</p></li>
+<li><p><strong>inverse</strong> (<em>bool</em>) – Whether to inverse the flow.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor (B, in_channels, T).
+Tensor: Log-determinant tensor for NLL (B,) if not inverse.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="espnet2-gan-tts-vits-hifigan">
-<span id="id6"></span><h2>espnet2.gan_tts.vits.hifigan<a class="headerlink" href="#espnet2-gan-tts-vits-hifigan" title="Permalink to this headline">¶</a></h2>
+<span id="id17"></span><h2>espnet2.gan_tts.vits.hifigan<a class="headerlink" href="#espnet2-gan-tts-vits-hifigan" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.hifigan"></span><p>HiFi-GAN Modules.</p>
 <p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
 <dl class="class">
@@ -951,6 +1693,43 @@ will be applied to all of the conv layers.</p></li>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-gan-tts-vits-monotonic-align-init">
+<span id="id18"></span><h2>espnet2.gan_tts.vits.monotonic_align.__init__<a class="headerlink" href="#espnet2-gan-tts-vits-monotonic-align-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.vits.monotonic_align.__init__"></span><p>Maximum path calculation module.</p>
+<p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
+<dl class="function">
+<dt id="espnet2.gan_tts.vits.monotonic_align.__init__.maximum_path">
+<code class="sig-prename descclassname">espnet2.gan_tts.vits.monotonic_align.__init__.</code><code class="sig-name descname">maximum_path</code><span class="sig-paren">(</span><em class="sig-param">neg_x_ent: torch.Tensor</em>, <em class="sig-param">attn_mask: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/monotonic_align/__init__.html#maximum_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.monotonic_align.__init__.maximum_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate maximum path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>neg_x_ent</strong> (<em>Tensor</em>) – Negative X entropy tensor (B, T_feats, T_text).</p></li>
+<li><p><strong>attn_mask</strong> (<em>Tensor</em>) – Attention mask (B, T_feats, T_text).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Maximum path tensor (B, T_feats, T_text).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.gan_tts.vits.monotonic_align.__init__.maximum_path_each_numba">
+<code class="sig-prename descclassname">espnet2.gan_tts.vits.monotonic_align.__init__.</code><code class="sig-name descname">maximum_path_each_numba</code><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/monotonic_align/__init__.html#maximum_path_each_numba"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.monotonic_align.__init__.maximum_path_each_numba" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate a single maximum path with numba.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.gan_tts.vits.monotonic_align.__init__.maximum_path_numba">
+<code class="sig-prename descclassname">espnet2.gan_tts.vits.monotonic_align.__init__.</code><code class="sig-name descname">maximum_path_numba</code><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/monotonic_align/__init__.html#maximum_path_numba"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.monotonic_align.__init__.maximum_path_numba" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate batch maximum path with numba.</p>
 </dd></dl>
 
 </div>
