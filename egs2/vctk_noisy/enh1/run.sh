@@ -7,7 +7,6 @@ set -o pipefail
 
 sample_rate=16k
 
-export CUDA_VISIBLE_DEVICES=4
 
 
 train_set=tr_26spk
