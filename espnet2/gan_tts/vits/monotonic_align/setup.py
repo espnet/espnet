@@ -29,5 +29,5 @@ exts = [
 setup(
     name="monotonic_align",
     ext_modules=cythonize(exts, language_level=3),
-    cmdclass={'build_ext': build_ext},
+    cmdclass={"build_ext": build_ext},
 )
