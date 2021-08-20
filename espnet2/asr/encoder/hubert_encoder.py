@@ -1,39 +1,35 @@
 # Copyright 2021 Tianzi Wang
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0
+# Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0
 
-# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu (Fackbook)'s help in this implementation,
+# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu's help in this implementation,
 # Their origial Hubert work is in:
 #     Paper: https://arxiv.org/pdf/2106.07447.pdf
 #     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
+
 
 """Encoder definition."""
 import contextlib
 import copy
 from pathlib import Path
-import yaml
 from filelock import FileLock
 import logging
 import os
 from typing import Optional
 from typing import Tuple
-
-import torch
 from typeguard import check_argument_types
-from argparse import Namespace
-from omegaconf import DictConfig, OmegaConf, open_dict
+import torch
+import yaml
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 try:
-    import fairseq
     from fairseq.models.hubert.hubert import (
         HubertModel,
         HubertConfig,
-        HubertPretrainingConfig,
+        HubertPretrainingConfig
     )
-    from fairseq.data.dictionary import Dictionary
 except Exception as e:
     print("Error: FairSeq is not properly installed.")
     print("Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")
@@ -42,14 +38,15 @@ except Exception as e:
 
 class FairseqHubertEncoder(AbsEncoder):
     """FairSeq Hubert encoder module.
+
     Args:
         input_size: input dim
         hubert_url: url to Hubert pretrained model
         hubert_dir_path: directory to download the Wav2Vec2.0 pretrained model.
         output_size: dimension of attention
         normalize_before: whether to use layer_norm before the first block
-        freeze_finetune_updates: steps that freeze all layers except output layer
-                                 before tuning the whole model (nessasary to prevent overfit).
+        freeze_finetune_updates: steps that freeze all layers except output layer 
+            before tuning the whole model (nessasary to prevent overfit).
         dropout_rate: dropout rate
         activation_dropout: dropout rate in activation function
         attention_dropout: dropout rate in attention
@@ -101,14 +98,6 @@ class FairseqHubertEncoder(AbsEncoder):
             "data": hubert_dir_path,
         }
 
-        try:
-            import fairseq
-            from fairseq.models.hubert.hubert import HubertModel
-            from fairseq.data import Dictionary
-        except Exception as e:
-            print("Error: FairSeq is not properly installed.")
-            print("Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")
-            raise e
         if hubert_url == "espnet":
             self.hubert_model_path = hubert_dir_path
             s = torch.load(
@@ -201,6 +190,7 @@ class FairseqHubertEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Forward FairHubert Encoder.
+
         Args:
             xs_pad: input tensor (B, L, D)
             ilens: input length (B)
@@ -251,6 +241,7 @@ class FairseqHubertEncoder(AbsEncoder):
 
 class FairseqHubertPretrainEncoder(AbsEncoder):
     """FairSeq Hubert encoder module.
+
     Args:
         input_size: input dim
         output_size: dimension of attention
@@ -330,7 +321,8 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         ys_pad_length: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Forward FairHubert Encoder.
+        """Forward Hubert Pretrain Encoder.
+
         Args:
             xs_pad: input tensor (B, L, D)
             ilens: input length (B)
@@ -359,7 +351,9 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
             torch.HalfTensor(self.cfg.encoder_embed_dim).uniform_()
         )
         logging.info(
-            f"Hubert mask embedding re-initiallized!, {self.encoder.mask_emb.dtype}, {self.use_amp}"
+            f"Hubert mask embedding re-initiallized!, \
+            {self.encoder.mask_emb.dtype}, \
+            {self.use_amp}"
         )
 
 

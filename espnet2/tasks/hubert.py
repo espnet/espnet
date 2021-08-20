@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu (Fackbook)'s help in this implementation,
+# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu's help in this implementation,
 # Their origial Hubert work is in:
 #     Paper: https://arxiv.org/pdf/2106.07447.pdf
 #     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
-
+import argparse
 import logging
 from typing import Callable
 from typing import Collection
@@ -23,7 +23,6 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.hubert_encoder import (
     FairseqHubertPretrainEncoder,
 )
-from espnet2.hubert.espnet_model import HubertPretrainModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
@@ -31,6 +30,7 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.hubert.espnet_model import HubertPretrainModel
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN

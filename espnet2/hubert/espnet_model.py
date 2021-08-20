@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu (Fackbook)'s help in this implementation,
+# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu's help in this implementation,
 # Their origial Hubert work is in:
 #     Paper: https://arxiv.org/pdf/2106.07447.pdf
 #     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
-#
+
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from typing import Dict
@@ -18,16 +18,12 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
-    LabelSmoothingLoss,  # noqa: H301
-)
-from espnet2.hubert.hubert_loss import HubertPretrainLoss
+
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
+from espnet2.hubert.hubert_loss import HubertPretrainLoss
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -103,7 +99,6 @@ class HubertPretrainModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Calc loss
-
         Args:
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
@@ -192,9 +187,6 @@ class HubertPretrainModel(AbsESPnetModel):
 
             logp_u_list = self.encoder.encoder.get_logits(encoder_out, False)
             assert self.pred_nomask_weight == 0 or len(logp_u_list) > 0
-        else:
-            # TODO : fix raising error
-            raise ValueError
 
         return encoder_out
 

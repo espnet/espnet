@@ -1,29 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# The HubertPretrainLoss Module uses code from Fairseq (MIT license):
+# The HubertPretrainLoss Module uses code from Fairseq:
 #     https://github.com/pytorch/fairseq/blob/master/fairseq/criterions/hubert_criterion.py
 #
-# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu (Fackbook)'s help in this implementation,
+# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu's help in this implementation,
 # Their origial Hubert work is in:
 #     Paper: https://arxiv.org/pdf/2106.07447.pdf
 #     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
 
 """Hubert Pretrain Loss module."""
 
-import torch
 from torch import nn
 import torch.nn.functional as F
 
 
 class HubertPretrainLoss(nn.Module):
     """Hubert criterion module.
+
     Args:
         pred_masked_weight: weight for predictive loss for masked frames
         pred_nomask_weight: weight for predictive loss for unmasked frames
         loss_weights: weights for additional loss terms (not first one)
     """
-
     def __init__(
         self,
         pred_masked_weight: float = 1.0,
