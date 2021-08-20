@@ -23,6 +23,7 @@ class HubertPretrainLoss(nn.Module):
         pred_nomask_weight: weight for predictive loss for unmasked frames
         loss_weights: weights for additional loss terms (not first one)
     """
+
     def __init__(
         self,
         pred_masked_weight: float = 1.0,

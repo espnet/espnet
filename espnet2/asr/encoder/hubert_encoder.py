@@ -28,7 +28,7 @@ try:
     from fairseq.models.hubert.hubert import (
         HubertModel,
         HubertConfig,
-        HubertPretrainingConfig
+        HubertPretrainingConfig,
     )
 except Exception as e:
     print("Error: FairSeq is not properly installed.")
@@ -45,7 +45,7 @@ class FairseqHubertEncoder(AbsEncoder):
         hubert_dir_path: directory to download the Wav2Vec2.0 pretrained model.
         output_size: dimension of attention
         normalize_before: whether to use layer_norm before the first block
-        freeze_finetune_updates: steps that freeze all layers except output layer 
+        freeze_finetune_updates: steps that freeze all layers except output layer
             before tuning the whole model (nessasary to prevent overfit).
         dropout_rate: dropout rate
         activation_dropout: dropout rate in activation function
