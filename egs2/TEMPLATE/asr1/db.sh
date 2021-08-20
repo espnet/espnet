@@ -3,6 +3,7 @@
 
 AISHELL=downloads
 AISHELL3=downloads
+ALFFA=downloads
 AN4=downloads
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
@@ -99,11 +100,14 @@ CMU_INDIC=downloads
 JKAC=
 MUCS_SUBTASK1=downloads
 MUCS_SUBTASK2=downloads
+GAMAYUN=downloads
+IWSLT21LR=downloads/iwslt21
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AISHELL=
     AISHELL3=downloads
+    ALFFA=downloads
     AN4=
     DIRHA_ENGLISH_PHDEV=
     DIRHA_WSJ=
@@ -192,4 +196,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     JKAC=
     MUCS_SUBTASK1=downloads
     MUCS_SUBTASK2=downloads
+    GAMAYUN=downloads
+    IWSLT21LR=downloads/iwslt21
 fi
