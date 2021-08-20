@@ -41,7 +41,7 @@ if [ $# -ne 0 ]; then
 fi
 
 km_path="${kmrootdir}/km_${train_set}_${feature_type}/km_${nclusters}clusters.mdl"
-mkdir -p $(dirname ${km_path})
+mkdir -p "$(dirname ${km_path})"
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Learn K-means with ${feature_type} feature based on scikit-learn"
