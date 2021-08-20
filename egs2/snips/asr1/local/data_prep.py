@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+# Yuekai Zhang,2021
+
 import json
 import argparse
 
