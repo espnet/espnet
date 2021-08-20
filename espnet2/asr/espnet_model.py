@@ -109,6 +109,8 @@ class ESPnetASRModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
+        transcript: torch.Tensor,
+        transcript_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
@@ -139,7 +141,7 @@ class ESPnetASRModel(AbsESPnetModel):
             loss_att, acc_att, cer_att, wer_att = None, None, None, None
         else:
             loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
-                encoder_out, encoder_out_lens, text, text_lengths
+                encoder_out, encoder_out_lens, transcript, transcript_lengths
             )
 
         # 2b. CTC branch
@@ -179,8 +181,10 @@ class ESPnetASRModel(AbsESPnetModel):
         self,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        text: torch.Tensor,
-        text_lengths: torch.Tensor,
+        text: torch.Tensor = None,
+        text_lengths: torch.Tensor = None,
+        transcript: torch.Tensor = None,
+        transcript_lengths: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}

@@ -300,12 +300,19 @@ class CommonPreprocessor(AbsPreprocessor):
                 ma = np.max(np.abs(speech))
                 data[self.speech_name] = speech * self.speech_volume_normalize / ma
 
-        if self.text_name in data and self.tokenizer is not None:
+        if (self.text_name in data) and self.tokenizer is not None:
             text = data[self.text_name]
             text = self.text_cleaner(text)
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
             data[self.text_name] = np.array(text_ints, dtype=np.int64)
+
+        if "transcript" in data and self.tokenizer is not None:
+            transcript = data["transcript"]
+            transcript = self.text_cleaner(transcript)
+            tokens = self.tokenizer.text2tokens(transcript)
+            text_ints = self.token_id_converter.tokens2ids(tokens)
+            data["transcript"] = np.array(text_ints, dtype=np.int64)
         assert check_return_type(data)
         return data
 

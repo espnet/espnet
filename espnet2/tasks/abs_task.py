@@ -1733,7 +1733,8 @@ class AbsTask(ABC):
             kwargs = dict(collate_fn=collate_fn)
         else:
             kwargs = {}
-
+        print("data path")
+        print(data_path_and_name_and_type)
         dataset = IterableESPnetDataset(
             data_path_and_name_and_type,
             float_dtype=dtype,

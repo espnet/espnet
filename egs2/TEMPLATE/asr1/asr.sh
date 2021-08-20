@@ -116,6 +116,10 @@ bpe_train_text=  # Text file path of bpe training set.
 lm_train_text=   # Text file path of language model training set.
 lm_dev_text=     # Text file path of language model development set.
 lm_test_text=    # Text file path of language model evaluation set.
+bpe_train_transcript=  # transcript file path of bpe training set.
+lm_train_transcript=   # transcript file path of language model training set.
+lm_dev_transcript=     # transcript file path of language model development set.
+lm_test_transcript=    # transcript file path of language model evaluation set.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
 g2p=none         # g2p method (needed if token_type=phn).
@@ -270,28 +274,45 @@ fi
 # Use the text of the 1st evaldir if lm_test is not specified
 [ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${test_sets%% *}/text"
 
+# Use the same transcript as ASR for bpe training if not specified.
+[ -z "${bpe_train_transcript}" ] && bpe_train_transcript="${data_feats}/${train_set}/transcript"
+# Use the same transcript as ASR for lm training if not specified.
+[ -z "${lm_train_transcript}" ] && lm_train_transcript="${data_feats}/${train_set}/transcript"
+# Use the same transcript as ASR for lm training if not specified.
+[ -z "${lm_dev_transcript}" ] && lm_dev_transcript="${data_feats}/${valid_set}/transcript"
+# Use the transcript of the 1st evaldir if lm_test is not specified
+[ -z "${lm_test_transcript}" ] && lm_test_transcript="${data_feats}/${test_sets%% *}/transcript"
+
 # Check tokenization type
 if [ "${lang}" != noinfo ]; then
     token_listdir=data/${lang}_token_list
+    transcript_token_listdir=data/${lang}_transcript_token_list
 else
     token_listdir=data/token_list
+    transcript_token_listdir=data/transcript_token_list
 fi
 bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
+transcript_bpedir="${transcript_token_listdir}/bpe_${bpemode}${nbpe}"
 bpeprefix="${bpedir}"/bpe
 bpemodel="${bpeprefix}".model
 bpetoken_list="${bpedir}"/tokens.txt
+transcript_bpetoken_list="${transcript_bpedir}"/tokens.txt
 chartoken_list="${token_listdir}"/char/tokens.txt
+transcript_chartoken_list="${transcript_token_listdir}"/char/tokens.txt
 # NOTE: keep for future development.
 # shellcheck disable=SC2034
 wordtoken_list="${token_listdir}"/word/tokens.txt
-
+transcript_wordtoken_list="${transcript_token_listdir}"/word/tokens.txt
 if [ "${token_type}" = bpe ]; then
     token_list="${bpetoken_list}"
+    transcript_token_list="${transcript_bpetoken_list}"
 elif [ "${token_type}" = char ]; then
     token_list="${chartoken_list}"
+    transcript_token_list="${transcript_chartoken_list}"
     bpemodel=none
 elif [ "${token_type}" = word ]; then
     token_list="${wordtoken_list}"
+    transcript_token_list="${transcript_wordtoken_list}"
     bpemodel=none
 else
     log "Error: not supported --token_type '${token_type}'"
@@ -606,6 +627,7 @@ if ! "${skip_data_prep}"; then
 
         # shellcheck disable=SC2002
         cat ${lm_train_text} | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
+        cat ${lm_train_transcript} | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train_transcript.txt"
     fi
 
 
@@ -650,6 +672,17 @@ if ! "${skip_data_prep}"; then
             ${python} -m espnet2.bin.tokenize_text  \
                 --token_type "${token_type}" \
                 --input "${data_feats}/lm_train.txt" --output "${token_list}" ${_opts} \
+                --field 2- \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --write_vocabulary true \
+                --add_symbol "${blank}:0" \
+                --add_symbol "${oov}:1" \
+                --add_symbol "${sos_eos}:-1"
+
+            ${python} -m espnet2.bin.tokenize_text  \
+                --token_type "${token_type}" \
+                --input "${data_feats}/lm_train_transcript.txt" --output "${transcript_token_list}" ${_opts} \
                 --field 2- \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
@@ -941,6 +974,7 @@ if ! "${skip_train}"; then
         #       but it's used only for deciding the sample ids.
 
         # shellcheck disable=SC2086
+
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.asr_train \
                 --collect_stats true \
@@ -960,6 +994,24 @@ if ! "${skip_train}"; then
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${asr_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
 
+        ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.transcript.JOB.log \
+            ${python} -m espnet2.bin.asr_train \
+                --collect_stats true \
+                --use_preprocessor true \
+                --bpemodel "${bpemodel}" \
+                --token_type "${token_type}" \
+                --token_list "${transcript_token_list}" \
+                --non_linguistic_symbols "${nlsyms_txt}" \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
+                --train_data_path_and_name_and_type "${_asr_train_dir}/transcript,transcript,text" \
+                --valid_data_path_and_name_and_type "${_asr_valid_dir}/${_scp},speech,${_type}" \
+                --valid_data_path_and_name_and_type "${_asr_valid_dir}/transcript,transcript,text" \
+                --train_shape_file "${_logdir}/train.JOB.scp" \
+                --valid_shape_file "${_logdir}/valid.JOB.scp" \
+                --output_dir "${_logdir}/stats.transcript.JOB" \
+                ${_opts} ${asr_args} || { cat "${_logdir}"/stats.transcript.1.log; exit 1; }
         # 4. Aggregate shape files
         _opts=
         for i in $(seq "${_nj}"); do
@@ -976,6 +1028,23 @@ if ! "${skip_train}"; then
         <"${asr_stats_dir}/valid/text_shape" \
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
             >"${asr_stats_dir}/valid/text_shape.${token_type}"
+
+
+        _opts=
+        for i in $(seq "${_nj}"); do
+            _opts+="--input_dir ${_logdir}/stats.transcript.${i} "
+        done
+
+        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${asr_stats_dir}"
+
+        # Append the num-tokens at the last dimensions. This is used for batch-bins count
+        <"${asr_stats_dir}/train/transcript_shape" \
+            awk -v N="$(<${transcript_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${asr_stats_dir}/train/transcript_shape.${token_type}"
+
+        <"${asr_stats_dir}/valid/transcript_shape" \
+            awk -v N="$(<${transcript_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${asr_stats_dir}/valid/transcript_shape.${token_type}"
     fi
 
 
@@ -1045,8 +1114,10 @@ if ! "${skip_train}"; then
         else
             _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${_scp},speech,${_type} "
             _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text,text,text "
+            _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/transcript,transcript,text "
             _opts+="--train_shape_file ${asr_stats_dir}/train/speech_shape "
             _opts+="--train_shape_file ${asr_stats_dir}/train/text_shape.${token_type} "
+            _opts+="--train_shape_file ${asr_stats_dir}/train/transcript_shape.${token_type} "
         fi
 
         log "Generate '${asr_exp}/run.sh'. You can resume the process from stage 10 using this script"
@@ -1079,10 +1150,13 @@ if ! "${skip_train}"; then
                 --g2p "${g2p}" \
                 --valid_data_path_and_name_and_type "${_asr_valid_dir}/${_scp},speech,${_type}" \
                 --valid_data_path_and_name_and_type "${_asr_valid_dir}/text,text,text" \
+                --valid_data_path_and_name_and_type "${_asr_valid_dir}/transcript,transcript,text" \
                 --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
                 --valid_shape_file "${asr_stats_dir}/valid/text_shape.${token_type}" \
+                --valid_shape_file "${asr_stats_dir}/valid/transcript_shape.${token_type}" \
                 --resume true \
                 --fold_length "${_fold_length}" \
+                --fold_length "${asr_text_fold_length}" \
                 --fold_length "${asr_text_fold_length}" \
                 --output_dir "${asr_exp}" \
                 ${_opts} ${asr_args}

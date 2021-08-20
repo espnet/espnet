@@ -345,8 +345,8 @@ class ASRTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        if not inference:
-            retval = ("speech", "text")
+        if not inference:  
+            retval = ("speech",)
         else:
             # Recognition mode
             retval = ("speech",)
@@ -356,7 +356,7 @@ class ASRTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ()
+        retval = ("speech","transcript", "text")
         assert check_return_type(retval)
         return retval
 
