@@ -33,10 +33,6 @@ finetune_test_sets="test_clean test_other dev_clean dev_other"
 finetune_asr_config=conf/tuning/train_asr_hubert_base_10h_finetuning.yaml
 inference_config=conf/decode_asr.yaml
 
-pretrain_configs="${pretrain_config_iter0} ${pretrain_config_iter1} ${pretrain_config_iter2}"
-n_clusters="${n_clusters_iter0} ${n_clusters_iter1} ${n_clusters_iter2}"
-features_km="${feature_iter0} ${feature_iter1} ${feature_iter2}"
-
 ./hubert_asr.sh \
     --lang en \
     --pretrain_ngpu 1 \
@@ -45,9 +41,9 @@ features_km="${feature_iter0} ${feature_iter1} ${feature_iter2}"
     --pretrain_stop_iter "${pretrain_stop_iter}" \
     --nj 32 \
     --max_wav_duration 30 \
-    --pretrain_configs "${pretrain_configs}" \
-    --n_clusters "${n_clusters}" \
-    --features_km "${features_km}" \
+    --pretrain_configs "${pretrain_config_iter0} ${pretrain_config_iter1} ${pretrain_config_iter2}" \
+    --n_clusters "${n_clusters_iter0} ${n_clusters_iter1} ${n_clusters_iter2}" \
+    --features_km "${feature_iter0} ${feature_iter1} ${feature_iter2}" \
     --use_lm false \
     --finetune_ngpu 4 \
     --pretrain_train_set "${pretrain_train_set}" \
