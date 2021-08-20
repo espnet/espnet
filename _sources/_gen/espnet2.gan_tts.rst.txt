@@ -157,3 +157,14 @@ espnet2.gan_tts.vits.monotonic_align.__init__
     :undoc-members:
     :show-inheritance:
 
+
+.. _espnet2.gan_tts.vits.monotonic_align.setup:
+
+espnet2.gan_tts.vits.monotonic_align.setup
+------------------------------------------
+
+.. automodule:: espnet2.gan_tts.vits.monotonic_align.setup
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

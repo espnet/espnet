@@ -233,7 +233,9 @@
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="n">is_cython_avalable</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-        <span class="s2">&quot;Cython version is not available. Fallback to numba version [EXPERIMENTAL].&quot;</span>
+        <span class="s2">&quot;Cython version is not available. Fallback to &#39;EXPERIMETAL&#39; numba version. &quot;</span>
+        <span class="s2">&quot;If you want to use the cython version, please build it as follows: &quot;</span>
+        <span class="s2">&quot;`cd espnet2/gan_tts/vits/monotonic_align; python setup.py build_ext --inplace`&quot;</span>
     <span class="p">)</span>
 
 
