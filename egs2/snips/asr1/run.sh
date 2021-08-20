@@ -19,8 +19,6 @@ speed_perturb_factors="0.9 1.0 1.1"
 
 ./asr.sh                                               \
     --use_lm false                                     \
-    # need to remove this during score stage, keep this for made char dict
-    --nlsyms_txt  "data/non_linguistic_symbols.txt"    \
     --audio_format wav                                 \
     --feats_type raw                                   \
     --token_type word                                  \
@@ -31,4 +29,4 @@ speed_perturb_factors="0.9 1.0 1.1"
     --test_sets "${test_sets}"                         \
     --speed_perturb_factors "${speed_perturb_factors}" \
     --lm_train_text "data/non_linguistic_symbols.txt" "$@"
-    # using data/lm_train_text when multitask training, ASR + intent classification
+# using data/lm_train_text when multitask training, ASR + intent classification
