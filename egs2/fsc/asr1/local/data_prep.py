@@ -39,12 +39,11 @@ for x in dir_dict:
                 + row[5].replace(" ", "_")
                 + "_"
                 + row[6].replace(" ", "_")
-                + " " + row[3].encode('ascii',"ignore").decode()
             )
-            print(words)
             path_arr = row[1].split("/")
             utt_id = path_arr[-2] + "_" + path_arr[-1]
             # print(utt_id + " " + words + "\n")
             text_f.write(utt_id + " " + words + "\n")
+            transcript_f.write(utt_id + " " + row[3].encode('ascii',"ignore").decode() + "\n")
             wav_scp_f.write(utt_id + " " + fsc_root + "/" + row[1] + "\n")
             utt2spk_f.write(utt_id + " " + row[2] + "\n")
