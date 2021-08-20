@@ -108,4 +108,4 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     
     log "Successfully generate the ${dictdir}/{dict,tokens}.txt"
     
-
+fi
