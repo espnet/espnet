@@ -9,6 +9,7 @@ from torch_complex.tensor import ComplexTensor
 
 
 EPS = torch.finfo(torch.double).eps
+is_torch_1_8_plus = LooseVersion(torch.__version__) >= LooseVersion("1.8.0")
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
@@ -58,13 +59,13 @@ def einsum(equation, *operands):
     # NOTE: Do not mix ComplexTensor and torch.complex in the input!
     # NOTE (wangyou): Until PyTorch 1.9.0, torch.einsum does not support
     # mixed input with complex and real tensors.
-    if len(operands) == 1 and isinstance(operands[0], (tuple, list)):
-        operands = operands[0]
     if len(operands) == 1:
+        if isinstance(operands[0], (tuple, list)):
+            operands = operands[0]
         complex_module = FC if isinstance(operands[0], ComplexTensor) else torch
         return complex_module.einsum(equation, *operands)
-    elif len(operands) > 2:
-        raise ValueError("More than 2 operands are not supported.")
+    elif len(operands) != 2:
+        raise ValueError("0 or More than 2 operands are not supported.")
     a, b = operands
     if isinstance(a, ComplexTensor) or isinstance(b, ComplexTensor):
         return FC.einsum(equation, a, b)
@@ -123,6 +124,7 @@ def reverse(a: Union[torch.Tensor, ComplexTensor], dim=0):
 
 
 def solve(b: Union[torch.Tensor, ComplexTensor], a: Union[torch.Tensor, ComplexTensor]):
+    """Solve the linear equation ax = b."""
     # NOTE: Do not mix ComplexTensor and torch.complex in the input!
     # NOTE (wangyou): Until PyTorch 1.9.0, torch.solve does not support
     # mixed input with complex and real tensors.
@@ -133,8 +135,11 @@ def solve(b: Union[torch.Tensor, ComplexTensor], a: Union[torch.Tensor, ComplexT
             return matmul(inverse(a), b)
     elif is_torch_1_9_plus and (torch.is_complex(a) or torch.is_complex(b)):
         if torch.is_complex(a) and torch.is_complex(b):
-            return torch.solve(b, a)[0]
+            return torch.linalg.solve(a, b)
         else:
             return matmul(inverse(a), b)
     else:
-        return torch.solve(b, a)[0]
+        if is_torch_1_8_plus:
+            return torch.linalg.solve(a, b)
+        else:
+            return torch.solve(b, a)[0]

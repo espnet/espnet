@@ -6,6 +6,7 @@ from torch_complex.tensor import ComplexTensor
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.enh.layers.complex_utils import to_double
+from espnet2.enh.layers.complex_utils import to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 from espnet2.enh.layers.wpe import wpe_one_iteration
 
@@ -155,7 +156,7 @@ class DNN_WPE(torch.nn.Module):
             ilens (torch.Tensor): (B,)
         """
         if self.use_dnn_mask:
-            masks, ilens = self.mask_est(data.permute(0, 3, 2, 1).float(), ilens)
+            masks, ilens = self.mask_est(to_float(data.permute(0, 3, 2, 1)), ilens)
             # (B, F, C, T) -> (B, T, C, F)
             masks = [m.transpose(-1, -3) for m in masks]
             if self.nmask == 1:

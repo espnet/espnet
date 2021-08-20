@@ -121,18 +121,19 @@ def test_complex_impl_consistency():
         return
     mat_th = torch.complex(torch.from_numpy(mat_np.real), torch.from_numpy(mat_np.imag))
     mat_ct = ComplexTensor(torch.from_numpy(mat_np.real), torch.from_numpy(mat_np.imag))
+    bs = mat_th.shape[0]
     rank = mat_th.shape[-1]
-    vec_th = torch.complex(torch.rand(rank, 4), torch.rand(rank, 4)).type_as(mat_th)
+    vec_th = torch.complex(torch.rand(bs, rank), torch.rand(bs, rank)).type_as(mat_th)
     vec_ct = ComplexTensor(vec_th.real, vec_th.imag)
 
     for result_th, result_ct in (
         (abs(mat_th), abs(mat_ct)),
         (inverse(mat_th), inverse(mat_ct)),
-        (matmul(mat_th, vec_th), matmul(mat_ct, vec_ct)),
-        (solve(vec_th, mat_th), solve(vec_ct, mat_ct)),
+        (matmul(mat_th, vec_th.unsqueeze(-1)), matmul(mat_ct, vec_ct.unsqueeze(-1))),
+        (solve(vec_th.unsqueeze(-1), mat_th), solve(vec_ct.unsqueeze(-1), mat_ct)),
         (
             einsum("bec,bc->be", mat_th, vec_th),
             einsum("bec,bc->be", mat_ct, vec_ct),
         ),
     ):
-        np.testing.assert_allclose(result_th.numpy(), result_ct.numpy())
+        np.testing.assert_allclose(result_th.numpy(), result_ct.numpy(), atol=1e-6)
