@@ -14,8 +14,9 @@ jobs:
     container:
       image: debian:9
       env:
-        ESPNET_PYTHON_VERSION: 3.6
+        ESPNET_PYTHON_VERSION: 3.7
         TH_VERSION: 1.9.0
+        K2_VERSION: 1.2.dev20210726+cpu
         CHAINER_VERSION: 6.0.0
         USE_CONDA: true
         CC: gcc-6

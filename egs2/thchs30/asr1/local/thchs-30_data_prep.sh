@@ -1,0 +1,1 @@
+../../tts1/local/thchs-30_data_prep.sh

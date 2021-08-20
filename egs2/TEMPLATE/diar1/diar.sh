@@ -332,8 +332,8 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${diar_stats_dir}/run.sh'. You can resume the process from stage 9 using this script"
-        mkdir -p "${diar_stats_dir}"; echo "${run_args} --stage 9 \"\$@\"; exit \$?" > "${diar_stats_dir}/run.sh"; chmod +x "${diar_stats_dir}/run.sh"
+        log "Generate '${diar_stats_dir}/run.sh'. You can resume the process from stage 4 using this script"
+        mkdir -p "${diar_stats_dir}"; echo "${run_args} --stage 4 \"\$@\"; exit \$?" > "${diar_stats_dir}/run.sh"; chmod +x "${diar_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "Diarization collect-stats started... log: '${_logdir}/stats.*.log'"
@@ -410,8 +410,8 @@ if ! "${skip_train}"; then
         _opts+="--valid_shape_file ${diar_stats_dir}/valid/speech_shape "
         _opts+="--valid_shape_file ${diar_stats_dir}/valid/spk_labels_shape "
 
-        log "Generate '${diar_exp}/run.sh'. You can resume the process from stage 10 using this script"
-        mkdir -p "${diar_exp}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${diar_exp}/run.sh"; chmod +x "${diar_exp}/run.sh"
+        log "Generate '${diar_exp}/run.sh'. You can resume the process from stage 5 using this script"
+        mkdir -p "${diar_exp}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${diar_exp}/run.sh"; chmod +x "${diar_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
         log "Diarization training started... log: '${diar_exp}/train.log'"
@@ -457,7 +457,7 @@ if ! "${skip_eval}"; then
         fi
 
         log "Generate '${diar_exp}/run_diarize.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${diar_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${diar_exp}/run_diarize.sh"; chmod +x "${diar_exp}/run_diarize.sh"
+        mkdir -p "${diar_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${diar_exp}/run_diarize.sh"; chmod +x "${diar_exp}/run_diarize.sh"
         _opts=
 
         if [ -n "${inference_config}" ]; then

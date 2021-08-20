@@ -514,16 +514,23 @@ def train(args):
     elif args.opt == "noam":
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
-        # For transformer-transducer, adim declaration is within the block definition.
-        # Thus, we need retrieve the most dominant value (d_hidden) for Noam scheduler.
-        if hasattr(args, "enc_block_arch") or hasattr(args, "dec_block_arch"):
-            adim = model.most_dom_dim
+        if "transducer" in mtl_mode:
+            if args.noam_adim > 0:
+                optimizer = get_std_opt(
+                    model_params,
+                    args.noam_adim,
+                    args.optimizer_warmup_steps,
+                    args.noam_lr,
+                )
+            else:
+                raise ValueError("noam-adim option should be set to use Noam scheduler")
         else:
-            adim = args.adim
-
-        optimizer = get_std_opt(
-            model_params, adim, args.transformer_warmup_steps, args.transformer_lr
-        )
+            optimizer = get_std_opt(
+                model_params,
+                args.adim,
+                args.transformer_warmup_steps,
+                args.transformer_lr,
+            )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
 
@@ -742,23 +749,52 @@ def train(args):
             "main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)
         ] + ["validation/main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)]
 
-    if hasattr(model, "is_rnnt"):
+    if hasattr(model, "is_transducer"):
+        trans_keys = [
+            "main/loss",
+            "validation/main/loss",
+            "main/loss_trans",
+            "validation/main/loss_trans",
+        ]
+
+        ctc_keys = (
+            ["main/loss_ctc", "validation/main/loss_ctc"] if args.use_ctc_loss else []
+        )
+
+        aux_trans_keys = (
+            [
+                "main/loss_aux_trans",
+                "validation/main/loss_aux_trans",
+            ]
+            if args.use_aux_transducer_loss
+            else []
+        )
+
+        symm_kl_div_keys = (
+            [
+                "main/loss_symm_kl_div",
+                "validation/main/loss_symm_kl_div",
+            ]
+            if args.use_symm_kl_div_loss
+            else []
+        )
+
+        lm_keys = (
+            [
+                "main/loss_lm",
+                "validation/main/loss_lm",
+            ]
+            if args.use_lm_loss
+            else []
+        )
+
+        transducer_keys = (
+            trans_keys + ctc_keys + aux_trans_keys + symm_kl_div_keys + lm_keys
+        )
+
         trainer.extend(
             extensions.PlotReport(
-                [
-                    "main/loss",
-                    "validation/main/loss",
-                    "main/loss_trans",
-                    "validation/main/loss_trans",
-                    "main/loss_ctc",
-                    "validation/main/loss_ctc",
-                    "main/loss_lm",
-                    "validation/main/loss_lm",
-                    "main/loss_aux_trans",
-                    "validation/main/loss_aux_trans",
-                    "main/loss_aux_symm_kl",
-                    "validation/main/loss_aux_symm_kl",
-                ],
+                transducer_keys,
                 "epoch",
                 file_name="loss.png",
             )
@@ -869,24 +905,15 @@ def train(args):
         extensions.LogReport(trigger=(args.report_interval_iters, "iteration"))
     )
 
-    if hasattr(model, "is_rnnt"):
-        report_keys = [
-            "epoch",
-            "iteration",
-            "main/loss",
-            "main/loss_trans",
-            "main/loss_ctc",
-            "main/loss_lm",
-            "main/loss_aux_trans",
-            "main/loss_aux_symm_kl",
-            "validation/main/loss",
-            "validation/main/loss_trans",
-            "validation/main/loss_ctc",
-            "validation/main/loss_lm",
-            "validation/main/loss_aux_trans",
-            "validation/main/loss_aux_symm_kl",
-            "elapsed_time",
-        ]
+    if hasattr(model, "is_transducer"):
+        report_keys = (
+            [
+                "epoch",
+                "iteration",
+            ]
+            + transducer_keys
+            + ["elapsed_time"]
+        )
     else:
         report_keys = [
             "epoch",
@@ -1049,18 +1076,17 @@ def recog(args):
     )
 
     # load transducer beam search
-    if hasattr(model, "is_rnnt"):
+    if hasattr(model, "is_transducer"):
         if hasattr(model, "dec"):
             trans_decoder = model.dec
         else:
             trans_decoder = model.decoder
-        joint_network = model.joint_network
+        joint_network = model.transducer_tasks.joint_network
 
         beam_search_transducer = BeamSearchTransducer(
             decoder=trans_decoder,
             joint_network=joint_network,
             beam_size=args.beam_size,
-            nbest=args.nbest,
             lm=rnnlm,
             lm_weight=args.lm_weight,
             search_type=args.search_type,
@@ -1068,7 +1094,11 @@ def recog(args):
             u_max=args.u_max,
             nstep=args.nstep,
             prefix_alpha=args.prefix_alpha,
+            expansion_gamma=args.expansion_gamma,
+            expansion_beta=args.expansion_beta,
             score_norm=args.score_norm,
+            softmax_temperature=args.softmax_temperature,
+            nbest=args.nbest,
         )
 
     if args.batchsize == 0:
@@ -1126,7 +1156,7 @@ def recog(args):
                             for n in range(args.nbest):
                                 nbest_hyps[n]["yseq"].extend(hyps[n]["yseq"])
                                 nbest_hyps[n]["score"] += hyps[n]["score"]
-                elif hasattr(model, "is_rnnt"):
+                elif hasattr(model, "is_transducer"):
                     nbest_hyps = model.recognize(feat, beam_search_transducer)
                 else:
                     nbest_hyps = model.recognize(
