@@ -68,10 +68,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         if [ ! -e "${MINI_LIBRISPEECH}"/sim_rir_8k.zip ]; then
             wget -nv --no-check-certificate "${rir_url}" -P "${MINI_LIBRISPEECH}"
         fi
-        unzip -q sim_rir_8k.zip -d "${MINI_LIBRISPEECH}"/sim_rir_8k
+        unzip -q "${MINI_LIBRISPEECH}"/sim_rir_8k.zip -d "${MINI_LIBRISPEECH}"/sim_rir_8k
         find "${MINI_LIBRISPEECH}"/sim_rir_8k -iname "*.wav" \
             | awk '{n=split($1,A,/[\/\.]/); print A[n-3]"_"A[n-1], $1}' \
-            | sort > "${MINI_LIBRISPEECH}"/simu_rirs_8k/wav.scp
+            | sort > data/simu_rirs_8k/wav.scp
         awk '{print $1, $1}' data/simu_rirs_8k/wav.scp > data/simu_rirs_8k/utt2spk
         utils/fix_data_dir.sh data/simu_rirs_8k
         touch "${MINI_LIBRISPEECH}"/simu_rirs_8k.done
