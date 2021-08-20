@@ -21,9 +21,6 @@ EOF
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
-stage=1
-stop_stage=2
-configure=
 
 
 . utils/parse_options.sh
