@@ -8,8 +8,9 @@ criterion: loss
 early-stop-criterion: "validation/main/loss"
 sortagrad: 0
 opt: noam
-transformer-lr: 10.0
-transformer-warmup-steps: 25000
+noam-lr: 10.0
+noam-adim: 256
+optimizer-warmup-steps: 25000
 epochs: 200
 patience: 0
 accum-grad: 2
