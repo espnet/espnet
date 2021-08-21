@@ -227,9 +227,14 @@ done
 rm -rf exp dump data
 
 # [ESPnet2] test gan-tts recipe
-./run.sh --fs 22050 --tts_task gan_tts --feats_extract linear_spectrogram --feats_normalize none --inference_model latest.pth \
-    --ngpu 0 --stop-stage 8 --skip-upload false --train-args "--num_iters_per_epoch 1 --max_epoch 1" --python "${python}"
-rm -rf exp dump data
+# NOTE(kan-bayashi): pytorch 1.4 - 1.6 works but 1.6 has a problem with CPU,
+#   so we test this recipe using only pytorch > 1.6 here.
+#   See also: https://github.com/pytorch/pytorch/issues/42446
+if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) > L("1.6")' &> /dev/null; then
+    ./run.sh --fs 22050 --tts_task gan_tts --feats_extract linear_spectrogram --feats_normalize none --inference_model latest.pth \
+        --ngpu 0 --stop-stage 8 --skip-upload false --train-args "--num_iters_per_epoch 1 --max_epoch 1" --python "${python}"
+    rm -rf exp dump data
+fi
 cd "${cwd}" || exit 1
 
 # [ESPnet2] test enh recipe
