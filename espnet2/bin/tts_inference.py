@@ -25,11 +25,11 @@ from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.tasks.tts import TTSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.tts.duration_calculator import DurationCalculator
 from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
+from espnet2.tts.utils.duration_calculator import DurationCalculator
 from espnet2.utils import config_argparse
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
