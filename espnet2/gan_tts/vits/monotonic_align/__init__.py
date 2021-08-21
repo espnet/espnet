@@ -19,7 +19,9 @@ try:
 except ImportError:
     is_cython_avalable = False
     warnings.warn(
-        "Cython version is not available. Fallback to numba version [EXPERIMENTAL]."
+        "Cython version is not available. Fallback to 'EXPERIMETAL' numba version. "
+        "If you want to use the cython version, please build it as follows: "
+        "`cd espnet2/gan_tts/vits/monotonic_align; python setup.py build_ext --inplace`"
     )
 
 
