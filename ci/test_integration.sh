@@ -225,6 +225,11 @@ for t in ${feats_types}; do
 done
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
+
+# [ESPnet2] test gan-tts recipe
+./run.sh --fs 22050 --tts_task gan_tts --feats_extract linear_spectrogram --feats_normalize none --inferece_model latest.pth \
+    --stop-stage 8 --skip-upload false --feats-type raw --train-args "--num_iters_per_epoch 1 --max_epoch 1" --python "${python}"
+rm -rf exp dump data
 cd "${cwd}" || exit 1
 
 # [ESPnet2] test enh recipe
