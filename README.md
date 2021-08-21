@@ -519,7 +519,7 @@ In SLU, The objective is to infer the meaning or intent of spoken utterance. The
 [CTC segmentation](https://arxiv.org/abs/2007.09127) determines utterance segments within audio files.
 Aligned utterance segments constitute the labels of speech datasets.
 
-As demo, we align start and end of utterances within the audio file `ctc_align_test.wav`, using the example script `utils/ctc_align_wav.sh`.
+As demo, we align start and end of utterances within the audio file `ctc_align_test.wav`, using the example script `utils/asr_align_wav.sh`.
 For preparation, set up a data directory:
 
 ```sh
