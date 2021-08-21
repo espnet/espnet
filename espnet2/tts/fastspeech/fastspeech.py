@@ -483,6 +483,7 @@ class FastSpeech(AbsTTS):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        joint_training: bool = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
@@ -496,11 +497,12 @@ class FastSpeech(AbsTTS):
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
+            joint_training (bool): Whether to perform joint training with vocoder.
 
         Returns:
             Tensor: Loss scalar value.
             Dict: Statistics to be monitored.
-            Tensor: Weight value.
+            Tensor: Weight value if not joint training else model outputs.
 
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
@@ -548,7 +550,6 @@ class FastSpeech(AbsTTS):
         stats = dict(
             l1_loss=l1_loss.item(),
             duration_loss=duration_loss.item(),
-            loss=loss.item(),
         )
 
         # report extra information
@@ -561,8 +562,14 @@ class FastSpeech(AbsTTS):
                 decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
             )
 
-        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-        return loss, stats, weight
+        if not joint_training:
+            stats.update(loss=loss.item())
+            loss, stats, weight = force_gatherable(
+                (loss, stats, batch_size), loss.device
+            )
+            return loss, stats, weight
+        else:
+            return loss, stats, after_outs if after_outs is not None else before_outs
 
     def inference(
         self,
