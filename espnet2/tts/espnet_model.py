@@ -95,6 +95,9 @@ class ESPnetTTSModel(AbsESPnetModel):
             # Extract features
             if self.feats_extract is not None:
                 feats, feats_lengths = self.feats_extract(speech, speech_lengths)
+            else:
+                # Use precalculated feats (feats_type != raw case)
+                feats, feats_lengths = speech, speech_lengths
 
             # Extract auxiliary features
             if self.pitch_extract is not None and pitch is None:
@@ -124,13 +127,10 @@ class ESPnetTTSModel(AbsESPnetModel):
 
         # Make batch for tts inputs
         batch = {}
-        batch.update(text=text)
-        batch.update(text_lengths=text_lengths)
+        batch.update(text=text, text_lengths=text_lengths)
+        batch.update(feats=feats, feats_lengths=feats_lengths)
 
         # Update batch for additional auxiliary inputs
-        if feats is not None:
-            batch.update(feats=feats)
-            batch.update(feats_lengths=feats_lengths)
         if spembs is not None:
             batch.update(spembs=spembs)
         if sids is not None:
@@ -144,8 +144,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         if self.energy_extract is not None and energy is not None:
             batch.update(energy=energy, energy_lengths=energy_lengths)
         if self.tts.require_raw_speech:
-            batch.update(speech=speech)
-            batch.update(speech_lengths=speech_lengths)
+            batch.update(speech=speech, speech_lengths=speech_lengths)
 
         return self.tts(**batch)
 
@@ -186,10 +185,12 @@ class ESPnetTTSModel(AbsESPnetModel):
             Dict[str, Tensor]: Dict of features.
 
         """
+        # feature extraction
         if self.feats_extract is not None:
             feats, feats_lengths = self.feats_extract(speech, speech_lengths)
-            feats_dict = {"feats": feats, "feats_lengths": feats_lengths}
-
+        else:
+            # Use precalculated feats (feats_type != raw case)
+            feats, feats_lengths = speech, speech_lengths
         if self.pitch_extract is not None:
             pitch, pitch_lengths = self.pitch_extract(
                 speech,
@@ -206,6 +207,10 @@ class ESPnetTTSModel(AbsESPnetModel):
                 durations=durations,
                 durations_lengths=durations_lengths,
             )
+
+        # store in dict
+        feats_dict = {}
+        feats_dict.update(feats=feats, feats_lengths=feats_lengths)
         if pitch is not None:
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if energy is not None:
@@ -248,6 +253,9 @@ class ESPnetTTSModel(AbsESPnetModel):
                 raise RuntimeError("missing required argument: 'speech'")
             if self.feats_extract is not None:
                 feats = self.feats_extract(speech[None])[0][0]
+            else:
+                # Use precalculated feats (feats_type != raw case)
+                feats = speech
             if self.normalize is not None:
                 feats = self.normalize(feats[None])[0][0]
             input_dict.update(feats=feats)
@@ -267,7 +275,7 @@ class ESPnetTTSModel(AbsESPnetModel):
             if self.pitch_normalize is not None:
                 pitch = self.pitch_normalize(pitch[None])[0][0]
             if pitch is not None:
-                input_dict["pitch"] = pitch
+                input_dict.update(pitch=pitch)
 
             if self.energy_extract is not None:
                 energy = self.energy_extract(
