@@ -6,7 +6,7 @@
 import pytest
 import torch
 
-from espnet2.gan_tts.vits.wavenet import WaveNet
+from espnet2.gan_tts.wavenet import WaveNet
 
 
 def make_wavenet_args(**kwargs):

@@ -1,5 +1,11 @@
+# Copyright 2021 Tomoki Hayashi
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""GAN-based TTS task."""
+
 import argparse
 import logging
+
 from typing import Callable
 from typing import Collection
 from typing import Dict
@@ -9,29 +15,28 @@ from typing import Tuple
 
 import numpy as np
 import torch
+
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
+from espnet2.gan_tts.espnet_model import ESPnetGANTTSModel
 from espnet2.gan_tts.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
+from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
+from espnet2.tasks.abs_task import optim_classes
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.gan_trainer import GANTrainer
 from espnet2.train.preprocessor import CommonPreprocessor
-from espnet2.train.trainer import Trainer
-from espnet2.tts.abs_tts import AbsTTS
-from espnet2.tts.espnet_model import ESPnetTTSModel
-from espnet2.tts.fastspeech import FastSpeech
-from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
-from espnet2.tts.tacotron2 import Tacotron2
-from espnet2.tts.transformer import Transformer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
@@ -42,12 +47,31 @@ feats_extractor_choices = ClassChoices(
     "feats_extract",
     classes=dict(
         fbank=LogMelFbank,
-        spectrogram=LogSpectrogram,
+        log_spectrogram=LogSpectrogram,
         linear_spectrogram=LinearSpectrogram,
     ),
     type_check=AbsFeatsExtract,
-    default="fbank",
+    default="linear_spectrogram",
 )
+normalize_choices = ClassChoices(
+    "normalize",
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
+    type_check=AbsNormalize,
+    default=None,
+    optional=True,
+)
+tts_choices = ClassChoices(
+    "tts",
+    classes=dict(
+        vits=VITS,
+    ),
+    type_check=AbsGANTTS,
+    default="vits",
+)
+# NOTE(kan-bayashi): Not used for now but added for compatibility
 pitch_extractor_choices = ClassChoices(
     "pitch_extract",
     classes=dict(dio=Dio),
@@ -62,45 +86,33 @@ energy_extractor_choices = ClassChoices(
     default=None,
     optional=True,
 )
-normalize_choices = ClassChoices(
-    "normalize",
-    classes=dict(global_mvn=GlobalMVN),
-    type_check=AbsNormalize,
-    default="global_mvn",
-    optional=True,
-)
 pitch_normalize_choices = ClassChoices(
     "pitch_normalize",
-    classes=dict(global_mvn=GlobalMVN),
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
     type_check=AbsNormalize,
     default=None,
     optional=True,
 )
 energy_normalize_choices = ClassChoices(
     "energy_normalize",
-    classes=dict(global_mvn=GlobalMVN),
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
     type_check=AbsNormalize,
     default=None,
     optional=True,
 )
-tts_choices = ClassChoices(
-    "tts",
-    classes=dict(
-        tacotron2=Tacotron2,
-        transformer=Transformer,
-        fastspeech=FastSpeech,
-        fastspeech2=FastSpeech2,
-        # NOTE(kan-bayashi): available only for inference
-        vits=VITS,
-    ),
-    type_check=AbsTTS,
-    default="tacotron2",
-)
 
 
-class TTSTask(AbsTask):
-    # If you need more than one optimizers, change this value
-    num_optimizers: int = 1
+class GANTTSTask(AbsTask):
+    """GAN-based TTS task."""
+
+    # GAN requires two optimizers
+    num_optimizers: int = 2
 
     # Add variable objects configurations
     class_choices_list = [
@@ -110,6 +122,7 @@ class TTSTask(AbsTask):
         normalize_choices,
         # --tts and --tts_conf
         tts_choices,
+        # NOTE(kan-bayashi): Not used for now but added for compatibility
         # --pitch_extract and --pitch_extract_conf
         pitch_extractor_choices,
         # --pitch_normalize and --pitch_normalize_conf
@@ -120,8 +133,8 @@ class TTSTask(AbsTask):
         energy_normalize_choices,
     ]
 
-    # If you need to modify train() or eval() procedures, change Trainer class here
-    trainer = Trainer
+    # Use GANTrainer instead of Trainer
+    trainer = GANTrainer
 
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
@@ -149,7 +162,7 @@ class TTSTask(AbsTask):
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ESPnetTTSModel),
+            default=get_default_kwargs(ESPnetGANTTSModel),
             help="The keyword arguments for model class.",
         )
 
@@ -203,10 +216,6 @@ class TTSTask(AbsTask):
                 "espeak_ng_french",
                 "espeak_ng_spanish",
                 "espeak_ng_russian",
-                "espeak_ng_greek",
-                "espeak_ng_finnish",
-                "espeak_ng_hungarian",
-                "espeak_ng_dutch",
                 "g2pk",
                 "g2pk_no_space",
             ],
@@ -228,9 +237,7 @@ class TTSTask(AbsTask):
     ]:
         assert check_argument_types()
         return CommonCollateFn(
-            float_pad_value=0.0,
-            int_pad_value=0,
-            not_sequence=["spembs", "sids", "lids"],
+            float_pad_value=0.0, int_pad_value=0, not_sequence=["spembs", "sids"]
         )
 
     @classmethod
@@ -269,14 +276,14 @@ class TTSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "durations", "pitch", "energy", "sids", "lids")
+            retval = ("spembs", "sids", "durations")
         else:
             # Inference mode
-            retval = ("spembs", "speech", "durations", "sids", "lids")
+            retval = ("spembs", "sids", "speech", "durations")
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetTTSModel:
+    def build_model(cls, args: argparse.Namespace) -> ESPnetGANTTSModel:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -317,56 +324,66 @@ class TTSTask(AbsTask):
         tts_class = tts_choices.get_class(args.tts)
         tts = tts_class(idim=vocab_size, odim=odim, **args.tts_conf)
 
-        # 4. Extra components
-        pitch_extract = None
-        energy_extract = None
-        pitch_normalize = None
-        energy_normalize = None
-        if getattr(args, "pitch_extract", None) is not None:
-            pitch_extract_class = pitch_extractor_choices.get_class(args.pitch_extract)
-            if args.pitch_extract_conf.get("reduction_factor", None) is not None:
-                assert args.pitch_extract_conf.get(
-                    "reduction_factor", None
-                ) == args.tts_conf.get("reduction_factor", 1)
-            else:
-                args.pitch_extract_conf["reduction_factor"] = args.tts_conf.get(
-                    "reduction_factor", 1
-                )
-            pitch_extract = pitch_extract_class(**args.pitch_extract_conf)
-        if getattr(args, "energy_extract", None) is not None:
-            if args.energy_extract_conf.get("reduction_factor", None) is not None:
-                assert args.energy_extract_conf.get(
-                    "reduction_factor", None
-                ) == args.tts_conf.get("reduction_factor", 1)
-            else:
-                args.energy_extract_conf["reduction_factor"] = args.tts_conf.get(
-                    "reduction_factor", 1
-                )
-            energy_extract_class = energy_extractor_choices.get_class(
-                args.energy_extract
-            )
-            energy_extract = energy_extract_class(**args.energy_extract_conf)
-        if getattr(args, "pitch_normalize", None) is not None:
-            pitch_normalize_class = pitch_normalize_choices.get_class(
-                args.pitch_normalize
-            )
-            pitch_normalize = pitch_normalize_class(**args.pitch_normalize_conf)
-        if getattr(args, "energy_normalize", None) is not None:
-            energy_normalize_class = energy_normalize_choices.get_class(
-                args.energy_normalize
-            )
-            energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
-
-        # 5. Build model
-        model = ESPnetTTSModel(
+        # 4. Build model
+        model = ESPnetGANTTSModel(
             feats_extract=feats_extract,
-            pitch_extract=pitch_extract,
-            energy_extract=energy_extract,
             normalize=normalize,
-            pitch_normalize=pitch_normalize,
-            energy_normalize=energy_normalize,
             tts=tts,
             **args.model_conf,
         )
         assert check_return_type(model)
         return model
+
+    @classmethod
+    def build_optimizers(
+        cls,
+        args: argparse.Namespace,
+        model: ESPnetGANTTSModel,
+    ) -> List[torch.optim.Optimizer]:
+        # check
+        assert hasattr(model.tts, "generator")
+        assert hasattr(model.tts, "discriminator")
+
+        # define generator optimizer
+        optim_g_class = optim_classes.get(args.optim)
+        if optim_g_class is None:
+            raise ValueError(f"must be one of {list(optim_classes)}: {args.optim}")
+        if args.sharded_ddp:
+            try:
+                import fairscale
+            except ImportError:
+                raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
+            optim_g = fairscale.optim.oss.OSS(
+                params=model.tts.generator.parameters(),
+                optim=optim_g_class,
+                **args.optim_conf,
+            )
+        else:
+            optim_g = optim_g_class(
+                model.tts.generator.parameters(),
+                **args.optim_conf,
+            )
+        optimizers = [optim_g]
+
+        # define discriminator optimizer
+        optim_d_class = optim_classes.get(args.optim2)
+        if optim_d_class is None:
+            raise ValueError(f"must be one of {list(optim_classes)}: {args.optim2}")
+        if args.sharded_ddp:
+            try:
+                import fairscale
+            except ImportError:
+                raise RuntimeError("Requiring fairscale. Do 'pip install fairscale'")
+            optim_d = fairscale.optim.oss.OSS(
+                params=model.tts.discriminator.parameters(),
+                optim=optim_d_class,
+                **args.optim2_conf,
+            )
+        else:
+            optim_d = optim_d_class(
+                model.tts.discriminator.parameters(),
+                **args.optim2_conf,
+            )
+        optimizers += [optim_d]
+
+        return optimizers

@@ -80,6 +80,7 @@ tts_stats_dir=""   # Specify the directory path for statistics. If empty, automa
 num_splits=1       # Number of splitting for tts corpus.
 teacher_dumpdir="" # Directory of teacher outputs (needed if tts=fastspeech).
 write_collected_feats=false # Whether to dump features in stats collection.
+tts_task=tts                # TTS task (tts or gan_tts).
 
 # Decoding related
 inference_config="" # Config for decoding.
@@ -132,8 +133,8 @@ Options:
     --local_data_opts # Options to be passed to local/data.sh (default="${local_data_opts}").
 
     # Feature extraction related
-    --feats_type       # Input type, if set to raw, features extraction will be performed on the fly (default="${feats_type}").
-    --audio_format     # Audio format, wav, flac, wav.ark, or flac.ark (only in feats_type=raw, default="${audio_format}").
+    --feats_type       # Feature type (fbank or stft or raw, default="${feats_type}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
     --use_xvector      # Whether to use X-vector (Require Kaldi, default="${use_xvector}").
@@ -690,7 +691,7 @@ if ! "${skip_train}"; then
         log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m espnet2.bin.tts_train \
+            ${python} -m "espnet2.bin.${tts_task}_train" \
                 --collect_stats true \
                 --write_collected_feats "${write_collected_feats}" \
                 --use_preprocessor true \
@@ -939,7 +940,7 @@ if ! "${skip_train}"; then
             --num_nodes "${num_nodes}" \
             --init_file_prefix "${tts_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            ${python} -m espnet2.bin.tts_train \
+            ${python} -m "espnet2.bin.${tts_task}_train" \
                 --use_preprocessor true \
                 --token_type "${token_type}" \
                 --token_list "${token_list}" \

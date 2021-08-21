@@ -22,6 +22,7 @@ from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.npy_scp import NpyScpWriter
+from espnet2.gan_tts.vits import VITS
 from espnet2.tasks.tts import TTSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -103,7 +104,7 @@ class Text2Speech:
                     "backward_window": backward_window,
                 }
             )
-        if isinstance(self.tts, (FastSpeech, FastSpeech2)):
+        if isinstance(self.tts, (FastSpeech, FastSpeech2, VITS)):
             decode_config.update({"alpha": speed_control_alpha})
         decode_config.update({"use_teacher_forcing": use_teacher_forcing})
 

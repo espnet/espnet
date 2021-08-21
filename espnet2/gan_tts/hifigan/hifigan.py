@@ -18,7 +18,7 @@ from typing import Optional
 import torch
 import torch.nn.functional as F
 
-from espnet2.gan_tts.vits.residual_block import HiFiGANResidualBlock as ResidualBlock
+from espnet2.gan_tts.hifigan.residual_block import ResidualBlock
 
 
 class HiFiGANGenerator(torch.nn.Module):
@@ -613,9 +613,11 @@ class HiFiGANMultiScaleDiscriminator(torch.nn.Module):
                     params["use_weight_norm"] = True
                     params["use_spectral_norm"] = False
             self.discriminators += [HiFiGANScaleDiscriminator(**params)]
-        self.pooling = getattr(torch.nn, downsample_pooling)(
-            **downsample_pooling_params
-        )
+        self.pooling = None
+        if scales > 1:
+            self.pooling = getattr(torch.nn, downsample_pooling)(
+                **downsample_pooling_params
+            )
 
     def forward(self, x: torch.Tensor) -> List[List[torch.Tensor]]:
         """Calculate forward propagation.
@@ -631,7 +633,8 @@ class HiFiGANMultiScaleDiscriminator(torch.nn.Module):
         outs = []
         for f in self.discriminators:
             outs += [f(x)]
-            x = self.pooling(x)
+            if self.pooling is not None:
+                x = self.pooling(x)
 
         return outs
 
