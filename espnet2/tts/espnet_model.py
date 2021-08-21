@@ -91,7 +91,6 @@ class ESPnetTTSModel(AbsESPnetModel):
             Tensor: Weight tensor to summarize losses.
 
         """
-        kwargs = {}
         with autocast(False):
             # Extract features
             if self.feats_extract is not None:
@@ -123,29 +122,32 @@ class ESPnetTTSModel(AbsESPnetModel):
             if self.energy_normalize is not None:
                 energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
 
-        kwargs.update(text=text)
-        kwargs.update(text_lengths=text_lengths)
-        kwargs.update(feats=feats)
-        kwargs.update(feats_lengths=feats_lengths)
+        # Make batch for tts inputs
+        batch = {}
+        batch.update(text=text)
+        batch.update(text_lengths=text_lengths)
 
-        # Update kwargs for additional auxiliary inputs
+        # Update batch for additional auxiliary inputs
+        if feats is not None:
+            batch.update(feats=feats)
+            batch.update(feats_lengths=feats_lengths)
         if spembs is not None:
-            kwargs.update(spembs=spembs)
+            batch.update(spembs=spembs)
         if sids is not None:
-            kwargs.update(sids=sids)
+            batch.update(sids=sids)
         if lids is not None:
-            kwargs.update(lids=lids)
+            batch.update(lids=lids)
         if durations is not None:
-            kwargs.update(durations=durations, durations_lengths=durations_lengths)
+            batch.update(durations=durations, durations_lengths=durations_lengths)
         if self.pitch_extract is not None and pitch is not None:
-            kwargs.update(pitch=pitch, pitch_lengths=pitch_lengths)
+            batch.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if self.energy_extract is not None and energy is not None:
-            kwargs.update(energy=energy, energy_lengths=energy_lengths)
+            batch.update(energy=energy, energy_lengths=energy_lengths)
         if self.tts.require_raw_speech:
-            kwargs.update(speech=speech)
-            kwargs.update(speech_lengths=speech_lengths)
+            batch.update(speech=speech)
+            batch.update(speech_lengths=speech_lengths)
 
-        return self.tts(**kwargs)
+        return self.tts(**batch)
 
     def collect_feats(
         self,
@@ -239,24 +241,22 @@ class ESPnetTTSModel(AbsESPnetModel):
             Dict[str, Tensor]: Dict of outputs.
 
         """
-        kwargs = {}
-        kwargs.update(text=text)
+        input_dict = {}
+        input_dict.update(text=text)
         if decode_config["use_teacher_forcing"] or getattr(self.tts, "use_gst", False):
             if speech is None:
                 raise RuntimeError("missing required argument: 'speech'")
             if self.feats_extract is not None:
                 feats = self.feats_extract(speech[None])[0][0]
-            else:
-                feats = speech
             if self.normalize is not None:
                 feats = self.normalize(feats[None])[0][0]
-            kwargs.update(feats=feats)
+            input_dict.update(feats=feats)
             if self.tts.require_raw_speech:
-                kwargs.update(speech=speech)
+                input_dict.update(speech=speech)
 
         if decode_config["use_teacher_forcing"]:
             if durations is not None:
-                kwargs["durations"] = durations
+                input_dict.update(durations=durations)
 
             if self.pitch_extract is not None:
                 pitch = self.pitch_extract(
@@ -267,7 +267,7 @@ class ESPnetTTSModel(AbsESPnetModel):
             if self.pitch_normalize is not None:
                 pitch = self.pitch_normalize(pitch[None])[0][0]
             if pitch is not None:
-                kwargs["pitch"] = pitch
+                input_dict["pitch"] = pitch
 
             if self.energy_extract is not None:
                 energy = self.energy_extract(
@@ -278,21 +278,22 @@ class ESPnetTTSModel(AbsESPnetModel):
             if self.energy_normalize is not None:
                 energy = self.energy_normalize(energy[None])[0][0]
             if energy is not None:
-                kwargs["energy"] = energy
+                input_dict.update(energy=energy)
 
         if spembs is not None:
-            kwargs["spembs"] = spembs
+            input_dict.update(spembs=spembs)
         if sids is not None:
-            kwargs["sids"] = sids
+            input_dict.update(sids=sids)
         if lids is not None:
-            kwargs["lids"] = lids
+            input_dict.update(lids=lids)
 
-        output_dict = self.tts.inference(**kwargs, **decode_config)
+        output_dict = self.tts.inference(**input_dict, **decode_config)
 
         if self.normalize is not None and output_dict.get("feat_gen") is not None:
             # NOTE: normalize.inverse is in-place operation
-            output_dict["feat_gen_denorm"] = self.normalize.inverse(
+            feat_gen_denorm = self.normalize.inverse(
                 output_dict["feat_gen"].clone()[None]
             )[0][0]
+            output_dict.update(feat_gen_denorm=feat_gen_denorm)
 
         return output_dict
