@@ -221,13 +221,13 @@ class ESPnetTTSModel(AbsESPnetModel):
     def inference(
         self,
         text: torch.Tensor,
-        speech: torch.Tensor = None,
-        spembs: torch.Tensor = None,
-        sids: torch.Tensor = None,
-        lids: torch.Tensor = None,
-        durations: torch.Tensor = None,
-        pitch: torch.Tensor = None,
-        energy: torch.Tensor = None,
+        speech: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
+        durations: Optional[torch.Tensor] = None,
+        pitch: Optional[torch.Tensor] = None,
+        energy: Optional[torch.Tensor] = None,
         **decode_config,
     ) -> Dict[str, torch.Tensor]:
         """Caclualte features and return them as a dict.
