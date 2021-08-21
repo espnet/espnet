@@ -51,6 +51,7 @@ download_dir=${align_dir}/download
 help_message=$(cat <<EOF
 Usage:
     $0 [options] <wav_file> "<text>"
+    $0 [options] <wav_file> <utt_text_file>
 
 Options:
     --backend <chainer|pytorch>     # chainer or pytorch (Default: pytorch)
@@ -70,6 +71,9 @@ Example:
 
     # Align using model name
     $0 --models tedlium2.transformer.v1 example.wav "example text"
+
+    # Align using model name
+    $0 --models tedlium2.transformer.v1 example.wav utt_text.txt
 
     # Align using model file
     $0 --cmvn cmvn.ark --align_model model.acc.best --align_config conf/align.yaml example.wav
@@ -227,7 +231,13 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "$base $wav" > ${align_dir}/data/wav.scp
     echo "X $base" > ${align_dir}/data/spk2utt
     echo "$base X" > ${align_dir}/data/utt2spk
-    echo "$base $text" > ${align_dir}/data/text
+    if [ -f "$text" ]; then
+        cp "$text" "${align_dir}/data/text"
+        utt_text="$text"
+    else
+        echo "$base $text" > ${align_dir}/data/text
+        utt_text=${align_dir}/data/text
+    fi
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -271,7 +281,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --min-window-size ${min_window_size} \
         --scoring-length ${scoring_length} \
         --api ${api} \
-        --utt-text ${align_dir}/utt_text \
+        --utt-text ${utt_text} \
         --output ${align_dir}/aligned_segments || exit 1;
 
     echo ""
