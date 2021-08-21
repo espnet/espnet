@@ -7,12 +7,12 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>espnet2.tts.fastspeech2 &mdash; ESPnet 0.10.2a1 documentation</title>
+  <title>espnet2.tts.fastspeech2.fastspeech2 &mdash; ESPnet 0.10.2a1 documentation</title>
   
 
   
-  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
 
   
   
@@ -24,24 +24,24 @@
 
   
   <!--[if lt IE 9]>
-    <script src="../../../_static/js/html5shiv.min.js"></script>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
     
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
         <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
     
-    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
 
     
-    <link rel="index" title="Index" href="../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../search.html" /> 
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -55,7 +55,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> ESPnet
+            <a href="../../../../index.html" class="icon icon-home"> ESPnet
           
 
           
@@ -72,7 +72,7 @@
 
           
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -92,60 +92,60 @@
             
               <p class="caption"><span class="caption-text">Tutorial:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using Job scheduling system</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
 </ul>
 <p class="caption"><span class="caption-text">ESPnet2:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Package Reference:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.asr.html">espnet.asr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.mt.html">espnet.mt package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.tts.html">espnet.tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.vc.html">espnet.vc package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.utils.html">espnet.utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.bin.html">espnet.bin package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.transform.html">espnet.transform package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.lm.html">espnet.lm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.nets.html">espnet.nets package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.train.html">espnet2.train package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Tool Reference:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet_bin.html">core tools</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_py.html">python utility tools</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_sh.html">bash utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
 </ul>
 
             
@@ -161,7 +161,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">ESPnet</a>
+          <a href="../../../../index.html">ESPnet</a>
         
       </nav>
 
@@ -192,11 +192,11 @@
 
   <ul class="wy-breadcrumbs">
     
-      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
         
-          <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
         
-      <li>espnet2.tts.fastspeech2</li>
+      <li>espnet2.tts.fastspeech2.fastspeech2</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -211,7 +211,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <h1>Source code for espnet2.tts.fastspeech2</h1><div class="highlight"><pre>
+  <h1>Source code for espnet2.tts.fastspeech2.fastspeech2</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright 2020 Nagoya University (Tomoki Hayashi)</span>
 <span class="c1">#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
 
@@ -220,6 +220,7 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
 
@@ -248,11 +249,11 @@
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.initialize</span> <span class="kn">import</span> <span class="n">initialize</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.abs_tts</span> <span class="kn">import</span> <span class="n">AbsTTS</span>
+<span class="kn">from</span> <span class="nn">espnet2.tts.fastspeech2.variance_predictor</span> <span class="kn">import</span> <span class="n">VariancePredictor</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.gst.style_encoder</span> <span class="kn">import</span> <span class="n">StyleEncoder</span>
-<span class="kn">from</span> <span class="nn">espnet2.tts.variance_predictor</span> <span class="kn">import</span> <span class="n">VariancePredictor</span>
 
 
-<div class="viewcode-block" id="FastSpeech2"><a class="viewcode-back" href="../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.FastSpeech2">[docs]</a><span class="k">class</span> <span class="nc">FastSpeech2</span><span class="p">(</span><span class="n">AbsTTS</span><span class="p">):</span>
+<div class="viewcode-block" id="FastSpeech2"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.fastspeech2.FastSpeech2">[docs]</a><span class="k">class</span> <span class="nc">FastSpeech2</span><span class="p">(</span><span class="n">AbsTTS</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;FastSpeech2 module.</span>
 
 <span class="sd">    This is a module of FastSpeech2 described in `FastSpeech 2: Fast and</span>
@@ -281,6 +282,7 @@
         <span class="n">postnet_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
         <span class="n">postnet_chans</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
         <span class="n">postnet_filts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="n">postnet_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="n">positionwise_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;conv1d&quot;</span><span class="p">,</span>
         <span class="n">positionwise_conv_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">use_scaled_pos_enc</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -292,6 +294,12 @@
         <span class="n">reduction_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">encoder_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;transformer&quot;</span><span class="p">,</span>
         <span class="n">decoder_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;transformer&quot;</span><span class="p">,</span>
+        <span class="n">transformer_enc_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">transformer_enc_positional_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">transformer_enc_attn_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">transformer_dec_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">transformer_dec_positional_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">transformer_dec_attn_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
         <span class="c1"># only for conformer</span>
         <span class="n">conformer_rel_pos_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;legacy&quot;</span><span class="p">,</span>
         <span class="n">conformer_pos_enc_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;rel_pos&quot;</span><span class="p">,</span>
@@ -306,6 +314,7 @@
         <span class="n">duration_predictor_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
         <span class="n">duration_predictor_chans</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">384</span><span class="p">,</span>
         <span class="n">duration_predictor_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">duration_predictor_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
         <span class="c1"># energy predictor</span>
         <span class="n">energy_predictor_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
         <span class="n">energy_predictor_chans</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">384</span><span class="p">,</span>
@@ -322,10 +331,11 @@
         <span class="n">pitch_embed_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">9</span><span class="p">,</span>
         <span class="n">pitch_embed_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="n">stop_gradient_from_pitch_predictor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="c1"># pretrained spk emb</span>
+        <span class="c1"># extra embedding related</span>
+        <span class="n">spks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">langs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">spk_embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spk_embed_integration_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;add&quot;</span><span class="p">,</span>
-        <span class="c1"># GST</span>
         <span class="n">use_gst</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">gst_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
         <span class="n">gst_heads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -336,21 +346,104 @@
         <span class="n">gst_gru_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">gst_gru_units</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span><span class="p">,</span>
         <span class="c1"># training related</span>
-        <span class="n">transformer_enc_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
-        <span class="n">transformer_enc_positional_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
-        <span class="n">transformer_enc_attn_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
-        <span class="n">transformer_dec_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
-        <span class="n">transformer_dec_positional_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
-        <span class="n">transformer_dec_attn_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
-        <span class="n">duration_predictor_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
-        <span class="n">postnet_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="n">init_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;xavier_uniform&quot;</span><span class="p">,</span>
         <span class="n">init_enc_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">init_dec_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">use_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">use_weighted_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize FastSpeech2 module.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Initialize FastSpeech2 module.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            idim (int): Dimension of the inputs.</span>
+<span class="sd">            odim (int): Dimension of the outputs.</span>
+<span class="sd">            elayers (int): Number of encoder layers.</span>
+<span class="sd">            eunits (int): Number of encoder hidden units.</span>
+<span class="sd">            dlayers (int): Number of decoder layers.</span>
+<span class="sd">            dunits (int): Number of decoder hidden units.</span>
+<span class="sd">            postnet_layers (int): Number of postnet layers.</span>
+<span class="sd">            postnet_chans (int): Number of postnet channels.</span>
+<span class="sd">            postnet_filts (int): Kernel size of postnet.</span>
+<span class="sd">            postnet_dropout_rate (float): Dropout rate in postnet.</span>
+<span class="sd">            use_scaled_pos_enc (bool): Whether to use trainable scaled pos encoding.</span>
+<span class="sd">            use_batch_norm (bool): Whether to use batch normalization in encoder prenet.</span>
+<span class="sd">            encoder_normalize_before (bool): Whether to apply layernorm layer before</span>
+<span class="sd">                encoder block.</span>
+<span class="sd">            decoder_normalize_before (bool): Whether to apply layernorm layer before</span>
+<span class="sd">                decoder block.</span>
+<span class="sd">            encoder_concat_after (bool): Whether to concatenate attention layer&#39;s input</span>
+<span class="sd">                and output in encoder.</span>
+<span class="sd">            decoder_concat_after (bool): Whether to concatenate attention layer&#39;s input</span>
+<span class="sd">                and output in decoder.</span>
+<span class="sd">            reduction_factor (int): Reduction factor.</span>
+<span class="sd">            encoder_type (str): Encoder type (&quot;transformer&quot; or &quot;conformer&quot;).</span>
+<span class="sd">            decoder_type (str): Decoder type (&quot;transformer&quot; or &quot;conformer&quot;).</span>
+<span class="sd">            transformer_enc_dropout_rate (float): Dropout rate in encoder except</span>
+<span class="sd">                attention and positional encoding.</span>
+<span class="sd">            transformer_enc_positional_dropout_rate (float): Dropout rate after encoder</span>
+<span class="sd">                positional encoding.</span>
+<span class="sd">            transformer_enc_attn_dropout_rate (float): Dropout rate in encoder</span>
+<span class="sd">                self-attention module.</span>
+<span class="sd">            transformer_dec_dropout_rate (float): Dropout rate in decoder except</span>
+<span class="sd">                attention &amp; positional encoding.</span>
+<span class="sd">            transformer_dec_positional_dropout_rate (float): Dropout rate after decoder</span>
+<span class="sd">                positional encoding.</span>
+<span class="sd">            transformer_dec_attn_dropout_rate (float): Dropout rate in decoder</span>
+<span class="sd">                self-attention module.</span>
+<span class="sd">            conformer_rel_pos_type (str): Relative pos encoding type in conformer.</span>
+<span class="sd">            conformer_pos_enc_layer_type (str): Pos encoding layer type in conformer.</span>
+<span class="sd">            conformer_self_attn_layer_type (str): Self-attention layer type in conformer</span>
+<span class="sd">            conformer_activation_type (str): Activation function type in conformer.</span>
+<span class="sd">            use_macaron_style_in_conformer: Whether to use macaron style FFN.</span>
+<span class="sd">            use_cnn_in_conformer: Whether to use CNN in conformer.</span>
+<span class="sd">            zero_triu: Whether to use zero triu in relative self-attention module.</span>
+<span class="sd">            conformer_enc_kernel_size: Kernel size of encoder conformer.</span>
+<span class="sd">            conformer_dec_kernel_size: Kernel size of decoder conformer.</span>
+<span class="sd">            duration_predictor_layers (int): Number of duration predictor layers.</span>
+<span class="sd">            duration_predictor_chans (int): Number of duration predictor channels.</span>
+<span class="sd">            duration_predictor_kernel_size (int): Kernel size of duration predictor.</span>
+<span class="sd">            duration_predictor_dropout_rate (float): Dropout rate in duration predictor.</span>
+<span class="sd">            pitch_predictor_layers (int): Number of pitch predictor layers.</span>
+<span class="sd">            pitch_predictor_chans (int): Number of pitch predictor channels.</span>
+<span class="sd">            pitch_predictor_kernel_size (int): Kernel size of pitch predictor.</span>
+<span class="sd">            pitch_predictor_dropout_rate (float): Dropout rate in pitch predictor.</span>
+<span class="sd">            pitch_embed_kernel_size (float): Kernel size of pitch embedding.</span>
+<span class="sd">            pitch_embed_dropout_rate (float): Dropout rate for pitch embedding.</span>
+<span class="sd">            stop_gradient_from_pitch_predictor: Whether to stop gradient from pitch</span>
+<span class="sd">                predictor to encoder.</span>
+<span class="sd">            energy_predictor_layers (int): Number of energy predictor layers.</span>
+<span class="sd">            energy_predictor_chans (int): Number of energy predictor channels.</span>
+<span class="sd">            energy_predictor_kernel_size (int): Kernel size of energy predictor.</span>
+<span class="sd">            energy_predictor_dropout_rate (float): Dropout rate in energy predictor.</span>
+<span class="sd">            energy_embed_kernel_size (float): Kernel size of energy embedding.</span>
+<span class="sd">            energy_embed_dropout_rate (float): Dropout rate for energy embedding.</span>
+<span class="sd">            stop_gradient_from_energy_predictor: Whether to stop gradient from energy</span>
+<span class="sd">                predictor to encoder.</span>
+<span class="sd">            spks: Number of speakers. If set to &gt; 0, speaker ID embedding will be used.</span>
+<span class="sd">            langs: Number of langs. If set to &gt; 0, lang ID embedding will be used.</span>
+<span class="sd">            spk_embed_dim (int): Number of speaker embedding dimensions.</span>
+<span class="sd">            spk_embed_integration_type: How to integrate speaker embedding.</span>
+<span class="sd">            use_gst (str): Whether to use global style token.</span>
+<span class="sd">            gst_tokens (int): The number of GST embeddings.</span>
+<span class="sd">            gst_heads (int): The number of heads in GST multihead attention.</span>
+<span class="sd">            gst_conv_layers (int): The number of conv layers in GST.</span>
+<span class="sd">            gst_conv_chans_list: (Sequence[int]):</span>
+<span class="sd">                List of the number of channels of conv layers in GST.</span>
+<span class="sd">            gst_conv_kernel_size (int): Kernal size of conv layers in GST.</span>
+<span class="sd">            gst_conv_stride (int): Stride size of conv layers in GST.</span>
+<span class="sd">            gst_gru_layers (int): The number of GRU layers in GST.</span>
+<span class="sd">            gst_gru_units (int): The number of GRU units in GST.</span>
+<span class="sd">            init_type (str): How to initialize transformer parameters.</span>
+<span class="sd">            init_enc_alpha (float): Initial value of alpha in scaled pos encoding of the</span>
+<span class="sd">                encoder.</span>
+<span class="sd">            init_dec_alpha (float): Initial value of alpha in scaled pos encoding of the</span>
+<span class="sd">                decoder.</span>
+<span class="sd">            use_masking (bool): Whether to apply masking for padded part in loss</span>
+<span class="sd">                calculation.</span>
+<span class="sd">            use_weighted_masking (bool): Whether to apply weighted masking in loss</span>
+<span class="sd">                calculation.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
@@ -359,6 +452,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">=</span> <span class="n">odim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">idim</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">=</span> <span class="n">reduction_factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="o">=</span> <span class="n">spks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">=</span> <span class="n">langs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">encoder_type</span> <span class="o">=</span> <span class="n">encoder_type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder_type</span> <span class="o">=</span> <span class="n">decoder_type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stop_gradient_from_pitch_predictor</span> <span class="o">=</span> <span class="n">stop_gradient_from_pitch_predictor</span>
@@ -462,6 +557,12 @@
                 <span class="n">gru_layers</span><span class="o">=</span><span class="n">gst_gru_layers</span><span class="p">,</span>
                 <span class="n">gru_units</span><span class="o">=</span><span class="n">gst_gru_units</span><span class="p">,</span>
             <span class="p">)</span>
+
+        <span class="c1"># define spk and lang embedding</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sid_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">spks</span><span class="p">,</span> <span class="n">adim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lid_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">langs</span><span class="p">,</span> <span class="n">adim</span><span class="p">)</span>
 
         <span class="c1"># define additional projection for speaker embedding</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -595,7 +696,7 @@
             <span class="n">use_masking</span><span class="o">=</span><span class="n">use_masking</span><span class="p">,</span> <span class="n">use_weighted_masking</span><span class="o">=</span><span class="n">use_weighted_masking</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="FastSpeech2.forward"><a class="viewcode-back" href="../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.FastSpeech2.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="FastSpeech2.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.fastspeech2.FastSpeech2.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -607,22 +708,26 @@
         <span class="n">pitch_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">energy</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">energy_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            text (LongTensor): Batch of padded token ids (B, Tmax).</span>
+<span class="sd">            text (LongTensor): Batch of padded token ids (B, T_text).</span>
 <span class="sd">            text_lengths (LongTensor): Batch of lengths of each input (B,).</span>
-<span class="sd">            speech (Tensor): Batch of padded target features (B, Lmax, odim).</span>
+<span class="sd">            speech (Tensor): Batch of padded target features (B, T_feats, odim).</span>
 <span class="sd">            speech_lengths (LongTensor): Batch of the lengths of each target (B,).</span>
-<span class="sd">            durations (LongTensor): Batch of padded durations (B, Tmax + 1).</span>
-<span class="sd">            durations_lengths (LongTensor): Batch of duration lengths (B, Tmax + 1).</span>
-<span class="sd">            pitch (Tensor): Batch of padded token-averaged pitch (B, Tmax + 1, 1).</span>
-<span class="sd">            pitch_lengths (LongTensor): Batch of pitch lengths (B, Tmax + 1).</span>
-<span class="sd">            energy (Tensor): Batch of padded token-averaged energy (B, Tmax + 1, 1).</span>
-<span class="sd">            energy_lengths (LongTensor): Batch of energy lengths (B, Tmax + 1).</span>
-<span class="sd">            spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).</span>
+<span class="sd">            durations (LongTensor): Batch of padded durations (B, T_text + 1).</span>
+<span class="sd">            durations_lengths (LongTensor): Batch of duration lengths (B, T_text + 1).</span>
+<span class="sd">            pitch (Tensor): Batch of padded token-averaged pitch (B, T_text + 1, 1).</span>
+<span class="sd">            pitch_lengths (LongTensor): Batch of pitch lengths (B, T_text + 1).</span>
+<span class="sd">            energy (Tensor): Batch of padded token-averaged energy (B, T_text + 1, 1).</span>
+<span class="sd">            energy_lengths (LongTensor): Batch of energy lengths (B, T_text + 1).</span>
+<span class="sd">            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).</span>
+<span class="sd">            sids (Optional[Tensor]): Batch of speaker IDs (B, 1).</span>
+<span class="sd">            lids (Optional[Tensor]): Batch of language IDs (B, 1).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tensor: Loss scalar value.</span>
@@ -649,7 +754,17 @@
 
         <span class="c1"># forward propagation</span>
         <span class="n">before_outs</span><span class="p">,</span> <span class="n">after_outs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">p_outs</span><span class="p">,</span> <span class="n">e_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
-            <span class="n">xs</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">olens</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">es</span><span class="p">,</span> <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span> <span class="n">is_inference</span><span class="o">=</span><span class="kc">False</span>
+            <span class="n">xs</span><span class="p">,</span>
+            <span class="n">ilens</span><span class="p">,</span>
+            <span class="n">ys</span><span class="p">,</span>
+            <span class="n">olens</span><span class="p">,</span>
+            <span class="n">ds</span><span class="p">,</span>
+            <span class="n">ps</span><span class="p">,</span>
+            <span class="n">es</span><span class="p">,</span>
+            <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+            <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
+            <span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">,</span>
+            <span class="n">is_inference</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># modify mod part of groundtruth</span>
@@ -703,23 +818,33 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">ys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">olens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">ds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">ps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">es</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">olens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ps</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">es</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">is_inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="c1"># forward encoder</span>
         <span class="n">x_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_mask</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span>
-        <span class="n">hs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">x_masks</span><span class="p">)</span>  <span class="c1"># (B, Tmax, adim)</span>
+        <span class="n">hs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">x_masks</span><span class="p">)</span>  <span class="c1"># (B, T_text, adim)</span>
 
         <span class="c1"># integrate with GST</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_gst</span><span class="p">:</span>
             <span class="n">style_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gst</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
             <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">style_embs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># integrate with SID and LID embeddings</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sid_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sid_emb</span><span class="p">(</span><span class="n">sids</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">sid_embs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">lid_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lid_emb</span><span class="p">(</span><span class="n">lids</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">lid_embs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="c1"># integrate speaker embedding</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -738,19 +863,19 @@
             <span class="n">e_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_predictor</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_masks</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">is_inference</span><span class="p">:</span>
-            <span class="n">d_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_predictor</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_masks</span><span class="p">)</span>  <span class="c1"># (B, Tmax)</span>
+            <span class="n">d_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_predictor</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_masks</span><span class="p">)</span>  <span class="c1"># (B, T_text)</span>
             <span class="c1"># use prediction in inference</span>
             <span class="n">p_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_embed</span><span class="p">(</span><span class="n">p_outs</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
             <span class="n">e_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_embed</span><span class="p">(</span><span class="n">e_outs</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
             <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">e_embs</span> <span class="o">+</span> <span class="n">p_embs</span>
-            <span class="n">hs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length_regulator</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>  <span class="c1"># (B, Lmax, adim)</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length_regulator</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>  <span class="c1"># (B, T_feats, adim)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">d_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_predictor</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_masks</span><span class="p">)</span>
             <span class="c1"># use groundtruth in training</span>
             <span class="n">p_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_embed</span><span class="p">(</span><span class="n">ps</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
             <span class="n">e_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_embed</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
             <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">e_embs</span> <span class="o">+</span> <span class="n">p_embs</span>
-            <span class="n">hs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length_regulator</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">ds</span><span class="p">)</span>  <span class="c1"># (B, Lmax, adim)</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length_regulator</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">ds</span><span class="p">)</span>  <span class="c1"># (B, T_feats, adim)</span>
 
         <span class="c1"># forward decoder</span>
         <span class="k">if</span> <span class="n">olens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_inference</span><span class="p">:</span>
@@ -761,12 +886,12 @@
             <span class="n">h_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_mask</span><span class="p">(</span><span class="n">olens_in</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">h_masks</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">zs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">h_masks</span><span class="p">)</span>  <span class="c1"># (B, Lmax, adim)</span>
+        <span class="n">zs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">h_masks</span><span class="p">)</span>  <span class="c1"># (B, T_feats, adim)</span>
         <span class="n">before_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span><span class="p">(</span><span class="n">zs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
             <span class="n">zs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span>
-        <span class="p">)</span>  <span class="c1"># (B, Lmax, odim)</span>
+        <span class="p">)</span>  <span class="c1"># (B, T_feats, odim)</span>
 
-        <span class="c1"># postnet -&gt; (B, Lmax//r * r, odim)</span>
+        <span class="c1"># postnet -&gt; (B, T_feats//r * r, odim)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">after_outs</span> <span class="o">=</span> <span class="n">before_outs</span>
         <span class="k">else</span><span class="p">:</span>
@@ -776,36 +901,40 @@
 
         <span class="k">return</span> <span class="n">before_outs</span><span class="p">,</span> <span class="n">after_outs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">p_outs</span><span class="p">,</span> <span class="n">e_outs</span>
 
-<div class="viewcode-block" id="FastSpeech2.inference"><a class="viewcode-back" href="../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.FastSpeech2.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>
+<div class="viewcode-block" id="FastSpeech2.inference"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.fastspeech2.FastSpeech2.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">durations</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">durations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">pitch</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">energy</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pitch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">energy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            text (LongTensor): Input sequence of characters (T,).</span>
-<span class="sd">            speech (Tensor, optional): Feature sequence to extract style (N, idim).</span>
-<span class="sd">            spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).</span>
-<span class="sd">            durations (LongTensor, optional): Groundtruth of duration (T + 1,).</span>
-<span class="sd">            pitch (Tensor, optional): Groundtruth of token-averaged pitch (T + 1, 1).</span>
-<span class="sd">            energy (Tensor, optional): Groundtruth of token-averaged energy (T + 1, 1).</span>
-<span class="sd">            alpha (float, optional): Alpha to control the speed.</span>
-<span class="sd">            use_teacher_forcing (bool, optional): Whether to use teacher forcing.</span>
+<span class="sd">            text (LongTensor): Input sequence of characters (T_text,).</span>
+<span class="sd">            speech (Optional[Tensor): Feature sequence to extract style (N, idim).</span>
+<span class="sd">            durations (Optional[Tensor): Groundtruth of duration (T_text + 1,).</span>
+<span class="sd">            spembs (Optional[Tensor): Speaker embedding vector (spk_embed_dim,).</span>
+<span class="sd">            sids (Optional[Tensor]): Speaker ID (1,).</span>
+<span class="sd">            lids (Optional[Tensor]): Language ID (1,).</span>
+<span class="sd">            pitch (Optional[Tensor]): Groundtruth of token-avg pitch (T_text + 1, 1).</span>
+<span class="sd">            energy (Optional[Tensor]): Groundtruth of token-avg energy (T_text + 1, 1).</span>
+<span class="sd">            alpha (float): Alpha to control the speed.</span>
+<span class="sd">            use_teacher_forcing (bool): Whether to use teacher forcing.</span>
 <span class="sd">                If true, groundtruth of duration, pitch and energy will be used.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Dict[str, Tensor]: Output dict including the following items:</span>
-<span class="sd">                * feat_gen (Tensor): Output sequence of features (L, odim).</span>
-<span class="sd">                * duration (Tensor): Duration sequence (T + 1,).</span>
-<span class="sd">                * pitch (Tensor): Pitch sequence (T + 1,).</span>
-<span class="sd">                * energy (Tensor): Energy sequence (T + 1,).</span>
+<span class="sd">                * feat_gen (Tensor): Output sequence of features (T_feats, odim).</span>
+<span class="sd">                * duration (Tensor): Duration sequence (T_text + 1,).</span>
+<span class="sd">                * pitch (Tensor): Pitch sequence (T_text + 1,).</span>
+<span class="sd">                * energy (Tensor): Energy sequence (T_text + 1,).</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">text</span><span class="p">,</span> <span class="n">speech</span>
@@ -833,16 +962,20 @@
                 <span class="n">ps</span><span class="o">=</span><span class="n">ps</span><span class="p">,</span>
                 <span class="n">es</span><span class="o">=</span><span class="n">es</span><span class="p">,</span>
                 <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
-            <span class="p">)</span>  <span class="c1"># (1, L, odim)</span>
+                <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
+                <span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">,</span>
+            <span class="p">)</span>  <span class="c1"># (1, T_feats, odim)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">_</span><span class="p">,</span> <span class="n">outs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">p_outs</span><span class="p">,</span> <span class="n">e_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
                 <span class="n">xs</span><span class="p">,</span>
                 <span class="n">ilens</span><span class="p">,</span>
                 <span class="n">ys</span><span class="p">,</span>
                 <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+                <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
+                <span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">,</span>
                 <span class="n">is_inference</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
-            <span class="p">)</span>  <span class="c1"># (1, L, odim)</span>
+            <span class="p">)</span>  <span class="c1"># (1, T_feats, odim)</span>
 
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">feat_gen</span><span class="o">=</span><span class="n">outs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
@@ -857,11 +990,11 @@
         <span class="sd">&quot;&quot;&quot;Integrate speaker embedding with hidden states.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            hs (Tensor): Batch of hidden state sequences (B, Tmax, adim).</span>
+<span class="sd">            hs (Tensor): Batch of hidden state sequences (B, T_text, adim).</span>
 <span class="sd">            spembs (Tensor): Batch of speaker embeddings (B, spk_embed_dim).</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tensor: Batch of integrated hidden state sequences (B, Tmax, adim).</span>
+<span class="sd">            Tensor: Batch of integrated hidden state sequences (B, T_text, adim).</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_integration_type</span> <span class="o">==</span> <span class="s2">&quot;add&quot;</span><span class="p">:</span>
@@ -912,7 +1045,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">init_dec_alpha</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="FastSpeech2Loss"><a class="viewcode-back" href="../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.FastSpeech2Loss">[docs]</a><span class="k">class</span> <span class="nc">FastSpeech2Loss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="FastSpeech2Loss"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.fastspeech2.FastSpeech2Loss">[docs]</a><span class="k">class</span> <span class="nc">FastSpeech2Loss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Loss function module for FastSpeech2.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">use_weighted_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
@@ -938,7 +1071,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">mse_criterion</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">duration_criterion</span> <span class="o">=</span> <span class="n">DurationPredictorLoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span>
 
-<div class="viewcode-block" id="FastSpeech2Loss.forward"><a class="viewcode-back" href="../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.FastSpeech2Loss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+<div class="viewcode-block" id="FastSpeech2Loss.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.fastspeech2.FastSpeech2Loss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">after_outs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">before_outs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -955,15 +1088,15 @@
         <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).</span>
-<span class="sd">            before_outs (Tensor): Batch of outputs before postnets (B, Lmax, odim).</span>
-<span class="sd">            d_outs (LongTensor): Batch of outputs of duration predictor (B, Tmax).</span>
-<span class="sd">            p_outs (Tensor): Batch of outputs of pitch predictor (B, Tmax, 1).</span>
-<span class="sd">            e_outs (Tensor): Batch of outputs of energy predictor (B, Tmax, 1).</span>
-<span class="sd">            ys (Tensor): Batch of target features (B, Lmax, odim).</span>
-<span class="sd">            ds (LongTensor): Batch of durations (B, Tmax).</span>
-<span class="sd">            ps (Tensor): Batch of target token-averaged pitch (B, Tmax, 1).</span>
-<span class="sd">            es (Tensor): Batch of target token-averaged energy (B, Tmax, 1).</span>
+<span class="sd">            after_outs (Tensor): Batch of outputs after postnets (B, T_feats, odim).</span>
+<span class="sd">            before_outs (Tensor): Batch of outputs before postnets (B, T_feats, odim).</span>
+<span class="sd">            d_outs (LongTensor): Batch of outputs of duration predictor (B, T_text).</span>
+<span class="sd">            p_outs (Tensor): Batch of outputs of pitch predictor (B, T_text, 1).</span>
+<span class="sd">            e_outs (Tensor): Batch of outputs of energy predictor (B, T_text, 1).</span>
+<span class="sd">            ys (Tensor): Batch of target features (B, T_feats, odim).</span>
+<span class="sd">            ds (LongTensor): Batch of durations (B, T_text).</span>
+<span class="sd">            ps (Tensor): Batch of target token-averaged pitch (B, T_text, 1).</span>
+<span class="sd">            es (Tensor): Batch of target token-averaged energy (B, T_text, 1).</span>
 <span class="sd">            ilens (LongTensor): Batch of the lengths of each input (B,).</span>
 <span class="sd">            olens (LongTensor): Batch of the lengths of each target (B,).</span>
 
