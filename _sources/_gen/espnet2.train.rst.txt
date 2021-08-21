@@ -4,6 +4,17 @@ espnet2.train package
 
 
 
+.. _espnet2.train.abs_gan_espnet_model:
+
+espnet2.train.abs_gan_espnet_model
+----------------------------------
+
+.. automodule:: espnet2.train.abs_gan_espnet_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.train.trainer:
 
 espnet2.train.trainer
@@ -54,6 +65,17 @@ espnet2.train.preprocessor
 --------------------------
 
 .. automodule:: espnet2.train.preprocessor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.train.gan_trainer:
+
+espnet2.train.gan_trainer
+-------------------------
+
+.. automodule:: espnet2.train.gan_trainer
     :members:
     :undoc-members:
     :show-inheritance:
