@@ -12,17 +12,17 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
-from espnet2.gan_tts.vits.generator import VITSGenerator
 from espnet2.gan_tts.hifigan import HiFiGANMultiPeriodDiscriminator
 from espnet2.gan_tts.hifigan import HiFiGANMultiScaleDiscriminator
 from espnet2.gan_tts.hifigan import HiFiGANMultiScaleMultiPeriodDiscriminator
 from espnet2.gan_tts.hifigan import HiFiGANPeriodDiscriminator
 from espnet2.gan_tts.hifigan import HiFiGANScaleDiscriminator
-from espnet2.gan_tts.vits.loss import DiscriminatorAdversarialLoss
-from espnet2.gan_tts.vits.loss import FeatureMatchLoss
-from espnet2.gan_tts.vits.loss import GeneratorAdversarialLoss
+from espnet2.gan_tts.hifigan.loss import DiscriminatorAdversarialLoss
+from espnet2.gan_tts.hifigan.loss import FeatureMatchLoss
+from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
+from espnet2.gan_tts.hifigan.loss import MelSpectrogramLoss
+from espnet2.gan_tts.vits.generator import VITSGenerator
 from espnet2.gan_tts.vits.loss import KLDivergenceLoss
-from espnet2.gan_tts.vits.loss import MelSpectrogramLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
 
 AVAILABLE_GENERATERS = {

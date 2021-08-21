@@ -9,10 +9,10 @@ import torch
 
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
 from espnet2.gan_tts.hifigan import HiFiGANMultiScaleMultiPeriodDiscriminator
-from espnet2.gan_tts.vits.loss import DiscriminatorAdversarialLoss
-from espnet2.gan_tts.vits.loss import FeatureMatchLoss
-from espnet2.gan_tts.vits.loss import GeneratorAdversarialLoss
-from espnet2.gan_tts.vits.loss import MelSpectrogramLoss
+from espnet2.gan_tts.hifigan.loss import DiscriminatorAdversarialLoss
+from espnet2.gan_tts.hifigan.loss import FeatureMatchLoss
+from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
+from espnet2.gan_tts.hifigan.loss import MelSpectrogramLoss
 
 
 def make_hifigan_generator_args(**kwargs):
