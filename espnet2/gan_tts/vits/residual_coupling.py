@@ -56,7 +56,7 @@ class ResidualAffineCouplingBlock(torch.nn.Module):
             global_channels (int): Number of global channels.
             dropout_rate (float): Dropout rate.
             use_weight_norm (bool): Whether to use weight normalization in WaveNet.
-            bias (bool): Whether to use bias paramters in WaveNet.
+            bias (bool): Whether to use bias parameters in WaveNet.
             use_only_mean (bool): Whether to estimate only mean.
 
         """
@@ -138,7 +138,7 @@ class ResidualAffineCouplingLayer(torch.nn.Module):
             global_channels (int): Number of global channels.
             dropout_rate (float): Dropout rate.
             use_weight_norm (bool): Whether to use weight normalization in WaveNet.
-            bias (bool): Whether to use bias paramters in WaveNet.
+            bias (bool): Whether to use bias parameters in WaveNet.
             use_only_mean (bool): Whether to estimate only mean.
 
         """

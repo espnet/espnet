@@ -1,6 +1,6 @@
 # THCHS30 RECIPE
 
-This is the recipe of Mandrain multi-speaker TTS model with [THCHS30 dataset](http://www.openslr.org/18/).
+This is the recipe of Mandarin multi-speaker TTS model with [THCHS30 dataset](http://www.openslr.org/18/).
 
 See the following pages for the usage:
 - [How to run the recipe](../../TEMPLATE/tts1/README.md#how-to-run)

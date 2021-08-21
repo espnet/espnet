@@ -1,3 +1,5 @@
+# Instruction:  https://github.com/marketplace/actions/typos-action#getting-started
+
 [default.extend-words]
 JSUT = "JSUT"
 jsut = "jsut"
@@ -14,7 +16,9 @@ prononciation = "prononciation"
 # egs/puebla_nahuatl/st1/local/data_prep.py
 Transcripcion = "Transcripcion"
 
+
 [default.extend-identifiers]
+
 
 [files]
 extend-exclude = ["_typos.toml", "egs/commonvoice/asr1/conf/tuning/decode_transfromer.yaml"]

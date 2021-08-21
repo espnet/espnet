@@ -1,6 +1,6 @@
 # CSS10 RECIPE
 
-This is the recipe of 10 langauge TTS model with [CSS10](https://github.com/Kyubyong/css10).
+This is the recipe of 10 language TTS model with [CSS10](https://github.com/Kyubyong/css10).
 
 Before running the recipe, please download from https://github.com/Kyubyong/css10.  
 Then, edit 'CSS10' in `db.sh` and locate unzipped dataset as follows:

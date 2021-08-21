@@ -595,7 +595,7 @@ class HiFiGANMultiScaleDiscriminator(torch.nn.Module):
             discriminator_params (Dict[str, Any]): Parameters for hifi-gan scale
                 discriminator module.
             follow_official_norm (bool): Whether to follow the norm setting of the
-                official implementaion. The first discriminator uses spectral norm
+                official implementation. The first discriminator uses spectral norm
                 and the other discriminators use weight norm.
 
         """
@@ -689,7 +689,7 @@ class HiFiGANMultiScaleMultiPeriodDiscriminator(torch.nn.Module):
             scale_discriminator_params (dict): Parameters for hifi-gan scale
                 discriminator module.
             follow_official_norm (bool): Whether to follow the norm setting of the
-                official implementaion. The first discriminator uses spectral norm and
+                official implementation. The first discriminator uses spectral norm and
                 the other discriminators use weight norm.
             periods (list): List of periods.
             period_discriminator_params (dict): Parameters for hifi-gan period

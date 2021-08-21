@@ -15,11 +15,11 @@ from numba import prange
 try:
     from .core import maximum_path_c
 
-    is_cython_avalable = True
+    is_cython_available = True
 except ImportError:
-    is_cython_avalable = False
+    is_cython_available = False
     warnings.warn(
-        "Cython version is not available. Fallback to 'EXPERIMETAL' numba version. "
+        "Cython version is not available. Fallback to 'EXPERIMENTAL' numba version. "
         "If you want to use the cython version, please build it as follows: "
         "`cd espnet2/gan_tts/vits/monotonic_align; python setup.py build_ext --inplace`"
     )
@@ -41,7 +41,7 @@ def maximum_path(neg_x_ent: torch.Tensor, attn_mask: torch.Tensor) -> torch.Tens
     path = np.zeros(neg_x_ent.shape, dtype=np.int32)
     t_t_max = attn_mask.sum(1)[:, 0].cpu().numpy().astype(np.int32)
     t_s_max = attn_mask.sum(2)[:, 0].cpu().numpy().astype(np.int32)
-    if is_cython_avalable:
+    if is_cython_available:
         maximum_path_c(path, neg_x_ent, t_t_max, t_s_max)
     else:
         maximum_path_numba(path, neg_x_ent, t_t_max, t_s_max)
