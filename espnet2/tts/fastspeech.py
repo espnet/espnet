@@ -65,6 +65,7 @@ class FastSpeech(AbsTTS):
         postnet_layers: int = 5,
         postnet_chans: int = 512,
         postnet_filts: int = 5,
+        postnet_dropout_rate: float = 0.5,
         positionwise_layer_type: str = "conv1d",
         positionwise_conv_kernel_size: int = 1,
         use_scaled_pos_enc: bool = True,
@@ -76,9 +77,16 @@ class FastSpeech(AbsTTS):
         duration_predictor_layers: int = 2,
         duration_predictor_chans: int = 384,
         duration_predictor_kernel_size: int = 3,
+        duration_predictor_dropout_rate: float = 0.1,
         reduction_factor: int = 1,
         encoder_type: str = "transformer",
         decoder_type: str = "transformer",
+        transformer_enc_dropout_rate: float = 0.1,
+        transformer_enc_positional_dropout_rate: float = 0.1,
+        transformer_enc_attn_dropout_rate: float = 0.1,
+        transformer_dec_dropout_rate: float = 0.1,
+        transformer_dec_positional_dropout_rate: float = 0.1,
+        transformer_dec_attn_dropout_rate: float = 0.1,
         # only for conformer
         conformer_rel_pos_type: str = "legacy",
         conformer_pos_enc_layer_type: str = "rel_pos",
@@ -104,14 +112,6 @@ class FastSpeech(AbsTTS):
         gst_gru_layers: int = 1,
         gst_gru_units: int = 128,
         # training related
-        transformer_enc_dropout_rate: float = 0.1,
-        transformer_enc_positional_dropout_rate: float = 0.1,
-        transformer_enc_attn_dropout_rate: float = 0.1,
-        transformer_dec_dropout_rate: float = 0.1,
-        transformer_dec_positional_dropout_rate: float = 0.1,
-        transformer_dec_attn_dropout_rate: float = 0.1,
-        duration_predictor_dropout_rate: float = 0.1,
-        postnet_dropout_rate: float = 0.5,
         init_type: str = "xavier_uniform",
         init_enc_alpha: float = 1.0,
         init_dec_alpha: float = 1.0,
@@ -127,6 +127,10 @@ class FastSpeech(AbsTTS):
             eunits (int): Number of encoder hidden units.
             dlayers (int): Number of decoder layers.
             dunits (int): Number of decoder hidden units.
+            postnet_layers (int): Number of postnet layers.
+            postnet_chans (int): Number of postnet channels.
+            postnet_filts (int): Kernel size of postnet.
+            postnet_dropout_rate (float): Dropout rate in postnet.
             use_scaled_pos_enc (bool): Whether to use trainable scaled pos encoding.
             use_batch_norm (bool): Whether to use batch normalization in encoder prenet.
             encoder_normalize_before (bool): Whether to apply layernorm layer before
@@ -139,11 +143,23 @@ class FastSpeech(AbsTTS):
                 and output in decoder.
             duration_predictor_layers (int): Number of duration predictor layers.
             duration_predictor_chans (int): Number of duration predictor channels.
-            duration_predictor_kernel_size (int):
-                Kernel size of duration predictor.
+            duration_predictor_kernel_size (int): Kernel size of duration predictor.
+            duration_predictor_dropout_rate (float): Dropout rate in duration predictor.
             reduction_factor (int): Reduction factor.
             encoder_type (str): Encoder type ("transformer" or "conformer").
             decoder_type (str): Decoder type ("transformer" or "conformer").
+            transformer_enc_dropout_rate (float): Dropout rate in encoder except
+                attention and positional encoding.
+            transformer_enc_positional_dropout_rate (float): Dropout rate after encoder
+                positional encoding.
+            transformer_enc_attn_dropout_rate (float): Dropout rate in encoder
+                self-attention module.
+            transformer_dec_dropout_rate (float): Dropout rate in decoder except
+                attention & positional encoding.
+            transformer_dec_positional_dropout_rate (float): Dropout rate after decoder
+                positional encoding.
+            transformer_dec_attn_dropout_rate (float): Dropout rate in decoder
+                self-attention module.
             conformer_rel_pos_type (str): Relative pos encoding type in conformer.
             conformer_pos_enc_layer_type (str): Pos encoding layer type in conformer.
             conformer_self_attn_layer_type (str): Self-attention layer type in conformer
@@ -167,18 +183,6 @@ class FastSpeech(AbsTTS):
             gst_conv_stride (int): Stride size of conv layers in GST.
             gst_gru_layers (int): The number of GRU layers in GST.
             gst_gru_units (int): The number of GRU units in GST.
-            transformer_enc_dropout_rate (float): Dropout rate in encoder except
-                attention and positional encoding.
-            transformer_enc_positional_dropout_rate (float): Dropout rate after encoder
-                positional encoding.
-            transformer_enc_attn_dropout_rate (float): Dropout rate in encoder
-                self-attention module.
-            transformer_dec_dropout_rate (float): Dropout rate in decoder except
-                attention & positional encoding.
-            transformer_dec_positional_dropout_rate (float): Dropout rate after decoder
-                positional encoding.
-            transformer_dec_attn_dropout_rate (float): Dropout rate in decoder
-                self-attention module.
             init_type (str): How to initialize transformer parameters.
             init_enc_alpha (float): Initial value of alpha in scaled pos encoding of the
                 encoder.
@@ -188,6 +192,7 @@ class FastSpeech(AbsTTS):
                 calculation.
             use_weighted_masking (bool): Whether to apply weighted masking in loss
                 calculation.
+
         """
         assert check_argument_types()
         super().__init__()
@@ -577,8 +582,8 @@ class FastSpeech(AbsTTS):
             speech (Optional[Tensor]): Feature sequence to extract style (N, idim).
             durations (Optional[LongTensor]): Groundtruth of duration (T_text + 1,).
             spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).
-            sids (Optional[Tensor]): Speaker IDs (1,).
-            lids (Optional[Tensor]): Language IDs (1,).
+            sids (Optional[Tensor]): Speaker ID (1,).
+            lids (Optional[Tensor]): Language ID (1,).
             alpha (float): Alpha to control the speed.
             use_teacher_forcing (bool): Whether to use teacher forcing.
                 If true, groundtruth of duration, pitch and energy will be used.

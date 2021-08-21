@@ -617,8 +617,8 @@ class Transformer(AbsTTS):
             speech (Optional[Tensor]): Feature sequence to extract style embedding
                 (T_feats', idim).
             spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).
-            sids (Optional[Tensor]): Speaker IDs (1,).
-            lids (Optional[Tensor]): Language IDs (1,).
+            sids (Optional[Tensor]): Speaker ID (1,).
+            lids (Optional[Tensor]): Language ID (1,).
             threshold (float): Threshold in inference.
             minlenratio (float): Minimum length ratio in inference.
             maxlenratio (float): Maximum length ratio in inference.
