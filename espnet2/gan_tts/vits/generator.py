@@ -45,6 +45,7 @@ class VITSGenerator(torch.nn.Module):
         aux_channels: int = 513,
         hidden_channels: int = 192,
         spks: int = -1,
+        langs: int = -1,
         spk_embed_dim: int = -1,
         global_channels: int = -1,
         segment_size: int = 32,
@@ -95,6 +96,7 @@ class VITSGenerator(torch.nn.Module):
             aux_channels (int): Number of acoustic feature channels.
             hidden_channels (int): Number of hidden channels.
             spks (int): Number of speakers.
+            langs (int): Number of languages.
             global_channels (int): Number of global conditioning channels.
             segment_size (int): Segment size for decoder.
             text_encoder_attention_heads (int): Number of heads in conformer block
@@ -239,6 +241,10 @@ class VITSGenerator(torch.nn.Module):
         if self.spk_embed_dim > 0:
             assert global_channels > 0
             self.spemb_proj = torch.nn.Linear(spk_embed_dim, global_channels)
+        self.langs = langs
+        if self.langs > 1:
+            assert global_channels > 0
+            self.lang_emb = torch.nn.Embedding(langs, global_channels)
 
         # delayed import
         from espnet2.gan_tts.vits.monotonic_align import maximum_path
@@ -253,6 +259,7 @@ class VITSGenerator(torch.nn.Module):
         feats_lengths: torch.Tensor,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
     ) -> Tuple[
         torch.Tensor,
         torch.Tensor,
@@ -278,6 +285,7 @@ class VITSGenerator(torch.nn.Module):
             feats_lengths (Tensor): Feature length tensor (B,).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
+            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
 
         Returns:
             Tensor: Waveform tensor (B, 1, segment_size * upsample_factor).
@@ -306,6 +314,13 @@ class VITSGenerator(torch.nn.Module):
         if self.spk_embed_dim > 0:
             # pretreined speaker embedding, e.g., X-vector (B, global_channels, 1)
             g_ = self.spemb_proj(F.normalize(spembs)).unsqueeze(-1)
+            if g is None:
+                g = g_
+            else:
+                g = g + g_
+        if self.langs > 0:
+            # language one-hot vector embedding: (B, global_channels, 1)
+            g_ = self.lang_emb(lids.view(-1)).unsqueeze(-1)
             if g is None:
                 g = g_
             else:
@@ -445,6 +460,7 @@ class VITSGenerator(torch.nn.Module):
         feats_lengths: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
         dur: Optional[torch.Tensor] = None,
         noise_scale: float = 0.667,
         noise_scale_dur: float = 0.8,
@@ -461,6 +477,7 @@ class VITSGenerator(torch.nn.Module):
             feats_lengths (Tensor): Feature length tensor (B,).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
+            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
             dur (Optional[Tensor]): Ground-truth duration (B, T_text,). If provided,
                 skip the prediction of durations (i.e., teacher forcing).
             noise_scale (float): Noise scale parameter for flow.
@@ -484,6 +501,13 @@ class VITSGenerator(torch.nn.Module):
         if self.spk_embed_dim > 0:
             # (B, global_channels, 1)
             g_ = self.spemb_proj(F.normalize(spembs.unsqueeze(0))).unsqueeze(-1)
+            if g is None:
+                g = g_
+            else:
+                g = g + g_
+        if self.langs > 0:
+            # (B, global_channels, 1)
+            g_ = self.lang_emb(lids.view(-1)).unsqueeze(-1)
             if g is None:
                 g = g_
             else:

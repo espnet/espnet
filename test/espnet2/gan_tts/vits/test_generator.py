@@ -17,6 +17,7 @@ def make_generator_args(**kwargs):
         aux_channels=5,
         hidden_channels=4,
         spks=-1,
+        langs=-1,
         spk_embed_dim=-1,
         global_channels=-1,
         segment_size=4,
@@ -91,6 +92,7 @@ def make_generator_args(**kwargs):
             }
         ),
         ({"spk_embed_dim": 16, "global_channels": 4}),
+        ({"langs": 16, "global_channels": 4}),
     ],
 )
 def test_vits_generator_forward(model_dict):
@@ -108,6 +110,8 @@ def test_vits_generator_forward(model_dict):
     )
     if args["spk_embed_dim"] > 0:
         inputs["spembs"] = torch.randn(2, args["spk_embed_dim"])
+    if args["langs"] > 0:
+        inputs["lids"] = torch.randint(0, args["langs"], (2, 1))
     outputs = model(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
@@ -130,6 +134,8 @@ def test_vits_generator_forward(model_dict):
     )
     if args["spk_embed_dim"] > 0:
         inputs["spembs"] = torch.randn(args["spk_embed_dim"])
+    if args["langs"] > 0:
+        inputs["lids"] = torch.randint(0, args["langs"], (1,))
     outputs = model.inference(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
@@ -153,6 +159,8 @@ def test_vits_generator_forward(model_dict):
     )
     if args["spk_embed_dim"] > 0:
         inputs["spembs"] = torch.randn(args["spk_embed_dim"])
+    if args["langs"] > 0:
+        inputs["lids"] = torch.randint(0, args["langs"], (1,))
     outputs = model.inference(**inputs)
     assert outputs[0].size(1) == inputs["dur"].sum() * model.upsample_factor
     for i, output in enumerate(outputs):
@@ -178,6 +186,8 @@ def test_vits_generator_forward(model_dict):
     )
     if args["spk_embed_dim"] > 0:
         inputs["spembs"] = torch.randn(args["spk_embed_dim"])
+    if args["langs"] > 0:
+        inputs["lids"] = torch.randint(0, args["langs"], (1,))
     outputs = model.inference(**inputs, use_teacher_forcing=True)
     assert outputs[0].size(1) == inputs["feats"].size(2) * model.upsample_factor
     for i, output in enumerate(outputs):
@@ -214,6 +224,7 @@ def test_vits_generator_forward(model_dict):
             }
         ),
         ({"spk_embed_dim": 16}),
+        ({"langs": 16}),
     ],
 )
 def test_multi_speaker_vits_generator_forward(model_dict):
@@ -240,6 +251,8 @@ def test_multi_speaker_vits_generator_forward(model_dict):
     )
     if args["spk_embed_dim"] > 0:
         inputs["spembs"] = torch.randn(2, args["spk_embed_dim"])
+    if args["langs"] > 0:
+        inputs["lids"] = torch.randint(0, args["langs"], (2, 1))
     outputs = model(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
@@ -263,6 +276,8 @@ def test_multi_speaker_vits_generator_forward(model_dict):
     )
     if args["spk_embed_dim"] > 0:
         inputs["spembs"] = torch.randn(args["spk_embed_dim"])
+    if args["langs"] > 0:
+        inputs["lids"] = torch.randint(0, args["langs"], (1,))
     outputs = model.inference(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
@@ -287,6 +302,8 @@ def test_multi_speaker_vits_generator_forward(model_dict):
     )
     if args["spk_embed_dim"] > 0:
         inputs["spembs"] = torch.randn(args["spk_embed_dim"])
+    if args["langs"] > 0:
+        inputs["lids"] = torch.randint(0, args["langs"], (1,))
     outputs = model.inference(**inputs)
     assert outputs[0].size(1) == inputs["dur"].sum() * model.upsample_factor
     for i, output in enumerate(outputs):
@@ -313,6 +330,8 @@ def test_multi_speaker_vits_generator_forward(model_dict):
     )
     if args["spk_embed_dim"] > 0:
         inputs["spembs"] = torch.randn(args["spk_embed_dim"])
+    if args["langs"] > 0:
+        inputs["lids"] = torch.randint(0, args["langs"], (1,))
     outputs = model.inference(**inputs, use_teacher_forcing=True)
     assert outputs[0].size(1) == inputs["feats"].size(2) * model.upsample_factor
     for i, output in enumerate(outputs):
