@@ -6,6 +6,7 @@
 import logging
 
 from typing import Dict
+from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
@@ -67,6 +68,7 @@ class FastSpeech2(AbsTTS):
         postnet_layers: int = 5,
         postnet_chans: int = 512,
         postnet_filts: int = 5,
+        postnet_dropout_rate: float = 0.5,
         positionwise_layer_type: str = "conv1d",
         positionwise_conv_kernel_size: int = 1,
         use_scaled_pos_enc: bool = True,
@@ -78,6 +80,12 @@ class FastSpeech2(AbsTTS):
         reduction_factor: int = 1,
         encoder_type: str = "transformer",
         decoder_type: str = "transformer",
+        transformer_enc_dropout_rate: float = 0.1,
+        transformer_enc_positional_dropout_rate: float = 0.1,
+        transformer_enc_attn_dropout_rate: float = 0.1,
+        transformer_dec_dropout_rate: float = 0.1,
+        transformer_dec_positional_dropout_rate: float = 0.1,
+        transformer_dec_attn_dropout_rate: float = 0.1,
         # only for conformer
         conformer_rel_pos_type: str = "legacy",
         conformer_pos_enc_layer_type: str = "rel_pos",
@@ -92,6 +100,7 @@ class FastSpeech2(AbsTTS):
         duration_predictor_layers: int = 2,
         duration_predictor_chans: int = 384,
         duration_predictor_kernel_size: int = 3,
+        duration_predictor_dropout_rate: float = 0.1,
         # energy predictor
         energy_predictor_layers: int = 2,
         energy_predictor_chans: int = 384,
@@ -108,10 +117,11 @@ class FastSpeech2(AbsTTS):
         pitch_embed_kernel_size: int = 9,
         pitch_embed_dropout: float = 0.5,
         stop_gradient_from_pitch_predictor: bool = False,
-        # pretrained spk emb
+        # extra embedding related
+        spks: int = -1,
+        langs: int = -1,
         spk_embed_dim: int = None,
         spk_embed_integration_type: str = "add",
-        # GST
         use_gst: bool = False,
         gst_tokens: int = 10,
         gst_heads: int = 4,
@@ -122,21 +132,104 @@ class FastSpeech2(AbsTTS):
         gst_gru_layers: int = 1,
         gst_gru_units: int = 128,
         # training related
-        transformer_enc_dropout_rate: float = 0.1,
-        transformer_enc_positional_dropout_rate: float = 0.1,
-        transformer_enc_attn_dropout_rate: float = 0.1,
-        transformer_dec_dropout_rate: float = 0.1,
-        transformer_dec_positional_dropout_rate: float = 0.1,
-        transformer_dec_attn_dropout_rate: float = 0.1,
-        duration_predictor_dropout_rate: float = 0.1,
-        postnet_dropout_rate: float = 0.5,
         init_type: str = "xavier_uniform",
         init_enc_alpha: float = 1.0,
         init_dec_alpha: float = 1.0,
         use_masking: bool = False,
         use_weighted_masking: bool = False,
     ):
-        """Initialize FastSpeech2 module."""
+        """Initialize FastSpeech2 module.
+
+        Args:
+            idim (int): Dimension of the inputs.
+            odim (int): Dimension of the outputs.
+            elayers (int): Number of encoder layers.
+            eunits (int): Number of encoder hidden units.
+            dlayers (int): Number of decoder layers.
+            dunits (int): Number of decoder hidden units.
+            postnet_layers (int): Number of postnet layers.
+            postnet_chans (int): Number of postnet channels.
+            postnet_filts (int): Kernel size of postnet.
+            postnet_dropout_rate (float): Dropout rate in postnet.
+            use_scaled_pos_enc (bool): Whether to use trainable scaled pos encoding.
+            use_batch_norm (bool): Whether to use batch normalization in encoder prenet.
+            encoder_normalize_before (bool): Whether to apply layernorm layer before
+                encoder block.
+            decoder_normalize_before (bool): Whether to apply layernorm layer before
+                decoder block.
+            encoder_concat_after (bool): Whether to concatenate attention layer's input
+                and output in encoder.
+            decoder_concat_after (bool): Whether to concatenate attention layer's input
+                and output in decoder.
+            reduction_factor (int): Reduction factor.
+            encoder_type (str): Encoder type ("transformer" or "conformer").
+            decoder_type (str): Decoder type ("transformer" or "conformer").
+            transformer_enc_dropout_rate (float): Dropout rate in encoder except
+                attention and positional encoding.
+            transformer_enc_positional_dropout_rate (float): Dropout rate after encoder
+                positional encoding.
+            transformer_enc_attn_dropout_rate (float): Dropout rate in encoder
+                self-attention module.
+            transformer_dec_dropout_rate (float): Dropout rate in decoder except
+                attention & positional encoding.
+            transformer_dec_positional_dropout_rate (float): Dropout rate after decoder
+                positional encoding.
+            transformer_dec_attn_dropout_rate (float): Dropout rate in decoder
+                self-attention module.
+            conformer_rel_pos_type (str): Relative pos encoding type in conformer.
+            conformer_pos_enc_layer_type (str): Pos encoding layer type in conformer.
+            conformer_self_attn_layer_type (str): Self-attention layer type in conformer
+            conformer_activation_type (str): Activation function type in conformer.
+            use_macaron_style_in_conformer: Whether to use macaron style FFN.
+            use_cnn_in_conformer: Whether to use CNN in conformer.
+            zero_triu: Whether to use zero triu in relative self-attention module.
+            conformer_enc_kernel_size: Kernel size of encoder conformer.
+            conformer_dec_kernel_size: Kernel size of decoder conformer.
+            duration_predictor_layers (int): Number of duration predictor layers.
+            duration_predictor_chans (int): Number of duration predictor channels.
+            duration_predictor_kernel_size (int): Kernel size of duration predictor.
+            duration_predictor_dropout_rate (float): Dropout rate in duration predictor.
+            pitch_predictor_layers (int): Number of pitch predictor layers.
+            pitch_predictor_chans (int): Number of pitch predictor channels.
+            pitch_predictor_kernel_size (int): Kernel size of pitch predictor.
+            pitch_predictor_dropout_rate (float): Dropout rate in pitch predictor.
+            pitch_embed_kernel_size (float): Kernel size of pitch embedding.
+            pitch_embed_dropout_rate (float): Dropout rate for pitch embedding.
+            stop_gradient_from_pitch_predictor: Whether to stop gradient from pitch
+                predictor to encoder.
+            energy_predictor_layers (int): Number of energy predictor layers.
+            energy_predictor_chans (int): Number of energy predictor channels.
+            energy_predictor_kernel_size (int): Kernel size of energy predictor.
+            energy_predictor_dropout_rate (float): Dropout rate in energy predictor.
+            energy_embed_kernel_size (float): Kernel size of energy embedding.
+            energy_embed_dropout_rate (float): Dropout rate for energy embedding.
+            stop_gradient_from_energy_predictor: Whether to stop gradient from energy
+                predictor to encoder.
+            spks: Number of speakers. If set to > 0, speaker ID embedding will be used.
+            langs: Number of langs. If set to > 0, lang ID embedding will be used.
+            spk_embed_dim (int): Number of speaker embedding dimensions.
+            spk_embed_integration_type: How to integrate speaker embedding.
+            use_gst (str): Whether to use global style token.
+            gst_tokens (int): The number of GST embeddings.
+            gst_heads (int): The number of heads in GST multihead attention.
+            gst_conv_layers (int): The number of conv layers in GST.
+            gst_conv_chans_list: (Sequence[int]):
+                List of the number of channels of conv layers in GST.
+            gst_conv_kernel_size (int): Kernal size of conv layers in GST.
+            gst_conv_stride (int): Stride size of conv layers in GST.
+            gst_gru_layers (int): The number of GRU layers in GST.
+            gst_gru_units (int): The number of GRU units in GST.
+            init_type (str): How to initialize transformer parameters.
+            init_enc_alpha (float): Initial value of alpha in scaled pos encoding of the
+                encoder.
+            init_dec_alpha (float): Initial value of alpha in scaled pos encoding of the
+                decoder.
+            use_masking (bool): Whether to apply masking for padded part in loss
+                calculation.
+            use_weighted_masking (bool): Whether to apply weighted masking in loss
+                calculation.
+
+        """
         assert check_argument_types()
         super().__init__()
 
@@ -145,6 +238,8 @@ class FastSpeech2(AbsTTS):
         self.odim = odim
         self.eos = idim - 1
         self.reduction_factor = reduction_factor
+        self.spks = spks
+        self.langs = langs
         self.encoder_type = encoder_type
         self.decoder_type = decoder_type
         self.stop_gradient_from_pitch_predictor = stop_gradient_from_pitch_predictor
@@ -248,6 +343,12 @@ class FastSpeech2(AbsTTS):
                 gru_layers=gst_gru_layers,
                 gru_units=gst_gru_units,
             )
+
+        # define spk and lang embedding
+        if self.spks > 0:
+            self.sid_emb = torch.nn.Embedding(spks, adim)
+        if self.langs > 0:
+            self.lid_emb = torch.nn.Embedding(langs, adim)
 
         # define additional projection for speaker embedding
         if self.spk_embed_dim is not None:
@@ -393,22 +494,26 @@ class FastSpeech2(AbsTTS):
         pitch_lengths: torch.Tensor,
         energy: torch.Tensor,
         energy_lengths: torch.Tensor,
-        spembs: torch.Tensor = None,
+        spembs: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
         Args:
-            text (LongTensor): Batch of padded token ids (B, Tmax).
+            text (LongTensor): Batch of padded token ids (B, T_text).
             text_lengths (LongTensor): Batch of lengths of each input (B,).
-            speech (Tensor): Batch of padded target features (B, Lmax, odim).
+            speech (Tensor): Batch of padded target features (B, T_feats, odim).
             speech_lengths (LongTensor): Batch of the lengths of each target (B,).
-            durations (LongTensor): Batch of padded durations (B, Tmax + 1).
-            durations_lengths (LongTensor): Batch of duration lengths (B, Tmax + 1).
-            pitch (Tensor): Batch of padded token-averaged pitch (B, Tmax + 1, 1).
-            pitch_lengths (LongTensor): Batch of pitch lengths (B, Tmax + 1).
-            energy (Tensor): Batch of padded token-averaged energy (B, Tmax + 1, 1).
-            energy_lengths (LongTensor): Batch of energy lengths (B, Tmax + 1).
-            spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
+            durations (LongTensor): Batch of padded durations (B, T_text + 1).
+            durations_lengths (LongTensor): Batch of duration lengths (B, T_text + 1).
+            pitch (Tensor): Batch of padded token-averaged pitch (B, T_text + 1, 1).
+            pitch_lengths (LongTensor): Batch of pitch lengths (B, T_text + 1).
+            energy (Tensor): Batch of padded token-averaged energy (B, T_text + 1, 1).
+            energy_lengths (LongTensor): Batch of energy lengths (B, T_text + 1).
+            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
+            sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
+            lids (Optional[Tensor]): Batch of language IDs (B, 1).
 
         Returns:
             Tensor: Loss scalar value.
@@ -435,7 +540,17 @@ class FastSpeech2(AbsTTS):
 
         # forward propagation
         before_outs, after_outs, d_outs, p_outs, e_outs = self._forward(
-            xs, ilens, ys, olens, ds, ps, es, spembs=spembs, is_inference=False
+            xs,
+            ilens,
+            ys,
+            olens,
+            ds,
+            ps,
+            es,
+            spembs=spembs,
+            sids=sids,
+            lids=lids,
+            is_inference=False,
         )
 
         # modify mod part of groundtruth
@@ -489,23 +604,33 @@ class FastSpeech2(AbsTTS):
         self,
         xs: torch.Tensor,
         ilens: torch.Tensor,
-        ys: torch.Tensor = None,
-        olens: torch.Tensor = None,
-        ds: torch.Tensor = None,
-        ps: torch.Tensor = None,
-        es: torch.Tensor = None,
-        spembs: torch.Tensor = None,
+        ys: Optional[torch.Tensor] = None,
+        olens: Optional[torch.Tensor] = None,
+        ds: Optional[torch.Tensor] = None,
+        ps: Optional[torch.Tensor] = None,
+        es: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
         is_inference: bool = False,
         alpha: float = 1.0,
     ) -> Sequence[torch.Tensor]:
         # forward encoder
         x_masks = self._source_mask(ilens)
-        hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
+        hs, _ = self.encoder(xs, x_masks)  # (B, T_text, adim)
 
         # integrate with GST
         if self.use_gst:
             style_embs = self.gst(ys)
             hs = hs + style_embs.unsqueeze(1)
+
+        # integrate with SID and LID embeddings
+        if self.spks > 0:
+            sid_embs = self.sid_emb(sids.view(-1))
+            hs = hs + sid_embs.unsqueeze(1)
+        if self.langs > 0:
+            lid_embs = self.lid_emb(lids.view(-1))
+            hs = hs + lid_embs.unsqueeze(1)
 
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
@@ -524,19 +649,19 @@ class FastSpeech2(AbsTTS):
             e_outs = self.energy_predictor(hs, d_masks.unsqueeze(-1))
 
         if is_inference:
-            d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, Tmax)
+            d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
             # use prediction in inference
             p_embs = self.pitch_embed(p_outs.transpose(1, 2)).transpose(1, 2)
             e_embs = self.energy_embed(e_outs.transpose(1, 2)).transpose(1, 2)
             hs = hs + e_embs + p_embs
-            hs = self.length_regulator(hs, d_outs, alpha)  # (B, Lmax, adim)
+            hs = self.length_regulator(hs, d_outs, alpha)  # (B, T_feats, adim)
         else:
             d_outs = self.duration_predictor(hs, d_masks)
             # use groundtruth in training
             p_embs = self.pitch_embed(ps.transpose(1, 2)).transpose(1, 2)
             e_embs = self.energy_embed(es.transpose(1, 2)).transpose(1, 2)
             hs = hs + e_embs + p_embs
-            hs = self.length_regulator(hs, ds)  # (B, Lmax, adim)
+            hs = self.length_regulator(hs, ds)  # (B, T_feats, adim)
 
         # forward decoder
         if olens is not None and not is_inference:
@@ -547,12 +672,12 @@ class FastSpeech2(AbsTTS):
             h_masks = self._source_mask(olens_in)
         else:
             h_masks = None
-        zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
+        zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
         before_outs = self.feat_out(zs).view(
             zs.size(0), -1, self.odim
-        )  # (B, Lmax, odim)
+        )  # (B, T_feats, odim)
 
-        # postnet -> (B, Lmax//r * r, odim)
+        # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
         else:
@@ -565,33 +690,37 @@ class FastSpeech2(AbsTTS):
     def inference(
         self,
         text: torch.Tensor,
-        speech: torch.Tensor = None,
+        speech: Optional[torch.Tensor] = None,
+        durations: Optional[torch.Tensor] = None,
         spembs: torch.Tensor = None,
-        durations: torch.Tensor = None,
-        pitch: torch.Tensor = None,
-        energy: torch.Tensor = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
+        pitch: Optional[torch.Tensor] = None,
+        energy: Optional[torch.Tensor] = None,
         alpha: float = 1.0,
         use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
-            text (LongTensor): Input sequence of characters (T,).
-            speech (Tensor, optional): Feature sequence to extract style (N, idim).
-            spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).
-            durations (LongTensor, optional): Groundtruth of duration (T + 1,).
-            pitch (Tensor, optional): Groundtruth of token-averaged pitch (T + 1, 1).
-            energy (Tensor, optional): Groundtruth of token-averaged energy (T + 1, 1).
-            alpha (float, optional): Alpha to control the speed.
-            use_teacher_forcing (bool, optional): Whether to use teacher forcing.
+            text (LongTensor): Input sequence of characters (T_text,).
+            speech (Optional[Tensor): Feature sequence to extract style (N, idim).
+            durations (Optional[Tensor): Groundtruth of duration (T_text + 1,).
+            spembs (Optional[Tensor): Speaker embedding vector (spk_embed_dim,).
+            sids (Optional[Tensor]): Speaker ID (1,).
+            lids (Optional[Tensor]): Language ID (1,).
+            pitch (Optional[Tensor]): Groundtruth of token-avg pitch (T_text + 1, 1).
+            energy (Optional[Tensor]): Groundtruth of token-avg energy (T_text + 1, 1).
+            alpha (float): Alpha to control the speed.
+            use_teacher_forcing (bool): Whether to use teacher forcing.
                 If true, groundtruth of duration, pitch and energy will be used.
 
         Returns:
             Dict[str, Tensor]: Output dict including the following items:
-                * feat_gen (Tensor): Output sequence of features (L, odim).
-                * duration (Tensor): Duration sequence (T + 1,).
-                * pitch (Tensor): Pitch sequence (T + 1,).
-                * energy (Tensor): Energy sequence (T + 1,).
+                * feat_gen (Tensor): Output sequence of features (T_feats, odim).
+                * duration (Tensor): Duration sequence (T_text + 1,).
+                * pitch (Tensor): Pitch sequence (T_text + 1,).
+                * energy (Tensor): Energy sequence (T_text + 1,).
 
         """
         x, y = text, speech
@@ -619,16 +748,20 @@ class FastSpeech2(AbsTTS):
                 ps=ps,
                 es=es,
                 spembs=spembs,
-            )  # (1, L, odim)
+                sids=sids,
+                lids=lids,
+            )  # (1, T_feats, odim)
         else:
             _, outs, d_outs, p_outs, e_outs = self._forward(
                 xs,
                 ilens,
                 ys,
                 spembs=spembs,
+                sids=sids,
+                lids=lids,
                 is_inference=True,
                 alpha=alpha,
-            )  # (1, L, odim)
+            )  # (1, T_feats, odim)
 
         return dict(
             feat_gen=outs[0],
@@ -643,11 +776,11 @@ class FastSpeech2(AbsTTS):
         """Integrate speaker embedding with hidden states.
 
         Args:
-            hs (Tensor): Batch of hidden state sequences (B, Tmax, adim).
+            hs (Tensor): Batch of hidden state sequences (B, T_text, adim).
             spembs (Tensor): Batch of speaker embeddings (B, spk_embed_dim).
 
         Returns:
-            Tensor: Batch of integrated hidden state sequences (B, Tmax, adim).
+            Tensor: Batch of integrated hidden state sequences (B, T_text, adim).
 
         """
         if self.spk_embed_integration_type == "add":
@@ -741,15 +874,15 @@ class FastSpeech2Loss(torch.nn.Module):
         """Calculate forward propagation.
 
         Args:
-            after_outs (Tensor): Batch of outputs after postnets (B, Lmax, odim).
-            before_outs (Tensor): Batch of outputs before postnets (B, Lmax, odim).
-            d_outs (LongTensor): Batch of outputs of duration predictor (B, Tmax).
-            p_outs (Tensor): Batch of outputs of pitch predictor (B, Tmax, 1).
-            e_outs (Tensor): Batch of outputs of energy predictor (B, Tmax, 1).
-            ys (Tensor): Batch of target features (B, Lmax, odim).
-            ds (LongTensor): Batch of durations (B, Tmax).
-            ps (Tensor): Batch of target token-averaged pitch (B, Tmax, 1).
-            es (Tensor): Batch of target token-averaged energy (B, Tmax, 1).
+            after_outs (Tensor): Batch of outputs after postnets (B, T_feats, odim).
+            before_outs (Tensor): Batch of outputs before postnets (B, T_feats, odim).
+            d_outs (LongTensor): Batch of outputs of duration predictor (B, T_text).
+            p_outs (Tensor): Batch of outputs of pitch predictor (B, T_text, 1).
+            e_outs (Tensor): Batch of outputs of energy predictor (B, T_text, 1).
+            ys (Tensor): Batch of target features (B, T_feats, odim).
+            ds (LongTensor): Batch of durations (B, T_text).
+            ps (Tensor): Batch of target token-averaged pitch (B, T_text, 1).
+            es (Tensor): Batch of target token-averaged energy (B, T_text, 1).
             ilens (LongTensor): Batch of the lengths of each input (B,).
             olens (LongTensor): Batch of the lengths of each target (B,).
 
