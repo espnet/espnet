@@ -253,6 +253,9 @@ class ESPnetTTSModel(AbsESPnetModel):
                 raise RuntimeError("missing required argument: 'speech'")
             if self.feats_extract is not None:
                 feats = self.feats_extract(speech[None])[0][0]
+            else:
+                # Use precalculated feats (feats_type != raw case)
+                feats = speech
             if self.normalize is not None:
                 feats = self.normalize(feats[None])[0][0]
             input_dict.update(feats=feats)
@@ -272,7 +275,7 @@ class ESPnetTTSModel(AbsESPnetModel):
             if self.pitch_normalize is not None:
                 pitch = self.pitch_normalize(pitch[None])[0][0]
             if pitch is not None:
-                input_dict["pitch"] = pitch
+                input_dict.update(pitch=pitch)
 
             if self.energy_extract is not None:
                 energy = self.energy_extract(
