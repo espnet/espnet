@@ -56,10 +56,10 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         text_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
         forward_generator: bool = True,
-        **kwargs,
     ) -> Dict[str, Any]:
         """Return generator or discriminator loss with dict format.
 
@@ -68,8 +68,9 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             text_lengths (Tensor): Text length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
+            sids (Optional[Tensor]): Speaker ID tensor (B, 1).
+            lids (Optional[Tensor]): Language ID tensor (B, 1).
             forward_generator (bool): Whether to forward generator.
 
         Returns:
@@ -82,36 +83,35 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         """
         with autocast(False):
             # Extract features
+            feats = None
             if self.feats_extract is not None:
                 feats, feats_lengths = self.feats_extract(speech, speech_lengths)
-            else:
-                feats, feats_lengths = speech, speech_lengths
 
             # Normalize
             if self.normalize is not None:
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
 
+        # Make batch for tts inputs
+        batch = {}
+        batch.update(text=text)
+        batch.update(text_lengths=text_lengths)
+        batch.update(forward_generator=forward_generator)
+
         # Update kwargs for additional auxiliary inputs
-        if sids is not None:
-            kwargs.update(sids=sids)
-        if spembs is not None:
-            kwargs.update(spembs=spembs)
-
+        if feats is not None:
+            batch.update(feats=feats)
+            batch.update(feats_lengths=feats_lengths)
         if self.tts.require_raw_speech:
-            kwargs.update(feats=feats)
-            kwargs.update(feats_lengths=feats_lengths)
-            kwargs.update(speech=speech)
-            kwargs.update(speech_lengths=speech_lengths)
-        else:
-            kwargs.update(speech=feats)
-            kwargs.update(speech_lengths=feats_lengths)
+            batch.update(speech=speech)
+            batch.update(speech_lengths=speech_lengths)
+        if spembs is not None:
+            batch.update(spembs=spembs)
+        if sids is not None:
+            batch.update(sids=sids)
+        if lids is not None:
+            batch.update(lids=lids)
 
-        return self.tts(
-            text=text,
-            text_lengths=text_lengths,
-            forward_generator=forward_generator,
-            **kwargs,
-        )
+        return self.tts(**batch)
 
     def collect_feats(
         self,
@@ -119,28 +119,28 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         text_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        sids: torch.Tensor = None,
-        spembs: torch.Tensor = None,
+        spembs: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
-        """Return collected features.
+        """Calculate features and return them as a dict.
 
         Args:
             text (Tensor): Text index tensor (B, T_text).
             text_lengths (Tensor): Text length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
-            speech_lengths (Tensor): Speech length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,).
+            speech_lengths (Tensor): Speech length tensor (B, 1).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
+            sids (Optional[Tensor]): Speaker index tensor (B, 1).
+            lids (Optional[Tensor]): Language ID tensor (B, 1).
 
         Returns:
-            Dict[str, Tensor]:
-                - feats (Tensor): Acoustic feature tensor (B, T_feats, C).
-                - feats_length (Tensor): Length tensor (B,).
+            Dict[str, Tensor]: Dict of features.
 
         """
-        output_dict = {"speech": speech, "speech_lengths": speech_lengths}
+        feats_dict = {"speech": speech, "speech_lengths": speech_lengths}
         if self.feats_extract is not None:
             feats, feats_lengths = self.feats_extract(speech, speech_lengths)
-            output_dict = {"feats": feats, "feats_lengths": feats_lengths}
+            feats_dict = {"feats": feats, "feats_lengths": feats_lengths}
 
-        return output_dict
+        return feats_dict
