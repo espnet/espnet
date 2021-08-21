@@ -259,6 +259,7 @@
         <span class="n">aux_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">513</span><span class="p">,</span>
         <span class="n">hidden_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">192</span><span class="p">,</span>
         <span class="n">spks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">langs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">spk_embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">global_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">segment_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span><span class="p">,</span>
@@ -309,6 +310,7 @@
 <span class="sd">            aux_channels (int): Number of acoustic feature channels.</span>
 <span class="sd">            hidden_channels (int): Number of hidden channels.</span>
 <span class="sd">            spks (int): Number of speakers.</span>
+<span class="sd">            langs (int): Number of languages.</span>
 <span class="sd">            global_channels (int): Number of global conditioning channels.</span>
 <span class="sd">            segment_size (int): Segment size for decoder.</span>
 <span class="sd">            text_encoder_attention_heads (int): Number of heads in conformer block</span>
@@ -453,6 +455,10 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">global_channels</span> <span class="o">&gt;</span> <span class="mi">0</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">spemb_proj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">spk_embed_dim</span><span class="p">,</span> <span class="n">global_channels</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">=</span> <span class="n">langs</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">global_channels</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lang_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">langs</span><span class="p">,</span> <span class="n">global_channels</span><span class="p">)</span>
 
         <span class="c1"># delayed import</span>
         <span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.monotonic_align</span> <span class="kn">import</span> <span class="n">maximum_path</span>
@@ -467,6 +473,7 @@
         <span class="n">feats_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -492,6 +499,7 @@
 <span class="sd">            feats_lengths (Tensor): Feature length tensor (B,).</span>
 <span class="sd">            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).</span>
 <span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).</span>
+<span class="sd">            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tensor: Waveform tensor (B, 1, segment_size * upsample_factor).</span>
@@ -520,6 +528,13 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="c1"># pretreined speaker embedding, e.g., X-vector (B, global_channels, 1)</span>
             <span class="n">g_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spemb_proj</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">spembs</span><span class="p">))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="n">g_</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="n">g</span> <span class="o">+</span> <span class="n">g_</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># language one-hot vector embedding: (B, global_channels, 1)</span>
+            <span class="n">g_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lang_emb</span><span class="p">(</span><span class="n">lids</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">g</span> <span class="o">=</span> <span class="n">g_</span>
             <span class="k">else</span><span class="p">:</span>
@@ -659,6 +674,7 @@
         <span class="n">feats_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">dur</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">noise_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.667</span><span class="p">,</span>
         <span class="n">noise_scale_dur</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>
@@ -675,6 +691,7 @@
 <span class="sd">            feats_lengths (Tensor): Feature length tensor (B,).</span>
 <span class="sd">            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).</span>
 <span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).</span>
+<span class="sd">            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).</span>
 <span class="sd">            dur (Optional[Tensor]): Ground-truth duration (B, T_text,). If provided,</span>
 <span class="sd">                skip the prediction of durations (i.e., teacher forcing).</span>
 <span class="sd">            noise_scale (float): Noise scale parameter for flow.</span>
@@ -698,6 +715,13 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="c1"># (B, global_channels, 1)</span>
             <span class="n">g_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spemb_proj</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">spembs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="n">g_</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="n">g</span> <span class="o">+</span> <span class="n">g_</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># (B, global_channels, 1)</span>
+            <span class="n">g_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lang_emb</span><span class="p">(</span><span class="n">lids</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">g</span> <span class="o">=</span> <span class="n">g_</span>
             <span class="k">else</span><span class="p">:</span>

@@ -272,6 +272,7 @@
         <span class="n">generator_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;hidden_channels&quot;</span><span class="p">:</span> <span class="mi">192</span><span class="p">,</span>
             <span class="s2">&quot;spks&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;langs&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
             <span class="s2">&quot;spk_embed_dim&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
             <span class="s2">&quot;global_channels&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
             <span class="s2">&quot;segment_size&quot;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
@@ -481,6 +482,7 @@
         <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">forward_generator</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Perform generator forward.</span>
@@ -494,6 +496,7 @@
 <span class="sd">            speech_lengths (Tensor): Speech length tensor (B,).</span>
 <span class="sd">            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).</span>
 <span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).</span>
+<span class="sd">            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).</span>
 <span class="sd">            forward_generator (bool): Whether to forward generator.</span>
 
 <span class="sd">        Returns:</span>
@@ -514,6 +517,7 @@
                 <span class="n">speech_lengths</span><span class="o">=</span><span class="n">speech_lengths</span><span class="p">,</span>
                 <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
                 <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+                <span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_discrminator</span><span class="p">(</span>
@@ -525,6 +529,7 @@
                 <span class="n">speech_lengths</span><span class="o">=</span><span class="n">speech_lengths</span><span class="p">,</span>
                 <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
                 <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+                <span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">,</span>
             <span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_forward_generator</span><span class="p">(</span>
@@ -537,6 +542,7 @@
         <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Perform generator forward.</span>
 
@@ -549,6 +555,7 @@
 <span class="sd">            speech_lengths (Tensor): Speech length tensor (B,).</span>
 <span class="sd">            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).</span>
 <span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).</span>
+<span class="sd">            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Dict[str, Any]:</span>
@@ -574,6 +581,7 @@
                 <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">,</span>
                 <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
                 <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+                <span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
@@ -643,6 +651,7 @@
         <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Perform discriminator forward.</span>
 
@@ -655,6 +664,7 @@
 <span class="sd">            speech_lengths (Tensor): Speech length tensor (B,).</span>
 <span class="sd">            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).</span>
 <span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).</span>
+<span class="sd">            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Dict[str, Any]:</span>
@@ -680,6 +690,7 @@
                 <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">,</span>
                 <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
                 <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+                <span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
@@ -728,6 +739,7 @@
         <span class="n">feats</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">durations</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">noise_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.667</span><span class="p">,</span>
         <span class="n">noise_scale_dur</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>
@@ -742,6 +754,7 @@
 <span class="sd">            feats (Tensor): Feature tensor (T_feats, aux_channels).</span>
 <span class="sd">            sids (Tensor): Speaker index tensor (1,).</span>
 <span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).</span>
+<span class="sd">            lids (Tensor): Language index tensor (1,).</span>
 <span class="sd">            durations (Tensor): Ground-truth duration tensor (T_text,).</span>
 <span class="sd">            noise_scale (float): Noise scale value for flow.</span>
 <span class="sd">            noise_scale_dur (float): Noise scale value for duration predictor.</span>
@@ -765,6 +778,8 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">sids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">sids</span> <span class="o">=</span> <span class="n">sids</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lids</span> <span class="o">=</span> <span class="n">lids</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">durations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">durations</span> <span class="o">=</span> <span class="n">durations</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
@@ -784,6 +799,7 @@
                 <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">,</span>
                 <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
                 <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+                <span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">,</span>
                 <span class="n">max_len</span><span class="o">=</span><span class="n">max_len</span><span class="p">,</span>
                 <span class="n">use_teacher_forcing</span><span class="o">=</span><span class="n">use_teacher_forcing</span><span class="p">,</span>
             <span class="p">)</span>
@@ -793,6 +809,7 @@
                 <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">,</span>
                 <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
                 <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+                <span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">,</span>
                 <span class="n">dur</span><span class="o">=</span><span class="n">durations</span><span class="p">,</span>
                 <span class="n">noise_scale</span><span class="o">=</span><span class="n">noise_scale</span><span class="p">,</span>
                 <span class="n">noise_scale_dur</span><span class="o">=</span><span class="n">noise_scale_dur</span><span class="p">,</span>
