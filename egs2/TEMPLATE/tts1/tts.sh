@@ -51,6 +51,7 @@ min_wav_duration=0.1       # Minimum duration in second.
 max_wav_duration=20        # Maximum duration in second.
 use_xvector=false          # Whether to use x-vector (Require Kaldi).
 use_sid=false              # Whether to use speaker id as the inputs (Need utt2spk in data directory).
+use_lid=false              # Whether to use language id as the inputs (Need utt2lang in data directory).
 # Only used for feats_type != raw
 feats_extract=fbank        # Feature extractor.
 feats_normalize=global_mvn # Feature normalizer.
@@ -137,6 +138,7 @@ Options:
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
     --use_xvector      # Whether to use X-vector (Require Kaldi, default="${use_xvector}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
+    --use_lid          # Whether to use language id as the inputs (default="${use_lid}").
     --feats_extract    # On the fly feature extractor (default="${feats_extract}").
     --feats_normalize  # Feature normalizer for on the fly feature extractor (default="${feats_normalize}")
     --fs               # Sampling rate (default="${fs}").
@@ -444,6 +446,29 @@ if ! "${skip_data_prep}"; then
             done
         fi
 
+        # Prepare lang id input
+        if "${use_lid}"; then
+            log "Stage 2+: Prepare lang id: data/ -> ${data_feats}/"
+            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                    _suf="/org"
+                else
+                    _suf=""
+                fi
+                if [ "${dset}" = "${train_set}" ]; then
+                    # Make lang2lid
+                    # NOTE(kan-bayashi): 0 is reserved for unknown languages
+                    echo "<unk> 0" > "${data_feats}${_suf}/${dset}/lang2lid"
+                    cut -f 2 -d " " "${data_feats}${_suf}/${dset}/utt2lang" | sort | uniq | \
+                        awk '{print $1 " " NR}' >> "${data_feats}${_suf}/${dset}/utt2lid"
+                fi
+                # NOTE(kan-bayashi): We can reuse the same script for making utt2sid
+                pyscripts/utils/utt2spk_to_utt2sid.py \
+                    "${data_feats}/org/${train_set}/lang2lid" \
+                    "${data_feats}${_suf}/${dset}/utt2lang" \
+                    > "${data_feats}${_suf}/${dset}/utt2lid"
+            done
+        fi
     fi
 
 
@@ -457,6 +482,9 @@ if ! "${skip_data_prep}"; then
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
             if [ -e "${data_feats}/org/${dset}/utt2sid" ]; then
                 cp "${data_feats}/org/${dset}/utt2sid" "${data_feats}/${dset}/utt2sid"
+            fi
+            if [ -e "${data_feats}/org/${dset}/utt2lid" ]; then
+                cp "${data_feats}/org/${dset}/utt2lid" "${data_feats}/${dset}/utt2lid"
             fi
 
             # Remove short utterances
@@ -508,6 +536,9 @@ if ! "${skip_data_prep}"; then
             _fix_opts=""
             if [ -e "${data_feats}/org/${dset}/utt2sid" ]; then
                 _fix_opts="--utt_extra_files utt2sid "
+            fi
+            if [ -e "${data_feats}/org/${dset}/utt2lid" ]; then
+                _fix_opts="--utt_extra_files utt2lid "
             fi
             # shellcheck disable=SC2086
             utils/fix_data_dir.sh ${_fix_opts} "${data_feats}/${dset}"
@@ -621,6 +652,11 @@ if ! "${skip_train}"; then
         if "${use_sid}"; then
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/utt2sid,sids,text_int "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2sid,sids,text_int "
+        fi
+
+        if "${use_lid}"; then
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/utt2lid,lids,text_int "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2lid,lids,text_int "
         fi
 
         # 1. Split the key file
@@ -873,6 +909,12 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2sid,sids,text_int "
         fi
 
+        # Add language ID to the inputs if needed
+        if "${use_lid}"; then
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/utt2lid,lids,text_int "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2lid,lids,text_int "
+        fi
+
         if [ "${feats_normalize}" = "global_mvn" ]; then
             _opts+="--normalize_conf stats_file=${tts_stats_dir}/train/feats_stats.npz "
         fi
@@ -1023,6 +1065,11 @@ if ! "${skip_eval}"; then
                 _ex_opts+="--data_path_and_name_and_type ${_data}/utt2sid,sids,text_int "
             fi
 
+            # Add language ID to the inputs if needed
+            if "${use_lid}"; then
+                _ex_opts+="--data_path_and_name_and_type ${_data}/utt2lid,lids,text_int "
+            fi
+
             # 0. Copy feats_type
             cp "${_data}/feats_type" "${_dir}/feats_type"
 
@@ -1113,6 +1160,9 @@ if ! "${skip_upload}"; then
         log "Stage 8: Pack model: ${packed_model}"
 
         _opts=""
+        if [ -e "${tts_stats_dir}/train/feats_stats.npz" ]; then
+            _opts+=" --option ${tts_stats_dir}/train/feats_stats.npz"
+        fi
         if [ -e "${tts_stats_dir}/train/pitch_stats.npz" ]; then
             _opts+=" --option ${tts_stats_dir}/train/pitch_stats.npz"
         fi
@@ -1125,10 +1175,15 @@ if ! "${skip_upload}"; then
                 _opts+=" --option ${dumpdir}/xvector/${dset}/spk_xvector.ark"
             done
         fi
+        if "${use_sid}"; then
+            _opts+=" --option ${data_feats}/org/${train_set}/spk2sid"
+        fi
+        if "${use_lid}"; then
+            _opts+=" --option ${data_feats}/org/${train_set}/lang2lid"
+        fi
         ${python} -m espnet2.bin.pack tts \
             --train_config "${tts_exp}"/config.yaml \
             --model_file "${tts_exp}"/"${inference_model}" \
-            --option "${tts_stats_dir}"/train/feats_stats.npz  \
             --option "${tts_exp}"/images  \
             --outpath "${packed_model}" \
             ${_opts}
