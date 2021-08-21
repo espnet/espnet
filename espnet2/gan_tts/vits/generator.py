@@ -441,6 +441,8 @@ class VITSGenerator(torch.nn.Module):
         self,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
+        feats: Optional[torch.Tensor] = None,
+        feats_lengths: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         dur: Optional[torch.Tensor] = None,
@@ -448,12 +450,15 @@ class VITSGenerator(torch.nn.Module):
         noise_scale_dur: float = 0.8,
         alpha: float = 1.0,
         max_len: Optional[int] = None,
+        use_teacher_forcing: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Run inference.
 
         Args:
             text (Tensor): Input text index tensor (B, T_text,).
             text_lengths (Tensor): Text length tensor (B,).
+            feats (Tensor): Feature tensor (B, aux_channels, T_feats,).
+            feats_lengths (Tensor): Feature length tensor (B,).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
             dur (Optional[Tensor]): Ground-truth duration (B, T_text,). If provided,
@@ -462,6 +467,7 @@ class VITSGenerator(torch.nn.Module):
             noise_scale_dur (float): Noise scale parameter for duration predictor.
             alpha (float): Alpha parameter to control the speed of generated speech.
             max_len (Optional[int]): Maximum length of acoustic feature sequence.
+            use_teacher_forcing (bool): Whether to use teacher forcing.
 
         Returns:
             Tensor: Generated waveform tensor (B, T_wav).
@@ -483,38 +489,83 @@ class VITSGenerator(torch.nn.Module):
             else:
                 g = g + g_
 
-        # duration
-        if dur is None:
-            logw = self.duration_predictor(
-                x,
-                x_mask,
-                g=g,
-                inverse=True,
-                noise_scale=noise_scale_dur,
+        if use_teacher_forcing:
+            # forward posterior encoder
+            z, m_q, logs_q, y_mask = self.posterior_encoder(feats, feats_lengths, g=g)
+
+            # forward flow
+            z_p = self.flow(z, y_mask, g=g)  # (B, H, T_feats)
+
+            # monotonic alignment search
+            s_p_sq_r = torch.exp(-2 * logs_p)  # (B, H, T_text)
+            # (B, 1, T_text)
+            neg_x_ent_1 = torch.sum(
+                -0.5 * math.log(2 * math.pi) - logs_p,
+                [1],
+                keepdim=True,
             )
-            w = torch.exp(logw) * x_mask * alpha
-            dur = torch.ceil(w)
-        y_lengths = torch.clamp_min(torch.sum(dur, [1, 2]), 1).long()
-        y_mask = make_non_pad_mask(y_lengths).unsqueeze(1).to(text.device)
-        attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-        attn = self._generate_path(dur, attn_mask)
+            # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
+            neg_x_ent_2 = torch.matmul(
+                -0.5 * (z_p ** 2).transpose(1, 2),
+                s_p_sq_r,
+            )
+            # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
+            neg_x_ent_3 = torch.matmul(
+                z_p.transpose(1, 2),
+                (m_p * s_p_sq_r),
+            )
+            # (B, 1, T_text)
+            neg_x_ent_4 = torch.sum(
+                -0.5 * (m_p ** 2) * s_p_sq_r,
+                [1],
+                keepdim=True,
+            )
+            # (B, T_feats, T_text)
+            neg_x_ent = neg_x_ent_1 + neg_x_ent_2 + neg_x_ent_3 + neg_x_ent_4
+            # (B, 1, T_feats, T_text)
+            attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
+            # monotonic attention weight: (B, 1, T_feats, T_text)
+            attn = self.maximum_path(
+                neg_x_ent,
+                attn_mask.squeeze(1),
+            ).unsqueeze(1)
+            dur = attn.sum(2)  # (B, 1, T_text)
 
-        # expand the length to match with the feature sequence
-        # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
-        m_p = torch.matmul(
-            attn.squeeze(1),
-            m_p.transpose(1, 2),
-        ).transpose(1, 2)
-        # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
-        logs_p = torch.matmul(
-            attn.squeeze(1),
-            logs_p.transpose(1, 2),
-        ).transpose(1, 2)
+            # forward decoder with random segments
+            wav = self.decoder(z * y_mask, g=g)
+        else:
+            # duration
+            if dur is None:
+                logw = self.duration_predictor(
+                    x,
+                    x_mask,
+                    g=g,
+                    inverse=True,
+                    noise_scale=noise_scale_dur,
+                )
+                w = torch.exp(logw) * x_mask * alpha
+                dur = torch.ceil(w)
+            y_lengths = torch.clamp_min(torch.sum(dur, [1, 2]), 1).long()
+            y_mask = make_non_pad_mask(y_lengths).unsqueeze(1).to(text.device)
+            attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
+            attn = self._generate_path(dur, attn_mask)
 
-        # decoder
-        z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
-        z = self.flow(z_p, y_mask, g=g, inverse=True)
-        wav = self.decoder((z * y_mask)[:, :, :max_len], g=g)
+            # expand the length to match with the feature sequence
+            # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
+            m_p = torch.matmul(
+                attn.squeeze(1),
+                m_p.transpose(1, 2),
+            ).transpose(1, 2)
+            # (B, T_feats, T_text) x (B, T_text, H) -> (B, H, T_feats)
+            logs_p = torch.matmul(
+                attn.squeeze(1),
+                logs_p.transpose(1, 2),
+            ).transpose(1, 2)
+
+            # decoder
+            z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
+            z = self.flow(z_p, y_mask, g=g, inverse=True)
+            wav = self.decoder((z * y_mask)[:, :, :max_len], g=g)
 
         return wav.squeeze(1), attn.squeeze(1), dur.squeeze(1)
 

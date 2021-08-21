@@ -138,7 +138,7 @@ def test_vits_generator_forward(model_dict):
             for j, output_ in enumerate(output):
                 print(f"{i+j+1}: {output_.shape}")
 
-    # check inference with teacher forcing
+    # check inference with predifined duration
     inputs = dict(
         text=torch.randint(
             0,
@@ -155,6 +155,31 @@ def test_vits_generator_forward(model_dict):
         inputs["spembs"] = torch.randn(args["spk_embed_dim"])
     outputs = model.inference(**inputs)
     assert outputs[0].size(1) == inputs["dur"].sum() * model.upsample_factor
+    for i, output in enumerate(outputs):
+        if not isinstance(output, tuple):
+            print(f"{i+1}: {output.shape}")
+        else:
+            for j, output_ in enumerate(output):
+                print(f"{i+j+1}: {output_.shape}")
+
+    # check inference with teacher forcing
+    inputs = dict(
+        text=torch.randint(
+            0,
+            idim,
+            (
+                1,
+                5,
+            ),
+        ),
+        text_lengths=torch.tensor([5], dtype=torch.long),
+        feats=torch.randn(1, odim, 16),
+        feats_lengths=torch.tensor([16], dtype=torch.long),
+    )
+    if args["spk_embed_dim"] > 0:
+        inputs["spembs"] = torch.randn(args["spk_embed_dim"])
+    outputs = model.inference(**inputs, use_teacher_forcing=True)
+    assert outputs[0].size(1) == inputs["feats"].size(2) * model.upsample_factor
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
             print(f"{i+1}: {output.shape}")
@@ -246,7 +271,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
             for j, output_ in enumerate(output):
                 print(f"{i+j+1}: {output_.shape}")
 
-    # check inference with teacher forcing
+    # check inference with predefined duration
     inputs = dict(
         text=torch.randint(
             0,
@@ -264,6 +289,32 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         inputs["spembs"] = torch.randn(args["spk_embed_dim"])
     outputs = model.inference(**inputs)
     assert outputs[0].size(1) == inputs["dur"].sum() * model.upsample_factor
+    for i, output in enumerate(outputs):
+        if not isinstance(output, tuple):
+            print(f"{i+1}: {output.shape}")
+        else:
+            for j, output_ in enumerate(output):
+                print(f"{i+j+1}: {output_.shape}")
+
+    # check inference with teacher forcing
+    inputs = dict(
+        text=torch.randint(
+            0,
+            idim,
+            (
+                1,
+                5,
+            ),
+        ),
+        text_lengths=torch.tensor([5], dtype=torch.long),
+        feats=torch.randn(1, odim, 16),
+        feats_lengths=torch.tensor([16], dtype=torch.long),
+        sids=torch.randint(0, spks, (1,)),
+    )
+    if args["spk_embed_dim"] > 0:
+        inputs["spembs"] = torch.randn(args["spk_embed_dim"])
+    outputs = model.inference(**inputs, use_teacher_forcing=True)
+    assert outputs[0].size(1) == inputs["feats"].size(2) * model.upsample_factor
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
             print(f"{i+1}: {output.shape}")

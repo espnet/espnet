@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import sys
 import time
+from typing import Any
 from typing import Dict
 from typing import Optional
 from typing import Sequence
@@ -41,7 +42,7 @@ from espnet2.utils.types import str_or_none
 
 
 class Text2Speech:
-    """Speech2Text class
+    """Text2Speech module.
 
     Examples:
         >>> import soundfile
@@ -63,12 +64,18 @@ class Text2Speech:
         backward_window: int = 1,
         forward_window: int = 3,
         speed_control_alpha: float = 1.0,
+        noise_scale: float = 0.667,
+        noise_scale_dur: float = 0.8,
         vocoder_conf: dict = None,
         dtype: str = "float32",
         device: str = "cpu",
+        seed: int = 777,
+        always_fix_seed: bool = False,
     ):
+        """Initialize Text2Speech module."""
         assert check_argument_types()
 
+        # setup model
         model, train_args = TTSTask.build_model_from_file(
             train_config, model_file, device
         )
@@ -83,33 +90,37 @@ class Text2Speech:
         self.duration_calculator = DurationCalculator()
         self.preprocess_fn = TTSTask.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
-
-        logging.info(f"Normalization:\n{self.normalize}")
+        self.seed = seed
+        self.always_fix_seed = always_fix_seed
+        logging.info(f"Extractor:\n{self.feats_extract}")
+        logging.info(f"Normalizer:\n{self.normalize}")
         logging.info(f"TTS:\n{self.tts}")
 
+        # setup decoding config
         decode_config = {}
+        decode_config.update(use_teacher_forcing=use_teacher_forcing)
         if isinstance(self.tts, (Tacotron2, Transformer)):
             decode_config.update(
-                {
-                    "threshold": threshold,
-                    "maxlenratio": maxlenratio,
-                    "minlenratio": minlenratio,
-                }
+                threshold=threshold,
+                maxlenratio=maxlenratio,
+                minlenratio=minlenratio,
             )
         if isinstance(self.tts, Tacotron2):
             decode_config.update(
-                {
-                    "use_att_constraint": use_att_constraint,
-                    "forward_window": forward_window,
-                    "backward_window": backward_window,
-                }
+                use_att_constraint=use_att_constraint,
+                forward_window=forward_window,
+                backward_window=backward_window,
             )
         if isinstance(self.tts, (FastSpeech, FastSpeech2, VITS)):
-            decode_config.update({"alpha": speed_control_alpha})
-        decode_config.update({"use_teacher_forcing": use_teacher_forcing})
-
+            decode_config.update(alpha=speed_control_alpha)
+        if isinstance(self.tts, VITS):
+            decode_config.update(
+                noise_scale=noise_scale,
+                noise_scale_dur=noise_scale_dur,
+            )
         self.decode_config = decode_config
 
+        # setup vocoder
         if vocoder_conf is None:
             vocoder_conf = {}
         if self.feats_extract is not None:
@@ -134,54 +145,60 @@ class Text2Speech:
         spembs: Union[torch.Tensor, np.ndarray] = None,
         sids: Union[torch.Tensor, np.ndarray] = None,
         lids: Union[torch.Tensor, np.ndarray] = None,
-        speed_control_alpha: Optional[float] = None,
+        decode_config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, torch.Tensor]:
+        """Run text-to-speech."""
         assert check_argument_types()
 
+        # check inputs
         if self.use_speech and speech is None:
             raise RuntimeError("missing required argument: 'speech'")
 
+        # prepare batch
         if isinstance(text, str):
-            # str -> np.ndarray
-            text = self.preprocess_fn("<dummy>", {"text": text})["text"]
-        batch = {"text": text}
+            text = self.preprocess_fn("<dummy>", dict(text=text))["text"]
+        batch = dict(text=text)
         if speech is not None:
-            batch["speech"] = speech
+            batch.update(speech=speech)
         if durations is not None:
-            batch["durations"] = durations
+            batch.update(durations=durations)
         if spembs is not None:
-            batch["spembs"] = spembs
+            batch.update(spembs=spembs)
         if sids is not None:
-            batch["sids"] = sids
+            batch.update(sids=sids)
         if lids is not None:
-            batch["lids"] = lids
-
-        cfg = self.decode_config
-        if speed_control_alpha is not None and isinstance(
-            self.tts, (FastSpeech, FastSpeech2)
-        ):
-            cfg = self.decode_config.copy()
-            cfg.update({"alpha": speed_control_alpha})
-
+            batch.update(lids=lids)
         batch = to_device(batch, self.device)
+
+        # overwrite the decode configs if provided
+        cfg = self.decode_config.copy()
+        if decode_config is not None:
+            cfg.update(decode_config)
+
+        # inference
+        if self.always_fix_seed:
+            set_all_random_seed(self.seed)
         output_dict = self.model.inference(**batch, **cfg)
 
+        # calculate additional metrics
         if output_dict.get("att_w") is not None:
             duration, focus_rate = self.duration_calculator(output_dict["att_w"])
-            output_dict["duration"] = duration
-            output_dict["focus_rate"] = focus_rate
+            output_dict.update(duration=duration, focus_rate=focus_rate)
 
+        # apply vocoder (mel-to-wav)
         if self.spc2wav is not None:
             if output_dict.get("feat_gen_denorm") is not None:
                 input_feat = output_dict["feat_gen_denorm"]
             else:
                 input_feat = output_dict["feat_gen"]
-            output_dict["wav"] = torch.tensor(self.spc2wav(input_feat.cpu().numpy()))
+            wav = torch.tensor(self.spc2wav(input_feat.cpu().numpy()))
+            output_dict.update(wav=wav)
 
         return output_dict
 
     @property
     def fs(self) -> Optional[int]:
+        """Return sampling rate."""
         if self.spc2wav is not None:
             return self.spc2wav.fs
         elif hasattr(self.tts, "fs"):
@@ -191,12 +208,7 @@ class Text2Speech:
 
     @property
     def use_speech(self) -> bool:
-        """Check whether to require speech in inference.
-
-        Returns:
-            bool: True if speech is required else False.
-
-        """
+        """Return speech is needed or not in the inference."""
         return self.use_teacher_forcing or getattr(self.tts, "use_gst", False)
 
 
@@ -220,10 +232,13 @@ def inference(
     backward_window: int,
     forward_window: int,
     speed_control_alpha: float,
+    noise_scale: float,
+    noise_scale_dur: float,
+    always_fix_seed: bool,
     allow_variable_data_keys: bool,
     vocoder_conf: dict,
 ):
-    """Perform TTS model decoding."""
+    """Run text-to-speech inference."""
     assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
@@ -254,9 +269,13 @@ def inference(
         backward_window=backward_window,
         forward_window=forward_window,
         speed_control_alpha=speed_control_alpha,
+        noise_scale=noise_scale,
+        noise_scale_dur=noise_scale_dur,
         vocoder_conf=vocoder_conf,
         dtype=dtype,
         device=device,
+        seed=seed,
+        always_fix_seed=always_fix_seed,
     )
 
     # 3. Build data-iterator
@@ -566,6 +585,24 @@ def get_parser():
         type=float,
         default=1.0,
         help="Alpha in FastSpeech to change the speed of generated speech",
+    )
+    parser.add_argument(
+        "--noise_scale",
+        type=float,
+        default=0.667,
+        help="Noise scale parameter for the flow in vits",
+    )
+    parser.add_argument(
+        "--noise_scale_dur",
+        type=float,
+        default=0.8,
+        help="Noise scale parameter for the stochastic duration predictor in vits",
+    )
+    group.add_argument(
+        "--always_fix_seed",
+        type=str2bool,
+        default=False,
+        help="Whether to always fix seed",
     )
 
     group = parser.add_argument_group("Grriffin-Lim related")
