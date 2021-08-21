@@ -225,6 +225,9 @@
 <span class="kn">from</span> <span class="nn">espnet2.layers.inversible_interface</span> <span class="kn">import</span> <span class="n">InversibleInterface</span>
 
 
+<span class="n">is_torch_1_7_plus</span> <span class="o">=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.7&quot;</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="Stft"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.stft.Stft">[docs]</a><span class="k">class</span> <span class="nc">Stft</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">InversibleInterface</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -295,8 +298,9 @@
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">window</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stft</span><span class="p">(</span>
-            <span class="nb">input</span><span class="p">,</span>
+
+        <span class="c1"># use stft_kwargs to flexibly control different PyTorch versions&#39; kwargs</span>
+        <span class="n">stft_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">n_fft</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span><span class="p">,</span>
             <span class="n">win_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">win_length</span><span class="p">,</span>
             <span class="n">hop_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span><span class="p">,</span>
@@ -305,6 +309,9 @@
             <span class="n">normalized</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">normalized</span><span class="p">,</span>
             <span class="n">onesided</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">onesided</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_torch_1_7_plus</span><span class="p">:</span>
+            <span class="n">stft_kwargs</span><span class="p">[</span><span class="s2">&quot;return_complex&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stft</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="o">**</span><span class="n">stft_kwargs</span><span class="p">)</span>
         <span class="c1"># output: (Batch, Freq, Frames, 2=real_imag)</span>
         <span class="c1"># -&gt; (Batch, Frames, Freq, 2=real_imag)</span>
         <span class="n">output</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
