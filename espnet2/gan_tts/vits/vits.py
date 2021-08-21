@@ -511,6 +511,7 @@ class VITS(AbsGANTTS):
     def inference(
         self,
         text: torch.Tensor,
+        feats: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         durations: Optional[torch.Tensor] = None,
@@ -518,12 +519,13 @@ class VITS(AbsGANTTS):
         noise_scale_dur: float = 0.8,
         alpha: float = 1.0,
         max_len: Optional[int] = None,
-        **kwargs,
+        use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """Run inference.
 
         Args:
             text (Tensor): Input text index tensor (T_text,).
+            feats (Tensor): Feature tensor (T_feats, aux_channels).
             sids (Tensor): Speaker index tensor (1,).
             spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).
             durations (Tensor): Ground-truth duration tensor (T_text,).
@@ -531,6 +533,7 @@ class VITS(AbsGANTTS):
             noise_scale_dur (float): Noise scale value for duration predictor.
             alpha (float): Alpha parameter to control the speed of generated speech.
             max_len (Optional[int]): Maximum length.
+            use_teacher_forcing (bool): Whether to use teacher forcing.
 
         Returns:
             Dict[str, Tensor]:
@@ -551,16 +554,20 @@ class VITS(AbsGANTTS):
         if durations is not None:
             durations = durations.view(1, 1, -1)
 
-        wav, att_w, dur = self.generator.inference(
-            text=text,
-            text_lengths=text_lengths,
-            sids=sids,
-            spembs=spembs,
-            dur=durations,
-            noise_scale=noise_scale,
-            noise_scale_dur=noise_scale_dur,
-            alpha=alpha,
-            max_len=max_len,
-        )
-
+        # inference
+        if use_teacher_forcing:
+            raise NotImplementedError("Teacher forcing is not supported.")
+        else:
+            wav, att_w, dur = self.generator.inference(
+                text=text,
+                text_lengths=text_lengths,
+                sids=sids,
+                spembs=spembs,
+                dur=durations,
+                noise_scale=noise_scale,
+                noise_scale_dur=noise_scale_dur,
+                alpha=alpha,
+                max_len=max_len,
+                use_teacher_forcing=False,
+            )
         return dict(wav=wav.view(-1), att_w=att_w[0], duration=dur[0])
