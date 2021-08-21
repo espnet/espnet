@@ -124,8 +124,7 @@ class ESPnetTTSModel(AbsESPnetModel):
 
         # Make batch for tts inputs
         batch = {}
-        batch.update(text=text)
-        batch.update(text_lengths=text_lengths)
+        batch.update(text=text, text_lengths=text_lengths)
 
         # Update batch for additional auxiliary inputs
         if feats is not None:
