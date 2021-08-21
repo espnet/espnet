@@ -21,7 +21,7 @@ class AbsTTS(torch.nn.Module, ABC):
         text_lengths: torch.Tensor,
         feats: torch.Tensor,
         feats_lengths: torch.Tensor,
-        **kwargs
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate outputs and return the loss tensor."""
         raise NotImplementedError
