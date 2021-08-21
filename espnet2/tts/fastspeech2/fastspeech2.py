@@ -484,8 +484,8 @@ class FastSpeech2(AbsTTS):
         self,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
-        speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
+        feats: torch.Tensor,
+        feats_lengths: torch.Tensor,
         durations: torch.Tensor,
         durations_lengths: torch.Tensor,
         pitch: torch.Tensor,
@@ -501,8 +501,8 @@ class FastSpeech2(AbsTTS):
         Args:
             text (LongTensor): Batch of padded token ids (B, T_text).
             text_lengths (LongTensor): Batch of lengths of each input (B,).
-            speech (Tensor): Batch of padded target features (B, T_feats, odim).
-            speech_lengths (LongTensor): Batch of the lengths of each target (B,).
+            feats (Tensor): Batch of padded target features (B, T_feats, odim).
+            feats_lengths (LongTensor): Batch of the lengths of each target (B,).
             durations (LongTensor): Batch of padded durations (B, T_text + 1).
             durations_lengths (LongTensor): Batch of duration lengths (B, T_text + 1).
             pitch (Tensor): Batch of padded token-averaged pitch (B, T_text + 1, 1).
@@ -520,7 +520,7 @@ class FastSpeech2(AbsTTS):
 
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
-        speech = speech[:, : speech_lengths.max()]  # for data-parallel
+        feats = feats[:, : feats_lengths.max()]  # for data-parallel
         durations = durations[:, : durations_lengths.max()]  # for data-parallel
         pitch = pitch[:, : pitch_lengths.max()]  # for data-parallel
         energy = energy[:, : energy_lengths.max()]  # for data-parallel
@@ -533,8 +533,8 @@ class FastSpeech2(AbsTTS):
             xs[i, l] = self.eos
         ilens = text_lengths + 1
 
-        ys, ds, ps, es = speech, durations, pitch, energy
-        olens = speech_lengths
+        ys, ds, ps, es = feats, durations, pitch, energy
+        olens = feats_lengths
 
         # forward propagation
         before_outs, after_outs, d_outs, p_outs, e_outs = self._forward(
@@ -688,7 +688,7 @@ class FastSpeech2(AbsTTS):
     def inference(
         self,
         text: torch.Tensor,
-        speech: Optional[torch.Tensor] = None,
+        feats: Optional[torch.Tensor] = None,
         durations: Optional[torch.Tensor] = None,
         spembs: torch.Tensor = None,
         sids: Optional[torch.Tensor] = None,
@@ -702,7 +702,7 @@ class FastSpeech2(AbsTTS):
 
         Args:
             text (LongTensor): Input sequence of characters (T_text,).
-            speech (Optional[Tensor): Feature sequence to extract style (N, idim).
+            feats (Optional[Tensor): Feature sequence to extract style (N, idim).
             durations (Optional[Tensor): Groundtruth of duration (T_text + 1,).
             spembs (Optional[Tensor): Speaker embedding vector (spk_embed_dim,).
             sids (Optional[Tensor]): Speaker ID (1,).
@@ -721,7 +721,7 @@ class FastSpeech2(AbsTTS):
                 * energy (Tensor): Energy sequence (T_text + 1,).
 
         """
-        x, y = text, speech
+        x, y = text, feats
         spemb, d, p, e = spembs, durations, pitch, energy
 
         # add eos at the last of sequence
