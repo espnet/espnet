@@ -1,0 +1,20 @@
+[default.extend-words]
+JSUT = "JSUT"
+jsut = "jsut"
+foreing = "foreing"
+transfromer = "transformer"
+eles = "eles"
+
+# egs/blizzard17/tts1/local/make_lab_wo_sil.py
+separete = "separete" 
+
+# egs/polyphone_swiss_french/asr1/local/data_prep.py
+prononciation = "prononciation"
+
+# egs/puebla_nahuatl/st1/local/data_prep.py
+Transcripcion = "Transcripcion"
+
+[default.extend-identifiers]
+
+[files]
+extend-exclude = ["_typos.toml", "egs/commonvoice/asr1/conf/tuning/decode_transfromer.yaml"]
