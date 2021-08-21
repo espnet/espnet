@@ -476,8 +476,8 @@ class FastSpeech(AbsTTS):
         self,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
-        speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
+        feats: torch.Tensor,
+        feats_lengths: torch.Tensor,
         durations: torch.Tensor,
         durations_lengths: torch.Tensor,
         spembs: Optional[torch.Tensor] = None,
@@ -489,8 +489,8 @@ class FastSpeech(AbsTTS):
         Args:
             text (LongTensor): Batch of padded character ids (B, T_text).
             text_lengths (LongTensor): Batch of lengths of each input (B,).
-            speech (Tensor): Batch of padded target features (B, T_feats, odim).
-            speech_lengths (LongTensor): Batch of the lengths of each target (B,).
+            feats (Tensor): Batch of padded target features (B, T_feats, odim).
+            feats_lengths (LongTensor): Batch of the lengths of each target (B,).
             durations (LongTensor): Batch of padded durations (B, T_text + 1).
             durations_lengths (LongTensor): Batch of duration lengths (B, T_text + 1).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
@@ -504,7 +504,7 @@ class FastSpeech(AbsTTS):
 
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
-        speech = speech[:, : speech_lengths.max()]  # for data-parallel
+        feats = feats[:, : feats_lengths.max()]  # for data-parallel
         durations = durations[:, : durations_lengths.max()]  # for data-parallel
 
         batch_size = text.size(0)
@@ -515,8 +515,8 @@ class FastSpeech(AbsTTS):
             xs[i, l] = self.eos
         ilens = text_lengths + 1
 
-        ys, ds = speech, durations
-        olens = speech_lengths
+        ys, ds = feats, durations
+        olens = feats_lengths
 
         # forward propagation
         before_outs, after_outs, d_outs = self._forward(
@@ -567,7 +567,7 @@ class FastSpeech(AbsTTS):
     def inference(
         self,
         text: torch.Tensor,
-        speech: Optional[torch.Tensor] = None,
+        feats: Optional[torch.Tensor] = None,
         durations: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
@@ -579,7 +579,7 @@ class FastSpeech(AbsTTS):
 
         Args:
             text (LongTensor): Input sequence of characters (T_text,).
-            speech (Optional[Tensor]): Feature sequence to extract style (N, idim).
+            feats (Optional[Tensor]): Feature sequence to extract style (N, idim).
             durations (Optional[LongTensor]): Groundtruth of duration (T_text + 1,).
             spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).
             sids (Optional[Tensor]): Speaker ID (1,).
@@ -594,7 +594,7 @@ class FastSpeech(AbsTTS):
                 * duration (Tensor): Duration sequence (T_text + 1,).
 
         """
-        x, y = text, speech
+        x, y = text, feats
         spemb, d = spembs, durations
 
         # add eos at the last of sequence

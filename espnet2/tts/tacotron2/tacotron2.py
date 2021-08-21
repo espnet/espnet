@@ -276,8 +276,8 @@ class Tacotron2(AbsTTS):
         self,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
-        speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
+        feats: torch.Tensor,
+        feats_lengths: torch.Tensor,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -287,8 +287,8 @@ class Tacotron2(AbsTTS):
         Args:
             text (LongTensor): Batch of padded character ids (B, T_text).
             text_lengths (LongTensor): Batch of lengths of each input batch (B,).
-            speech (Tensor): Batch of padded target features (B, T_feats, odim).
-            speech_lengths (LongTensor): Batch of the lengths of each target (B,).
+            feats (Tensor): Batch of padded target features (B, T_feats, odim).
+            feats_lengths (LongTensor): Batch of the lengths of each target (B,).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -300,7 +300,7 @@ class Tacotron2(AbsTTS):
 
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
-        speech = speech[:, : speech_lengths.max()]  # for data-parallel
+        feats = feats[:, : feats_lengths.max()]  # for data-parallel
 
         batch_size = text.size(0)
 
@@ -310,8 +310,8 @@ class Tacotron2(AbsTTS):
             xs[i, l] = self.eos
         ilens = text_lengths + 1
 
-        ys = speech
-        olens = speech_lengths
+        ys = feats
+        olens = feats_lengths
 
         # make labels for stop prediction
         labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
@@ -404,7 +404,7 @@ class Tacotron2(AbsTTS):
     def inference(
         self,
         text: torch.Tensor,
-        speech: Optional[torch.Tensor] = None,
+        feats: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -420,7 +420,7 @@ class Tacotron2(AbsTTS):
 
         Args:
             text (LongTensor): Input sequence of characters (T_text,).
-            speech (Optional[Tensor]): Feature sequence to extract style (N, idim).
+            feats (Optional[Tensor]): Feature sequence to extract style (N, idim).
             spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).
             sids (Optional[Tensor]): Speaker ID (1,).
             lids (Optional[Tensor]): Language ID (1,).
@@ -440,7 +440,7 @@ class Tacotron2(AbsTTS):
 
         """
         x = text
-        y = speech
+        y = feats
         spemb = spembs
 
         # add eos at the last of sequence
@@ -448,7 +448,7 @@ class Tacotron2(AbsTTS):
 
         # inference with teacher forcing
         if use_teacher_forcing:
-            assert speech is not None, "speech must be provided with teacher forcing."
+            assert feats is not None, "feats must be provided with teacher forcing."
 
             xs, ys = x.unsqueeze(0), y.unsqueeze(0)
             spembs = None if spemb is None else spemb.unsqueeze(0)

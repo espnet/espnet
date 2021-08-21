@@ -387,8 +387,8 @@ class Transformer(AbsTTS):
         self,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
-        speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
+        feats: torch.Tensor,
+        feats_lengths: torch.Tensor,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -398,8 +398,8 @@ class Transformer(AbsTTS):
         Args:
             text (LongTensor): Batch of padded character ids (B, Tmax).
             text_lengths (LongTensor): Batch of lengths of each input batch (B,).
-            speech (Tensor): Batch of padded target features (B, Lmax, odim).
-            speech_lengths (LongTensor): Batch of the lengths of each target (B,).
+            feats (Tensor): Batch of padded target features (B, Lmax, odim).
+            feats_lengths (LongTensor): Batch of the lengths of each target (B,).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -411,7 +411,7 @@ class Transformer(AbsTTS):
 
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
-        speech = speech[:, : speech_lengths.max()]  # for data-parallel
+        feats = feats[:, : feats_lengths.max()]  # for data-parallel
         batch_size = text.size(0)
 
         # Add eos at the last of sequence
@@ -420,8 +420,8 @@ class Transformer(AbsTTS):
             xs[i, l] = self.eos
         ilens = text_lengths + 1
 
-        ys = speech
-        olens = speech_lengths
+        ys = feats
+        olens = feats_lengths
 
         # make labels for stop prediction
         labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
@@ -601,7 +601,7 @@ class Transformer(AbsTTS):
     def inference(
         self,
         text: torch.Tensor,
-        speech: Optional[torch.Tensor] = None,
+        feats: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -614,7 +614,7 @@ class Transformer(AbsTTS):
 
         Args:
             text (LongTensor): Input sequence of characters (T_text,).
-            speech (Optional[Tensor]): Feature sequence to extract style embedding
+            feats (Optional[Tensor]): Feature sequence to extract style embedding
                 (T_feats', idim).
             spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).
             sids (Optional[Tensor]): Speaker ID (1,).
@@ -632,7 +632,7 @@ class Transformer(AbsTTS):
 
         """
         x = text
-        y = speech
+        y = feats
         spemb = spembs
 
         # add eos at the last of sequence
@@ -640,7 +640,7 @@ class Transformer(AbsTTS):
 
         # inference with teacher forcing
         if use_teacher_forcing:
-            assert speech is not None, "speech must be provided with teacher forcing."
+            assert feats is not None, "feats must be provided with teacher forcing."
 
             # get teacher forcing outputs
             xs, ys = x.unsqueeze(0), y.unsqueeze(0)
