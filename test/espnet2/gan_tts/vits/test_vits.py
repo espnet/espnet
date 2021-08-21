@@ -323,7 +323,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         )
         model.inference(**inputs)
 
-        # check inference with teacher forcing
+        # check inference with predefined durations
         inputs = dict(
             text=torch.randint(
                 0,
@@ -334,6 +334,18 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         )
         output_dict = model.inference(**inputs)
         assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
+
+        # check inference with teachder forcing
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+            feats=torch.randn(16, odim),
+        )
+        output_dict = model.inference(**inputs, use_teacher_forcing=True)
+        assert output_dict["wav"].size(0) == inputs["feats"].size(0) * upsample_factor
 
 
 @pytest.mark.skipif(
@@ -527,7 +539,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
             inputs["spembs"] = torch.randn(spk_embed_dim)
         model.inference(**inputs)
 
-        # check inference with teacher forcing
+        # check inference with predefined duration
         inputs = dict(
             text=torch.randint(
                 0,
@@ -542,6 +554,22 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
             inputs["spembs"] = torch.randn(spk_embed_dim)
         output_dict = model.inference(**inputs)
         assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
+
+        # check inference with teachder forcing
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+            feats=torch.randn(16, odim),
+        )
+        if spks > 0:
+            inputs["sids"] = torch.randint(0, spks, (1,))
+        if spk_embed_dim > 0:
+            inputs["spembs"] = torch.randn(spk_embed_dim)
+        output_dict = model.inference(**inputs, use_teacher_forcing=True)
+        assert output_dict["wav"].size(0) == inputs["feats"].size(0) * upsample_factor
 
 
 @pytest.mark.skipif(
@@ -728,7 +756,7 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
         inputs = {k: v.to(device) for k, v in inputs.items()}
         model.inference(**inputs)
 
-        # check inference with teacher forcing
+        # check inference with predefined duration
         inputs = dict(
             text=torch.randint(
                 0,
@@ -740,6 +768,19 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
         inputs = {k: v.to(device) for k, v in inputs.items()}
         output_dict = model.inference(**inputs)
         assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
+
+        # check inference with teachder forcing
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+            feats=torch.randn(16, odim),
+        )
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        output_dict = model.inference(**inputs, use_teacher_forcing=True)
+        assert output_dict["wav"].size(0) == inputs["feats"].size(0) * upsample_factor
 
 
 @pytest.mark.skipif(
@@ -941,7 +982,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         inputs = {k: v.to(device) for k, v in inputs.items()}
         model.inference(**inputs)
 
-        # check inference with teacher forcing
+        # check inference with predefined duration
         inputs = dict(
             text=torch.randint(
                 0,
@@ -957,3 +998,20 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         inputs = {k: v.to(device) for k, v in inputs.items()}
         output_dict = model.inference(**inputs)
         assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
+
+        # check inference with teachder forcing
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+            feats=torch.randn(16, odim),
+        )
+        if spks > 0:
+            inputs["sids"] = torch.randint(0, spks, (1,))
+        if spk_embed_dim > 0:
+            inputs["spembs"] = torch.randn(spk_embed_dim)
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+        output_dict = model.inference(**inputs, use_teacher_forcing=True)
+        assert output_dict["wav"].size(0) == inputs["feats"].size(0) * upsample_factor
