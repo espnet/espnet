@@ -76,8 +76,7 @@ class FairseqHubertEncoder(AbsEncoder):
             from fairseq.models.hubert.hubert import HubertModel
         except Exception as e:
             print("Error: FairSeq is not properly installed.")
-            print(
-                "Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")
+            print("Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")
             raise e
 
         arg_overrides = {
@@ -135,8 +134,7 @@ class FairseqHubertEncoder(AbsEncoder):
 
         else:
 
-            self.hubert_model_path = download_hubert(
-                hubert_url, hubert_dir_path)
+            self.hubert_model_path = download_hubert(hubert_url, hubert_dir_path)
 
             (
                 models,
@@ -286,8 +284,7 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
             )
         except Exception as e:
             print("Error: FairSeq is not properly installed.")
-            print(
-                "Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")
+            print("Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")
             raise e
 
         cfg_overides = {
@@ -321,8 +318,7 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
             if os.path.exists(f"{hubert_dict}")
             else None
         ]
-        self.encoder = HubertModel(
-            self.cfg, hubert_task_cfg, self.dictionaries)
+        self.encoder = HubertModel(self.cfg, hubert_task_cfg, self.dictionaries)
 
     def output_size(self) -> int:
         return self._output_size
@@ -358,8 +354,7 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
 
     def cast_mask_emb(self):
         if self.use_amp and self.encoder.mask_emb.dtype != torch.cuda.HalfTensor:
-            self.encoder.mask_emb = torch.nn.Parameter(
-                self.encoder.mask_emb.half())
+            self.encoder.mask_emb = torch.nn.Parameter(self.encoder.mask_emb.half())
 
     def reload_pretrained_parameters(self):
         self.encoder.mask_emb = torch.nn.Parameter(
