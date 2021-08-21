@@ -233,9 +233,6 @@
     <span class="n">Encoder</span> <span class="k">as</span> <span class="n">ConformerEncoder</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.duration_predictor</span> <span class="kn">import</span> <span class="n">DurationPredictor</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.duration_predictor</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">DurationPredictorLoss</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.length_regulator</span> <span class="kn">import</span> <span class="n">LengthRegulator</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
@@ -249,6 +246,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.initialize</span> <span class="kn">import</span> <span class="n">initialize</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.abs_tts</span> <span class="kn">import</span> <span class="n">AbsTTS</span>
+<span class="kn">from</span> <span class="nn">espnet2.tts.fastspeech2.loss</span> <span class="kn">import</span> <span class="n">FastSpeech2Loss</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.fastspeech2.variance_predictor</span> <span class="kn">import</span> <span class="n">VariancePredictor</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.gst.style_encoder</span> <span class="kn">import</span> <span class="n">StyleEncoder</span>
 
@@ -700,8 +698,8 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">feats</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">feats_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">durations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">durations_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">pitch</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -717,8 +715,8 @@
 <span class="sd">        Args:</span>
 <span class="sd">            text (LongTensor): Batch of padded token ids (B, T_text).</span>
 <span class="sd">            text_lengths (LongTensor): Batch of lengths of each input (B,).</span>
-<span class="sd">            speech (Tensor): Batch of padded target features (B, T_feats, odim).</span>
-<span class="sd">            speech_lengths (LongTensor): Batch of the lengths of each target (B,).</span>
+<span class="sd">            feats (Tensor): Batch of padded target features (B, T_feats, odim).</span>
+<span class="sd">            feats_lengths (LongTensor): Batch of the lengths of each target (B,).</span>
 <span class="sd">            durations (LongTensor): Batch of padded durations (B, T_text + 1).</span>
 <span class="sd">            durations_lengths (LongTensor): Batch of duration lengths (B, T_text + 1).</span>
 <span class="sd">            pitch (Tensor): Batch of padded token-averaged pitch (B, T_text + 1, 1).</span>
@@ -736,7 +734,7 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
-        <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
+        <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">feats_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">durations</span> <span class="o">=</span> <span class="n">durations</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">durations_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">pitch</span> <span class="o">=</span> <span class="n">pitch</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">pitch_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">energy</span> <span class="o">=</span> <span class="n">energy</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">energy_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
@@ -749,8 +747,8 @@
             <span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span>
         <span class="n">ilens</span> <span class="o">=</span> <span class="n">text_lengths</span> <span class="o">+</span> <span class="mi">1</span>
 
-        <span class="n">ys</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">es</span> <span class="o">=</span> <span class="n">speech</span><span class="p">,</span> <span class="n">durations</span><span class="p">,</span> <span class="n">pitch</span><span class="p">,</span> <span class="n">energy</span>
-        <span class="n">olens</span> <span class="o">=</span> <span class="n">speech_lengths</span>
+        <span class="n">ys</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">es</span> <span class="o">=</span> <span class="n">feats</span><span class="p">,</span> <span class="n">durations</span><span class="p">,</span> <span class="n">pitch</span><span class="p">,</span> <span class="n">energy</span>
+        <span class="n">olens</span> <span class="o">=</span> <span class="n">feats_lengths</span>
 
         <span class="c1"># forward propagation</span>
         <span class="n">before_outs</span><span class="p">,</span> <span class="n">after_outs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">p_outs</span><span class="p">,</span> <span class="n">e_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
@@ -904,7 +902,7 @@
 <div class="viewcode-block" id="FastSpeech2.inference"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.fastspeech2.FastSpeech2.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">speech</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">feats</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">durations</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -918,7 +916,7 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (LongTensor): Input sequence of characters (T_text,).</span>
-<span class="sd">            speech (Optional[Tensor): Feature sequence to extract style (N, idim).</span>
+<span class="sd">            feats (Optional[Tensor): Feature sequence to extract style (N, idim).</span>
 <span class="sd">            durations (Optional[Tensor): Groundtruth of duration (T_text + 1,).</span>
 <span class="sd">            spembs (Optional[Tensor): Speaker embedding vector (spk_embed_dim,).</span>
 <span class="sd">            sids (Optional[Tensor]): Speaker ID (1,).</span>
@@ -937,7 +935,7 @@
 <span class="sd">                * energy (Tensor): Energy sequence (T_text + 1,).</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">text</span><span class="p">,</span> <span class="n">speech</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">text</span><span class="p">,</span> <span class="n">feats</span>
         <span class="n">spemb</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">e</span> <span class="o">=</span> <span class="n">spembs</span><span class="p">,</span> <span class="n">durations</span><span class="p">,</span> <span class="n">pitch</span><span class="p">,</span> <span class="n">energy</span>
 
         <span class="c1"># add eos at the last of sequence</span>
@@ -1043,118 +1041,6 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">init_enc_alpha</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_type</span> <span class="o">==</span> <span class="s2">&quot;transformer&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_scaled_pos_enc</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">embed</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">init_dec_alpha</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="FastSpeech2Loss"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.fastspeech2.FastSpeech2Loss">[docs]</a><span class="k">class</span> <span class="nc">FastSpeech2Loss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Loss function module for FastSpeech2.&quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">use_weighted_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Initialize feed-forward Transformer loss module.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            use_masking (bool):</span>
-<span class="sd">                Whether to apply masking for padded part in loss calculation.</span>
-<span class="sd">            use_weighted_masking (bool):</span>
-<span class="sd">                Whether to weighted masking in loss calculation.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-
-        <span class="k">assert</span> <span class="p">(</span><span class="n">use_masking</span> <span class="o">!=</span> <span class="n">use_weighted_masking</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">use_masking</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">use_masking</span> <span class="o">=</span> <span class="n">use_masking</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">use_weighted_masking</span> <span class="o">=</span> <span class="n">use_weighted_masking</span>
-
-        <span class="c1"># define criterions</span>
-        <span class="n">reduction</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_weighted_masking</span> <span class="k">else</span> <span class="s2">&quot;mean&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">l1_criterion</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">L1Loss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mse_criterion</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">duration_criterion</span> <span class="o">=</span> <span class="n">DurationPredictorLoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span>
-
-<div class="viewcode-block" id="FastSpeech2Loss.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech2.fastspeech2.FastSpeech2Loss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">after_outs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">before_outs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">d_outs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">p_outs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">e_outs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">ys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">ds</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">ps</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">es</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">olens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            after_outs (Tensor): Batch of outputs after postnets (B, T_feats, odim).</span>
-<span class="sd">            before_outs (Tensor): Batch of outputs before postnets (B, T_feats, odim).</span>
-<span class="sd">            d_outs (LongTensor): Batch of outputs of duration predictor (B, T_text).</span>
-<span class="sd">            p_outs (Tensor): Batch of outputs of pitch predictor (B, T_text, 1).</span>
-<span class="sd">            e_outs (Tensor): Batch of outputs of energy predictor (B, T_text, 1).</span>
-<span class="sd">            ys (Tensor): Batch of target features (B, T_feats, odim).</span>
-<span class="sd">            ds (LongTensor): Batch of durations (B, T_text).</span>
-<span class="sd">            ps (Tensor): Batch of target token-averaged pitch (B, T_text, 1).</span>
-<span class="sd">            es (Tensor): Batch of target token-averaged energy (B, T_text, 1).</span>
-<span class="sd">            ilens (LongTensor): Batch of the lengths of each input (B,).</span>
-<span class="sd">            olens (LongTensor): Batch of the lengths of each target (B,).</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            Tensor: L1 loss value.</span>
-<span class="sd">            Tensor: Duration predictor loss value.</span>
-<span class="sd">            Tensor: Pitch predictor loss value.</span>
-<span class="sd">            Tensor: Energy predictor loss value.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># apply mask to remove padded part</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_masking</span><span class="p">:</span>
-            <span class="n">out_masks</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">olens</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-            <span class="n">before_outs</span> <span class="o">=</span> <span class="n">before_outs</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">out_masks</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">after_outs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">after_outs</span> <span class="o">=</span> <span class="n">after_outs</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">out_masks</span><span class="p">)</span>
-            <span class="n">ys</span> <span class="o">=</span> <span class="n">ys</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">out_masks</span><span class="p">)</span>
-            <span class="n">duration_masks</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-            <span class="n">d_outs</span> <span class="o">=</span> <span class="n">d_outs</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">duration_masks</span><span class="p">)</span>
-            <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">duration_masks</span><span class="p">)</span>
-            <span class="n">pitch_masks</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-            <span class="n">p_outs</span> <span class="o">=</span> <span class="n">p_outs</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">pitch_masks</span><span class="p">)</span>
-            <span class="n">e_outs</span> <span class="o">=</span> <span class="n">e_outs</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">pitch_masks</span><span class="p">)</span>
-            <span class="n">ps</span> <span class="o">=</span> <span class="n">ps</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">pitch_masks</span><span class="p">)</span>
-            <span class="n">es</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">pitch_masks</span><span class="p">)</span>
-
-        <span class="c1"># calculate loss</span>
-        <span class="n">l1_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">l1_criterion</span><span class="p">(</span><span class="n">before_outs</span><span class="p">,</span> <span class="n">ys</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">after_outs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">l1_loss</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">l1_criterion</span><span class="p">(</span><span class="n">after_outs</span><span class="p">,</span> <span class="n">ys</span><span class="p">)</span>
-        <span class="n">duration_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_criterion</span><span class="p">(</span><span class="n">d_outs</span><span class="p">,</span> <span class="n">ds</span><span class="p">)</span>
-        <span class="n">pitch_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mse_criterion</span><span class="p">(</span><span class="n">p_outs</span><span class="p">,</span> <span class="n">ps</span><span class="p">)</span>
-        <span class="n">energy_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mse_criterion</span><span class="p">(</span><span class="n">e_outs</span><span class="p">,</span> <span class="n">es</span><span class="p">)</span>
-
-        <span class="c1"># make weighted mask and apply it</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_weighted_masking</span><span class="p">:</span>
-            <span class="n">out_masks</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">olens</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-            <span class="n">out_weights</span> <span class="o">=</span> <span class="n">out_masks</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="n">out_masks</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
-            <span class="n">out_weights</span> <span class="o">/=</span> <span class="n">ys</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">ys</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-            <span class="n">duration_masks</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-            <span class="n">duration_weights</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">duration_masks</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="n">duration_masks</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
-            <span class="p">)</span>
-            <span class="n">duration_weights</span> <span class="o">/=</span> <span class="n">ds</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-
-            <span class="c1"># apply weight</span>
-            <span class="n">l1_loss</span> <span class="o">=</span> <span class="n">l1_loss</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="n">out_weights</span><span class="p">)</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">out_masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-            <span class="n">duration_loss</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">duration_loss</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="n">duration_weights</span><span class="p">)</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">duration_masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-            <span class="p">)</span>
-            <span class="n">pitch_masks</span> <span class="o">=</span> <span class="n">duration_masks</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">pitch_weights</span> <span class="o">=</span> <span class="n">duration_weights</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">pitch_loss</span> <span class="o">=</span> <span class="n">pitch_loss</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="n">pitch_weights</span><span class="p">)</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">pitch_masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-            <span class="n">energy_loss</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">energy_loss</span><span class="o">.</span><span class="n">mul</span><span class="p">(</span><span class="n">pitch_weights</span><span class="p">)</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">pitch_masks</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-            <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">l1_loss</span><span class="p">,</span> <span class="n">duration_loss</span><span class="p">,</span> <span class="n">pitch_loss</span><span class="p">,</span> <span class="n">energy_loss</span></div></div>
 </pre></div>
 
            </div>

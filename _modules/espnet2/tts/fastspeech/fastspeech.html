@@ -690,8 +690,8 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">feats</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">feats_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">durations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">durations_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -703,8 +703,8 @@
 <span class="sd">        Args:</span>
 <span class="sd">            text (LongTensor): Batch of padded character ids (B, T_text).</span>
 <span class="sd">            text_lengths (LongTensor): Batch of lengths of each input (B,).</span>
-<span class="sd">            speech (Tensor): Batch of padded target features (B, T_feats, odim).</span>
-<span class="sd">            speech_lengths (LongTensor): Batch of the lengths of each target (B,).</span>
+<span class="sd">            feats (Tensor): Batch of padded target features (B, T_feats, odim).</span>
+<span class="sd">            feats_lengths (LongTensor): Batch of the lengths of each target (B,).</span>
 <span class="sd">            durations (LongTensor): Batch of padded durations (B, T_text + 1).</span>
 <span class="sd">            durations_lengths (LongTensor): Batch of duration lengths (B, T_text + 1).</span>
 <span class="sd">            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).</span>
@@ -718,7 +718,7 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
-        <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
+        <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">feats_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">durations</span> <span class="o">=</span> <span class="n">durations</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">durations_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
 
         <span class="n">batch_size</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -729,8 +729,8 @@
             <span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span>
         <span class="n">ilens</span> <span class="o">=</span> <span class="n">text_lengths</span> <span class="o">+</span> <span class="mi">1</span>
 
-        <span class="n">ys</span><span class="p">,</span> <span class="n">ds</span> <span class="o">=</span> <span class="n">speech</span><span class="p">,</span> <span class="n">durations</span>
-        <span class="n">olens</span> <span class="o">=</span> <span class="n">speech_lengths</span>
+        <span class="n">ys</span><span class="p">,</span> <span class="n">ds</span> <span class="o">=</span> <span class="n">feats</span><span class="p">,</span> <span class="n">durations</span>
+        <span class="n">olens</span> <span class="o">=</span> <span class="n">feats_lengths</span>
 
         <span class="c1"># forward propagation</span>
         <span class="n">before_outs</span><span class="p">,</span> <span class="n">after_outs</span><span class="p">,</span> <span class="n">d_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
@@ -781,7 +781,7 @@
 <div class="viewcode-block" id="FastSpeech.inference"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.fastspeech.fastspeech.FastSpeech.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">speech</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">feats</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">durations</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -793,7 +793,7 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (LongTensor): Input sequence of characters (T_text,).</span>
-<span class="sd">            speech (Optional[Tensor]): Feature sequence to extract style (N, idim).</span>
+<span class="sd">            feats (Optional[Tensor]): Feature sequence to extract style (N, idim).</span>
 <span class="sd">            durations (Optional[LongTensor]): Groundtruth of duration (T_text + 1,).</span>
 <span class="sd">            spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).</span>
 <span class="sd">            sids (Optional[Tensor]): Speaker ID (1,).</span>
@@ -808,7 +808,7 @@
 <span class="sd">                * duration (Tensor): Duration sequence (T_text + 1,).</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">text</span><span class="p">,</span> <span class="n">speech</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">text</span><span class="p">,</span> <span class="n">feats</span>
         <span class="n">spemb</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">spembs</span><span class="p">,</span> <span class="n">durations</span>
 
         <span class="c1"># add eos at the last of sequence</span>

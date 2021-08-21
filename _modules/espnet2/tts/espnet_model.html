@@ -212,13 +212,19 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet2.tts.espnet_model</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span></span><span class="c1"># Copyright 2020 Nagoya University (Tomoki Hayashi)</span>
+<span class="c1">#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
+
+<span class="sd">&quot;&quot;&quot;Text-to-speech ESPnet model.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
+
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
@@ -232,11 +238,13 @@
 <span class="k">else</span><span class="p">:</span>
     <span class="c1"># Nothing to do if torch&lt;1.6.0</span>
     <span class="nd">@contextmanager</span>
-    <span class="k">def</span> <span class="nf">autocast</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">autocast</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>  <span class="c1"># NOQA</span>
         <span class="k">yield</span>
 
 
 <div class="viewcode-block" id="ESPnetTTSModel"><a class="viewcode-back" href="../../../_gen/espnet2.tts.html#espnet2.tts.espnet_model.ESPnetTTSModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetTTSModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;TTS ESPnet model.&quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">feats_extract</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsFeatsExtract</span><span class="p">],</span>
@@ -247,6 +255,7 @@
         <span class="n">energy_normalize</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsNormalize</span> <span class="ow">and</span> <span class="n">InversibleInterface</span><span class="p">],</span>
         <span class="n">tts</span><span class="p">:</span> <span class="n">AbsTTS</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize ESPnetTTSModel module.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span> <span class="o">=</span> <span class="n">feats_extract</span>
@@ -263,22 +272,45 @@
         <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">durations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">durations_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">pitch</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">pitch_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">energy</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">energy_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">sids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">lids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="n">durations</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">durations_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pitch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pitch_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">energy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">energy_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Caclualte outputs and return the loss tensor.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            text (Tensor): Text index tensor (B, T_text).</span>
+<span class="sd">            text_lengths (Tensor): Text length tensor (B,).</span>
+<span class="sd">            speech (Tensor): Speech waveform tensor (B, T_wav).</span>
+<span class="sd">            speech_lengths (Tensor): Speech length tensor (B,).</span>
+<span class="sd">            duration (Optional[Tensor]): Duration tensor.</span>
+<span class="sd">            duration_lengths (Optional[Tensor]): Duration length tensor (B,).</span>
+<span class="sd">            pitch (Optional[Tensor]): Pitch tensor.</span>
+<span class="sd">            pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).</span>
+<span class="sd">            energy (Optional[Tensor]): Energy tensor.</span>
+<span class="sd">            energy_lengths (Optional[Tensor]): Energy length tensor (B,).</span>
+<span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (B, D).</span>
+<span class="sd">            sids (Optional[Tensor]): Speaker ID tensor (B, 1).</span>
+<span class="sd">            lids (Optional[Tensor]): Language ID tensor (B, 1).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Loss scalar tensor.</span>
+<span class="sd">            Dict[str, float]: Statistics to be monitored.</span>
+<span class="sd">            Tensor: Weight tensor to summarize losses.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="n">autocast</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
             <span class="c1"># Extract features</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Use precalculated feats (feats_type != raw case)</span>
                 <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span>
 
             <span class="c1"># Extract auxiliary features</span>
@@ -307,27 +339,28 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_normalize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">energy</span><span class="p">,</span> <span class="n">energy_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_normalize</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="n">energy_lengths</span><span class="p">)</span>
 
-        <span class="c1"># Update kwargs for additional auxiliary inputs</span>
-        <span class="k">if</span> <span class="n">spembs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">sids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">lids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">durations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">durations</span><span class="o">=</span><span class="n">durations</span><span class="p">,</span> <span class="n">durations_lengths</span><span class="o">=</span><span class="n">durations_lengths</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pitch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">pitch</span><span class="o">=</span><span class="n">pitch</span><span class="p">,</span> <span class="n">pitch_lengths</span><span class="o">=</span><span class="n">pitch_lengths</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">energy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">energy</span><span class="o">=</span><span class="n">energy</span><span class="p">,</span> <span class="n">energy_lengths</span><span class="o">=</span><span class="n">energy_lengths</span><span class="p">)</span>
+        <span class="c1"># Make batch for tts inputs</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">)</span>
+        <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">(</span>
-            <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
-            <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">,</span>
-            <span class="n">speech</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span>
-            <span class="n">speech_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="c1"># Update batch for additional auxiliary inputs</span>
+        <span class="k">if</span> <span class="n">spembs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">durations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">durations</span><span class="o">=</span><span class="n">durations</span><span class="p">,</span> <span class="n">durations_lengths</span><span class="o">=</span><span class="n">durations_lengths</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pitch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">pitch</span><span class="o">=</span><span class="n">pitch</span><span class="p">,</span> <span class="n">pitch_lengths</span><span class="o">=</span><span class="n">pitch_lengths</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">energy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">energy</span><span class="o">=</span><span class="n">energy</span><span class="p">,</span> <span class="n">energy_lengths</span><span class="o">=</span><span class="n">energy_lengths</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="o">.</span><span class="n">require_raw_speech</span><span class="p">:</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">speech</span><span class="o">=</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="o">=</span><span class="n">speech_lengths</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ESPnetTTSModel.collect_feats"><a class="viewcode-back" href="../../../_gen/espnet2.tts.html#espnet2.tts.espnet_model.ESPnetTTSModel.collect_feats">[docs]</a>    <span class="k">def</span> <span class="nf">collect_feats</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -335,22 +368,43 @@
         <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">durations</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">durations_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">pitch</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">pitch_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">energy</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">energy_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">spembs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">sids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">lids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">durations</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">durations_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pitch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pitch_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">energy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">energy_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Caclualte features and return them as a dict.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            text (Tensor): Text index tensor (B, T_text).</span>
+<span class="sd">            text_lengths (Tensor): Text length tensor (B,).</span>
+<span class="sd">            speech (Tensor): Speech waveform tensor (B, T_wav).</span>
+<span class="sd">            speech_lengths (Tensor): Speech length tensor (B,).</span>
+<span class="sd">            durations (Optional[Tensor): Duration tensor.</span>
+<span class="sd">            durations_lengths (Optional[Tensor): Duration length tensor (B,).</span>
+<span class="sd">            pitch (Optional[Tensor): Pitch tensor.</span>
+<span class="sd">            pitch_lengths (Optional[Tensor): Pitch length tensor (B,).</span>
+<span class="sd">            energy (Optional[Tensor): Energy tensor.</span>
+<span class="sd">            energy_lengths (Optional[Tensor): Energy length tensor (B,).</span>
+<span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (B, D).</span>
+<span class="sd">            sids (Optional[Tensor]): Speaker ID tensor (B, 1).</span>
+<span class="sd">            lids (Optional[Tensor]): Language ID tensor (B, 1).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, Tensor]: Dict of features.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># feature extraction</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Use precalculated feats (feats_type != raw case)</span>
             <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span>
-        <span class="n">feats_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;feats&quot;</span><span class="p">:</span> <span class="n">feats</span><span class="p">,</span> <span class="s2">&quot;feats_lengths&quot;</span><span class="p">:</span> <span class="n">feats_lengths</span><span class="p">}</span>
-
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">pitch</span><span class="p">,</span> <span class="n">pitch_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span><span class="p">(</span>
                 <span class="n">speech</span><span class="p">,</span>
@@ -367,6 +421,10 @@
                 <span class="n">durations</span><span class="o">=</span><span class="n">durations</span><span class="p">,</span>
                 <span class="n">durations_lengths</span><span class="o">=</span><span class="n">durations_lengths</span><span class="p">,</span>
             <span class="p">)</span>
+
+        <span class="c1"># store in dict</span>
+        <span class="n">feats_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">feats_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">pitch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">feats_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">pitch</span><span class="o">=</span><span class="n">pitch</span><span class="p">,</span> <span class="n">pitch_lengths</span><span class="o">=</span><span class="n">pitch_lengths</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">energy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -386,21 +444,41 @@
         <span class="n">energy</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">decode_config</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
-        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="sd">&quot;&quot;&quot;Caclualte features and return them as a dict.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            text (Tensor): Text index tensor (T_text).</span>
+<span class="sd">            speech (Tensor): Speech waveform tensor (T_wav).</span>
+<span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (D,).</span>
+<span class="sd">            sids (Optional[Tensor]): Speaker ID tensor (1,).</span>
+<span class="sd">            lids (Optional[Tensor]): Language ID tensor (1,).</span>
+<span class="sd">            durations (Optional[Tensor): Duration tensor.</span>
+<span class="sd">            pitch (Optional[Tensor): Pitch tensor.</span>
+<span class="sd">            energy (Optional[Tensor): Energy tensor.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, Tensor]: Dict of outputs.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">input_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">input_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">decode_config</span><span class="p">[</span><span class="s2">&quot;use_teacher_forcing&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">,</span> <span class="s2">&quot;use_gst&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">speech</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;missing required argument: &#39;speech&#39;&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span><span class="p">(</span><span class="n">speech</span><span class="p">[</span><span class="kc">None</span><span class="p">])[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Use precalculated feats (feats_type != raw case)</span>
                 <span class="n">feats</span> <span class="o">=</span> <span class="n">speech</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">feats</span><span class="p">[</span><span class="kc">None</span><span class="p">])[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">feats</span>
+            <span class="n">input_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="o">.</span><span class="n">require_raw_speech</span><span class="p">:</span>
+                <span class="n">input_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">speech</span><span class="o">=</span><span class="n">speech</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">decode_config</span><span class="p">[</span><span class="s2">&quot;use_teacher_forcing&quot;</span><span class="p">]:</span>
             <span class="k">if</span> <span class="n">durations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;durations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">durations</span>
+                <span class="n">input_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">durations</span><span class="o">=</span><span class="n">durations</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">pitch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span><span class="p">(</span>
@@ -411,7 +489,7 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_normalize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">pitch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_normalize</span><span class="p">(</span><span class="n">pitch</span><span class="p">[</span><span class="kc">None</span><span class="p">])[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">pitch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;pitch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pitch</span>
+                <span class="n">input_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">pitch</span><span class="o">=</span><span class="n">pitch</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">energy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_extract</span><span class="p">(</span>
@@ -422,22 +500,23 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_normalize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">energy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_normalize</span><span class="p">(</span><span class="n">energy</span><span class="p">[</span><span class="kc">None</span><span class="p">])[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">energy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;energy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">energy</span>
+                <span class="n">input_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">energy</span><span class="o">=</span><span class="n">energy</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">spembs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;spembs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">spembs</span>
+            <span class="n">input_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">sids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;sids&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sids</span>
+            <span class="n">input_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">lids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;lids&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lids</span>
+            <span class="n">input_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">)</span>
 
-        <span class="n">output_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">decode_config</span><span class="p">)</span>
+        <span class="n">output_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span><span class="o">**</span><span class="n">input_dict</span><span class="p">,</span> <span class="o">**</span><span class="n">decode_config</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;feat_gen&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># NOTE: normalize.inverse is in-place operation</span>
-            <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen_denorm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="o">.</span><span class="n">inverse</span><span class="p">(</span>
+            <span class="n">feat_gen_denorm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="o">.</span><span class="n">inverse</span><span class="p">(</span>
                 <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()[</span><span class="kc">None</span><span class="p">]</span>
             <span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">output_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">feat_gen_denorm</span><span class="o">=</span><span class="n">feat_gen_denorm</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">output_dict</span></div></div>
 </pre></div>

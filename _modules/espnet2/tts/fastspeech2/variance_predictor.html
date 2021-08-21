@@ -250,10 +250,10 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            idim (int): Input dimension.</span>
-<span class="sd">            n_layers (int, optional): Number of convolutional layers.</span>
-<span class="sd">            n_chans (int, optional): Number of channels of convolutional layers.</span>
-<span class="sd">            kernel_size (int, optional): Kernel size of convolutional layers.</span>
-<span class="sd">            dropout_rate (float, optional): Dropout rate.</span>
+<span class="sd">            n_layers (int): Number of convolutional layers.</span>
+<span class="sd">            n_chans (int): Number of channels of convolutional layers.</span>
+<span class="sd">            kernel_size (int): Kernel size of convolutional layers.</span>
+<span class="sd">            dropout_rate (float): Dropout rate.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
@@ -283,8 +283,7 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            xs (Tensor): Batch of input sequences (B, Tmax, idim).</span>
-<span class="sd">            x_masks (ByteTensor, optional):</span>
-<span class="sd">                Batch of masks indicating padded part (B, Tmax).</span>
+<span class="sd">            x_masks (ByteTensor): Batch of masks indicating padded part (B, Tmax).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tensor: Batch of predicted sequences (B, Tmax, 1).</span>

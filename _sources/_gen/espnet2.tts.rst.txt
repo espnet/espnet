@@ -81,6 +81,17 @@ espnet2.tts.utils.duration_calculator
     :show-inheritance:
 
 
+.. _espnet2.tts.fastspeech2.loss:
+
+espnet2.tts.fastspeech2.loss
+----------------------------
+
+.. automodule:: espnet2.tts.fastspeech2.loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tts.fastspeech2.__init__:
 
 espnet2.tts.fastspeech2.__init__
