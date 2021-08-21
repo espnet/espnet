@@ -35,8 +35,8 @@ from espnet.nets.pytorch_backend.transformer.encoder import (
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.tts.abs_tts import AbsTTS
+from espnet2.tts.fastspeech2.variance_predictor import VariancePredictor
 from espnet2.tts.gst.style_encoder import StyleEncoder
-from espnet2.tts.variance_predictor import VariancePredictor
 
 
 class FastSpeech2(AbsTTS):
