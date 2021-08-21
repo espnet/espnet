@@ -25,19 +25,6 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
-try:
-    import fairseq
-    from fairseq.data.dictionary import Dictionary
-    from fairseq.models.hubert.hubert import (
-        HubertModel,  # noqa: H301
-        HubertConfig,  # noqa: H301
-        HubertPretrainingConfig,  # noqa: H301
-    )
-except Exception as e:
-    print("Error: FairSeq is not properly installed.")
-    print("Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")
-    raise e
-
 
 class FairseqHubertEncoder(AbsEncoder):
     """FairSeq Hubert encoder module.
@@ -84,6 +71,15 @@ class FairseqHubertEncoder(AbsEncoder):
         assert check_argument_types()
         super().__init__()
         self.apply_mask = apply_mask
+        try:
+            import fairseq
+            from fairseq.models.hubert.hubert import HubertModel
+        except Exception as e:
+            print("Error: FairSeq is not properly installed.")
+            print(
+                "Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")
+            raise e
+
         arg_overrides = {
             "dropout": dropout_rate,
             "activation_dropout": activation_dropout,
@@ -139,7 +135,8 @@ class FairseqHubertEncoder(AbsEncoder):
 
         else:
 
-            self.hubert_model_path = download_hubert(hubert_url, hubert_dir_path)
+            self.hubert_model_path = download_hubert(
+                hubert_url, hubert_dir_path)
 
             (
                 models,
@@ -280,6 +277,19 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         super().__init__()
         self._output_size = output_size
         self.use_amp = use_amp
+        try:
+            from fairseq.data.dictionary import Dictionary
+            from fairseq.models.hubert.hubert import (
+                HubertModel,  # noqa: H301
+                HubertConfig,  # noqa: H301
+                HubertPretrainingConfig,  # noqa: H301
+            )
+        except Exception as e:
+            print("Error: FairSeq is not properly installed.")
+            print(
+                "Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")
+            raise e
+
         cfg_overides = {
             "encoder_embed_dim": output_size,
             "encoder_ffn_embed_dim": linear_units,
@@ -311,7 +321,8 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
             if os.path.exists(f"{hubert_dict}")
             else None
         ]
-        self.encoder = HubertModel(self.cfg, hubert_task_cfg, self.dictionaries)
+        self.encoder = HubertModel(
+            self.cfg, hubert_task_cfg, self.dictionaries)
 
     def output_size(self) -> int:
         return self._output_size
@@ -347,7 +358,8 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
 
     def cast_mask_emb(self):
         if self.use_amp and self.encoder.mask_emb.dtype != torch.cuda.HalfTensor:
-            self.encoder.mask_emb = torch.nn.Parameter(self.encoder.mask_emb.half())
+            self.encoder.mask_emb = torch.nn.Parameter(
+                self.encoder.mask_emb.half())
 
     def reload_pretrained_parameters(self):
         self.encoder.mask_emb = torch.nn.Parameter(
