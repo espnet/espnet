@@ -140,6 +140,6 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             feats, feats_lengths = self.feats_extract(speech, speech_lengths)
         feats_dict = {}
         if feats is not None:
-            feats_dict(feats=feats, feats_lengths=feats_lengths)
+            feats_dict.update(feats=feats, feats_lengths=feats_lengths)
 
         return feats_dict
