@@ -226,6 +226,7 @@
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_return_type</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits</span> <span class="kn">import</span> <span class="n">VITS</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.global_mvn</span> <span class="kn">import</span> <span class="n">GlobalMVN</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.abs_task</span> <span class="kn">import</span> <span class="n">AbsTask</span>
@@ -303,6 +304,8 @@
         <span class="n">transformer</span><span class="o">=</span><span class="n">Transformer</span><span class="p">,</span>
         <span class="n">fastspeech</span><span class="o">=</span><span class="n">FastSpeech</span><span class="p">,</span>
         <span class="n">fastspeech2</span><span class="o">=</span><span class="n">FastSpeech2</span><span class="p">,</span>
+        <span class="c1"># NOTE(kan-bayashi): available only for inference</span>
+        <span class="n">vits</span><span class="o">=</span><span class="n">VITS</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsTTS</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;tacotron2&quot;</span><span class="p">,</span>

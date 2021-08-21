@@ -232,8 +232,8 @@
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANGenerator</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.duration_predictor</span> <span class="kn">import</span> <span class="n">StochasticDurationPredictor</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANGenerator</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.posterior_encoder</span> <span class="kn">import</span> <span class="n">PosteriorEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.residual_coupling</span> <span class="kn">import</span> <span class="n">ResidualAffineCouplingBlock</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.text_encoder</span> <span class="kn">import</span> <span class="n">TextEncoder</span>

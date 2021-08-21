@@ -236,6 +236,7 @@
 
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_utils</span> <span class="kn">import</span> <span class="n">get_commandline_args</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.npy_scp</span> <span class="kn">import</span> <span class="n">NpyScpWriter</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits</span> <span class="kn">import</span> <span class="n">VITS</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.tts</span> <span class="kn">import</span> <span class="n">TTSTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">to_device</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.set_all_random_seed</span> <span class="kn">import</span> <span class="n">set_all_random_seed</span>
@@ -317,7 +318,7 @@
                     <span class="s2">&quot;backward_window&quot;</span><span class="p">:</span> <span class="n">backward_window</span><span class="p">,</span>
                 <span class="p">}</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">,</span> <span class="p">(</span><span class="n">FastSpeech</span><span class="p">,</span> <span class="n">FastSpeech2</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">,</span> <span class="p">(</span><span class="n">FastSpeech</span><span class="p">,</span> <span class="n">FastSpeech2</span><span class="p">,</span> <span class="n">VITS</span><span class="p">)):</span>
             <span class="n">decode_config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="n">speed_control_alpha</span><span class="p">})</span>
         <span class="n">decode_config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;use_teacher_forcing&quot;</span><span class="p">:</span> <span class="n">use_teacher_forcing</span><span class="p">})</span>
 
