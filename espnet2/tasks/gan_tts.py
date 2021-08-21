@@ -21,7 +21,7 @@ from typeguard import check_return_type
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
 from espnet2.gan_tts.espnet_model import ESPnetGANTTSModel
-from espnet2.gan_tts.vits.vits import VITS
+from espnet2.gan_tts.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN

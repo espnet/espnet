@@ -8,7 +8,7 @@ from distutils.version import LooseVersion
 import pytest
 import torch
 
-from espnet2.gan_tts.vits.vits import VITS
+from espnet2.gan_tts.vits import VITS
 
 
 def make_vits_generator_args(**kwargs):
