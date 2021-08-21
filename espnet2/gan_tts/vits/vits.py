@@ -568,6 +568,5 @@ class VITS(AbsGANTTS):
                 noise_scale_dur=noise_scale_dur,
                 alpha=alpha,
                 max_len=max_len,
-                use_teacher_forcing=False,
             )
         return dict(wav=wav.view(-1), att_w=att_w[0], duration=dur[0])
