@@ -1,7 +1,7 @@
 # Copyright 2020 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""TTS-Transformer related modules."""
+"""Transformer-TTS related modules."""
 
 from typing import Dict
 from typing import Optional
@@ -33,7 +33,7 @@ from espnet2.tts.gst.style_encoder import StyleEncoder
 
 
 class Transformer(AbsTTS):
-    """TTS-Transformer module.
+    """Transformer-TTS module.
 
     This is a module of text-to-speech Transformer described in `Neural Speech Synthesis
     with Transformer Network`_, which convert the sequence of tokens into the sequence
@@ -41,7 +41,6 @@ class Transformer(AbsTTS):
 
     .. _`Neural Speech Synthesis with Transformer Network`:
         https://arxiv.org/pdf/1809.08895.pdf
-
 
     """
 
