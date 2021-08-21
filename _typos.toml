@@ -6,6 +6,7 @@ jsut = "jsut"
 foreing = "foreing"
 transfromer = "transformer"
 eles = "eles"
+GANES = "GANES"
 
 # egs/blizzard17/tts1/local/make_lab_wo_sil.py
 separete = "separete" 
