@@ -13,11 +13,11 @@ from typeguard import check_argument_types
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
 from espnet2.gan_tts.vits.generator import VITSGenerator
-from espnet2.gan_tts.vits.hifigan import HiFiGANMultiPeriodDiscriminator
-from espnet2.gan_tts.vits.hifigan import HiFiGANMultiScaleDiscriminator
-from espnet2.gan_tts.vits.hifigan import HiFiGANMultiScaleMultiPeriodDiscriminator
-from espnet2.gan_tts.vits.hifigan import HiFiGANPeriodDiscriminator
-from espnet2.gan_tts.vits.hifigan import HiFiGANScaleDiscriminator
+from espnet2.gan_tts.hifigan import HiFiGANMultiPeriodDiscriminator
+from espnet2.gan_tts.hifigan import HiFiGANMultiScaleDiscriminator
+from espnet2.gan_tts.hifigan import HiFiGANMultiScaleMultiPeriodDiscriminator
+from espnet2.gan_tts.hifigan import HiFiGANPeriodDiscriminator
+from espnet2.gan_tts.hifigan import HiFiGANScaleDiscriminator
 from espnet2.gan_tts.vits.loss import DiscriminatorAdversarialLoss
 from espnet2.gan_tts.vits.loss import FeatureMatchLoss
 from espnet2.gan_tts.vits.loss import GeneratorAdversarialLoss

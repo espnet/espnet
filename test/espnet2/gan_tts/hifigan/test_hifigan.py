@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.gan_tts.vits.hifigan import HiFiGANGenerator
-from espnet2.gan_tts.vits.hifigan import HiFiGANMultiScaleMultiPeriodDiscriminator
+from espnet2.gan_tts.hifigan import HiFiGANGenerator
+from espnet2.gan_tts.hifigan import HiFiGANMultiScaleMultiPeriodDiscriminator
 from espnet2.gan_tts.vits.loss import DiscriminatorAdversarialLoss
 from espnet2.gan_tts.vits.loss import FeatureMatchLoss
 from espnet2.gan_tts.vits.loss import GeneratorAdversarialLoss

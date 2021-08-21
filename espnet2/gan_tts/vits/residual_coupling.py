@@ -14,7 +14,7 @@ from typing import Union
 import torch
 
 from espnet2.gan_tts.vits.flow import FlipFlow
-from espnet2.gan_tts.vits.wavenet import WaveNet
+from espnet2.gan_tts.wavenet import WaveNet
 
 
 class ResidualAffineCouplingBlock(torch.nn.Module):

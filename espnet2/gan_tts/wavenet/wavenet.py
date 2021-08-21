@@ -14,8 +14,8 @@ from typing import Optional
 
 import torch
 
-from espnet2.gan_tts.vits.residual_block import Conv1d1x1
-from espnet2.gan_tts.vits.residual_block import WaveNetResidualBlock as ResidualBlock
+from espnet2.gan_tts.wavenet.residual_block import Conv1d1x1
+from espnet2.gan_tts.wavenet.residual_block import ResidualBlock
 
 
 class WaveNet(torch.nn.Module):
