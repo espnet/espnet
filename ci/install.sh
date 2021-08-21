@@ -29,7 +29,7 @@ python3 --version
 pip3 install https://github.com/kpu/kenlm/archive/master.zip
 
 if ${USE_CONDA}; then
-  conda install -c k2-fsa -c pytorch k2 cpuonly pytorch=${TH_VERSION}
+  conda install -c k2-fsa=${K2_VERSION} -c pytorch k2 cpuonly pytorch=${TH_VERSION}
 else
   pip3 install k2==${K2_VERSION}.torch${TH_VERSION} -f https://k2-fsa.org/nightly/
 fi
