@@ -26,6 +26,7 @@ test_spm.model
 .vscode*
 *.vim
 *.swp
+*.nfs*
 
 # recipe related
 egs*/*/*/data*
@@ -72,3 +73,5 @@ tools/MBROLA*
 tools/festival*
 tools/speech_tools*
 tools/phonemizer*
+tools/py3mmseg
+tools/._*
