@@ -4,11 +4,13 @@
 """TTS-Transformer related modules."""
 
 from typing import Dict
+from typing import Optional
 from typing import Sequence
 from typing import Tuple
 
 import torch
 import torch.nn.functional as F
+
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.e2e_tts_transformer import GuidedMultiHeadAttentionLoss
@@ -40,97 +42,6 @@ class Transformer(AbsTTS):
     .. _`Neural Speech Synthesis with Transformer Network`:
         https://arxiv.org/pdf/1809.08895.pdf
 
-    Args:
-        idim (int): Dimension of the inputs.
-        odim (int): Dimension of the outputs.
-        embed_dim (int, optional): Dimension of character embedding.
-        eprenet_conv_layers (int, optional):
-            Number of encoder prenet convolution layers.
-        eprenet_conv_chans (int, optional):
-            Number of encoder prenet convolution channels.
-        eprenet_conv_filts (int, optional):
-            Filter size of encoder prenet convolution.
-        dprenet_layers (int, optional): Number of decoder prenet layers.
-        dprenet_units (int, optional): Number of decoder prenet hidden units.
-        elayers (int, optional): Number of encoder layers.
-        eunits (int, optional): Number of encoder hidden units.
-        adim (int, optional): Number of attention transformation dimensions.
-        aheads (int, optional): Number of heads for multi head attention.
-        dlayers (int, optional): Number of decoder layers.
-        dunits (int, optional): Number of decoder hidden units.
-        postnet_layers (int, optional): Number of postnet layers.
-        postnet_chans (int, optional): Number of postnet channels.
-        postnet_filts (int, optional): Filter size of postnet.
-        use_scaled_pos_enc (bool, optional):
-            Whether to use trainable scaled positional encoding.
-        use_batch_norm (bool, optional):
-            Whether to use batch normalization in encoder prenet.
-        encoder_normalize_before (bool, optional):
-            Whether to perform layer normalization before encoder block.
-        decoder_normalize_before (bool, optional):
-            Whether to perform layer normalization before decoder block.
-        encoder_concat_after (bool, optional): Whether to concatenate attention
-            layer's input and output in encoder.
-        decoder_concat_after (bool, optional): Whether to concatenate attention
-            layer's input and output in decoder.
-        positionwise_layer_type (str, optional):
-            Position-wise operation type.
-        positionwise_conv_kernel_size (int, optional):
-            Kernel size in position wise conv 1d.
-        reduction_factor (int, optional): Reduction factor.
-        spk_embed_dim (int, optional): Number of speaker embedding dimenstions.
-        spk_embed_integration_type (str, optional): How to integrate speaker embedding.
-        use_gst (str, optional): Whether to use global style token.
-        gst_tokens (int, optional): The number of GST embeddings.
-        gst_heads (int, optional): The number of heads in GST multihead attention.
-        gst_conv_layers (int, optional): The number of conv layers in GST.
-        gst_conv_chans_list: (Sequence[int], optional):
-            List of the number of channels of conv layers in GST.
-        gst_conv_kernel_size (int, optional): Kernal size of conv layers in GST.
-        gst_conv_stride (int, optional): Stride size of conv layers in GST.
-        gst_gru_layers (int, optional): The number of GRU layers in GST.
-        gst_gru_units (int, optional): The number of GRU units in GST.
-        transformer_lr (float, optional): Initial value of learning rate.
-        transformer_warmup_steps (int, optional): Optimizer warmup steps.
-        transformer_enc_dropout_rate (float, optional):
-            Dropout rate in encoder except attention and positional encoding.
-        transformer_enc_positional_dropout_rate (float, optional):
-            Dropout rate after encoder positional encoding.
-        transformer_enc_attn_dropout_rate (float, optional):
-            Dropout rate in encoder self-attention module.
-        transformer_dec_dropout_rate (float, optional):
-            Dropout rate in decoder except attention & positional encoding.
-        transformer_dec_positional_dropout_rate (float, optional):
-            Dropout rate after decoder positional encoding.
-        transformer_dec_attn_dropout_rate (float, optional):
-            Dropout rate in deocoder self-attention module.
-        transformer_enc_dec_attn_dropout_rate (float, optional):
-            Dropout rate in encoder-deocoder attention module.
-        init_type (str, optional):
-            How to initialize transformer parameters.
-        init_enc_alpha (float, optional):
-            Initial value of alpha in scaled pos encoding of the encoder.
-        init_dec_alpha (float, optional):
-            Initial value of alpha in scaled pos encoding of the decoder.
-        eprenet_dropout_rate (float, optional): Dropout rate in encoder prenet.
-        dprenet_dropout_rate (float, optional): Dropout rate in decoder prenet.
-        postnet_dropout_rate (float, optional): Dropout rate in postnet.
-        use_masking (bool, optional):
-            Whether to apply masking for padded part in loss calculation.
-        use_weighted_masking (bool, optional):
-            Whether to apply weighted masking in loss calculation.
-        bce_pos_weight (float, optional): Positive sample weight in bce calculation
-            (only for use_masking=true).
-        loss_type (str, optional): How to calculate loss.
-        use_guided_attn_loss (bool, optional): Whether to use guided attention loss.
-        num_heads_applied_guided_attn (int, optional):
-            Number of heads in each layer to apply guided attention loss.
-        num_layers_applied_guided_attn (int, optional):
-            Number of layers to apply guided attention loss.
-        modules_applied_guided_attn (Sequence[str], optional):
-            List of module names to apply guided attention loss.
-        guided_attn_loss_sigma (float, optional) Sigma in guided attention loss.
-        guided_attn_loss_lambda (float, optional): Lambda in guided attention loss.
 
     """
 
@@ -163,6 +74,9 @@ class Transformer(AbsTTS):
         encoder_concat_after: bool = False,
         decoder_concat_after: bool = False,
         reduction_factor: int = 1,
+        # extra embedding related
+        spks: int = -1,
+        langs: int = -1,
         spk_embed_dim: int = None,
         spk_embed_integration_type: str = "add",
         use_gst: bool = False,
@@ -199,7 +113,95 @@ class Transformer(AbsTTS):
         guided_attn_loss_sigma: float = 0.4,
         guided_attn_loss_lambda: float = 1.0,
     ):
-        """Initialize Transformer module."""
+        """Initialize Transformer module.
+
+        Args:
+            idim (int): Dimension of the inputs.
+            odim (int): Dimension of the outputs.
+            embed_dim (int): Dimension of character embedding.
+            eprenet_conv_layers (int): Number of encoder prenet convolution layers.
+            eprenet_conv_chans (int): Number of encoder prenet convolution channels.
+            eprenet_conv_filts (int): Filter size of encoder prenet convolution.
+            dprenet_layers (int): Number of decoder prenet layers.
+            dprenet_units (int): Number of decoder prenet hidden units.
+            elayers (int): Number of encoder layers.
+            eunits (int): Number of encoder hidden units.
+            adim (int): Number of attention transformation dimensions.
+            aheads (int): Number of heads for multi head attention.
+            dlayers (int): Number of decoder layers.
+            dunits (int): Number of decoder hidden units.
+            postnet_layers (int): Number of postnet layers.
+            postnet_chans (int): Number of postnet channels.
+            postnet_filts (int): Filter size of postnet.
+            use_scaled_pos_enc (bool): Whether to use trainable scaled pos encoding.
+            use_batch_norm (bool): Whether to use batch normalization in encoder prenet.
+            encoder_normalize_before (bool): Whether to apply layernorm layer before
+                encoder block.
+            decoder_normalize_before (bool): Whether to apply layernorm layer before
+                decoder block.
+            encoder_concat_after (bool): Whether to concatenate attention layer's input
+                and output in encoder.
+            decoder_concat_after (bool): Whether to concatenate attention layer's input
+                and output in decoder.
+            positionwise_layer_type (str): Position-wise operation type.
+            positionwise_conv_kernel_size (int): Kernel size in position wise conv 1d.
+            reduction_factor (int): Reduction factor.
+            spks: Number of speakers. If set to > 0, speaker ID embedding will be used.
+            langs: Number of langs. If set to > 0, lang ID embedding will be used.
+            spk_embed_dim (int): Number of speaker embedding dimenstions.
+            spk_embed_integration_type (str): How to integrate speaker embedding.
+            use_gst (str): Whether to use global style token.
+            gst_tokens (int): Number of GST embeddings.
+            gst_heads (int): Number of heads in GST multihead attention.
+            gst_conv_layers (int): Number of conv layers in GST.
+            gst_conv_chans_list: (Sequence[int]): List of the number of channels of conv
+                layers in GST.
+            gst_conv_kernel_size (int): Kernal size of conv layers in GST.
+            gst_conv_stride (int): Stride size of conv layers in GST.
+            gst_gru_layers (int): Number of GRU layers in GST.
+            gst_gru_units (int): Number of GRU units in GST.
+            transformer_lr (float): Initial value of learning rate.
+            transformer_warmup_steps (int): Optimizer warmup steps.
+            transformer_enc_dropout_rate (float): Dropout rate in encoder except
+                attention and positional encoding.
+            transformer_enc_positional_dropout_rate (float): Dropout rate after encoder
+                positional encoding.
+            transformer_enc_attn_dropout_rate (float): Dropout rate in encoder
+                self-attention module.
+            transformer_dec_dropout_rate (float): Dropout rate in decoder except
+                attention & positional encoding.
+            transformer_dec_positional_dropout_rate (float): Dropout rate after decoder
+                positional encoding.
+            transformer_dec_attn_dropout_rate (float): Dropout rate in decoder
+                self-attention module.
+            transformer_enc_dec_attn_dropout_rate (float): Dropout rate in source
+                attention module.
+            init_type (str): How to initialize transformer parameters.
+            init_enc_alpha (float): Initial value of alpha in scaled pos encoding of the
+                encoder.
+            init_dec_alpha (float): Initial value of alpha in scaled pos encoding of the
+                decoder.
+            eprenet_dropout_rate (float): Dropout rate in encoder prenet.
+            dprenet_dropout_rate (float): Dropout rate in decoder prenet.
+            postnet_dropout_rate (float): Dropout rate in postnet.
+            use_masking (bool): Whether to apply masking for padded part in loss
+                calculation.
+            use_weighted_masking (bool): Whether to apply weighted masking in loss
+                calculation.
+            bce_pos_weight (float): Positive sample weight in bce calculation
+                (only for use_masking=true).
+            loss_type (str): How to calculate loss.
+            use_guided_attn_loss (bool): Whether to use guided attention loss.
+            num_heads_applied_guided_attn (int): Number of heads in each layer to apply
+                guided attention loss.
+            num_layers_applied_guided_attn (int): Number of layers to apply guided
+                attention loss.
+            modules_applied_guided_attn (Sequence[str]): List of module names to apply
+                guided attention loss.
+            guided_attn_loss_sigma (float) Sigma in guided attention loss.
+            guided_attn_loss_lambda (float): Lambda in guided attention loss.
+
+        """
         assert check_argument_types()
         super().__init__()
 
@@ -209,6 +211,8 @@ class Transformer(AbsTTS):
         self.eos = idim - 1
         self.spk_embed_dim = spk_embed_dim
         self.reduction_factor = reduction_factor
+        self.spks = spks
+        self.langs = langs
         self.use_gst = use_gst
         self.use_guided_attn_loss = use_guided_attn_loss
         self.use_scaled_pos_enc = use_scaled_pos_enc
@@ -287,6 +291,12 @@ class Transformer(AbsTTS):
                 gru_layers=gst_gru_layers,
                 gru_units=gst_gru_units,
             )
+
+        # define spk and lang embedding
+        if self.spks > 0:
+            self.sid_emb = torch.nn.Embedding(spks, embed_dim)
+        if self.langs > 0:
+            self.lid_emb = torch.nn.Embedding(langs, embed_dim)
 
         # define projection layer
         if self.spk_embed_dim is not None:
@@ -380,7 +390,9 @@ class Transformer(AbsTTS):
         text_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        spembs: torch.Tensor = None,
+        spembs: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
@@ -389,7 +401,9 @@ class Transformer(AbsTTS):
             text_lengths (LongTensor): Batch of lengths of each input batch (B,).
             speech (Tensor): Batch of padded target features (B, Lmax, odim).
             speech_lengths (LongTensor): Batch of the lengths of each target (B,).
-            spembs (Tensor, optional): Batch of speaker embeddings (B, spk_embed_dim).
+            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
+            sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
+            lids (Optional[Tensor]): Batch of language IDs (B, 1).
 
         Returns:
             Tensor: Loss scalar value.
@@ -415,7 +429,15 @@ class Transformer(AbsTTS):
         labels = F.pad(labels, [0, 1], "constant", 1.0)
 
         # calculate transformer outputs
-        after_outs, before_outs, logits = self._forward(xs, ilens, ys, olens, spembs)
+        after_outs, before_outs, logits = self._forward(
+            xs=xs,
+            ilens=ilens,
+            ys=ys,
+            olens=olens,
+            spembs=spembs,
+            sids=sids,
+            lids=lids,
+        )
 
         # modifiy mod part of groundtruth
         olens_in = olens
@@ -466,7 +488,7 @@ class Transformer(AbsTTS):
                     ]
                     if idx + 1 == self.num_layers_applied_guided_attn:
                         break
-                att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_in, T_in)
+                att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_text, T_text)
                 enc_attn_loss = self.attn_criterion(att_ws, ilens, ilens)
                 loss = loss + enc_attn_loss
                 stats.update(enc_attn_loss=enc_attn_loss.item())
@@ -483,7 +505,7 @@ class Transformer(AbsTTS):
                     ]
                     if idx + 1 == self.num_layers_applied_guided_attn:
                         break
-                att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_out, T_out)
+                att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_feats, T_feats)
                 dec_attn_loss = self.attn_criterion(att_ws, olens_in, olens_in)
                 loss = loss + dec_attn_loss
                 stats.update(dec_attn_loss=dec_attn_loss.item())
@@ -500,7 +522,7 @@ class Transformer(AbsTTS):
                     ]
                     if idx + 1 == self.num_layers_applied_guided_attn:
                         break
-                att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_out, T_in)
+                att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_feats, T_text)
                 enc_dec_attn_loss = self.attn_criterion(att_ws, ilens, olens_in)
                 loss = loss + enc_dec_attn_loss
                 stats.update(enc_dec_attn_loss=enc_dec_attn_loss.item())
@@ -524,6 +546,8 @@ class Transformer(AbsTTS):
         ys: torch.Tensor,
         olens: torch.Tensor,
         spembs: torch.Tensor,
+        sids: torch.Tensor,
+        lids: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # forward encoder
         x_masks = self._source_mask(ilens)
@@ -534,11 +558,20 @@ class Transformer(AbsTTS):
             style_embs = self.gst(ys)
             hs = hs + style_embs.unsqueeze(1)
 
+        # integrate with SID and LID embeddings
+        if self.spks > 0:
+            sid_embs = self.sid_emb(sids.view(-1))
+            hs = hs + sid_embs.unsqueeze(1)
+        if self.langs > 0:
+            lid_embs = self.lid_emb(lids.view(-1))
+            hs = hs + lid_embs.unsqueeze(1)
+
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
             hs = self._integrate_with_spk_embed(hs, spembs)
 
-        # thin out frames for reduction factor (B, Lmax, odim) ->  (B, Lmax//r, odim)
+        # thin out frames for reduction factor
+        # (B, T_feats, odim) ->  (B, T_feats//r, odim)
         if self.reduction_factor > 1:
             ys_in = ys[:, self.reduction_factor - 1 :: self.reduction_factor]
             olens_in = olens.new([olen // self.reduction_factor for olen in olens])
@@ -551,12 +584,12 @@ class Transformer(AbsTTS):
         # forward decoder
         y_masks = self._target_mask(olens_in)
         zs, _ = self.decoder(ys_in, y_masks, hs, h_masks)
-        # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
+        # (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
         before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
-        # (B, Lmax//r, r) -> (B, Lmax//r * r)
+        # (B, T_feats//r, r) -> (B, T_feats//r * r)
         logits = self.prob_out(zs).view(zs.size(0), -1)
 
-        # postnet -> (B, Lmax//r * r, odim)
+        # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
         else:
@@ -569,8 +602,10 @@ class Transformer(AbsTTS):
     def inference(
         self,
         text: torch.Tensor,
-        speech: torch.Tensor = None,
-        spembs: torch.Tensor = None,
+        speech: Optional[torch.Tensor] = None,
+        spembs: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
@@ -579,19 +614,22 @@ class Transformer(AbsTTS):
         """Generate the sequence of features given the sequences of characters.
 
         Args:
-            text (LongTensor): Input sequence of characters (T,).
-            speech (Tensor, optional): Feature sequence to extract style (N, idim).
-            spembs (Tensor, optional): Speaker embedding vector (spk_embed_dim,).
-            threshold (float, optional): Threshold in inference.
-            minlenratio (float, optional): Minimum length ratio in inference.
-            maxlenratio (float, optional): Maximum length ratio in inference.
-            use_teacher_forcing (bool, optional): Whether to use teacher forcing.
+            text (LongTensor): Input sequence of characters (T_text,).
+            speech (Optional[Tensor]): Feature sequence to extract style embedding
+                (T_feats', idim).
+            spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).
+            sids (Optional[Tensor]): Speaker IDs (1,).
+            lids (Optional[Tensor]): Language IDs (1,).
+            threshold (float): Threshold in inference.
+            minlenratio (float): Minimum length ratio in inference.
+            maxlenratio (float): Maximum length ratio in inference.
+            use_teacher_forcing (bool): Whether to use teacher forcing.
 
         Returns:
             Dict[str, Tensor]: Output dict including the following items:
-                * feat_gen (Tensor): Output sequence of features (L, odim).
-                * prob (Tensor): Output sequence of stop probabilities (L,).
-                * att_w (Tensor): Source attention weights (#layers, #heads, L, T).
+                * feat_gen (Tensor): Output sequence of features (T_feats, odim).
+                * prob (Tensor): Output sequence of stop probabilities (T_feats,).
+                * att_w (Tensor): Source attn weight (#layers, #heads, T_feats, T_text).
 
         """
         x = text
@@ -610,13 +648,21 @@ class Transformer(AbsTTS):
             spembs = None if spemb is None else spemb.unsqueeze(0)
             ilens = x.new_tensor([xs.size(1)]).long()
             olens = y.new_tensor([ys.size(1)]).long()
-            outs, *_ = self._forward(xs, ilens, ys, olens, spembs)
+            outs, *_ = self._forward(
+                xs=xs,
+                ilens=ilens,
+                ys=ys,
+                olens=olens,
+                spembs=spembs,
+                sids=sids,
+                lids=lids,
+            )
 
             # get attention weights
             att_ws = []
             for i in range(len(self.decoder.decoders)):
                 att_ws += [self.decoder.decoders[i].src_attn.attn]
-            att_ws = torch.stack(att_ws, dim=1)  # (B, L, H, T_out, T_in)
+            att_ws = torch.stack(att_ws, dim=1)  # (B, L, H, T_feats, T_text)
 
             return dict(feat_gen=outs[0], att_w=att_ws[0])
 
@@ -685,14 +731,14 @@ class Transformer(AbsTTS):
                     continue
                 outs = (
                     torch.cat(outs, dim=0).unsqueeze(0).transpose(1, 2)
-                )  # (L, odim) -> (1, L, odim) -> (1, odim, L)
+                )  # (T_feats, odim) -> (1, T_feats, odim) -> (1, odim, T_feats)
                 if self.postnet is not None:
-                    outs = outs + self.postnet(outs)  # (1, odim, L)
-                outs = outs.transpose(2, 1).squeeze(0)  # (L, odim)
+                    outs = outs + self.postnet(outs)  # (1, odim, T_feats)
+                outs = outs.transpose(2, 1).squeeze(0)  # (T_feats, odim)
                 probs = torch.cat(probs, dim=0)
                 break
 
-        # concatenate attention weights -> (#layers, #heads, L, T)
+        # concatenate attention weights -> (#layers, #heads, T_feats, T_text)
         att_ws = torch.stack(att_ws, dim=0)
 
         return dict(feat_gen=outs, prob=probs, att_w=att_ws)
