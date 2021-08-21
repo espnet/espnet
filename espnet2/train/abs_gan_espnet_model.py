@@ -43,9 +43,28 @@ class AbsGANESPnetModel(AbsESPnetModel, torch.nn.Module, ABC):
     @abstractmethod
     def forward(
         self,
-        forward_generator: bool,
+        forward_generator: bool = True,
         **batch: torch.Tensor,
     ) -> Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor], int]]:
+        """Return the generator loss or the discrimiantor loss.
+
+        This method must have an argument "forward_generator" to switch the generator
+        loss calculation and the discrimiantor loss calculation. If forward_generator
+        is true, return the generator loss with optim_idx 0. If forward_generator is
+        false, return the discrimiantor loss with optim_idx 1.
+
+        Args:
+            forward_generator (bool): Whether to return the generator loss or the
+                discrimiantor loss. This must have the default value.
+
+        Returns:
+            Dict[str, Any]:
+                * loss (Tensor): Loss scalar tensor.
+                * stats (Dict[str, float]): Statistics to be monitored.
+                * weight (Tensor): Weight tensor to summarize losses.
+                * optim_idx (int): Optimizer index (0 for G and 1 for D).
+
+        """
         raise NotImplementedError
 
     @abstractmethod
