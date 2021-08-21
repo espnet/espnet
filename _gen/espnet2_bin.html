@@ -3078,6 +3078,9 @@ write_vocabulary mode related:
                         [--forward_window FORWARD_WINDOW]
                         [--use_teacher_forcing USE_TEACHER_FORCING]
                         [--speed_control_alpha SPEED_CONTROL_ALPHA]
+                        [--noise_scale NOISE_SCALE]
+                        [--noise_scale_dur NOISE_SCALE_DUR]
+                        [--always_fix_seed ALWAYS_FIX_SEED]
                         [--vocoder_conf VOCODER_CONF]
 
 TTS Decode
@@ -3099,6 +3102,12 @@ optional arguments:
   --speed_control_alpha SPEED_CONTROL_ALPHA
                         Alpha in FastSpeech to change the speed of generated
                         speech (default: 1.0)
+  --noise_scale NOISE_SCALE
+                        Noise scale parameter for the flow in vits (default:
+                        0.667)
+  --noise_scale_dur NOISE_SCALE_DUR
+                        Noise scale parameter for the stochastic duration
+                        predictor in vits (default: 0.8)
 
 Input data related:
   --data_path_and_name_and_type DATA_PATH_AND_NAME_AND_TYPE
@@ -3128,6 +3137,8 @@ Decoding related:
                         3)
   --use_teacher_forcing USE_TEACHER_FORCING
                         Whether to use teacher forcing (default: False)
+  --always_fix_seed ALWAYS_FIX_SEED
+                        Whether to always fix seed (default: False)
 
 Grriffin-Lim related:
   --vocoder_conf VOCODER_CONF

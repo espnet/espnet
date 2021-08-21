@@ -222,6 +222,7 @@
 <span class="kn">import</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
@@ -255,7 +256,7 @@
 
 
 <div class="viewcode-block" id="Text2Speech"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.tts_inference.Text2Speech">[docs]</a><span class="k">class</span> <span class="nc">Text2Speech</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Speech2Text class</span>
+    <span class="sd">&quot;&quot;&quot;Text2Speech module.</span>
 
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; import soundfile</span>
@@ -277,12 +278,18 @@
         <span class="n">backward_window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">forward_window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
         <span class="n">speed_control_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">noise_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.667</span><span class="p">,</span>
+        <span class="n">noise_scale_dur</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>
         <span class="n">vocoder_conf</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
         <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">777</span><span class="p">,</span>
+        <span class="n">always_fix_seed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize Text2Speech module.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
+        <span class="c1"># setup model</span>
         <span class="n">model</span><span class="p">,</span> <span class="n">train_args</span> <span class="o">=</span> <span class="n">TTSTask</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
             <span class="n">train_config</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
@@ -297,33 +304,37 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">duration_calculator</span> <span class="o">=</span> <span class="n">DurationCalculator</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_fn</span> <span class="o">=</span> <span class="n">TTSTask</span><span class="o">.</span><span class="n">build_preprocess_fn</span><span class="p">(</span><span class="n">train_args</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_teacher_forcing</span> <span class="o">=</span> <span class="n">use_teacher_forcing</span>
-
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Normalization:</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">always_fix_seed</span> <span class="o">=</span> <span class="n">always_fix_seed</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Extractor:</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Normalizer:</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TTS:</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
+        <span class="c1"># setup decoding config</span>
         <span class="n">decode_config</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">decode_config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">use_teacher_forcing</span><span class="o">=</span><span class="n">use_teacher_forcing</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">,</span> <span class="p">(</span><span class="n">Tacotron2</span><span class="p">,</span> <span class="n">Transformer</span><span class="p">)):</span>
             <span class="n">decode_config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-                <span class="p">{</span>
-                    <span class="s2">&quot;threshold&quot;</span><span class="p">:</span> <span class="n">threshold</span><span class="p">,</span>
-                    <span class="s2">&quot;maxlenratio&quot;</span><span class="p">:</span> <span class="n">maxlenratio</span><span class="p">,</span>
-                    <span class="s2">&quot;minlenratio&quot;</span><span class="p">:</span> <span class="n">minlenratio</span><span class="p">,</span>
-                <span class="p">}</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+                <span class="n">maxlenratio</span><span class="o">=</span><span class="n">maxlenratio</span><span class="p">,</span>
+                <span class="n">minlenratio</span><span class="o">=</span><span class="n">minlenratio</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">,</span> <span class="n">Tacotron2</span><span class="p">):</span>
             <span class="n">decode_config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-                <span class="p">{</span>
-                    <span class="s2">&quot;use_att_constraint&quot;</span><span class="p">:</span> <span class="n">use_att_constraint</span><span class="p">,</span>
-                    <span class="s2">&quot;forward_window&quot;</span><span class="p">:</span> <span class="n">forward_window</span><span class="p">,</span>
-                    <span class="s2">&quot;backward_window&quot;</span><span class="p">:</span> <span class="n">backward_window</span><span class="p">,</span>
-                <span class="p">}</span>
+                <span class="n">use_att_constraint</span><span class="o">=</span><span class="n">use_att_constraint</span><span class="p">,</span>
+                <span class="n">forward_window</span><span class="o">=</span><span class="n">forward_window</span><span class="p">,</span>
+                <span class="n">backward_window</span><span class="o">=</span><span class="n">backward_window</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">,</span> <span class="p">(</span><span class="n">FastSpeech</span><span class="p">,</span> <span class="n">FastSpeech2</span><span class="p">,</span> <span class="n">VITS</span><span class="p">)):</span>
-            <span class="n">decode_config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="n">speed_control_alpha</span><span class="p">})</span>
-        <span class="n">decode_config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;use_teacher_forcing&quot;</span><span class="p">:</span> <span class="n">use_teacher_forcing</span><span class="p">})</span>
-
+            <span class="n">decode_config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="n">speed_control_alpha</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">,</span> <span class="n">VITS</span><span class="p">):</span>
+            <span class="n">decode_config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="n">noise_scale</span><span class="o">=</span><span class="n">noise_scale</span><span class="p">,</span>
+                <span class="n">noise_scale_dur</span><span class="o">=</span><span class="n">noise_scale_dur</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decode_config</span> <span class="o">=</span> <span class="n">decode_config</span>
 
+        <span class="c1"># setup vocoder</span>
         <span class="k">if</span> <span class="n">vocoder_conf</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">vocoder_conf</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -348,54 +359,60 @@
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">lids</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">speed_control_alpha</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">decode_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Run text-to-speech.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
+        <span class="c1"># check inputs</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_speech</span> <span class="ow">and</span> <span class="n">speech</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;missing required argument: &#39;speech&#39;&quot;</span><span class="p">)</span>
 
+        <span class="c1"># prepare batch</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="c1"># str -&gt; np.ndarray</span>
-            <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_fn</span><span class="p">(</span><span class="s2">&quot;&lt;dummy&gt;&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">text</span><span class="p">})[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span>
-        <span class="n">batch</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">text</span><span class="p">}</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_fn</span><span class="p">(</span><span class="s2">&quot;&lt;dummy&gt;&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">))[</span><span class="s2">&quot;text&quot;</span><span class="p">]</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">speech</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">speech</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">speech</span><span class="o">=</span><span class="n">speech</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">durations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;durations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">durations</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">durations</span><span class="o">=</span><span class="n">durations</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">spembs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;spembs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">spembs</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">sids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;sids&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sids</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">lids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;lids&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lids</span>
-
-        <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_config</span>
-        <span class="k">if</span> <span class="n">speed_control_alpha</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">,</span> <span class="p">(</span><span class="n">FastSpeech</span><span class="p">,</span> <span class="n">FastSpeech2</span><span class="p">)</span>
-        <span class="p">):</span>
-            <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_config</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-            <span class="n">cfg</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="n">speed_control_alpha</span><span class="p">})</span>
-
+            <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">)</span>
         <span class="n">batch</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># overwrite the decode configs if provided</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_config</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">decode_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cfg</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">decode_config</span><span class="p">)</span>
+
+        <span class="c1"># inference</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">always_fix_seed</span><span class="p">:</span>
+            <span class="n">set_all_random_seed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
         <span class="n">output_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">,</span> <span class="o">**</span><span class="n">cfg</span><span class="p">)</span>
 
+        <span class="c1"># calculate additional metrics</span>
         <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;att_w&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">duration</span><span class="p">,</span> <span class="n">focus_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_calculator</span><span class="p">(</span><span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;att_w&quot;</span><span class="p">])</span>
-            <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;duration&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">duration</span>
-            <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;focus_rate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">focus_rate</span>
+            <span class="n">output_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">duration</span><span class="o">=</span><span class="n">duration</span><span class="p">,</span> <span class="n">focus_rate</span><span class="o">=</span><span class="n">focus_rate</span><span class="p">)</span>
 
+        <span class="c1"># apply vocoder (mel-to-wav)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spc2wav</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;feat_gen_denorm&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">input_feat</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen_denorm&quot;</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">input_feat</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen&quot;</span><span class="p">]</span>
-            <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;wav&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spc2wav</span><span class="p">(</span><span class="n">input_feat</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()))</span>
+            <span class="n">wav</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spc2wav</span><span class="p">(</span><span class="n">input_feat</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()))</span>
+            <span class="n">output_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">wav</span><span class="o">=</span><span class="n">wav</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">output_dict</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">fs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Return sampling rate.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spc2wav</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spc2wav</span><span class="o">.</span><span class="n">fs</span>
         <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">,</span> <span class="s2">&quot;fs&quot;</span><span class="p">):</span>
@@ -405,12 +422,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">use_speech</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Check whether to require speech in inference.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            bool: True if speech is required else False.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Return speech is needed or not in the inference.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_teacher_forcing</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">,</span> <span class="s2">&quot;use_gst&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span></div>
 
 
@@ -434,10 +446,13 @@
     <span class="n">backward_window</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">forward_window</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">speed_control_alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">noise_scale</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">noise_scale_dur</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">always_fix_seed</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">allow_variable_data_keys</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">vocoder_conf</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Perform TTS model decoding.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Run text-to-speech inference.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;batch decoding is not implemented&quot;</span><span class="p">)</span>
@@ -468,9 +483,13 @@
         <span class="n">backward_window</span><span class="o">=</span><span class="n">backward_window</span><span class="p">,</span>
         <span class="n">forward_window</span><span class="o">=</span><span class="n">forward_window</span><span class="p">,</span>
         <span class="n">speed_control_alpha</span><span class="o">=</span><span class="n">speed_control_alpha</span><span class="p">,</span>
+        <span class="n">noise_scale</span><span class="o">=</span><span class="n">noise_scale</span><span class="p">,</span>
+        <span class="n">noise_scale_dur</span><span class="o">=</span><span class="n">noise_scale_dur</span><span class="p">,</span>
         <span class="n">vocoder_conf</span><span class="o">=</span><span class="n">vocoder_conf</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+        <span class="n">always_fix_seed</span><span class="o">=</span><span class="n">always_fix_seed</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># 3. Build data-iterator</span>
@@ -780,6 +799,24 @@
         <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Alpha in FastSpeech to change the speed of generated speech&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--noise_scale&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.667</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Noise scale parameter for the flow in vits&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--noise_scale_dur&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Noise scale parameter for the stochastic duration predictor in vits&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--always_fix_seed&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to always fix seed&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Grriffin-Lim related&quot;</span><span class="p">)</span>

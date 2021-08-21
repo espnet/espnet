@@ -1241,13 +1241,15 @@ Tensor: Start index tensor (B,).</p>
 
 <dl class="method">
 <dt id="espnet2.gan_tts.vits.generator.VITSGenerator.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">dur: Optional[torch.Tensor] = None</em>, <em class="sig-param">noise_scale: float = 0.667</em>, <em class="sig-param">noise_scale_dur: float = 0.8</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">max_len: Optional[int] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/generator.html#VITSGenerator.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.generator.VITSGenerator.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">feats_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">dur: Optional[torch.Tensor] = None</em>, <em class="sig-param">noise_scale: float = 0.667</em>, <em class="sig-param">noise_scale_dur: float = 0.8</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">max_len: Optional[int] = None</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/generator.html#VITSGenerator.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.generator.VITSGenerator.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run inference.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>Tensor</em>) – Input text index tensor (B, T_text,).</p></li>
 <li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
+<li><p><strong>feats</strong> (<em>Tensor</em>) – Feature tensor (B, aux_channels, T_feats,).</p></li>
+<li><p><strong>feats_lengths</strong> (<em>Tensor</em>) – Feature length tensor (B,).</p></li>
 <li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker index tensor (B,) or (B, 1).</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding tensor (B, spk_embed_dim).</p></li>
 <li><p><strong>dur</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Ground-truth duration (B, T_text,). If provided,
@@ -1256,6 +1258,7 @@ skip the prediction of durations (i.e., teacher forcing).</p></li>
 <li><p><strong>noise_scale_dur</strong> (<em>float</em>) – Noise scale parameter for duration predictor.</p></li>
 <li><p><strong>alpha</strong> (<em>float</em>) – Alpha parameter to control the speed of generated speech.</p></li>
 <li><p><strong>max_len</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Maximum length of acoustic feature sequence.</p></li>
+<li><p><strong>use_teacher_forcing</strong> (<em>bool</em>) – Whether to use teacher forcing.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

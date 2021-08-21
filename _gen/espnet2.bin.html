@@ -385,9 +385,9 @@
 <span class="target" id="module-espnet2.bin.tts_inference"></span><p>TTS mode decoding.</p>
 <dl class="class">
 <dt id="espnet2.bin.tts_inference.Text2Speech">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.tts_inference.</code><code class="sig-name descname">Text2Speech</code><span class="sig-paren">(</span><em class="sig-param">train_config: Union[pathlib.Path, str, None], model_file: Union[pathlib.Path, str, None] = None, threshold: float = 0.5, minlenratio: float = 0.0, maxlenratio: float = 10.0, use_teacher_forcing: bool = False, use_att_constraint: bool = False, backward_window: int = 1, forward_window: int = 3, speed_control_alpha: float = 1.0, vocoder_conf: dict = None, dtype: str = 'float32', device: str = 'cpu'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/tts_inference.html#Text2Speech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tts_inference.Text2Speech" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.tts_inference.</code><code class="sig-name descname">Text2Speech</code><span class="sig-paren">(</span><em class="sig-param">train_config: Union[pathlib.Path, str, None], model_file: Union[pathlib.Path, str, None] = None, threshold: float = 0.5, minlenratio: float = 0.0, maxlenratio: float = 10.0, use_teacher_forcing: bool = False, use_att_constraint: bool = False, backward_window: int = 1, forward_window: int = 3, speed_control_alpha: float = 1.0, noise_scale: float = 0.667, noise_scale_dur: float = 0.8, vocoder_conf: dict = None, dtype: str = 'float32', device: str = 'cpu', seed: int = 777, always_fix_seed: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/tts_inference.html#Text2Speech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tts_inference.Text2Speech" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Speech2Text class</p>
+<p>Text2Speech module.</p>
 <p class="rubric">Examples</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">soundfile</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">text2speech</span> <span class="o">=</span> <span class="n">Text2Speech</span><span class="p">(</span><span class="s2">&quot;config.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;model.pth&quot;</span><span class="p">)</span>
@@ -395,23 +395,17 @@
 <span class="gp">&gt;&gt;&gt; </span><span class="n">soundfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;out.wav&quot;</span><span class="p">,</span> <span class="n">wav</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">text2speech</span><span class="o">.</span><span class="n">fs</span><span class="p">,</span> <span class="s2">&quot;PCM_16&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>Initialize Text2Speech module.</p>
 <dl class="method">
 <dt id="espnet2.bin.tts_inference.Text2Speech.fs">
 <em class="property">property </em><code class="sig-name descname">fs</code><a class="headerlink" href="#espnet2.bin.tts_inference.Text2Speech.fs" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Return sampling rate.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="espnet2.bin.tts_inference.Text2Speech.use_speech">
 <em class="property">property </em><code class="sig-name descname">use_speech</code><a class="headerlink" href="#espnet2.bin.tts_inference.Text2Speech.use_speech" title="Permalink to this definition">¶</a></dt>
-<dd><p>Check whether to require speech in inference.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>True if speech is required else False.</p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>bool</p>
-</dd>
-</dl>
+<dd><p>Return speech is needed or not in the inference.</p>
 </dd></dl>
 
 </dd></dl>
@@ -424,8 +418,8 @@
 
 <dl class="function">
 <dt id="espnet2.bin.tts_inference.inference">
-<code class="sig-prename descclassname">espnet2.bin.tts_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], train_config: Optional[str], model_file: Optional[str], threshold: float, minlenratio: float, maxlenratio: float, use_teacher_forcing: bool, use_att_constraint: bool, backward_window: int, forward_window: int, speed_control_alpha: float, allow_variable_data_keys: bool, vocoder_conf: dict</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/tts_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tts_inference.inference" title="Permalink to this definition">¶</a></dt>
-<dd><p>Perform TTS model decoding.</p>
+<code class="sig-prename descclassname">espnet2.bin.tts_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], train_config: Optional[str], model_file: Optional[str], threshold: float, minlenratio: float, maxlenratio: float, use_teacher_forcing: bool, use_att_constraint: bool, backward_window: int, forward_window: int, speed_control_alpha: float, noise_scale: float, noise_scale_dur: float, always_fix_seed: bool, allow_variable_data_keys: bool, vocoder_conf: dict</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/tts_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tts_inference.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run text-to-speech inference.</p>
 </dd></dl>
 
 <dl class="function">

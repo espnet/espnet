@@ -770,7 +770,23 @@
 
         <span class="c1"># inference</span>
         <span class="k">if</span> <span class="n">use_teacher_forcing</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Teacher forcing is not supported.&quot;</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">feats</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">feats_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">feats</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">feats</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">wav</span><span class="p">,</span> <span class="n">att_w</span><span class="p">,</span> <span class="n">dur</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+                <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">,</span>
+                <span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span>
+                <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">,</span>
+                <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
+                <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+                <span class="n">max_len</span><span class="o">=</span><span class="n">max_len</span><span class="p">,</span>
+                <span class="n">use_teacher_forcing</span><span class="o">=</span><span class="n">use_teacher_forcing</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">wav</span><span class="p">,</span> <span class="n">att_w</span><span class="p">,</span> <span class="n">dur</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span>
                 <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
