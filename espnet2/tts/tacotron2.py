@@ -98,43 +98,41 @@ class Tacotron2(AbsTTS):
         Args:
             idim (int): Dimension of the inputs.
             odim: (int) Dimension of the outputs.
-            spk_embed_dim (int): Dimension of the speaker embedding.
-            embed_dim (int): Dimension of character embedding.
-            elayers (int): The number of encoder blstm layers.
-            eunits (int): The number of encoder blstm units.
-            econv_layers (int): The number of encoder conv layers.
-            econv_filts (int): The number of encoder conv filter size.
-            econv_chans (int): The number of encoder conv filter channels.
-            dlayers (int): The number of decoder lstm layers.
-            dunits (int): The number of decoder lstm units.
-            prenet_layers (int): The number of prenet layers.
-            prenet_units (int): The number of prenet units.
-            postnet_layers (int): The number of postnet layers.
-            postnet_filts (int): The number of postnet filter size.
-            postnet_chans (int): The number of postnet filter channels.
-            output_activation (str): The name of activation function for outputs.
-            adim (int): The number of dimension of mlp in attention.
-            aconv_chans (int): The number of attention conv filter channels.
-            aconv_filts (int): The number of attention conv filter size.
+            embed_dim (int): Dimension of the token embedding.
+            elayers (int): Number of encoder blstm layers.
+            eunits (int): Number of encoder blstm units.
+            econv_layers (int): Number of encoder conv layers.
+            econv_filts (int): Number of encoder conv filter size.
+            econv_chans (int): Number of encoder conv filter channels.
+            dlayers (int): Number of decoder lstm layers.
+            dunits (int): Number of decoder lstm units.
+            prenet_layers (int): Number of prenet layers.
+            prenet_units (int): Number of prenet units.
+            postnet_layers (int): Number of postnet layers.
+            postnet_filts (int): Number of postnet filter size.
+            postnet_chans (int): Number of postnet filter channels.
+            output_activation (str): Name of activation function for outputs.
+            adim (int): Number of dimension of mlp in attention.
+            aconv_chans (int): Number of attention conv filter channels.
+            aconv_filts (int): Number of attention conv filter size.
             cumulate_att_w (bool): Whether to cumulate previous attention weight.
             use_batch_norm (bool): Whether to use batch normalization.
-            use_concate (bool): Whether to concatenate encoder embedding with
-                decoder lstm outputs.
+            use_concate (bool): Whether to concat enc outputs w/ dec lstm outputs.
             reduction_factor (int): Reduction factor.
             spks: Number of speakers. If set to > 0, speaker ID embedding will be used.
             langs: Number of langs. If set to > 0, lang ID embedding will be used.
             spk_embed_dim (int): Pretrained speaker embedding dimension.
             spk_embed_integration_type (str): How to integrate speaker embedding.
             use_gst (str): Whether to use global style token.
-            gst_tokens (int): The number of GST embeddings.
-            gst_heads (int): The number of heads in GST multihead attention.
-            gst_conv_layers (int): The number of conv layers in GST.
-            gst_conv_chans_list: (Sequence[int]):
-                List of the number of channels of conv layers in GST.
+            gst_tokens (int): Number of GST embeddings.
+            gst_heads (int): Number of heads in GST multihead attention.
+            gst_conv_layers (int): Number of conv layers in GST.
+            gst_conv_chans_list: (Sequence[int]): List of the number of channels of conv
+                layers in GST.
             gst_conv_kernel_size (int): Kernal size of conv layers in GST.
             gst_conv_stride (int): Stride size of conv layers in GST.
-            gst_gru_layers (int): The number of GRU layers in GST.
-            gst_gru_units (int): The number of GRU units in GST.
+            gst_gru_layers (int): Number of GRU layers in GST.
+            gst_gru_units (int): Number of GRU units in GST.
             dropout_rate (float): Dropout rate.
             zoneout_rate (float): Zoneout rate.
             use_masking (bool): Whether to mask padded part in loss calculation.
@@ -142,7 +140,7 @@ class Tacotron2(AbsTTS):
                 loss calculation.
             bce_pos_weight (float): Weight of positive sample of stop token
                 (only for use_masking=True).
-            loss_type (str): How to calculate loss ("L1", "L2", or "L1+L2").
+            loss_type (str): Loss function type ("L1", "L2", or "L1+L2").
             use_guided_attn_loss (bool): Whether to use guided attention loss.
             guided_attn_loss_sigma (float): Sigma in guided attention loss.
             guided_attn_loss_lambda (float): Lambda in guided attention loss.
@@ -406,7 +404,7 @@ class Tacotron2(AbsTTS):
     def inference(
         self,
         text: torch.Tensor,
-        speech: torch.Tensor = None,
+        speech: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -422,7 +420,7 @@ class Tacotron2(AbsTTS):
 
         Args:
             text (LongTensor): Input sequence of characters (T_text,).
-            speech (Tensor, optional): Feature sequence to extract style (N, idim).
+            speech (Optional[Tensor]): Feature sequence to extract style (N, idim).
             spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).
             sids (Optional[Tensor]): Speaker IDs (1,).
             lids (Optional[Tensor]): Language IDs (1,).
