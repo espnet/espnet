@@ -556,7 +556,23 @@ class VITS(AbsGANTTS):
 
         # inference
         if use_teacher_forcing:
-            raise NotImplementedError("Teacher forcing is not supported.")
+            assert feats is not None
+            feats = feats[None].transpose(1, 2)
+            feats_lengths = torch.tensor(
+                [feats.size(2)],
+                dtype=torch.long,
+                device=feats.device,
+            )
+            wav, att_w, dur = self.generator.inference(
+                text=text,
+                text_lengths=text_lengths,
+                feats=feats,
+                feats_lengths=feats_lengths,
+                sids=sids,
+                spembs=spembs,
+                max_len=max_len,
+                use_teacher_forcing=use_teacher_forcing,
+            )
         else:
             wav, att_w, dur = self.generator.inference(
                 text=text,
