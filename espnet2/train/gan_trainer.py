@@ -10,23 +10,18 @@ import time
 
 from contextlib import contextmanager
 from distutils.version import LooseVersion
-from pathlib import Path
 from typing import Dict
 from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
-from typing import Union
 
-import numpy as np
 import torch
-import wandb
 
 from torch.utils.tensorboard import SummaryWriter
 from typeguard import check_argument_types
 
-from espnet2.main_funcs.calculate_all_attentions import calculate_all_attentions
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 from espnet2.schedulers.abs_scheduler import AbsScheduler
 from espnet2.torch_utils.device_funcs import to_device
@@ -34,6 +29,7 @@ from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import SubReporter
 from espnet2.train.trainer import Trainer
+from espnet2.train.trainer import TrainerOptions
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.types import str2bool
 
@@ -46,7 +42,7 @@ if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
 else:
     # Nothing to do if torch<1.6.0
     @contextmanager
-    def autocast(enabled=True):
+    def autocast(enabled=True):  # NOQA
         yield
 
     GradScaler = None
@@ -58,30 +54,9 @@ except ImportError:
 
 
 @dataclasses.dataclass
-class TrainerOptions:
-    ngpu: int
-    resume: bool
-    use_amp: bool
-    train_dtype: str
-    grad_noise: bool
-    accum_grad: int
-    grad_clip: float
-    grad_clip_type: float
-    log_interval: Optional[int]
-    no_forward_run: bool
-    use_tensorboard: bool
-    use_wandb: bool
-    output_dir: Union[Path, str]
-    max_epoch: int
-    seed: int
-    sharded_ddp: bool
-    patience: Optional[int]
-    keep_nbest_models: Union[int, List[int]]
-    early_stopping_criterion: Sequence[str]
-    best_model_criterion: Sequence[Sequence[str]]
-    val_scheduler_criterion: Sequence[str]
-    unused_parameters: bool
-    wandb_model_log_interval: int
+class GANTrainerOptions(TrainerOptions):
+    """Trainer option dataclass for GANTrainer."""
+
     generator_first: bool
 
 
@@ -95,16 +70,17 @@ class GANTrainer(Trainer):
 
     @classmethod
     def build_options(cls, args: argparse.Namespace) -> TrainerOptions:
-        """Build options consumed by train(), eval(), and plot_attention()"""
+        """Build options consumed by train(), eval(), and plot_attention()."""
         assert check_argument_types()
-        return build_dataclass(TrainerOptions, args)
+        return build_dataclass(GANTrainerOptions, args)
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser):
+        """Add additional arguments for GAN-trainer."""
         parser.add_argument(
             "--generator_first",
             type=str2bool,
-            default=True,
+            default=False,
             help="Whether to update generator first.",
         )
 
@@ -118,9 +94,10 @@ class GANTrainer(Trainer):
         scaler: Optional[GradScaler],
         reporter: SubReporter,
         summary_writer: Optional[SummaryWriter],
-        options: TrainerOptions,
+        options: GANTrainerOptions,
         distributed_option: DistributedOption,
     ) -> bool:
+        """Train one epoch."""
         assert check_argument_types()
 
         grad_noise = options.grad_noise
@@ -134,8 +111,16 @@ class GANTrainer(Trainer):
         generator_first = options.generator_first
         distributed = distributed_option.distributed
 
+        # Check unavailable options
+        # TODO(kan-bayashi): Support the use of these options
         if accum_grad > 1:
-            raise ValueError("accum_grad must be 1 in GAN-based training.")
+            raise NotImplementedError(
+                "accum_grad > 1 is not supported in GAN-based training."
+            )
+        if grad_noise:
+            raise NotImplementedError(
+                "grad_noise is not supported in GAN-based training."
+            )
 
         if log_interval is None:
             try:
@@ -173,8 +158,7 @@ class GANTrainer(Trainer):
             for turn in turns:
                 with autocast(scaler is not None):
                     with reporter.measure_time(f"{turn}_forward_time"):
-                        forward_generator = turn == "generator"
-                        retval = model(forward_generator=forward_generator, **batch)
+                        retval = model(forward_generator=turn == "generator", **batch)
 
                         # Note(kamo):
                         # Supporting two patterns for the returned value from the model
@@ -245,12 +229,6 @@ class GANTrainer(Trainer):
                         if optim_idx is not None and iopt != optim_idx:
                             continue
                         scaler.unscale_(optimizer)
-
-                # gradient noise injection
-                if grad_noise:
-                    raise NotImplementedError(
-                        "Gradient noise injection is not supported."
-                    )
 
                 # TODO(kan-bayashi): Compute grad norm without clipping
                 grad_norm = None
@@ -345,13 +323,15 @@ class GANTrainer(Trainer):
         model: torch.nn.Module,
         iterator: Iterable[Dict[str, torch.Tensor]],
         reporter: SubReporter,
-        options: TrainerOptions,
+        options: GANTrainerOptions,
         distributed_option: DistributedOption,
     ) -> None:
+        """Validate one epoch."""
         assert check_argument_types()
         ngpu = options.ngpu
         no_forward_run = options.no_forward_run
         distributed = distributed_option.distributed
+        generator_first = options.generator_first
 
         model.eval()
 
@@ -369,9 +349,12 @@ class GANTrainer(Trainer):
             if no_forward_run:
                 continue
 
-            for turn in ["generator", "discriminator"]:
-                forward_generator = turn == "generator"
-                retval = model(forward_generator=forward_generator, **batch)
+            if generator_first:
+                turns = ["generator", "discriminator"]
+            else:
+                turns = ["discriminator", "generator"]
+            for turn in turns:
+                retval = model(forward_generator=turn == "generator", **batch)
                 if isinstance(retval, dict):
                     stats = retval["stats"]
                     weight = retval["weight"]
@@ -389,82 +372,3 @@ class GANTrainer(Trainer):
             if distributed:
                 iterator_stop.fill_(1)
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
-
-    # TODO(kan-bayashi): Remove this part since this is the same as Trainer.
-    #   But if not copied, the type check of TrainerOptions will cause errors.
-    @classmethod
-    @torch.no_grad()
-    def plot_attention(
-        cls,
-        model: torch.nn.Module,
-        output_dir: Optional[Path],
-        summary_writer: Optional[SummaryWriter],
-        iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
-        reporter: SubReporter,
-        options: TrainerOptions,
-    ) -> None:
-        assert check_argument_types()
-        import matplotlib
-
-        ngpu = options.ngpu
-        no_forward_run = options.no_forward_run
-
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-        from matplotlib.ticker import MaxNLocator
-
-        model.eval()
-        for ids, batch in iterator:
-            assert isinstance(batch, dict), type(batch)
-            assert len(next(iter(batch.values()))) == len(ids), (
-                len(next(iter(batch.values()))),
-                len(ids),
-            )
-            batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
-            if no_forward_run:
-                continue
-
-            # 1. Forwarding model and gathering all attentions
-            #    calculate_all_attentions() uses single gpu only.
-            att_dict = calculate_all_attentions(model, batch)
-
-            # 2. Plot attentions: This part is slow due to matplotlib
-            for k, att_list in att_dict.items():
-                assert len(att_list) == len(ids), (len(att_list), len(ids))
-                for id_, att_w in zip(ids, att_list):
-
-                    if isinstance(att_w, torch.Tensor):
-                        att_w = att_w.detach().cpu().numpy()
-
-                    if att_w.ndim == 2:
-                        att_w = att_w[None]
-                    elif att_w.ndim > 3 or att_w.ndim == 1:
-                        raise RuntimeError(f"Must be 2 or 3 dimension: {att_w.ndim}")
-
-                    w, h = plt.figaspect(1.0 / len(att_w))
-                    fig = plt.Figure(figsize=(w * 1.3, h * 1.3))
-                    axes = fig.subplots(1, len(att_w))
-                    if len(att_w) == 1:
-                        axes = [axes]
-
-                    for ax, aw in zip(axes, att_w):
-                        ax.imshow(aw.astype(np.float32), aspect="auto")
-                        ax.set_title(f"{k}_{id_}")
-                        ax.set_xlabel("Input")
-                        ax.set_ylabel("Output")
-                        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-                        ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-
-                    if output_dir is not None:
-                        p = output_dir / id_ / f"{k}.{reporter.get_epoch()}ep.png"
-                        p.parent.mkdir(parents=True, exist_ok=True)
-                        fig.savefig(p)
-
-                    if summary_writer is not None:
-                        summary_writer.add_figure(
-                            f"{k}_{id_}", fig, reporter.get_epoch()
-                        )
-
-                    if options.use_wandb:
-                        wandb.log({f"attention plot/{k}_{id_}": wandb.Image(fig)})
-            reporter.next()
