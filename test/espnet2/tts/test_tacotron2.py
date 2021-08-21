@@ -65,8 +65,8 @@ def test_tacotron2(
     inputs = dict(
         text=torch.randint(0, 10, (2, 4)),
         text_lengths=torch.tensor([4, 1], dtype=torch.long),
-        speech=torch.randn(2, 5, 5),
-        speech_lengths=torch.tensor([5, 3], dtype=torch.long),
+        feats=torch.randn(2, 5, 5),
+        feats_lengths=torch.tensor([5, 3], dtype=torch.long),
     )
     if spk_embed_dim is not None:
         inputs.update(spembs=torch.randn(2, spk_embed_dim))
@@ -85,7 +85,7 @@ def test_tacotron2(
             text=torch.randint(0, 10, (2,)),
         )
         if use_gst:
-            inputs.update(speech=torch.randn(5, 5))
+            inputs.update(feats=torch.randn(5, 5))
         if spk_embed_dim is not None:
             inputs.update(spembs=torch.randn(spk_embed_dim))
         if spks > 0:
@@ -95,5 +95,5 @@ def test_tacotron2(
         model.inference(**inputs, maxlenratio=1.0)
 
         # teacher forcing
-        inputs.update(speech=torch.randn(5, 5))
+        inputs.update(feats=torch.randn(5, 5))
         model.inference(**inputs, use_teacher_forcing=True)

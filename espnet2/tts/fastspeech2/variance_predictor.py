@@ -36,10 +36,10 @@ class VariancePredictor(torch.nn.Module):
 
         Args:
             idim (int): Input dimension.
-            n_layers (int, optional): Number of convolutional layers.
-            n_chans (int, optional): Number of channels of convolutional layers.
-            kernel_size (int, optional): Kernel size of convolutional layers.
-            dropout_rate (float, optional): Dropout rate.
+            n_layers (int): Number of convolutional layers.
+            n_chans (int): Number of channels of convolutional layers.
+            kernel_size (int): Kernel size of convolutional layers.
+            dropout_rate (float): Dropout rate.
 
         """
         assert check_argument_types()
@@ -69,8 +69,7 @@ class VariancePredictor(torch.nn.Module):
 
         Args:
             xs (Tensor): Batch of input sequences (B, Tmax, idim).
-            x_masks (ByteTensor, optional):
-                Batch of masks indicating padded part (B, Tmax).
+            x_masks (ByteTensor): Batch of masks indicating padded part (B, Tmax).
 
         Returns:
             Tensor: Batch of predicted sequences (B, Tmax, 1).
