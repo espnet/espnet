@@ -17,9 +17,9 @@ import yaml
 
 from filelock import FileLock
 from pathlib import Path
+from typeguard import check_argument_types
 from typing import Optional
 from typing import Tuple
-from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
@@ -139,7 +139,8 @@ class FairseqHubertEncoder(AbsEncoder):
 
         else:
 
-            self.hubert_model_path = download_hubert(hubert_url, hubert_dir_path)
+            self.hubert_model_path = download_hubert(
+                hubert_url, hubert_dir_path)
 
             (
                 models,
@@ -311,7 +312,8 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
             if os.path.exists(f"{hubert_dict}")
             else None
         ]
-        self.encoder = HubertModel(self.cfg, hubert_task_cfg, self.dictionaries)
+        self.encoder = HubertModel(
+            self.cfg, hubert_task_cfg, self.dictionaries)
 
     def output_size(self) -> int:
         return self._output_size
@@ -347,7 +349,8 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
 
     def cast_mask_emb(self):
         if self.use_amp and self.encoder.mask_emb.dtype != torch.cuda.HalfTensor:
-            self.encoder.mask_emb = torch.nn.Parameter(self.encoder.mask_emb.half())
+            self.encoder.mask_emb = torch.nn.Parameter(
+                self.encoder.mask_emb.half())
 
     def reload_pretrained_parameters(self):
         self.encoder.mask_emb = torch.nn.Parameter(
