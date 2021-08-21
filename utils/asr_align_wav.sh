@@ -44,6 +44,7 @@ scoring_length=30
 models=tedlium2.rnn.v2
 dict=
 nlsyms=
+download_dir=${align_dir}/download
 
 . utils/parse_options.sh || exit 1;
 
@@ -55,6 +56,7 @@ Options:
     --backend <chainer|pytorch>     # chainer or pytorch (Default: pytorch)
     --ngpu <ngpu>                   # Number of GPUs (Default: 0)
     --align-dir <directory_name>    # Name of directory to store decoding temporary data
+    --download-dir <directory_name> # Name of directory to store download files
     --models <model_name>           # Model name (e.g. tedlium2.transformer.v1)
     --cmvn <path>                   # Location of cmvn.ark
     --align-model <path>            # Location of E2E model
@@ -98,7 +100,6 @@ train_cmd=
 
 wav=$1
 text=$2
-download_dir=${align_dir}/download
 
 if [ ! $# -eq 2 ]; then
     echo "${help_message}"
