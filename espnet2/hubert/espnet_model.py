@@ -99,6 +99,7 @@ class HubertPretrainModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Calc loss
+
         Args:
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
@@ -159,6 +160,8 @@ class HubertPretrainModel(AbsESPnetModel):
         Args:
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
+            y_pad: (Batch, Length, ...)
+            y_pad_length: (Batch, )
         """
         with autocast(False):
             # 1. Extract feats

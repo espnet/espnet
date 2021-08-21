@@ -21,7 +21,7 @@ from typeguard import check_return_type
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.hubert_encoder import (
-    FairseqHubertPretrainEncoder,
+    FairseqHubertPretrainEncoder,  # noqa: H301
 )
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend

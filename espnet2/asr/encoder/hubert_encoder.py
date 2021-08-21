@@ -10,25 +10,28 @@
 """Encoder definition."""
 import contextlib
 import copy
-from pathlib import Path
-from filelock import FileLock
 import logging
 import os
+import torch
+import yaml
+
+from filelock import FileLock
+from pathlib import Path
 from typing import Optional
 from typing import Tuple
 from typeguard import check_argument_types
-import torch
-import yaml
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 try:
+    import fairseq
+    from fairseq.data.dictionary import Dictionary
     from fairseq.models.hubert.hubert import (
-        HubertModel,
-        HubertConfig,
-        HubertPretrainingConfig,
+        HubertModel,  # noqa: H301
+        HubertConfig,  # noqa: H301
+        HubertPretrainingConfig,  # noqa: H301
     )
 except Exception as e:
     print("Error: FairSeq is not properly installed.")
@@ -189,7 +192,7 @@ class FairseqHubertEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Forward FairHubert Encoder.
+        """Forward Hubert ASR Encoder.
 
         Args:
             xs_pad: input tensor (B, L, D)
