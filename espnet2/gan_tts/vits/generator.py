@@ -107,7 +107,7 @@ class VITSGenerator(torch.nn.Module):
             text_encoder_positionwise_layer_type (str): Position-wise layer type in
                 conformer block of text encoder.
             text_encoder_positionwise_conv_kernel_size (int): Position-wise convolution
-                kernal size in conformer block of text encoder. Only used when the
+                kernel size in conformer block of text encoder. Only used when the
                 above layer type is conv1d or conv1d-linear.
             text_encoder_positional_encoding_layer_type (str): Positional encoding layer
                 type in conformer block of text encoder.
@@ -123,7 +123,7 @@ class VITSGenerator(torch.nn.Module):
                 encoding in conformer block of text encoder.
             text_encoder_attention_dropout_rate (float): Dropout rate for attention in
                 conformer block of text encoder.
-            text_encoder_conformer_kernel_size (int): Conformer conv kernal size. It
+            text_encoder_conformer_kernel_size (int): Conformer conv kernel size. It
                 will be used when only use_conformer_conv_in_text_encoder = True.
             use_macaron_style_in_text_encoder (bool): Whether to use macaron style FFN
                 in conformer block of text encoder.
@@ -193,7 +193,7 @@ class VITSGenerator(torch.nn.Module):
             global_channels=global_channels,
             kernel_size=decoder_kernel_size,
             upsample_scales=decoder_upsample_scales,
-            upsample_kernal_sizes=decoder_upsample_kernel_sizes,
+            upsample_kernel_sizes=decoder_upsample_kernel_sizes,
             resblock_kernel_sizes=decoder_resblock_kernel_sizes,
             resblock_dilations=decoder_resblock_dilations,
             use_weight_norm=use_weight_norm_in_decoder,
