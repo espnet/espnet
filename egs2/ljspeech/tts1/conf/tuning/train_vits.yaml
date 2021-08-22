@@ -1,8 +1,8 @@
 # This configuration is for ESPnet2 to train VITS, which
 # is truely end-to-end text-to-waveform model. To run
-# this config, you need to specify the options for tts.sh
-# "--tts_task gan_tts" options at least and use 22050 hz
-# audio as the training data (mainly tested on LJspeech).
+# this config, you need to specify "--tts_task gan_tts"
+# option for tts.sh at least and use 22050 hz audio as
+# the training data (mainly tested on LJspeech).
 # This configuration tested on 4 GPUs (V100) with 32GB GPU
 # memory. It takes around 2 weeks to finish the training
 # but 100k iters model should generate reasonable results.
