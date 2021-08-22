@@ -55,30 +55,30 @@
 
 ## Summary
 
-|Model|Algo|CER¹|WER¹|RTF¹²|
-|-|-|-|-|-|
-|RNN-T|default|16.8|38.3|0.121|
-|-|ALSD|16.8|38.4|0.109|
-|-|TSD|16.7|38.2|0.159|
-|-|NSC|16.6|37.9|0.175|
-|-|mAES|16.9|38.5|0.096|
-|RNN-T + Aux|default|15.4|36.7|0.119|
-|-|ALSD|15.4|36.6|0.109|
-|-|TSD|15.4|36.6|0.159|
-|-|NSC|15.5|36.7|0.176|
-|-|mAES|15.5|36.9|0.095|
-|Conformer/RNN-T|default|11.9|26.9|0.077|
-|-|ALSD|12.2|27.3|0.064|
-|-|TSD|12.0|27.0|0.095|
-|-|NSC|12.0|27.0|0.106|
-|-|mAES|12.0|27.1|0.049|
-|Conformer/RNN-T + Aux|default|11.5|26.1|0.076|
-|-|ALSD|11.7|26.3|0.063|
-|-|TSD|11.4|26.0|0.095|
-|-|NSC|11.4|26.0|0.107|
-|-|mAES|11.5|26.3|0.053|
+|Model|Algo|CER¹|WER¹|SER¹|RTF¹²|
+|-|-|-|-|-|-|
+|RNN-T|default|16.8|38.3|94.1|0.121|
+|-|ALSD|16.8|38.4|94.1|0.109|
+|-|TSD|16.7|38.2|93.9|0.159|
+|-|NSC|16.6|37.9|94.1|0.175|
+|-|mAES|16.9|38.5|94.5|0.096|
+|RNN-T + Aux|default|15.4|36.7|93.0|0.119|
+|-|ALSD|15.4|36.6|93.4|0.109|
+|-|TSD|15.4|36.6|93.4|0.159|
+|-|NSC|15.5|36.7|93.0|0.176|
+|-|mAES|15.5|36.9|93.3|0.095|
+|Conformer/RNN-T|default|11.9|26.9|86.1|0.077|
+|-|ALSD|12.2|27.3|86.3|0.064|
+|-|TSD|12.0|27.0|86.2|0.095|
+|-|NSC|12.0|27.0|86.4|0.106|
+|-|mAES|12.0|27.1|85.8|0.049|
+|Conformer/RNN-T + Aux|default|11.5|26.1|84.5|0.076|
+|-|ALSD|11.7|26.3|83.9|0.063|
+|-|TSD|11.4|26.0|83.7|0.095|
+|-|NSC|11.4|26.0|84.2|0.107|
+|-|mAES|11.5|26.3|84.5|0.053|
 
-¹ Summary benchmark was performed on the test set only.  
+¹ Reported on the test set only.  
 ² RTF was computed using `line-profiler` tool applied to [recognize method](https://github.com/espnet/espnet/blob/master/espnet/nets/pytorch_backend/e2e_asr_transducer.py#L470). The reported value is averaged on 5 runs with `nj=1`. All experiments were performed using a single AMD EPYC 7502P.
 
 ## RNN-Transducer (Enc: VGG + 4x BLSTM, Dec: 1x LSTM)
