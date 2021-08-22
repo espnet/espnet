@@ -1,7 +1,7 @@
-# This configuration is for ESPnet2 to train VITS, which
-# is truely end-to-end text-to-waveform model. To run
+# This configuration is for ESPnet2 to train 44.1 kHz VITS,
+# which is truely end-to-end text-to-waveform model. To run
 # this config, you need to specify the options for tts.sh
-# "--tts_task gan_tts" options at least and use 22050 hz
+# "--tts_task gan_tts" options at least and use 44100 hz
 # audio as the training data (mainly tested on LJspeech).
 # This configuration tested on 4 GPUs (V100) with 32GB GPU
 # memory. It takes around 2 weeks to finish the training
@@ -40,8 +40,8 @@ tts_conf:
         text_encoder_conformer_kernel_size: -1
         decoder_kernel_size: 7
         decoder_channels: 512
-        decoder_upsample_scales: [8, 8, 2, 2]
-        decoder_upsample_kernel_sizes: [16, 16, 4, 4]
+        decoder_upsample_scales: [8, 8, 2, 2, 2]
+        decoder_upsample_kernel_sizes: [16, 16, 4, 4, 4]
         decoder_resblock_kernel_sizes: [3, 7, 11]
         decoder_resblock_dilations: [[1, 3, 5], [1, 3, 5], [1, 3, 5]]
         use_weight_norm_in_decoder: true
@@ -112,9 +112,9 @@ tts_conf:
         average_by_layers: false         # whether to average loss value by #layers of each discriminator
         include_final_outputs: true      # whether to include final outputs for loss calculation
     mel_loss_params:
-        fs: 22050          # must be the same as the training data
-        n_fft: 1024        # fft points
-        hop_length: 256    # hop size
+        fs: 44100          # must be the same as the training data
+        n_fft: 2048        # fft points
+        hop_length: 512    # hop size
         win_length: null   # window length
         window: hann       # window type
         n_mels: 80         # number of Mel basis
@@ -127,7 +127,7 @@ tts_conf:
     lambda_dur: 1.0        # loss scaling coefficient for duration loss
     lambda_kl: 1.0         # loss scaling coefficient for KL divergence loss
     # others
-    sampling_rate: 22050          # needed in the inference for saving wav
+    sampling_rate: 44100          # needed in the inference for saving wav
     cache_generator_outputs: true # whether to cache generator outputs in the training
 
 ##########################################################
@@ -161,7 +161,7 @@ generator_first: false # whether to start updating generator first
 num_iters_per_epoch: 500  # number of iterations per epoch
 max_epoch: 1000           # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_bins: 5000000       # batch bins (feats_type=raw)
+batch_bins: 10000000      # batch bins (feats_type=raw)
 batch_type: numel         # how to make batch
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
