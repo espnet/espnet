@@ -425,6 +425,9 @@ if [ -z "${inference_tag}" ]; then
           inference_tag+="_fgram_rescoring"
         fi
       fi
+      if ${use_nbest_rescoring}; then
+        inference_tag+="_nbest_rescoring"
+      fi
     fi
 fi
 
@@ -1181,9 +1184,9 @@ if ! "${skip_eval}"; then
           # Now only _nj=1 is verified
           _nj=1
           asr_inference_tool="espnet2.bin.k2_asr_inference"
+          _opts+="--is_ctc_decoding ${is_ctc_decoding} "
           if ! ${is_ctc_decoding}; then
             # use tlg_decoding is is_ctc_decoding=false
-            _opts+="--is_ctc_decoding ${is_ctc_decoding} "
             _opts+="--lang_dir ${lang_dir} "
             if [ ! -f ${lang_dir}/${tlg_ngram_file} ]; then
               local/prepare_dict.sh \
@@ -1195,6 +1198,9 @@ if ! "${skip_eval}"; then
             if ${use_fgram_rescoring}; then
               _opts+="--use_fgram_rescoring ${use_fgram_rescoring} "
             fi
+          fi
+          if ${use_nbest_rescoring}; then
+            _opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
           fi
 
         else

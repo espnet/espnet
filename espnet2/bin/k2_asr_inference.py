@@ -299,12 +299,111 @@ class k2Speech2Text:
                 lattices, self.G, lm_scale_list=None, need_rescored_lats=True
             )
 
-        best_paths = k2.shortest_path(lattices, use_double_scores=True)
-        scores = best_paths.get_tot_scores(
-            use_double_scores=True, log_semiring=False
-        ).tolist()
+        results = []
+        if self.use_nbest_rescoring:
+            (
+                am_scores,
+                lm_scores,
+                token_ids,
+                new2old,
+                path_to_seq_map,
+                seq_to_path_splits,
+                word_seqs,
+            ) = nbest_am_flm_scores(lattices, 1000)
+            assert lm_scores is None
 
-        hyps = get_texts(best_paths)
+            ys_pad_lens = torch.tensor([len(hyp) for hyp in token_ids]).to(self.device)
+            max_token_length = max(ys_pad_lens)
+            ys_pad_list = []
+            for hyp in token_ids:
+                ys_pad_list.append(
+                    torch.cat(
+                        [
+                            torch.tensor(hyp, dtype=torch.long),
+                            torch.tensor(
+                                [self.asr_model.ignore_id]
+                                * (max_token_length - len(hyp)),
+                                dtype=torch.long,
+                            ),
+                        ]
+                    )
+                )
+
+            ys_pad = (
+                torch.stack(ys_pad_list).to(torch.long).to(self.device)
+            )  # [batch, max_token_length]
+
+            encoder_out = enc.index_select(0, path_to_seq_map).to(
+                self.device
+            )  # [batch, T, dim]
+            encoder_out_lens = encoder_out_lens.index_select(0, path_to_seq_map).to(
+                self.device
+            )  # [batch]
+
+            decoder_scores = -self.asr_model.nll(
+                encoder_out, encoder_out_lens, ys_pad, ys_pad_lens
+            )
+            ys_pad_list = []
+            for hyp in token_ids:
+                ys_pad_list.append(
+                    torch.cat(
+                        [
+                            torch.tensor(hyp, dtype=torch.long),
+                            torch.tensor(
+                                [0] * (max_token_length - len(hyp)), dtype=torch.long
+                            ),
+                        ]
+                    )
+                )
+            ys_pad = (
+                torch.stack(ys_pad_list).to(torch.long).to(self.device)
+            )  # [batch, max_token_length]
+            nnlm_nll, x_lengths = self.lm.nll(ys_pad, ys_pad_lens)
+            nnlm_scores = -nnlm_nll.sum(dim=1)
+
+            decoder_weight = 0.5
+            nnlm_weight = 1.0
+
+            batch_tot_scores = (
+                am_scores + decoder_weight * decoder_scores + nnlm_weight * nnlm_scores
+            )
+            batch_tot_scores = torch.tensor_split(
+                batch_tot_scores, seq_to_path_splits[1:].to("cpu").to(torch.long)
+            )
+
+            hyps = []
+            scores = []
+            processed_seqs = 0
+            for tot_scores in batch_tot_scores:
+                if tot_scores.nelement() == 0:
+                    # the last element by torch.tensor_split may be empty
+                    # e.g.
+                    # torch.tensor_split(torch.tensor([1,2,3,4]), torch.tensor([2,4]))
+                    # (tensor([1, 2]), tensor([3, 4]), tensor([], dtype=torch.int64))
+
+                    break
+                # best_seq_idx = new2old[processed_seqs + torch.argmax(tot_scores)]
+                # import pdb; pdb.set_trace()
+                best_seq_idx = processed_seqs + torch.argmax(tot_scores)
+
+                # best_word_seq = word_seqs[best_seq_idx]
+                if best_seq_idx >= len(token_ids):
+                    import pdb
+
+                    pdb.set_trace()
+                best_token_seqs = token_ids[best_seq_idx]
+                processed_seqs += tot_scores.nelement()
+                # hyps.append(best_word_seq)
+                hyps.append(best_token_seqs)
+                scores.append(tot_scores.max().item())
+                assert len(hyps) == seq_to_path_splits.nelement() - 1
+        else:
+            best_paths = k2.shortest_path(lattices, use_double_scores=True)
+            scores = best_paths.get_tot_scores(
+                use_double_scores=True, log_semiring=False
+            ).tolist()
+            hyps = get_texts(best_paths)
+
         assert len(scores) == len(hyps)
 
         results = []
