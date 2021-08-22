@@ -19,6 +19,7 @@ import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
+from espnet2.gan_tts.utils import get_random_segments
 from espnet2.gan_tts.vits.duration_predictor import StochasticDurationPredictor
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
 from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
@@ -384,7 +385,7 @@ class VITSGenerator(torch.nn.Module):
         logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2)).transpose(1, 2)
 
         # get random segments
-        z_segments, z_start_idxs = self.get_random_segments(
+        z_segments, z_start_idxs = get_random_segments(
             z,
             feats_lengths,
             self.segment_size,
@@ -402,55 +403,6 @@ class VITSGenerator(torch.nn.Module):
             y_mask,
             (z, z_p, m_p, logs_p, m_q, logs_q),
         )
-
-    def get_random_segments(
-        self,
-        x: torch.Tensor,
-        x_lengths: torch.Tensor,
-        segment_size: int,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Get random segments.
-
-        Args:
-            x (Tensor): Input tensor (B, C, T).
-            x_lengths (Tensor): Length tensor (B,).
-            segment_size (int): Segment size.
-
-        Returns:
-            Tensor: Segmented tensor (B, C, segment_size).
-            Tensor: Start index tensor (B,).
-
-        """
-        b, c, t = x.size()
-        max_start_idx = x_lengths - segment_size
-        start_idxs = (torch.rand([b]).to(x.device) * max_start_idx).to(
-            dtype=torch.long,
-        )
-        segments = self.get_segments(x, start_idxs, segment_size)
-        return segments, start_idxs
-
-    def get_segments(
-        self,
-        x: torch.Tensor,
-        start_idxs: torch.Tensor,
-        segment_size: int,
-    ) -> torch.Tensor:
-        """Get segments.
-
-        Args:
-            x (Tensor): Input tensor (B, C, T).
-            start_idxs (Tensor): Start index tensor (B,).
-            segment_size (int): Segment size.
-
-        Returns:
-            Tensor: Segmented tensor (B, C, segment_size).
-
-        """
-        b, c, t = x.size()
-        segments = x.new_zeros(b, c, segment_size)
-        for i, start_idx in enumerate(start_idxs):
-            segments[i] = x[i, :, start_idx : start_idx + segment_size]
-        return segments
 
     def inference(
         self,

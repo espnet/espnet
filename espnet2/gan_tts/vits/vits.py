@@ -21,6 +21,7 @@ from espnet2.gan_tts.hifigan.loss import DiscriminatorAdversarialLoss
 from espnet2.gan_tts.hifigan.loss import FeatureMatchLoss
 from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
 from espnet2.gan_tts.hifigan.loss import MelSpectrogramLoss
+from espnet2.gan_tts.utils import get_segments
 from espnet2.gan_tts.vits.generator import VITSGenerator
 from espnet2.gan_tts.vits.loss import KLDivergenceLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -379,7 +380,7 @@ class VITS(AbsGANTTS):
         # parse outputs
         speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = outs
         _, z_p, m_p, logs_p, _, logs_q = outs_
-        speech_ = self.generator.get_segments(
+        speech_ = get_segments(
             x=speech,
             start_idxs=start_idxs * self.generator.upsample_factor,
             segment_size=self.generator.segment_size * self.generator.upsample_factor,
@@ -487,7 +488,7 @@ class VITS(AbsGANTTS):
 
         # parse outputs
         speech_hat_, _, _, start_idxs, *_ = outs
-        speech_ = self.generator.get_segments(
+        speech_ = get_segments(
             x=speech,
             start_idxs=start_idxs * self.generator.upsample_factor,
             segment_size=self.generator.segment_size * self.generator.upsample_factor,

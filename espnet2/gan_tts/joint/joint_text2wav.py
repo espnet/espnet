@@ -5,7 +5,6 @@
 
 from typing import Any
 from typing import Dict
-from typing import Tuple
 
 import torch
 
@@ -22,6 +21,8 @@ from espnet2.gan_tts.hifigan.loss import DiscriminatorAdversarialLoss
 from espnet2.gan_tts.hifigan.loss import FeatureMatchLoss
 from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
 from espnet2.gan_tts.hifigan.loss import MelSpectrogramLoss
+from espnet2.gan_tts.utils import get_random_segments
+from espnet2.gan_tts.utils import get_segments
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.fastspeech2 import FastSpeech2
@@ -218,7 +219,7 @@ class JointText2Wav(AbsGANTTS):
         lambda_adv: float = 1.0,
         lambda_feat_match: float = 2.0,
         lambda_mel: float = 45.0,
-        cache_generator_outputs: bool = True,
+        cache_generator_outputs: bool = False,
     ):
         """Initialize JointText2Wav module.
 
@@ -412,7 +413,7 @@ class JointText2Wav(AbsGANTTS):
                 **kwargs,
             )
             # get random segments
-            feats_gen_, start_idxs = self.get_random_segments(
+            feats_gen_, start_idxs = get_random_segments(
                 x=feats_gen.transpose(1, 2),
                 x_lengths=feats_lengths,
                 segment_size=self.segment_size,
@@ -426,7 +427,7 @@ class JointText2Wav(AbsGANTTS):
         if self.training and self.cache_generator_outputs and not reuse_cache:
             self._cache = (text2mel_loss, stats, speech_hat_, start_idxs)
 
-        speech_ = self.get_segments(
+        speech_ = get_segments(
             x=speech,
             start_idxs=start_idxs * self.generator["vocoder"].upsample_factor,
             segment_size=self.segment_size * self.generator["vocoder"].upsample_factor,
@@ -519,7 +520,7 @@ class JointText2Wav(AbsGANTTS):
                 **kwargs,
             )
             # get random segments
-            feats_gen_, start_idxs = self.get_random_segments(
+            feats_gen_, start_idxs = get_random_segments(
                 x=feats_gen.transpose(1, 2),
                 x_lengths=feats_lengths,
                 segment_size=self.segment_size,
@@ -534,7 +535,7 @@ class JointText2Wav(AbsGANTTS):
             self._cache = (text2mel_loss, stats, speech_hat_, start_idxs)
 
         # parse outputs
-        speech_ = self.get_segments(
+        speech_ = get_segments(
             x=speech,
             start_idxs=start_idxs * self.generator["vocoder"].upsample_factor,
             segment_size=self.segment_size * self.generator["vocoder"].upsample_factor,
@@ -565,55 +566,6 @@ class JointText2Wav(AbsGANTTS):
             "weight": weight,
             "optim_idx": 1,  # needed for trainer
         }
-
-    def get_random_segments(
-        self,
-        x: torch.Tensor,
-        x_lengths: torch.Tensor,
-        segment_size: int,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Get random segments.
-
-        Args:
-            x (Tensor): Input tensor (B, C, T).
-            x_lengths (Tensor): Length tensor (B,).
-            segment_size (int): Segment size.
-
-        Returns:
-            Tensor: Segmented tensor (B, C, segment_size).
-            Tensor: Start index tensor (B,).
-
-        """
-        b, c, t = x.size()
-        max_start_idx = x_lengths - segment_size
-        start_idxs = (torch.rand([b]).to(x.device) * max_start_idx).to(
-            dtype=torch.long,
-        )
-        segments = self.get_segments(x, start_idxs, segment_size)
-        return segments, start_idxs
-
-    def get_segments(
-        self,
-        x: torch.Tensor,
-        start_idxs: torch.Tensor,
-        segment_size: int,
-    ) -> torch.Tensor:
-        """Get segments.
-
-        Args:
-            x (Tensor): Input tensor (B, C, T).
-            start_idxs (Tensor): Start index tensor (B,).
-            segment_size (int): Segment size.
-
-        Returns:
-            Tensor: Segmented tensor (B, C, segment_size).
-
-        """
-        b, c, t = x.size()
-        segments = x.new_zeros(b, c, segment_size)
-        for i, start_idx in enumerate(start_idxs):
-            segments[i] = x[i, :, start_idx : start_idx + segment_size]
-        return segments
 
     def inference(
         self,
