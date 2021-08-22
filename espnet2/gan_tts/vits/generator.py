@@ -193,7 +193,7 @@ class VITSGenerator(torch.nn.Module):
             global_channels=global_channels,
             kernel_size=decoder_kernel_size,
             upsample_scales=decoder_upsample_scales,
-            upsample_kernal_sizes=decoder_upsample_kernel_sizes,
+            upsample_kernel_sizes=decoder_upsample_kernel_sizes,
             resblock_kernel_sizes=decoder_resblock_kernel_sizes,
             resblock_dilations=decoder_resblock_dilations,
             use_weight_norm=use_weight_norm_in_decoder,
