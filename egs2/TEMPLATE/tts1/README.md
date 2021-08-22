@@ -339,7 +339,7 @@ You can find the example configs in:
 - [`egs2/ljspeech/tts1/conf/tuning`: Single speaker 22.05 khz config](../../ljspeech/tts1/conf/tuning).
 - [`egs2/jsut/tts1/conf/tuning`: Single speaker 44.1 khz config](../../jsut/tts1/conf/tuning).
 - [`egs2/vctk/tts1/conf/tuning`: Multi speaker with SID 22.05 khz config](../../vctk/tts1/conf/tuning).
-- [`egs2/vctk/tts1/conf/tuning`: Multi speaker with X-vector 22.05 khz config](../../vctk/tts1/conf/tuning).
+- [`egs2/libritts/tts1/conf/tuning`: Multi speaker with X-vector 22.05 khz config](../../libritts/tts1/conf/tuning).
 
 ### Multi-speaker model with X-vector training
 
