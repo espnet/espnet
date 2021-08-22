@@ -45,7 +45,7 @@ class ResidualBlock(torch.nn.Module):
         self.convs1 = torch.nn.ModuleList()
         if use_additional_convs:
             self.convs2 = torch.nn.ModuleList()
-        assert kernel_size % 2 == 1, "Kernal size must be odd number."
+        assert kernel_size % 2 == 1, "Kernel size must be odd number."
         for dilation in dilations:
             self.convs1 += [
                 torch.nn.Sequential(

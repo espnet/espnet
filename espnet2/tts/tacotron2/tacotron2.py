@@ -129,7 +129,7 @@ class Tacotron2(AbsTTS):
             gst_conv_layers (int): Number of conv layers in GST.
             gst_conv_chans_list: (Sequence[int]): List of the number of channels of conv
                 layers in GST.
-            gst_conv_kernel_size (int): Kernal size of conv layers in GST.
+            gst_conv_kernel_size (int): Kernel size of conv layers in GST.
             gst_conv_stride (int): Stride size of conv layers in GST.
             gst_gru_layers (int): Number of GRU layers in GST.
             gst_gru_units (int): Number of GRU units in GST.
