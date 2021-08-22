@@ -1,17 +1,17 @@
 # Copyright 2021 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""VITS module for GAN-TTS task."""
+"""Joint text-to-wav module for end-to-end training."""
 
 from typing import Any
 from typing import Dict
-from typing import Optional
 
 import torch
 
 from typeguard import check_argument_types
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
+from espnet2.gan_tts.hifigan import HiFiGANGenerator
 from espnet2.gan_tts.hifigan import HiFiGANMultiPeriodDiscriminator
 from espnet2.gan_tts.hifigan import HiFiGANMultiScaleDiscriminator
 from espnet2.gan_tts.hifigan import HiFiGANMultiScaleMultiPeriodDiscriminator
@@ -21,13 +21,22 @@ from espnet2.gan_tts.hifigan.loss import DiscriminatorAdversarialLoss
 from espnet2.gan_tts.hifigan.loss import FeatureMatchLoss
 from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
 from espnet2.gan_tts.hifigan.loss import MelSpectrogramLoss
+from espnet2.gan_tts.utils import get_random_segments
 from espnet2.gan_tts.utils import get_segments
-from espnet2.gan_tts.vits.generator import VITSGenerator
-from espnet2.gan_tts.vits.loss import KLDivergenceLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet2.tts.fastspeech import FastSpeech
+from espnet2.tts.fastspeech2 import FastSpeech2
+from espnet2.tts.tacotron2 import Tacotron2
+from espnet2.tts.transformer import Transformer
 
-AVAILABLE_GENERATERS = {
-    "vits_generator": VITSGenerator,
+AVAILABLE_TEXT2MEL = {
+    "tacotron2": Tacotron2,
+    "transformer": Transformer,
+    "fastspeech": FastSpeech,
+    "fastspeech2": FastSpeech2,
+}
+AVAILABLE_VOCODER = {
+    "hifigan_generator": HiFiGANGenerator,
 }
 AVAILABLE_DISCRIMINATORS = {
     "hifigan_period_discriminator": HiFiGANPeriodDiscriminator,
@@ -38,70 +47,106 @@ AVAILABLE_DISCRIMINATORS = {
 }
 
 
-class VITS(AbsGANTTS):
-    """VITS module (generator + discriminator).
-
-    This is a module of VITS described in `Conditional Variational Autoencoder
-    with Adversarial Learning for End-to-End Text-to-Speech`_.
-
-    .. _`Conditional Variational Autoencoder with Adversarial Learning for End-to-End
-        Text-to-Speech`: https://arxiv.org/abs/2006.04558
-
-    """
+class JointText2Wav(AbsGANTTS):
+    """General class to jointly train text2mel and vocoder parts."""
 
     def __init__(
         self,
-        # generator related
+        # generator (text2mel + vocoder) related
         idim: int,
         odim: int,
+        segment_size: int = 32,
         sampling_rate: int = 22050,
-        generator_type: str = "vits_generator",
-        generator_params: Dict[str, Any] = {
-            "hidden_channels": 192,
+        text2mel_type: str = "fastspeech2",
+        text2mel_params: Dict[str, Any] = {
+            "adim": 384,
+            "aheads": 2,
+            "elayers": 4,
+            "eunits": 1536,
+            "dlayers": 4,
+            "dunits": 1536,
+            "postnet_layers": 5,
+            "postnet_chans": 512,
+            "postnet_filts": 5,
+            "postnet_dropout_rate": 0.5,
+            "positionwise_layer_type": "conv1d",
+            "positionwise_conv_kernel_size": 1,
+            "use_scaled_pos_enc": True,
+            "use_batch_norm": True,
+            "encoder_normalize_before": True,
+            "decoder_normalize_before": True,
+            "encoder_concat_after": False,
+            "decoder_concat_after": False,
+            "reduction_factor": 1,
+            "encoder_type": "conformer",
+            "decoder_type": "conformer",
+            "transformer_enc_dropout_rate": 0.1,
+            "transformer_enc_positional_dropout_rate": 0.1,
+            "transformer_enc_attn_dropout_rate": 0.1,
+            "transformer_dec_dropout_rate": 0.1,
+            "transformer_dec_positional_dropout_rate": 0.1,
+            "transformer_dec_attn_dropout_rate": 0.1,
+            "conformer_rel_pos_type": "latest",
+            "conformer_pos_enc_layer_type": "rel_pos",
+            "conformer_self_attn_layer_type": "rel_selfattn",
+            "conformer_activation_type": "swish",
+            "use_macaron_style_in_conformer": True,
+            "use_cnn_in_conformer": True,
+            "zero_triu": False,
+            "conformer_enc_kernel_size": 7,
+            "conformer_dec_kernel_size": 31,
+            "duration_predictor_layers": 2,
+            "duration_predictor_chans": 384,
+            "duration_predictor_kernel_size": 3,
+            "duration_predictor_dropout_rate": 0.1,
+            "energy_predictor_layers": 2,
+            "energy_predictor_chans": 384,
+            "energy_predictor_kernel_size": 3,
+            "energy_predictor_dropout": 0.5,
+            "energy_embed_kernel_size": 1,
+            "energy_embed_dropout": 0.5,
+            "stop_gradient_from_energy_predictor": False,
+            "pitch_predictor_layers": 5,
+            "pitch_predictor_chans": 384,
+            "pitch_predictor_kernel_size": 5,
+            "pitch_predictor_dropout": 0.5,
+            "pitch_embed_kernel_size": 1,
+            "pitch_embed_dropout": 0.5,
+            "stop_gradient_from_pitch_predictor": True,
             "spks": -1,
             "langs": -1,
-            "spk_embed_dim": -1,
+            "spk_embed_dim": None,
+            "spk_embed_integration_type": "add",
+            "use_gst": False,
+            "gst_tokens": 10,
+            "gst_heads": 4,
+            "gst_conv_layers": 6,
+            "gst_conv_chans_list": [32, 32, 64, 64, 128, 128],
+            "gst_conv_kernel_size": 3,
+            "gst_conv_stride": 2,
+            "gst_gru_layers": 1,
+            "gst_gru_units": 128,
+            "init_type": "xavier_uniform",
+            "init_enc_alpha": 1.0,
+            "init_dec_alpha": 1.0,
+            "use_masking": False,
+            "use_weighted_masking": False,
+        },
+        vocoder_type: str = "hifigan_generator",
+        vocoder_params: Dict[str, Any] = {
+            "out_channels": 1,
+            "channels": 512,
             "global_channels": -1,
-            "segment_size": 32,
-            "text_encoder_attention_heads": 2,
-            "text_encoder_ffn_expand": 4,
-            "text_encoder_blocks": 6,
-            "text_encoder_positionwise_layer_type": "conv1d",
-            "text_encoder_positionwise_conv_kernel_size": 1,
-            "text_encoder_positional_encoding_layer_type": "rel_pos",
-            "text_encoder_self_attention_layer_type": "rel_selfattn",
-            "text_encoder_activation_type": "swish",
-            "text_encoder_normalize_before": True,
-            "text_encoder_dropout_rate": 0.1,
-            "text_encoder_positional_dropout_rate": 0.0,
-            "text_encoder_attention_dropout_rate": 0.0,
-            "text_encoder_conformer_kernel_size": 7,
-            "use_macaron_style_in_text_encoder": True,
-            "use_conformer_conv_in_text_encoder": True,
-            "decoder_kernel_size": 7,
-            "decoder_channels": 512,
-            "decoder_upsample_scales": [8, 8, 2, 2],
-            "decoder_upsample_kernel_sizes": [16, 16, 4, 4],
-            "decoder_resblock_kernel_sizes": [3, 7, 11],
-            "decoder_resblock_dilations": [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-            "use_weight_norm_in_decoder": True,
-            "posterior_encoder_kernel_size": 5,
-            "posterior_encoder_layers": 16,
-            "posterior_encoder_stacks": 1,
-            "posterior_encoder_base_dilation": 1,
-            "posterior_encoder_dropout_rate": 0.0,
-            "use_weight_norm_in_posterior_encoder": True,
-            "flow_flows": 4,
-            "flow_kernel_size": 5,
-            "flow_base_dilation": 1,
-            "flow_layers": 4,
-            "flow_dropout_rate": 0.0,
-            "use_weight_norm_in_flow": True,
-            "use_only_mean_in_flow": True,
-            "stochastic_duration_predictor_kernel_size": 3,
-            "stochastic_duration_predictor_dropout_rate": 0.5,
-            "stochastic_duration_predictor_flows": 4,
-            "stochastic_duration_predictor_dds_conv_layers": 3,
+            "kernel_size": 7,
+            "upsample_scales": [8, 8, 2, 2],
+            "upsample_kernel_sizes": [16, 16, 4, 4],
+            "resblock_kernel_sizes": [3, 7, 11],
+            "resblock_dilations": [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+            "use_additional_convs": True,
+            "bias": True,
+            "nonlinear_activation": "LeakyReLU",
+            "nonlinear_activation_params": {"negative_slope": 0.1},
+            "use_weight_norm": True,
         },
         # discriminator related
         discriminator_type: str = "hifigan_multi_scale_multi_period_discriminator",
@@ -152,11 +197,13 @@ class VITS(AbsGANTTS):
             "average_by_discriminators": False,
             "loss_type": "mse",
         },
+        use_feat_match_loss: bool = True,
         feat_match_loss_params: Dict[str, Any] = {
             "average_by_discriminators": False,
             "average_by_layers": False,
             "include_final_outputs": True,
         },
+        use_mel_loss: bool = True,
         mel_loss_params: Dict[str, Any] = {
             "fs": 22050,
             "n_fft": 1024,
@@ -168,53 +215,59 @@ class VITS(AbsGANTTS):
             "fmax": None,
             "log_base": None,
         },
+        lambda_text2mel: float = 1.0,
         lambda_adv: float = 1.0,
-        lambda_mel: float = 45.0,
         lambda_feat_match: float = 2.0,
-        lambda_dur: float = 1.0,
-        lambda_kl: float = 1.0,
-        cache_generator_outputs: bool = True,
+        lambda_mel: float = 45.0,
+        cache_generator_outputs: bool = False,
     ):
-        """Initialize VITS module.
+        """Initialize JointText2Wav module.
 
         Args:
             idim (int): Input vocabrary size.
             odim (int): Acoustic feature dimension. The actual output channels will
-                be 1 since VITS is the end-to-end text-to-wave model but for the
+                be 1 since the model is the end-to-end text-to-wave model but for the
                 compatibility odim is used to indicate the acoustic feature dimension.
+            segment_size (int): Segment size for random windowed inputs.
             sampling_rate (int): Sampling rate, not used for the training but it will
                 be referred in saving waveform during the inference.
-            generator_type (str): Generator type.
-            generator_params (Dict[str, Any]): Parameter dict for generator.
+            text2mel_type (str): The text2mel model type.
+            text2mel_params (Dict[str, Any]): Parameter dict for text2mel model.
+            vocoder_type (str): The vocoder model type.
+            vocoder_params (Dict[str, Any]): Parameter dict for vocoder model.
             discriminator_type (str): Discriminator type.
             discriminator_params (Dict[str, Any]): Parameter dict for discriminator.
             generator_adv_loss_params (Dict[str, Any]): Parameter dict for generator
                 adversarial loss.
             discriminator_adv_loss_params (Dict[str, Any]): Parameter dict for
                 discriminator adversarial loss.
+            use_feat_match_loss (bool): Whether to use feat match loss.
             feat_match_loss_params (Dict[str, Any]): Parameter dict for feat match loss.
+            use_mel_loss (bool): Whether to use mel loss.
             mel_loss_params (Dict[str, Any]): Parameter dict for mel loss.
+            lambda_text2mel (float): Loss scaling coefficient for text2mel model loss.
             lambda_adv (float): Loss scaling coefficient for adversarial loss.
-            lambda_mel (float): Loss scaling coefficient for mel spectrogram loss.
             lambda_feat_match (float): Loss scaling coefficient for feat match loss.
-            lambda_dur (float): Loss scaling coefficient for duration loss.
-            lambda_kl (float): Loss scaling coefficient for KL divergence loss.
+            lambda_mel (float): Loss scaling coefficient for mel loss.
             cache_generator_outputs (bool): Whether to cache generator outputs.
 
         """
         assert check_argument_types()
         super().__init__()
+        self.segment_size = segment_size
 
         # define modules
-        generator_class = AVAILABLE_GENERATERS[generator_type]
-        if generator_type == "vits_generator":
-            # NOTE(kan-bayashi): Update parameters for the compatibility.
-            #   The idim and odim is automatically decided from input data,
-            #   where idim represents #vocabularies and odim represents
-            #   the input acoustic feature dimension.
-            generator_params.update(vocabs=idim, aux_channels=odim)
-        self.generator = generator_class(
-            **generator_params,
+        self.generator = torch.nn.ModuleDict()
+        text2mel_class = AVAILABLE_TEXT2MEL[text2mel_type]
+        text2mel_params.update(idim=idim, odim=odim)
+        self.generator["text2mel"] = text2mel_class(
+            **text2mel_params,
+        )
+        vocoder_class = AVAILABLE_VOCODER[vocoder_type]
+        if vocoder_type == "hifigan_generator":
+            vocoder_params.update(in_channels=odim)
+        self.generator["vocoder"] = vocoder_class(
+            **vocoder_params,
         )
         discriminator_class = AVAILABLE_DISCRIMINATORS[discriminator_type]
         self.discriminator = discriminator_class(
@@ -226,20 +279,24 @@ class VITS(AbsGANTTS):
         self.discriminator_adv_loss = DiscriminatorAdversarialLoss(
             **discriminator_adv_loss_params,
         )
-        self.feat_match_loss = FeatureMatchLoss(
-            **feat_match_loss_params,
-        )
-        self.mel_loss = MelSpectrogramLoss(
-            **mel_loss_params,
-        )
-        self.kl_loss = KLDivergenceLoss()
+        self.use_feat_match_loss = use_feat_match_loss
+        if self.use_feat_match_loss:
+            self.feat_match_loss = FeatureMatchLoss(
+                **feat_match_loss_params,
+            )
+        self.use_mel_loss = use_mel_loss
+        if self.use_mel_loss:
+            self.mel_loss = MelSpectrogramLoss(
+                **mel_loss_params,
+            )
 
         # coefficients
+        self.lambda_text2mel = lambda_text2mel
         self.lambda_adv = lambda_adv
-        self.lambda_mel = lambda_mel
-        self.lambda_kl = lambda_kl
-        self.lambda_feat_match = lambda_feat_match
-        self.lambda_dur = lambda_dur
+        if self.use_feat_match_loss:
+            self.lambda_feat_match = lambda_feat_match
+        if self.use_mel_loss:
+            self.lambda_mel = lambda_mel
 
         # cache
         self.cache_generator_outputs = cache_generator_outputs
@@ -267,10 +324,8 @@ class VITS(AbsGANTTS):
         feats_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        sids: Optional[torch.Tensor] = None,
-        spembs: Optional[torch.Tensor] = None,
-        lids: Optional[torch.Tensor] = None,
         forward_generator: bool = True,
+        **kwargs,
     ) -> Dict[str, Any]:
         """Perform generator forward.
 
@@ -281,9 +336,6 @@ class VITS(AbsGANTTS):
             feats_lengths (Tensor): Feature length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
-            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
-            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
             forward_generator (bool): Whether to forward generator.
 
         Returns:
@@ -302,9 +354,7 @@ class VITS(AbsGANTTS):
                 feats_lengths=feats_lengths,
                 speech=speech,
                 speech_lengths=speech_lengths,
-                sids=sids,
-                spembs=spembs,
-                lids=lids,
+                **kwargs,
             )
         else:
             return self._forward_discrminator(
@@ -314,9 +364,7 @@ class VITS(AbsGANTTS):
                 feats_lengths=feats_lengths,
                 speech=speech,
                 speech_lengths=speech_lengths,
-                sids=sids,
-                spembs=spembs,
-                lids=lids,
+                **kwargs,
             )
 
     def _forward_generator(
@@ -327,9 +375,7 @@ class VITS(AbsGANTTS):
         feats_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        sids: Optional[torch.Tensor] = None,
-        spembs: Optional[torch.Tensor] = None,
-        lids: Optional[torch.Tensor] = None,
+        **kwargs,
     ) -> Dict[str, Any]:
         """Perform generator forward.
 
@@ -340,9 +386,6 @@ class VITS(AbsGANTTS):
             feats_lengths (Tensor): Feature length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
-            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
-            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
 
         Returns:
             Dict[str, Any]:
@@ -354,36 +397,40 @@ class VITS(AbsGANTTS):
         """
         # setup
         batch_size = text.size(0)
-        feats = feats.transpose(1, 2)
         speech = speech.unsqueeze(1)
 
         # calculate generator outputs
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            outs = self.generator(
+            # calculate text2mel outputs
+            text2mel_loss, stats, feats_gen = self.generator["text2mel"](
                 text=text,
                 text_lengths=text_lengths,
                 feats=feats,
                 feats_lengths=feats_lengths,
-                sids=sids,
-                spembs=spembs,
-                lids=lids,
+                joint_training=True,
+                **kwargs,
             )
+            # get random segments
+            feats_gen_, start_idxs = get_random_segments(
+                x=feats_gen.transpose(1, 2),
+                x_lengths=feats_lengths,
+                segment_size=self.segment_size,
+            )
+            # calculate vocoder outputs
+            speech_hat_ = self.generator["vocoder"](feats_gen_)
         else:
-            outs = self._cache
+            text2mel_loss, stats, speech_hat_, start_idxs = self._cache
 
         # store cache
         if self.training and self.cache_generator_outputs and not reuse_cache:
-            self._cache = outs
+            self._cache = (text2mel_loss, stats, speech_hat_, start_idxs)
 
-        # parse outputs
-        speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = outs
-        _, z_p, m_p, logs_p, _, logs_q = outs_
         speech_ = get_segments(
             x=speech,
-            start_idxs=start_idxs * self.generator.upsample_factor,
-            segment_size=self.generator.segment_size * self.generator.upsample_factor,
+            start_idxs=start_idxs * self.generator["vocoder"].upsample_factor,
+            segment_size=self.segment_size * self.generator["vocoder"].upsample_factor,
         )
 
         # calculate discriminator outputs
@@ -393,26 +440,25 @@ class VITS(AbsGANTTS):
             p = self.discriminator(speech_)
 
         # calculate losses
-        mel_loss = self.mel_loss(speech_hat_, speech_)
-        kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
-        dur_loss = torch.sum(dur_nll.float())
         adv_loss = self.generator_adv_loss(p_hat)
-        feat_match_loss = self.feat_match_loss(p_hat, p)
-
-        mel_loss = mel_loss * self.lambda_mel
-        kl_loss = kl_loss * self.lambda_kl
-        dur_loss = dur_loss * self.lambda_dur
         adv_loss = adv_loss * self.lambda_adv
-        feat_match_loss = feat_match_loss * self.lambda_feat_match
-        loss = mel_loss + kl_loss + dur_loss + adv_loss + feat_match_loss
+        text2mel_loss = text2mel_loss * self.lambda_text2mel
+        loss = adv_loss + text2mel_loss
+        if self.use_feat_match_loss:
+            feat_match_loss = self.feat_match_loss(p_hat, p)
+            feat_match_loss = feat_match_loss * self.lambda_feat_match
+            loss = loss + feat_match_loss
+            stats.update(feat_match_loss=feat_match_loss.item())
+        if self.use_mel_loss:
+            mel_loss = self.mel_loss(speech_hat_, speech_)
+            mel_loss = self.lambda_mel * mel_loss
+            loss = loss + mel_loss
+            stats.update(mel_loss=mel_loss.item())
 
-        stats = dict(
-            generator_loss=loss.item(),
-            generator_mel_loss=mel_loss.item(),
-            generator_kl_loss=kl_loss.item(),
-            generator_dur_loss=dur_loss.item(),
-            generator_adv_loss=adv_loss.item(),
-            generator_feat_match_loss=feat_match_loss.item(),
+        stats.update(
+            adv_loss=adv_loss.item(),
+            text2mel_loss=text2mel_loss.item(),
+            loss=loss.item(),
         )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -436,9 +482,7 @@ class VITS(AbsGANTTS):
         feats_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
-        sids: Optional[torch.Tensor] = None,
-        spembs: Optional[torch.Tensor] = None,
-        lids: Optional[torch.Tensor] = None,
+        **kwargs,
     ) -> Dict[str, Any]:
         """Perform discriminator forward.
 
@@ -449,9 +493,6 @@ class VITS(AbsGANTTS):
             feats_lengths (Tensor): Feature length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
-            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
-            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
-            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
 
         Returns:
             Dict[str, Any]:
@@ -463,35 +504,41 @@ class VITS(AbsGANTTS):
         """
         # setup
         batch_size = text.size(0)
-        feats = feats.transpose(1, 2)
         speech = speech.unsqueeze(1)
 
         # calculate generator outputs
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            outs = self.generator(
+            # calculate text2mel outputs
+            text2mel_loss, stats, feats_gen = self.generator["text2mel"](
                 text=text,
                 text_lengths=text_lengths,
                 feats=feats,
                 feats_lengths=feats_lengths,
-                sids=sids,
-                spembs=spembs,
-                lids=lids,
+                joint_training=True,
+                **kwargs,
             )
+            # get random segments
+            feats_gen_, start_idxs = get_random_segments(
+                x=feats_gen.transpose(1, 2),
+                x_lengths=feats_lengths,
+                segment_size=self.segment_size,
+            )
+            # calculate vocoder outputs
+            speech_hat_ = self.generator["vocoder"](feats_gen_)
         else:
-            outs = self._cache
+            _, _, speech_hat_, start_idxs = self._cache
 
         # store cache
         if self.cache_generator_outputs and not reuse_cache:
-            self._cache = outs
+            self._cache = (text2mel_loss, stats, speech_hat_, start_idxs)
 
         # parse outputs
-        speech_hat_, _, _, start_idxs, *_ = outs
         speech_ = get_segments(
             x=speech,
-            start_idxs=start_idxs * self.generator.upsample_factor,
-            segment_size=self.generator.segment_size * self.generator.upsample_factor,
+            start_idxs=start_idxs * self.generator["vocoder"].upsample_factor,
+            segment_size=self.segment_size * self.generator["vocoder"].upsample_factor,
         )
 
         # calculate discriminator outputs
@@ -504,8 +551,8 @@ class VITS(AbsGANTTS):
 
         stats = dict(
             discriminator_loss=loss.item(),
-            discriminator_real_loss=real_loss.item(),
-            discriminator_fake_loss=fake_loss.item(),
+            real_loss=real_loss.item(),
+            fake_loss=fake_loss.item(),
         )
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
@@ -523,84 +570,24 @@ class VITS(AbsGANTTS):
     def inference(
         self,
         text: torch.Tensor,
-        feats: Optional[torch.Tensor] = None,
-        sids: Optional[torch.Tensor] = None,
-        spembs: Optional[torch.Tensor] = None,
-        lids: Optional[torch.Tensor] = None,
-        durations: Optional[torch.Tensor] = None,
-        noise_scale: float = 0.667,
-        noise_scale_dur: float = 0.8,
-        alpha: float = 1.0,
-        max_len: Optional[int] = None,
-        use_teacher_forcing: bool = False,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Run inference.
 
         Args:
             text (Tensor): Input text index tensor (T_text,).
-            feats (Tensor): Feature tensor (T_feats, aux_channels).
-            sids (Tensor): Speaker index tensor (1,).
-            spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).
-            lids (Tensor): Language index tensor (1,).
-            durations (Tensor): Ground-truth duration tensor (T_text,).
-            noise_scale (float): Noise scale value for flow.
-            noise_scale_dur (float): Noise scale value for duration predictor.
-            alpha (float): Alpha parameter to control the speed of generated speech.
-            max_len (Optional[int]): Maximum length.
-            use_teacher_forcing (bool): Whether to use teacher forcing.
 
         Returns:
             Dict[str, Tensor]:
                 * wav (Tensor): Generated waveform tensor (T_wav,).
-                * att_w (Tensor): Monotonic attention weight tensor (T_feats, T_text).
-                * duration (Tensor): Predicted duration tensor (T_text,).
+                * feat_gan (Tensor): Generated feature tensor (T_text, C).
 
         """
-        # setup
-        text = text[None]
-        text_lengths = torch.tensor(
-            [text.size(1)],
-            dtype=torch.long,
-            device=text.device,
+        output_dict = self.generator["text2mel"].inference(
+            text=text,
+            **kwargs,
         )
-        if sids is not None:
-            sids = sids.view(1)
-        if lids is not None:
-            lids = lids.view(1)
-        if durations is not None:
-            durations = durations.view(1, 1, -1)
+        wav = self.generator["vocoder"].inference(output_dict["feat_gen"])
+        output_dict.update(wav=wav)
 
-        # inference
-        if use_teacher_forcing:
-            assert feats is not None
-            feats = feats[None].transpose(1, 2)
-            feats_lengths = torch.tensor(
-                [feats.size(2)],
-                dtype=torch.long,
-                device=feats.device,
-            )
-            wav, att_w, dur = self.generator.inference(
-                text=text,
-                text_lengths=text_lengths,
-                feats=feats,
-                feats_lengths=feats_lengths,
-                sids=sids,
-                spembs=spembs,
-                lids=lids,
-                max_len=max_len,
-                use_teacher_forcing=use_teacher_forcing,
-            )
-        else:
-            wav, att_w, dur = self.generator.inference(
-                text=text,
-                text_lengths=text_lengths,
-                sids=sids,
-                spembs=spembs,
-                lids=lids,
-                dur=durations,
-                noise_scale=noise_scale,
-                noise_scale_dur=noise_scale_dur,
-                alpha=alpha,
-                max_len=max_len,
-            )
-        return dict(wav=wav.view(-1), att_w=att_w[0], duration=dur[0])
+        return output_dict

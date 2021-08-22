@@ -21,6 +21,7 @@ from typeguard import check_return_type
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
 from espnet2.gan_tts.espnet_model import ESPnetGANTTSModel
+from espnet2.gan_tts.joint import JointText2Wav
 from espnet2.gan_tts.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
@@ -67,6 +68,7 @@ tts_choices = ClassChoices(
     "tts",
     classes=dict(
         vits=VITS,
+        joint_text2wav=JointText2Wav,
     ),
     type_check=AbsGANTTS,
     default="vits",
@@ -122,7 +124,6 @@ class GANTTSTask(AbsTask):
         normalize_choices,
         # --tts and --tts_conf
         tts_choices,
-        # NOTE(kan-bayashi): Not used for now but added for compatibility
         # --pitch_extract and --pitch_extract_conf
         pitch_extractor_choices,
         # --pitch_normalize and --pitch_normalize_conf
@@ -276,10 +277,10 @@ class GANTTSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "sids", "durations")
+            retval = ("spembs", "sids", "durations", "pitch", "energy")
         else:
             # Inference mode
-            retval = ("spembs", "sids", "speech", "durations")
+            retval = ("spembs", "sids", "speech", "durations", "pitch", "energy")
         return retval
 
     @classmethod
@@ -324,10 +325,48 @@ class GANTTSTask(AbsTask):
         tts_class = tts_choices.get_class(args.tts)
         tts = tts_class(idim=vocab_size, odim=odim, **args.tts_conf)
 
-        # 4. Build model
+        # 4. Extra components
+        pitch_extract = None
+        energy_extract = None
+        pitch_normalize = None
+        energy_normalize = None
+        if getattr(args, "pitch_extract", None) is not None:
+            pitch_extract_class = pitch_extractor_choices.get_class(
+                args.pitch_extract,
+            )
+            pitch_extract = pitch_extract_class(
+                **args.pitch_extract_conf,
+            )
+        if getattr(args, "energy_extract", None) is not None:
+            energy_extract_class = energy_extractor_choices.get_class(
+                args.energy_extract,
+            )
+            energy_extract = energy_extract_class(
+                **args.energy_extract_conf,
+            )
+        if getattr(args, "pitch_normalize", None) is not None:
+            pitch_normalize_class = pitch_normalize_choices.get_class(
+                args.pitch_normalize,
+            )
+            pitch_normalize = pitch_normalize_class(
+                **args.pitch_normalize_conf,
+            )
+        if getattr(args, "energy_normalize", None) is not None:
+            energy_normalize_class = energy_normalize_choices.get_class(
+                args.energy_normalize,
+            )
+            energy_normalize = energy_normalize_class(
+                **args.energy_normalize_conf,
+            )
+
+        # 5. Build model
         model = ESPnetGANTTSModel(
             feats_extract=feats_extract,
             normalize=normalize,
+            pitch_extract=pitch_extract,
+            pitch_normalize=pitch_normalize,
+            energy_extract=energy_extract,
+            energy_normalize=energy_normalize,
             tts=tts,
             **args.model_conf,
         )
