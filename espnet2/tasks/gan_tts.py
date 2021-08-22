@@ -277,10 +277,10 @@ class GANTTSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "sids", "durations")
+            retval = ("spembs", "sids", "durations", "pitch", "energy")
         else:
             # Inference mode
-            retval = ("spembs", "sids", "speech", "durations")
+            retval = ("spembs", "sids", "speech", "durations", "pitch", "energy")
         return retval
 
     @classmethod
