@@ -144,6 +144,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-hifigan-init">espnet2.gan_tts.hifigan.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-hifigan-residual-block">espnet2.gan_tts.hifigan.residual_block</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-hifigan-hifigan">espnet2.gan_tts.hifigan.hifigan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-utils-get-random-segments">espnet2.gan_tts.utils.get_random_segments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-utils-init">espnet2.gan_tts.utils.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-wavenet-init">espnet2.gan_tts.wavenet.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-wavenet-residual-block">espnet2.gan_tts.wavenet.residual_block</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-wavenet-wavenet">espnet2.gan_tts.wavenet.wavenet</a></li>
@@ -159,6 +161,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-residual-coupling">espnet2.gan_tts.vits.residual_coupling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-monotonic-align-init">espnet2.gan_tts.vits.monotonic_align.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-vits-monotonic-align-setup">espnet2.gan_tts.vits.monotonic_align.setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-joint-init">espnet2.gan_tts.joint.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-joint-joint-text2wav">espnet2.gan_tts.joint.joint_text2wav</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
@@ -270,13 +274,13 @@
 <span class="target" id="module-espnet2.gan_tts.espnet_model"></span><p>GAN-based TTS ESPnet model.</p>
 <dl class="class">
 <dt id="espnet2.gan_tts.espnet_model.ESPnetGANTTSModel">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.espnet_model.</code><code class="sig-name descname">ESPnetGANTTSModel</code><span class="sig-paren">(</span><em class="sig-param">feats_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], normalize: Optional[espnet2.layers.inversible_interface.InversibleInterface], tts: espnet2.gan_tts.abs_gan_tts.AbsGANTTS</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/espnet_model.html#ESPnetGANTTSModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.espnet_model.ESPnetGANTTSModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.espnet_model.</code><code class="sig-name descname">ESPnetGANTTSModel</code><span class="sig-paren">(</span><em class="sig-param">feats_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], normalize: Optional[espnet2.layers.inversible_interface.InversibleInterface], pitch_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], pitch_normalize: Optional[espnet2.layers.inversible_interface.InversibleInterface], energy_extract: Optional[espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract], energy_normalize: Optional[espnet2.layers.inversible_interface.InversibleInterface], tts: espnet2.gan_tts.abs_gan_tts.AbsGANTTS</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/espnet_model.html#ESPnetGANTTSModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.espnet_model.ESPnetGANTTSModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_gan_espnet_model.AbsGANESPnetModel" title="espnet2.train.abs_gan_espnet_model.AbsGANESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_gan_espnet_model.AbsGANESPnetModel</span></code></a></p>
 <p>GAN-based TTS ESPnet model.</p>
 <p>Initialize ESPnetGANTTSModel module.</p>
 <dl class="method">
 <dt id="espnet2.gan_tts.espnet_model.ESPnetGANTTSModel.collect_feats">
-<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/espnet_model.html#ESPnetGANTTSModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.espnet_model.ESPnetGANTTSModel.collect_feats" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">durations: Optional[torch.Tensor] = None</em>, <em class="sig-param">durations_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/espnet_model.html#ESPnetGANTTSModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.espnet_model.ESPnetGANTTSModel.collect_feats" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate features and return them as a dict.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -285,6 +289,12 @@
 <li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
 <li><p><strong>speech</strong> (<em>Tensor</em>) – Speech waveform tensor (B, T_wav).</p></li>
 <li><p><strong>speech_lengths</strong> (<em>Tensor</em>) – Speech length tensor (B, 1).</p></li>
+<li><p><strong>durations</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Duration tensor.</p></li>
+<li><p><strong>durations_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Duration length tensor (B,).</p></li>
+<li><p><strong>pitch</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Pitch tensor.</p></li>
+<li><p><strong>pitch_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Pitch length tensor (B,).</p></li>
+<li><p><strong>energy</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Energy tensor.</p></li>
+<li><p><strong>energy_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em>) – Energy length tensor (B,).</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding tensor (B, D).</p></li>
 <li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker index tensor (B, 1).</p></li>
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Language ID tensor (B, 1).</p></li>
@@ -301,7 +311,7 @@
 
 <dl class="method">
 <dt id="espnet2.gan_tts.espnet_model.ESPnetGANTTSModel.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">forward_generator: bool = True</em><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/gan_tts/espnet_model.html#ESPnetGANTTSModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.espnet_model.ESPnetGANTTSModel.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">durations: Optional[torch.Tensor] = None</em>, <em class="sig-param">durations_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">forward_generator: bool = True</em><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/gan_tts/espnet_model.html#ESPnetGANTTSModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.espnet_model.ESPnetGANTTSModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return generator or discriminator loss with dict format.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -310,6 +320,12 @@
 <li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
 <li><p><strong>speech</strong> (<em>Tensor</em>) – Speech waveform tensor (B, T_wav).</p></li>
 <li><p><strong>speech_lengths</strong> (<em>Tensor</em>) – Speech length tensor (B,).</p></li>
+<li><p><strong>duration</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Duration tensor.</p></li>
+<li><p><strong>duration_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Duration length tensor (B,).</p></li>
+<li><p><strong>pitch</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch tensor.</p></li>
+<li><p><strong>pitch_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Pitch length tensor (B,).</p></li>
+<li><p><strong>energy</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Energy tensor.</p></li>
+<li><p><strong>energy_lengths</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Energy length tensor (B,).</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker embedding tensor (B, D).</p></li>
 <li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Speaker ID tensor (B, 1).</p></li>
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Language ID tensor (B, 1).</p></li>
@@ -638,6 +654,26 @@ be applied to all of the conv layers.</p></li>
 </dd></dl>
 
 <dl class="method">
+<dt id="espnet2.gan_tts.hifigan.hifigan.HiFiGANGenerator.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">c: torch.Tensor</em>, <em class="sig-param">g: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/hifigan/hifigan.html#HiFiGANGenerator.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.hifigan.hifigan.HiFiGANGenerator.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> (<em>torch.Tensor</em>) – Input tensor (T, in_channels).</p></li>
+<li><p><strong>g</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Global conditioning tensor (global_channels, 1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor (T ** upsample_factor, out_channels).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="espnet2.gan_tts.hifigan.hifigan.HiFiGANGenerator.remove_weight_norm">
 <code class="sig-name descname">remove_weight_norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/hifigan/hifigan.html#HiFiGANGenerator.remove_weight_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.hifigan.hifigan.HiFiGANGenerator.remove_weight_norm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove weight normalization module from all of the layers.</p>
@@ -907,11 +943,61 @@ will be applied to all of the conv layers.</p></li>
 </dd></dl>
 
 </div>
+<div class="section" id="espnet2-gan-tts-utils-get-random-segments">
+<span id="id8"></span><h2>espnet2.gan_tts.utils.get_random_segments<a class="headerlink" href="#espnet2-gan-tts-utils-get-random-segments" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.utils.get_random_segments"></span><p>Function to get random segments.</p>
+<dl class="function">
+<dt id="espnet2.gan_tts.utils.get_random_segments.get_random_segments">
+<code class="sig-prename descclassname">espnet2.gan_tts.utils.get_random_segments.</code><code class="sig-name descname">get_random_segments</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_lengths: torch.Tensor</em>, <em class="sig-param">segment_size: int</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/utils/get_random_segments.html#get_random_segments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.utils.get_random_segments.get_random_segments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get random segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, C, T).</p></li>
+<li><p><strong>x_lengths</strong> (<em>Tensor</em>) – Length tensor (B,).</p></li>
+<li><p><strong>segment_size</strong> (<em>int</em>) – Segment size.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Segmented tensor (B, C, segment_size).
+Tensor: Start index tensor (B,).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.gan_tts.utils.get_random_segments.get_segments">
+<code class="sig-prename descclassname">espnet2.gan_tts.utils.get_random_segments.</code><code class="sig-name descname">get_segments</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">start_idxs: torch.Tensor</em>, <em class="sig-param">segment_size: int</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/utils/get_random_segments.html#get_segments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.utils.get_random_segments.get_segments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, C, T).</p></li>
+<li><p><strong>start_idxs</strong> (<em>Tensor</em>) – Start index tensor (B,).</p></li>
+<li><p><strong>segment_size</strong> (<em>int</em>) – Segment size.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Segmented tensor (B, C, segment_size).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-gan-tts-utils-init">
+<span id="id9"></span><h2>espnet2.gan_tts.utils.__init__<a class="headerlink" href="#espnet2-gan-tts-utils-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.utils.__init__"></span></div>
 <div class="section" id="espnet2-gan-tts-wavenet-init">
-<span id="id8"></span><h2>espnet2.gan_tts.wavenet.__init__<a class="headerlink" href="#espnet2-gan-tts-wavenet-init" title="Permalink to this headline">¶</a></h2>
+<span id="id10"></span><h2>espnet2.gan_tts.wavenet.__init__<a class="headerlink" href="#espnet2-gan-tts-wavenet-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.wavenet.__init__"></span></div>
 <div class="section" id="espnet2-gan-tts-wavenet-residual-block">
-<span id="id9"></span><h2>espnet2.gan_tts.wavenet.residual_block<a class="headerlink" href="#espnet2-gan-tts-wavenet-residual-block" title="Permalink to this headline">¶</a></h2>
+<span id="id11"></span><h2>espnet2.gan_tts.wavenet.residual_block<a class="headerlink" href="#espnet2-gan-tts-wavenet-residual-block" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.wavenet.residual_block"></span><p>Residual block modules.</p>
 <p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
 <dl class="class">
@@ -983,7 +1069,7 @@ Tensor: Output tensor for skip connection (B, skip_channels, T).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-wavenet-wavenet">
-<span id="id10"></span><h2>espnet2.gan_tts.wavenet.wavenet<a class="headerlink" href="#espnet2-gan-tts-wavenet-wavenet" title="Permalink to this headline">¶</a></h2>
+<span id="id12"></span><h2>espnet2.gan_tts.wavenet.wavenet<a class="headerlink" href="#espnet2-gan-tts-wavenet-wavenet" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.wavenet.wavenet"></span><p>WaveNet modules.</p>
 <p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
 <dl class="class">
@@ -1066,7 +1152,7 @@ be applied to all of the conv layers.</p></li>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-generator">
-<span id="id11"></span><h2>espnet2.gan_tts.vits.generator<a class="headerlink" href="#espnet2-gan-tts-vits-generator" title="Permalink to this headline">¶</a></h2>
+<span id="id13"></span><h2>espnet2.gan_tts.vits.generator<a class="headerlink" href="#espnet2-gan-tts-vits-generator" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.generator"></span><p>Generator module in VITS.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1199,49 +1285,6 @@ tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="espnet2.gan_tts.vits.generator.VITSGenerator.get_random_segments">
-<code class="sig-name descname">get_random_segments</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">x_lengths: torch.Tensor</em>, <em class="sig-param">segment_size: int</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/generator.html#VITSGenerator.get_random_segments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.generator.VITSGenerator.get_random_segments" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get random segments.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, C, T).</p></li>
-<li><p><strong>x_lengths</strong> (<em>Tensor</em>) – Length tensor (B,).</p></li>
-<li><p><strong>segment_size</strong> (<em>int</em>) – Segment size.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Segmented tensor (B, C, segment_size).
-Tensor: Start index tensor (B,).</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet2.gan_tts.vits.generator.VITSGenerator.get_segments">
-<code class="sig-name descname">get_segments</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">start_idxs: torch.Tensor</em>, <em class="sig-param">segment_size: int</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/generator.html#VITSGenerator.get_segments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.generator.VITSGenerator.get_segments" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get segments.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, C, T).</p></li>
-<li><p><strong>start_idxs</strong> (<em>Tensor</em>) – Start index tensor (B,).</p></li>
-<li><p><strong>segment_size</strong> (<em>int</em>) – Segment size.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Segmented tensor (B, C, segment_size).</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Tensor</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="method">
 <dt id="espnet2.gan_tts.vits.generator.VITSGenerator.inference">
 <code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: Optional[torch.Tensor] = None</em>, <em class="sig-param">feats_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">dur: Optional[torch.Tensor] = None</em>, <em class="sig-param">noise_scale: float = 0.667</em>, <em class="sig-param">noise_scale_dur: float = 0.8</em>, <em class="sig-param">alpha: float = 1.0</em>, <em class="sig-param">max_len: Optional[int] = None</em>, <em class="sig-param">use_teacher_forcing: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/generator.html#VITSGenerator.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.generator.VITSGenerator.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run inference.</p>
@@ -1279,7 +1322,7 @@ Tensor: Duration tensor (B, T_text).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-loss">
-<span id="id12"></span><h2>espnet2.gan_tts.vits.loss<a class="headerlink" href="#espnet2-gan-tts-vits-loss" title="Permalink to this headline">¶</a></h2>
+<span id="id14"></span><h2>espnet2.gan_tts.vits.loss<a class="headerlink" href="#espnet2-gan-tts-vits-loss" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.loss"></span><p>VITS-related loss modules.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1315,10 +1358,10 @@ Tensor: Duration tensor (B, T_text).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-init">
-<span id="id13"></span><h2>espnet2.gan_tts.vits.__init__<a class="headerlink" href="#espnet2-gan-tts-vits-init" title="Permalink to this headline">¶</a></h2>
+<span id="id15"></span><h2>espnet2.gan_tts.vits.__init__<a class="headerlink" href="#espnet2-gan-tts-vits-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.__init__"></span></div>
 <div class="section" id="espnet2-gan-tts-vits-flow">
-<span id="id14"></span><h2>espnet2.gan_tts.vits.flow<a class="headerlink" href="#espnet2-gan-tts-vits-flow" title="Permalink to this headline">¶</a></h2>
+<span id="id16"></span><h2>espnet2.gan_tts.vits.flow<a class="headerlink" href="#espnet2-gan-tts-vits-flow" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.flow"></span><p>Basic Flow modules used in VITS.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1515,7 +1558,7 @@ Tensor: Log-determinant tensor for NLL (B,) if not inverse.</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-duration-predictor">
-<span id="id15"></span><h2>espnet2.gan_tts.vits.duration_predictor<a class="headerlink" href="#espnet2-gan-tts-vits-duration-predictor" title="Permalink to this headline">¶</a></h2>
+<span id="id17"></span><h2>espnet2.gan_tts.vits.duration_predictor<a class="headerlink" href="#espnet2-gan-tts-vits-duration-predictor" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.duration_predictor"></span><p>Stochastic duration predictor modules in VITS.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1570,7 +1613,7 @@ Variational Autoencoder with Adversarial Learning for End-to-End Text-to-Speech<
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-posterior-encoder">
-<span id="id17"></span><h2>espnet2.gan_tts.vits.posterior_encoder<a class="headerlink" href="#espnet2-gan-tts-vits-posterior-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id19"></span><h2>espnet2.gan_tts.vits.posterior_encoder<a class="headerlink" href="#espnet2-gan-tts-vits-posterior-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.posterior_encoder"></span><p>Posterior encoder module in VITS.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1626,7 +1669,7 @@ Tensor: Mask tensor for input tensor (B, 1, T_feats).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-transform">
-<span id="id19"></span><h2>espnet2.gan_tts.vits.transform<a class="headerlink" href="#espnet2-gan-tts-vits-transform" title="Permalink to this headline">¶</a></h2>
+<span id="id21"></span><h2>espnet2.gan_tts.vits.transform<a class="headerlink" href="#espnet2-gan-tts-vits-transform" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.transform"></span><p>Flow-related transformation.</p>
 <p>This code is derived from <a class="reference external" href="https://github.com/bayesiains/nflows">https://github.com/bayesiains/nflows</a>.</p>
 <dl class="function">
@@ -1646,7 +1689,7 @@ Tensor: Mask tensor for input tensor (B, 1, T_feats).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-vits">
-<span id="id20"></span><h2>espnet2.gan_tts.vits.vits<a class="headerlink" href="#espnet2-gan-tts-vits-vits" title="Permalink to this headline">¶</a></h2>
+<span id="id22"></span><h2>espnet2.gan_tts.vits.vits<a class="headerlink" href="#espnet2-gan-tts-vits-vits" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.vits"></span><p>VITS module for GAN-TTS task.</p>
 <dl class="class">
 <dt id="espnet2.gan_tts.vits.vits.VITS">
@@ -1768,7 +1811,7 @@ discriminator adversarial loss.</p></li>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-text-encoder">
-<span id="id22"></span><h2>espnet2.gan_tts.vits.text_encoder<a class="headerlink" href="#espnet2-gan-tts-vits-text-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id24"></span><h2>espnet2.gan_tts.vits.text_encoder<a class="headerlink" href="#espnet2-gan-tts-vits-text-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.text_encoder"></span><p>Text encoder module in VITS.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1831,7 +1874,7 @@ Tensor: Mask tensor for input tensor (B, 1, T_text).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-residual-coupling">
-<span id="id24"></span><h2>espnet2.gan_tts.vits.residual_coupling<a class="headerlink" href="#espnet2-gan-tts-vits-residual-coupling" title="Permalink to this headline">¶</a></h2>
+<span id="id26"></span><h2>espnet2.gan_tts.vits.residual_coupling<a class="headerlink" href="#espnet2-gan-tts-vits-residual-coupling" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.residual_coupling"></span><p>Residual affine coupling modules in VITS.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1935,7 +1978,7 @@ Tensor: Log-determinant tensor for NLL (B,) if not inverse.</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-monotonic-align-init">
-<span id="id26"></span><h2>espnet2.gan_tts.vits.monotonic_align.__init__<a class="headerlink" href="#espnet2-gan-tts-vits-monotonic-align-init" title="Permalink to this headline">¶</a></h2>
+<span id="id28"></span><h2>espnet2.gan_tts.vits.monotonic_align.__init__<a class="headerlink" href="#espnet2-gan-tts-vits-monotonic-align-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.monotonic_align.__init__"></span><p>Maximum path calculation module.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="function">
@@ -1972,7 +2015,118 @@ Tensor: Log-determinant tensor for NLL (B,) if not inverse.</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-monotonic-align-setup">
-<span id="id27"></span><h2>espnet2.gan_tts.vits.monotonic_align.setup<a class="headerlink" href="#espnet2-gan-tts-vits-monotonic-align-setup" title="Permalink to this headline">¶</a></h2>
+<span id="id29"></span><h2>espnet2.gan_tts.vits.monotonic_align.setup<a class="headerlink" href="#espnet2-gan-tts-vits-monotonic-align-setup" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="espnet2-gan-tts-joint-init">
+<span id="id30"></span><h2>espnet2.gan_tts.joint.__init__<a class="headerlink" href="#espnet2-gan-tts-joint-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.joint.__init__"></span></div>
+<div class="section" id="espnet2-gan-tts-joint-joint-text2wav">
+<span id="id31"></span><h2>espnet2.gan_tts.joint.joint_text2wav<a class="headerlink" href="#espnet2-gan-tts-joint-joint-text2wav" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.joint.joint_text2wav"></span><p>Joint text-to-wav module for end-to-end training.</p>
+<dl class="class">
+<dt id="espnet2.gan_tts.joint.joint_text2wav.JointText2Wav">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.joint.joint_text2wav.</code><code class="sig-name descname">JointText2Wav</code><span class="sig-paren">(</span><em class="sig-param">idim: int, odim: int, segment_size: int = 32, sampling_rate: int = 22050, text2mel_type: str = 'fastspeech2', text2mel_params: Dict[str, Any] = {'adim': 384, 'aheads': 2, 'conformer_activation_type': 'swish', 'conformer_dec_kernel_size': 31, 'conformer_enc_kernel_size': 7, 'conformer_pos_enc_layer_type': 'rel_pos', 'conformer_rel_pos_type': 'latest', 'conformer_self_attn_layer_type': 'rel_selfattn', 'decoder_concat_after': False, 'decoder_normalize_before': True, 'decoder_type': 'conformer', 'dlayers': 4, 'dunits': 1536, 'duration_predictor_chans': 384, 'duration_predictor_dropout_rate': 0.1, 'duration_predictor_kernel_size': 3, 'duration_predictor_layers': 2, 'elayers': 4, 'encoder_concat_after': False, 'encoder_normalize_before': True, 'encoder_type': 'conformer', 'energy_embed_dropout': 0.5, 'energy_embed_kernel_size': 1, 'energy_predictor_chans': 384, 'energy_predictor_dropout': 0.5, 'energy_predictor_kernel_size': 3, 'energy_predictor_layers': 2, 'eunits': 1536, 'gst_conv_chans_list': [32, 32, 64, 64, 128, 128], 'gst_conv_kernel_size': 3, 'gst_conv_layers': 6, 'gst_conv_stride': 2, 'gst_gru_layers': 1, 'gst_gru_units': 128, 'gst_heads': 4, 'gst_tokens': 10, 'init_dec_alpha': 1.0, 'init_enc_alpha': 1.0, 'init_type': 'xavier_uniform', 'langs': -1, 'pitch_embed_dropout': 0.5, 'pitch_embed_kernel_size': 1, 'pitch_predictor_chans': 384, 'pitch_predictor_dropout': 0.5, 'pitch_predictor_kernel_size': 5, 'pitch_predictor_layers': 5, 'positionwise_conv_kernel_size': 1, 'positionwise_layer_type': 'conv1d', 'postnet_chans': 512, 'postnet_dropout_rate': 0.5, 'postnet_filts': 5, 'postnet_layers': 5, 'reduction_factor': 1, 'spk_embed_dim': None, 'spk_embed_integration_type': 'add', 'spks': -1, 'stop_gradient_from_energy_predictor': False, 'stop_gradient_from_pitch_predictor': True, 'transformer_dec_attn_dropout_rate': 0.1, 'transformer_dec_dropout_rate': 0.1, 'transformer_dec_positional_dropout_rate': 0.1, 'transformer_enc_attn_dropout_rate': 0.1, 'transformer_enc_dropout_rate': 0.1, 'transformer_enc_positional_dropout_rate': 0.1, 'use_batch_norm': True, 'use_cnn_in_conformer': True, 'use_gst': False, 'use_macaron_style_in_conformer': True, 'use_masking': False, 'use_scaled_pos_enc': True, 'use_weighted_masking': False, 'zero_triu': False}, vocoder_type: str = 'hifigan_generator', vocoder_params: Dict[str, Any] = {'bias': True, 'channels': 512, 'global_channels': -1, 'kernel_size': 7, 'nonlinear_activation': 'LeakyReLU', 'nonlinear_activation_params': {'negative_slope': 0.1}, 'out_channels': 1, 'resblock_dilations': [[1, 3, 5], [1, 3, 5], [1, 3, 5]], 'resblock_kernel_sizes': [3, 7, 11], 'upsample_kernel_sizes': [16, 16, 4, 4], 'upsample_scales': [8, 8, 2, 2], 'use_additional_convs': True, 'use_weight_norm': True}, discriminator_type: str = 'hifigan_multi_scale_multi_period_discriminator', discriminator_params: Dict[str, Any] = {'follow_official_norm': False, 'period_discriminator_params': {'bias': True, 'channels': 32, 'downsample_scales': [3, 3, 3, 3, 1], 'in_channels': 1, 'kernel_sizes': [5, 3], 'max_downsample_channels': 1024, 'nonlinear_activation': 'LeakyReLU', 'nonlinear_activation_params': {'negative_slope': 0.1}, 'out_channels': 1, 'use_spectral_norm': False, 'use_weight_norm': True}, 'periods': [2, 3, 5, 7, 11], 'scale_discriminator_params': {'bias': True, 'channels': 128, 'downsample_scales': [2, 2, 4, 4, 1], 'in_channels': 1, 'kernel_sizes': [15, 41, 5, 3], 'max_downsample_channels': 1024, 'max_groups': 16, 'nonlinear_activation': 'LeakyReLU', 'nonlinear_activation_params': {'negative_slope': 0.1}, 'out_channels': 1, 'use_spectral_norm': False, 'use_weight_norm': True}, 'scale_downsample_pooling': 'AvgPool1d', 'scale_downsample_pooling_params': {'kernel_size': 4, 'padding': 2, 'stride': 2}, 'scales': 1}, generator_adv_loss_params: Dict[str, Any] = {'average_by_discriminators': False, 'loss_type': 'mse'}, discriminator_adv_loss_params: Dict[str, Any] = {'average_by_discriminators': False, 'loss_type': 'mse'}, use_feat_match_loss: bool = True, feat_match_loss_params: Dict[str, Any] = {'average_by_discriminators': False, 'average_by_layers': False, 'include_final_outputs': True}, use_mel_loss: bool = True, mel_loss_params: Dict[str, Any] = {'fmax': None, 'fmin': 0, 'fs': 22050, 'hop_length': 256, 'log_base': None, 'n_fft': 1024, 'n_mels': 80, 'win_length': None, 'window': 'hann'}, lambda_text2mel: float = 1.0, lambda_adv: float = 1.0, lambda_feat_match: float = 2.0, lambda_mel: float = 45.0, cache_generator_outputs: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/joint/joint_text2wav.html#JointText2Wav"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.joint.joint_text2wav.JointText2Wav" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.gan_tts.abs_gan_tts.AbsGANTTS" title="espnet2.gan_tts.abs_gan_tts.AbsGANTTS"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.gan_tts.abs_gan_tts.AbsGANTTS</span></code></a></p>
+<p>General class to jointly train text2mel and vocoder parts.</p>
+<p>Initialize JointText2Wav module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idim</strong> (<em>int</em>) – Input vocabrary size.</p></li>
+<li><p><strong>odim</strong> (<em>int</em>) – Acoustic feature dimension. The actual output channels will
+be 1 since the model is the end-to-end text-to-wave model but for the
+compatibility odim is used to indicate the acoustic feature dimension.</p></li>
+<li><p><strong>segment_size</strong> (<em>int</em>) – Segment size for random windowed inputs.</p></li>
+<li><p><strong>sampling_rate</strong> (<em>int</em>) – Sampling rate, not used for the training but it will
+be referred in saving waveform during the inference.</p></li>
+<li><p><strong>text2mel_type</strong> (<em>str</em>) – The text2mel model type.</p></li>
+<li><p><strong>text2mel_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for text2mel model.</p></li>
+<li><p><strong>vocoder_type</strong> (<em>str</em>) – The vocoder model type.</p></li>
+<li><p><strong>vocoder_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for vocoder model.</p></li>
+<li><p><strong>discriminator_type</strong> (<em>str</em>) – Discriminator type.</p></li>
+<li><p><strong>discriminator_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for discriminator.</p></li>
+<li><p><strong>generator_adv_loss_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for generator
+adversarial loss.</p></li>
+<li><p><strong>discriminator_adv_loss_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for
+discriminator adversarial loss.</p></li>
+<li><p><strong>use_feat_match_loss</strong> (<em>bool</em>) – Whether to use feat match loss.</p></li>
+<li><p><strong>feat_match_loss_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for feat match loss.</p></li>
+<li><p><strong>use_mel_loss</strong> (<em>bool</em>) – Whether to use mel loss.</p></li>
+<li><p><strong>mel_loss_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Parameter dict for mel loss.</p></li>
+<li><p><strong>lambda_text2mel</strong> (<em>float</em>) – Loss scaling coefficient for text2mel model loss.</p></li>
+<li><p><strong>lambda_adv</strong> (<em>float</em>) – Loss scaling coefficient for adversarial loss.</p></li>
+<li><p><strong>lambda_feat_match</strong> (<em>float</em>) – Loss scaling coefficient for feat match loss.</p></li>
+<li><p><strong>lambda_mel</strong> (<em>float</em>) – Loss scaling coefficient for mel loss.</p></li>
+<li><p><strong>cache_generator_outputs</strong> (<em>bool</em>) – Whether to cache generator outputs.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.joint.joint_text2wav.JointText2Wav.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">speech_lengths: torch.Tensor</em>, <em class="sig-param">forward_generator: bool = True</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/gan_tts/joint/joint_text2wav.html#JointText2Wav.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.joint.joint_text2wav.JointText2Wav.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform generator forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>Tensor</em>) – Text index tensor (B, T_text).</p></li>
+<li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
+<li><p><strong>feats</strong> (<em>Tensor</em>) – Feature tensor (B, T_feats, aux_channels).</p></li>
+<li><p><strong>feats_lengths</strong> (<em>Tensor</em>) – Feature length tensor (B,).</p></li>
+<li><p><strong>speech</strong> (<em>Tensor</em>) – Speech waveform tensor (B, T_wav).</p></li>
+<li><p><strong>speech_lengths</strong> (<em>Tensor</em>) – Speech length tensor (B,).</p></li>
+<li><p><strong>forward_generator</strong> (<em>bool</em>) – Whether to forward generator.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>loss (Tensor): Loss scalar tensor.</p></li>
+<li><p>stats (Dict[str, float]): Statistics to be monitored.</p></li>
+<li><p>weight (Tensor): Weight tensor to summarize losses.</p></li>
+<li><p>optim_idx (int): Optimizer index (0 for G and 1 for D).</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.joint.joint_text2wav.JointText2Wav.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/gan_tts/joint/joint_text2wav.html#JointText2Wav.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.joint.joint_text2wav.JointText2Wav.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>text</strong> (<em>Tensor</em>) – Input text index tensor (T_text,).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>wav (Tensor): Generated waveform tensor (T_wav,).</p></li>
+<li><p>feat_gan (Tensor): Generated feature tensor (T_text, C).</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Dict[str, Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.joint.joint_text2wav.JointText2Wav.require_raw_speech">
+<em class="property">property </em><code class="sig-name descname">require_raw_speech</code><a class="headerlink" href="#espnet2.gan_tts.joint.joint_text2wav.JointText2Wav.require_raw_speech" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether or not speech is required.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.joint.joint_text2wav.JointText2Wav.require_vocoder">
+<em class="property">property </em><code class="sig-name descname">require_vocoder</code><a class="headerlink" href="#espnet2.gan_tts.joint.joint_text2wav.JointText2Wav.require_vocoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether or not vocoder is required.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 </div>
 

@@ -378,7 +378,7 @@ Tensor: Weight tensor to summarize losses.</p>
 
 <dl class="method">
 <dt id="espnet2.tts.espnet_model.ESPnetTTSModel.inference">
-<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">spembs: torch.Tensor = None</em>, <em class="sig-param">sids: torch.Tensor = None</em>, <em class="sig-param">lids: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">pitch: torch.Tensor = None</em>, <em class="sig-param">energy: torch.Tensor = None</em>, <em class="sig-param">**decode_config</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">speech: Optional[torch.Tensor] = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">durations: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">energy: Optional[torch.Tensor] = None</em>, <em class="sig-param">**decode_config</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/espnet_model.html#ESPnetTTSModel.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.espnet_model.ESPnetTTSModel.inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Caclualte features and return them as a dict.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -745,7 +745,7 @@ calculation.</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet2.tts.fastspeech2.fastspeech2.FastSpeech2.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">durations: torch.Tensor</em>, <em class="sig-param">durations_lengths: torch.Tensor</em>, <em class="sig-param">pitch: torch.Tensor</em>, <em class="sig-param">pitch_lengths: torch.Tensor</em>, <em class="sig-param">energy: torch.Tensor</em>, <em class="sig-param">energy_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech2/fastspeech2.html#FastSpeech2.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech2.fastspeech2.FastSpeech2.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">durations: torch.Tensor</em>, <em class="sig-param">durations_lengths: torch.Tensor</em>, <em class="sig-param">pitch: torch.Tensor</em>, <em class="sig-param">pitch_lengths: torch.Tensor</em>, <em class="sig-param">energy: torch.Tensor</em>, <em class="sig-param">energy_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">joint_training: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech2/fastspeech2.html#FastSpeech2.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech2.fastspeech2.FastSpeech2.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -763,12 +763,13 @@ calculation.</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker embeddings (B, spk_embed_dim).</p></li>
 <li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker IDs (B, 1).</p></li>
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (B, 1).</p></li>
+<li><p><strong>joint_training</strong> (<em>bool</em>) – Whether to perform joint training with vocoder.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Loss scalar value.
 Dict: Statistics to be monitored.
-Tensor: Weight value.</p>
+Tensor: Weight value if not joint training else model outputs.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>Tensor</p>
@@ -969,7 +970,7 @@ guided attention loss.</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet2.tts.transformer.transformer.Transformer.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/transformer/transformer.html#Transformer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.transformer.transformer.Transformer.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">joint_training: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/transformer/transformer.html#Transformer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.transformer.transformer.Transformer.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -981,12 +982,13 @@ guided attention loss.</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker embeddings (B, spk_embed_dim).</p></li>
 <li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker IDs (B, 1).</p></li>
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (B, 1).</p></li>
+<li><p><strong>joint_training</strong> (<em>bool</em>) – Whether to perform joint training with vocoder.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Loss scalar value.
 Dict: Statistics to be monitored.
-Tensor: Weight value.</p>
+Tensor: Weight value if not joint training else model outputs.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>Tensor</p>
@@ -1350,7 +1352,7 @@ calculation.</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet2.tts.fastspeech.fastspeech.FastSpeech.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">durations: torch.Tensor</em>, <em class="sig-param">durations_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech/fastspeech.html#FastSpeech.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech.fastspeech.FastSpeech.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">durations: torch.Tensor</em>, <em class="sig-param">durations_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">joint_training: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/fastspeech/fastspeech.html#FastSpeech.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.fastspeech.fastspeech.FastSpeech.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1364,12 +1366,13 @@ calculation.</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker embeddings (B, spk_embed_dim).</p></li>
 <li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker IDs (B, 1).</p></li>
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (B, 1).</p></li>
+<li><p><strong>joint_training</strong> (<em>bool</em>) – Whether to perform joint training with vocoder.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Loss scalar value.
 Dict: Statistics to be monitored.
-Tensor: Weight value.</p>
+Tensor: Weight value if not joint training else model outputs.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>Tensor</p>
@@ -1485,7 +1488,7 @@ loss calculation.</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet2.tts.tacotron2.tacotron2.Tacotron2.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/tacotron2/tacotron2.html#Tacotron2.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.tacotron2.tacotron2.Tacotron2.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">joint_training: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/tacotron2/tacotron2.html#Tacotron2.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.tacotron2.tacotron2.Tacotron2.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1497,12 +1500,13 @@ loss calculation.</p></li>
 <li><p><strong>spembs</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker embeddings (B, spk_embed_dim).</p></li>
 <li><p><strong>sids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of speaker IDs (B, 1).</p></li>
 <li><p><strong>lids</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Batch of language IDs (B, 1).</p></li>
+<li><p><strong>joint_training</strong> (<em>bool</em>) – Whether to perform joint training with vocoder.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Loss scalar value.
 Dict: Statistics to be monitored.
-Tensor: Weight value.</p>
+Tensor: Weight value if not joint training else model outputs.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>Tensor</p>

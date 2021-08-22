@@ -235,6 +235,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">FeatureMatchLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">GeneratorAdversarialLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">MelSpectrogramLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.utils</span> <span class="kn">import</span> <span class="n">get_segments</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.generator</span> <span class="kn">import</span> <span class="n">VITSGenerator</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.loss</span> <span class="kn">import</span> <span class="n">KLDivergenceLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
@@ -593,7 +594,7 @@
         <span class="c1"># parse outputs</span>
         <span class="n">speech_hat_</span><span class="p">,</span> <span class="n">dur_nll</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">start_idxs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">z_mask</span><span class="p">,</span> <span class="n">outs_</span> <span class="o">=</span> <span class="n">outs</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">z_p</span><span class="p">,</span> <span class="n">m_p</span><span class="p">,</span> <span class="n">logs_p</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">logs_q</span> <span class="o">=</span> <span class="n">outs_</span>
-        <span class="n">speech_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">get_segments</span><span class="p">(</span>
+        <span class="n">speech_</span> <span class="o">=</span> <span class="n">get_segments</span><span class="p">(</span>
             <span class="n">x</span><span class="o">=</span><span class="n">speech</span><span class="p">,</span>
             <span class="n">start_idxs</span><span class="o">=</span><span class="n">start_idxs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">upsample_factor</span><span class="p">,</span>
             <span class="n">segment_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">upsample_factor</span><span class="p">,</span>
@@ -701,7 +702,7 @@
 
         <span class="c1"># parse outputs</span>
         <span class="n">speech_hat_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">start_idxs</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">outs</span>
-        <span class="n">speech_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">get_segments</span><span class="p">(</span>
+        <span class="n">speech_</span> <span class="o">=</span> <span class="n">get_segments</span><span class="p">(</span>
             <span class="n">x</span><span class="o">=</span><span class="n">speech</span><span class="p">,</span>
             <span class="n">start_idxs</span><span class="o">=</span><span class="n">start_idxs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">upsample_factor</span><span class="p">,</span>
             <span class="n">segment_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">upsample_factor</span><span class="p">,</span>

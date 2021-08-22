@@ -1997,8 +1997,9 @@ Optimizer related:
                         [--feats_extract {fbank,log_spectrogram,linear_spectrogram}]
                         [--feats_extract_conf FEATS_EXTRACT_CONF]
                         [--normalize {global_mvn,utterance_mvn,None}]
-                        [--normalize_conf NORMALIZE_CONF] [--tts {vits}]
-                        [--tts_conf TTS_CONF] [--pitch_extract {dio,None}]
+                        [--normalize_conf NORMALIZE_CONF]
+                        [--tts {vits,joint_text2wav}] [--tts_conf TTS_CONF]
+                        [--pitch_extract {dio,None}]
                         [--pitch_extract_conf PITCH_EXTRACT_CONF]
                         [--pitch_normalize {global_mvn,utterance_mvn,None}]
                         [--pitch_normalize_conf PITCH_NORMALIZE_CONF]
@@ -2355,7 +2356,8 @@ Optimizer related:
                         The normalize type (default: None)
   --normalize_conf NORMALIZE_CONF
                         The keyword arguments for normalize (default: {})
-  --tts {vits}          The tts type (default: vits)
+  --tts {vits,joint_text2wav}
+                        The tts type (default: vits)
   --tts_conf TTS_CONF   The keyword arguments for tts (default: {})
   --pitch_extract {dio,None}
                         The pitch_extract type (default: None)

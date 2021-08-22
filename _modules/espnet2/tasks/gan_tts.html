@@ -235,6 +235,7 @@
 
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.abs_gan_tts</span> <span class="kn">import</span> <span class="n">AbsGANTTS</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetGANTTSModel</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.joint</span> <span class="kn">import</span> <span class="n">JointText2Wav</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits</span> <span class="kn">import</span> <span class="n">VITS</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.global_mvn</span> <span class="kn">import</span> <span class="n">GlobalMVN</span>
@@ -281,6 +282,7 @@
     <span class="s2">&quot;tts&quot;</span><span class="p">,</span>
     <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
         <span class="n">vits</span><span class="o">=</span><span class="n">VITS</span><span class="p">,</span>
+        <span class="n">joint_text2wav</span><span class="o">=</span><span class="n">JointText2Wav</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsGANTTS</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;vits&quot;</span><span class="p">,</span>
@@ -336,7 +338,6 @@
         <span class="n">normalize_choices</span><span class="p">,</span>
         <span class="c1"># --tts and --tts_conf</span>
         <span class="n">tts_choices</span><span class="p">,</span>
-        <span class="c1"># NOTE(kan-bayashi): Not used for now but added for compatibility</span>
         <span class="c1"># --pitch_extract and --pitch_extract_conf</span>
         <span class="n">pitch_extractor_choices</span><span class="p">,</span>
         <span class="c1"># --pitch_normalize and --pitch_normalize_conf</span>
@@ -490,10 +491,10 @@
         <span class="bp">cls</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">inference</span><span class="p">:</span>
-            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;spembs&quot;</span><span class="p">,</span> <span class="s2">&quot;sids&quot;</span><span class="p">,</span> <span class="s2">&quot;durations&quot;</span><span class="p">)</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;spembs&quot;</span><span class="p">,</span> <span class="s2">&quot;sids&quot;</span><span class="p">,</span> <span class="s2">&quot;durations&quot;</span><span class="p">,</span> <span class="s2">&quot;pitch&quot;</span><span class="p">,</span> <span class="s2">&quot;energy&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Inference mode</span>
-            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;spembs&quot;</span><span class="p">,</span> <span class="s2">&quot;sids&quot;</span><span class="p">,</span> <span class="s2">&quot;speech&quot;</span><span class="p">,</span> <span class="s2">&quot;durations&quot;</span><span class="p">)</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;spembs&quot;</span><span class="p">,</span> <span class="s2">&quot;sids&quot;</span><span class="p">,</span> <span class="s2">&quot;speech&quot;</span><span class="p">,</span> <span class="s2">&quot;durations&quot;</span><span class="p">,</span> <span class="s2">&quot;pitch&quot;</span><span class="p">,</span> <span class="s2">&quot;energy&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">retval</span></div>
 
 <div class="viewcode-block" id="GANTTSTask.build_model"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.gan_tts.GANTTSTask.build_model">[docs]</a>    <span class="nd">@classmethod</span>
@@ -538,10 +539,48 @@
         <span class="n">tts_class</span> <span class="o">=</span> <span class="n">tts_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">tts</span><span class="p">)</span>
         <span class="n">tts</span> <span class="o">=</span> <span class="n">tts_class</span><span class="p">(</span><span class="n">idim</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">odim</span><span class="o">=</span><span class="n">odim</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">tts_conf</span><span class="p">)</span>
 
-        <span class="c1"># 4. Build model</span>
+        <span class="c1"># 4. Extra components</span>
+        <span class="n">pitch_extract</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">energy_extract</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">pitch_normalize</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">energy_normalize</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;pitch_extract&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pitch_extract_class</span> <span class="o">=</span> <span class="n">pitch_extractor_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">pitch_extract</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">pitch_extract</span> <span class="o">=</span> <span class="n">pitch_extract_class</span><span class="p">(</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">pitch_extract_conf</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;energy_extract&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">energy_extract_class</span> <span class="o">=</span> <span class="n">energy_extractor_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">energy_extract</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">energy_extract</span> <span class="o">=</span> <span class="n">energy_extract_class</span><span class="p">(</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">energy_extract_conf</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;pitch_normalize&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pitch_normalize_class</span> <span class="o">=</span> <span class="n">pitch_normalize_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">pitch_normalize</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">pitch_normalize</span> <span class="o">=</span> <span class="n">pitch_normalize_class</span><span class="p">(</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">pitch_normalize_conf</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;energy_normalize&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">energy_normalize_class</span> <span class="o">=</span> <span class="n">energy_normalize_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">energy_normalize</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">energy_normalize</span> <span class="o">=</span> <span class="n">energy_normalize_class</span><span class="p">(</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">energy_normalize_conf</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># 5. Build model</span>
         <span class="n">model</span> <span class="o">=</span> <span class="n">ESPnetGANTTSModel</span><span class="p">(</span>
             <span class="n">feats_extract</span><span class="o">=</span><span class="n">feats_extract</span><span class="p">,</span>
             <span class="n">normalize</span><span class="o">=</span><span class="n">normalize</span><span class="p">,</span>
+            <span class="n">pitch_extract</span><span class="o">=</span><span class="n">pitch_extract</span><span class="p">,</span>
+            <span class="n">pitch_normalize</span><span class="o">=</span><span class="n">pitch_normalize</span><span class="p">,</span>
+            <span class="n">energy_extract</span><span class="o">=</span><span class="n">energy_extract</span><span class="p">,</span>
+            <span class="n">energy_normalize</span><span class="o">=</span><span class="n">energy_normalize</span><span class="p">,</span>
             <span class="n">tts</span><span class="o">=</span><span class="n">tts</span><span class="p">,</span>
             <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">,</span>
         <span class="p">)</span>

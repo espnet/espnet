@@ -229,6 +229,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
@@ -286,6 +287,7 @@
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">resblock_dilations</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">resblock_kernel_sizes</span><span class="p">)</span>
 
         <span class="c1"># define modules</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">upsample_factor</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">upsample_scales</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_upsamples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">upsample_kernel_sizes</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_blocks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">resblock_kernel_sizes</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">input_conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
@@ -412,7 +414,25 @@
                 <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Weight norm is applied to </span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">_apply_weight_norm</span><span class="p">)</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">_apply_weight_norm</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HiFiGANGenerator.inference"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.hifigan.hifigan.HiFiGANGenerator.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">g</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Perform inference.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            c (torch.Tensor): Input tensor (T, in_channels).</span>
+<span class="sd">            g (Optional[Tensor]): Global conditioning tensor (global_channels, 1).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Output tensor (T ** upsample_factor, out_channels).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">g</span><span class="o">=</span><span class="n">g</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">c</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="HiFiGANPeriodDiscriminator"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.hifigan.hifigan.HiFiGANPeriodDiscriminator">[docs]</a><span class="k">class</span> <span class="nc">HiFiGANPeriodDiscriminator</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>

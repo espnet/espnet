@@ -81,6 +81,28 @@ espnet2.gan_tts.hifigan.hifigan
     :show-inheritance:
 
 
+.. _espnet2.gan_tts.utils.get_random_segments:
+
+espnet2.gan_tts.utils.get_random_segments
+-----------------------------------------
+
+.. automodule:: espnet2.gan_tts.utils.get_random_segments
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.utils.__init__:
+
+espnet2.gan_tts.utils.__init__
+------------------------------
+
+.. automodule:: espnet2.gan_tts.utils.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.gan_tts.wavenet.__init__:
 
 espnet2.gan_tts.wavenet.__init__
@@ -241,6 +263,28 @@ espnet2.gan_tts.vits.monotonic_align.setup
 ------------------------------------------
 
 .. automodule:: espnet2.gan_tts.vits.monotonic_align.setup
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.joint.__init__:
+
+espnet2.gan_tts.joint.__init__
+------------------------------
+
+.. automodule:: espnet2.gan_tts.joint.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.joint.joint_text2wav:
+
+espnet2.gan_tts.joint.joint_text2wav
+------------------------------------
+
+.. automodule:: espnet2.gan_tts.joint.joint_text2wav
     :members:
     :undoc-members:
     :show-inheritance:
