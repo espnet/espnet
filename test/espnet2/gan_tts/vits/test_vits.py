@@ -19,6 +19,7 @@ def make_vits_generator_args(**kwargs):
             "aux_channels": 5,
             "hidden_channels": 4,
             "spks": -1,
+            "langs": -1,
             "spk_embed_dim": -1,
             "global_channels": -1,
             "segment_size": 4,
@@ -483,15 +484,18 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         ),
     ],
 )
-@pytest.mark.parametrize("spks, spk_embed_dim", [(10, -1), (-1, 5), (5, 5)])
+@pytest.mark.parametrize(
+    "spks, spk_embed_dim, langs", [(10, -1, -1), (-1, 5, -1), (-1, -1, 3), (4, 5, 3)]
+)
 def test_multi_speaker_vits_is_trainable_and_decodable(
-    gen_dict, dis_dict, loss_dict, spks, spk_embed_dim
+    gen_dict, dis_dict, loss_dict, spks, spk_embed_dim, langs
 ):
     idim = 10
     odim = 5
     global_channels = 8
     gen_args = make_vits_generator_args(**gen_dict)
     gen_args["generator_params"]["spks"] = spks
+    gen_args["generator_params"]["langs"] = langs
     gen_args["generator_params"]["spk_embed_dim"] = spk_embed_dim
     gen_args["generator_params"]["global_channels"] = global_channels
     dis_args = make_vits_discriminator_args(**dis_dict)
@@ -515,6 +519,8 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
     )
     if spks > 0:
         inputs["sids"] = torch.randint(0, spks, (2, 1))
+    if langs > 0:
+        inputs["lids"] = torch.randint(0, langs, (2, 1))
     if spk_embed_dim > 0:
         inputs["spembs"] = torch.randn(2, spk_embed_dim)
     gen_loss = model(forward_generator=True, **inputs)["loss"]
@@ -535,6 +541,8 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
         )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
+        if langs > 0:
+            inputs["lids"] = torch.randint(0, langs, (1,))
         if spk_embed_dim > 0:
             inputs["spembs"] = torch.randn(spk_embed_dim)
         model.inference(**inputs)
@@ -550,6 +558,8 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
         )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
+        if langs > 0:
+            inputs["lids"] = torch.randint(0, langs, (1,))
         if spk_embed_dim > 0:
             inputs["spembs"] = torch.randn(spk_embed_dim)
         output_dict = model.inference(**inputs)
@@ -566,6 +576,8 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
         )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
+        if langs > 0:
+            inputs["lids"] = torch.randint(0, langs, (1,))
         if spk_embed_dim > 0:
             inputs["spembs"] = torch.randn(spk_embed_dim)
         output_dict = model.inference(**inputs, use_teacher_forcing=True)
@@ -922,15 +934,18 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
         ),
     ],
 )
-@pytest.mark.parametrize("spks, spk_embed_dim", [(10, -1), (-1, 5), (5, 5)])
+@pytest.mark.parametrize(
+    "spks, spk_embed_dim, langs", [(10, -1, -1), (-1, 5, -1), (-1, -1, 3), (4, 5, 3)]
+)
 def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
-    gen_dict, dis_dict, loss_dict, spks, spk_embed_dim
+    gen_dict, dis_dict, loss_dict, spks, spk_embed_dim, langs
 ):
     idim = 10
     odim = 5
     global_channels = 8
     gen_args = make_vits_generator_args(**gen_dict)
     gen_args["generator_params"]["spks"] = spks
+    gen_args["generator_params"]["langs"] = langs
     gen_args["generator_params"]["spk_embed_dim"] = spk_embed_dim
     gen_args["generator_params"]["global_channels"] = global_channels
     dis_args = make_vits_discriminator_args(**dis_dict)
@@ -954,6 +969,8 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
     )
     if spks > 0:
         inputs["sids"] = torch.randint(0, spks, (2, 1))
+    if langs > 0:
+        inputs["lids"] = torch.randint(0, langs, (2, 1))
     if spk_embed_dim > 0:
         inputs["spembs"] = torch.randn(2, spk_embed_dim)
     device = torch.device("cuda")
@@ -977,6 +994,8 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
+        if langs > 0:
+            inputs["lids"] = torch.randint(0, langs, (1,))
         if spk_embed_dim > 0:
             inputs["spembs"] = torch.randn(spk_embed_dim)
         inputs = {k: v.to(device) for k, v in inputs.items()}
@@ -993,6 +1012,8 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
+        if langs > 0:
+            inputs["lids"] = torch.randint(0, langs, (1,))
         if spk_embed_dim > 0:
             inputs["spembs"] = torch.randn(spk_embed_dim)
         inputs = {k: v.to(device) for k, v in inputs.items()}
@@ -1010,6 +1031,8 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
+        if langs > 0:
+            inputs["lids"] = torch.randint(0, langs, (1,))
         if spk_embed_dim > 0:
             inputs["spembs"] = torch.randn(spk_embed_dim)
         inputs = {k: v.to(device) for k, v in inputs.items()}

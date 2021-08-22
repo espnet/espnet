@@ -78,19 +78,34 @@ Demonstration
 - Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_asr_realtime_demo.ipynb)
 
 ### TTS: Text-to-speech
-- Tacotron2
-- Transformer-TTS
-- FastSpeech
-- FastSpeech2 (in ESPnet2)
-- Conformer-based FastSpeech & FastSpeech2 (in ESPnet2)
-- Multi-speaker model with pretrained speaker embedding
-- Multi-speaker model with GST (in ESPnet2)
-- Phoneme-based training (En, Jp, and Zn)
-- Integration with neural vocoders (WaveNet, ParallelWaveGAN, and MelGAN)
+- Architecture
+    - Tacotron2
+    - Transformer-TTS
+    - FastSpeech
+    - FastSpeech2
+    - Conformer FastSpeech & FastSpeech2
+    - VITS
+- Multi-speaker & multi-language extention
+    - Pretrined speaker embedding (e.g., X-vector)
+    - Speaker ID embedding
+    - Language ID embedding
+    - Global style token (GST) embedding
+    - Mix of the above embeddings
+- End-to-end training
+    - End-to-end text-to-wav model (e.g., VITS)
+    - Joint training of text2mel and vocoder
+- Various language support
+    - En / Jp / Zn / De / Ru / And more...
+- Integration with neural vocoders
+    - Parallel WaveGAN
+    - MelGAN
+    - Multi-band MelGAN
+    - HiFiGAN
+    - StyleMelGAN
+    - Mix of the above models
 
 Demonstration
 - Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
-- Real-time TTS demo with ESPnet1  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/tts_realtime_demo.ipynb)
 
 To train the neural vocoder, please check the following repositories:
 - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
