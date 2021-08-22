@@ -246,7 +246,7 @@
         <span class="n">global_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">7</span><span class="p">,</span>
         <span class="n">upsample_scales</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
-        <span class="n">upsample_kernal_sizes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+        <span class="n">upsample_kernel_sizes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
         <span class="n">resblock_kernel_sizes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">11</span><span class="p">],</span>
         <span class="n">resblock_dilations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">]],</span>
         <span class="n">use_additional_convs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -264,8 +264,8 @@
 <span class="sd">            global_channels (int): Number of global conditioning channels.</span>
 <span class="sd">            kernel_size (int): Kernel size of initial and final conv layer.</span>
 <span class="sd">            upsample_scales (List[int]): List of upsampling scales.</span>
-<span class="sd">            upsample_kernal_sizes (List[int]): List of kernal sizes for upsample layers.</span>
-<span class="sd">            resblock_kernal_sizes (List[int]): List of kernal sizes for residual blocks.</span>
+<span class="sd">            upsample_kernel_sizes (List[int]): List of kernel sizes for upsample layers.</span>
+<span class="sd">            resblock_kernel_sizes (List[int]): List of kernel sizes for residual blocks.</span>
 <span class="sd">            resblock_dilations (List[List[int]]): List of list of dilations for residual</span>
 <span class="sd">                blocks.</span>
 <span class="sd">            use_additional_convs (bool): Whether to use additional conv layers in</span>
@@ -281,12 +281,12 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="c1"># check hyperparameters are valid</span>
-        <span class="k">assert</span> <span class="n">kernel_size</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Kernal size must be odd number.&quot;</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">upsample_scales</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">upsample_kernal_sizes</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">kernel_size</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Kernel size must be odd number.&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">upsample_scales</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">upsample_kernel_sizes</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">resblock_dilations</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">resblock_kernel_sizes</span><span class="p">)</span>
 
         <span class="c1"># define modules</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">num_upsamples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">upsample_kernal_sizes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_upsamples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">upsample_kernel_sizes</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_blocks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">resblock_kernel_sizes</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">input_conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span>
             <span class="n">in_channels</span><span class="p">,</span>
@@ -297,8 +297,8 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">upsamples</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">upsample_kernal_sizes</span><span class="p">)):</span>
-            <span class="k">assert</span> <span class="n">upsample_kernal_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">upsample_scales</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">upsample_kernel_sizes</span><span class="p">)):</span>
+            <span class="k">assert</span> <span class="n">upsample_kernel_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">upsample_scales</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">upsamples</span> <span class="o">+=</span> <span class="p">[</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
                     <span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="p">,</span> <span class="n">nonlinear_activation</span><span class="p">)(</span>
@@ -307,7 +307,7 @@
                     <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose1d</span><span class="p">(</span>
                         <span class="n">channels</span> <span class="o">//</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">i</span><span class="p">),</span>
                         <span class="n">channels</span> <span class="o">//</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span>
-                        <span class="n">upsample_kernal_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                        <span class="n">upsample_kernel_sizes</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
                         <span class="n">upsample_scales</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
                         <span class="n">padding</span><span class="o">=</span><span class="n">upsample_scales</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">upsample_scales</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span><span class="p">,</span>
                         <span class="n">output_padding</span><span class="o">=</span><span class="n">upsample_scales</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span><span class="p">,</span>
@@ -458,8 +458,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kernel_sizes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
-        <span class="k">assert</span> <span class="n">kernel_sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Kernal size must be odd number.&quot;</span>
-        <span class="k">assert</span> <span class="n">kernel_sizes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Kernal size must be odd number.&quot;</span>
+        <span class="k">assert</span> <span class="n">kernel_sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Kernel size must be odd number.&quot;</span>
+        <span class="k">assert</span> <span class="n">kernel_sizes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Kernel size must be odd number.&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">period</span> <span class="o">=</span> <span class="n">period</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">convs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>

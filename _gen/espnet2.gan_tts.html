@@ -583,7 +583,7 @@ function.</p></li>
 <p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
 <dl class="class">
 <dt id="espnet2.gan_tts.hifigan.hifigan.HiFiGANGenerator">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.hifigan.hifigan.</code><code class="sig-name descname">HiFiGANGenerator</code><span class="sig-paren">(</span><em class="sig-param">in_channels: int = 80, out_channels: int = 1, channels: int = 512, global_channels: int = -1, kernel_size: int = 7, upsample_scales: List[int] = [8, 8, 2, 2], upsample_kernal_sizes: List[int] = [16, 16, 4, 4], resblock_kernel_sizes: List[int] = [3, 7, 11], resblock_dilations: List[List[int]] = [[1, 3, 5], [1, 3, 5], [1, 3, 5]], use_additional_convs: bool = True, bias: bool = True, nonlinear_activation: str = 'LeakyReLU', nonlinear_activation_params: Dict[str, Any] = {'negative_slope': 0.1}, use_weight_norm: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/hifigan/hifigan.html#HiFiGANGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.hifigan.hifigan.HiFiGANGenerator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.hifigan.hifigan.</code><code class="sig-name descname">HiFiGANGenerator</code><span class="sig-paren">(</span><em class="sig-param">in_channels: int = 80, out_channels: int = 1, channels: int = 512, global_channels: int = -1, kernel_size: int = 7, upsample_scales: List[int] = [8, 8, 2, 2], upsample_kernel_sizes: List[int] = [16, 16, 4, 4], resblock_kernel_sizes: List[int] = [3, 7, 11], resblock_dilations: List[List[int]] = [[1, 3, 5], [1, 3, 5], [1, 3, 5]], use_additional_convs: bool = True, bias: bool = True, nonlinear_activation: str = 'LeakyReLU', nonlinear_activation_params: Dict[str, Any] = {'negative_slope': 0.1}, use_weight_norm: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/hifigan/hifigan.html#HiFiGANGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.hifigan.hifigan.HiFiGANGenerator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>HiFiGAN generator module.</p>
 <p>Initialize HiFiGANGenerator module.</p>
@@ -596,8 +596,8 @@ function.</p></li>
 <li><p><strong>global_channels</strong> (<em>int</em>) – Number of global conditioning channels.</p></li>
 <li><p><strong>kernel_size</strong> (<em>int</em>) – Kernel size of initial and final conv layer.</p></li>
 <li><p><strong>upsample_scales</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of upsampling scales.</p></li>
-<li><p><strong>upsample_kernal_sizes</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of kernal sizes for upsample layers.</p></li>
-<li><p><strong>resblock_kernal_sizes</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of kernal sizes for residual blocks.</p></li>
+<li><p><strong>upsample_kernel_sizes</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of kernel sizes for upsample layers.</p></li>
+<li><p><strong>resblock_kernel_sizes</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of kernel sizes for residual blocks.</p></li>
 <li><p><strong>resblock_dilations</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><em>int</em><em>]</em><em>]</em>) – List of list of dilations for residual
 blocks.</p></li>
 <li><p><strong>use_additional_convs</strong> (<em>bool</em>) – Whether to use additional conv layers in
@@ -1097,7 +1097,7 @@ of text encoder.</p></li>
 <li><p><strong>text_encoder_positionwise_layer_type</strong> (<em>str</em>) – Position-wise layer type in
 conformer block of text encoder.</p></li>
 <li><p><strong>text_encoder_positionwise_conv_kernel_size</strong> (<em>int</em>) – Position-wise convolution
-kernal size in conformer block of text encoder. Only used when the
+kernel size in conformer block of text encoder. Only used when the
 above layer type is conv1d or conv1d-linear.</p></li>
 <li><p><strong>text_encoder_positional_encoding_layer_type</strong> (<em>str</em>) – Positional encoding layer
 type in conformer block of text encoder.</p></li>
@@ -1113,7 +1113,7 @@ text encoder.</p></li>
 encoding in conformer block of text encoder.</p></li>
 <li><p><strong>text_encoder_attention_dropout_rate</strong> (<em>float</em>) – Dropout rate for attention in
 conformer block of text encoder.</p></li>
-<li><p><strong>text_encoder_conformer_kernel_size</strong> (<em>int</em>) – Conformer conv kernal size. It
+<li><p><strong>text_encoder_conformer_kernel_size</strong> (<em>int</em>) – Conformer conv kernel size. It
 will be used when only use_conformer_conv_in_text_encoder = True.</p></li>
 <li><p><strong>use_macaron_style_in_text_encoder</strong> (<em>bool</em>) – Whether to use macaron style FFN
 in conformer block of text encoder.</p></li>

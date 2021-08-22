@@ -259,7 +259,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">convs1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">use_additional_convs</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">convs2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
-        <span class="k">assert</span> <span class="n">kernel_size</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Kernal size must be odd number.&quot;</span>
+        <span class="k">assert</span> <span class="n">kernel_size</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Kernel size must be odd number.&quot;</span>
         <span class="k">for</span> <span class="n">dilation</span> <span class="ow">in</span> <span class="n">dilations</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">convs1</span> <span class="o">+=</span> <span class="p">[</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
