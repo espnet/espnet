@@ -179,7 +179,7 @@ class FastSpeech(AbsTTS):
             gst_conv_layers (int): The number of conv layers in GST.
             gst_conv_chans_list: (Sequence[int]):
                 List of the number of channels of conv layers in GST.
-            gst_conv_kernel_size (int): Kernal size of conv layers in GST.
+            gst_conv_kernel_size (int): Kernel size of conv layers in GST.
             gst_conv_stride (int): Stride size of conv layers in GST.
             gst_gru_layers (int): The number of GRU layers in GST.
             gst_gru_units (int): The number of GRU units in GST.

@@ -67,7 +67,7 @@ class HiFiGANGenerator(torch.nn.Module):
         super().__init__()
 
         # check hyperparameters are valid
-        assert kernel_size % 2 == 1, "Kernal size must be odd number."
+        assert kernel_size % 2 == 1, "Kernel size must be odd number."
         assert len(upsample_scales) == len(upsample_kernel_sizes)
         assert len(resblock_dilations) == len(resblock_kernel_sizes)
 
@@ -244,8 +244,8 @@ class HiFiGANPeriodDiscriminator(torch.nn.Module):
         """
         super().__init__()
         assert len(kernel_sizes) == 2
-        assert kernel_sizes[0] % 2 == 1, "Kernal size must be odd number."
-        assert kernel_sizes[1] % 2 == 1, "Kernal size must be odd number."
+        assert kernel_sizes[0] % 2 == 1, "Kernel size must be odd number."
+        assert kernel_sizes[1] % 2 == 1, "Kernel size must be odd number."
 
         self.period = period
         self.convs = torch.nn.ModuleList()
