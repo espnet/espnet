@@ -313,12 +313,21 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
             if hasattr(hubert_task_cfg, key):
                 setattr(hubert_task_cfg, key, value)
 
-        self.dictionaries = [
-            F2E_Dictionary.load(f"{hubert_dict}")
-            if os.path.exists(f"{hubert_dict}")
-            else None
-        ]
+        d = Dictionary()
+        self._build_dictionary(d, hubert_dict)
         self.encoder = HubertModel(self.cfg, hubert_task_cfg, self.dictionaries)
+
+    def _build_dictionary(self, dictionary, hubert_dict_path):
+        if os.path.exists(f"{hubert_dict_path}"):
+
+            setattr(dictionary, "symbols", [])
+            setattr(dictionary, "count", [])
+            setattr(dictionary, "indices", {})
+            dictionary.add_from_file(f"{hubert_dict_path}")
+        else:
+            dictionary = None
+
+        self.dictionaries = [dictionary]
 
     def output_size(self) -> int:
         return self._output_size
@@ -365,21 +374,6 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
             {self.encoder.mask_emb.dtype}, \
             {self.use_amp}"
         )
-
-
-class F2E_Dictionary(Dictionary):
-    def __init__(
-        self,
-        *,  # begin keyword-only arguments
-        extra_special_symbols=None,
-    ):
-        self.symbols = []
-        self.count = []
-        self.indices = {}
-        if extra_special_symbols:
-            for s in extra_special_symbols:
-                self.add_symbol(s)
-        self.nspecial = len(self.symbols)
 
 
 def download_hubert(model_url, dir_path):

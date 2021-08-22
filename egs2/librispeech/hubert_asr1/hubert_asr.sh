@@ -1,1 +1,0 @@
-../../TEMPLATE/hubert_asr1/hubert_asr.sh
