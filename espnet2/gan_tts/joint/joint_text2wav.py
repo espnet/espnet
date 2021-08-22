@@ -139,7 +139,7 @@ class JointText2Wav(AbsGANTTS):
             "global_channels": -1,
             "kernel_size": 7,
             "upsample_scales": [8, 8, 2, 2],
-            "upsample_kernal_sizes": [16, 16, 4, 4],
+            "upsample_kernel_sizes": [16, 16, 4, 4],
             "resblock_kernel_sizes": [3, 7, 11],
             "resblock_dilations": [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
             "use_additional_convs": True,

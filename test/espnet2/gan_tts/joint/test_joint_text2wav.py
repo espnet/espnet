@@ -94,7 +94,7 @@ def make_vocoder_args(**kwargs):
             "global_channels": -1,
             "kernel_size": 7,
             "upsample_scales": [2, 2],
-            "upsample_kernal_sizes": [4, 4],
+            "upsample_kernel_sizes": [4, 4],
             "resblock_kernel_sizes": [3, 7],
             "resblock_dilations": [[1, 3], [1, 3]],
             "use_additional_convs": True,
