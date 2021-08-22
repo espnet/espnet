@@ -1,4 +1,0 @@
-# decoding parameters
-batch: 0
-beam-size: 5
-score-norm: True

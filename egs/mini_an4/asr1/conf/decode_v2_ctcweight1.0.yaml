@@ -1,8 +1,8 @@
 # decoding parameter
-beam-size: 1
+beam-size: 20
 penalty: 0.0
 maxlenratio: 0.0
 minlenratio: 0.0
 ctc-weight: 1.0
-lm-weight: 0.0
-batchsize: 0
+lm-weight: 1.0
+api: v2
