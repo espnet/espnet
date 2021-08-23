@@ -1,1 +1,3 @@
-from espnet2.tts.utils.parallel_wavegan_vocoder import ParallelWaveGANPretrainedVocoder  # NOQA
+from espnet2.tts.utils.parallel_wavegan_vocoder import (  # NOQA
+    ParallelWaveGANPretrainedVocoder,  # NOQA
+)
