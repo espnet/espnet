@@ -31,7 +31,7 @@ from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
-from espnet2.tts.utils.duration_calculator import DurationCalculator
+from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
