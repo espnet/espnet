@@ -22,6 +22,10 @@ set -e
 set -u
 set -o pipefail
 
+log() {
+    local fname=${BASH_SOURCE[1]##*/}
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
+}
 min() {
   local a b
   a=$1
@@ -49,22 +53,35 @@ enh_args="--normalize_output_wav true"
 . ./path.sh
 . ./cmd.sh
 
+help_message=$(cat << EOF
+Usage: enhance_dataset.sh <srcdir> <destdir> <modelfile>
+e.g.:
+    $0 dump/train_noisy data/train_noisy_enh '/path/to/model'
+
+Arguments:
+    <srcdir>: path to the data directory containing the original dataset
+    <destdir>: path to the data directory for storing the enhanced dataset
+    <modelfile>: path to the pretrained speech enhancement model
+        Note: "train.yaml" is assumed to be in the same directory as <modelfile>
+
+Optional:
+    --audio_dir: specify the output directory for storing enhanced audios (default is '<destdir>/wavs')
+    --scp_files: specify additional scp files to be copied and converted (default is '${scp_files}')
+    --spk_num: number of speakers in the input (>1 for separation, default=${spk_num})
+    --gpu_inference: whether to use gpu for inference (default=${gpu_inference})
+    --inference_nj: The number of parallel jobs in inference (default=${inference_nj})
+    --fs: sampling rate (default=${fs})
+    --python: specify python to execute espnet commands (default=${python})
+    --id_prefix: specify the prefix to prepend to utt ids and spk ids (default=${id_prefix})
+    --enh_args: additional arguments for espnet2/bin/enh_inference.py (default is '${enh_args}')
+EOF
+)
+
+log "$0 $*"
 
 if [[ $# != 3 ]]; then
-    echo 'Usage: enhance_dataset.sh <srcdir> <destdir> <modelfile>'
-    echo "e.g.:"
-    echo " $0 dump/train_noisy data/train_noisy_enh '/path/to/model'"
-    echo -e "\nOptional:"
-    echo "  --audio_dir: specify the output directory for storing enhanced audios (default is '<destdir>/wavs')"
-    echo "  --scp_files: specify additional scp files to be copied and converted (default is '${scp_files}')"
-    echo "  --spk_num: number of speakers in the input (>1 for separation, default=${spk_num})"
-    echo "  --gpu_inference: whether to use gpu for inference (default=${gpu_inference})"
-    echo "  --inference_nj: The number of parallel jobs in inference (default=${inference_nj})"
-    echo "  --fs: sampling rate (default=${fs})"
-    echo "  --python: specify python to execute espnet commands (default=${python})"
-    echo "  --id_prefix: specify the prefix to prepend to utt ids and spk ids (default=${id_prefix})"
-    echo "  --enh_args: additional arguments for espnet2/bin/enh_inference.py (default is '${enh_args}')"
-    exit 1
+    log "${help_message}"
+    exit 2
 fi
 
 srcdir=$1
@@ -73,22 +90,22 @@ modelfile=$3
 
 
 if [[ ! -f ${srcdir}/utt2spk ]]; then
-    echo "$0: no such file ${srcdir}/utt2spk"
-    exit 1;
+    log "$0: no such file ${srcdir}/utt2spk"
+    exit 1
 fi
 
 if [[ ${destdir} == "${srcdir}" ]]; then
-    echo "$0: this script requires <srcdir> and <destdir> to be different."
+    log "$0: this script requires <srcdir> and <destdir> to be different."
     exit 1
 fi
 
 if [[ ! -f "${modelfile}" ]]; then
-    echo "$0: no such file ${modelfile}"
+    log "$0: no such file ${modelfile}"
     exit 1
 fi
 modeldir="$(dirname ${modelfile})"
 if [[ ! -f "${modeldir}"/config.yaml ]]; then
-    echo "$0: no such file ${modeldir}/config.yaml"
+    log "$0: no such file ${modeldir}/config.yaml"
     exit 1
 fi
 
@@ -155,7 +172,7 @@ done
 utils/split_scp.pl "${key_file}" ${split_scps}
 
 # 2. Submit inference jobs
-echo "Enhancement started... log: '${_logdir}/enhance_dataset.*.log'"
+log "Enhancement started... log: '${_logdir}/enhance_dataset.*.log'"
 # shellcheck disable=SC2086
 # TODO(wangyou): support enhancement from enh_asr models after https://github.com/espnet/espnet/pull/3226 is merged
 ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enhance_dataset.JOB.log \
@@ -198,10 +215,10 @@ if [[ ${spk_num} -gt 1 ]]; then
         done
         utils/validate_data_dir.sh --no-feats --no-text "${destdir}/${spk}"
     done
-    echo "$0: generated enhanced version of data in ${srcdir}, in ${destdir}/spk*"
+    log "$0: generated enhanced version of data in ${srcdir}, in ${destdir}/spk*"
 else
     # (speech enhancement) no subdir is needed
     cp "${_logdir}/spk1.scp" "${destdir}/wav.scp"
-    echo "$0: generated enhanced version of data in ${srcdir}, in ${destdir}"
+    log "$0: generated enhanced version of data in ${srcdir}, in ${destdir}"
     utils/validate_data_dir.sh --no-feats --no-text "${destdir}"
 fi

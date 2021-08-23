@@ -17,6 +17,10 @@ set -e
 set -u
 set -o pipefail
 
+log() {
+    local fname=${BASH_SOURCE[1]##*/}
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
+}
 min() {
   local a b
   a=$1
@@ -30,34 +34,47 @@ min() {
 
 export LC_ALL=C
 
-ref_channel=0         # reference channel
-nj=32       # The number of parallel jobs in inference
-python=python3        # Specify python to execute espnet commands
-id_prefix="enh-"      # prefix of utt ids to remove in <ref_scp> and <enh_scp>
+ref_channel=0    # reference channel
+nj=32            # The number of parallel jobs in inference
+python=python3   # Specify python to execute espnet commands
+id_prefix="enh-" # prefix of utt ids to remove in <ref_scp> and <enh_scp>
 
 . utils/parse_options.sh
 . ./path.sh
 . ./cmd.sh
 
 
+help_message=$(cat << EOF
+Usage: calculate_speech_metrics.sh <ref_scp> <enh_scp> <metric> <outfile>
+e.g.:
+    $0 spk1.scp enh.scp SNR snr.scp
+
+Arguments:
+    <ref_scp>: scp file containing the path to audios that will be used as reference signals when calculating the metrics
+    <enh_scp>: scp file containing the path to audios that will be used as estimated signals when calculating the metrics
+    <metric>: must be one of the following:
+        "STOI": short-time objective intelligibility
+        "ESTOI": extended short-time objective intelligibility
+        "SNR": signal-to-noise ratio
+        "SI-SNR": scale-invariant signal-to-noise ratio
+        "SDR": signal-to-distortion ratio
+        "SAR": signal-to-artifact ratio
+        "SIR": signal-to-interference ratio
+    <outfile>: the scp file to store the calculated metric
+
+Optional:
+    --ref_channel: Reference channel of the reference speech will be used if the enhanced speech is single-channel and reference speech is multi-channel (default=${ref_channel})
+    --nj: The number of parallel jobs in inference (default=${nj})
+    --python: specify python to execute espnet commands (default=${python})
+    --id_prefix: prefix of utt ids to remove in <ref_scp> and <enh_scp> (default=${id_prefix})
+EOF
+)
+
+log "$0 $*"
+
 if [[ $# != 4 ]]; then
-    echo 'Usage: calculate_speech_metrics.sh <ref_scp> <enh_scp> <metric> <outfile>'
-    echo "e.g.:"
-    echo " $0 spk1.scp enh.scp SNR snr.scp"
-    echo -e "\nCurrent supported metrics:"
-    echo "  * STOI: short-time objective intelligibility"
-    echo "  * ESTOI: extended short-time objective intelligibility"
-    echo "  * SNR: signal-to-noise ratio"
-    echo "  * SI-SNR: scale-invariant signal-to-noise ratio"
-    echo "  * SDR: signal-to-distortion ratio"
-    echo "  * SAR: signal-to-artifact ratio"
-    echo "  * SIR: signal-to-interference ratio"
-    echo -e "\nOptional:"
-    echo "  --ref_channel: Reference channel of the reference speech will be used if the enhanced speech is single-channel and reference speech is multi-channel (default=${ref_channel})"
-    echo "  --nj: The number of parallel jobs in inference (default=${nj})"
-    echo "  --python: specify python to execute espnet commands (default=${python})"
-    echo "  --id_prefix: prefix of utt ids to remove in <ref_scp> and <enh_scp> (default=${id_prefix})"
-    exit 1
+    log "${help_message}"
+    exit 2
 fi
 
 ref_scp=$1
@@ -82,7 +99,7 @@ done
 utils/split_scp.pl "${key_file}" ${split_scps}
 
 # 2. Submit scoring jobs
-echo "Scoring started... log: '${tmpdir}/enh_metric.*.log'"
+log "Scoring started... log: '${tmpdir}/enh_metric.*.log'"
 # shellcheck disable=SC2086,SC2154
 ${decode_cmd} JOB=1:"${_nj}" "${tmpdir}"/enh_metric.JOB.log \
     ${python} scripts/utils/calculate_speech_metrics.py \
@@ -98,4 +115,4 @@ for i in $(seq "${_nj}"); do
 done | LC_ALL=C sort -k1 > "${outfile}"
 
 rm -r "${tmpdir}"
-echo "$0: calculated metric is in ${outfile}"
+log "$0: calculated metric is in ${outfile}"
