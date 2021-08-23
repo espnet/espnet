@@ -12,6 +12,7 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet2.gan_tts.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
@@ -89,6 +90,8 @@ tts_choices = ClassChoices(
         transformer=Transformer,
         fastspeech=FastSpeech,
         fastspeech2=FastSpeech2,
+        # NOTE(kan-bayashi): available only for inference
+        vits=VITS,
     ),
     type_check=AbsTTS,
     default="tacotron2",
@@ -200,6 +203,10 @@ class TTSTask(AbsTask):
                 "espeak_ng_french",
                 "espeak_ng_spanish",
                 "espeak_ng_russian",
+                "espeak_ng_greek",
+                "espeak_ng_finnish",
+                "espeak_ng_hungarian",
+                "espeak_ng_dutch",
                 "g2pk",
                 "g2pk_no_space",
             ],
@@ -223,7 +230,7 @@ class TTSTask(AbsTask):
         return CommonCollateFn(
             float_pad_value=0.0,
             int_pad_value=0,
-            not_sequence=["spembs", "sids"],
+            not_sequence=["spembs", "sids", "lids"],
         )
 
     @classmethod
@@ -262,10 +269,10 @@ class TTSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "durations", "pitch", "energy", "sids")
+            retval = ("spembs", "durations", "pitch", "energy", "sids", "lids")
         else:
             # Inference mode
-            retval = ("spembs", "speech", "durations", "sids")
+            retval = ("spembs", "speech", "durations", "sids", "lids")
         return retval
 
     @classmethod

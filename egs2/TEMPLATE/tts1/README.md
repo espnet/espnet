@@ -182,15 +182,16 @@ Then, you can get the following directories in the recipe directory.
         ├── *.ave_5best.pth         # model averaged parameters
         └── *.best.pth              # symlink to the best model parameter loss
 ```
-In decoding, we use Griffin-Lim for waveform generation.
-If you want to combine with neural vocoder, please use [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN).
+In decoding, we use Griffin-Lim for waveform generation as a default (End-to-end text-to-wav model can generate waveform directly such as VITS and Joint training model).
+If you want to combine with neural vocoders, please use [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN).
 See the detail in [decoding with ESPnet-TTS model's feature](https://github.com/kan-bayashi/ParallelWaveGAN#decoding-with-espnet-tts-models-features).
 
 For the first time, we recommend performing each stage step-by-step via `--stage` and `--stop-stage` options.
 ```sh
 $ ./run.sh --stage 1 --stop-stage 1
 $ ./run.sh --stage 2 --stop-stage 2
-$ ./run.sh --stage 3 --stop-stage 3
+...
+$ ./run.sh --stage 7 --stop-stage 7
 ```
 This might helps you to understand each stage's processing and directory structure.
 
@@ -254,6 +255,92 @@ $ ./run.sh --stage 5 \
 where `--tts_stats_dir` is the option to specify the directory to dump Statistics, and `--write_collected_feats` is the option to dump features in statistics calculation.
 The use of `--write_collected_feats` is optional but it helps to accelerate the training.
 
+### VITS training
+
+First, the VITS config is **hard coded for 22.05 khz or 44.1 khz** and use different feature extraction method.
+If you want to use it with 24 khz or 16 khz dataset, please be careful about these point.
+
+```bash
+# Assume that data prep stage (stage 1) is finished
+$ ./run.sh --stage 1 --stop-stage 1
+
+# Single speaker 22.05 khz case
+$ ./run.sh \
+    --stage 2 \
+    --ngpu 4 \
+    --fs 22050 \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --win_length null \
+    --dumpdir dump/22k \
+    --expdir exp/22k \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_vits.yaml \
+    --inference_config ./conf/tuning/decode_vits.yaml \
+    --inference_model latest.pth
+
+# Single speaker 44.1 khz case
+$ ./run.sh \
+    --stage 2 \
+    --ngpu 4 \
+    --fs 44100 \
+    --n_fft 2048 \
+    --n_shift 512 \
+    --win_length null \
+    --dumpdir dump/44k \
+    --expdir exp/44k \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_full_band_vits.yaml \
+    --inference_config ./conf/tuning/decode_vits.yaml \
+    --inference_model latest.pth
+
+# Multi speaker with SID 22.05 khz case
+$ ./run.sh \
+    --stage 2 \
+    --use_sid true \
+    --ngpu 4 \
+    --fs 22050 \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --win_length null \
+    --dumpdir dump/22k \
+    --expdir exp/22k \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_multi_spk_vits.yaml \
+    --inference_config ./conf/tuning/decode_vits.yaml \
+    --inference_model latest.pth
+
+# Multi speaker with X-vector 22.05 khz case (need compiled kaldi to run)
+$ ./run.sh \
+    --stage 2 \
+    --use_xvector true \
+    --ngpu 4 \
+    --fs 22050 \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --win_length null \
+    --dumpdir dump/22k \
+    --expdir exp/22k \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_xvector_vits.yaml \
+    --inference_config ./conf/tuning/decode_vits.yaml \
+    --inference_model latest.pth
+```
+
+You can find the example configs in:
+- [`egs2/ljspeech/tts1/conf/tuning`: Single speaker 22.05 khz config](../../ljspeech/tts1/conf/tuning).
+- [`egs2/jsut/tts1/conf/tuning`: Single speaker 44.1 khz config](../../jsut/tts1/conf/tuning).
+- [`egs2/vctk/tts1/conf/tuning`: Multi speaker with SID 22.05 khz config](../../vctk/tts1/conf/tuning).
+- [`egs2/libritts/tts1/conf/tuning`: Multi speaker with X-vector 22.05 khz config](../../libritts/tts1/conf/tuning).
+
 ### Multi-speaker model with X-vector training
 
 First, you need to run from the stage 2 and 3 with `--use_xvector true` to extract X-vector.
@@ -274,6 +361,61 @@ $ ./run.sh --stage 6 --use_xvector true --train_config /path/to/your_xvector_con
 ```
 
 You can find the example config in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
+
+### Multi-speaker model with speaker ID embedding training
+
+First, you need to run from the stage 2 and 3 with `--use_sid true` to extract speaker ID.
+```sh
+$ ./run.sh --stage 2 --stop-stage 3 --use_sid true
+```
+You can find the speaker ID file in `dump/raw/*/utt2sid`.
+Note that you need to correctly create `utt2spk` in data prep stage to generate `utt2sid`.
+Then, you can run the training with the config which has `spks: #spks` in `tts_conf`.
+```yaml
+# e.g.
+tts_conf:
+    spks: 128  # Number of speakers
+```
+Please run the training from stage 6.
+```sh
+$ ./run.sh --stage 6 --use_sid true --train_config /path/to/your_multi_spk_config.yaml
+```
+
+### Multi-language model with language ID embedding training
+
+First, you need to run from the stage 2 and 3 with `--use_lid true` to extract speaker ID.
+```sh
+$ ./run.sh --stage 2 --stop-stage 3 --use_lid true
+```
+You can find the speaker ID file in `dump/raw/*/utt2lid`.
+**Note that you need to additionally create `utt2lang` file in data prep stage to generate `utt2lid`.**
+Then, you can run the training with the config which has `langs: #langs` in `tts_conf`.
+```yaml
+# e.g.
+tts_conf:
+    langs: 4  # Number of languages
+```
+Please run the training from stage 6.
+```sh
+$ ./run.sh --stage 6 --use_lid true --train_config /path/to/your_multi_lang_config.yaml
+```
+
+Of course you can further combine with x-vector or speaker ID embedding.
+If you want to use both sid and lid, the process should be like this:
+```sh
+$ ./run.sh --stage 2 --stop-stage 3 --use_lid true --use_sid true
+```
+Make your config.
+```yaml
+# e.g.
+tts_conf:
+    langs: 4   # Number of languages
+    spks: 128  # Number of speakers
+```
+Please run the training from stage 6.
+```sh
+$ ./run.sh --stage 6 --use_lid true --use_sid true --train_config /path/to/your_multi_spk_multi_lang_config.yaml
+```
 
 ## Supported text frontend
 
@@ -317,6 +459,18 @@ You can change via `--g2p` option in `tts.sh`.
 - `espeak_ng_russian`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
     - e.g. `Привет мир.` -> `[p, rʲ, i, vʲ, ˈe, t, mʲ, ˈi, r, .]`
     - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `espeak_ng_greek`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - e.g. `Γειά σου Κόσμε.` -> `[j, ˈa, s, u, k, ˈo, s, m, e, .]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `espeak_ng_finnish`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - e.g. `Hei maailma.` -> `[h, ˈei, m, ˈaː, ɪ, l, m, a, .]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `espeak_ng_hungarian`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - e.g. `"Helló Világ.` -> `[h, ˈɛ, l, l, oː, v, ˈi, l, aː, ɡ, .]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `espeak_ng_dutch`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - e.g. `"Hallo Wereld.` -> `[h, ˈɑ, l, oː, ʋ, ˈɪː, r, ə, l, t, .]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `g2pk`: [Kyubyong/g2pK](https://github.com/Kyubyong/g2pK)
     - e.g. `안녕하세요 세계입니다.` -> `[ᄋ, ᅡ, ᆫ, ᄂ, ᅧ, ᆼ, ᄒ, ᅡ, ᄉ, ᅦ, ᄋ, ᅭ,  , ᄉ, ᅦ, ᄀ, ᅨ, ᄋ, ᅵ, ᆷ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
 - `g2pk_no_space`: [Kyubyong/g2pK](https://github.com/Kyubyong/g2pK)
@@ -348,25 +502,22 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 - [FastSpeech](https://arxiv.org/abs/1905.09263)
 - [FastSpeech2](https://arxiv.org/abs/2006.04558) ([FastPitch](https://arxiv.org/abs/2006.06873))
 - [Conformer](https://arxiv.org/abs/2005.08100)-based FastSpeech / FastSpeech2
+- [VITS](https://arxiv.org/abs/2106.06103)
 
 You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tuning`](../../ljspeech/tts1/conf/tuning).
 
-### Multi speaker model
+### Multi speaker model extention
 
-- [X-Vector](https://ieeexplore.ieee.org/abstract/document/8461375) + Tacotron2
-- X-Vector + Transformer-TTS
-- X-Vector + FastSpeech
-- X-Vector + FastSpeech2
-- X-Vector + Conformer-based FastSpeech / FastSpeech2
-- [GST](https://arxiv.org/abs/1803.09017) + Tacotron2
-- GST + Transformer-TTS
-- GST + FastSpeech
-- GST + FastSpeech2
-- GST + Conformer-based FastSpeech / FastSpeech2
+You can use / combine the following embedding to build multi-speaker model:
+- [X-Vector](https://ieeexplore.ieee.org/abstract/document/8461375)
+- [GST](https://arxiv.org/abs/1803.09017)
+- Speaker ID embedding (One-hot vector -> Continuous embedding)
+- Language ID embedding (One-hot vector -> Continuous embedding)
 
 X-Vector is provided by kaldi and pretrained with VoxCeleb corpus.
-GST and X-vector can be combined (Not tested well).
-You can find example configs of the above models in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
+You can find example configs of the above models in:
+- [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
+- [`egs2/libritts/tts1/conf/tuning`](../../vctk/libritts/conf/tuning).
 
 ## FAQ
 
@@ -393,6 +544,10 @@ Then, add new choice in the argument parser of [`espnet2/bin/tokenize_text.py`](
 We have the warpper module of [bootphon/phonemizer](https://github.com/bootphon/phonemizer).
 You can find the module [`espnet2/text/phoneme_tokenizer.py`](https://github.com/kan-bayashi/espnet/blob/7cc12c6a25924892b281c2c1513de52365a1be0b/espnet2/text/phoneme_tokenizer.py#L110).
 If the g2p you wanted is implemented in [bootphon/phonemizer](https://github.com/bootphon/phonemizer), we can easily add it [like this](https://github.com/kan-bayashi/espnet/blob/7cc12c6a25924892b281c2c1513de52365a1be0b/espnet2/text/phoneme_tokenizer.py#L172-L173) (Note that you need to update the choice as I mentioned the above).
+
+Example PRs may help you:
+- [#3382 Support Korean G2P](https://github.com/espnet/espnet/pull/3382)
+- [#3463 Support G2P functions for various languages ](https://github.com/espnet/espnet/pull/3463)
 
 ### How to add a new `cleaner` module?
 
@@ -477,6 +632,7 @@ The most of the problems are caused by the bad cleaning of the dataset.
 Please check the following items carefully:
 
 - Remove the silence at the beginning and end of the speech.
+    - You can use silence trimming scripts in [this example](https://github.com/espnet/espnet/blob/f03101557753517ebac8c432f0793d97d68fa5f0/egs2/hui_acg/tts1/local/data.sh#L73-L82).
 - Separate speech if it contains a long silence at the middle of speech.
 - Use phonemes instead of characters if G2P is available.
 - Clean the text as possible as you can (abbreviation, number, etc...)
@@ -494,3 +650,6 @@ See more info in [FastSpeech paper](https://arxiv.org/abs/1905.09263).
 
 This is because we use prenet in the decoder, which always applies dropout.
 See more info in [Tacotron2 paper](https://arxiv.org/abs/1712.05884).
+
+If you want to fix the results, you can use [`--always_fix_seed` option](https://github.com/espnet/espnet/blob/f03101557753517ebac8c432f0793d97d68fa5f0/espnet2/bin/tts_inference.py#L601-L606).
+

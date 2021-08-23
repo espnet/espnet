@@ -51,6 +51,7 @@ min_wav_duration=0.1       # Minimum duration in second.
 max_wav_duration=20        # Maximum duration in second.
 use_xvector=false          # Whether to use x-vector (Require Kaldi).
 use_sid=false              # Whether to use speaker id as the inputs (Need utt2spk in data directory).
+use_lid=false              # Whether to use language id as the inputs (Need utt2lang in data directory).
 # Only used for feats_type != raw
 feats_extract=fbank        # Feature extractor.
 feats_normalize=global_mvn # Feature normalizer.
@@ -79,6 +80,7 @@ tts_stats_dir=""   # Specify the directory path for statistics. If empty, automa
 num_splits=1       # Number of splitting for tts corpus.
 teacher_dumpdir="" # Directory of teacher outputs (needed if tts=fastspeech).
 write_collected_feats=false # Whether to dump features in stats collection.
+tts_task=tts                # TTS task (tts or gan_tts).
 
 # Decoding related
 inference_config="" # Config for decoding.
@@ -131,12 +133,13 @@ Options:
     --local_data_opts # Options to be passed to local/data.sh (default="${local_data_opts}").
 
     # Feature extraction related
-    --feats_type       # Input type, if set to raw, features extraction will be performed on the fly (default="${feats_type}").
-    --audio_format     # Audio format, wav, flac, wav.ark, or flac.ark (only in feats_type=raw, default="${audio_format}").
+    --feats_type       # Feature type (fbank or stft or raw, default="${feats_type}").
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
     --use_xvector      # Whether to use X-vector (Require Kaldi, default="${use_xvector}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
+    --use_lid          # Whether to use language id as the inputs (default="${use_lid}").
     --feats_extract    # On the fly feature extractor (default="${feats_extract}").
     --feats_normalize  # Feature normalizer for on the fly feature extractor (default="${feats_normalize}")
     --fs               # Sampling rate (default="${fs}").
@@ -392,6 +395,7 @@ if ! "${skip_data_prep}"; then
                 utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
 
                 # 3. Compute VAD decision
+                _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/spk2utt wc -l)")
                 sid/compute_vad_decision.sh --nj ${_nj} --cmd "${train_cmd}" \
                     --vad-config conf/vad.conf \
                     "${dumpdir}/mfcc/${dset}"
@@ -443,6 +447,29 @@ if ! "${skip_data_prep}"; then
             done
         fi
 
+        # Prepare lang id input
+        if "${use_lid}"; then
+            log "Stage 2+: Prepare lang id: data/ -> ${data_feats}/"
+            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                    _suf="/org"
+                else
+                    _suf=""
+                fi
+                if [ "${dset}" = "${train_set}" ]; then
+                    # Make lang2lid
+                    # NOTE(kan-bayashi): 0 is reserved for unknown languages
+                    echo "<unk> 0" > "${data_feats}${_suf}/${dset}/lang2lid"
+                    cut -f 2 -d " " "${data_feats}${_suf}/${dset}/utt2lang" | sort | uniq | \
+                        awk '{print $1 " " NR}' >> "${data_feats}${_suf}/${dset}/utt2lid"
+                fi
+                # NOTE(kan-bayashi): We can reuse the same script for making utt2sid
+                pyscripts/utils/utt2spk_to_utt2sid.py \
+                    "${data_feats}/org/${train_set}/lang2lid" \
+                    "${data_feats}${_suf}/${dset}/utt2lang" \
+                    > "${data_feats}${_suf}/${dset}/utt2lid"
+            done
+        fi
     fi
 
 
@@ -456,6 +483,9 @@ if ! "${skip_data_prep}"; then
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
             if [ -e "${data_feats}/org/${dset}/utt2sid" ]; then
                 cp "${data_feats}/org/${dset}/utt2sid" "${data_feats}/${dset}/utt2sid"
+            fi
+            if [ -e "${data_feats}/org/${dset}/utt2lid" ]; then
+                cp "${data_feats}/org/${dset}/utt2lid" "${data_feats}/${dset}/utt2lid"
             fi
 
             # Remove short utterances
@@ -507,6 +537,9 @@ if ! "${skip_data_prep}"; then
             _fix_opts=""
             if [ -e "${data_feats}/org/${dset}/utt2sid" ]; then
                 _fix_opts="--utt_extra_files utt2sid "
+            fi
+            if [ -e "${data_feats}/org/${dset}/utt2lid" ]; then
+                _fix_opts="--utt_extra_files utt2lid "
             fi
             # shellcheck disable=SC2086
             utils/fix_data_dir.sh ${_fix_opts} "${data_feats}/${dset}"
@@ -622,6 +655,11 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2sid,sids,text_int "
         fi
 
+        if "${use_lid}"; then
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/utt2lid,lids,text_int "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2lid,lids,text_int "
+        fi
+
         # 1. Split the key file
         _logdir="${tts_stats_dir}/logdir"
         mkdir -p "${_logdir}"
@@ -653,7 +691,7 @@ if ! "${skip_train}"; then
         log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m espnet2.bin.tts_train \
+            ${python} -m "espnet2.bin.${tts_task}_train" \
                 --collect_stats true \
                 --write_collected_feats "${write_collected_feats}" \
                 --use_preprocessor true \
@@ -850,12 +888,14 @@ if ! "${skip_train}"; then
             _opts+="--pitch_extract_conf hop_length=${n_shift} "
             _opts+="--pitch_extract_conf f0max=${f0max} "
             _opts+="--pitch_extract_conf f0min=${f0min} "
+            _opts+="--pitch_normalize_conf stats_file=${tts_stats_dir}/train/pitch_stats.npz "
         fi
         if [ -e "${tts_stats_dir}/train/energy_stats.npz" ]; then
             _opts+="--energy_extract_conf fs=${fs} "
             _opts+="--energy_extract_conf n_fft=${n_fft} "
             _opts+="--energy_extract_conf hop_length=${n_shift} "
             _opts+="--energy_extract_conf win_length=${win_length} "
+            _opts+="--energy_normalize_conf stats_file=${tts_stats_dir}/train/energy_stats.npz "
         fi
 
         # Add X-vector to the inputs if needed
@@ -870,6 +910,12 @@ if ! "${skip_train}"; then
         if "${use_sid}"; then
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/utt2sid,sids,text_int "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2sid,sids,text_int "
+        fi
+
+        # Add language ID to the inputs if needed
+        if "${use_lid}"; then
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/utt2lid,lids,text_int "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2lid,lids,text_int "
         fi
 
         if [ "${feats_normalize}" = "global_mvn" ]; then
@@ -896,7 +942,7 @@ if ! "${skip_train}"; then
             --num_nodes "${num_nodes}" \
             --init_file_prefix "${tts_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            ${python} -m espnet2.bin.tts_train \
+            ${python} -m "espnet2.bin.${tts_task}_train" \
                 --use_preprocessor true \
                 --token_type "${token_type}" \
                 --token_list "${token_list}" \
@@ -1022,6 +1068,11 @@ if ! "${skip_eval}"; then
                 _ex_opts+="--data_path_and_name_and_type ${_data}/utt2sid,sids,text_int "
             fi
 
+            # Add language ID to the inputs if needed
+            if "${use_lid}"; then
+                _ex_opts+="--data_path_and_name_and_type ${_data}/utt2lid,lids,text_int "
+            fi
+
             # 0. Copy feats_type
             cp "${_data}/feats_type" "${_dir}/feats_type"
 
@@ -1112,6 +1163,9 @@ if ! "${skip_upload}"; then
         log "Stage 8: Pack model: ${packed_model}"
 
         _opts=""
+        if [ -e "${tts_stats_dir}/train/feats_stats.npz" ]; then
+            _opts+=" --option ${tts_stats_dir}/train/feats_stats.npz"
+        fi
         if [ -e "${tts_stats_dir}/train/pitch_stats.npz" ]; then
             _opts+=" --option ${tts_stats_dir}/train/pitch_stats.npz"
         fi
@@ -1124,10 +1178,15 @@ if ! "${skip_upload}"; then
                 _opts+=" --option ${dumpdir}/xvector/${dset}/spk_xvector.ark"
             done
         fi
+        if "${use_sid}"; then
+            _opts+=" --option ${data_feats}/org/${train_set}/spk2sid"
+        fi
+        if "${use_lid}"; then
+            _opts+=" --option ${data_feats}/org/${train_set}/lang2lid"
+        fi
         ${python} -m espnet2.bin.pack tts \
             --train_config "${tts_exp}"/config.yaml \
             --model_file "${tts_exp}"/"${inference_model}" \
-            --option "${tts_stats_dir}"/train/feats_stats.npz  \
             --option "${tts_exp}"/images  \
             --outpath "${packed_model}" \
             ${_opts}

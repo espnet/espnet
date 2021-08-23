@@ -2,6 +2,8 @@
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
 AISHELL=downloads
+AISHELL3=downloads
+ALFFA=downloads
 AN4=downloads
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
@@ -25,6 +27,7 @@ CSJVER=dvd  ## Set your CSJ format (dvd or usb).
             ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
             ## Case merl :MERL setup. Necessary directory is WAV and sdb
 CSMSC=downloads
+CSS10=
 HKUST1=
 HKUST2=
 HUI_ACG=downloads
@@ -39,10 +42,13 @@ NSC=
 JMD=downloads
 JSSS=downloads
 JSUT=downloads
+JTUBESPEECH=downloads
 JVS=downloads
 KSS=
 SPGISPEECH=
 SWBD=
+SWBD_NXT=
+THCHS30=downloads
 TIMIT=$(realpath ../../../../TIMIT)
 VOXFORGE=downloads
 AMI=
@@ -91,10 +97,17 @@ NOISY_REVERBERANT_SPEECH=
 LRS2=
 SUNDA=downloads
 CMU_INDIC=downloads
+JKAC=
+MUCS_SUBTASK1=downloads
+MUCS_SUBTASK2=downloads
+GAMAYUN=downloads
+IWSLT21LR=downloads/iwslt21
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AISHELL=
+    AISHELL3=downloads
+    ALFFA=downloads
     AN4=
     DIRHA_ENGLISH_PHDEV=
     DIRHA_WSJ=
@@ -118,6 +131,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
                 ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
                 ## Case merl :MERL setup. Necessary directory is WAV and sdb
     CSMSC=downloads
+    CSS10=
     HKUST1=
     HKUST2=
     HUI_ACG=downloads
@@ -133,6 +147,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     JSUT=downloads
     JVS=downloads
     KSS=
+    THCHS30=downloads
     TIMIT=
     VOXFORGE=
     AMI=/export/corpora4/ami/amicorpus
@@ -178,4 +193,9 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     SIWIS=downloads
     SUNDA=
     CMU_INDIC=
+    JKAC=
+    MUCS_SUBTASK1=downloads
+    MUCS_SUBTASK2=downloads
+    GAMAYUN=downloads
+    IWSLT21LR=downloads/iwslt21
 fi

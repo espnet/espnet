@@ -1148,20 +1148,6 @@ class AbsTask(ABC):
                 )
                 yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
-        # 6. Loads pre-trained model
-        for p in args.init_param:
-            logging.info(f"Loading pretrained params from {p}")
-            load_pretrained_model(
-                model=model,
-                init_param=p,
-                ignore_init_mismatch=args.ignore_init_mismatch,
-                # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
-                #   in PyTorch<=1.4
-                map_location=f"cuda:{torch.cuda.current_device()}"
-                if args.ngpu > 0
-                else "cpu",
-            )
-
         if args.dry_run:
             pass
         elif args.collect_stats:
@@ -1212,6 +1198,19 @@ class AbsTask(ABC):
                 write_collected_feats=args.write_collected_feats,
             )
         else:
+            # 6. Loads pre-trained model
+            for p in args.init_param:
+                logging.info(f"Loading pretrained params from {p}")
+                load_pretrained_model(
+                    model=model,
+                    init_param=p,
+                    ignore_init_mismatch=args.ignore_init_mismatch,
+                    # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
+                    #   in PyTorch<=1.4
+                    map_location=f"cuda:{torch.cuda.current_device()}"
+                    if args.ngpu > 0
+                    else "cpu",
+                )
 
             # 7. Build iterator factories
             if args.multiple_iterator:
