@@ -1011,7 +1011,6 @@ if ! "${skip_eval}"; then
             fi
         fi
 
-        # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
@@ -1019,18 +1018,29 @@ if ! "${skip_eval}"; then
             # "sound" supports "wav", "flac", etc.
             _type=sound
         fi
+
+        # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
         if [ "${_feats_type}" = fbank ] || [ "${_feats_type}" = stft ]; then
-            _opts+="--vocoder_conf n_fft=${n_fft} "
-            _opts+="--vocoder_conf n_shift=${n_shift} "
-            _opts+="--vocoder_conf win_length=${win_length} "
-            _opts+="--vocoder_conf fs=${fs} "
             _scp=feats.scp
             _type=kaldi_ark
+            if [ "${vocoder_file}" = none ]; then
+                [ -e "${tts_exp}/${inference_tag}" ] && mkdir -p "${tts_exp}/${inference_tag}"
+                cat << EOF > "${tts_exp}/${inference_tag}/vocoder.yaml"
+n_fft: ${n_fft}
+n_shift: ${n_shift}
+win_length: ${win_length}
+fs: ${fs}
+EOF
+                if [ "${_feats_type}" = fbank ];then
+                    cat << EOF >> "${tts_exp}/${inference_tag}/vocoder.yaml"
+n_mels: ${n_mels}
+fmin: ${fmin}
+fmax: ${fmax}
+EOF
+                fi
+                _opts+="--vocoder_config ${tts_exp}/${inference_tag}/vocoder.yaml "
+            fi
         fi
-        if [ "${_feats_type}" = fbank ]; then
-            _opts+="--vocoder_conf n_mels=${n_mels} "
-            _opts+="--vocoder_conf fmin=${fmin} "
-            _opts+="--vocoder_conf fmax=${fmax} "
         fi
 
         log "Generate '${tts_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
