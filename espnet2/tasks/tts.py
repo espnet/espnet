@@ -37,6 +37,7 @@ from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
+from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -386,16 +387,14 @@ class TTSTask(AbsTask):
         model: Optional[ESPnetTTSModel] = None,
         device: str = "cpu",
     ):
-        # Load config if provided
-        vocoder_conf = {}
-        if vocoder_config_file is not None:
-            vocoder_config_file = Path(vocoder_config_file)
-            with vocoder_config_file.open("r", encoding="utf-8") as f:
-                vocoder_conf = yaml.safe_load(f)
-
         # Build vocoder
         if vocoder_file is None:
             # If vocoder file is not provided, use griffin-lim as a vocoder
+            vocoder_conf = {}
+            if vocoder_config_file is not None:
+                vocoder_config_file = Path(vocoder_config_file)
+                with vocoder_config_file.open("r", encoding="utf-8") as f:
+                    vocoder_conf = yaml.safe_load(f)
             if model.feats_extract is not None:
                 vocoder_conf.update(model.feats_extract.get_parameters())
             if (
@@ -413,7 +412,6 @@ class TTSTask(AbsTask):
             try:
                 from parallel_wavegan.utils import download_pretrained_model
 
-                from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
             except ImportError:
                 logging.error(
                     "`parallel_wavegan` is not installed. "
@@ -424,7 +422,7 @@ class TTSTask(AbsTask):
             from parallel_wavegan import __version__
 
             # NOTE(kan-bayashi): Filelock download is supported from 0.5.2
-            assert LooseVersion(__version__) >= LooseVersion("0.5.2"), (
+            assert LooseVersion(__version__) > LooseVersion("0.5.1"), (
                 "Please install the latest parallel_wavegan "
                 "via `pip install -U parallel_wavegan`."
             )
@@ -440,8 +438,6 @@ class TTSTask(AbsTask):
 
         elif str(vocoder_file).endswith(".pkl"):
             # If the extension is ".pkl", the model is trained with parallel_wavegan
-            from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
-
             vocoder = ParallelWaveGANPretrainedVocoder(
                 vocoder_file, vocoder_config_file
             )
