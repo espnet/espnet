@@ -38,6 +38,8 @@ ref_channel=0    # reference channel
 nj=32            # The number of parallel jobs in inference
 python=python3   # Specify python to execute espnet commands
 id_prefix="enh-" # prefix of utt ids to remove in <ref_scp> and <enh_scp>
+frame_size=512   # STFT frame size in samples
+frame_hop=256    # STFT frame hop in samples
 
 . utils/parse_options.sh
 . ./path.sh
@@ -60,6 +62,7 @@ Arguments:
         "SDR": signal-to-distortion ratio
         "SAR": signal-to-artifact ratio
         "SIR": signal-to-interference ratio
+        "framewise-SNR": frame-level SNR
     <outfile>: the scp file to store the calculated metric
 
 Optional:
@@ -67,6 +70,8 @@ Optional:
     --nj: The number of parallel jobs in inference (default=${nj})
     --python: specify python to execute espnet commands (default=${python})
     --id_prefix: prefix of utt ids to remove in <ref_scp> and <enh_scp> (default=${id_prefix})
+    --frame_size: STFT frame size in samples, for calculating framewise-* metrics (default=${frame_size})
+    --frame_hop: STFT frame hop in samples, for calculating framewise-* metrics (default=${frame_hop})
 EOF
 )
 
@@ -108,7 +113,9 @@ ${decode_cmd} JOB=1:"${_nj}" "${tmpdir}"/enh_metric.JOB.log \
         --ref_scp "${tmpdir}/ref.scp" \
         --inf_scp "${tmpdir}/enh.scp" \
         --metrics ${metric} \
-        --ref_channel ${ref_channel}
+        --ref_channel ${ref_channel} \
+        --frame_size ${frame_size} \
+        --frame_hop ${frame_hop}
 
 for i in $(seq "${_nj}"); do
     cat "${tmpdir}/output.${i}/${metric}_spk1"

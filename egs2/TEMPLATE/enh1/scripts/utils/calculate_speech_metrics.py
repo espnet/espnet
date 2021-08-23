@@ -12,6 +12,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.sound_scp import SoundScpReader
@@ -27,10 +28,21 @@ def scoring(
     inf_scp: List[str],
     ref_channel: int,
     metrics: List[str],
+    frame_size: int = 512,
+    frame_hop: int = 256,
 ):
     assert check_argument_types()
     for metric in metrics:
-        assert metric in ("STOI", "ESTOI", "SNR", "SI_SNR", "SDR", "SAR", "SIR"), metric
+        assert metric in (
+            "STOI",
+            "ESTOI",
+            "SNR",
+            "SI_SNR",
+            "SDR",
+            "SAR",
+            "SIR",
+            "framewise-SNR",
+        ), metric
 
     logging.basicConfig(
         level=log_level,
@@ -53,6 +65,8 @@ def scoring(
     # check keys
     for inf_reader, ref_reader in zip(inf_readers, ref_readers):
         assert inf_reader.keys() == ref_reader.keys()
+
+    stft = STFTEncoder(n_fft=frame_size, hop_length=frame_hop)
 
     do_bss_eval = "SDR" in metrics or "SAR" in metrics or "SIR" in metrics
     with DatadirWriter(output_dir) as writer:
@@ -82,6 +96,11 @@ def scoring(
                 )
             else:
                 perm = [0]
+
+            ilens = torch.LongTensor([ref.shape[1]])
+            # (num_spk, T, F)
+            ref_spec, flens = stft(torch.from_numpy(ref), ilens)
+            inf_spec, _ = stft(torch.from_numpy(inf), ilens)
 
             for i in range(num_spk):
                 p = int(perm[i])
@@ -117,6 +136,11 @@ def scoring(
                         writer[name][key] = str(sar[i])
                     elif metric == "SIR":
                         writer[name][key] = str(sir[i])
+                    elif metric == "framewise-SNR":
+                        framewise_snr = -ESPnetEnhancementModel.snr_loss(
+                            ref_spec[i].abs(), inf_spec[i].abs()
+                        )
+                        writer[name][key] = " ".join(map(str, framewise_snr.tolist()))
                     else:
                         raise ValueError("Unsupported metric: %s" % metric)
                     # save permutation assigned script file
@@ -165,6 +189,18 @@ def get_parser():
     group.add_argument("--key_file", type=str)
     group.add_argument("--metrics", type=str, action="append")
     group.add_argument("--ref_channel", type=int, default=0)
+    group.add_argument(
+        "--frame_size",
+        type=int,
+        default=512,
+        help="STFT frame size in samples, for calculating framewise-* metrics",
+    )
+    group.add_argument(
+        "--frame_hop",
+        type=int,
+        default=256,
+        help="STFT frame hop in samples, for calculating framewise-* metrics",
+    )
 
     return parser
 
