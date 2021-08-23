@@ -35,6 +35,7 @@ from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 from espnet2.asr.encoder.contextual_block_transformer_encoder import ContextualBlockTransformerEncoder
+from espnet2.asr.encoder.contextual_block_conformer_encoder import ContextualBlockConformerEncoder
 
 class Speech2TextStreaming:
     """Speech2TextStreaming class
@@ -79,7 +80,7 @@ class Speech2TextStreaming:
         )
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
-        assert isinstance(asr_model.encoder, ContextualBlockTransformerEncoder)
+        assert isinstance(asr_model.encoder, ContextualBlockTransformerEncoder) or isinstance(asr_model.encoder, ContextualBlockConformerEncoder)
         
         decoder = asr_model.decoder
         ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
