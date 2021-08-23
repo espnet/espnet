@@ -104,7 +104,7 @@ To train the neural vocoder, please check the following repositories:
 
 - Single-speaker speech enhancement
 - Multi-speaker speech separation
-- Unified encoder-separator-decoder structure for time-domain and frequency-domian models
+- Unified encoder-separator-decoder structure for time-domain and frequency-domain models
   - Encoder/Decoder: STFT/iSTFT, Convolution/Transposed-Convolution
   - Separators: BLSTM, Transformer, Conformer, DPRNN, Neural Beamformers, etc.
 - Flexible ASR integration: working as an individual task or as the ASR frontend
@@ -137,13 +137,13 @@ Demonstration
 ### ESPnet2
 See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 
-- Indepedent from Kaldi/Chainer, unlike ESPnet1
+- Independent from Kaldi/Chainer, unlike ESPnet1
 - On the fly feature extraction and text processing when training
 - Supporting DistributedDataParallel and DaraParallel both
 - Supporting multiple nodes training and integrated with [Slurm](https://slurm.schedmd.com/) or MPI
 - Supporting Sharded Training provided by [fairscale](https://github.com/facebookresearch/fairscale)
 - A template recipe which can be applied for all corpora
-- Possible to train any size of corpus without cpu memory error
+- Possible to train any size of corpus without CPU memory error
 - [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
 - Integrated with [wandb](https://espnet.github.io/espnet/espnet2_training_option.html#weights-biases-integration)
 
@@ -165,8 +165,8 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
     pip install torch_optimizer               # [Option] If you'll use additional optimizers in ESPnet2
     ```
 
-    There are some required packages depending on each task other than above. If you meet ImportError, please intall them at that time.
-- (ESPNet2) Once installed, run `wandb login` and set `--use_wandb true` to enable tracking runs using W&B.
+    There are some required packages depending on each task other than above. If you meet ImportError, please install them at that time.
+- (ESPnet2) Once installed, run `wandb login` and set `--use_wandb true` to enable tracking runs using W&B.
 
 ## Usage
 See [Usage](https://espnet.github.io/espnet/tutorial.html).
@@ -176,7 +176,7 @@ See [Usage](https://espnet.github.io/espnet/tutorial.html).
 go to [docker/](docker/) and follow [instructions](https://espnet.github.io/espnet/docker.html).
 
 ## Contribution
-Thank you for taking times for ESPnet! Any contributions to ESPNet are welcome and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
+Thank you for taking times for ESPnet! Any contributions to ESPnet are welcome and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
 If it's the first contribution to ESPnet for you,  please follow the [contribution guide](CONTRIBUTING.md).
 
 ## Results and demo
@@ -247,7 +247,7 @@ Available pretrained models in the demo script are listed as below.
 ### SE results
 <details><summary>expand</summary><div>
 
-We list results from three different models on WSJ0-2mix, which is one the most widely used benchmark dateset for speech separation.
+We list results from three different models on WSJ0-2mix, which is one the most widely used benchmark dataset for speech separation.
 
 |Model|STOI|SAR|SDR|SIR|
 |---|---|---|---|---|
@@ -353,7 +353,7 @@ Available pretrained models in the demo script are listed as below.
 
 <details><summary>ESPnet2</summary><div>
 
-You can listen to the generated samples in the following url.
+You can listen to the generated samples in the following URL.
 - [ESPnet2 TTS generated samples](https://drive.google.com/drive/folders/1H3fnlBbWMEkQUfrHqosKN_ZX_WjO29ma?usp=sharing)
 
 > Note that in the generation we use Griffin-Lim (`wav/`) and [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN) (`wav_pwg/`).
@@ -458,7 +458,7 @@ synth_wav.sh example.txt
 
 # also you can use multiple sentences
 echo "THIS IS A DEMONSTRATION OF TEXT TO SPEECH." > example_multi.txt
-echo "TEXT TO SPEECH IS A TECHQNIQUE TO CONVERT TEXT INTO SPEECH." >> example_multi.txt
+echo "TEXT TO SPEECH IS A TECHNIQUE TO CONVERT TEXT INTO SPEECH." >> example_multi.txt
 synth_wav.sh example_multi.txt
 ```
 
