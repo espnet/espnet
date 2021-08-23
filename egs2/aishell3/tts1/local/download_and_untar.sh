@@ -8,6 +8,7 @@
 # Adapted from egs/mini_librispeech/s5/local/download_and_untar.sh (commit 1cd6d2ac3a935009fdc4184cb8a72ddad98fe7d9)
 
 remove_archive=false
+filesize=19057141777 # data_aishell3.tgz  size
 
 if [ "$1" == --remove-archive ]; then
   remove_archive=true
