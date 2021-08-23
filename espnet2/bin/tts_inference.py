@@ -192,8 +192,8 @@ class Text2Speech:
     @property
     def fs(self) -> Optional[int]:
         """Return sampling rate."""
-        if self.feats_extract is not None:
-            return self.feats_extract.get_parameters().get("fs")
+        if hasattr(self.vocoder, "fs"):
+            return self.vocoder.fs
         elif hasattr(self.tts, "fs"):
             return self.tts.fs
         else:
@@ -425,17 +425,12 @@ def inference(
 
             if output_dict.get("wav") is not None:
                 # TODO(kamo): Write scp
-                if text2speech.fs is not None:
-                    sf.write(
-                        f"{output_dir}/wav/{key}.wav",
-                        output_dict["wav"].cpu().numpy(),
-                        text2speech.fs,
-                        "PCM_16",
-                    )
-                else:
-                    logging.warning(
-                        "Could not determine sampling rate. Skip writing wav files."
-                    )
+                sf.write(
+                    f"{output_dir}/wav/{key}.wav",
+                    output_dict["wav"].cpu().numpy(),
+                    text2speech.fs,
+                    "PCM_16",
+                )
 
     # remove files if those are not included in output dict
     if output_dict.get("feat_gen") is None:

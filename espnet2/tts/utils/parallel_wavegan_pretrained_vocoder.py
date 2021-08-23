@@ -4,10 +4,13 @@
 """Wrapper class for the vocoder model trained with parallel_wavegan repo."""
 
 import logging
+import os
 
 from pathlib import Path
 from typing import Optional
 from typing import Union
+
+import yaml
 
 import torch
 
@@ -30,6 +33,12 @@ class ParallelWaveGANPretrainedVocoder(torch.nn.Module):
                 "Please install via `pip install -U parallel_wavegan`."
             )
             raise
+        if config_file is None:
+            dirname = os.path.dirname(str(model_file))
+            config_file = os.path.join(dirname, "config.yml")
+        with open(config_file) as f:
+            config = yaml.load(f, Loader=yaml.Loader)
+        self.fs = config["sampling_rate"]
         self.vocoder = load_model(model_file, config_file)
         if hasattr(self.vocoder, "remove_weigth_norm"):
             self.vocoder.remove_weigth_norm()
