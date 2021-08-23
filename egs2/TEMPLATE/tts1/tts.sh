@@ -1019,12 +1019,12 @@ if ! "${skip_eval}"; then
             _type=sound
         fi
 
-        # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
+        # NOTE(kamo): If feats_type=raw, vocoder_config is unnecessary
         if [ "${_feats_type}" = fbank ] || [ "${_feats_type}" = stft ]; then
             _scp=feats.scp
             _type=kaldi_ark
             if [ "${vocoder_file}" = none ]; then
-                [ -e "${tts_exp}/${inference_tag}" ] && mkdir -p "${tts_exp}/${inference_tag}"
+                [ ! -e "${tts_exp}/${inference_tag}" ] && mkdir -p "${tts_exp}/${inference_tag}"
                 cat << EOF > "${tts_exp}/${inference_tag}/vocoder.yaml"
 n_fft: ${n_fft}
 n_shift: ${n_shift}
@@ -1040,7 +1040,6 @@ EOF
                 fi
                 _opts+="--vocoder_config ${tts_exp}/${inference_tag}/vocoder.yaml "
             fi
-        fi
         fi
 
         log "Generate '${tts_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
