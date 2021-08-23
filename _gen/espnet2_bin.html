@@ -3231,7 +3231,7 @@ Grriffin-Lim related:
                     [--feats_extract_conf FEATS_EXTRACT_CONF]
                     [--normalize {global_mvn,None}]
                     [--normalize_conf NORMALIZE_CONF]
-                    [--tts {tacotron2,transformer,fastspeech,fastspeech2,vits}]
+                    [--tts {tacotron2,transformer,fastspeech,fastspeech2,vits,joint_text2wav}]
                     [--tts_conf TTS_CONF] [--pitch_extract {dio,None}]
                     [--pitch_extract_conf PITCH_EXTRACT_CONF]
                     [--pitch_normalize {global_mvn,None}]
@@ -3579,7 +3579,7 @@ Optimizer related:
                         The normalize type (default: global_mvn)
   --normalize_conf NORMALIZE_CONF
                         The keyword arguments for normalize (default: {})
-  --tts {tacotron2,transformer,fastspeech,fastspeech2,vits}
+  --tts {tacotron2,transformer,fastspeech,fastspeech2,vits,joint_text2wav}
                         The tts type (default: tacotron2)
   --tts_conf TTS_CONF   The keyword arguments for tts (default: {})
   --pitch_extract {dio,None}
