@@ -72,6 +72,14 @@ echo "=== ASR (backend=pytorch, model=conformer-transducer) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_conformer_transducer.yaml \
         --decode-config conf/decode_transducer.yaml
 
+# test transducer with auxiliary task recipe
+echo "=== ASR (backend=pytorch, model=rnnt, tasks=L1+L2+L3+L4+L5)"
+./run.sh --python "${python}" --stage 4 --train-config conf/train_transducer_aux.yaml \
+         --decode-config conf/decode_transducer.yaml
+echo "=== ASR (backend=pytorch, model=conformer-transducer, tasks=L1+L2+L5) ==="
+./run.sh --python "${python}" --stage 4 --train-config conf/train_conformer_transducer_aux.yaml \
+        --decode-config conf/decode_transducer.yaml
+
 # test finetuning
 ## test transfer learning
 echo "=== ASR (backend=pytorch, model=rnnt, transfer_learning=enc) ==="
@@ -217,6 +225,16 @@ for t in ${feats_types}; do
 done
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
+
+# [ESPnet2] test gan-tts recipe
+# NOTE(kan-bayashi): pytorch 1.4 - 1.6 works but 1.6 has a problem with CPU,
+#   so we test this recipe using only pytorch > 1.6 here.
+#   See also: https://github.com/pytorch/pytorch/issues/42446
+if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) > L("1.6")' &> /dev/null; then
+    ./run.sh --fs 22050 --tts_task gan_tts --feats_extract linear_spectrogram --feats_normalize none --inference_model latest.pth \
+        --ngpu 0 --stop-stage 8 --skip-upload false --train-args "--num_iters_per_epoch 1 --max_epoch 1" --python "${python}"
+    rm -rf exp dump data
+fi
 cd "${cwd}" || exit 1
 
 # [ESPnet2] test enh recipe

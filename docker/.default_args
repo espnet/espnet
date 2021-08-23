@@ -1,0 +1,2 @@
+docker_cuda=11.1
+docker_os=20.04

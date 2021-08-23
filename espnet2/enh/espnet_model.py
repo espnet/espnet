@@ -273,7 +273,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                         or (Batch, num_speaker, samples, channels)
             noise_ref: (Batch, num_noise_type, samples)
                         or (Batch, num_speaker, samples, channels)
-            cal_loss: whether to calculate enh loss, defualt is True
+            cal_loss: whether to calculate enh loss, default is True
 
         Returns:
             loss: (torch.Tensor) speech enhancement loss

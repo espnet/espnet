@@ -1,0 +1,16 @@
+<breath>
+<click>
+<cough>
+<dtmf>
+<foreign>
+<hes>
+<int>
+<laugh>
+<laughter>
+<lipsmack>
+<male-to-female>
+<music>
+<no-speech>
+<ring>
+<spn>
+<sta>

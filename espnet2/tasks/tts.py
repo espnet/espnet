@@ -12,6 +12,8 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet2.gan_tts.joint import JointText2Wav
+from espnet2.gan_tts.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
@@ -26,6 +28,7 @@ from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
+from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tts.tacotron2 import Tacotron2
@@ -38,7 +41,11 @@ from espnet2.utils.types import str_or_none
 
 feats_extractor_choices = ClassChoices(
     "feats_extract",
-    classes=dict(fbank=LogMelFbank, spectrogram=LogSpectrogram),
+    classes=dict(
+        fbank=LogMelFbank,
+        spectrogram=LogSpectrogram,
+        linear_spectrogram=LinearSpectrogram,
+    ),
     type_check=AbsFeatsExtract,
     default="fbank",
 )
@@ -84,6 +91,9 @@ tts_choices = ClassChoices(
         transformer=Transformer,
         fastspeech=FastSpeech,
         fastspeech2=FastSpeech2,
+        # NOTE(kan-bayashi): available only for inference
+        vits=VITS,
+        joint_text2wav=JointText2Wav,
     ),
     type_check=AbsTTS,
     default="tacotron2",
@@ -195,6 +205,10 @@ class TTSTask(AbsTask):
                 "espeak_ng_french",
                 "espeak_ng_spanish",
                 "espeak_ng_russian",
+                "espeak_ng_greek",
+                "espeak_ng_finnish",
+                "espeak_ng_hungarian",
+                "espeak_ng_dutch",
                 "g2pk",
                 "g2pk_no_space",
             ],
@@ -216,7 +230,9 @@ class TTSTask(AbsTask):
     ]:
         assert check_argument_types()
         return CommonCollateFn(
-            float_pad_value=0.0, int_pad_value=0, not_sequence=["spembs"]
+            float_pad_value=0.0,
+            int_pad_value=0,
+            not_sequence=["spembs", "sids", "lids"],
         )
 
     @classmethod
@@ -255,10 +271,10 @@ class TTSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "durations", "pitch", "energy")
+            retval = ("spembs", "durations", "pitch", "energy", "sids", "lids")
         else:
             # Inference mode
-            retval = ("spembs", "speech", "durations")
+            retval = ("spembs", "speech", "durations", "sids", "lids")
         return retval
 
     @classmethod
