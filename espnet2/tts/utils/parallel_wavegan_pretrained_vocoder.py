@@ -40,21 +40,24 @@ class ParallelWaveGANPretrainedVocoder(torch.nn.Module):
             config = yaml.load(f, Loader=yaml.Loader)
         self.fs = config["sampling_rate"]
         self.vocoder = load_model(model_file, config_file)
-        if hasattr(self.vocoder, "remove_weigth_norm"):
-            self.vocoder.remove_weigth_norm()
+        if hasattr(self.vocoder, "remove_weight_norm"):
+            self.vocoder.remove_weight_norm()
+        self.normalize_before = False
+        if hasattr(self.vocoder, "mean"):
+            self.normalize_before = True
 
     @torch.no_grad()
-    def forward(
-        self, feats: torch.Tensor, normalize_before: bool = True
-    ) -> torch.Tensor:
+    def forward(self, feats: torch.Tensor) -> torch.Tensor:
         """Generate waveform with pretrained vocoder.
 
         Args:
             feats (Tensor): Feature tensor (T_feats, #mels).
-            normalize_before (bool): Whether to normalize the input feature.
 
         Returns:
             Tensor: Generated waveform tensor (T_wav).
 
         """
-        return self.vocoder.inference(feats, normalize_before=normalize_before).view(-1)
+        return self.vocoder.inference(
+            feats,
+            normalize_before=self.normalize_before,
+        ).view(-1)
