@@ -944,7 +944,7 @@
 ## Summary
 
 |Lang|Model|Algo|CER¹|WER¹|SER¹|RTF¹²|
-|-|-|-|-|-|-|
+|-|-|-|-|-|-|-|
 |cs³|Conformer/RNN-T|default|7.9|15.3|30.4|0.089|
 |-|-|ALSD|8.2|15.6|30.8|0.080|
 |-|-|TSD|8.1|15.5|31.3|0.111|
