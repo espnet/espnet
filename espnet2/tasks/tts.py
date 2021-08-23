@@ -12,6 +12,7 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet2.gan_tts.joint import JointText2Wav
 from espnet2.gan_tts.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
@@ -92,6 +93,7 @@ tts_choices = ClassChoices(
         fastspeech2=FastSpeech2,
         # NOTE(kan-bayashi): available only for inference
         vits=VITS,
+        joint_text2wav=JointText2Wav,
     ),
     type_check=AbsTTS,
     default="tacotron2",
