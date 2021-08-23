@@ -93,8 +93,8 @@ inference_model=train.loss.ave.pth # Model path for decoding.
                                    # inference_model=3epoch.pth
                                    # inference_model=valid.acc.best.pth
                                    # inference_model=valid.loss.ave.pth
-griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
-download_model=""   # Download a model from Model Zoo and use it for decoding.
+vocoder_file=none  # Vocoder model file or pretrained model tag
+download_model=""  # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
@@ -175,7 +175,7 @@ Options:
                         # Note that it will overwrite args in inference config.
     --inference_tag     # Suffix for decoding directory (default="${inference_tag}").
     --inference_model   # Model path for decoding (default=${inference_model}).
-    --griffin_lim_iters # The number of iterations of Griffin-Lim (default=${griffin_lim_iters}).
+    --vocoder_file      # Vocoder file or tag of the pretrained model (default=${vocoder_file}).
     --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 
     # [Task dependent] Set the datadir name created by local/data.sh.
@@ -1098,7 +1098,7 @@ if ! "${skip_eval}"; then
                     --model_file "${tts_exp}"/"${inference_model}" \
                     --train_config "${tts_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
-                    --vocoder_conf griffin_lim_iters="${griffin_lim_iters}" \
+                    --vocoder_file "${vocoder_file}" \
                     ${_opts} ${_ex_opts} ${inference_args}
 
             # 4. Concatenates the output files from each jobs
