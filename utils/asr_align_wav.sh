@@ -230,12 +230,12 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "$base $wav" > ${align_dir}/data/wav.scp
     echo "X $base" > ${align_dir}/data/spk2utt
     echo "$base X" > ${align_dir}/data/utt2spk
+    utt_text="${align_dir}/data/text"
     if [ -f "$text" ]; then
-        cp "$text" "${align_dir}/data/text"
-        utt_text="$text"
+        cp -v "$text" "$utt_text"
+        utt_text="$text" # Use the original file, because copied file will be truncated
     else
-        echo "$base $text" > ${align_dir}/data/text
-        utt_text=${align_dir}/data/text
+        echo "$base $text" > "$utt_text"
     fi
 fi
 
