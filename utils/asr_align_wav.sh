@@ -72,7 +72,6 @@ Example:
     # Align using model name
     $0 --models tedlium2.transformer.v1 example.wav "example text"
 
-    # Align using model name
     $0 --models tedlium2.transformer.v1 example.wav utt_text.txt
 
     # Align using model file
