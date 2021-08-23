@@ -1,4 +1,5 @@
 import argparse
+from distutils.version import LooseVersion
 import logging
 from pathlib import Path
 from typing import Callable
@@ -379,6 +380,7 @@ class TTSTask(AbsTask):
 
     @classmethod
     def build_vocoder_from_file(
+        cls,
         vocoder_config_file: Union[Path, str] = None,
         vocoder_file: Union[Path, str] = None,
         model: Optional[ESPnetTTSModel] = None,
@@ -418,9 +420,18 @@ class TTSTask(AbsTask):
                     "Please install via `pip install -U parallel_wavegan`."
                 )
                 raise
+
+            from parallel_wavegan import __version__
+
+            # NOTE(kan-bayashi): Filelock download is supported from 0.5.2
+            assert LooseVersion(__version__) >= LooseVersion("0.5.2"), (
+                "Please install the latest parallel_wavegan "
+                "via `pip install -U parallel_wavegan`."
+            )
+
             logging.info(
-                "{vocoder_file} is not found. "
-                "We assume that {vocoder_file} is tag of the pretrained model."
+                f"{vocoder_file} does not exist. "
+                f"We assume that {vocoder_file} is tag of the pretrained model."
             )
             vocoder = ParallelWaveGANPretrainedVocoder(
                 download_pretrained_model(vocoder_file)
