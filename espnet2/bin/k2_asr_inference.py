@@ -23,8 +23,10 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fst.common import compile_HLG
 from espnet2.fst.common import find_first_disambig_symbol
+from espnet2.fst.lm_rescore import nbest_am_lm_scores
 from espnet2.fst.lm_rescore import rescore_with_whole_lattice
 from espnet2.tasks.asr import ASRTask
+from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
@@ -145,6 +147,7 @@ class k2Speech2Text:
         is_ctc_decoding: bool = True,
         lang_dir: Optional[str] = None,
         use_fgram_rescoring: bool = False,
+        use_nbest_rescoring: bool = False,
     ):
         assert check_argument_types()
 
@@ -156,17 +159,29 @@ class k2Speech2Text:
 
         token_list = asr_model.token_list
 
+        # 2. Build Language model
+        self.use_nnet_lm = False
+        if lm_train_config is not None:
+            lm, lm_train_args = LMTask.build_model_from_file(
+                lm_train_config, lm_file, device
+            )
+            self.use_nnet_lm = True
+            self.lm = lm
+
         self.is_ctc_decoding = is_ctc_decoding
         self.use_fgram_rescoring = use_fgram_rescoring
-        ctc_topo = k2.arc_sort(build_ctc_topo(list(range(len(token_list)))))
+        self.use_nbest_rescoring = use_nbest_rescoring
         if self.is_ctc_decoding:
-            self.decode_graph = ctc_topo
+            self.decode_graph = k2.arc_sort(
+                build_ctc_topo(list(range(len(token_list))))
+            )
         else:
             assert lang_dir is not None
             lang_dir = Path(lang_dir)
             self.symbol_table = k2.SymbolTable.from_file(lang_dir / "words.txt")
             token_symbol_table = k2.SymbolTable.from_file(lang_dir / "tokens.txt")
             if not os.path.exists(lang_dir / "HLG.pt"):
+                ctc_topo = k2.arc_sort(build_ctc_topo(list(range(len(token_list)))))
                 logging.debug("Loading L_disambig.fst.txt")
                 with open(lang_dir / "L_disambig.fst.txt") as f:
                     L = k2.Fsa.from_openfst(f.read(), acceptor=False)
@@ -278,6 +293,8 @@ class k2Speech2Text:
         logp_encoder_output = torch.nn.functional.log_softmax(
             self.asr_model.ctc.ctc_lo(enc), dim=2
         )
+
+        # It maybe useful to tune blank_bias.
         blank_bias = -0.0
         logp_encoder_output[:, :, 0] += blank_bias
 
@@ -291,9 +308,18 @@ class k2Speech2Text:
 
         dense_fsa_vec = k2.DenseFsaVec(logp_encoder_output, supervision_segments)
 
+        if hasattr(self.decode_graph, "lm_scores"):
+            # It maybe useful to tune 3-gram weight.
+            # A valid range of 3-gram weight is [0, 1].
+            self.decode_graph.scores *= 1.0
+
         lattices = k2.intersect_dense_pruned(
             self.decode_graph, dense_fsa_vec, 20.0, self.output_beam_size, 30, 10000
         )
+
+        # It maybe useful to tune lattice.scores
+        lattices.scores *= 1.0
+
         if self.use_fgram_rescoring:
             lattices = rescore_with_whole_lattice(
                 lattices, self.G, lm_scale_list=None, need_rescored_lats=True
@@ -308,9 +334,7 @@ class k2Speech2Text:
                 new2old,
                 path_to_seq_map,
                 seq_to_path_splits,
-                word_seqs,
-            ) = nbest_am_flm_scores(lattices, 1000)
-            assert lm_scores is None
+            ) = nbest_am_lm_scores(lattices, 1000)
 
             ys_pad_lens = torch.tensor([len(hyp) for hyp in token_ids]).to(self.device)
             max_token_length = max(ys_pad_lens)
@@ -382,21 +406,15 @@ class k2Speech2Text:
                     # (tensor([1, 2]), tensor([3, 4]), tensor([], dtype=torch.int64))
 
                     break
-                # best_seq_idx = new2old[processed_seqs + torch.argmax(tot_scores)]
-                # import pdb; pdb.set_trace()
                 best_seq_idx = processed_seqs + torch.argmax(tot_scores)
 
-                # best_word_seq = word_seqs[best_seq_idx]
-                if best_seq_idx >= len(token_ids):
-                    import pdb
-
-                    pdb.set_trace()
+                assert best_seq_idx < len(token_ids)
                 best_token_seqs = token_ids[best_seq_idx]
                 processed_seqs += tot_scores.nelement()
-                # hyps.append(best_word_seq)
                 hyps.append(best_token_seqs)
                 scores.append(tot_scores.max().item())
-                assert len(hyps) == seq_to_path_splits.nelement() - 1
+
+            assert len(hyps) == seq_to_path_splits.nelement() - 1
         else:
             best_paths = k2.shortest_path(lattices, use_double_scores=True)
             scores = best_paths.get_tot_scores(
@@ -406,22 +424,21 @@ class k2Speech2Text:
 
         assert len(scores) == len(hyps)
 
-        results = []
-
         for token_int, score in zip(hyps, scores):
-            # Change integer-ids to tokens
-            if self.is_ctc_decoding:
+            if self.use_nbest_rescoring or self.is_ctc_decoding:
+                # For decoding methods nbest_rescoring and ctc_decoding
+                # hyps stores token_index, which is lattice.labels.
+
                 # convert token_id to text with self.tokenizer
                 token = self.converter.ids2tokens(token_int)
+                assert self.tokenizer is not None
+                text = self.tokenizer.tokens2text(token)
 
-                if self.tokenizer is not None:
-                    text = self.tokenizer.tokens2text(token)
-                else:
-                    text = None
             else:
-                # decode with TLG
-                # Now token_int, actually stores word indexes.
-                # which is lattice.aux_labels
+                # For decoding methods with TLG and 4-gram lattice rescoing,
+                # what hyps contains is already word_index,
+                # which is lattice.aux_labels.
+                # So tokenizizer is not needed.
                 token = None
                 text = " ".join(
                     [self.symbol_table.get(word_idx) for word_idx in token_int]
@@ -462,6 +479,7 @@ def inference(
     is_ctc_decoding: bool,
     lang_dir: Optional[str],
     use_fgram_rescoring: bool,
+    use_nbest_rescoring: bool,
 ):
     assert check_argument_types()
     if ngpu > 1:
@@ -501,6 +519,7 @@ def inference(
         is_ctc_decoding=is_ctc_decoding,
         lang_dir=lang_dir,
         use_fgram_rescoring=use_fgram_rescoring,
+        use_nbest_rescoring=use_nbest_rescoring,
     )
 
     # 3. Build data-iterator
@@ -653,6 +672,7 @@ def get_parser():
     group.add_argument("--is_ctc_decoding", type=str2bool, default=True)
     group.add_argument("--lang_dir", type=str, default=None)
     group.add_argument("--use_fgram_rescoring", type=str2bool, default=False)
+    group.add_argument("--use_nbest_rescoring", type=str2bool, default=False)
 
     return parser
 

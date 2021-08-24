@@ -1,25 +1,23 @@
-from typing import Dict
-from typing import List
-
 import k2
+import math
 import torch
 
 from typing import Dict
 from typing import List
-from typing import Optional
 from typing import Tuple
 
 
 def remove_repeated_and_leq(tokens: List[int], blank_id: int = 0):
-    """
-    Genrate valid token sequence.
+    """Generate valid token sequence.
+
     Result may be used as input of transformer decoder and neural language model.
     Fristly, remove repeated token from a "token alignment" seqs;
     Then remove blank symbols.
     This fuction may be replaced by tokenizing word_seqs with tokenizer
     or composeing word_seqs_fsas with L_inv.fst
     or composing token_seqs with ctc_topo.
-    Current method is chosed other than previous three methods because it won't need an extra object, i.e. tokenizer, L.fst or ctc_topo.
+    Current method is slelected other than previous three methods
+    because it won't need an extra object, i.e. tokenizer, L.fst or ctc_topo.
     """
     new_tokens = []
     previous = None
@@ -31,133 +29,13 @@ def remove_repeated_and_leq(tokens: List[int], blank_id: int = 0):
     return new_tokens
 
 
-def compute_am_scores_and_fm_scores(
-    lats: k2.Fsa, word_fsas_with_epsilon_loops: k2.Fsa, path_to_seq_map: torch.Tensor
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Compute AM and LM scores of n-best lists (represented as word_fsas).
-    Args:
-      lats:
-        An FsaVec, which is the output of `k2.intersect_dense_pruned`.
-        It must have the attribute `lm_scores`.
-      word_fsas_with_epsilon_loops:
-        An FsaVec representing a n-best list. Note that it has been processed
-        by `k2.add_epsilon_self_loops`.
-      path_to_seq_map:
-        A 1-D torch.Tensor with dtype torch.int32. path_to_seq_map[i] indicates
-        which sequence the i-th Fsa in word_fsas_with_epsilon_loops belongs to.
-        path_to_seq_map.numel() == word_fsas_with_epsilon_loops.arcs.dim0().
-    Returns:
-      Return a tuple of (1-D torch.Tensor, 1-D torch.Tensor) containing the AM and FM scores of each path.
-      `am_scores.numel() == word_fsas_with_epsilon_loops.shape[0]`
-      `lm_scores.numel() == word_fsas_with_epsilon_loops.shape[0]`
-    """
-    device = lats.device
-    assert len(lats.shape) == 3
-    assert hasattr(lats, "lm_scores")
-
-    # k2.compose() currently does not support b_to_a_map. To void
-    # replicating `lats`, we use k2.intersect_device here.
-    #
-    # lats has phone IDs as `labels` and word IDs as aux_labels, so we
-    # need to invert it here.
-    inverted_lats = k2.invert(lats)
-
-    # Now the `labels` of inverted_lats are word IDs (a 1-D torch.Tensor)
-    # and its `aux_labels` are phone IDs ( a k2.RaggedInt with 2 axes)
-
-    # Remove its `aux_labels` since it is not needed in the
-    # following computation
-    del inverted_lats.aux_labels
-    inverted_lats = k2.arc_sort(inverted_lats)
-
-    am_path_lats = _intersect_device(
-        inverted_lats,
-        word_fsas_with_epsilon_loops,
-        b_to_a_map=path_to_seq_map,
-        sorted_match_a=True,
-    )
-
-    am_path_lats = k2.top_sort(k2.connect(am_path_lats))
-
-    # The `scores` of every arc consists of `am_scores` and `lm_scores`
-    am_path_lats.scores = am_path_lats.scores - am_path_lats.lm_scores
-
-    am_scores = am_path_lats.get_tot_scores(
-        use_double_scores=True, log_semiring=False
-    )
-
-    # Start to compute lm_scores
-    am_path_lats.scores = am_path_lats.lm_scores
-
-    lm_scores = am_path_lats.get_tot_scores(
-        use_double_scores=True, log_semiring=False
-    )
-
-    return am_scores, lm_scores
-
-
-def nbest_am_flm_scrores(lats: k2.Fsa, num_paths: int):
-    """
-    Compute am scores with word_seqs
-    """
-    # lats has token IDs as labels
-    # and word IDs as aux_labels.
-    # First, extract `num_paths` paths for each sequence.
-    # paths is a k2.RaggedInt with axes [seq][path][arc_pos]
-    paths = k2.random_paths(lats, num_paths=num_paths, use_double_scores=True)
-    # word_seqs is a k2.RaggedInt sharing the same shape as `paths`
-    # but it contains word IDs. Note that it also contains 0s and -1s.
-    # The last entry in each sublist is -1.
-
-    word_seqs = k2.index(lats.aux_labels.contiguous(), paths)
-    word_seqs = k2.ragged.remove_values_leq(word_seqs, 0)
-
-    # lats has token IDs as labels and word IDs as aux_labels.
-    unique_word_seqs, _, new2old = k2.ragged.unique_sequences(
-        word_seqs, need_num_repeats=False, need_new2old_indexes=True
-    )
-
-    seq_to_path_shape = k2.ragged.get_layer(unique_word_seqs.shape(), 0)
-    path_to_seq_map = seq_to_path_shape.row_ids(1)
-
-    # used to split final computed tot_scores
-    seq_to_path_splits = seq_to_path_shape.row_splits(1)
-
-    unique_word_seqs = k2.ragged.remove_axis(unique_word_seqs, 0)
-    # word_fsas is an FsaVec with axes [path][state][arc]
-    word_fsas = k2.linear_fsa(unique_word_seqs)
-    word_fsas_with_epsilon_loops = k2.add_epsilon_self_loops(word_fsas)
-    am_scores, lm_scores = compute_am_scores_and_fm_scores(
-        lats, word_fsas_with_epsilon_loops, path_to_seq_map
-    )
-
-    # token_seqs is a k2.RaggedInt sharing the same shape as `paths`
-    # but it contains token IDs.
-    # Note that it also contains 0s and -1s.
-    token_seqs = k2.index(lats.labels.contiguous(), paths)
-    token_seqs = k2.ragged.remove_axis(token_seqs, 0)
-    token_ids, _ = k2.ragged.index(token_seqs, new2old, axis=0)
-    token_ids = k2.ragged.to_list(token_ids)
-    # Now remove repeated tokens and 0s and -1s.
-    token_ids = [remove_repeated_and_leq(tokens) for tokens in token_ids]
-
-    return (
-        am_scores,
-        lm_scores,
-        token_ids,
-        new2old,
-        path_to_seq_map,
-        seq_to_path_splits,
-        word_seqs,
-    )
-
-
 def _intersect_device(
     a_fsas: k2.Fsa, b_fsas: k2.Fsa, b_to_a_map: torch.Tensor, sorted_match_a: bool
 ):
-    """This is a wrapper of k2.intersect_device and its purpose is to split
-    b_fsas into several batches and process each batch separately to avoid
-    CUDA OOM error.
+    """Wrap k2.intersect_device.
+
+    its purpose is to split b_fsas into several batches
+    and process each batch separately to avoid CUDA OOM error.
     The arguments and return value of this function are the same as
     k2.intersect_device.
     """
@@ -190,10 +68,11 @@ def _intersect_device(
     return k2.cat(ans)
 
 
-def compute_am_scores_and_fm_scores(
+def compute_am_scores_and_lm_scores(
     lats: k2.Fsa, word_fsas_with_epsilon_loops: k2.Fsa, path_to_seq_map: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Compute AM and LM scores of n-best lists (represented as word_fsas).
+
     Args:
       lats:
         An FsaVec, which is the output of `k2.intersect_dense_pruned`.
@@ -206,11 +85,11 @@ def compute_am_scores_and_fm_scores(
         which sequence the i-th Fsa in word_fsas_with_epsilon_loops belongs to.
         path_to_seq_map.numel() == word_fsas_with_epsilon_loops.arcs.dim0().
     Returns:
-      Return a tuple of (1-D torch.Tensor, 1-D torch.Tensor) containing the AM and FM scores of each path.
+      Return a tuple of (1-D torch.Tensor, 1-D torch.Tensor)
+      containing the AM and FM scores of each path.
       `am_scores.numel() == word_fsas_with_epsilon_loops.shape[0]`
       `lm_scores.numel() == word_fsas_with_epsilon_loops.shape[0]`
     """
-    device = lats.device
     assert len(lats.shape) == 3
 
     # k2.compose() currently does not support b_to_a_map. To void
@@ -240,245 +119,64 @@ def compute_am_scores_and_fm_scores(
     # The `scores` of every arc consists of `am_scores` and `lm_scores`
     if hasattr(lats, "lm_scores"):
         am_path_lats.scores = am_path_lats.scores - am_path_lats.lm_scores
-        # am_scores = am_path_lats.get_tot_scores(True, True) # wer: 2.77
         am_scores = am_path_lats.get_tot_scores(
             use_double_scores=True, log_semiring=False
-        )  # wer 2.73
+        )
 
         # Start to compute lm_scores
         am_path_lats.scores = am_path_lats.lm_scores
-
-        # fm_scores = am_path_lats.get_tot_scores(True, True) # wer: 2.77
         lm_scores = am_path_lats.get_tot_scores(
             use_double_scores=True, log_semiring=False
-        )  # wer 2.73
+        )
     else:
         am_scores = am_path_lats.get_tot_scores(
             use_double_scores=True, log_semiring=False
-        )  # wer 2.73
+        )
         lm_scores = None
 
     return am_scores, lm_scores
 
 
-def compute_am_scores(
-    lats: k2.Fsa, word_fsas_with_epsilon_loops: k2.Fsa, path_to_seq_map: torch.Tensor
-) -> torch.Tensor:
-    """Compute AM scores of n-best lists (represented as word_fsas).
+def nbest_am_lm_scores(lats: k2.Fsa, num_paths: int):
+    """Compute am scores and lm scores with word_seqs.
 
-    Args:
-      lats:
-        An FsaVec, which is the output of `k2.intersect_dense_pruned`.
-        It must have the attribute `lm_scores`.
-      word_fsas_with_epsilon_loops:
-        An FsaVec representing a n-best list. Note that it has been processed
-        by `k2.add_epsilon_self_loops`.
-      path_to_seq_map:
-        A 1-D torch.Tensor with dtype torch.int32. path_to_seq_map[i] indicates
-        which sequence the i-th Fsa in word_fsas_with_epsilon_loops belongs to.
-        path_to_seq_map.numel() == word_fsas_with_epsilon_loops.arcs.dim0().
-    Returns:
-      Return a 1-D torch.Tensor containing the AM scores of each path.
-      `ans.numel() == word_fsas_with_epsilon_loops.shape[0]`
+    Compatible with both ctc_decoding or TLG decoding.
     """
-    device = lats.device
-    assert len(lats.shape) == 3
-    # assert hasattr(lats, 'lm_scores')
-
-    # k2.compose() currently does not support b_to_a_map. To void
-    # replicating `lats`, we use k2.intersect_device here.
-    #
-    # lats has phone IDs as `labels` and word IDs as aux_labels, so we
-    # need to invert it here.
-    inverted_lats = k2.invert(lats)
-
-    # Now the `labels` of inverted_lats are word IDs (a 1-D torch.Tensor)
-    # and its `aux_labels` are phone IDs ( a k2.RaggedInt with 2 axes)
-
-    # Remove its `aux_labels` since it is not needed in the
-    # following computation
-    del inverted_lats.aux_labels
-    inverted_lats = k2.arc_sort(inverted_lats)
-
-    am_path_lats = _intersect_device(
-        inverted_lats,
-        word_fsas_with_epsilon_loops,
-        b_to_a_map=path_to_seq_map,
-        sorted_match_a=True,
-    )
-
-    # NOTE: `k2.connect` and `k2.top_sort` support only CPU at present
-    am_path_lats = k2.top_sort(k2.connect(am_path_lats.to("cpu"))).to(device)
-
-    if hasattr(am_path_lats, "lm_scores"):
-        # The `scores` of every arc consists of `am_scores` and `lm_scores`
-        am_path_lats.scores = am_path_lats.scores - am_path_lats.lm_scores
-
-    am_scores = am_path_lats.get_tot_scores(True, True)
-
-    return am_scores
-
-
-def compute_am_scores_and_fm_scores(
-    lats: k2.Fsa, word_fsas_with_epsilon_loops: k2.Fsa, path_to_seq_map: torch.Tensor
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Compute AM and LM scores of n-best lists (represented as word_fsas).
-    Args:
-      lats:
-        An FsaVec, which is the output of `k2.intersect_dense_pruned`.
-        It must have the attribute `lm_scores`.
-      word_fsas_with_epsilon_loops:
-        An FsaVec representing a n-best list. Note that it has been processed
-        by `k2.add_epsilon_self_loops`.
-      path_to_seq_map:
-        A 1-D torch.Tensor with dtype torch.int32. path_to_seq_map[i] indicates
-        which sequence the i-th Fsa in word_fsas_with_epsilon_loops belongs to.
-        path_to_seq_map.numel() == word_fsas_with_epsilon_loops.arcs.dim0().
-    Returns:
-      Return a tuple of (1-D torch.Tensor, 1-D torch.Tensor) containing the AM and FM scores of each path.
-      `am_scores.numel() == word_fsas_with_epsilon_loops.shape[0]`
-      `lm_scores.numel() == word_fsas_with_epsilon_loops.shape[0]`
-    """
-    device = lats.device
-    assert len(lats.shape) == 3
-    assert hasattr(lats, "lm_scores")
-
-    # k2.compose() currently does not support b_to_a_map. To void
-    # replicating `lats`, we use k2.intersect_device here.
-    #
-    # lats has phone IDs as `labels` and word IDs as aux_labels, so we
-    # need to invert it here.
-    inverted_lats = k2.invert(lats)
-
-    # Now the `labels` of inverted_lats are word IDs (a 1-D torch.Tensor)
-    # and its `aux_labels` are phone IDs ( a k2.RaggedInt with 2 axes)
-
-    # Remove its `aux_labels` since it is not needed in the
-    # following computation
-    del inverted_lats.aux_labels
-    inverted_lats = k2.arc_sort(inverted_lats)
-
-    am_path_lats = _intersect_device(
-        inverted_lats,
-        word_fsas_with_epsilon_loops,
-        b_to_a_map=path_to_seq_map,
-        sorted_match_a=True,
-    )
-
-    am_path_lats = k2.top_sort(k2.connect(am_path_lats))
-
-    # The `scores` of every arc consists of `am_scores` and `lm_scores`
-    am_path_lats.scores = am_path_lats.scores - am_path_lats.lm_scores
-
-    # am_scores = am_path_lats.get_tot_scores(True, True) # wer: 2.77
-    am_scores = am_path_lats.get_tot_scores(
-        use_double_scores=True, log_semiring=False
-    )  # wer 2.73
-
-    # Start to compute lm_scores
-    am_path_lats.scores = am_path_lats.lm_scores
-
-    # fm_scores = am_path_lats.get_tot_scores(True, True) # wer: 2.77
-    lm_scores = am_path_lats.get_tot_scores(
-        use_double_scores=True, log_semiring=False
-    )  # wer 2.73
-
-    return am_scores, lm_scores
-
-
-def version2_nbest_am_flm_scores(lats: k2.Fsa, num_paths: int):
-    """
-    Compute am scores with word_seqs
-    """
-    # import pdb; pdb.set_trace()
-    # lats has token IDs as labels
-    # and word IDs as aux_labels.
-    # First, extract `num_paths` paths for each sequence.
-    # paths is a k2.RaggedInt with axes [seq][path][arc_pos]
     paths = k2.random_paths(lats, num_paths=num_paths, use_double_scores=True)
-    # word_seqs is a k2.RaggedInt sharing the same shape as `paths`
-    # but it contains word IDs. Note that it also contains 0s and -1s.
-    # The last entry in each sublist is -1.
+    if hasattr(lats.aux_labels, "contiguous"):
+        word_seqs = k2.index(lats.aux_labels.contiguous(), paths)
+    else:
+        # '_k2.RaggedInt' object has no attribute 'contiguous'
+        word_seqs = k2.index(lats.aux_labels, paths)
 
-    # word_seqs = k2.index(lats.aux_labels.contiguous(), paths)
-    word_seqs = k2.index(lats.aux_labels, paths)
+    # With ctc_decoding, word_seqs stores token_ids.
+    # With TLG decoding, word_seqs stores word_ids.
     word_seqs = k2.ragged.remove_values_leq(word_seqs, 0)
-
-    # lats has token IDs as labels and word IDs as aux_labels.
-    unique_word_seqs, _, new2old = k2.ragged.unique_sequences(
-        word_seqs, need_num_repeats=False, need_new2old_indexes=True
+    unique_word_seqs, num_repeats, new2old = k2.ragged.unique_sequences(
+        word_seqs, need_num_repeats=True, need_new2old_indexes=True
     )
 
     seq_to_path_shape = k2.ragged.get_layer(unique_word_seqs.shape(), 0)
     path_to_seq_map = seq_to_path_shape.row_ids(1)
-
     # used to split final computed tot_scores
     seq_to_path_splits = seq_to_path_shape.row_splits(1)
 
     unique_word_seqs = k2.ragged.remove_axis(unique_word_seqs, 0)
-    # word_fsas is an FsaVec with axes [path][state][arc]
     word_fsas = k2.linear_fsa(unique_word_seqs)
+
     word_fsas_with_epsilon_loops = k2.add_epsilon_self_loops(word_fsas)
-    # import pdb; pdb.set_trace()
-    am_scores, lm_scores = compute_am_scores_and_fm_scores(
+
+    am_scores, lm_scores = compute_am_scores_and_lm_scores(
         lats, word_fsas_with_epsilon_loops, path_to_seq_map
     )
 
-    # token_seqs is a k2.RaggedInt sharing the same shape as `paths`
-    # but it contains token IDs.
-    # Note that it also contains 0s and -1s.
     token_seqs = k2.index(lats.labels.contiguous(), paths)
     token_seqs = k2.ragged.remove_axis(token_seqs, 0)
     token_ids, _ = k2.ragged.index(token_seqs, new2old, axis=0)
     token_ids = k2.ragged.to_list(token_ids)
     # Now remove repeated tokens and 0s and -1s.
     token_ids = [remove_repeated_and_leq(tokens) for tokens in token_ids]
-
-    return (
-        am_scores,
-        lm_scores,
-        token_ids,
-        new2old,
-        path_to_seq_map,
-        seq_to_path_splits,
-        word_seqs,
-    )
-
-
-def nbest_am_flm_scores(lats: k2.Fsa, num_paths: int):
-    paths = k2.random_paths(lats, num_paths=num_paths, use_double_scores=True)
-    token_seqs = k2.index(lats.aux_labels, paths)
-
-    token_seqs = k2.ragged.remove_values_leq(token_seqs, 0)
-    unique_token_seqs, num_repeats, new2old = k2.ragged.unique_sequences(
-        token_seqs, need_num_repeats=True, need_new2old_indexes=True
-    )
-
-    seq_to_path_shape = k2.ragged.get_layer(unique_token_seqs.shape(), 0)
-    path_to_seq_map = seq_to_path_shape.row_ids(1)
-    # used to split final computed tot_scores
-    seq_to_path_splits = seq_to_path_shape.row_splits(1)
-
-    unique_token_seqs = k2.ragged.remove_axis(unique_token_seqs, 0)
-    token_fsas = k2.linear_fsa(unique_token_seqs)
-
-    token_fsas_with_epsilon_loops = k2.add_epsilon_self_loops(token_fsas)
-
-    am_scores = compute_am_scores(lats, token_fsas_with_epsilon_loops, path_to_seq_map)
-    lm_scores = None
-
-    token_ids = k2.ragged.to_list(unique_token_seqs)
-    word_seqs = None
-
-    return (
-        am_scores,
-        lm_scores,
-        token_ids,
-        new2old,
-        path_to_seq_map,
-        seq_to_path_splits,
-        word_seqs,
-    )
+    return am_scores, lm_scores, token_ids, new2old, path_to_seq_map, seq_to_path_splits
 
 
 # Modified from: https://github.com/k2-fsa/icefall/blob/master/icefall/decode.py#L465

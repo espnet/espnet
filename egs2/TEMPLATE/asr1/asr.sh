@@ -97,12 +97,14 @@ use_k2=false      # Whether to use k2 based decoder
 is_ctc_decoding=false
 inference_with_tlg=false
 if $inference_with_tlg && $is_ctc_decoding ; then
-  echo "Please chose ctc decoding or tlg decoding."
+  echo "Please choose ctc decoding or tlg decoding."
   echo "Either of them should be false."
 fi
 lang_dir=data/lang_bpe/
 tlg_ngram_file=G.fst.txt
 use_fgram_rescoring=false # fgram is short for four-gram
+use_nbest_rescoring=false # use transformer-decoder
+                          # and transformer language model for nbest rescoring
 
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
@@ -420,7 +422,7 @@ if [ -z "${inference_tag}" ]; then
     if "${use_k2}"; then
       inference_tag+="_use_k2"
       if "${inference_with_tlg}"; then
-        inference_tag+="_use_k2_tlg"
+        inference_tag+="_tlg"
         if ${use_fgram_rescoring}; then
           inference_tag+="_fgram_rescoring"
         fi
@@ -1186,7 +1188,7 @@ if ! "${skip_eval}"; then
           asr_inference_tool="espnet2.bin.k2_asr_inference"
           _opts+="--is_ctc_decoding ${is_ctc_decoding} "
           if ! ${is_ctc_decoding}; then
-            # use tlg_decoding is is_ctc_decoding=false
+            # use tlg_decoding if is_ctc_decoding=false
             _opts+="--lang_dir ${lang_dir} "
             if [ ! -f ${lang_dir}/${tlg_ngram_file} ]; then
               local/prepare_dict.sh \
@@ -1200,6 +1202,8 @@ if ! "${skip_eval}"; then
             fi
           fi
           if ${use_nbest_rescoring}; then
+            # nbest_rescoring with transformer decoder and transformer lm,
+            # which is compatible both ctc_decodig and tlg_decoding
             _opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
           fi
 
@@ -1208,7 +1212,6 @@ if ! "${skip_eval}"; then
           asr_inference_tool="espnet2.bin.asr_inference"
         fi
         for dset in ${test_sets}; do
-
             _data="${data_feats}/${dset}"
             _dir="${asr_exp}/${inference_tag}/${dset}"
             _logdir="${_dir}/logdir"
