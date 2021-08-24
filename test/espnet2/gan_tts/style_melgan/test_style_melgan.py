@@ -1,5 +1,5 @@
 # Copyright 2021 Tomoki Hayashi
-#  MIT License (https://opensource.org/licenses/MIT)
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Test code for StyleMelGAN modules."""
 
