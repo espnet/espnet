@@ -1,3 +1,5 @@
+"""Text-to-speech task."""
+
 import argparse
 from distutils.version import LooseVersion
 import logging

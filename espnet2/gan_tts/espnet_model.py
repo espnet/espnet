@@ -1,7 +1,7 @@
 # Copyright 2021 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""GAN-based TTS ESPnet model."""
+"""GAN-based text-to-speech ESPnet model."""
 
 from contextlib import contextmanager
 from distutils.version import LooseVersion
@@ -29,7 +29,7 @@ else:
 
 
 class ESPnetGANTTSModel(AbsGANESPnetModel):
-    """GAN-based TTS ESPnet model."""
+    """ESPnet model for GAN-based text-to-speech task."""
 
     def __init__(
         self,
@@ -53,10 +53,10 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         self.tts = tts
         assert hasattr(
             tts, "generator"
-        ), "generator module must be resistered as tts.generator"
+        ), "generator module must be registered as tts.generator"
         assert hasattr(
             tts, "discriminator"
-        ), "discriminator module must be resistered as tts.discriminator"
+        ), "discriminator module must be registered as tts.discriminator"
 
     def forward(
         self,
@@ -105,7 +105,10 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             # Extract features
             feats = None
             if self.feats_extract is not None:
-                feats, feats_lengths = self.feats_extract(speech, speech_lengths)
+                feats, feats_lengths = self.feats_extract(
+                    speech,
+                    speech_lengths,
+                )
             if self.pitch_extract is not None and pitch is None:
                 pitch, pitch_lengths = self.pitch_extract(
                     speech,
@@ -132,11 +135,13 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
                 energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
 
         # Make batch for tts inputs
-        batch = {}
-        batch.update(text=text, text_lengths=text_lengths)
-        batch.update(forward_generator=forward_generator)
+        batch = dict(
+            text=text,
+            text_lengths=text_lengths,
+            forward_generator=forward_generator,
+        )
 
-        # Update kwargs for additional auxiliary inputs
+        # Update batch for additional auxiliary inputs
         if feats is not None:
             batch.update(feats=feats, feats_lengths=feats_lengths)
         if self.tts.require_raw_speech:
@@ -195,7 +200,10 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         """
         feats = None
         if self.feats_extract is not None:
-            feats, feats_lengths = self.feats_extract(speech, speech_lengths)
+            feats, feats_lengths = self.feats_extract(
+                speech,
+                speech_lengths,
+            )
         if self.pitch_extract is not None:
             pitch, pitch_lengths = self.pitch_extract(
                 speech,
