@@ -94,7 +94,7 @@ class StyleMelGANGenerator(torch.nn.Module):
             ]
             in_chs = channels
         self.noise_upsample = torch.nn.Sequential(*noise_upsample)
-        self.noise_upsample_factor = int(np.prod(noise_upsample_scales) * out_channels)
+        self.noise_upsample_factor = int(np.prod(noise_upsample_scales))
 
         self.blocks = torch.nn.ModuleList()
         aux_chs = aux_channels
@@ -112,7 +112,7 @@ class StyleMelGANGenerator(torch.nn.Module):
                 ),
             ]
             aux_chs = channels
-        self.upsample_factor = np.prod(upsample_scales)
+        self.upsample_factor = int(np.prod(upsample_scales) * out_channels)
 
         self.output_conv = torch.nn.Sequential(
             torch.nn.Conv1d(
