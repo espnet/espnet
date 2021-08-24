@@ -131,9 +131,6 @@ class MelGANGenerator(torch.nn.Module):
         # reset parameters
         self.reset_parameters()
 
-        # initialize pqmf for inference
-        self.pqmf = None
-
     def forward(self, c: torch.Tensor) -> torch.Tensor:
         """Calculate forward propagation.
 
@@ -198,8 +195,6 @@ class MelGANGenerator(torch.nn.Module):
 
         """
         c = self.melgan(c.transpose(1, 0).unsqueeze(0))
-        if self.pqmf is not None:
-            c = self.pqmf.synthesis(c)
         return c.squeeze(0).transpose(1, 0)
 
 
