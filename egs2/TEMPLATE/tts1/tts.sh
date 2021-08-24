@@ -52,9 +52,8 @@ max_wav_duration=20        # Maximum duration in second.
 use_xvector=false          # Whether to use x-vector (Require Kaldi).
 use_sid=false              # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 use_lid=false              # Whether to use language id as the inputs (Need utt2lang in data directory).
-# Only used for feats_type != raw
-feats_extract=fbank        # Feature extractor.
-feats_normalize=global_mvn # Feature normalizer.
+feats_extract=fbank        # On-the-fly feature extractor.
+feats_normalize=global_mvn # On-the-fly feature normalizer.
 fs=16000                   # Sampling rate.
 n_fft=1024                 # The number of fft points.
 n_shift=256                # The number of shift points.
@@ -66,6 +65,7 @@ n_mels=80                  # The number of mel basis.
 f0min=80  # Maximum f0 for pitch extraction.
 f0max=400 # Minimum f0 for pitch extraction.
 
+# Vocabulary related
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol.
 sos_eos="<sos/eos>" # sos and eos symbols.
@@ -84,7 +84,7 @@ tts_task=tts                # TTS task (tts or gan_tts).
 
 # Decoding related
 inference_config="" # Config for decoding.
-inference_args=""   # Arguments for decoding, e.g., "--threshold 0.75".
+inference_args=""   # Arguments for decoding (e.g., "--threshold 0.75").
                     # Note that it will overwrite args in inference config.
 inference_tag=""    # Suffix for decoding directory.
 inference_model=train.loss.ave.pth # Model path for decoding.
@@ -93,7 +93,7 @@ inference_model=train.loss.ave.pth # Model path for decoding.
                                    # inference_model=3epoch.pth
                                    # inference_model=valid.acc.best.pth
                                    # inference_model=valid.loss.ave.pth
-vocoder_file=none  # Vocoder model file or pretrained model tag
+vocoder_file=none  # Vocoder model file or pretrained model tag (e.g., ljspeech_hifigan.v1).
 download_model=""  # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -102,7 +102,7 @@ valid_set=""     # Name of validation set used for monitoring/tuning network tra
 test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
 srctexts=""      # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=none  # Non-linguistic symbol list (needed if existing).
-token_type=phn   # Transcription type.
+token_type=phn   # Transcription type (char or phn)
 cleaner=tacotron # Text cleaner.
 g2p=g2p_en       # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
@@ -175,7 +175,7 @@ Options:
                         # Note that it will overwrite args in inference config.
     --inference_tag     # Suffix for decoding directory (default="${inference_tag}").
     --inference_model   # Model path for decoding (default=${inference_model}).
-    --vocoder_file      # Vocoder file or tag of the pretrained model (default=${vocoder_file}).
+    --vocoder_file      # Vocoder file or tag of the pretrained model (e.g., ljspeech_hifigan.v1) (default=${vocoder_file}).
     --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 
     # [Task dependent] Set the datadir name created by local/data.sh.
@@ -220,12 +220,6 @@ fi
 
 # Check token list type
 token_listdir="${dumpdir}/token_list/${token_type}"
-if [ -e "data/token_list/${token_type}" ] && [ ! -e "${token_listdir}" ]; then
-    log "Default token_listdir is changed from data/token_list/${token_type} to ${token_listdir}."
-    log "Made data/token_list/${token_type} to ${token_listdir} for the compatibility."
-    [ ! -e ${dumpdir}/token_list ] && mkdir -p ${dumpdir}/token_list
-    cp -a "data/token_list/${token_type}" "${token_listdir}"
-fi
 if [ "${cleaner}" != none ]; then
     token_listdir+="_${cleaner}"
 fi
@@ -233,6 +227,14 @@ if [ "${token_type}" = phn ]; then
     token_listdir+="_${g2p}"
 fi
 token_list="${token_listdir}/tokens.txt"
+
+# Check old version token list dir existence
+if [ -e data/token_list ] && [ ! -e "${dumpdir}/token_list" ]; then
+    log "Default token_list directory path is changed from data to ${dumpdir}."
+    log "Copy data/token_list to ${dumpdir}/token_list for the compatibility."
+    [ ! -e ${dumpdir} ] && mkdir -p ${dumpdir}
+    cp -a "data/token_list" "${dumpdir}/token_list"
+fi
 
 # Set tag for naming of model directory
 if [ -z "${tag}" ]; then
