@@ -14,6 +14,7 @@ from typing import Optional
 
 import librosa
 import numpy as np
+import torch
 
 EPS = 1e-10
 
@@ -119,7 +120,7 @@ class Spectrogram2Waveform(object):
         window: Optional[str] = "hann",
         fmin: int = None,
         fmax: int = None,
-        griffin_lim_iters: Optional[int] = 32,
+        griffin_lim_iters: Optional[int] = 8,
     ):
         """Initialize module.
 
@@ -169,17 +170,21 @@ class Spectrogram2Waveform(object):
         retval += ")"
         return retval
 
-    def __call__(self, spc):
+    def __call__(self, spc: torch.Tensor) -> torch.Tensor:
         """Convert spectrogram to waveform.
 
         Args:
-            spc: Log Mel filterbank (T, n_mels)
-                or linear spectrogram (T, n_fft // 2 + 1).
+            spc: Log Mel filterbank (T_feats, n_mels)
+                or linear spectrogram (T_feats, n_fft // 2 + 1).
 
         Returns:
-            Reconstructed waveform (N,).
+            Tensor: Reconstructed waveform (T_wav,).
 
         """
+        device = spc.device
+        dtype = spc.dtype
+        spc = spc.cpu().numpy()
         if self.logmel2linear is not None:
             spc = self.logmel2linear(spc)
-        return self.griffin_lim(spc)
+        wav = self.griffin_lim(spc)
+        return torch.tensor(wav).to(device=device, dtype=dtype)

@@ -93,8 +93,8 @@ inference_model=train.loss.ave.pth # Model path for decoding.
                                    # inference_model=3epoch.pth
                                    # inference_model=valid.acc.best.pth
                                    # inference_model=valid.loss.ave.pth
-griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
-download_model=""   # Download a model from Model Zoo and use it for decoding.
+vocoder_file=none  # Vocoder model file or pretrained model tag
+download_model=""  # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
@@ -175,7 +175,7 @@ Options:
                         # Note that it will overwrite args in inference config.
     --inference_tag     # Suffix for decoding directory (default="${inference_tag}").
     --inference_model   # Model path for decoding (default=${inference_model}).
-    --griffin_lim_iters # The number of iterations of Griffin-Lim (default=${griffin_lim_iters}).
+    --vocoder_file      # Vocoder file or tag of the pretrained model (default=${vocoder_file}).
     --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 
     # [Task dependent] Set the datadir name created by local/data.sh.
@@ -1011,7 +1011,6 @@ if ! "${skip_eval}"; then
             fi
         fi
 
-        # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
@@ -1019,18 +1018,28 @@ if ! "${skip_eval}"; then
             # "sound" supports "wav", "flac", etc.
             _type=sound
         fi
+
+        # NOTE(kamo): If feats_type=raw, vocoder_config is unnecessary
         if [ "${_feats_type}" = fbank ] || [ "${_feats_type}" = stft ]; then
-            _opts+="--vocoder_conf n_fft=${n_fft} "
-            _opts+="--vocoder_conf n_shift=${n_shift} "
-            _opts+="--vocoder_conf win_length=${win_length} "
-            _opts+="--vocoder_conf fs=${fs} "
             _scp=feats.scp
             _type=kaldi_ark
-        fi
-        if [ "${_feats_type}" = fbank ]; then
-            _opts+="--vocoder_conf n_mels=${n_mels} "
-            _opts+="--vocoder_conf fmin=${fmin} "
-            _opts+="--vocoder_conf fmax=${fmax} "
+            if [ "${vocoder_file}" = none ]; then
+                [ ! -e "${tts_exp}/${inference_tag}" ] && mkdir -p "${tts_exp}/${inference_tag}"
+                cat << EOF > "${tts_exp}/${inference_tag}/vocoder.yaml"
+n_fft: ${n_fft}
+n_shift: ${n_shift}
+win_length: ${win_length}
+fs: ${fs}
+EOF
+                if [ "${_feats_type}" = fbank ];then
+                    cat << EOF >> "${tts_exp}/${inference_tag}/vocoder.yaml"
+n_mels: ${n_mels}
+fmin: ${fmin}
+fmax: ${fmax}
+EOF
+                fi
+                _opts+="--vocoder_config ${tts_exp}/${inference_tag}/vocoder.yaml "
+            fi
         fi
 
         log "Generate '${tts_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
@@ -1098,7 +1107,7 @@ if ! "${skip_eval}"; then
                     --model_file "${tts_exp}"/"${inference_model}" \
                     --train_config "${tts_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
-                    --vocoder_conf griffin_lim_iters="${griffin_lim_iters}" \
+                    --vocoder_file "${vocoder_file}" \
                     ${_opts} ${_ex_opts} ${inference_args}
 
             # 4. Concatenates the output files from each jobs
