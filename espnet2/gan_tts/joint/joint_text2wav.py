@@ -26,6 +26,8 @@ from espnet2.gan_tts.melgan import MelGANMultiScaleDiscriminator
 from espnet2.gan_tts.melgan.pqmf import PQMF
 from espnet2.gan_tts.parallel_wavegan import ParallelWaveGANDiscriminator
 from espnet2.gan_tts.parallel_wavegan import ParallelWaveGANGenerator
+from espnet2.gan_tts.style_melgan import StyleMelGANDiscriminator
+from espnet2.gan_tts.style_melgan import StyleMelGANGenerator
 from espnet2.gan_tts.utils import get_random_segments
 from espnet2.gan_tts.utils import get_segments
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -44,6 +46,7 @@ AVAILABLE_VOCODER = {
     "hifigan_generator": HiFiGANGenerator,
     "melgan_generator": MelGANGenerator,
     "parallel_wavegan_generator": ParallelWaveGANGenerator,
+    "style_melgan_generator": StyleMelGANGenerator,
 }
 AVAILABLE_DISCRIMINATORS = {
     "hifigan_period_discriminator": HiFiGANPeriodDiscriminator,
@@ -53,6 +56,7 @@ AVAILABLE_DISCRIMINATORS = {
     "hifigan_multi_scale_multi_period_discriminator": HiFiGANMultiScaleMultiPeriodDiscriminator,  # NOQA
     "melgan_multi_scale_discriminator": MelGANMultiScaleDiscriminator,
     "parallel_wavegan_discriminator": ParallelWaveGANDiscriminator,
+    "style_melgan_discriminator": StyleMelGANDiscriminator,
 }
 
 
@@ -283,9 +287,9 @@ class JointText2Wav(AbsGANTTS):
             **text2mel_params,
         )
         vocoder_class = AVAILABLE_VOCODER[vocoder_type]
-        if vocoder_type == "hifigan_generator":
+        if vocoder_type in ["hifigan_generator", "melgan_generator"]:
             vocoder_params.update(in_channels=odim)
-        elif vocoder_type == "parallel_wavegan_generator":
+        elif vocoder_type in ["parallel_wavegan_generator", "style_melgan_generator"]:
             vocoder_params.update(aux_channels=odim)
         self.generator["vocoder"] = vocoder_class(
             **vocoder_params,
