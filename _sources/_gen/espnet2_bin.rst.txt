@@ -2883,7 +2883,8 @@ tts_inference.py
                             [--noise_scale NOISE_SCALE]
                             [--noise_scale_dur NOISE_SCALE_DUR]
                             [--always_fix_seed ALWAYS_FIX_SEED]
-                            [--vocoder_conf VOCODER_CONF]
+                            [--vocoder_config VOCODER_CONFIG]
+                            [--vocoder_file VOCODER_FILE]
     
     TTS Decode
     
@@ -2942,12 +2943,12 @@ tts_inference.py
       --always_fix_seed ALWAYS_FIX_SEED
                             Whether to always fix seed (default: False)
     
-    Grriffin-Lim related:
-      --vocoder_conf VOCODER_CONF
-                            The configuration for Grriffin-Lim (default: {'fs':
-                            None, 'n_mels': None, 'win_length': None, 'window':
-                            'hann', 'fmin': None, 'fmax': None,
-                            'griffin_lim_iters': 32})
+    Vocoder related:
+      --vocoder_config VOCODER_CONFIG
+                            Vocoder configuration file (default: None)
+      --vocoder_file VOCODER_FILE
+                            Vocoder checkpoint file or pretrained model tag
+                            (default: None)
 .. _tts_train.py:
 
 tts_train.py

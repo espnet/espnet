@@ -552,6 +552,11 @@ If your model is defined as following,</p>
 <em class="property">classmethod </em><code class="sig-name descname">build_preprocess_fn</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em>, <em class="sig-param">train: bool</em><span class="sig-paren">)</span> &#x2192; Optional[Callable[[str, Dict[str, numpy.array]], Dict[str, numpy.ndarray]]]<a class="reference internal" href="../_modules/espnet2/tasks/tts.html#TTSTask.build_preprocess_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.tts.TTSTask.build_preprocess_fn" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="method">
+<dt id="espnet2.tasks.tts.TTSTask.build_vocoder_from_file">
+<em class="property">classmethod </em><code class="sig-name descname">build_vocoder_from_file</code><span class="sig-paren">(</span><em class="sig-param">vocoder_config_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">vocoder_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">model: Optional[espnet2.tts.espnet_model.ESPnetTTSModel] = None</em>, <em class="sig-param">device: str = 'cpu'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tasks/tts.html#TTSTask.build_vocoder_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.tts.TTSTask.build_vocoder_from_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="attribute">
 <dt id="espnet2.tasks.tts.TTSTask.class_choices_list">
 <code class="sig-name descname">class_choices_list</code><em class="property"> = [&lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;]</em><a class="headerlink" href="#espnet2.tasks.tts.TTSTask.class_choices_list" title="Permalink to this definition">¶</a></dt>

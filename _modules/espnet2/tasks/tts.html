@@ -213,13 +213,17 @@
             
   <h1>Source code for espnet2.tasks.tts</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Collection</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -247,7 +251,9 @@
 <span class="kn">from</span> <span class="nn">espnet2.tts.feats_extract.log_spectrogram</span> <span class="kn">import</span> <span class="n">LogSpectrogram</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.tacotron2</span> <span class="kn">import</span> <span class="n">Tacotron2</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.transformer</span> <span class="kn">import</span> <span class="n">Transformer</span>
+<span class="kn">from</span> <span class="nn">espnet2.tts.utils</span> <span class="kn">import</span> <span class="n">ParallelWaveGANPretrainedVocoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.get_default_kwargs</span> <span class="kn">import</span> <span class="n">get_default_kwargs</span>
+<span class="kn">from</span> <span class="nn">espnet2.utils.griffin_lim</span> <span class="kn">import</span> <span class="n">Spectrogram2Waveform</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.nested_dict_action</span> <span class="kn">import</span> <span class="n">NestedDictAction</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">int_or_none</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span>
@@ -585,7 +591,74 @@
             <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">model</span></div></div>
+        <span class="k">return</span> <span class="n">model</span></div>
+
+<div class="viewcode-block" id="TTSTask.build_vocoder_from_file"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.tts.TTSTask.build_vocoder_from_file">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_vocoder_from_file</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">vocoder_config_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">vocoder_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ESPnetTTSModel</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># Build vocoder</span>
+        <span class="k">if</span> <span class="n">vocoder_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># If vocoder file is not provided, use griffin-lim as a vocoder</span>
+            <span class="n">vocoder_conf</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="n">vocoder_config_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">vocoder_config_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">vocoder_config_file</span><span class="p">)</span>
+                <span class="k">with</span> <span class="n">vocoder_config_file</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">vocoder_conf</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">feats_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">vocoder_conf</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">feats_extract</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">())</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="s2">&quot;n_fft&quot;</span> <span class="ow">in</span> <span class="n">vocoder_conf</span>
+                <span class="ow">and</span> <span class="s2">&quot;n_shift&quot;</span> <span class="ow">in</span> <span class="n">vocoder_conf</span>
+                <span class="ow">and</span> <span class="s2">&quot;fs&quot;</span> <span class="ow">in</span> <span class="n">vocoder_conf</span>
+            <span class="p">):</span>
+                <span class="k">return</span> <span class="n">Spectrogram2Waveform</span><span class="p">(</span><span class="o">**</span><span class="n">vocoder_conf</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Vocoder is not available. Skipped its building.&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">vocoder_file</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="c1"># Assume that vocoder file is the tag of pretrained model</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">parallel_wavegan.utils</span> <span class="kn">import</span> <span class="n">download_pretrained_model</span>
+
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;`parallel_wavegan` is not installed. &quot;</span>
+                    <span class="s2">&quot;Please install via `pip install -U parallel_wavegan`.&quot;</span>
+                <span class="p">)</span>
+                <span class="k">raise</span>
+
+            <span class="kn">from</span> <span class="nn">parallel_wavegan</span> <span class="kn">import</span> <span class="n">__version__</span>
+
+            <span class="c1"># NOTE(kan-bayashi): Filelock download is supported from 0.5.2</span>
+            <span class="k">assert</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;0.5.1&quot;</span><span class="p">),</span> <span class="p">(</span>
+                <span class="s2">&quot;Please install the latest parallel_wavegan &quot;</span>
+                <span class="s2">&quot;via `pip install -U parallel_wavegan`.&quot;</span>
+            <span class="p">)</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">vocoder_file</span><span class="si">}</span><span class="s2"> does not exist. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;We assume that </span><span class="si">{</span><span class="n">vocoder_file</span><span class="si">}</span><span class="s2"> is tag of the pretrained model.&quot;</span>
+            <span class="p">)</span>
+            <span class="n">vocoder</span> <span class="o">=</span> <span class="n">ParallelWaveGANPretrainedVocoder</span><span class="p">(</span>
+                <span class="n">download_pretrained_model</span><span class="p">(</span><span class="n">vocoder_file</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">vocoder</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">str</span><span class="p">(</span><span class="n">vocoder_file</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.pkl&quot;</span><span class="p">):</span>
+            <span class="c1"># If the extension is &quot;.pkl&quot;, the model is trained with parallel_wavegan</span>
+            <span class="n">vocoder</span> <span class="o">=</span> <span class="n">ParallelWaveGANPretrainedVocoder</span><span class="p">(</span>
+                <span class="n">vocoder_file</span><span class="p">,</span> <span class="n">vocoder_config_file</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">vocoder</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">vocoder_file</span><span class="si">}</span><span class="s2"> is not supported format.&quot;</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

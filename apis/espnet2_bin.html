@@ -3109,7 +3109,8 @@ write_vocabulary mode related:
                         [--noise_scale NOISE_SCALE]
                         [--noise_scale_dur NOISE_SCALE_DUR]
                         [--always_fix_seed ALWAYS_FIX_SEED]
-                        [--vocoder_conf VOCODER_CONF]
+                        [--vocoder_config VOCODER_CONFIG]
+                        [--vocoder_file VOCODER_FILE]
 
 TTS Decode
 
@@ -3168,12 +3169,12 @@ Decoding related:
   --always_fix_seed ALWAYS_FIX_SEED
                         Whether to always fix seed (default: False)
 
-Grriffin-Lim related:
-  --vocoder_conf VOCODER_CONF
-                        The configuration for Grriffin-Lim (default: {&#39;fs&#39;:
-                        None, &#39;n_mels&#39;: None, &#39;win_length&#39;: None, &#39;window&#39;:
-                        &#39;hann&#39;, &#39;fmin&#39;: None, &#39;fmax&#39;: None,
-                        &#39;griffin_lim_iters&#39;: 32})
+Vocoder related:
+  --vocoder_config VOCODER_CONFIG
+                        Vocoder configuration file (default: None)
+  --vocoder_file VOCODER_FILE
+                        Vocoder checkpoint file or pretrained model tag
+                        (default: None)
 </pre></div>
 </div>
 </div>
