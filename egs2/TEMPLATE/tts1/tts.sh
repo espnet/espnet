@@ -905,47 +905,12 @@ if ! "${skip_eval}"; then
             _opts+="--config ${inference_config} "
         fi
 
-        if [ -z "${teacher_dumpdir}" ]; then
-            _feats_type="$(<${data_feats}/${train_set}/feats_type)"
-        else
-            if [ -e "${teacher_dumpdir}/${train_set}/probs" ]; then
-                # Knowledge distillation
-                _feats_type=fbank
-            else
-                # Teacher forcing
-                _feats_type="$(<${data_feats}/${train_set}/feats_type)"
-            fi
-        fi
-
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
         else
             # "sound" supports "wav", "flac", etc.
             _type=sound
-        fi
-
-        # NOTE(kamo): If feats_type=raw, vocoder_config is unnecessary
-        if [ "${_feats_type}" = fbank ] || [ "${_feats_type}" = stft ]; then
-            _scp=feats.scp
-            _type=kaldi_ark
-            if [ "${vocoder_file}" = none ]; then
-                [ ! -e "${tts_exp}/${inference_tag}" ] && mkdir -p "${tts_exp}/${inference_tag}"
-                cat << EOF > "${tts_exp}/${inference_tag}/vocoder.yaml"
-n_fft: ${n_fft}
-n_shift: ${n_shift}
-win_length: ${win_length}
-fs: ${fs}
-EOF
-                if [ "${_feats_type}" = fbank ];then
-                    cat << EOF >> "${tts_exp}/${inference_tag}/vocoder.yaml"
-n_mels: ${n_mels}
-fmin: ${fmin}
-fmax: ${fmax}
-EOF
-                fi
-                _opts+="--vocoder_config ${tts_exp}/${inference_tag}/vocoder.yaml "
-            fi
         fi
 
         log "Generate '${tts_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
