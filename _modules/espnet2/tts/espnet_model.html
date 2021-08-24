@@ -243,7 +243,7 @@
 
 
 <div class="viewcode-block" id="ESPnetTTSModel"><a class="viewcode-back" href="../../../_gen/espnet2.tts.html#espnet2.tts.espnet_model.ESPnetTTSModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetTTSModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;TTS ESPnet model.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;ESPnet model for text-to-speech task.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -340,9 +340,12 @@
                 <span class="n">energy</span><span class="p">,</span> <span class="n">energy_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_normalize</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="n">energy_lengths</span><span class="p">)</span>
 
         <span class="c1"># Make batch for tts inputs</span>
-        <span class="n">batch</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">)</span>
-        <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">)</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+            <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">,</span>
+            <span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span>
+            <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="c1"># Update batch for additional auxiliary inputs</span>
         <span class="k">if</span> <span class="n">spembs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -423,8 +426,7 @@
             <span class="p">)</span>
 
         <span class="c1"># store in dict</span>
-        <span class="n">feats_dict</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">feats_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">)</span>
+        <span class="n">feats_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">pitch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">feats_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">pitch</span><span class="o">=</span><span class="n">pitch</span><span class="p">,</span> <span class="n">pitch_lengths</span><span class="o">=</span><span class="n">pitch_lengths</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">energy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -460,8 +462,7 @@
 <span class="sd">            Dict[str, Tensor]: Dict of outputs.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">input_dict</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">input_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>
+        <span class="n">input_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">decode_config</span><span class="p">[</span><span class="s2">&quot;use_teacher_forcing&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">,</span> <span class="s2">&quot;use_gst&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">speech</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;missing required argument: &#39;speech&#39;&quot;</span><span class="p">)</span>

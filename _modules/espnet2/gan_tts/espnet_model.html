@@ -215,7 +215,7 @@
 <span></span><span class="c1"># Copyright 2021 Tomoki Hayashi</span>
 <span class="c1">#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
 
-<span class="sd">&quot;&quot;&quot;GAN-based TTS ESPnet model.&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;GAN-based text-to-speech ESPnet model.&quot;&quot;&quot;</span>
 
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
@@ -243,7 +243,7 @@
 
 
 <div class="viewcode-block" id="ESPnetGANTTSModel"><a class="viewcode-back" href="../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.espnet_model.ESPnetGANTTSModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetGANTTSModel</span><span class="p">(</span><span class="n">AbsGANESPnetModel</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;GAN-based TTS ESPnet model.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;ESPnet model for GAN-based text-to-speech task.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -267,10 +267,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">tts</span> <span class="o">=</span> <span class="n">tts</span>
         <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span>
             <span class="n">tts</span><span class="p">,</span> <span class="s2">&quot;generator&quot;</span>
-        <span class="p">),</span> <span class="s2">&quot;generator module must be resistered as tts.generator&quot;</span>
+        <span class="p">),</span> <span class="s2">&quot;generator module must be registered as tts.generator&quot;</span>
         <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span>
             <span class="n">tts</span><span class="p">,</span> <span class="s2">&quot;discriminator&quot;</span>
-        <span class="p">),</span> <span class="s2">&quot;discriminator module must be resistered as tts.discriminator&quot;</span>
+        <span class="p">),</span> <span class="s2">&quot;discriminator module must be registered as tts.discriminator&quot;</span>
 
 <div class="viewcode-block" id="ESPnetGANTTSModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.espnet_model.ESPnetGANTTSModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -319,7 +319,10 @@
             <span class="c1"># Extract features</span>
             <span class="n">feats</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
+                <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span><span class="p">(</span>
+                    <span class="n">speech</span><span class="p">,</span>
+                    <span class="n">speech_lengths</span><span class="p">,</span>
+                <span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pitch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">pitch</span><span class="p">,</span> <span class="n">pitch_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span><span class="p">(</span>
                     <span class="n">speech</span><span class="p">,</span>
@@ -346,11 +349,13 @@
                 <span class="n">energy</span><span class="p">,</span> <span class="n">energy_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_normalize</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="n">energy_lengths</span><span class="p">)</span>
 
         <span class="c1"># Make batch for tts inputs</span>
-        <span class="n">batch</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">)</span>
-        <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">forward_generator</span><span class="o">=</span><span class="n">forward_generator</span><span class="p">)</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+            <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">,</span>
+            <span class="n">forward_generator</span><span class="o">=</span><span class="n">forward_generator</span><span class="p">,</span>
+        <span class="p">)</span>
 
-        <span class="c1"># Update kwargs for additional auxiliary inputs</span>
+        <span class="c1"># Update batch for additional auxiliary inputs</span>
         <span class="k">if</span> <span class="n">feats</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="o">.</span><span class="n">require_raw_speech</span><span class="p">:</span>
@@ -409,7 +414,10 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">feats</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
+            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feats_extract</span><span class="p">(</span>
+                <span class="n">speech</span><span class="p">,</span>
+                <span class="n">speech_lengths</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">pitch</span><span class="p">,</span> <span class="n">pitch_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span><span class="p">(</span>
                 <span class="n">speech</span><span class="p">,</span>

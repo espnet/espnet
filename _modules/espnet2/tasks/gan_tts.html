@@ -215,7 +215,7 @@
 <span></span><span class="c1"># Copyright 2021 Tomoki Hayashi</span>
 <span class="c1">#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
 
-<span class="sd">&quot;&quot;&quot;GAN-based TTS task.&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;GAN-based text-to-speech task.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">logging</span>
@@ -287,7 +287,6 @@
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsGANTTS</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;vits&quot;</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="c1"># NOTE(kan-bayashi): Not used for now but added for compatibility</span>
 <span class="n">pitch_extractor_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
     <span class="s2">&quot;pitch_extract&quot;</span><span class="p">,</span>
     <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">dio</span><span class="o">=</span><span class="n">Dio</span><span class="p">),</span>
@@ -325,7 +324,7 @@
 
 
 <div class="viewcode-block" id="GANTTSTask"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.gan_tts.GANTTSTask">[docs]</a><span class="k">class</span> <span class="nc">GANTTSTask</span><span class="p">(</span><span class="n">AbsTask</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;GAN-based TTS task.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;GAN-based text-to-speech task.&quot;&quot;&quot;</span>
 
     <span class="c1"># GAN requires two optimizers</span>
     <span class="n">num_optimizers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
