@@ -233,9 +233,9 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     utt_text="${align_dir}/data/text"
     if [ -f "$text" ]; then
         cp -v "$text" "$utt_text"
-        utt_text="$text" # Use the original file, because copied file will be truncated
+        utt_text="${text}" # Use the original file, because copied file will be truncated
     else
-        echo "$base $text" > "$utt_text"
+        echo "$base $text" > "${utt_text}"
     fi
 fi
 
