@@ -76,7 +76,7 @@ class MelGANGenerator(torch.nn.Module):
             torch.nn.Conv1d(in_channels, channels, kernel_size, bias=bias),
         ]
 
-        self.upsample_factor = np.prod(upsample_scales)
+        self.upsample_factor = int(np.prod(upsample_scales) * out_channels)
         for i, upsample_scale in enumerate(upsample_scales):
             # add upsampling layer
             layers += [

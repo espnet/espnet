@@ -610,8 +610,8 @@ class JointText2Wav(AbsGANTTS):
         )
         wav = self.generator["vocoder"].inference(output_dict["feat_gen"])
         if self.use_pqmf:
-            wav = self.pqmf.synthesis(wav.transpose(1, 2).unsqueeze(0))
-            wav = wav.squeeze(0).transpose(1, 2)
+            wav = self.pqmf.synthesis(wav.unsqueeze(0).transpose(1, 2))
+            wav = wav.squeeze(0).transpose(0, 1)
         output_dict.update(wav=wav)
 
         return output_dict
