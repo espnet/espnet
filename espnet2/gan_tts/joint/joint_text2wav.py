@@ -270,6 +270,8 @@ class JointText2Wav(AbsGANTTS):
         vocoder_class = AVAILABLE_VOCODER[vocoder_type]
         if vocoder_type == "hifigan_generator":
             vocoder_params.update(in_channels=odim)
+        elif vocoder_type == "parallel_wavegan_generator":
+            vocoder_params.update(aux_channels=odim)
         self.generator["vocoder"] = vocoder_class(
             **vocoder_params,
         )

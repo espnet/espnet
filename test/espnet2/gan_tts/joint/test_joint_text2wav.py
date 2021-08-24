@@ -313,6 +313,43 @@ def make_loss_args(**kwargs):
             {},
             {},
         ),
+        (
+            {},
+            {
+                "vocoder_type": "parallel_wavegan_generator",
+                "vocoder_params": {
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_size": 3,
+                    "layers": 6,
+                    "stacks": 3,
+                    "residual_channels": 8,
+                    "gate_channels": 16,
+                    "skip_channels": 8,
+                    "aux_channels": 5,
+                    "aux_context_window": 0,
+                    "upsample_net": "ConvInUpsampleNetwork",
+                    "upsample_params": {"upsample_scales": [4, 4]},
+                },
+            },
+            {},
+            {},
+        ),
+        (
+            {},
+            {},
+            {
+                "discriminator_type": "parallel_wavegan_discriminator",
+                "discriminator_params": {
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "kernel_size": 3,
+                    "layers": 5,
+                    "conv_channels": 16,
+                },
+            },
+            {},
+        ),
     ],
 )
 def test_joint_model_is_trainable_and_decodable(
