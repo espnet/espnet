@@ -102,7 +102,7 @@ valid_set=""     # Name of validation set used for monitoring/tuning network tra
 test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
 srctexts=""      # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=none  # Non-linguistic symbol list (needed if existing).
-token_type=phn   # Transcription type (char or phn)
+token_type=phn   # Transcription type (char or phn).
 cleaner=tacotron # Text cleaner.
 g2p=g2p_en       # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
@@ -175,7 +175,10 @@ Options:
                         # Note that it will overwrite args in inference config.
     --inference_tag     # Suffix for decoding directory (default="${inference_tag}").
     --inference_model   # Model path for decoding (default=${inference_model}).
-    --vocoder_file      # Vocoder file or tag of the pretrained model (e.g., ljspeech_hifigan.v1) (default=${vocoder_file}).
+    --vocoder_file      # Vocoder file or tag of the pretrained model (default=${vocoder_file}).
+                        # If set to none, Griffin-Lim vocoder will be used.
+                        # If set to tag of the pretrained model (e.g., ljspeech_hifigan.v1),
+                        # the specified model will be automatically downloaded.
     --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 
     # [Task dependent] Set the datadir name created by local/data.sh.
