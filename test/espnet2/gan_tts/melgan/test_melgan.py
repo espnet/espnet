@@ -1,11 +1,15 @@
+# Copyright 2021 Tomoki Hayashi
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
+"""Test code for MelGAN modules."""
 
 import numpy as np
 import pytest
 import torch
 
 from espnet2.gan_tts.hifigan.loss import DiscriminatorAdversarialLoss
-from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
 from espnet2.gan_tts.hifigan.loss import FeatureMatchLoss
+from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
 from espnet2.gan_tts.melgan import MelGANGenerator
 from espnet2.gan_tts.melgan import MelGANMultiScaleDiscriminator
 
