@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""TTS mode decoding."""
+"""Script to run the inference of text-to-speeech model."""
 
 import argparse
 import logging
