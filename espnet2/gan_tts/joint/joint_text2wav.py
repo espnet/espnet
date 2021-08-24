@@ -21,6 +21,8 @@ from espnet2.gan_tts.hifigan.loss import DiscriminatorAdversarialLoss
 from espnet2.gan_tts.hifigan.loss import FeatureMatchLoss
 from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
 from espnet2.gan_tts.hifigan.loss import MelSpectrogramLoss
+from espnet2.gan_tts.parallel_wavegan import ParallelWaveGANDiscriminator
+from espnet2.gan_tts.parallel_wavegan import ParallelWaveGANGenerator
 from espnet2.gan_tts.utils import get_random_segments
 from espnet2.gan_tts.utils import get_segments
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -37,6 +39,7 @@ AVAILABLE_TEXT2MEL = {
 }
 AVAILABLE_VOCODER = {
     "hifigan_generator": HiFiGANGenerator,
+    "parallel_wavegan_generator": ParallelWaveGANGenerator,
 }
 AVAILABLE_DISCRIMINATORS = {
     "hifigan_period_discriminator": HiFiGANPeriodDiscriminator,
@@ -44,6 +47,7 @@ AVAILABLE_DISCRIMINATORS = {
     "hifigan_multi_period_discriminator": HiFiGANMultiPeriodDiscriminator,
     "hifigan_multi_scale_discriminator": HiFiGANMultiScaleDiscriminator,
     "hifigan_multi_scale_multi_period_discriminator": HiFiGANMultiScaleMultiPeriodDiscriminator,  # NOQA
+    "parallel_wavegan_discriminator": ParallelWaveGANDiscriminator,
 }
 
 
