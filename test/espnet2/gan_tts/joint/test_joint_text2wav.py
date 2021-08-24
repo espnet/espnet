@@ -371,7 +371,26 @@ def make_loss_args(**kwargs):
         ),
         (
             {},
+            {},
             {
+                "discriminator_type": "melgan_multi_scale_discriminator",
+                "discriminator_params": {
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "scales": 2,
+                    "kernel_sizes": [5, 3],
+                    "channels": 16,
+                    "max_downsample_channels": 32,
+                    "bias": True,
+                    "downsample_scales": [2, 2],
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                # HifiGAN multi-band case
                 "vocoder_params": {
                     "out_channels": 4,
                     "channels": 32,
@@ -450,7 +469,7 @@ def test_joint_model_is_trainable_and_decodable(
             text=torch.randint(
                 0,
                 idim,
-                (5,),
+                (10,),
             )
         )
         output_dict = model.inference(**inputs)
