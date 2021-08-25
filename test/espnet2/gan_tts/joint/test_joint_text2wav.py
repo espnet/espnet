@@ -363,6 +363,7 @@ def make_loss_args(**kwargs):
                     "upsample_scales": [4, 2],
                     "stack_kernel_size": 3,
                     "stacks": 1,
+                    "pad": "ReplicationPad1d",
                 },
                 "use_pqmf": True,
             },
