@@ -1,1 +1,1 @@
-tuning/train_asr_transformer_adam_small_specaug.yaml
+conf/tuning/train_asr_transformer_adam_specaug.yaml
