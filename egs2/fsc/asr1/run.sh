@@ -9,7 +9,7 @@ train_set="train"
 valid_set="valid"
 test_sets="test valid"
 
-asr_config=conf/tuning/train_asr_transformer_adam_specaug.yaml
+asr_config=conf/train_asr.yaml
 
 ./asr.sh \
     --lang en \
