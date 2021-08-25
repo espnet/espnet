@@ -51,7 +51,7 @@ class Text2Speech:
 
     def __init__(
         self,
-        train_config: Union[Path, str],
+        train_config: Optional[Union[Path, str]] = None,
         model_file: Optional[Union[Path, str]] = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
@@ -215,7 +215,7 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    train_config: str,
+    train_config: Optional[str],
     model_file: Optional[str],
     threshold: float,
     minlenratio: float,
