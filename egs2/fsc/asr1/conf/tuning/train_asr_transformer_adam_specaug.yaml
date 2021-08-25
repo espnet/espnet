@@ -29,6 +29,7 @@ scheduler: warmuplr     # pytorch v1.1.0+ required
 scheduler_conf:
     warmup_steps: 25000
 max_epoch: 200
+keep_nbest_models: 5
 
 specaug: specaug
 specaug_conf:
