@@ -23,7 +23,6 @@ from espnet2.gan_tts.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
@@ -381,79 +380,6 @@ class TTSTask(AbsTask):
         )
         assert check_return_type(model)
         return model
-
-    @classmethod
-    def build_model_from_file(
-        cls,
-        config_file: Optional[Union[Path, str]] = None,
-        model_file: Optional[Union[Path, str]] = None,
-        device: str = "cpu",
-    ):
-        """Build text-to-speech model from file.
-
-        Args:
-            config_file (Optional[Union[Path, str]]): The yaml file saved when training.
-            model_file (Optional[Union[Path, str]]): The model file saved when training
-                or the tag of pretrained model available in espnet_model_zoo.
-            device (str): Device to locate the model instance.
-
-        Returns:
-            AbsESPnetModel: ESPnet model instance.
-            Namespace: Namespace of ESPnet model configurations.
-
-        """
-        assert check_argument_types()
-        if model_file is None or Path(model_file).exists():
-            # Build model with local files
-            if model_file is None:
-                assert (
-                    config_file is not None
-                ), "config_file must be provided if model_file is None."
-            elif config_file is None:
-                config_file = Path(model_file).parent / "config.yaml"
-
-            config_file = Path(config_file)
-            with config_file.open("r", encoding="utf-8") as f:
-                args = yaml.safe_load(f)
-            args = argparse.Namespace(**args)
-            model = cls.build_model(args)
-            if not isinstance(model, ESPnetTTSModel):
-                raise RuntimeError(
-                    f"model must inherit {AbsESPnetModel.__name__}, "
-                    "but got {type(model)}."
-                )
-            model.to(device)
-            if model_file is not None:
-                if device == "cuda":
-                    # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
-                    #   in PyTorch<=1.4
-                    device = f"cuda:{torch.cuda.current_device()}"
-                model.load_state_dict(torch.load(model_file, map_location=device))
-
-            return model, args
-        else:
-            # Build model by downloading the pretrained model in espnet_model_zoo
-            logging.info(
-                f"{model_file} does not exist. "
-                f"We assume that {model_file} is tag of the pretrained model."
-            )
-            try:
-                from espnet_model_zoo.downloader import ModelDownloader
-
-            except ImportError:
-                logging.error(
-                    "`espnet_model_zoo` is not installed. "
-                    "Please install via `pip install -U espnet_model_zoo`."
-                )
-                raise
-
-            d = ModelDownloader()
-
-            return cls.build_model_from_file(
-                # Unpack returns dict of "train_config" and "model_file"
-                *d.download_and_unpack(model_file).values(),
-                device=device,
-            )
 
     @classmethod
     def build_vocoder_from_file(
