@@ -4,7 +4,6 @@
 """Wrapper class for the vocoder model trained with parallel_wavegan repo."""
 
 import logging
-import os
 
 from pathlib import Path
 from typing import Optional
@@ -34,8 +33,7 @@ class ParallelWaveGANPretrainedVocoder(torch.nn.Module):
             )
             raise
         if config_file is None:
-            dirname = os.path.dirname(str(model_file))
-            config_file = os.path.join(dirname, "config.yml")
+            config_file = Path(model_file).parent / "config.yml"
         with open(config_file) as f:
             config = yaml.load(f, Loader=yaml.Loader)
         self.fs = config["sampling_rate"]
