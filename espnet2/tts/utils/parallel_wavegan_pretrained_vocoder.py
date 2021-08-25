@@ -39,7 +39,7 @@ class ParallelWaveGANPretrainedVocoder(torch.nn.Module):
         with open(config_file) as f:
             config = yaml.load(f, Loader=yaml.Loader)
         self.fs = config["sampling_rate"]
-        self.vocoder = load_model(model_file, config_file)
+        self.vocoder = load_model(model_file, config)
         if hasattr(self.vocoder, "remove_weight_norm"):
             self.vocoder.remove_weight_norm()
         self.normalize_before = False
