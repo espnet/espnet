@@ -235,6 +235,9 @@
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">FeatureMatchLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">GeneratorAdversarialLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">MelSpectrogramLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.melgan</span> <span class="kn">import</span> <span class="n">MelGANGenerator</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.melgan</span> <span class="kn">import</span> <span class="n">MelGANMultiScaleDiscriminator</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.melgan.pqmf</span> <span class="kn">import</span> <span class="n">PQMF</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.parallel_wavegan</span> <span class="kn">import</span> <span class="n">ParallelWaveGANDiscriminator</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.parallel_wavegan</span> <span class="kn">import</span> <span class="n">ParallelWaveGANGenerator</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.utils</span> <span class="kn">import</span> <span class="n">get_random_segments</span>
@@ -253,6 +256,7 @@
 <span class="p">}</span>
 <span class="n">AVAILABLE_VOCODER</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;hifigan_generator&quot;</span><span class="p">:</span> <span class="n">HiFiGANGenerator</span><span class="p">,</span>
+    <span class="s2">&quot;melgan_generator&quot;</span><span class="p">:</span> <span class="n">MelGANGenerator</span><span class="p">,</span>
     <span class="s2">&quot;parallel_wavegan_generator&quot;</span><span class="p">:</span> <span class="n">ParallelWaveGANGenerator</span><span class="p">,</span>
 <span class="p">}</span>
 <span class="n">AVAILABLE_DISCRIMINATORS</span> <span class="o">=</span> <span class="p">{</span>
@@ -261,6 +265,7 @@
     <span class="s2">&quot;hifigan_multi_period_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANMultiPeriodDiscriminator</span><span class="p">,</span>
     <span class="s2">&quot;hifigan_multi_scale_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANMultiScaleDiscriminator</span><span class="p">,</span>
     <span class="s2">&quot;hifigan_multi_scale_multi_period_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANMultiScaleMultiPeriodDiscriminator</span><span class="p">,</span>  <span class="c1"># NOQA</span>
+    <span class="s2">&quot;melgan_multi_scale_discriminator&quot;</span><span class="p">:</span> <span class="n">MelGANMultiScaleDiscriminator</span><span class="p">,</span>
     <span class="s2">&quot;parallel_wavegan_discriminator&quot;</span><span class="p">:</span> <span class="n">ParallelWaveGANDiscriminator</span><span class="p">,</span>
 <span class="p">}</span>
 
@@ -366,6 +371,13 @@
             <span class="s2">&quot;nonlinear_activation_params&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;negative_slope&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
             <span class="s2">&quot;use_weight_norm&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
         <span class="p">},</span>
+        <span class="n">use_pqmf</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">pqmf_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;subbands&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="s2">&quot;taps&quot;</span><span class="p">:</span> <span class="mi">62</span><span class="p">,</span>
+            <span class="s2">&quot;cutoff_ratio&quot;</span><span class="p">:</span> <span class="mf">0.142</span><span class="p">,</span>
+            <span class="s2">&quot;beta&quot;</span><span class="p">:</span> <span class="mf">9.0</span><span class="p">,</span>
+        <span class="p">},</span>
         <span class="c1"># discriminator related</span>
         <span class="n">discriminator_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;hifigan_multi_scale_multi_period_discriminator&quot;</span><span class="p">,</span>
         <span class="n">discriminator_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
@@ -451,6 +463,8 @@
 <span class="sd">                be referred in saving waveform during the inference.</span>
 <span class="sd">            text2mel_type (str): The text2mel model type.</span>
 <span class="sd">            text2mel_params (Dict[str, Any]): Parameter dict for text2mel model.</span>
+<span class="sd">            use_pqmf (bool): Whether to use PQMF for multi-band vocoder.</span>
+<span class="sd">            pqmf_params (Dict[str, Any]): Parameter dict for PQMF module.</span>
 <span class="sd">            vocoder_type (str): The vocoder model type.</span>
 <span class="sd">            vocoder_params (Dict[str, Any]): Parameter dict for vocoder model.</span>
 <span class="sd">            discriminator_type (str): Discriminator type.</span>
@@ -473,6 +487,7 @@
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">=</span> <span class="n">segment_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_pqmf</span> <span class="o">=</span> <span class="n">use_pqmf</span>
 
         <span class="c1"># define modules</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">generator</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleDict</span><span class="p">()</span>
@@ -489,6 +504,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">[</span><span class="s2">&quot;vocoder&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vocoder_class</span><span class="p">(</span>
             <span class="o">**</span><span class="n">vocoder_params</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_pqmf</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pqmf</span> <span class="o">=</span> <span class="n">PQMF</span><span class="p">(</span><span class="o">**</span><span class="n">pqmf_params</span><span class="p">)</span>
         <span class="n">discriminator_class</span> <span class="o">=</span> <span class="n">AVAILABLE_DISCRIMINATORS</span><span class="p">[</span><span class="n">discriminator_type</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span> <span class="o">=</span> <span class="n">discriminator_class</span><span class="p">(</span>
             <span class="o">**</span><span class="n">discriminator_params</span><span class="p">,</span>
@@ -640,6 +657,8 @@
             <span class="p">)</span>
             <span class="c1"># calculate vocoder outputs</span>
             <span class="n">speech_hat_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">[</span><span class="s2">&quot;vocoder&quot;</span><span class="p">](</span><span class="n">feats_gen_</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_pqmf</span><span class="p">:</span>
+                <span class="n">speech_hat_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pqmf</span><span class="o">.</span><span class="n">synthesis</span><span class="p">(</span><span class="n">speech_hat_</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">text2mel_loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">speech_hat_</span><span class="p">,</span> <span class="n">start_idxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
 
@@ -747,6 +766,8 @@
             <span class="p">)</span>
             <span class="c1"># calculate vocoder outputs</span>
             <span class="n">speech_hat_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">[</span><span class="s2">&quot;vocoder&quot;</span><span class="p">](</span><span class="n">feats_gen_</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_pqmf</span><span class="p">:</span>
+                <span class="n">speech_hat_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pqmf</span><span class="o">.</span><span class="n">synthesis</span><span class="p">(</span><span class="n">speech_hat_</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">speech_hat_</span><span class="p">,</span> <span class="n">start_idxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
 
@@ -808,6 +829,9 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">wav</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">[</span><span class="s2">&quot;vocoder&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span><span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_pqmf</span><span class="p">:</span>
+            <span class="n">wav</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pqmf</span><span class="o">.</span><span class="n">synthesis</span><span class="p">(</span><span class="n">wav</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="n">wav</span> <span class="o">=</span> <span class="n">wav</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">output_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">wav</span><span class="o">=</span><span class="n">wav</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">output_dict</span></div></div>
