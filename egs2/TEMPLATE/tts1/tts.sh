@@ -45,16 +45,15 @@ python=python3       # Specify python to execute espnet commands.
 local_data_opts="" # Options to be passed to local/data.sh.
 
 # Feature extraction related
-feats_type=raw             # Input feature type (fbank or stft or raw).
+feats_type=raw             # Input feature type.
 audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 min_wav_duration=0.1       # Minimum duration in second.
 max_wav_duration=20        # Maximum duration in second.
 use_xvector=false          # Whether to use x-vector (Require Kaldi).
 use_sid=false              # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 use_lid=false              # Whether to use language id as the inputs (Need utt2lang in data directory).
-# Only used for feats_type != raw
-feats_extract=fbank        # Feature extractor.
-feats_normalize=global_mvn # Feature normalizer.
+feats_extract=fbank        # On-the-fly feature extractor.
+feats_normalize=global_mvn # On-the-fly feature normalizer.
 fs=16000                   # Sampling rate.
 n_fft=1024                 # The number of fft points.
 n_shift=256                # The number of shift points.
@@ -66,6 +65,7 @@ n_mels=80                  # The number of mel basis.
 f0min=80  # Maximum f0 for pitch extraction.
 f0max=400 # Minimum f0 for pitch extraction.
 
+# Vocabulary related
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol.
 sos_eos="<sos/eos>" # sos and eos symbols.
@@ -84,7 +84,7 @@ tts_task=tts                # TTS task (tts or gan_tts).
 
 # Decoding related
 inference_config="" # Config for decoding.
-inference_args=""   # Arguments for decoding, e.g., "--threshold 0.75".
+inference_args=""   # Arguments for decoding (e.g., "--threshold 0.75").
                     # Note that it will overwrite args in inference config.
 inference_tag=""    # Suffix for decoding directory.
 inference_model=train.loss.ave.pth # Model path for decoding.
@@ -93,8 +93,8 @@ inference_model=train.loss.ave.pth # Model path for decoding.
                                    # inference_model=3epoch.pth
                                    # inference_model=valid.acc.best.pth
                                    # inference_model=valid.loss.ave.pth
-griffin_lim_iters=4 # the number of iterations of Griffin-Lim.
-download_model=""   # Download a model from Model Zoo and use it for decoding.
+vocoder_file=none  # Vocoder model file or pretrained model tag (e.g., ljspeech_hifigan.v1).
+download_model=""  # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
@@ -102,7 +102,7 @@ valid_set=""     # Name of validation set used for monitoring/tuning network tra
 test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
 srctexts=""      # Texts to create token list. Multiple items can be specified.
 nlsyms_txt=none  # Non-linguistic symbol list (needed if existing).
-token_type=phn   # Transcription type.
+token_type=phn   # Transcription type (char or phn).
 cleaner=tacotron # Text cleaner.
 g2p=g2p_en       # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
@@ -133,7 +133,7 @@ Options:
     --local_data_opts # Options to be passed to local/data.sh (default="${local_data_opts}").
 
     # Feature extraction related
-    --feats_type       # Feature type (fbank or stft or raw, default="${feats_type}").
+    --feats_type       # Feature type (default="${feats_type}").
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
@@ -175,7 +175,10 @@ Options:
                         # Note that it will overwrite args in inference config.
     --inference_tag     # Suffix for decoding directory (default="${inference_tag}").
     --inference_model   # Model path for decoding (default=${inference_model}).
-    --griffin_lim_iters # The number of iterations of Griffin-Lim (default=${griffin_lim_iters}).
+    --vocoder_file      # Vocoder file or tag of the pretrained model (default=${vocoder_file}).
+                        # If set to none, Griffin-Lim vocoder will be used.
+                        # If set to tag of the pretrained model (e.g., ljspeech_hifigan.v1),
+                        # the specified model will be automatically downloaded.
     --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 
     # [Task dependent] Set the datadir name created by local/data.sh.
@@ -210,20 +213,16 @@ fi
 . ./cmd.sh
 
 # Check feature type
-if [ "${feats_type}" = fbank ]; then
-    data_feats="${dumpdir}/fbank"
-elif [ "${feats_type}" = stft ]; then
-    data_feats="${dumpdir}/stft"
-elif [ "${feats_type}" = raw ]; then
+if [ "${feats_type}" = raw ]; then
     data_feats="${dumpdir}/raw"
 else
     log "${help_message}"
-    log "Error: not supported: --feats_type ${feats_type}"
+    log "Error: only supported: --feats_type raw"
     exit 2
 fi
 
 # Check token list type
-token_listdir="data/token_list/${token_type}"
+token_listdir="${dumpdir}/token_list/${token_type}"
 if [ "${cleaner}" != none ]; then
     token_listdir+="_${cleaner}"
 fi
@@ -231,6 +230,14 @@ if [ "${token_type}" = phn ]; then
     token_listdir+="_${g2p}"
 fi
 token_list="${token_listdir}/tokens.txt"
+
+# Check old version token list dir existence
+if [ -e data/token_list ] && [ ! -e "${dumpdir}/token_list" ]; then
+    log "Default token_list directory path is changed from data to ${dumpdir}."
+    log "Copy data/token_list to ${dumpdir}/token_list for the compatibility."
+    [ ! -e ${dumpdir} ] && mkdir -p ${dumpdir}
+    cp -a "data/token_list" "${dumpdir}/token_list"
+fi
 
 # Set tag for naming of model directory
 if [ -z "${tag}" ]; then
@@ -265,7 +272,11 @@ fi
 
 # The directory used for collect-stats mode
 if [ -z "${tts_stats_dir}" ]; then
-    tts_stats_dir="${expdir}/tts_stats_${feats_type}_${token_type}"
+    tts_stats_dir="${expdir}/tts_stats_${feats_type}"
+    if [ "${feats_extract}" != fbank ]; then
+        tts_stats_dir+="_${feats_extract}"
+    fi
+    tts_stats_dir+="_${token_type}"
     if [ "${cleaner}" != none ]; then
         tts_stats_dir+="_${cleaner}"
     fi
@@ -299,72 +310,25 @@ if ! "${skip_data_prep}"; then
         # If nothing is need, then format_wav_scp.sh does nothing:
         # i.e. the input file format and rate is same as the output.
 
-        if [ "${feats_type}" = raw ]; then
-            log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
-            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-                if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                    _suf="/org"
-                else
-                    _suf=""
-                fi
-                utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
-                rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel}
-                _opts=
-                if [ -e data/"${dset}"/segments ]; then
-                    _opts+="--segments data/${dset}/segments "
-                fi
-                # shellcheck disable=SC2086
-                scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
-                    --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                    "data/${dset}/wav.scp" "${data_feats}${_suf}/${dset}"
-                echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
-            done
-
-        elif [ "${feats_type}" = fbank ] || [ "${feats_type}" = stft ] ; then
-            log "Stage 2: ${feats_type} extract: data/ -> ${data_feats}/"
-
-            # Generate the fbank features; by default 80-dimensional fbanks on each frame
-            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-                if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                    _suf="/org"
-                else
-                    _suf=""
-                fi
-                # 1. Copy datadir
-                utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
-
-                # 2. Feature extract
-                # TODO(kamo): Wrap (nj->_nj) in make_fbank.sh
-                _nj=$(min "${nj}" "$(<${data_feats}${_suf}/${dset}/utt2spk wc -l)")
-                _opts=
-                if [ "${feats_type}" = fbank ] ; then
-                    _opts+="--fmax ${fmax} "
-                    _opts+="--fmin ${fmin} "
-                    _opts+="--n_mels ${n_mels} "
-                fi
-
-                # shellcheck disable=SC2086
-                scripts/feats/make_"${feats_type}".sh --cmd "${train_cmd}" --nj "${_nj}" \
-                    --fs "${fs}" \
-                    --n_fft "${n_fft}" \
-                    --n_shift "${n_shift}" \
-                    --win_length "${win_length}" \
-                    ${_opts} \
-                    "${data_feats}${_suf}/${dset}"
-                utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
-
-                # 3. Derive the the frame length and feature dimension
-                scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                    "${data_feats}${_suf}/${dset}/feats.scp" "${data_feats}${_suf}/${dset}/feats_shape"
-
-                # 4. Write feats_dim
-                head -n 1 "${data_feats}${_suf}/${dset}/feats_shape" | awk '{ print $2 }' \
-                    | cut -d, -f2 > ${data_feats}${_suf}/${dset}/feats_dim
-
-                # 5. Write feats_type
-                echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
-            done
-        fi
+        log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
+        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                _suf="/org"
+            else
+                _suf=""
+            fi
+            utils/copy_data_dir.sh data/"${dset}" "${data_feats}${_suf}/${dset}"
+            rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel}
+            _opts=
+            if [ -e data/"${dset}"/segments ]; then
+                _opts+="--segments data/${dset}/segments "
+            fi
+            # shellcheck disable=SC2086
+            scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
+                "data/${dset}/wav.scp" "${data_feats}${_suf}/${dset}"
+            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
+        done
 
         # Extract X-vector
         if "${use_xvector}"; then
@@ -489,45 +453,18 @@ if ! "${skip_data_prep}"; then
             fi
 
             # Remove short utterances
-            _feats_type="$(<${data_feats}/${dset}/feats_type)"
-            if [ "${_feats_type}" = raw ]; then
-                _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-                _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
-                _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
+            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
+            _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
 
-                # utt2num_samples is created by format_wav_scp.sh
-                <"${data_feats}/org/${dset}/utt2num_samples" \
-                    awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
-                        '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
-                        >"${data_feats}/${dset}/utt2num_samples"
-                <"${data_feats}/org/${dset}/wav.scp" \
-                    utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
-                    >"${data_feats}/${dset}/wav.scp"
-            else
-                # Get frame shift in ms from conf/fbank.conf
-                _frame_shift=
-                if [ -f conf/fbank.conf ] && [ "$(<conf/fbank.conf grep -c frame-shift)" -gt 0 ]; then
-                    # Assume using conf/fbank.conf for feature extraction
-                    _frame_shift="$(<conf/fbank.conf grep frame-shift | sed -e 's/[-a-z =]*\([0-9]*\)/\1/g')"
-                fi
-                if [ -z "${_frame_shift}" ]; then
-                    # If not existing, use the default number in Kaldi (=10ms).
-                    # If you are using different number, you have to change the following value manually.
-                    _frame_shift=10
-                fi
-
-                _min_length=$(python3 -c "print(int(${min_wav_duration} / ${_frame_shift} * 1000))")
-                _max_length=$(python3 -c "print(int(${max_wav_duration} / ${_frame_shift} * 1000))")
-
-                cp "${data_feats}/org/${dset}/feats_dim" "${data_feats}/${dset}/feats_dim"
-                <"${data_feats}/org/${dset}/feats_shape" awk -F, ' { print $1 } ' \
-                    | awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
-                        '{ if ($2 > min_length && $2 < max_length) print $0; }' \
-                        >"${data_feats}/${dset}/feats_shape"
-                <"${data_feats}/org/${dset}/feats.scp" \
-                    utils/filter_scp.pl "${data_feats}/${dset}/feats_shape"  \
-                    >"${data_feats}/${dset}/feats.scp"
-            fi
+            # utt2num_samples is created by format_wav_scp.sh
+            <"${data_feats}/org/${dset}/utt2num_samples" \
+                awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
+                    '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
+                    >"${data_feats}/${dset}/utt2num_samples"
+            <"${data_feats}/org/${dset}/wav.scp" \
+                utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
+                >"${data_feats}/${dset}/wav.scp"
 
             # Remove empty text
             <"${data_feats}/org/${dset}/text" \
@@ -598,30 +535,22 @@ if ! "${skip_train}"; then
             _opts+="--config ${train_config} "
         fi
 
-        _feats_type="$(<${_train_dir}/feats_type)"
-        if [ "${_feats_type}" = raw ]; then
-            _scp=wav.scp
-            if [[ "${audio_format}" == *ark* ]]; then
-                _type=kaldi_ark
-            else
-                # "sound" supports "wav", "flac", etc.
-                _type=sound
-            fi
-            _opts+="--feats_extract ${feats_extract} "
-            _opts+="--feats_extract_conf n_fft=${n_fft} "
-            _opts+="--feats_extract_conf hop_length=${n_shift} "
-            _opts+="--feats_extract_conf win_length=${win_length} "
-            if [ "${feats_extract}" = fbank ]; then
-                _opts+="--feats_extract_conf fs=${fs} "
-                _opts+="--feats_extract_conf fmin=${fmin} "
-                _opts+="--feats_extract_conf fmax=${fmax} "
-                _opts+="--feats_extract_conf n_mels=${n_mels} "
-            fi
-        else
-            _scp=feats.scp
+        _scp=wav.scp
+        if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
-            _odim="$(<${_train_dir}/feats_dim)"
-            _opts+="--odim=${_odim} "
+        else
+            # "sound" supports "wav", "flac", etc.
+            _type=sound
+        fi
+        _opts+="--feats_extract ${feats_extract} "
+        _opts+="--feats_extract_conf n_fft=${n_fft} "
+        _opts+="--feats_extract_conf hop_length=${n_shift} "
+        _opts+="--feats_extract_conf win_length=${win_length} "
+        if [ "${feats_extract}" = fbank ]; then
+            _opts+="--feats_extract_conf fs=${fs} "
+            _opts+="--feats_extract_conf fmin=${fmin} "
+            _opts+="--feats_extract_conf fmax=${fmax} "
+            _opts+="--feats_extract_conf n_mels=${n_mels} "
         fi
 
         # Add extra configs for additional inputs
@@ -746,29 +675,19 @@ if ! "${skip_train}"; then
             #####################################
             #     CASE 1: AR model training     #
             #####################################
-            _feats_type="$(<${_train_dir}/feats_type)"
-
-            if [ "${_feats_type}" = raw ]; then
-                _scp=wav.scp
-                # "sound" supports "wav", "flac", etc.
-                _type=sound
-                _fold_length="$((speech_fold_length * n_shift))"
-                _opts+="--feats_extract ${feats_extract} "
-                _opts+="--feats_extract_conf n_fft=${n_fft} "
-                _opts+="--feats_extract_conf hop_length=${n_shift} "
-                _opts+="--feats_extract_conf win_length=${win_length} "
-                if [ "${feats_extract}" = fbank ]; then
-                    _opts+="--feats_extract_conf fs=${fs} "
-                    _opts+="--feats_extract_conf fmin=${fmin} "
-                    _opts+="--feats_extract_conf fmax=${fmax} "
-                    _opts+="--feats_extract_conf n_mels=${n_mels} "
-                fi
-            else
-                _scp=feats.scp
-                _type=kaldi_ark
-                _fold_length="${speech_fold_length}"
-                _odim="$(<${_train_dir}/feats_dim)"
-                _opts+="--odim=${_odim} "
+            _scp=wav.scp
+            # "sound" supports "wav", "flac", etc.
+            _type=sound
+            _fold_length="$((speech_fold_length * n_shift))"
+            _opts+="--feats_extract ${feats_extract} "
+            _opts+="--feats_extract_conf n_fft=${n_fft} "
+            _opts+="--feats_extract_conf hop_length=${n_shift} "
+            _opts+="--feats_extract_conf win_length=${win_length} "
+            if [ "${feats_extract}" = fbank ]; then
+                _opts+="--feats_extract_conf fs=${fs} "
+                _opts+="--feats_extract_conf fmin=${fmin} "
+                _opts+="--feats_extract_conf fmax=${fmax} "
+                _opts+="--feats_extract_conf n_mels=${n_mels} "
             fi
 
             if [ "${num_splits}" -gt 1 ]; then
@@ -815,7 +734,6 @@ if ! "${skip_train}"; then
             _teacher_train_dir="${teacher_dumpdir}/${train_set}"
             _teacher_valid_dir="${teacher_dumpdir}/${valid_set}"
             _fold_length="${speech_fold_length}"
-
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
             _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/durations,durations,text_int "
             _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
@@ -835,25 +753,18 @@ if ! "${skip_train}"; then
                 _opts+="--valid_shape_file ${_teacher_valid_dir}/speech_shape "
             else
                 # Teacher forcing case: use groundtruth as the target
-                if [ "${feats_type}" = raw ]; then
-                    _scp=wav.scp
-                    _type=sound
-                    _fold_length="$((speech_fold_length * n_shift))"
-                    _opts+="--feats_extract ${feats_extract} "
-                    _opts+="--feats_extract_conf n_fft=${n_fft} "
-                    _opts+="--feats_extract_conf hop_length=${n_shift} "
-                    _opts+="--feats_extract_conf win_length=${win_length} "
-                    if [ "${feats_extract}" = fbank ]; then
-                        _opts+="--feats_extract_conf fs=${fs} "
-                        _opts+="--feats_extract_conf fmin=${fmin} "
-                        _opts+="--feats_extract_conf fmax=${fmax} "
-                        _opts+="--feats_extract_conf n_mels=${n_mels} "
-                    fi
-                else
-                    _scp=feats.scp
-                    _type=kaldi_ark
-                    _odim="$(head -n 1 "${tts_stats_dir}/train/speech_shape" | cut -f 2 -d ",")"
-                    _opts+="--odim=${_odim} "
+                _scp=wav.scp
+                _type=sound
+                _fold_length="$((speech_fold_length * n_shift))"
+                _opts+="--feats_extract ${feats_extract} "
+                _opts+="--feats_extract_conf n_fft=${n_fft} "
+                _opts+="--feats_extract_conf hop_length=${n_shift} "
+                _opts+="--feats_extract_conf win_length=${win_length} "
+                if [ "${feats_extract}" = fbank ]; then
+                    _opts+="--feats_extract_conf fs=${fs} "
+                    _opts+="--feats_extract_conf fmin=${fmin} "
+                    _opts+="--feats_extract_conf fmax=${fmax} "
+                    _opts+="--feats_extract_conf n_mels=${n_mels} "
                 fi
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
                 _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
@@ -999,38 +910,12 @@ if ! "${skip_eval}"; then
             _opts+="--config ${inference_config} "
         fi
 
-        if [ -z "${teacher_dumpdir}" ]; then
-            _feats_type="$(<${data_feats}/${train_set}/feats_type)"
-        else
-            if [ -e "${teacher_dumpdir}/${train_set}/probs" ]; then
-                # Knowledge distillation
-                _feats_type=fbank
-            else
-                # Teacher forcing
-                _feats_type="$(<${data_feats}/${train_set}/feats_type)"
-            fi
-        fi
-
-        # NOTE(kamo): If feats_type=raw, vocoder_conf is unnecessary
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
         else
             # "sound" supports "wav", "flac", etc.
             _type=sound
-        fi
-        if [ "${_feats_type}" = fbank ] || [ "${_feats_type}" = stft ]; then
-            _opts+="--vocoder_conf n_fft=${n_fft} "
-            _opts+="--vocoder_conf n_shift=${n_shift} "
-            _opts+="--vocoder_conf win_length=${win_length} "
-            _opts+="--vocoder_conf fs=${fs} "
-            _scp=feats.scp
-            _type=kaldi_ark
-        fi
-        if [ "${_feats_type}" = fbank ]; then
-            _opts+="--vocoder_conf n_mels=${n_mels} "
-            _opts+="--vocoder_conf fmin=${fmin} "
-            _opts+="--vocoder_conf fmax=${fmax} "
         fi
 
         log "Generate '${tts_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
@@ -1098,7 +983,7 @@ if ! "${skip_eval}"; then
                     --model_file "${tts_exp}"/"${inference_model}" \
                     --train_config "${tts_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
-                    --vocoder_conf griffin_lim_iters="${griffin_lim_iters}" \
+                    --vocoder_file "${vocoder_file}" \
                     ${_opts} ${_ex_opts} ${inference_args}
 
             # 4. Concatenates the output files from each jobs

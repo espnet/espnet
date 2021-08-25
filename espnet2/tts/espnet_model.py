@@ -29,7 +29,7 @@ else:
 
 
 class ESPnetTTSModel(AbsESPnetModel):
-    """TTS ESPnet model."""
+    """ESPnet model for text-to-speech task."""
 
     def __init__(
         self,
@@ -126,9 +126,12 @@ class ESPnetTTSModel(AbsESPnetModel):
                 energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
 
         # Make batch for tts inputs
-        batch = {}
-        batch.update(text=text, text_lengths=text_lengths)
-        batch.update(feats=feats, feats_lengths=feats_lengths)
+        batch = dict(
+            text=text,
+            text_lengths=text_lengths,
+            feats=feats,
+            feats_lengths=feats_lengths,
+        )
 
         # Update batch for additional auxiliary inputs
         if spembs is not None:
@@ -209,8 +212,7 @@ class ESPnetTTSModel(AbsESPnetModel):
             )
 
         # store in dict
-        feats_dict = {}
-        feats_dict.update(feats=feats, feats_lengths=feats_lengths)
+        feats_dict = dict(feats=feats, feats_lengths=feats_lengths)
         if pitch is not None:
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if energy is not None:
@@ -246,8 +248,7 @@ class ESPnetTTSModel(AbsESPnetModel):
             Dict[str, Tensor]: Dict of outputs.
 
         """
-        input_dict = {}
-        input_dict.update(text=text)
+        input_dict = dict(text=text)
         if decode_config["use_teacher_forcing"] or getattr(self.tts, "use_gst", False):
             if speech is None:
                 raise RuntimeError("missing required argument: 'speech'")

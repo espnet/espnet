@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""TTS mode decoding."""
+"""Script to run the inference of text-to-speeech model."""
 
 import argparse
 import logging
@@ -31,11 +31,8 @@ from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
-from espnet2.tts.utils.duration_calculator import DurationCalculator
+from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
-from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet2.utils.griffin_lim import Spectrogram2Waveform
-from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -54,7 +51,7 @@ class Text2Speech:
 
     def __init__(
         self,
-        train_config: Optional[Union[Path, str]],
+        train_config: Union[Path, str],
         model_file: Optional[Union[Path, str]] = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
@@ -66,7 +63,8 @@ class Text2Speech:
         speed_control_alpha: float = 1.0,
         noise_scale: float = 0.667,
         noise_scale_dur: float = 0.8,
-        vocoder_conf: dict = None,
+        vocoder_config: Optional[Union[Path, str]] = None,
+        vocoder_file: Optional[Union[Path, str]] = None,
         dtype: str = "float32",
         device: str = "cpu",
         seed: int = 777,
@@ -92,49 +90,43 @@ class Text2Speech:
         self.use_teacher_forcing = use_teacher_forcing
         self.seed = seed
         self.always_fix_seed = always_fix_seed
+        self.vocoder = None
+        if self.tts.require_vocoder:
+            vocoder = TTSTask.build_vocoder_from_file(
+                vocoder_config, vocoder_file, model, device
+            )
+            if isinstance(vocoder, torch.nn.Module):
+                vocoder.to(dtype=getattr(torch, dtype)).eval()
+            self.vocoder = vocoder
         logging.info(f"Extractor:\n{self.feats_extract}")
         logging.info(f"Normalizer:\n{self.normalize}")
         logging.info(f"TTS:\n{self.tts}")
+        if self.vocoder is not None:
+            logging.info(f"Vocoder:\n{self.vocoder}")
 
         # setup decoding config
-        decode_config = {}
-        decode_config.update(use_teacher_forcing=use_teacher_forcing)
+        decode_conf = {}
+        decode_conf.update(use_teacher_forcing=use_teacher_forcing)
         if isinstance(self.tts, (Tacotron2, Transformer)):
-            decode_config.update(
+            decode_conf.update(
                 threshold=threshold,
                 maxlenratio=maxlenratio,
                 minlenratio=minlenratio,
             )
         if isinstance(self.tts, Tacotron2):
-            decode_config.update(
+            decode_conf.update(
                 use_att_constraint=use_att_constraint,
                 forward_window=forward_window,
                 backward_window=backward_window,
             )
         if isinstance(self.tts, (FastSpeech, FastSpeech2, VITS)):
-            decode_config.update(alpha=speed_control_alpha)
+            decode_conf.update(alpha=speed_control_alpha)
         if isinstance(self.tts, VITS):
-            decode_config.update(
+            decode_conf.update(
                 noise_scale=noise_scale,
                 noise_scale_dur=noise_scale_dur,
             )
-        self.decode_config = decode_config
-
-        # setup vocoder
-        if vocoder_conf is None:
-            vocoder_conf = {}
-        if self.feats_extract is not None:
-            vocoder_conf.update(self.feats_extract.get_parameters())
-        if self.tts.require_vocoder and (
-            "n_fft" in vocoder_conf
-            and "n_shift" in vocoder_conf
-            and "fs" in vocoder_conf
-        ):
-            self.spc2wav = Spectrogram2Waveform(**vocoder_conf)
-            logging.info(f"Vocoder: {self.spc2wav}")
-        else:
-            self.spc2wav = None
-            logging.info("Vocoder is not used.")
+        self.decode_conf = decode_conf
 
     @torch.no_grad()
     def __call__(
@@ -145,7 +137,7 @@ class Text2Speech:
         spembs: Union[torch.Tensor, np.ndarray] = None,
         sids: Union[torch.Tensor, np.ndarray] = None,
         lids: Union[torch.Tensor, np.ndarray] = None,
-        decode_config: Optional[Dict[str, Any]] = None,
+        decode_conf: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Run text-to-speech."""
         assert check_argument_types()
@@ -171,9 +163,10 @@ class Text2Speech:
         batch = to_device(batch, self.device)
 
         # overwrite the decode configs if provided
-        cfg = self.decode_config.copy()
-        if decode_config is not None:
-            cfg.update(decode_config)
+        cfg = self.decode_conf
+        if decode_conf is not None:
+            cfg = self.decode_conf.copy()
+            cfg.update(decode_conf)
 
         # inference
         if self.always_fix_seed:
@@ -186,12 +179,12 @@ class Text2Speech:
             output_dict.update(duration=duration, focus_rate=focus_rate)
 
         # apply vocoder (mel-to-wav)
-        if self.spc2wav is not None:
+        if self.vocoder is not None:
             if output_dict.get("feat_gen_denorm") is not None:
                 input_feat = output_dict["feat_gen_denorm"]
             else:
                 input_feat = output_dict["feat_gen"]
-            wav = torch.tensor(self.spc2wav(input_feat.cpu().numpy()))
+            wav = self.vocoder(input_feat)
             output_dict.update(wav=wav)
 
         return output_dict
@@ -199,8 +192,8 @@ class Text2Speech:
     @property
     def fs(self) -> Optional[int]:
         """Return sampling rate."""
-        if self.spc2wav is not None:
-            return self.spc2wav.fs
+        if hasattr(self.vocoder, "fs"):
+            return self.vocoder.fs
         elif hasattr(self.tts, "fs"):
             return self.tts.fs
         else:
@@ -222,7 +215,7 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    train_config: Optional[str],
+    train_config: str,
     model_file: Optional[str],
     threshold: float,
     minlenratio: float,
@@ -236,7 +229,8 @@ def inference(
     noise_scale_dur: float,
     always_fix_seed: bool,
     allow_variable_data_keys: bool,
-    vocoder_conf: dict,
+    vocoder_config: Optional[str],
+    vocoder_file: Optional[str],
 ):
     """Run text-to-speech inference."""
     assert check_argument_types()
@@ -271,7 +265,8 @@ def inference(
         speed_control_alpha=speed_control_alpha,
         noise_scale=noise_scale,
         noise_scale_dur=noise_scale_dur,
-        vocoder_conf=vocoder_conf,
+        vocoder_config=vocoder_config,
+        vocoder_file=vocoder_file,
         dtype=dtype,
         device=device,
         seed=seed,
@@ -605,12 +600,18 @@ def get_parser():
         help="Whether to always fix seed",
     )
 
-    group = parser.add_argument_group("Grriffin-Lim related")
+    group = parser.add_argument_group("Vocoder related")
     group.add_argument(
-        "--vocoder_conf",
-        action=NestedDictAction,
-        default=get_default_kwargs(Spectrogram2Waveform),
-        help="The configuration for Grriffin-Lim",
+        "--vocoder_config",
+        type=str_or_none,
+        default=None,
+        help="Vocoder configuration file",
+    )
+    group.add_argument(
+        "--vocoder_file",
+        type=str_or_none,
+        default=None,
+        help="Vocoder checkpoint file or pretrained model tag",
     )
     return parser
 

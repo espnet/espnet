@@ -112,7 +112,7 @@ def make_discriminator_args(**kwargs):
     defaults = dict(
         discriminator_type="hifigan_multi_scale_multi_period_discriminator",
         discriminator_params={
-            "scales": 2,
+            "scales": 1,
             "scale_downsample_pooling": "AvgPool1d",
             "scale_downsample_pooling_params": {
                 "kernel_size": 4,
@@ -348,6 +348,25 @@ def make_loss_args(**kwargs):
                     "conv_channels": 16,
                 },
             },
+            {},
+        ),
+        (
+            {},
+            {
+                "vocoder_type": "melgan_generator",
+                "vocoder_params": {
+                    "in_channels": 5,
+                    "out_channels": 1,
+                    "kernel_size": 7,
+                    "channels": 32,
+                    "bias": True,
+                    "upsample_scales": [4, 2],
+                    "stack_kernel_size": 3,
+                    "stacks": 1,
+                    "pad": "ReplicationPad1d",
+                },
+            },
+            {},
             {},
         ),
         (

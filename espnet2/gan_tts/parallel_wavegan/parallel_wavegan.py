@@ -58,7 +58,7 @@ class ParallelWaveGANGenerator(torch.nn.Module):
             skip_channels (int): Number of channels in skip conv.
             aux_channels (int): Number of channels for auxiliary feature conv.
             aux_context_window (int): Context window size for auxiliary feature.
-            dropout (float): Dropout rate. 0.0 means no dropout applied.
+            dropout_rate (float): Dropout rate. 0.0 means no dropout applied.
             bias (bool): Whether to use bias parameter in conv layer.
             use_weight_norm (bool): Whether to use weight norm.
                 If set to true, it will be applied to all of the conv layers.
