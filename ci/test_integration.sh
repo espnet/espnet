@@ -259,7 +259,7 @@ echo "==== [ESPnet2] PT_HUBERT ==="
 ./run.sh --stage 1 --stop-stage 1
 feats_type="raw"
 token_type="word"
-./run.sh --ngpu 0 --stage 2 --stop-stage 6 --feats-type "${feats_type}" --token_type "word" --skip-upload false \
+./run.sh --ngpu 0 --stage 2 --stop-stage 6 --feats-type "${feats_type}" --token_type "${token_type}" --skip-upload false \
 	 --pt-args "--max_epoch=1"
 # Remove generated files in order to reduce the disk usage
 #rm -rf exp dump data
