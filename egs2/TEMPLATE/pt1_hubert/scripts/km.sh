@@ -47,7 +47,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Learn K-means with ${feature_type} feature based on scikit-learn"
 
     ${python} pyscripts/sklearn_km.py \
-              --feats-dir ${datadir}/${train_set} \
+              --feats-dir "${datadir}/${train_set}" \
 	      --km-path "${km_path}" \
 	      --n-cluster "${nclusters}" \
 	      --feature-type "${feature_type}" \
@@ -68,7 +68,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 	    rm -r ${plabel_dir}
 	fi
 	mkdir -p ${plabel_dir}
-	cp -r ${datadir}/${task}/{text,spk2gender,spk2utt,utt2spk,wav.scp} ${plabel_dir}
+	cp -r ${datadir}/${task}/* ${plabel_dir}
 	
 	${python} pyscripts/dump_km_label.py \
 		  --km-path "${km_path}" \

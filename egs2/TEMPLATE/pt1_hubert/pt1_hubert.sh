@@ -49,6 +49,9 @@ python=python3       # Specify python to execute espnet commands.
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
 
+# Speed perturbation related
+speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
+
 # Feature extraction related
 feats_type=raw       # Feature type (raw or fbank_pitch).
 audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
@@ -68,31 +71,20 @@ bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE
 bpe_char_cover=1.0  # character coverage when modeling BPE
 
-# Language model related
-use_lm=true       # Use language model for ASR decoding.
-lm_tag=           # Suffix to the result dir for language model training.
-lm_exp=           # Specify the direcotry path for LM experiment.
-                  # If this option is specified, lm_tag is ignored.
-lm_stats_dir=     # Specify the direcotry path for LM statistics.
-lm_config=        # Config for language model training.
-lm_args=          # Arguments for language model training, e.g., "--max_epoch 10".
-                  # Note that it will overwrite args in lm config.
-use_word_lm=false # Whether to use word language model.
-num_splits_lm=1   # Number of splitting for lm corpus.
-# shellcheck disable=SC2034
-word_vocab_size=10000 # Size of word vocabulary.
-
 # ASR model related
 asr_tag=       # Suffix to the result dir for asr model training.
 asr_exp=       # Specify the direcotry path for ASR experiment.
                # If this option is specified, asr_tag is ignored.
 asr_stats_dir= # Specify the direcotry path for ASR statistics.
 asr_config=    # Config for asr model training.
+pt_args=      # Arguments for asr model training, e.g., "--max_epoch 10".
+               # Note that it will overwrite args in asr config.
 num_splits_asr=1           # Number of splitting for lm corpus.
 
 # Pretrain related
 n_clusters=                # Number of k-means clusters of pretraining stage
 features_km=               # Feature for k-means clustering of pretraining stage
+portion_km=                # Portion of training set used for k-means
 pretrain_configs=          # Configration files of pretraining stage
 
 download_model= # Download a model from Model Zoo and use it for decoding.
@@ -133,6 +125,9 @@ Options:
     # Data preparation related
     --local_data_opts	   # The options given to local/data.sh (default="${local_data_opts}").
 
+    # Speed perturbation related
+--speed_perturb_factors # speed perturbation factors, e.g. "0.9 1.0 1.1" (separated by space, default="${speed_perturb_factors}").
+
     # Feature extraction related
     --feats_type	   # Feature type (raw, fbank_pitch or extracted, default="${feats_type}").
     --audio_format     	   # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
@@ -152,25 +147,16 @@ Options:
     --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
 
     # Language model related
-    --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
-    --lm_exp          # Specify the direcotry path for LM experiment.
-                      # If this option is specified, lm_tag is ignored (default="${lm_exp}").
-    --lm_stats_dir    # Specify the direcotry path for LM statistics (default="${lm_stats_dir}").
-    --lm_config       # Config for language model training (default="${lm_config}").
-    --lm_args         # Arguments for language model training (default="${lm_args}").
-                      # e.g., --lm_args "--max_epoch 10"
-                      # Note that it will overwrite args in lm config.
-    --use_word_lm     # Whether to use word language model (default="${use_word_lm}").
-    --word_vocab_size # Size of word vocabulary (default="${word_vocab_size}").
-    --num_splits_lm   # Number of splitting for lm corpus (default="${num_splits_lm}").
-
     --num_splits_asr   # Number of splitting for lm corpus  (default="${num_splits_asr}").
 
     # Pretrain related
     --pretrain_configs # configration files of pretraining stage
     --n_clusters       # number of k-means clusters of pretraining stage
-    --features_km      # feature for k-means clustering of pretraining stage
-    
+    --features_km      # feature for k-means clustering of pretraining stage    
+    --pt_args         # Arguments for hubert model pretraining (default="${pt_args}").
+                       # e.g., --pt_args "--max_epoch 10"
+                       # Note that it will overwrite args in pt config.
+
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of pretraining train set
     --valid_set     # Name of pretraining valid set
@@ -235,7 +221,107 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     local/data.sh ${local_data_opts}
 fi
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 2 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    if [ -n "${speed_perturb_factors}" ]; then
+        log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
+        for factor in ${speed_perturb_factors}; do
+            if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+                scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
+                _dirs+="data/${train_set}_sp${factor} "
+            else
+                # If speed factor is 1, same as the original
+                _dirs+="data/${train_set} "
+            fi
+        done
+           utils/combine_data.sh "data/${train_set}_sp" ${_dirs}
+    else
+        log "Skip stage 2: Speed perturbation"
+    fi
+fi
+
+if [ -n "${speed_perturb_factors}" ]; then
+    train_set="${train_set}_sp"
+fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    if [ "${feats_type}" = raw ]; then
+        log "Stage 3: Format wav.scp: data/ -> ${data_feats}"
+	
+        # ====== Recreating "wav.scp" ======
+        # Kaldi-wav.scp, which can describe the file path with unix-pipe, like "cat /some/path |",
+        # shouldn't be used in training process.
+        # "format_wav_scp.sh" dumps such pipe-style-wav to real audio file
+        # and it can also change the audio-format and sampling rate.
+        # If nothing is need, then format_wav_scp.sh does nothing:
+        # i.e. the input file format and rate is same as the output.
+	
+        for dset in "${train_set}" "${valid_set}"; do
+            _suf="/org"
+            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+            rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
+            _opts=
+            if [ -e data/"${dset}"/segments ]; then
+                # "segments" is used for splitting wav files which are written in "wav".scp
+                # into utterances. The file format of segments:
+                #   <segment_id> <record_id> <start_time> <end_time>
+                #   "e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5"
+                # Where the time is written in seconds.
+                _opts+="--segments data/${dset}/segments "
+            fi
+            # shellcheck disable=SC2086
+            scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+					    --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
+					    "data/${dset}/wav.scp" "${data_feats}${_suf}/${dset}"
+	    
+            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
+        done
+    else
+        log "Error: not supported: --feats_type ${feats_type}"
+        exit 2
+    fi
+fi
+
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    log "Stage 4: Remove long/short data: ${data_feats}/org -> ${data_feats}"
+    
+    # NOTE(kamo): Not applying to test_sets to keep original data
+    for dset in "${train_set}" "${valid_set}"; do
+	
+        # Copy data dir
+        utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
+        cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
+	
+        # Remove short utterances
+        _feats_type="$(<${data_feats}/${dset}/feats_type)"
+        if [ "${_feats_type}" = raw ]; then
+            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+            _min_length=$(python3 -c "print(int(${min_wav_duration} * ${_fs}))")
+            _max_length=$(python3 -c "print(int(${max_wav_duration} * ${_fs}))")
+	    
+            # utt2num_samples is created by format_wav_scp.sh
+                <"${data_feats}/org/${dset}/utt2num_samples" \
+                 awk -v min_length="${_min_length}" -v max_length="${_max_length}" \
+                 '{ if ($2 > min_length && $2 < max_length ) print $0; }' \
+                 >"${data_feats}/${dset}/utt2num_samples"
+                <"${data_feats}/org/${dset}/wav.scp" \
+                 utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
+                 >"${data_feats}/${dset}/wav.scp"
+        else
+	    log "Error: not supported: --feats_type ${feats_type}"
+        fi
+
+        # Remove empty text
+        <"${data_feats}/org/${dset}/text" \
+         awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
+	
+            # fix_data_dir.sh leaves only utts which exist in all files
+        utils/fix_data_dir.sh "${data_feats}/${dset}"
+    done
+fi
+
+
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 4 ]; then
     
     for ((iter=${pretrain_start_iter}; iter<=${pretrain_stop_iter};iter++)); do
 	asr_config="${pretrain_config_list[${iter}]}"
@@ -273,8 +359,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 2 ]; then
 	n_clusters="${n_clusters_list[${iter}]}"
 	dictdir="./data/${feats_km}_km${n_clusters}_token_list_iter${iter}/${token_type}"
 
-	if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-	    log "Stage 2.iter${iter}: Running ${n_clusters} cluster K-means on ${feats_km} feature."
+	if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+	    log "Stage 4.iter${iter}: Running ${n_clusters} cluster K-means on ${feats_km} feature."
 	    
 	    if [ ${iter} -eq 0 ] || [ ${feats_km} == "mfcc" ]; then
 		./scripts/km.sh \
@@ -282,8 +368,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 2 ]; then
 		    --dev_set "${valid_set}" \
 		    --nclusters "${n_clusters}" \
 		    --feature-type "${feats_km}" \
-		    --datadir "./data" \
+		    --datadir "${data_feats}" \
 		    --kmrootdir "${expdir}" \
+		    --portion "${portion_km}" \
 		    --dictdir "${dictdir}"
 	    else
 		./scripts/km.sh \
@@ -291,33 +378,20 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 2 ]; then
 		    --dev_set "${valid_set}" \
 		    --nclusters "${n_clusters}" \
 		    --feature-type "${feats_km}" \
-		    --datadir "./data" \
+		    --datadir "${data_feats}" \
 		    --kmrootdir "${expdir}" \
+		    --portion "${portion_km}" \
 		    --dictdir "${dictdir}" \
 		    --hubert_url espnet \
 		    --hubert_dir_path "${expdir}/pretrained_model_iter((iter-1))/valid.acc.best.pth" 
 	    fi
 	fi
 	
-	if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-	    if [ "${feats_type}" = raw ]; then
-		log "Stage 3.iter${iter}: Copy wav.scp: data/ -> ${data_feats}"
-		
-		for dset in "${train_set_plabel}" "${valid_set_plabel}"; do
-		    utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}/${dset}"
-		    echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
-		done
-	    else
-		log "Error: not supported: --feats_type ${feats_type}"
-		exit 2
-	    fi
-	fi
-	
-	if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+	if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	    _asr_train_dir="${data_feats}/${train_set_plabel}"
 	    _asr_valid_dir="${data_feats}/${valid_set_plabel}"
 
-	    log "Stage 4.iter${iter}: ${feats_km} pretrain model collect stats: \
+	    log "Stage 5.iter${iter}: ${feats_km} pretrain model collect stats: \
 	    train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
 	    
 	    _opts=
@@ -368,8 +442,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 2 ]; then
 	    utils/split_scp.pl "${key_file}" ${split_scps}
 	    
 	    # 2. Generate run.sh
-	    log "Generate '${asr_stats_dir}/run.sh'. You can resume the process from stage4.iter${iter} using this script"
-	    mkdir -p "${asr_stats_dir}"; echo "${run_args} --stage 4 \"\$@\"; exit \$?" > "${asr_stats_dir}/run.sh"; chmod +x "${asr_stats_dir}/run.sh"
+	    log "Generate '${asr_stats_dir}/run.sh'. You can resume the process from stage 5.iter${iter} using this script"
+	    mkdir -p "${asr_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${asr_stats_dir}/run.sh"; chmod +x "${asr_stats_dir}/run.sh"
 	    
 	    # 3. Submit jobs
 	    log "Hubert pretraining collect-stats started... log: '${_logdir}/stats.*.log'"
@@ -397,7 +471,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 2 ]; then
 			 --valid_shape_file "${_logdir}/valid.JOB.scp" \
 			 --output_dir "${_logdir}/stats.JOB" \
 			 --hubert_dict "${dictdir}/dict.txt" \
-			 ${_opts} || { cat "${_logdir}"/stats.1.log; exit 1; }
+			 ${_opts} ${pt_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
 	    
 	    # 4. Aggregate shape files
 	    _opts=
@@ -417,11 +491,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 2 ]; then
              >"${asr_stats_dir}/valid/text_shape.${token_type}"
 	fi
 	
-	if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+	if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
 	    _asr_train_dir="${data_feats}/${train_set_plabel}"
 	    _asr_valid_dir="${data_feats}/${valid_set_plabel}"
 	    
-	    log "Stage 5.iter${iter}: Hubert Pretraining: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
+	    log "Stage 6.iter${iter}: Hubert Pretraining: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
 	
 	    _opts=
 	    if [ -n "${asr_config}" ]; then
@@ -483,7 +557,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 2 ]; then
 		_opts+="--train_shape_file ${asr_stats_dir}/train/text_shape.${token_type} "
 	    fi
 
-	    log "Generate '${asr_exp}/run.sh'. You can resume the process from stage 5 using this script"
+	    log "Generate '${asr_exp}/run.sh'. You can resume the process from stage 6 using this script"
 	    mkdir -p "${asr_exp}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${asr_exp}/run.sh"; chmod +x "${asr_exp}/run.sh"
 	    
 	    # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
@@ -521,7 +595,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 2 ]; then
                       --fold_length "${asr_text_fold_length}" \
                       --output_dir "${asr_exp}" \
 		      --hubert_dict "${dictdir}/dict.txt" \
-                      ${_opts}
+                      ${_opts} ${pt_args}
 	    
 	    log "Model saved in: ${asr_exp}"
 	else

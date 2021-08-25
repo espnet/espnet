@@ -257,7 +257,7 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
 
     def __init__(
         self,
-        input_size: int,
+        input_size: int = 1,
         output_size: int = 1024,
         linear_units: int = 1024,
         attention_heads: int = 12,
@@ -265,7 +265,7 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         dropout_rate: float = 0.0,
         attention_dropout_rate: float = 0.0,
         activation_dropout_rate: float = 0.0,
-        hubert_dict: str = "./",
+        hubert_dict: str = "./dict.txt",
         label_rate: int = 100,
         sample_rate: int = 16000,
         use_amp: bool = False,
@@ -319,13 +319,12 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
 
     def _build_dictionary(self, dictionary, hubert_dict_path):
         if os.path.exists(f"{hubert_dict_path}"):
-
             setattr(dictionary, "symbols", [])
             setattr(dictionary, "count", [])
             setattr(dictionary, "indices", {})
             dictionary.add_from_file(f"{hubert_dict_path}")
         else:
-            dictionary = None
+            dictionary.add_symbol("0")
 
         self.dictionaries = [dictionary]
 

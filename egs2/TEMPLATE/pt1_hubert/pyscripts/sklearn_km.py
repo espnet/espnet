@@ -39,15 +39,18 @@ logger = logging.getLogger("sklearn_kmeans")
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--feats-dir", type=str, help="folder contains wav.scp for training")
-    parser.add_argument("--n-clusters", default=100, type=int, help="number of clusters for K-Means")
+    parser.add_argument("--feats-dir", type=str,
+                        help="folder contains wav.scp for training")
+    parser.add_argument("--n-clusters", default=100, type=int,
+                        help="number of clusters for K-Means")
     parser.add_argument("--nj", default=1, type=int, help="only support mfcc")
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--fs", type=int, default=16000)
     parser.add_argument("--feature-type", type=str, default="mfcc")
     parser.add_argument("--hubert-model-url", type=str, default=None)
     parser.add_argument("--hubert-model-path", type=str, default=None)
-    parser.add_argument("--portion", type=float, default=1.0, help="Using a subset of the data.")
+    parser.add_argument("--portion", type=float, default=1.0,
+                        help="Using a subset of the data.")
 
     group = parser.add_argument_group(description="K-means model.")
     group.add_argument("--km-path", type=str, help="path for k-means model.")
@@ -65,7 +68,8 @@ def get_parser():
 def get_path_iterator(wav, portion=0.1):
     with open(wav, "r") as f:
         lines = [line.rstrip() for line in f]
-        lines = sample(lines,int(portion*len(lines)))
+        lines = sample(lines, int(portion*len(lines)))
+
         def iterate():
             for line in lines:
                 utt_id, path = line.split(" ")
@@ -76,6 +80,7 @@ def get_path_iterator(wav, portion=0.1):
 
 def get_mfcc_feature(feats_dir, fs, nj, portion):
     reader = MfccFeatureReader(fs)
+    print(f"{feats_dir}/wav.scp")
     generator, num = get_path_iterator(f"{feats_dir}/wav.scp", portion)
     iterator = generator()
 
@@ -83,7 +88,7 @@ def get_mfcc_feature(feats_dir, fs, nj, portion):
         feats = joblib.Parallel(n_jobs=nj)(
             joblib.delayed(
                 reader.get_feats)(path)
-                for utt_id, path in tqdm.tqdm(iterator, total=num)
+            for utt_id, path in tqdm.tqdm(iterator, total=num)
         )
     else:
         feats = []
@@ -186,7 +191,7 @@ def learn_kmeans(
 def main(args):
     np.random.seed(args.seed)
     print("Loading Features")
-    feats=load_feature(
+    feats = load_feature(
         feats_dir=args.feats_dir,
         fs=args.fs,
         nj=args.nj,

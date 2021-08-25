@@ -250,7 +250,7 @@ class HubertTask(AbsTask):
         parser.add_argument(
             "--hubert_dict",
             type=str,
-            default="./",
+            default="./dict.txt",
             help="word-based target dictionary for Hubert pretraining stage",
         )
 

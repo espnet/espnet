@@ -6,7 +6,7 @@ touch .coverage
 
 # test asr recipe
 cwd=$(pwd)
-cd ./egs/mini_an4/asr1 || exit 1
+#cd ./egs/mini_an4/asr1 || exit 1
 ln -sf ${cwd}/.coverage .
 . path.sh  # source here to avoid undefined variable errors
 
@@ -27,7 +27,6 @@ echo "==== ASR (backend=pytorch, quantize-asr-model true, quantize-lm-model true
 
 echo "==== ASR (backend=chainer) ==="
 ./run.sh --python "${python}" --stage 3 --backend chainer
-
 # skip duplicated ASR training stage 2,3
 # test rnn recipe
 echo "=== ASR (backend=pytorch, model=rnn-pure-ctc) ==="
@@ -253,6 +252,19 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
     cd "${cwd}" || exit 1
 fi
 
+# [ESPnet2] test pt1_hubert recipe
+cd ./egs2/mini_an4/pt1_hubert || exit 1
+ln -sf ${cwd}/.coverage .
+echo "==== [ESPnet2] PT_HUBERT ==="
+./run.sh --stage 1 --stop-stage 1
+feats_type="raw"
+token_type="word"
+./run.sh --ngpu 0 --stage 2 --stop-stage 6 --feats-type "${feats_type}" --token_type "word" --skip-upload false \
+	 --pt-args "--max_epoch=1"
+# Remove generated files in order to reduce the disk usage
+#rm -rf exp dump data
+cd "${cwd}" || exit 1
+
 # [ESPnet2] Validate configuration files
 echo "<blank>" > dummy_token_list
 echo "==== [ESPnet2] Validation configuration files ==="
@@ -268,6 +280,9 @@ if python3 -c 'import torch as t; from distutils.version import LooseVersion as 
     done
     for f in egs2/*/enh1/conf/train*.yaml; do
         python -m espnet2.bin.enh_train --config "${f}" --iterator_type none --dry_run true --output_dir out
+    done
+    for f in egs2/*/pt1_hubert/conf/train*.yaml; do
+        python -m espnet2.bin.hubert_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
     done
 fi
 
