@@ -21,6 +21,9 @@ from espnet2.gan_tts.hifigan.loss import DiscriminatorAdversarialLoss
 from espnet2.gan_tts.hifigan.loss import FeatureMatchLoss
 from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
 from espnet2.gan_tts.hifigan.loss import MelSpectrogramLoss
+from espnet2.gan_tts.melgan import MelGANGenerator
+from espnet2.gan_tts.melgan import MelGANMultiScaleDiscriminator
+from espnet2.gan_tts.melgan.pqmf import PQMF
 from espnet2.gan_tts.parallel_wavegan import ParallelWaveGANDiscriminator
 from espnet2.gan_tts.parallel_wavegan import ParallelWaveGANGenerator
 from espnet2.gan_tts.utils import get_random_segments
@@ -39,6 +42,7 @@ AVAILABLE_TEXT2MEL = {
 }
 AVAILABLE_VOCODER = {
     "hifigan_generator": HiFiGANGenerator,
+    "melgan_generator": MelGANGenerator,
     "parallel_wavegan_generator": ParallelWaveGANGenerator,
 }
 AVAILABLE_DISCRIMINATORS = {
@@ -47,6 +51,7 @@ AVAILABLE_DISCRIMINATORS = {
     "hifigan_multi_period_discriminator": HiFiGANMultiPeriodDiscriminator,
     "hifigan_multi_scale_discriminator": HiFiGANMultiScaleDiscriminator,
     "hifigan_multi_scale_multi_period_discriminator": HiFiGANMultiScaleMultiPeriodDiscriminator,  # NOQA
+    "melgan_multi_scale_discriminator": MelGANMultiScaleDiscriminator,
     "parallel_wavegan_discriminator": ParallelWaveGANDiscriminator,
 }
 
@@ -152,6 +157,13 @@ class JointText2Wav(AbsGANTTS):
             "nonlinear_activation_params": {"negative_slope": 0.1},
             "use_weight_norm": True,
         },
+        use_pqmf: bool = False,
+        pqmf_params: Dict[str, Any] = {
+            "subbands": 4,
+            "taps": 62,
+            "cutoff_ratio": 0.142,
+            "beta": 9.0,
+        },
         # discriminator related
         discriminator_type: str = "hifigan_multi_scale_multi_period_discriminator",
         discriminator_params: Dict[str, Any] = {
@@ -237,6 +249,8 @@ class JointText2Wav(AbsGANTTS):
                 be referred in saving waveform during the inference.
             text2mel_type (str): The text2mel model type.
             text2mel_params (Dict[str, Any]): Parameter dict for text2mel model.
+            use_pqmf (bool): Whether to use PQMF for multi-band vocoder.
+            pqmf_params (Dict[str, Any]): Parameter dict for PQMF module.
             vocoder_type (str): The vocoder model type.
             vocoder_params (Dict[str, Any]): Parameter dict for vocoder model.
             discriminator_type (str): Discriminator type.
@@ -259,6 +273,7 @@ class JointText2Wav(AbsGANTTS):
         assert check_argument_types()
         super().__init__()
         self.segment_size = segment_size
+        self.use_pqmf = use_pqmf
 
         # define modules
         self.generator = torch.nn.ModuleDict()
@@ -275,6 +290,8 @@ class JointText2Wav(AbsGANTTS):
         self.generator["vocoder"] = vocoder_class(
             **vocoder_params,
         )
+        if self.use_pqmf:
+            self.pqmf = PQMF(**pqmf_params)
         discriminator_class = AVAILABLE_DISCRIMINATORS[discriminator_type]
         self.discriminator = discriminator_class(
             **discriminator_params,
@@ -426,6 +443,8 @@ class JointText2Wav(AbsGANTTS):
             )
             # calculate vocoder outputs
             speech_hat_ = self.generator["vocoder"](feats_gen_)
+            if self.use_pqmf:
+                speech_hat_ = self.pqmf.synthesis(speech_hat_)
         else:
             text2mel_loss, stats, speech_hat_, start_idxs = self._cache
 
@@ -533,6 +552,8 @@ class JointText2Wav(AbsGANTTS):
             )
             # calculate vocoder outputs
             speech_hat_ = self.generator["vocoder"](feats_gen_)
+            if self.use_pqmf:
+                speech_hat_ = self.pqmf.synthesis(speech_hat_)
         else:
             _, _, speech_hat_, start_idxs = self._cache
 
@@ -594,6 +615,9 @@ class JointText2Wav(AbsGANTTS):
             **kwargs,
         )
         wav = self.generator["vocoder"].inference(output_dict["feat_gen"])
+        if self.use_pqmf:
+            wav = self.pqmf.synthesis(wav.unsqueeze(0).transpose(1, 2))
+            wav = wav.squeeze(0).transpose(0, 1)
         output_dict.update(wav=wav)
 
         return output_dict

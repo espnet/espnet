@@ -73,7 +73,7 @@ class HiFiGANGenerator(torch.nn.Module):
         assert len(resblock_dilations) == len(resblock_kernel_sizes)
 
         # define modules
-        self.upsample_factor = int(np.prod(upsample_scales))
+        self.upsample_factor = int(np.prod(upsample_scales) * out_channels)
         self.num_upsamples = len(upsample_kernel_sizes)
         self.num_blocks = len(resblock_kernel_sizes)
         self.input_conv = torch.nn.Conv1d(

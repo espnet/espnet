@@ -350,6 +350,63 @@ def make_loss_args(**kwargs):
             },
             {},
         ),
+        (
+            {},
+            {
+                "vocoder_type": "melgan_generator",
+                "vocoder_params": {
+                    "in_channels": 5,
+                    "out_channels": 4,
+                    "kernel_size": 7,
+                    "channels": 32,
+                    "bias": True,
+                    "upsample_scales": [4, 2],
+                    "stack_kernel_size": 3,
+                    "stacks": 1,
+                    "pad": "ReplicationPad1d",
+                },
+                "use_pqmf": True,
+            },
+            {},
+            {},
+        ),
+        (
+            {},
+            {},
+            {
+                "discriminator_type": "melgan_multi_scale_discriminator",
+                "discriminator_params": {
+                    "in_channels": 1,
+                    "out_channels": 1,
+                    "scales": 2,
+                    "kernel_sizes": [5, 3],
+                    "channels": 16,
+                    "max_downsample_channels": 32,
+                    "bias": True,
+                    "downsample_scales": [2, 2],
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
+                # HifiGAN multi-band case
+                "vocoder_params": {
+                    "out_channels": 4,
+                    "channels": 32,
+                    "global_channels": -1,
+                    "kernel_size": 7,
+                    "upsample_scales": [4, 2],
+                    "upsample_kernel_sizes": [8, 4],
+                    "resblock_kernel_sizes": [3, 7],
+                    "resblock_dilations": [[1, 3], [1, 3]],
+                },
+                "use_pqmf": True,
+            },
+            {},
+            {},
+        ),
     ],
 )
 def test_joint_model_is_trainable_and_decodable(
@@ -413,7 +470,7 @@ def test_joint_model_is_trainable_and_decodable(
             text=torch.randint(
                 0,
                 idim,
-                (5,),
+                (10,),
             )
         )
         output_dict = model.inference(**inputs)
