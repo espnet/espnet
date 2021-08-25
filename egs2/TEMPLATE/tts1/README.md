@@ -54,17 +54,17 @@ It calls `local/data.sh` to creates Kaldi-style data directories in `data/` for 
 See also:
 - [About Kaldi-style data directory](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory)
 
-### 2. Wav dump or Feature extraction
+### 2. Wav dump / Embedding preparation
 
-Feature extraction stage.
-The processing in this stage is changed according to `--feats_type` option (Default: `feats_type=raw`).
-In the case of `feats_type=raw`, reformat `wav.scp` in date directories.
-In the other cases (`feats_type=fbank` and `feats_type=stft`), feature extraction with Librosa will be performed.
-Since the performance is almost the same, we recommend using `feats_type=raw`.
+Wav dumping stage.
+This stage reformats `wav.scp` in date directories.
 
 Additionally, we support X-vector extraction in this stage as you can use in ESPnet1.
 If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract mfcc features, vad decision, and X-vector.
 This processing requires the compiled kaldi, please be careful.
+
+Also, speaker ID embedding and language ID embedding preparation will be performed in this stage if you sepecify `--use_sid true` and `--use_lid true` otpions.
+Note that this processing assume that `utt2spk` or `utt2lang` are correctly created in stage 1, please be careful.
 
 ### 3. Removal of long / short data
 
@@ -147,14 +147,17 @@ Then, you can get the following directories in the recipe directory.
 ├── data/ # Kaldi-style data directory
 │   ├── dev/        # validation set
 │   ├── eval1/      # evaluation set
-│   ├── token_list/ # token list (dictionary)
 │   └── tr_no_dev/  # training set
 ├── dump/ # feature dump directory
+│   ├── token_list/    # token list (dictionary)
 │   └── raw/
-│       ├── dev/       # validation set
-│       ├── eval1/     # evaluation set
+│       ├── org/
+│       │    ├── tr_no_dev/ # training set before filtering
+│       │    └── dev/       # validation set before filtering
 │       ├── srctexts   # text to create token list
-│       └── tr_no_dev/ # training set
+│       ├── eval1/     # evaluation set
+│       ├── dev/       # validation set after filtering
+│       └── tr_no_dev/ # training set after filtering
 └── exp/ # experiment directory
     ├── tts_stats_raw_phn_tacotron_g2p_en_no_space # statistics
     └── tts_train_raw_phn_tacotron_g2p_en_no_space # model

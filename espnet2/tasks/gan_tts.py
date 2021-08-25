@@ -1,7 +1,7 @@
 # Copyright 2021 Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""GAN-based TTS task."""
+"""GAN-based text-to-speech task."""
 
 import argparse
 import logging
@@ -73,7 +73,6 @@ tts_choices = ClassChoices(
     type_check=AbsGANTTS,
     default="vits",
 )
-# NOTE(kan-bayashi): Not used for now but added for compatibility
 pitch_extractor_choices = ClassChoices(
     "pitch_extract",
     classes=dict(dio=Dio),
@@ -111,7 +110,7 @@ energy_normalize_choices = ClassChoices(
 
 
 class GANTTSTask(AbsTask):
-    """GAN-based TTS task."""
+    """GAN-based text-to-speech task."""
 
     # GAN requires two optimizers
     num_optimizers: int = 2

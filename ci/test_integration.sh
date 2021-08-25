@@ -217,12 +217,7 @@ cd "${cwd}" || exit 1
 cd ./egs2/mini_an4/tts1 || exit 1
 ln -sf ${cwd}/.coverage .
 echo "==== [ESPnet2] TTS ==="
-./run.sh --stage 1 --stop-stage 1 --python "${python}"
-feats_types="raw fbank stft"
-for t in ${feats_types}; do
-    echo "==== feats_type=${t} ==="
-    ./run.sh --ngpu 0 --stage 2 --stop-stage 8 --skip-upload false --feats-type "${t}" --train-args "--max_epoch 1" --python "${python}"
-done
+./run.sh --ngpu 0 --stage 1 --stop-stage 8 --skip-upload false  --train-args "--max_epoch 1" --python "${python}"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 
