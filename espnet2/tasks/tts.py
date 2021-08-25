@@ -404,6 +404,7 @@ class TTSTask(AbsTask):
         """
         assert check_argument_types()
         if model_file is None or Path(model_file).exists():
+            # Build model with local files
             if model_file is None:
                 assert (
                     config_file is not None
@@ -422,14 +423,16 @@ class TTSTask(AbsTask):
                     "but got {type(model)}."
                 )
             model.to(device)
-            if device == "cuda":
-                # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
-                #   in PyTorch<=1.4
-                device = f"cuda:{torch.cuda.current_device()}"
-            model.load_state_dict(torch.load(model_file, map_location=device))
+            if model_file is not None:
+                if device == "cuda":
+                    # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
+                    #   in PyTorch<=1.4
+                    device = f"cuda:{torch.cuda.current_device()}"
+                model.load_state_dict(torch.load(model_file, map_location=device))
 
             return model, args
         else:
+            # Build model by downloading the pretrained model in espnet_model_zoo
             logging.info(
                 f"{model_file} does not exist. "
                 f"We assume that {model_file} is tag of the pretrained model."
