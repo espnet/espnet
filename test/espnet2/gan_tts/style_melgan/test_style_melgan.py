@@ -60,6 +60,11 @@ def make_style_melgan_discriminator_args(**kwargs):
     return defaults
 
 
+@pytest.mark.skipif(
+    "1.6" in torch.__version__,
+    reason="group conv in pytorch 1.6 has an issue. "
+    "See https://github.com/pytorch/pytorch/issues/42446.",
+)
 @pytest.mark.parametrize(
     "dict_g, dict_d",
     [
