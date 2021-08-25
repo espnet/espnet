@@ -451,7 +451,8 @@ class TTSTask(AbsTask):
 
             return cls.build_model_from_file(
                 # Unpack returns dict of "train_config" and "model_file"
-                *d.download_and_unpack(model_file).values()
+                *d.download_and_unpack(model_file).values(),
+                device=device,
             )
 
     @classmethod
