@@ -98,6 +98,15 @@
   - Git hash: `4406f25ebf507daf33f68787ff0e3699a0937913`
   - Commit date: `Sat Aug 14 06:25:18 2021 -0400`
 
+- Model files
+  - model link: https://drive.google.com/file/d/1JkepwVQBJAj-lZxRAyvTqw96pzAOv1Kd
+  - training config file: `conf/tuning/transducer/train_rnn_transducer.yaml`
+  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
+  - cmvn file: `data/train_nodev/cmvn.ark`
+  - e2e file: `exp/train_nodev_pytorch_train_rnn_transducer/results/model.loss.best`
+  - e2e JSON file: `exp/train_nodev_pytorch_train_rnn_transducer/results/model.json`
+  - dict file: `data/lang_1char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -146,6 +155,15 @@
   - Git hash: `4406f25ebf507daf33f68787ff0e3699a0937913`
   - Commit date: `Sat Aug 14 06:25:18 2021 -0400`
 
+- Model files
+  - model link: https://drive.google.com/file/d/1O16p57K2-Hrg69LNoJGY99I64JFjPWWE
+  - training config file: `conf/tuning/transducer/train_rnn_transducer_aux.yaml`
+  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
+  - cmvn file: `data/train_nodev/cmvn.ark`
+  - e2e file: `exp/train_nodev_pytorch_train_rnn_transducer_aux/results/model.loss.best`
+  - e2e JSON file: `exp/train_nodev_pytorch_train_rnn_transducer_aux/results/model.json`
+  - dict file: `data/lang_1char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -193,6 +211,15 @@
   - pytorch version: `pytorch 1.8.1`
   - Git hash: `4406f25ebf507daf33f68787ff0e3699a0937913`
   - Commit date: `Sat Aug 14 06:25:18 2021 -0400`
+
+- Model files
+  - model link: https://drive.google.com/file/d/1f8nWN76n0iUI1bkRKTJ8wCk2gPF6tHov
+  - training config file: `conf/tuning/transducer/train_conformer-rnn_transducer.yaml`
+  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
+  - cmvn file: `data/train_nodev/cmvn.ark`
+  - e2e file: `exp/train_nodev_pytorch_train_conformer-rnn_transducer/results/model.val10.avg.best`
+  - e2e JSON file: `exp/train_nodev_pytorch_train_conformer-rnn_transducer/results/model.json`
+  - dict file: `data/lang_1char/`
 
 ### CER
 
@@ -244,6 +271,15 @@
   - pytorch version: `pytorch 1.8.1`
   - Git hash: `4406f25ebf507daf33f68787ff0e3699a0937913`
   - Commit date: `Sat Aug 14 06:25:18 2021 -0400`
+
+- Model files
+  - model link: https://drive.google.com/file/d/1y3jZl4vRMK_OoyZOEvFfL6AsbG2gAVBI
+  - training config file: `conf/tuning/transducer/train_conformer-rnn_transducer_aux.yaml`
+  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
+  - cmvn file: `data/train_nodev/cmvn.ark`
+  - e2e file: `exp/train_nodev_pytorch_train_conformer-rnn_transducer_aux/results/model.val10.avg.best`
+  - e2e JSON file: `exp/train_nodev_pytorch_train_conformer-rnn_transducer_aux/results/model.json`
+  - dict file: `data/lang_1char/`
 
 ### CER
 

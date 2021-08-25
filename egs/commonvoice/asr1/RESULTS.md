@@ -969,6 +969,7 @@
   - Peak VRAM usage during training: ~ 24.3 GiB
   - Training time: ~ 8 hours and 5 minutes
   - Decoding time (4 jobs, `search-type: default`): ~ 3 minutes and 30 seconds
+  - Model averaging: `n_average=20`, `use_valbest_average=true`
 
 - Environments
   - date: `Wed Aug 22 08:54:04 UTC 2021`
@@ -978,6 +979,15 @@
   - pytorch version: `pytorch 1.8.1`
   - Git hash: `4406f25ebf507daf33f68787ff0e3699a0937913`
   - Commit date: `Sat Aug 14 06:25:18 2021 -0400`
+
+- Model files
+  - model link: https://drive.google.com/file/d/11zF8CCQMWG4rcR4nLe3tdGoyXgJMu3Nf
+  - training config file: `conf/tuning/transducer/cs/train_conformer-rnn_transducer.yaml`
+  - decoding config file: `conf/tuning/transducer/cs/decode_default.yaml`
+  - cmvn file: `data/train_cs/cmvn.ark`
+  - e2e file: `exp/train_cs_pytorch_cs_train_conformer-rnn_transducer_specaug/results/model.val20.avg.best`
+  - e2e JSON file: `exp/train_cs_pytorch_cs_train_conformer-rnn_transducer_specaug/results/model.json`
+  - dict file: `data/cs_lang_char/`
 
 ### CER
 
@@ -1017,6 +1027,7 @@
   - Peak VRAM usage during training: ~ 38.2 GiB
   - Training time: ~ 9 hours and 34 minutes
   - Decoding time (4 jobs, `search-type: default`): ~ 6 minutes and 28 seconds
+  - Model averaging: `n_average=20`, `use_valbest_average=true`
 
 - Environments
   - date: `Wed Aug 22 08:54:04 UTC 2021`
@@ -1026,6 +1037,15 @@
   - pytorch version: `pytorch 1.8.1`
   - Git hash: `4406f25ebf507daf33f68787ff0e3699a0937913`
   - Commit date: `Sat Aug 14 06:25:18 2021 -0400`
+
+- Model files
+  - model link: https://drive.google.com/file/d/1Ik8EpLeedsGYTIPNJXjZkUqcElEBv1gV
+  - training config file: `conf/tuning/transducer/cs/train_conformer-rnn_transducer_aux.yaml`
+  - decoding config file: `conf/tuning/transducer/cs/decode_default.yaml`
+  - cmvn file: `data/train_cs/cmvn.ark`
+  - e2e file: `exp/train_cs_pytorch_cs_train_conformer-rnn_transducer_aux_specaug/results/model.val20.avg.best`
+  - e2e JSON file: `exp/train_cs_pytorch_cs_train_conformer-rnn_transducer_aux_specaug/results/model.json`
+  - dict file: `data/cs_lang_char/`
 
 #### CER
 

@@ -213,6 +213,15 @@ exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg  
   - Git hash: `4406f25ebf507daf33f68787ff0e3699a0937913`
   - Commit date: `Sat Aug 14 06:25:18 2021 -0400`
 
+- Model files
+  - model link: https://drive.google.com/file/d/1mMAqbmF-GgTCWFwl3EXunpLTdWGQQmyo
+  - training config file: `conf/tuning/transducer/train_rnn_transducer.yaml`
+  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
+  - cmvn file: `data/tr_it/cmvn.ark`
+  - e2e file: `exp/tr_it_pytorch_train_rnn_transducer/results/model.loss.best`
+  - e2e JSON file: `exp/tr_it_pytorch_train_rnn_transducer/results/model.json`
+  - dict file: `data/lang_1char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -260,6 +269,15 @@ exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg  
   - pytorch version: `pytorch 1.8.1`
   - Git hash: `4406f25ebf507daf33f68787ff0e3699a0937913`
   - Commit date: `Sat Aug 14 06:25:18 2021 -0400`
+
+- Model files
+  - model link: https://drive.google.com/file/d/1ZW_wSJYEiXyp0n_Cj09ucgh2ncZ6-RK1
+  - training config file: `conf/tuning/transducer/train_rnn_transducer_aux.yaml`
+  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
+  - cmvn file: `data/tr_it/cmvn.ark`
+  - e2e file: `exp/tr_it_pytorch_train_rnn_transducer_aux/results/model.loss.best`
+  - e2e JSON file: `exp/tr_it_pytorch_train_rnn_transducer_aux/results/model.json`
+  - dict file: `data/lang_1char/`
 
 ### CER
 
@@ -309,6 +327,15 @@ exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg  
   - Git hash: `4406f25ebf507daf33f68787ff0e3699a0937913`
   - Commit date: `Sat Aug 14 06:25:18 2021 -0400`
 
+- Model files
+  - model link: https://drive.google.com/file/d/1JLy91GORrg-iw_ZmRfevGaLjMZ_NmLa6
+  - training config file: `conf/tuning/transducer/train_conformer-rnn_transducer.yaml`
+  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
+  - cmvn file: `data/tr_it/cmvn.ark`
+  - e2e file: `exp/tr_it_pytorch_train_conformer-rnn_transducer/results/model.last20.avg.best`
+  - e2e JSON file: `exp/tr_it_pytorch_train_conformer-rnn_transducer/results/model.json`
+  - dict file: `data/lang_1char/`
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -357,6 +384,15 @@ exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg  
   - pytorch version: `pytorch 1.8.1`
   - Git hash: `4406f25ebf507daf33f68787ff0e3699a0937913`
   - Commit date: `Sat Aug 14 06:25:18 2021 -0400`
+
+- Model files
+  - model link: https://drive.google.com/file/d/1imTL8FyhmIO5OmSl1h-D91UwI6S0elx-
+  - training config file: `conf/tuning/transducer/train_conformer-rnn_transducer_aux.yaml`
+  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
+  - cmvn file: `data/tr_it/cmvn.ark`
+  - e2e file: `exp/tr_it_pytorch_train_conformer-rnn_transducer_aux/results/model.last20.avg.best`
+  - e2e JSON file: `exp/tr_it_pytorch_train_conformer-rnn_transducer_aux/results/model.json`
+  - dict file: `data/lang_1char/`
 
 ### CER
 
