@@ -235,6 +235,8 @@
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">FeatureMatchLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">GeneratorAdversarialLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">MelSpectrogramLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.parallel_wavegan</span> <span class="kn">import</span> <span class="n">ParallelWaveGANDiscriminator</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.parallel_wavegan</span> <span class="kn">import</span> <span class="n">ParallelWaveGANGenerator</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.utils</span> <span class="kn">import</span> <span class="n">get_random_segments</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.utils</span> <span class="kn">import</span> <span class="n">get_segments</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
@@ -251,6 +253,7 @@
 <span class="p">}</span>
 <span class="n">AVAILABLE_VOCODER</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;hifigan_generator&quot;</span><span class="p">:</span> <span class="n">HiFiGANGenerator</span><span class="p">,</span>
+    <span class="s2">&quot;parallel_wavegan_generator&quot;</span><span class="p">:</span> <span class="n">ParallelWaveGANGenerator</span><span class="p">,</span>
 <span class="p">}</span>
 <span class="n">AVAILABLE_DISCRIMINATORS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;hifigan_period_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANPeriodDiscriminator</span><span class="p">,</span>
@@ -258,6 +261,7 @@
     <span class="s2">&quot;hifigan_multi_period_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANMultiPeriodDiscriminator</span><span class="p">,</span>
     <span class="s2">&quot;hifigan_multi_scale_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANMultiScaleDiscriminator</span><span class="p">,</span>
     <span class="s2">&quot;hifigan_multi_scale_multi_period_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANMultiScaleMultiPeriodDiscriminator</span><span class="p">,</span>  <span class="c1"># NOQA</span>
+    <span class="s2">&quot;parallel_wavegan_discriminator&quot;</span><span class="p">:</span> <span class="n">ParallelWaveGANDiscriminator</span><span class="p">,</span>
 <span class="p">}</span>
 
 
@@ -480,6 +484,8 @@
         <span class="n">vocoder_class</span> <span class="o">=</span> <span class="n">AVAILABLE_VOCODER</span><span class="p">[</span><span class="n">vocoder_type</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">vocoder_type</span> <span class="o">==</span> <span class="s2">&quot;hifigan_generator&quot;</span><span class="p">:</span>
             <span class="n">vocoder_params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="n">odim</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">vocoder_type</span> <span class="o">==</span> <span class="s2">&quot;parallel_wavegan_generator&quot;</span><span class="p">:</span>
+            <span class="n">vocoder_params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">aux_channels</span><span class="o">=</span><span class="n">odim</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">[</span><span class="s2">&quot;vocoder&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vocoder_class</span><span class="p">(</span>
             <span class="o">**</span><span class="n">vocoder_params</span><span class="p">,</span>
         <span class="p">)</span>

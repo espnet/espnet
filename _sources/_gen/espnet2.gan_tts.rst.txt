@@ -37,6 +37,39 @@ espnet2.gan_tts.abs_gan_tts
     :show-inheritance:
 
 
+.. _espnet2.gan_tts.parallel_wavegan.upsample:
+
+espnet2.gan_tts.parallel_wavegan.upsample
+-----------------------------------------
+
+.. automodule:: espnet2.gan_tts.parallel_wavegan.upsample
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.parallel_wavegan.__init__:
+
+espnet2.gan_tts.parallel_wavegan.__init__
+-----------------------------------------
+
+.. automodule:: espnet2.gan_tts.parallel_wavegan.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.parallel_wavegan.parallel_wavegan:
+
+espnet2.gan_tts.parallel_wavegan.parallel_wavegan
+-------------------------------------------------
+
+.. automodule:: espnet2.gan_tts.parallel_wavegan.parallel_wavegan
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.gan_tts.hifigan.loss:
 
 espnet2.gan_tts.hifigan.loss

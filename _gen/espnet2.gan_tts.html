@@ -140,6 +140,9 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-espnet-model">espnet2.gan_tts.espnet_model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-init">espnet2.gan_tts.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-abs-gan-tts">espnet2.gan_tts.abs_gan_tts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-parallel-wavegan-upsample">espnet2.gan_tts.parallel_wavegan.upsample</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-parallel-wavegan-init">espnet2.gan_tts.parallel_wavegan.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-parallel-wavegan-parallel-wavegan">espnet2.gan_tts.parallel_wavegan.parallel_wavegan</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-hifigan-loss">espnet2.gan_tts.hifigan.loss</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-hifigan-init">espnet2.gan_tts.hifigan.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-gan-tts-hifigan-residual-block">espnet2.gan_tts.hifigan.residual_block</a></li>
@@ -371,8 +374,293 @@
 </dd></dl>
 
 </div>
+<div class="section" id="espnet2-gan-tts-parallel-wavegan-upsample">
+<span id="id4"></span><h2>espnet2.gan_tts.parallel_wavegan.upsample<a class="headerlink" href="#espnet2-gan-tts-parallel-wavegan-upsample" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.parallel_wavegan.upsample"></span><p>Upsampling module.</p>
+<p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
+<dl class="class">
+<dt id="espnet2.gan_tts.parallel_wavegan.upsample.Conv2d">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.parallel_wavegan.upsample.</code><code class="sig-name descname">Conv2d</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/upsample.html#Conv2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.upsample.Conv2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.conv.Conv2d</span></code></p>
+<p>Conv2d module with customized initialization.</p>
+<p>Initialize Conv2d module.</p>
+<dl class="method">
+<dt id="espnet2.gan_tts.parallel_wavegan.upsample.Conv2d.reset_parameters">
+<code class="sig-name descname">reset_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/upsample.html#Conv2d.reset_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.upsample.Conv2d.reset_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset parameters.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.parallel_wavegan.upsample.ConvInUpsampleNetwork">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.parallel_wavegan.upsample.</code><code class="sig-name descname">ConvInUpsampleNetwork</code><span class="sig-paren">(</span><em class="sig-param">upsample_scales: List[int], nonlinear_activation: Optional[str] = None, nonlinear_activation_params: Dict[str, Any] = {}, interpolate_mode: str = 'nearest', freq_axis_kernel_size: int = 1, aux_channels: int = 80, aux_context_window: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/upsample.html#ConvInUpsampleNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.upsample.ConvInUpsampleNetwork" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Convolution + upsampling network module.</p>
+<p>Initialize ConvInUpsampleNetwork module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>upsample_scales</strong> (<em>list</em>) – List of upsampling scales.</p></li>
+<li><p><strong>nonlinear_activation</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Activation function name.</p></li>
+<li><p><strong>nonlinear_activation_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Arguments for the specified
+activation function.</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – Interpolation mode.</p></li>
+<li><p><strong>freq_axis_kernel_size</strong> (<em>int</em>) – Kernel size in the direction of
+frequency axis.</p></li>
+<li><p><strong>aux_channels</strong> (<em>int</em>) – Number of channels of pre-conv layer.</p></li>
+<li><p><strong>aux_context_window</strong> (<em>int</em>) – Context window size of the pre-conv layer.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.parallel_wavegan.upsample.ConvInUpsampleNetwork.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">c: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/upsample.html#ConvInUpsampleNetwork.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.upsample.ConvInUpsampleNetwork.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>c</strong> (<em>Tensor</em>) – Input tensor (B, C, T_feats).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Upsampled tensor (B, C, T_wav),</dt><dd><p>where T_wav = T_feats * prod(upsample_scales).</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.parallel_wavegan.upsample.Stretch2d">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.parallel_wavegan.upsample.</code><code class="sig-name descname">Stretch2d</code><span class="sig-paren">(</span><em class="sig-param">x_scale: int</em>, <em class="sig-param">y_scale: int</em>, <em class="sig-param">mode: str = 'nearest'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/upsample.html#Stretch2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.upsample.Stretch2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Stretch2d module.</p>
+<p>Initialize Stretch2d module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_scale</strong> (<em>int</em>) – X scaling factor (Time axis in spectrogram).</p></li>
+<li><p><strong>y_scale</strong> (<em>int</em>) – Y scaling factor (Frequency axis in spectrogram).</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – Interpolation mode.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.parallel_wavegan.upsample.Stretch2d.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/upsample.html#Stretch2d.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.upsample.Stretch2d.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>Tensor</em>) – Input tensor (B, C, F, T).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Interpolated tensor (B, C, F * y_scale, T * x_scale),</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.parallel_wavegan.upsample.UpsampleNetwork">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.parallel_wavegan.upsample.</code><code class="sig-name descname">UpsampleNetwork</code><span class="sig-paren">(</span><em class="sig-param">upsample_scales: List[int], nonlinear_activation: Optional[str] = None, nonlinear_activation_params: Dict[str, Any] = {}, interpolate_mode: str = 'nearest', freq_axis_kernel_size: int = 1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/upsample.html#UpsampleNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.upsample.UpsampleNetwork" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Upsampling network module.</p>
+<p>Initialize UpsampleNetwork module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>upsample_scales</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>) – List of upsampling scales.</p></li>
+<li><p><strong>nonlinear_activation</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Activation function name.</p></li>
+<li><p><strong>nonlinear_activation_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Arguments for the specified
+activation function.</p></li>
+<li><p><strong>interpolate_mode</strong> (<em>str</em>) – Interpolation mode.</p></li>
+<li><p><strong>freq_axis_kernel_size</strong> (<em>int</em>) – Kernel size in the direction of frequency axis.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.parallel_wavegan.upsample.UpsampleNetwork.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">c: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/upsample.html#UpsampleNetwork.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.upsample.UpsampleNetwork.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>c</strong> – Input tensor (B, C, T_feats).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Upsampled tensor (B, C, T_wav).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="espnet2-gan-tts-parallel-wavegan-init">
+<span id="id5"></span><h2>espnet2.gan_tts.parallel_wavegan.__init__<a class="headerlink" href="#espnet2-gan-tts-parallel-wavegan-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.parallel_wavegan.__init__"></span></div>
+<div class="section" id="espnet2-gan-tts-parallel-wavegan-parallel-wavegan">
+<span id="id6"></span><h2>espnet2.gan_tts.parallel_wavegan.parallel_wavegan<a class="headerlink" href="#espnet2-gan-tts-parallel-wavegan-parallel-wavegan" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.gan_tts.parallel_wavegan.parallel_wavegan"></span><p>Parallel WaveGAN Modules.</p>
+<p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
+<dl class="class">
+<dt id="espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANDiscriminator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.parallel_wavegan.parallel_wavegan.</code><code class="sig-name descname">ParallelWaveGANDiscriminator</code><span class="sig-paren">(</span><em class="sig-param">in_channels: int = 1</em>, <em class="sig-param">out_channels: int = 1</em>, <em class="sig-param">kernel_size: int = 3</em>, <em class="sig-param">layers: int = 10</em>, <em class="sig-param">conv_channels: int = 64</em>, <em class="sig-param">dilation_factor: int = 1</em>, <em class="sig-param">nonlinear_activation: str = 'LeakyReLU'</em>, <em class="sig-param">nonlinear_activation_params: Dict[str</em>, <em class="sig-param">Any] = {'negative_slope': 0.2}</em>, <em class="sig-param">bias: bool = True</em>, <em class="sig-param">use_weight_norm: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/parallel_wavegan.html#ParallelWaveGANDiscriminator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANDiscriminator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Parallel WaveGAN Discriminator module.</p>
+<p>Initialize ParallelWaveGANDiscriminator module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_channels</strong> (<em>int</em>) – Number of input channels.</p></li>
+<li><p><strong>out_channels</strong> (<em>int</em>) – Number of output channels.</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Number of output channels.</p></li>
+<li><p><strong>layers</strong> (<em>int</em>) – Number of conv layers.</p></li>
+<li><p><strong>conv_channels</strong> (<em>int</em>) – Number of chnn layers.</p></li>
+<li><p><strong>dilation_factor</strong> (<em>int</em>) – Dilation factor. For example, if dilation_factor = 2,
+the dilation will be 2, 4, 8, …, and so on.</p></li>
+<li><p><strong>nonlinear_activation</strong> (<em>str</em>) – Nonlinear function after each conv.</p></li>
+<li><p><strong>nonlinear_activation_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Nonlinear function parameters</p></li>
+<li><p><strong>bias</strong> (<em>bool</em>) – Whether to use bias parameter in conv.</p></li>
+<li><p><strong>use_weight_norm</strong> (<em>bool</em>) – If set to true, it will be applied to all of the conv layers.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANDiscriminator.apply_weight_norm">
+<code class="sig-name descname">apply_weight_norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/parallel_wavegan.html#ParallelWaveGANDiscriminator.apply_weight_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANDiscriminator.apply_weight_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply weight normalization module from all of the layers.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANDiscriminator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/parallel_wavegan.html#ParallelWaveGANDiscriminator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANDiscriminator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>Tensor</em>) – Input noise signal (B, 1, T).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor (B, 1, T).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANDiscriminator.remove_weight_norm">
+<code class="sig-name descname">remove_weight_norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/parallel_wavegan.html#ParallelWaveGANDiscriminator.remove_weight_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANDiscriminator.remove_weight_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove weight normalization module from all of the layers.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANGenerator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.parallel_wavegan.parallel_wavegan.</code><code class="sig-name descname">ParallelWaveGANGenerator</code><span class="sig-paren">(</span><em class="sig-param">in_channels: int = 1</em>, <em class="sig-param">out_channels: int = 1</em>, <em class="sig-param">kernel_size: int = 3</em>, <em class="sig-param">layers: int = 30</em>, <em class="sig-param">stacks: int = 3</em>, <em class="sig-param">residual_channels: int = 64</em>, <em class="sig-param">gate_channels: int = 128</em>, <em class="sig-param">skip_channels: int = 64</em>, <em class="sig-param">aux_channels: int = 80</em>, <em class="sig-param">aux_context_window: int = 2</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">bias: bool = True</em>, <em class="sig-param">use_weight_norm: bool = True</em>, <em class="sig-param">upsample_conditional_features: bool = True</em>, <em class="sig-param">upsample_net: str = 'ConvInUpsampleNetwork'</em>, <em class="sig-param">upsample_params: Dict[str</em>, <em class="sig-param">Any] = {'upsample_scales': [4</em>, <em class="sig-param">4</em>, <em class="sig-param">4</em>, <em class="sig-param">4]}</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/parallel_wavegan.html#ParallelWaveGANGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANGenerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Parallel WaveGAN Generator module.</p>
+<p>Initialize ParallelWaveGANGenerator module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_channels</strong> (<em>int</em>) – Number of input channels.</p></li>
+<li><p><strong>out_channels</strong> (<em>int</em>) – Number of output channels.</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Kernel size of dilated convolution.</p></li>
+<li><p><strong>layers</strong> (<em>int</em>) – Number of residual block layers.</p></li>
+<li><p><strong>stacks</strong> (<em>int</em>) – Number of stacks i.e., dilation cycles.</p></li>
+<li><p><strong>residual_channels</strong> (<em>int</em>) – Number of channels in residual conv.</p></li>
+<li><p><strong>gate_channels</strong> (<em>int</em>) – Number of channels in gated conv.</p></li>
+<li><p><strong>skip_channels</strong> (<em>int</em>) – Number of channels in skip conv.</p></li>
+<li><p><strong>aux_channels</strong> (<em>int</em>) – Number of channels for auxiliary feature conv.</p></li>
+<li><p><strong>aux_context_window</strong> (<em>int</em>) – Context window size for auxiliary feature.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate. 0.0 means no dropout applied.</p></li>
+<li><p><strong>bias</strong> (<em>bool</em>) – Whether to use bias parameter in conv layer.</p></li>
+<li><p><strong>use_weight_norm</strong> (<em>bool</em>) – Whether to use weight norm.
+If set to true, it will be applied to all of the conv layers.</p></li>
+<li><p><strong>upsample_conditional_features</strong> (<em>bool</em>) – Whether to use upsampling network.</p></li>
+<li><p><strong>upsample_net</strong> (<em>str</em>) – Upsampling network architecture.</p></li>
+<li><p><strong>upsample_params</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Upsampling network parameters.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANGenerator.apply_weight_norm">
+<code class="sig-name descname">apply_weight_norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/parallel_wavegan.html#ParallelWaveGANGenerator.apply_weight_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANGenerator.apply_weight_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply weight normalization module from all of the layers.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANGenerator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">c: torch.Tensor</em>, <em class="sig-param">z: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/parallel_wavegan.html#ParallelWaveGANGenerator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANGenerator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> (<em>Tensor</em>) – Local conditioning auxiliary features (B, C ,T_feats).</p></li>
+<li><p><strong>z</strong> (<em>Tensor</em>) – Input noise signal (B, 1, T_wav).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor (B, out_channels, T_wav)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANGenerator.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">c: torch.Tensor</em>, <em class="sig-param">z: Optional[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/parallel_wavegan.html#ParallelWaveGANGenerator.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANGenerator.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>c</strong> (<em>Tensor</em>) – Local conditioning auxiliary features (T_feats ,C).</p></li>
+<li><p><strong>z</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Input noise signal (T_wav, 1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor (T_wav, out_channels)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANGenerator.receptive_field_size">
+<em class="property">property </em><code class="sig-name descname">receptive_field_size</code><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANGenerator.receptive_field_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return receptive field size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANGenerator.remove_weight_norm">
+<code class="sig-name descname">remove_weight_norm</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/parallel_wavegan/parallel_wavegan.html#ParallelWaveGANGenerator.remove_weight_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.parallel_wavegan.parallel_wavegan.ParallelWaveGANGenerator.remove_weight_norm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove weight normalization module from all of the layers.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 <div class="section" id="espnet2-gan-tts-hifigan-loss">
-<span id="id4"></span><h2>espnet2.gan_tts.hifigan.loss<a class="headerlink" href="#espnet2-gan-tts-hifigan-loss" title="Permalink to this headline">¶</a></h2>
+<span id="id7"></span><h2>espnet2.gan_tts.hifigan.loss<a class="headerlink" href="#espnet2-gan-tts-hifigan-loss" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.hifigan.loss"></span><p>HiFiGAN-related loss modules.</p>
 <p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
 <dl class="class">
@@ -547,10 +835,10 @@ outputs..</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-hifigan-init">
-<span id="id5"></span><h2>espnet2.gan_tts.hifigan.__init__<a class="headerlink" href="#espnet2-gan-tts-hifigan-init" title="Permalink to this headline">¶</a></h2>
+<span id="id8"></span><h2>espnet2.gan_tts.hifigan.__init__<a class="headerlink" href="#espnet2-gan-tts-hifigan-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.hifigan.__init__"></span></div>
 <div class="section" id="espnet2-gan-tts-hifigan-residual-block">
-<span id="id6"></span><h2>espnet2.gan_tts.hifigan.residual_block<a class="headerlink" href="#espnet2-gan-tts-hifigan-residual-block" title="Permalink to this headline">¶</a></h2>
+<span id="id9"></span><h2>espnet2.gan_tts.hifigan.residual_block<a class="headerlink" href="#espnet2-gan-tts-hifigan-residual-block" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.hifigan.residual_block"></span><p>HiFiGAN Residual block modules.</p>
 <p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
 <dl class="class">
@@ -594,7 +882,7 @@ function.</p></li>
 
 </div>
 <div class="section" id="espnet2-gan-tts-hifigan-hifigan">
-<span id="id7"></span><h2>espnet2.gan_tts.hifigan.hifigan<a class="headerlink" href="#espnet2-gan-tts-hifigan-hifigan" title="Permalink to this headline">¶</a></h2>
+<span id="id10"></span><h2>espnet2.gan_tts.hifigan.hifigan<a class="headerlink" href="#espnet2-gan-tts-hifigan-hifigan" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.hifigan.hifigan"></span><p>HiFi-GAN Modules.</p>
 <p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
 <dl class="class">
@@ -944,7 +1232,7 @@ will be applied to all of the conv layers.</p></li>
 
 </div>
 <div class="section" id="espnet2-gan-tts-utils-get-random-segments">
-<span id="id8"></span><h2>espnet2.gan_tts.utils.get_random_segments<a class="headerlink" href="#espnet2-gan-tts-utils-get-random-segments" title="Permalink to this headline">¶</a></h2>
+<span id="id11"></span><h2>espnet2.gan_tts.utils.get_random_segments<a class="headerlink" href="#espnet2-gan-tts-utils-get-random-segments" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.utils.get_random_segments"></span><p>Function to get random segments.</p>
 <dl class="function">
 <dt id="espnet2.gan_tts.utils.get_random_segments.get_random_segments">
@@ -991,13 +1279,13 @@ Tensor: Start index tensor (B,).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-utils-init">
-<span id="id9"></span><h2>espnet2.gan_tts.utils.__init__<a class="headerlink" href="#espnet2-gan-tts-utils-init" title="Permalink to this headline">¶</a></h2>
+<span id="id12"></span><h2>espnet2.gan_tts.utils.__init__<a class="headerlink" href="#espnet2-gan-tts-utils-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.utils.__init__"></span></div>
 <div class="section" id="espnet2-gan-tts-wavenet-init">
-<span id="id10"></span><h2>espnet2.gan_tts.wavenet.__init__<a class="headerlink" href="#espnet2-gan-tts-wavenet-init" title="Permalink to this headline">¶</a></h2>
+<span id="id13"></span><h2>espnet2.gan_tts.wavenet.__init__<a class="headerlink" href="#espnet2-gan-tts-wavenet-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.wavenet.__init__"></span></div>
 <div class="section" id="espnet2-gan-tts-wavenet-residual-block">
-<span id="id11"></span><h2>espnet2.gan_tts.wavenet.residual_block<a class="headerlink" href="#espnet2-gan-tts-wavenet-residual-block" title="Permalink to this headline">¶</a></h2>
+<span id="id14"></span><h2>espnet2.gan_tts.wavenet.residual_block<a class="headerlink" href="#espnet2-gan-tts-wavenet-residual-block" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.wavenet.residual_block"></span><p>Residual block modules.</p>
 <p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
 <dl class="class">
@@ -1069,7 +1357,7 @@ Tensor: Output tensor for skip connection (B, skip_channels, T).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-wavenet-wavenet">
-<span id="id12"></span><h2>espnet2.gan_tts.wavenet.wavenet<a class="headerlink" href="#espnet2-gan-tts-wavenet-wavenet" title="Permalink to this headline">¶</a></h2>
+<span id="id15"></span><h2>espnet2.gan_tts.wavenet.wavenet<a class="headerlink" href="#espnet2-gan-tts-wavenet-wavenet" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.wavenet.wavenet"></span><p>WaveNet modules.</p>
 <p>This code is modified from <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a>.</p>
 <dl class="class">
@@ -1152,7 +1440,7 @@ be applied to all of the conv layers.</p></li>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-generator">
-<span id="id13"></span><h2>espnet2.gan_tts.vits.generator<a class="headerlink" href="#espnet2-gan-tts-vits-generator" title="Permalink to this headline">¶</a></h2>
+<span id="id16"></span><h2>espnet2.gan_tts.vits.generator<a class="headerlink" href="#espnet2-gan-tts-vits-generator" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.generator"></span><p>Generator module in VITS.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1322,7 +1610,7 @@ Tensor: Duration tensor (B, T_text).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-loss">
-<span id="id14"></span><h2>espnet2.gan_tts.vits.loss<a class="headerlink" href="#espnet2-gan-tts-vits-loss" title="Permalink to this headline">¶</a></h2>
+<span id="id17"></span><h2>espnet2.gan_tts.vits.loss<a class="headerlink" href="#espnet2-gan-tts-vits-loss" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.loss"></span><p>VITS-related loss modules.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1358,10 +1646,10 @@ Tensor: Duration tensor (B, T_text).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-init">
-<span id="id15"></span><h2>espnet2.gan_tts.vits.__init__<a class="headerlink" href="#espnet2-gan-tts-vits-init" title="Permalink to this headline">¶</a></h2>
+<span id="id18"></span><h2>espnet2.gan_tts.vits.__init__<a class="headerlink" href="#espnet2-gan-tts-vits-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.__init__"></span></div>
 <div class="section" id="espnet2-gan-tts-vits-flow">
-<span id="id16"></span><h2>espnet2.gan_tts.vits.flow<a class="headerlink" href="#espnet2-gan-tts-vits-flow" title="Permalink to this headline">¶</a></h2>
+<span id="id19"></span><h2>espnet2.gan_tts.vits.flow<a class="headerlink" href="#espnet2-gan-tts-vits-flow" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.flow"></span><p>Basic Flow modules used in VITS.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1558,7 +1846,7 @@ Tensor: Log-determinant tensor for NLL (B,) if not inverse.</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-duration-predictor">
-<span id="id17"></span><h2>espnet2.gan_tts.vits.duration_predictor<a class="headerlink" href="#espnet2-gan-tts-vits-duration-predictor" title="Permalink to this headline">¶</a></h2>
+<span id="id20"></span><h2>espnet2.gan_tts.vits.duration_predictor<a class="headerlink" href="#espnet2-gan-tts-vits-duration-predictor" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.duration_predictor"></span><p>Stochastic duration predictor modules in VITS.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1613,7 +1901,7 @@ Variational Autoencoder with Adversarial Learning for End-to-End Text-to-Speech<
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-posterior-encoder">
-<span id="id19"></span><h2>espnet2.gan_tts.vits.posterior_encoder<a class="headerlink" href="#espnet2-gan-tts-vits-posterior-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id22"></span><h2>espnet2.gan_tts.vits.posterior_encoder<a class="headerlink" href="#espnet2-gan-tts-vits-posterior-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.posterior_encoder"></span><p>Posterior encoder module in VITS.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1669,7 +1957,7 @@ Tensor: Mask tensor for input tensor (B, 1, T_feats).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-transform">
-<span id="id21"></span><h2>espnet2.gan_tts.vits.transform<a class="headerlink" href="#espnet2-gan-tts-vits-transform" title="Permalink to this headline">¶</a></h2>
+<span id="id24"></span><h2>espnet2.gan_tts.vits.transform<a class="headerlink" href="#espnet2-gan-tts-vits-transform" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.transform"></span><p>Flow-related transformation.</p>
 <p>This code is derived from <a class="reference external" href="https://github.com/bayesiains/nflows">https://github.com/bayesiains/nflows</a>.</p>
 <dl class="function">
@@ -1689,7 +1977,7 @@ Tensor: Mask tensor for input tensor (B, 1, T_feats).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-vits">
-<span id="id22"></span><h2>espnet2.gan_tts.vits.vits<a class="headerlink" href="#espnet2-gan-tts-vits-vits" title="Permalink to this headline">¶</a></h2>
+<span id="id25"></span><h2>espnet2.gan_tts.vits.vits<a class="headerlink" href="#espnet2-gan-tts-vits-vits" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.vits"></span><p>VITS module for GAN-TTS task.</p>
 <dl class="class">
 <dt id="espnet2.gan_tts.vits.vits.VITS">
@@ -1811,7 +2099,7 @@ discriminator adversarial loss.</p></li>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-text-encoder">
-<span id="id24"></span><h2>espnet2.gan_tts.vits.text_encoder<a class="headerlink" href="#espnet2-gan-tts-vits-text-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id27"></span><h2>espnet2.gan_tts.vits.text_encoder<a class="headerlink" href="#espnet2-gan-tts-vits-text-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.text_encoder"></span><p>Text encoder module in VITS.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1874,7 +2162,7 @@ Tensor: Mask tensor for input tensor (B, 1, T_text).</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-residual-coupling">
-<span id="id26"></span><h2>espnet2.gan_tts.vits.residual_coupling<a class="headerlink" href="#espnet2-gan-tts-vits-residual-coupling" title="Permalink to this headline">¶</a></h2>
+<span id="id29"></span><h2>espnet2.gan_tts.vits.residual_coupling<a class="headerlink" href="#espnet2-gan-tts-vits-residual-coupling" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.residual_coupling"></span><p>Residual affine coupling modules in VITS.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="class">
@@ -1978,7 +2266,7 @@ Tensor: Log-determinant tensor for NLL (B,) if not inverse.</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-monotonic-align-init">
-<span id="id28"></span><h2>espnet2.gan_tts.vits.monotonic_align.__init__<a class="headerlink" href="#espnet2-gan-tts-vits-monotonic-align-init" title="Permalink to this headline">¶</a></h2>
+<span id="id31"></span><h2>espnet2.gan_tts.vits.monotonic_align.__init__<a class="headerlink" href="#espnet2-gan-tts-vits-monotonic-align-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.vits.monotonic_align.__init__"></span><p>Maximum path calculation module.</p>
 <p>This code is based on <a class="reference external" href="https://github.com/jaywalnut310/vits">https://github.com/jaywalnut310/vits</a>.</p>
 <dl class="function">
@@ -2015,13 +2303,13 @@ Tensor: Log-determinant tensor for NLL (B,) if not inverse.</p>
 
 </div>
 <div class="section" id="espnet2-gan-tts-vits-monotonic-align-setup">
-<span id="id29"></span><h2>espnet2.gan_tts.vits.monotonic_align.setup<a class="headerlink" href="#espnet2-gan-tts-vits-monotonic-align-setup" title="Permalink to this headline">¶</a></h2>
+<span id="id32"></span><h2>espnet2.gan_tts.vits.monotonic_align.setup<a class="headerlink" href="#espnet2-gan-tts-vits-monotonic-align-setup" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="espnet2-gan-tts-joint-init">
-<span id="id30"></span><h2>espnet2.gan_tts.joint.__init__<a class="headerlink" href="#espnet2-gan-tts-joint-init" title="Permalink to this headline">¶</a></h2>
+<span id="id33"></span><h2>espnet2.gan_tts.joint.__init__<a class="headerlink" href="#espnet2-gan-tts-joint-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.joint.__init__"></span></div>
 <div class="section" id="espnet2-gan-tts-joint-joint-text2wav">
-<span id="id31"></span><h2>espnet2.gan_tts.joint.joint_text2wav<a class="headerlink" href="#espnet2-gan-tts-joint-joint-text2wav" title="Permalink to this headline">¶</a></h2>
+<span id="id34"></span><h2>espnet2.gan_tts.joint.joint_text2wav<a class="headerlink" href="#espnet2-gan-tts-joint-joint-text2wav" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.joint.joint_text2wav"></span><p>Joint text-to-wav module for end-to-end training.</p>
 <dl class="class">
 <dt id="espnet2.gan_tts.joint.joint_text2wav.JointText2Wav">
