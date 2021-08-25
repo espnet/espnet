@@ -93,7 +93,7 @@ inference_model=train.loss.ave.pth # Model path for decoding.
                                    # inference_model=3epoch.pth
                                    # inference_model=valid.acc.best.pth
                                    # inference_model=valid.loss.ave.pth
-vocoder_file=none  # Vocoder model file or pretrained model tag (e.g., ljspeech_hifigan.v1).
+vocoder_file=none  # Vocoder model file or pretrained model tag, if set to none, Griffin-Lim will be used.
 download_model=""  # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -177,7 +177,7 @@ Options:
     --inference_model   # Model path for decoding (default=${inference_model}).
     --vocoder_file      # Vocoder file or tag of the pretrained model (default=${vocoder_file}).
                         # If set to none, Griffin-Lim vocoder will be used.
-                        # If set to tag of the pretrained model (e.g., ljspeech_hifigan.v1),
+                        # If set to tag of the pretrained model (e.g., parallel_wavegan/ljspeech_hifigan.v1),
                         # the specified model will be automatically downloaded.
     --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 

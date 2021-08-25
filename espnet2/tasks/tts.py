@@ -464,7 +464,8 @@ class TTSTask(AbsTask):
         Args:
             vocoder_config_file (Optional[Union[Path, str]]): The yaml file of config.
             vocoder_file (Optional[Union[Path, str]]): The model file saved when
-                training or the tag of pretrained model available in parallel_wavegan.
+                training or the tag of pretrained model.
+                (e.g., `parallel_wavegan/ljspeech_hifigan.v1)
                 If set to None, Griffin-lim vocoder will be used.
             model (Optional[ESPnetTTSModel]): TTS ESPnet model, which will be used
                 to get feature extraction parameters for Griffin-Lim.
@@ -495,7 +496,9 @@ class TTSTask(AbsTask):
                 logging.warning("Vocoder is not available. Skipped its building.")
                 return None
 
-        elif not Path(vocoder_file).exists():
+        elif not Path(vocoder_file).exists() and vocoder_file.startswith(
+            "parallel_wavegan/"
+        ):
             # Assume that vocoder file is the tag of pretrained model
             try:
                 from parallel_wavegan.utils import download_pretrained_model
@@ -520,7 +523,7 @@ class TTSTask(AbsTask):
                 f"We assume that {vocoder_file} is tag of the pretrained model."
             )
             vocoder = ParallelWaveGANPretrainedVocoder(
-                download_pretrained_model(vocoder_file)
+                download_pretrained_model(vocoder_file.replace("parallel_wavegan/", ""))
             )
             return vocoder.to(device)
 
