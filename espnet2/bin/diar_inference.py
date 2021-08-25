@@ -41,8 +41,8 @@ class DiarizeSpeech:
 
     def __init__(
         self,
-        diar_train_config: Union[Path, str],
-        diar_model_file: Union[Path, str] = None,
+        diar_train_config: Optional[Union[Path, str]] = None,
+        diar_model_file: Optional[Union[Path, str]] = None,
         segment_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
         show_progressbar: bool = False,

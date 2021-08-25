@@ -43,8 +43,8 @@ class SeparateSpeech:
 
     def __init__(
         self,
-        enh_train_config: Union[Path, str],
-        enh_model_file: Union[Path, str] = None,
+        enh_train_config: Optional[Union[Path, str]] = None,
+        enh_model_file: Optional[Union[Path, str]] = None,
         segment_size: Optional[float] = None,
         hop_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
