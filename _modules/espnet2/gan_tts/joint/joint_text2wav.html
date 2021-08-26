@@ -240,6 +240,8 @@
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.melgan.pqmf</span> <span class="kn">import</span> <span class="n">PQMF</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.parallel_wavegan</span> <span class="kn">import</span> <span class="n">ParallelWaveGANDiscriminator</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.parallel_wavegan</span> <span class="kn">import</span> <span class="n">ParallelWaveGANGenerator</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.style_melgan</span> <span class="kn">import</span> <span class="n">StyleMelGANDiscriminator</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.style_melgan</span> <span class="kn">import</span> <span class="n">StyleMelGANGenerator</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.utils</span> <span class="kn">import</span> <span class="n">get_random_segments</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.utils</span> <span class="kn">import</span> <span class="n">get_segments</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
@@ -258,6 +260,7 @@
     <span class="s2">&quot;hifigan_generator&quot;</span><span class="p">:</span> <span class="n">HiFiGANGenerator</span><span class="p">,</span>
     <span class="s2">&quot;melgan_generator&quot;</span><span class="p">:</span> <span class="n">MelGANGenerator</span><span class="p">,</span>
     <span class="s2">&quot;parallel_wavegan_generator&quot;</span><span class="p">:</span> <span class="n">ParallelWaveGANGenerator</span><span class="p">,</span>
+    <span class="s2">&quot;style_melgan_generator&quot;</span><span class="p">:</span> <span class="n">StyleMelGANGenerator</span><span class="p">,</span>
 <span class="p">}</span>
 <span class="n">AVAILABLE_DISCRIMINATORS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;hifigan_period_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANPeriodDiscriminator</span><span class="p">,</span>
@@ -267,6 +270,7 @@
     <span class="s2">&quot;hifigan_multi_scale_multi_period_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANMultiScaleMultiPeriodDiscriminator</span><span class="p">,</span>  <span class="c1"># NOQA</span>
     <span class="s2">&quot;melgan_multi_scale_discriminator&quot;</span><span class="p">:</span> <span class="n">MelGANMultiScaleDiscriminator</span><span class="p">,</span>
     <span class="s2">&quot;parallel_wavegan_discriminator&quot;</span><span class="p">:</span> <span class="n">ParallelWaveGANDiscriminator</span><span class="p">,</span>
+    <span class="s2">&quot;style_melgan_discriminator&quot;</span><span class="p">:</span> <span class="n">StyleMelGANDiscriminator</span><span class="p">,</span>
 <span class="p">}</span>
 
 
@@ -497,9 +501,9 @@
             <span class="o">**</span><span class="n">text2mel_params</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">vocoder_class</span> <span class="o">=</span> <span class="n">AVAILABLE_VOCODER</span><span class="p">[</span><span class="n">vocoder_type</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">vocoder_type</span> <span class="o">==</span> <span class="s2">&quot;hifigan_generator&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">vocoder_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;hifigan_generator&quot;</span><span class="p">,</span> <span class="s2">&quot;melgan_generator&quot;</span><span class="p">]:</span>
             <span class="n">vocoder_params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">in_channels</span><span class="o">=</span><span class="n">odim</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">vocoder_type</span> <span class="o">==</span> <span class="s2">&quot;parallel_wavegan_generator&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">vocoder_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;parallel_wavegan_generator&quot;</span><span class="p">,</span> <span class="s2">&quot;style_melgan_generator&quot;</span><span class="p">]:</span>
             <span class="n">vocoder_params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">aux_channels</span><span class="o">=</span><span class="n">odim</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">[</span><span class="s2">&quot;vocoder&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vocoder_class</span><span class="p">(</span>
             <span class="o">**</span><span class="n">vocoder_params</span><span class="p">,</span>

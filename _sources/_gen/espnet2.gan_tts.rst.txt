@@ -213,6 +213,39 @@ espnet2.gan_tts.wavenet.wavenet
     :show-inheritance:
 
 
+.. _espnet2.gan_tts.style_melgan.style_melgan:
+
+espnet2.gan_tts.style_melgan.style_melgan
+-----------------------------------------
+
+.. automodule:: espnet2.gan_tts.style_melgan.style_melgan
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.style_melgan.__init__:
+
+espnet2.gan_tts.style_melgan.__init__
+-------------------------------------
+
+.. automodule:: espnet2.gan_tts.style_melgan.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.style_melgan.tade_res_block:
+
+espnet2.gan_tts.style_melgan.tade_res_block
+-------------------------------------------
+
+.. automodule:: espnet2.gan_tts.style_melgan.tade_res_block
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.gan_tts.vits.generator:
 
 espnet2.gan_tts.vits.generator
