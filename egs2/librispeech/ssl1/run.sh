@@ -27,7 +27,7 @@ pretrain_config_iter0=conf/tuning/train_asr_hubert_base_960h_pretrain_it0.yaml
 pretrain_config_iter1=conf/tuning/train_asr_hubert_base_960h_pretrain_it1.yaml
 pretrain_config_iter2=conf/tuning/train_asr_hubert_base_960h_pretrain_it2.yaml
 
-./pt1_hubert.sh \
+./hubert.sh \
     --lang en \
     --ngpu 8 \
     --num_nodes 4 \

@@ -6,6 +6,7 @@ from espnet2.asr.encoder.hubert_encoder import (
     FairseqHubertPretrainEncoder,  # noqa: H301
 )
 
+
 @pytest.fixture
 def hubert_args():
     encoder = FairseqHubertPretrainEncoder(

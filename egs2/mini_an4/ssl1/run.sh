@@ -21,7 +21,7 @@ valid_set="train_dev"
 pretrain_config_iter0=conf/train_asr_hubert_base_pretrain_it0.yaml
 pretrain_config_iter1=conf/train_asr_hubert_base_pretrain_it1.yaml
 
-./pt1_hubert.sh \
+./hubert.sh \
     --lang en \
     --pretrain_start_iter "${pretrain_start_iter}"\
     --pretrain_stop_iter "${pretrain_stop_iter}" \
