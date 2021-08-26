@@ -30,8 +30,8 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
-if [ -z "${LIBRILIGHT}" ]; then
-    log "Fill the value of 'LIBRILIGHT' of db.sh"
+if [ -z "${LIBRILIGHT_LIMITED}" ]; then
+    log "Fill the value of 'LIBRILIGHT_LIMITED' of db.sh"
     exit 1
 fi
 
@@ -40,16 +40,16 @@ if [ -z "${LIBRISPEECH}" ]; then
     exit 1
 fi
 
-src=${LIBRILIGHT}/librispeech_finetuning
+src=${LIBRILIGHT_LIMITED}/librispeech_finetuning
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "Stage 1: Data Download to ${LIBRILIGHT}"
+    log "Stage 1: Data Download to ${LIBRILIGHT_LIMITED}"
     if [ ! -d ${src}/1h ] && [ ! -d ${src}/9h ]; then
-	mkdir -p "${LIBRILIGHT}"
-	wget "${ll_data_url}" -P "${LIBRILIGHT}"
-	tar vxfz "${LIBRILIGHT}/librispeech_finetuning.tgz" -C "${LIBRILIGHT}"
+	mkdir -p "${LIBRILIGHT_LIMITED}"
+	wget "${ll_data_url}" -P "${LIBRILIGHT_LIMITED}"
+	tar vxfz "${LIBRILIGHT_LIMITED}/librispeech_finetuning.tgz" -C "${LIBRILIGHT_LIMITED}"
     else
-	log "${LIBRILIGHT}/librispeech_finetuning is already existing. Skip data downloading"
+	log "${LIBRILIGHT_LIMITED}/librispeech_finetuning is already existing. Skip data downloading"
     fi
 fi
 
