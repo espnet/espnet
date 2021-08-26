@@ -27,7 +27,7 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class FairseqHubertEncoder(AbsEncoder):
-    """FairSeq Hubert encoder module.
+    """FairSeq Hubert encoder module, used for loading pretrained weight and finetuning
 
     Args:
         input_size: input dim
@@ -238,7 +238,7 @@ class FairseqHubertEncoder(AbsEncoder):
 
 
 class FairseqHubertPretrainEncoder(AbsEncoder):
-    """FairSeq Hubert encoder module.
+    """FairSeq Hubert pretrain encoder module, only used for pretraining stage
 
     Args:
         input_size: input dim

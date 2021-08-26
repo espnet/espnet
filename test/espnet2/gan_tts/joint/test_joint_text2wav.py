@@ -112,7 +112,7 @@ def make_discriminator_args(**kwargs):
     defaults = dict(
         discriminator_type="hifigan_multi_scale_multi_period_discriminator",
         discriminator_params={
-            "scales": 1,
+            "scales": 2,
             "scale_downsample_pooling": "AvgPool1d",
             "scale_downsample_pooling_params": {
                 "kernel_size": 4,
@@ -313,168 +313,6 @@ def make_loss_args(**kwargs):
             {},
             {},
         ),
-        (
-            {},
-            {
-                "vocoder_type": "parallel_wavegan_generator",
-                "vocoder_params": {
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_size": 3,
-                    "layers": 6,
-                    "stacks": 3,
-                    "residual_channels": 8,
-                    "gate_channels": 16,
-                    "skip_channels": 8,
-                    "aux_channels": 5,
-                    "aux_context_window": 0,
-                    "upsample_net": "ConvInUpsampleNetwork",
-                    "upsample_params": {"upsample_scales": [4, 4]},
-                },
-            },
-            {},
-            {},
-        ),
-        (
-            {},
-            {},
-            {
-                "discriminator_type": "parallel_wavegan_discriminator",
-                "discriminator_params": {
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_size": 3,
-                    "layers": 5,
-                    "conv_channels": 16,
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "vocoder_type": "melgan_generator",
-                "vocoder_params": {
-                    "in_channels": 5,
-                    "out_channels": 1,
-                    "kernel_size": 7,
-                    "channels": 32,
-                    "bias": True,
-                    "upsample_scales": [4, 2],
-                    "stack_kernel_size": 3,
-                    "stacks": 1,
-                    "pad": "ReplicationPad1d",
-                },
-            },
-            {},
-            {},
-        ),
-        (
-            {},
-            {},
-            {
-                "discriminator_type": "melgan_multi_scale_discriminator",
-                "discriminator_params": {
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "scales": 2,
-                    "kernel_sizes": [5, 3],
-                    "channels": 16,
-                    "max_downsample_channels": 32,
-                    "bias": True,
-                    "downsample_scales": [2, 2],
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "vocoder_type": "style_melgan_generator",
-                "vocoder_params": {
-                    "in_channels": 32,
-                    "aux_channels": 5,
-                    "channels": 16,
-                    "out_channels": 1,
-                    "kernel_size": 9,
-                    "dilation": 2,
-                    "bias": True,
-                    "noise_upsample_scales": [2, 2],
-                    "noise_upsample_activation": "LeakyReLU",
-                    "noise_upsample_activation_params": {"negative_slope": 0.2},
-                    "upsample_scales": [4, 4],
-                },
-            },
-            {},
-            {},
-        ),
-        (
-            {},
-            {},
-            {
-                "discriminator_type": "style_melgan_discriminator",
-                "discriminator_params": {
-                    "repeats": 2,
-                    "window_sizes": [4, 8],
-                    "pqmf_params": [
-                        [1, None, None, None],
-                        [2, 62, 0.26700, 9.0],
-                    ],
-                    "discriminator_params": {
-                        "out_channels": 1,
-                        "kernel_sizes": [5, 3],
-                        "channels": 16,
-                        "max_downsample_channels": 32,
-                        "bias": True,
-                        "downsample_scales": [2, 2],
-                        "nonlinear_activation": "LeakyReLU",
-                        "nonlinear_activation_params": {"negative_slope": 0.2},
-                        "pad": "ReplicationPad1d",
-                        "pad_params": {},
-                    },
-                    "use_weight_norm": True,
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "vocoder_params": {
-                    "out_channels": 4,
-                    "channels": 32,
-                    "global_channels": -1,
-                    "kernel_size": 7,
-                    "upsample_scales": [4, 2],
-                    "upsample_kernel_sizes": [8, 4],
-                    "resblock_kernel_sizes": [3, 7],
-                    "resblock_dilations": [[1, 3], [1, 3]],
-                },
-                "use_pqmf": True,
-            },
-            {},
-            {},
-        ),
-        (
-            {},
-            {
-                "vocoder_type": "melgan_generator",
-                "vocoder_params": {
-                    "in_channels": 5,
-                    "out_channels": 4,
-                    "kernel_size": 7,
-                    "channels": 32,
-                    "bias": True,
-                    "upsample_scales": [4, 2],
-                    "stack_kernel_size": 3,
-                    "stacks": 1,
-                    "pad": "ReplicationPad1d",
-                },
-                "use_pqmf": True,
-            },
-            {},
-            {},
-        ),
     ],
 )
 def test_joint_model_is_trainable_and_decodable(
@@ -538,7 +376,7 @@ def test_joint_model_is_trainable_and_decodable(
             text=torch.randint(
                 0,
                 idim,
-                (10,),
+                (5,),
             )
         )
         output_dict = model.inference(**inputs)

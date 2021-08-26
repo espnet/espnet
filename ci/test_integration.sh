@@ -27,6 +27,7 @@ echo "==== ASR (backend=pytorch, quantize-asr-model true, quantize-lm-model true
 
 echo "==== ASR (backend=chainer) ==="
 ./run.sh --python "${python}" --stage 3 --backend chainer
+
 # skip duplicated ASR training stage 2,3
 # test rnn recipe
 echo "=== ASR (backend=pytorch, model=rnn-pure-ctc) ==="

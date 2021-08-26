@@ -91,13 +91,10 @@ def prepare(
             if data_dir is not None:
                 # Create single channel dir
                 env2info = {}
-                for (
-                    (env, real_sim, mic),
-                    (
-                        _info,
-                        _spk2utt,
-                        _spk2gender,
-                    ),
+                for (env, real_sim, mic), (
+                    _info,
+                    _spk2utt,
+                    _spk2gender,
                 ) in info.items():
                     if not mic.startswith("Beam_"):
                         env2info.setdefault((env, real_sim), []).append(
