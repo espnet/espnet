@@ -57,7 +57,7 @@ $(basename ${datasetdir})
 |threshold_median_collar|DER|
 |---|---|
 EOF
-                for file in $(ls -v ${datasetdir}/scoring/result_*); do
+                for file in "${datasetdir}"/scoring/result_*; do
                     grep OVER ${file} \
                         | grep -v nooverlap \
                         | sed "s/^.*[^0-9]\([0-9]\{1,3\}\.[0-9]\{2\}\).*$/\|$(basename ${file})\|\1\|/"
