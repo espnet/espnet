@@ -112,7 +112,7 @@ def make_discriminator_args(**kwargs):
     defaults = dict(
         discriminator_type="hifigan_multi_scale_multi_period_discriminator",
         discriminator_params={
-            "scales": 2,
+            "scales": 1,
             "scale_downsample_pooling": "AvgPool1d",
             "scale_downsample_pooling_params": {
                 "kernel_size": 4,
@@ -356,7 +356,7 @@ def make_loss_args(**kwargs):
                 "vocoder_type": "melgan_generator",
                 "vocoder_params": {
                     "in_channels": 5,
-                    "out_channels": 4,
+                    "out_channels": 1,
                     "kernel_size": 7,
                     "channels": 32,
                     "bias": True,
@@ -365,7 +365,6 @@ def make_loss_args(**kwargs):
                     "stacks": 1,
                     "pad": "ReplicationPad1d",
                 },
-                "use_pqmf": True,
             },
             {},
             {},
@@ -391,7 +390,56 @@ def make_loss_args(**kwargs):
         (
             {},
             {
-                # HifiGAN multi-band case
+                "vocoder_type": "style_melgan_generator",
+                "vocoder_params": {
+                    "in_channels": 32,
+                    "aux_channels": 5,
+                    "channels": 16,
+                    "out_channels": 1,
+                    "kernel_size": 9,
+                    "dilation": 2,
+                    "bias": True,
+                    "noise_upsample_scales": [2, 2],
+                    "noise_upsample_activation": "LeakyReLU",
+                    "noise_upsample_activation_params": {"negative_slope": 0.2},
+                    "upsample_scales": [4, 4],
+                },
+            },
+            {},
+            {},
+        ),
+        (
+            {},
+            {},
+            {
+                "discriminator_type": "style_melgan_discriminator",
+                "discriminator_params": {
+                    "repeats": 2,
+                    "window_sizes": [4, 8],
+                    "pqmf_params": [
+                        [1, None, None, None],
+                        [2, 62, 0.26700, 9.0],
+                    ],
+                    "discriminator_params": {
+                        "out_channels": 1,
+                        "kernel_sizes": [5, 3],
+                        "channels": 16,
+                        "max_downsample_channels": 32,
+                        "bias": True,
+                        "downsample_scales": [2, 2],
+                        "nonlinear_activation": "LeakyReLU",
+                        "nonlinear_activation_params": {"negative_slope": 0.2},
+                        "pad": "ReplicationPad1d",
+                        "pad_params": {},
+                    },
+                    "use_weight_norm": True,
+                },
+            },
+            {},
+        ),
+        (
+            {},
+            {
                 "vocoder_params": {
                     "out_channels": 4,
                     "channels": 32,
@@ -401,6 +449,26 @@ def make_loss_args(**kwargs):
                     "upsample_kernel_sizes": [8, 4],
                     "resblock_kernel_sizes": [3, 7],
                     "resblock_dilations": [[1, 3], [1, 3]],
+                },
+                "use_pqmf": True,
+            },
+            {},
+            {},
+        ),
+        (
+            {},
+            {
+                "vocoder_type": "melgan_generator",
+                "vocoder_params": {
+                    "in_channels": 5,
+                    "out_channels": 4,
+                    "kernel_size": 7,
+                    "channels": 32,
+                    "bias": True,
+                    "upsample_scales": [4, 2],
+                    "stack_kernel_size": 3,
+                    "stacks": 1,
+                    "pad": "ReplicationPad1d",
                 },
                 "use_pqmf": True,
             },
