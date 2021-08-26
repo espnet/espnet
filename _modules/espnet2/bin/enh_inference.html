@@ -383,10 +383,17 @@
                     <span class="n">speech_seg_</span> <span class="o">=</span> <span class="n">speech_seg</span>
 
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_segment_scale</span><span class="p">:</span>
-                    <span class="c1"># normalize the energy of each separated stream</span>
-                    <span class="c1"># to match the input energy</span>
+                    <span class="c1"># normalize the scale to match the input mixture scale</span>
+                    <span class="n">mix_energy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">speech_seg_</span><span class="p">[:,</span> <span class="p">:</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="n">enh_energy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
+                            <span class="nb">sum</span><span class="p">(</span><span class="n">processed_wav</span><span class="p">)[:,</span> <span class="p">:</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
                     <span class="n">processed_wav</span> <span class="o">=</span> <span class="p">[</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">normalize_scale</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">speech_seg_</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">processed_wav</span>
+                        <span class="n">w</span> <span class="o">*</span> <span class="p">(</span><span class="n">mix_energy</span> <span class="o">/</span> <span class="n">enh_energy</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">processed_wav</span>
                     <span class="p">]</span>
                 <span class="c1"># List[torch.Tensor(num_spk, B, T)]</span>
                 <span class="n">enh_waves</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">processed_wav</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
@@ -436,21 +443,6 @@
             <span class="n">waves</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">waves</span><span class="p">]</span>
 
         <span class="k">return</span> <span class="n">waves</span>
-
-<div class="viewcode-block" id="SeparateSpeech.normalize_scale"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.enh_inference.SeparateSpeech.normalize_scale">[docs]</a>    <span class="nd">@staticmethod</span>
-    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
-    <span class="k">def</span> <span class="nf">normalize_scale</span><span class="p">(</span><span class="n">enh_wav</span><span class="p">,</span> <span class="n">ref_ch_wav</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Normalize the energy of enh_wav to match that of ref_ch_wav.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            enh_wav (torch.Tensor): (B, Nsamples)</span>
-<span class="sd">            ref_ch_wav (torch.Tensor): (B, Nsamples)</span>
-<span class="sd">        Returns:</span>
-<span class="sd">            enh_wav (torch.Tensor): (B, Nsamples)</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">ref_energy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">ref_ch_wav</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-        <span class="n">enh_energy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">enh_wav</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">enh_wav</span> <span class="o">*</span> <span class="p">(</span><span class="n">ref_energy</span> <span class="o">/</span> <span class="n">enh_energy</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="SeparateSpeech.cal_permumation"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.enh_inference.SeparateSpeech.cal_permumation">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">cal_permumation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref_wavs</span><span class="p">,</span> <span class="n">enh_wavs</span><span class="p">,</span> <span class="n">criterion</span><span class="o">=</span><span class="s2">&quot;si_snr&quot;</span><span class="p">):</span>

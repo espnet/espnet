@@ -241,6 +241,8 @@
     <span class="s2">&quot;spectrum&quot;</span><span class="p">,</span>
     <span class="c1"># log_mse_loss(enhanced_complex_spectrum, target_complex_spectrum)</span>
     <span class="s2">&quot;spectrum_log&quot;</span><span class="p">,</span>
+    <span class="c1"># snr(enhanced_waveform, target_waveform)</span>
+    <span class="s2">&quot;snr&quot;</span><span class="p">,</span>
     <span class="c1"># si_snr(enhanced_waveform, target_waveform)</span>
     <span class="s2">&quot;si_snr&quot;</span><span class="p">,</span>
     <span class="c1"># ci_sdr(enhanced_waveform, target_waveform)</span>
@@ -271,7 +273,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">=</span> <span class="n">separator</span><span class="o">.</span><span class="n">num_spk</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_noise_type</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">separator</span><span class="p">,</span> <span class="s2">&quot;num_noise_type&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">loss_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;si_snr&quot;</span><span class="p">,</span> <span class="s2">&quot;ci_sdr&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">encoder</span><span class="p">,</span> <span class="n">ConvEncoder</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">loss_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;snr&quot;</span><span class="p">,</span> <span class="s2">&quot;si_snr&quot;</span><span class="p">,</span> <span class="s2">&quot;ci_sdr&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">encoder</span><span class="p">,</span> <span class="n">ConvEncoder</span>
+        <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">loss_type</span><span class="si">}</span><span class="s2"> is not supported with </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">ConvEncoder</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="c1"># get mask type for TF-domain models (only used when loss_type=&quot;mask_*&quot;)</span>
@@ -281,7 +285,7 @@
         <span class="c1"># whether to compute the TF-domain loss while enforcing STFT consistency</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stft_consistency</span> <span class="o">=</span> <span class="n">stft_consistency</span>
 
-        <span class="k">if</span> <span class="n">stft_consistency</span> <span class="ow">and</span> <span class="n">loss_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;mask_mse&quot;</span><span class="p">,</span> <span class="s2">&quot;si_snr&quot;</span><span class="p">,</span> <span class="s2">&quot;ci_sdr&quot;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">stft_consistency</span> <span class="ow">and</span> <span class="n">loss_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mask_mse&quot;</span><span class="p">,</span> <span class="s2">&quot;snr&quot;</span><span class="p">,</span> <span class="s2">&quot;si_snr&quot;</span><span class="p">,</span> <span class="s2">&quot;ci_sdr&quot;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;stft_consistency will not work when &#39;</span><span class="si">{</span><span class="n">loss_type</span><span class="si">}</span><span class="s2">&#39; loss is used&quot;</span>
             <span class="p">)</span>
@@ -433,7 +437,7 @@
         <span class="p">)</span>
 
         <span class="c1"># add stats for logging</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;ci_sdr&quot;</span><span class="p">,</span> <span class="s2">&quot;si_snr&quot;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;snr&quot;</span><span class="p">,</span> <span class="s2">&quot;ci_sdr&quot;</span><span class="p">,</span> <span class="s2">&quot;si_snr&quot;</span><span class="p">):</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
                 <span class="n">si_snr</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">else</span><span class="p">:</span>
@@ -457,6 +461,8 @@
                 <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">ci_sdr</span><span class="o">=-</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;si_snr&quot;</span><span class="p">:</span>
                 <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">si_snr</span><span class="o">=-</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;snr&quot;</span><span class="p">:</span>
+                <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">snr</span><span class="o">=-</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span> <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported loss type: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span><span class="p">)</span>
 
@@ -500,7 +506,7 @@
         <span class="n">feature_mix</span><span class="p">,</span> <span class="n">flens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
         <span class="n">feature_pre</span><span class="p">,</span> <span class="n">flens</span><span class="p">,</span> <span class="n">others</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">separator</span><span class="p">(</span><span class="n">feature_mix</span><span class="p">,</span> <span class="n">flens</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;si_snr&quot;</span><span class="p">,</span> <span class="s2">&quot;ci_sdr&quot;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;snr&quot;</span><span class="p">,</span> <span class="s2">&quot;si_snr&quot;</span><span class="p">,</span> <span class="s2">&quot;ci_sdr&quot;</span><span class="p">):</span>
             <span class="n">spectrum_mix</span> <span class="o">=</span> <span class="n">feature_mix</span>
             <span class="n">spectrum_pre</span> <span class="o">=</span> <span class="n">feature_pre</span>
             <span class="c1"># predict separated speech and masks</span>
@@ -656,7 +662,12 @@
                 <span class="n">speech_ref</span> <span class="o">=</span> <span class="n">speech_ref</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">]</span>
             <span class="n">speech_ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;si_snr&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;snr&quot;</span><span class="p">:</span>
+                <span class="c1"># compute snr loss</span>
+                <span class="n">loss</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_permutation_loss</span><span class="p">(</span>
+                    <span class="n">speech_ref</span><span class="p">,</span> <span class="n">speech_pre</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">snr_loss</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;si_snr&quot;</span><span class="p">:</span>
                 <span class="c1"># compute si-snr loss</span>
                 <span class="n">loss</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_permutation_loss</span><span class="p">(</span>
                     <span class="n">speech_ref</span><span class="p">,</span> <span class="n">speech_pre</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">si_snr_loss_zeromean</span>
@@ -769,6 +780,24 @@
         <span class="k">assert</span> <span class="n">ref</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ci_sdr</span><span class="o">.</span><span class="n">pt</span><span class="o">.</span><span class="n">ci_sdr_loss</span><span class="p">(</span><span class="n">inf</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">compute_permutation</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="ESPnetEnhancementModel.snr_loss"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.snr_loss">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">snr_loss</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;SNR loss</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref: (Batch, samples)</span>
+<span class="sd">            inf: (Batch, samples)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: (Batch,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="n">inf</span> <span class="o">-</span> <span class="n">ref</span>
+
+        <span class="n">snr</span> <span class="o">=</span> <span class="mi">20</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="n">EPS</span><span class="p">))</span>
+            <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">noise</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="n">EPS</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">snr</span></div>
+
 <div class="viewcode-block" id="ESPnetEnhancementModel.si_snr_loss"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.si_snr_loss">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">si_snr_loss</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;SI-SNR loss</span>
@@ -826,9 +855,7 @@
         <span class="n">pair_wise_si_snr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pair_wise_proj</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">e_noise</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span>
         <span class="p">)</span>
-        <span class="c1"># print(&#39;pair_si_snr&#39;,pair_wise_si_snr[0,:])</span>
         <span class="n">pair_wise_si_snr</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">pair_wise_si_snr</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>  <span class="c1"># [B]</span>
-        <span class="c1"># print(pair_wise_si_snr)</span>
 
         <span class="k">return</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">pair_wise_si_snr</span></div>
 

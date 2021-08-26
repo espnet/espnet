@@ -372,6 +372,26 @@ espnet2/iterators/chunk_iter_factory.py</p></li>
 </dd></dl>
 
 <dl class="method">
+<dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel.snr_loss">
+<em class="property">static </em><code class="sig-name descname">snr_loss</code><span class="sig-paren">(</span><em class="sig-param">ref</em>, <em class="sig-param">inf</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel.snr_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel.snr_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>SNR loss</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> – (Batch, samples)</p></li>
+<li><p><strong>inf</strong> – (Batch, samples)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(Batch,)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>loss</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel.tf_l1_loss">
 <em class="property">static </em><code class="sig-name descname">tf_l1_loss</code><span class="sig-paren">(</span><em class="sig-param">ref</em>, <em class="sig-param">inf</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel.tf_l1_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel.tf_l1_loss" title="Permalink to this definition">¶</a></dt>
 <dd><p>time-frequency L1 loss.</p>
