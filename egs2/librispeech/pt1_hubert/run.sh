@@ -5,8 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-. ./db.sh
-
 
 pretrain_start_iter=0
 pretrain_stop_iter=2
@@ -15,8 +13,11 @@ n_clusters_iter0=100
 n_clusters_iter1=500
 n_clusters_iter2=500
 
+# Extract mfcc feature for k-means clustering to generate pseudo targets
 feature_iter0="mfcc"
+# Extract latent features from transformer layer 6 of HuBERT model pre-trained in the iteration0
 feature_iter1="HuBERT6"
+# Extract latent features from transformer layer 9 of HuBERT model pre-trained in the iteration1
 feature_iter2="HuBERT9"
 
 train_set="train_960"

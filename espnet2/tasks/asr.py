@@ -35,10 +35,9 @@ from espnet2.asr.encoder.contextual_block_transformer_encoder import (
 )
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
-from espnet2.asr.encoder.hubert_encoder import (
-    FairseqHubertEncoder,  # noqa: H301
-    FairseqHubertPretrainEncoder,  # noqa: H301
-)
+from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
+from espnet2.asr.encoder.hubert_encoder import FairseqHubertPretrainEncoder
+
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend

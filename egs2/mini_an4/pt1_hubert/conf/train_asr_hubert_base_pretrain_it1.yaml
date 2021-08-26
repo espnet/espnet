@@ -1,9 +1,8 @@
-# Please not the 'label_rate' is different between iteration0 and iteration1 (100 for iteration0 and 50 or iteration1)
 grad_clip: 5.0
 batch_type: numel
-batch_bins: 150000000
+batch_bins: 1500000
 accum_grad: 1
-max_epoch: 700
+max_epoch: 100
 patience: none
 # Use self-defined function for initialization
 init: xavier_uniform 
@@ -13,13 +12,13 @@ best_model_criterion:
     - max
 keep_nbest_models: 10
 
-input_size: 768
+input_size: 100
 encoder: hubert_pretrain
 encoder_conf:
-    output_size: 768
-    linear_units: 3072
+    output_size: 32
+    linear_units: 256
     attention_heads: 8
-    num_blocks: 12
+    num_blocks: 2
     dropout_rate: 0.1
     attention_dropout_rate: 0.0
     dropout_input: 0.1
@@ -29,7 +28,7 @@ encoder_conf:
     skip_nomask: false
     mask_prob: 0.80
     extractor_mode: default
-    conv_feature_layers: '[(512,10,5)] + [(512,3,2)] * 4 + [(512,2,2)] * 2'
+    conv_feature_layers: '[(64,10,5)] + [(64,3,2)] * 4 + [(64,2,2)] * 2'
     final_dim: 256
     encoder_layerdrop: 0.05
     feature_grad_mult: 0.1

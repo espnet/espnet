@@ -168,3 +168,36 @@ def test_hifigan_generator_and_discriminator_and_loss(
     optimizer_d.zero_grad()
     loss_d.backward()
     optimizer_d.step()
+
+
+try:
+    import parallel_wavegan  # NOQA
+
+    is_parallel_wavegan_available = True
+except ImportError:
+    is_parallel_wavegan_available = False
+
+
+@pytest.mark.skipif(
+    not is_parallel_wavegan_available, reason="parallel_wavegan is not installed."
+)
+def test_parallel_wavegan_compatibility():
+    from parallel_wavegan.utils import download_pretrained_model
+    from parallel_wavegan.utils import load_model
+
+    ckpt_path = download_pretrained_model("ljspeech_hifigan.v1")
+    state_dict = torch.load(ckpt_path, map_location="cpu")["model"]["generator"]
+    model_pwg = load_model(ckpt_path)
+    model_espnet2 = HiFiGANGenerator()
+    model_espnet2.load_state_dict(state_dict)
+    model_pwg.eval()
+    model_espnet2.eval()
+
+    with torch.no_grad():
+        c = torch.randn(5, 80)
+        out_pwg = model_pwg.inference(c)
+        out_espnet2 = model_espnet2.inference(c)
+        np.testing.assert_array_equal(
+            out_pwg.cpu().numpy(),
+            out_espnet2.cpu().numpy(),
+        )

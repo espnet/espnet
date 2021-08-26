@@ -6,7 +6,7 @@ touch .coverage
 
 # test asr recipe
 cwd=$(pwd)
-#cd ./egs/mini_an4/asr1 || exit 1
+cd ./egs/mini_an4/asr1 || exit 1
 ln -sf ${cwd}/.coverage .
 . path.sh  # source here to avoid undefined variable errors
 
@@ -253,16 +253,16 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
 fi
 
 # [ESPnet2] test pt1_hubert recipe
+if ! python3 -c "import fairseq" > /dev/null; then
+    echo "Info: installing fairseq and its dependencies:"
+    cd ${MAIN_ROOT}/tools && make fairseq.done || exit 1
+fi
 cd ./egs2/mini_an4/pt1_hubert || exit 1
 ln -sf ${cwd}/.coverage .
 echo "==== [ESPnet2] PT_HUBERT ==="
-./run.sh --stage 1 --stop-stage 1
-feats_type="raw"
-token_type="word"
-./run.sh --ngpu 0 --stage 2 --stop-stage 6 --feats-type "${feats_type}" --token_type "${token_type}" --skip-upload false \
-	 --pt-args "--max_epoch=1"
+./run.sh --ngpu 0 --stage 1 --stop-stage 7 --feats-type "raw" --token_type "word" --skip-upload false --pt-args "--max_epoch=1" --pretrain_start_iter 0 --pretrain_stop_iter 1 --python "${python}"
 # Remove generated files in order to reduce the disk usage
-#rm -rf exp dump data
+rm -rf exp dump data
 cd "${cwd}" || exit 1
 
 # [ESPnet2] Validate configuration files

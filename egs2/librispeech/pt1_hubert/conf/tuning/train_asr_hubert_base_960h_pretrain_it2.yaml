@@ -1,3 +1,4 @@
+# Please not the 'label_rate' is different between iteration0 and iteration2 (100 for iteration0 and 50 or iteration2)
 grad_clip: 5.0
 batch_type: numel
 batch_bins: 150000000

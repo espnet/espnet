@@ -22,8 +22,14 @@ dictdir=
 nclusters=100
 feature_type=mfcc
 
+# Extract intermediate Hubert embedding from official hubert model:
 hubert_url="https://dl.fbaipublicfiles.com/hubert/hubert_base_ls960.pt"
 hubert_dir_path="./downloads/hubert_pretrained_models/hubert_base_ls960.pt"
+
+# Extract intermediate Hubert embedding from espnet-trained model:
+# hubert_url="espnet"
+# hubert_dir_path="" # Pretrained Hubert model dir contains 'valid.acc.best.pth' and 'config.yaml'
+
 portion=0.1
 nj=1
 python=python3       # Specify python to execute espnet commands.
@@ -48,38 +54,38 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     ${python} pyscripts/sklearn_km.py \
               --feats-dir "${datadir}/${train_set}" \
-	      --km-path "${km_path}" \
-	      --n-cluster "${nclusters}" \
-	      --feature-type "${feature_type}" \
-	      --hubert-model-url "${hubert_url}" \
-	      --hubert-model-path "${hubert_dir_path}" \
-	      --nj ${nj} \
-	      --portion ${portion}
+              --km-path "${km_path}" \
+              --n-cluster "${nclusters}" \
+              --feature-type "${feature_type}" \
+              --hubert-model-url "${hubert_url}" \
+              --hubert-model-path "${hubert_dir_path}" \
+              --nj ${nj} \
+              --portion ${portion}
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Generate K-means pseudo-labels"
     
     for task in ${train_set} ${dev_set} ${test_set}; do
-	# move ${datadir}/${task}/ to new folders and rename ptext
-	plabel_dir="${datadir}/${task}_${feature_type}_km${nclusters}"
-	if [[ -d "${plabel_dir}" ]]; then
-	    echo "${plabel_dir} already exists, will remove it"
-	    rm -r ${plabel_dir}
-	fi
-	mkdir -p ${plabel_dir}
-	cp -r ${datadir}/${task}/* ${plabel_dir}
-	
-	${python} pyscripts/dump_km_label.py \
-		  --km-path "${km_path}" \
-		  --label-path "${plabel_dir}/text" \
-		  --recog-set "${plabel_dir}" \
-		  --feature "${feature_type}" \
-		  --hurl "${hubert_url}" \
-		  --hdir "${hubert_dir_path}" \
-		  --nj ${nj}
-	
-	utils/fix_data_dir.sh ${plabel_dir}
+        # move ${datadir}/${task}/ to new folders and rename ptext
+        plabel_dir="${datadir}/${task}_${feature_type}_km${nclusters}"
+        if [[ -d "${plabel_dir}" ]]; then
+            echo "${plabel_dir} already exists, will remove it"
+            rm -r ${plabel_dir}
+        fi
+        mkdir -p ${plabel_dir}
+        cp -r ${datadir}/${task}/* ${plabel_dir}
+        
+        ${python} pyscripts/dump_km_label.py \
+                  --km-path "${km_path}" \
+                  --label-path "${plabel_dir}/text" \
+                  --recog-set "${plabel_dir}" \
+                  --feature "${feature_type}" \
+                  --hurl "${hubert_url}" \
+                  --hdir "${hubert_dir_path}" \
+                  --nj ${nj}
+        
+        utils/fix_data_dir.sh ${plabel_dir}
     done
 fi
 
@@ -93,7 +99,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     sos_eos="<sos/eos>" # sos and eos symbole
     
     mkdir -p ${dictdir}
-
+    
     <${datadir}/${train_set}_${feature_type}_km${nclusters}/text cut -d" " -f2- | \
         awk '{for (i=1; i<=NF; i++) {count[$i]+=1}} END{for (k in count) {print(k, count[k])}}' | \
         sort -n -r -k 2 | \

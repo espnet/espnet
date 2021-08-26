@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # NOTE: DO NOT WRITE DISTRIBUTION-SPECIFIC COMMANDS HERE (e.g., apt, dnf, etc)
-
+USE_CONDA=false
 set -euo pipefail
 
 ${CXX:-g++} -v

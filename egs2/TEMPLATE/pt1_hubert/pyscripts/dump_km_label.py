@@ -81,7 +81,7 @@ def dump_pseudo_label_mfcc(km_path, task, sample_rate, nj):
 
 def dump_pseudo_label_hubert(km_path, task, sample_rate, url, dir, layer):
     apply_kmeans = ApplyKmeans(km_path)
-    reader = HubertFeatureReader(url, dir, layer)
+    reader = HubertFeatureReader(sample_rate, url, dir, layer)
     generator, num = get_path_iterator(f"{task}/wav.scp", 1.0)
     iterator = generator()
 
@@ -95,6 +95,7 @@ def dump_pseudo_label_hubert(km_path, task, sample_rate, url, dir, layer):
 
 
 def dump_label(km_path, label_path, recog_set, feature, nj, sample_rate, hurl, hdir):
+    feature = feature.lower()
     if recog_set:
         for task in recog_set:
             logger.info("Dumping pseudo labeling for: %s", task)
