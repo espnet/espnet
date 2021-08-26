@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2021 Jiatong Shi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -18,8 +18,6 @@ train_config=conf/train_diar.yaml
 decode_config=conf/decode_diar.yaml
 
 ./diar.sh \
-    --stage 1 \
-    --stop_stage 7 \
     --collar 0.0 \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
