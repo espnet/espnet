@@ -6,6 +6,10 @@
 # This configuration tested on 4 GPUs (V100) with 32GB GPU
 # memory. It takes around 2 weeks to finish the training
 # but 100k iters model should generate reasonable results.
+# This configuration trains only 500k iters, but maybe
+# more iters give us better results (around 4M?). If you
+# have sufficient GPUs, I recommend increaseing the number
+# epochs, e.g., from 1000 to 8000.
 
 ##########################################################
 #                  TTS MODEL SETTING                     #
@@ -170,15 +174,12 @@ sort_batch: descending    # how to sort created batches
 num_workers: 4            # number of workers of data loader
 use_amp: false            # whether to use pytorch amp
 log_interval: 50          # log interval in iterations
-keep_nbest_models: 5      # number of models to keep
+keep_nbest_models: 10     # number of models to keep
 num_att_plot: 3           # number of attention figures to be saved in every check
 seed: 777                 # random seed number
 patience: null            # patience for early stopping
 unused_parameters: true   # needed for multi gpu case
 best_model_criterion:     # criterion to save the best models
--   - valid
-    - generator_loss
-    - min
 -   - train
-    - generator_loss
-    - min
+    - total_count
+    - max
