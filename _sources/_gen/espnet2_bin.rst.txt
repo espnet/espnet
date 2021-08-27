@@ -3240,12 +3240,12 @@ pack.py
 
 .. code-block:: none
 
-    usage: pack.py [-h] {asr,tts,enh} ...
+    usage: pack.py [-h] {asr,tts,enh,diar} ...
     
     Pack input files to archive format
     
     positional arguments:
-      {asr,tts,enh}
+      {asr,tts,enh,diar}
     
     optional arguments:
 .. _split_scps.py:
