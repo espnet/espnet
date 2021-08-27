@@ -275,6 +275,7 @@ class Text2Speech:
                     "Please install the latest parallel_wavegan "
                     "via `pip install -U parallel_wavegan`."
                 )
+                vocoder_tag = vocoder_tag.replace("parallel_wavegan/", "")
                 vocoder_file = download_pretrained_model(vocoder_tag)
                 vocoder_config = Path(vocoder_file).parent / "config.yml"
                 kwargs.update(vocoder_config=vocoder_config, vocoder_file=vocoder_file)
