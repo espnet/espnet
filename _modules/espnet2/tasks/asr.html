@@ -120,6 +120,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.lm.html">espnet.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
@@ -242,6 +243,8 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.transformer_decoder</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.conformer_encoder</span> <span class="kn">import</span> <span class="n">ConformerEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.hubert_encoder</span> <span class="kn">import</span> <span class="n">FairseqHubertEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.hubert_encoder</span> <span class="kn">import</span> <span class="n">FairseqHubertPretrainEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.rnn_encoder</span> <span class="kn">import</span> <span class="n">RNNEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.transformer_encoder</span> <span class="kn">import</span> <span class="n">TransformerEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.contextual_block_transformer_encoder</span> <span class="kn">import</span> <span class="p">(</span>
@@ -325,6 +328,8 @@
         <span class="n">vgg_rnn</span><span class="o">=</span><span class="n">VGGRNNEncoder</span><span class="p">,</span>
         <span class="n">rnn</span><span class="o">=</span><span class="n">RNNEncoder</span><span class="p">,</span>
         <span class="n">wav2vec2</span><span class="o">=</span><span class="n">FairSeqWav2Vec2Encoder</span><span class="p">,</span>
+        <span class="n">hubert</span><span class="o">=</span><span class="n">FairseqHubertEncoder</span><span class="p">,</span>
+        <span class="n">hubert_pretrain</span><span class="o">=</span><span class="n">FairseqHubertPretrainEncoder</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsEncoder</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;rnn&quot;</span><span class="p">,</span>

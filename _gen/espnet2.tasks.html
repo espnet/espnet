@@ -122,6 +122,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
@@ -150,6 +151,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-init">espnet2.tasks.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-diar">espnet2.tasks.diar</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-enh-asr">espnet2.tasks.enh_asr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-hubert">espnet2.tasks.hubert</a></li>
 </ul>
 </li>
 </ul>
@@ -1032,6 +1034,93 @@ If your model is defined as following,</p>
 </div>
 <div class="section" id="espnet2-tasks-enh-asr">
 <span id="id9"></span><h2>espnet2.tasks.enh_asr<a class="headerlink" href="#espnet2-tasks-enh-asr" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="espnet2-tasks-hubert">
+<span id="id10"></span><h2>espnet2.tasks.hubert<a class="headerlink" href="#espnet2-tasks-hubert" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tasks.hubert"></span><dl class="class">
+<dt id="espnet2.tasks.hubert.HubertTask">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tasks.hubert.</code><code class="sig-name descname">HubertTask</code><a class="reference internal" href="../_modules/espnet2/tasks/hubert.html#HubertTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.hubert.HubertTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.tasks.abs_task.AbsTask" title="espnet2.tasks.abs_task.AbsTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tasks.abs_task.AbsTask</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.tasks.hubert.HubertTask.add_task_arguments">
+<em class="property">classmethod </em><code class="sig-name descname">add_task_arguments</code><span class="sig-paren">(</span><em class="sig-param">parser: argparse.ArgumentParser</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tasks/hubert.html#HubertTask.add_task_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.hubert.HubertTask.add_task_arguments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.hubert.HubertTask.build_collate_fn">
+<em class="property">classmethod </em><code class="sig-name descname">build_collate_fn</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em>, <em class="sig-param">train: bool</em><span class="sig-paren">)</span> &#x2192; Callable[[Collection[Tuple[str, Dict[str, numpy.ndarray]]]], Tuple[List[str], Dict[str, torch.Tensor]]]<a class="reference internal" href="../_modules/espnet2/tasks/hubert.html#HubertTask.build_collate_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.hubert.HubertTask.build_collate_fn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return “collate_fn”, which is a callable object and given to DataLoader.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">collate_fn</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">build_collate_fn</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In many cases, you can use our common collate_fn.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.hubert.HubertTask.build_model">
+<em class="property">classmethod </em><code class="sig-name descname">build_model</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span> &#x2192; espnet2.hubert.espnet_model.HubertPretrainModel<a class="reference internal" href="../_modules/espnet2/tasks/hubert.html#HubertTask.build_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.hubert.HubertTask.build_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.hubert.HubertTask.build_preprocess_fn">
+<em class="property">classmethod </em><code class="sig-name descname">build_preprocess_fn</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em>, <em class="sig-param">train: bool</em><span class="sig-paren">)</span> &#x2192; Optional[Callable[[str, Dict[str, numpy.array]], Dict[str, numpy.ndarray]]]<a class="reference internal" href="../_modules/espnet2/tasks/hubert.html#HubertTask.build_preprocess_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.hubert.HubertTask.build_preprocess_fn" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.tasks.hubert.HubertTask.class_choices_list">
+<code class="sig-name descname">class_choices_list</code><em class="property"> = [&lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;]</em><a class="headerlink" href="#espnet2.tasks.hubert.HubertTask.class_choices_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.tasks.hubert.HubertTask.num_optimizers">
+<code class="sig-name descname">num_optimizers</code><em class="property"> = 1</em><a class="headerlink" href="#espnet2.tasks.hubert.HubertTask.num_optimizers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.hubert.HubertTask.optional_data_names">
+<em class="property">classmethod </em><code class="sig-name descname">optional_data_names</code><span class="sig-paren">(</span><em class="sig-param">train: bool = True</em>, <em class="sig-param">inference: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[str, ...]<a class="reference internal" href="../_modules/espnet2/tasks/hubert.html#HubertTask.optional_data_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.hubert.HubertTask.optional_data_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the optional names by Task</p>
+<p>This function is used by
+&gt;&gt;&gt; cls.check_task_requirements()
+If your model is defined as follows,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">opt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="k">pass</span>
+</pre></div>
+</div>
+<p>then “optional_data_names” should be as</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">optional_data_names</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;opt&#39;</span><span class="p">,)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.hubert.HubertTask.required_data_names">
+<em class="property">classmethod </em><code class="sig-name descname">required_data_names</code><span class="sig-paren">(</span><em class="sig-param">train: bool = True</em>, <em class="sig-param">inference: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[str, ...]<a class="reference internal" href="../_modules/espnet2/tasks/hubert.html#HubertTask.required_data_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.hubert.HubertTask.required_data_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the required names by Task</p>
+<p>This function is used by
+&gt;&gt;&gt; cls.check_task_requirements()
+If your model is defined as following,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">opt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="k">pass</span>
+</pre></div>
+</div>
+<p>then “required_data_names” should be as</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">required_data_names</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;output&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.tasks.hubert.HubertTask.trainer">
+<code class="sig-name descname">trainer</code><a class="headerlink" href="#espnet2.tasks.hubert.HubertTask.trainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="espnet2.train.html#espnet2.train.trainer.Trainer" title="espnet2.train.trainer.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.trainer.Trainer</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 </div>
 

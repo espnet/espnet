@@ -122,6 +122,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
@@ -136,6 +137,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-diar-train">espnet2.bin.diar_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-tts-inference">espnet2.bin.tts_inference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-gan-tts-train">espnet2.bin.gan_tts_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-hubert-train">espnet2.bin.hubert_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-diar-inference">espnet2.bin.diar_inference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-align">espnet2.bin.asr_align</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-launch">espnet2.bin.launch</a></li>
@@ -426,8 +428,25 @@
 </dd></dl>
 
 </div>
+<div class="section" id="espnet2-bin-hubert-train">
+<span id="id6"></span><h2>espnet2.bin.hubert_train<a class="headerlink" href="#espnet2-bin-hubert-train" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.hubert_train"></span><dl class="function">
+<dt id="espnet2.bin.hubert_train.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.hubert_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/hubert_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.hubert_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.hubert_train.main">
+<code class="sig-prename descclassname">espnet2.bin.hubert_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/hubert_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.hubert_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hubert pretraining.</p>
+<p class="rubric">Example</p>
+<p>% python hubert_train.py asr –print_config –optim adadelta                 &gt; conf/hubert_asr.yaml
+% python hubert_train.py –config conf/train_asr.yaml</p>
+</dd></dl>
+
+</div>
 <div class="section" id="espnet2-bin-diar-inference">
-<span id="id6"></span><h2>espnet2.bin.diar_inference<a class="headerlink" href="#espnet2-bin-diar-inference" title="Permalink to this headline">¶</a></h2>
+<span id="id7"></span><h2>espnet2.bin.diar_inference<a class="headerlink" href="#espnet2-bin-diar-inference" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.diar_inference"></span><dl class="class">
 <dt id="espnet2.bin.diar_inference.DiarizeSpeech">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.diar_inference.</code><code class="sig-name descname">DiarizeSpeech</code><span class="sig-paren">(</span><em class="sig-param">diar_train_config: Union[pathlib.Path, str], diar_model_file: Union[pathlib.Path, str] = None, segment_size: Optional[float] = None, normalize_segment_scale: bool = False, show_progressbar: bool = False, device: str = 'cpu', dtype: str = 'float32'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#DiarizeSpeech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.DiarizeSpeech" title="Permalink to this definition">¶</a></dt>
@@ -460,7 +479,7 @@
 
 </div>
 <div class="section" id="espnet2-bin-asr-align">
-<span id="id7"></span><h2>espnet2.bin.asr_align<a class="headerlink" href="#espnet2-bin-asr-align" title="Permalink to this headline">¶</a></h2>
+<span id="id8"></span><h2>espnet2.bin.asr_align<a class="headerlink" href="#espnet2-bin-asr-align" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.asr_align"></span><p>Perform CTC segmentation to align utterances within audio files.</p>
 <dl class="class">
 <dt id="espnet2.bin.asr_align.CTCSegmentation">
@@ -896,7 +915,7 @@ with their new values. Unknown properties are ignored.</p>
 
 </div>
 <div class="section" id="espnet2-bin-launch">
-<span id="id8"></span><h2>espnet2.bin.launch<a class="headerlink" href="#espnet2-bin-launch" title="Permalink to this headline">¶</a></h2>
+<span id="id9"></span><h2>espnet2.bin.launch<a class="headerlink" href="#espnet2-bin-launch" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.launch"></span><dl class="function">
 <dt id="espnet2.bin.launch.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.launch.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/launch.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.launch.get_parser" title="Permalink to this definition">¶</a></dt>
@@ -909,10 +928,10 @@ with their new values. Unknown properties are ignored.</p>
 
 </div>
 <div class="section" id="espnet2-bin-init">
-<span id="id9"></span><h2>espnet2.bin.__init__<a class="headerlink" href="#espnet2-bin-init" title="Permalink to this headline">¶</a></h2>
+<span id="id10"></span><h2>espnet2.bin.__init__<a class="headerlink" href="#espnet2-bin-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.__init__"></span></div>
 <div class="section" id="espnet2-bin-lm-train">
-<span id="id10"></span><h2>espnet2.bin.lm_train<a class="headerlink" href="#espnet2-bin-lm-train" title="Permalink to this headline">¶</a></h2>
+<span id="id11"></span><h2>espnet2.bin.lm_train<a class="headerlink" href="#espnet2-bin-lm-train" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.lm_train"></span><dl class="function">
 <dt id="espnet2.bin.lm_train.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.lm_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/lm_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.lm_train.get_parser" title="Permalink to this definition">¶</a></dt>
@@ -929,7 +948,7 @@ with their new values. Unknown properties are ignored.</p>
 
 </div>
 <div class="section" id="espnet2-bin-tokenize-text">
-<span id="id11"></span><h2>espnet2.bin.tokenize_text<a class="headerlink" href="#espnet2-bin-tokenize-text" title="Permalink to this headline">¶</a></h2>
+<span id="id12"></span><h2>espnet2.bin.tokenize_text<a class="headerlink" href="#espnet2-bin-tokenize-text" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.tokenize_text"></span><dl class="function">
 <dt id="espnet2.bin.tokenize_text.field2slice">
 <code class="sig-prename descclassname">espnet2.bin.tokenize_text.</code><code class="sig-name descname">field2slice</code><span class="sig-paren">(</span><em class="sig-param">field: Optional[str]</em><span class="sig-paren">)</span> &#x2192; slice<a class="reference internal" href="../_modules/espnet2/bin/tokenize_text.html#field2slice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tokenize_text.field2slice" title="Permalink to this definition">¶</a></dt>
@@ -963,7 +982,7 @@ with their new values. Unknown properties are ignored.</p>
 
 </div>
 <div class="section" id="espnet2-bin-enh-train">
-<span id="id12"></span><h2>espnet2.bin.enh_train<a class="headerlink" href="#espnet2-bin-enh-train" title="Permalink to this headline">¶</a></h2>
+<span id="id13"></span><h2>espnet2.bin.enh_train<a class="headerlink" href="#espnet2-bin-enh-train" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.enh_train"></span><dl class="function">
 <dt id="espnet2.bin.enh_train.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.enh_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_train.get_parser" title="Permalink to this definition">¶</a></dt>
@@ -983,7 +1002,7 @@ with their new values. Unknown properties are ignored.</p>
 
 </div>
 <div class="section" id="espnet2-bin-enh-scoring">
-<span id="id13"></span><h2>espnet2.bin.enh_scoring<a class="headerlink" href="#espnet2-bin-enh-scoring" title="Permalink to this headline">¶</a></h2>
+<span id="id14"></span><h2>espnet2.bin.enh_scoring<a class="headerlink" href="#espnet2-bin-enh-scoring" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.enh_scoring"></span><dl class="function">
 <dt id="espnet2.bin.enh_scoring.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.enh_scoring.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_scoring.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_scoring.get_parser" title="Permalink to this definition">¶</a></dt>
@@ -1001,7 +1020,7 @@ with their new values. Unknown properties are ignored.</p>
 
 </div>
 <div class="section" id="espnet2-bin-asr-train">
-<span id="id14"></span><h2>espnet2.bin.asr_train<a class="headerlink" href="#espnet2-bin-asr-train" title="Permalink to this headline">¶</a></h2>
+<span id="id15"></span><h2>espnet2.bin.asr_train<a class="headerlink" href="#espnet2-bin-asr-train" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.asr_train"></span><dl class="function">
 <dt id="espnet2.bin.asr_train.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.asr_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_train.get_parser" title="Permalink to this definition">¶</a></dt>
@@ -1021,7 +1040,7 @@ with their new values. Unknown properties are ignored.</p>
 
 </div>
 <div class="section" id="espnet2-bin-k2-asr-inference">
-<span id="id15"></span><h2>espnet2.bin.k2_asr_inference<a class="headerlink" href="#espnet2-bin-k2-asr-inference" title="Permalink to this headline">¶</a></h2>
+<span id="id16"></span><h2>espnet2.bin.k2_asr_inference<a class="headerlink" href="#espnet2-bin-k2-asr-inference" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.k2_asr_inference"></span><dl class="function">
 <dt id="espnet2.bin.k2_asr_inference.build_ctc_topo">
 <code class="sig-prename descclassname">espnet2.bin.k2_asr_inference.</code><code class="sig-name descname">build_ctc_topo</code><span class="sig-paren">(</span><em class="sig-param">tokens: List[int]</em><span class="sig-paren">)</span> &#x2192; k2.fsa.Fsa<a class="reference internal" href="../_modules/espnet2/bin/k2_asr_inference.html#build_ctc_topo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.k2_asr_inference.build_ctc_topo" title="Permalink to this definition">¶</a></dt>
@@ -1101,7 +1120,7 @@ decoded.</p>
 
 </div>
 <div class="section" id="espnet2-bin-lm-calc-perplexity">
-<span id="id16"></span><h2>espnet2.bin.lm_calc_perplexity<a class="headerlink" href="#espnet2-bin-lm-calc-perplexity" title="Permalink to this headline">¶</a></h2>
+<span id="id17"></span><h2>espnet2.bin.lm_calc_perplexity<a class="headerlink" href="#espnet2-bin-lm-calc-perplexity" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.lm_calc_perplexity"></span><dl class="function">
 <dt id="espnet2.bin.lm_calc_perplexity.calc_perplexity">
 <code class="sig-prename descclassname">espnet2.bin.lm_calc_perplexity.</code><code class="sig-name descname">calc_perplexity</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], train_config: Optional[str], model_file: Optional[str], log_base: Optional[float], allow_variable_data_keys: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/lm_calc_perplexity.html#calc_perplexity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.lm_calc_perplexity.calc_perplexity" title="Permalink to this definition">¶</a></dt>
@@ -1119,7 +1138,7 @@ decoded.</p>
 
 </div>
 <div class="section" id="espnet2-bin-split-scps">
-<span id="id17"></span><h2>espnet2.bin.split_scps<a class="headerlink" href="#espnet2-bin-split-scps" title="Permalink to this headline">¶</a></h2>
+<span id="id18"></span><h2>espnet2.bin.split_scps<a class="headerlink" href="#espnet2-bin-split-scps" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.split_scps"></span><dl class="function">
 <dt id="espnet2.bin.split_scps.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.split_scps.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; argparse.ArgumentParser<a class="reference internal" href="../_modules/espnet2/bin/split_scps.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.split_scps.get_parser" title="Permalink to this definition">¶</a></dt>
@@ -1137,7 +1156,7 @@ decoded.</p>
 
 </div>
 <div class="section" id="espnet2-bin-tts-train">
-<span id="id18"></span><h2>espnet2.bin.tts_train<a class="headerlink" href="#espnet2-bin-tts-train" title="Permalink to this headline">¶</a></h2>
+<span id="id19"></span><h2>espnet2.bin.tts_train<a class="headerlink" href="#espnet2-bin-tts-train" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.tts_train"></span><dl class="function">
 <dt id="espnet2.bin.tts_train.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.tts_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/tts_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tts_train.get_parser" title="Permalink to this definition">¶</a></dt>
@@ -1154,7 +1173,7 @@ decoded.</p>
 
 </div>
 <div class="section" id="espnet2-bin-asr-inference">
-<span id="id19"></span><h2>espnet2.bin.asr_inference<a class="headerlink" href="#espnet2-bin-asr-inference" title="Permalink to this headline">¶</a></h2>
+<span id="id20"></span><h2>espnet2.bin.asr_inference<a class="headerlink" href="#espnet2-bin-asr-inference" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.asr_inference"></span><dl class="class">
 <dt id="espnet2.bin.asr_inference.Speech2Text">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.asr_inference.</code><code class="sig-name descname">Speech2Text</code><span class="sig-paren">(</span><em class="sig-param">asr_train_config: Union[pathlib.Path, str], asr_model_file: Union[pathlib.Path, str] = None, lm_train_config: Union[pathlib.Path, str] = None, lm_file: Union[pathlib.Path, str] = None, ngram_scorer: str = 'full', ngram_file: Union[pathlib.Path, str] = None, token_type: str = None, bpemodel: str = None, device: str = 'cpu', maxlenratio: float = 0.0, minlenratio: float = 0.0, batch_size: int = 1, dtype: str = 'float32', beam_size: int = 20, ctc_weight: float = 0.5, lm_weight: float = 1.0, ngram_weight: float = 0.9, penalty: float = 0.0, nbest: int = 1, streaming: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_inference.html#Speech2Text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_inference.Speech2Text" title="Permalink to this definition">¶</a></dt>
@@ -1187,7 +1206,7 @@ decoded.</p>
 
 </div>
 <div class="section" id="espnet2-bin-pack">
-<span id="id20"></span><h2>espnet2.bin.pack<a class="headerlink" href="#espnet2-bin-pack" title="Permalink to this headline">¶</a></h2>
+<span id="id21"></span><h2>espnet2.bin.pack<a class="headerlink" href="#espnet2-bin-pack" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.pack"></span><dl class="class">
 <dt id="espnet2.bin.pack.ASRPackedContents">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.pack.</code><code class="sig-name descname">ASRPackedContents</code><a class="reference internal" href="../_modules/espnet2/bin/pack.html#ASRPackedContents"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.pack.ASRPackedContents" title="Permalink to this definition">¶</a></dt>

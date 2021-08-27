@@ -59,6 +59,17 @@ espnet2.bin.gan_tts_train
     :show-inheritance:
 
 
+.. _espnet2.bin.hubert_train:
+
+espnet2.bin.hubert_train
+------------------------
+
+.. automodule:: espnet2.bin.hubert_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.diar_inference:
 
 espnet2.bin.diar_inference

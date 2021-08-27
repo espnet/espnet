@@ -102,3 +102,14 @@ espnet2.tasks.enh_asr
     :undoc-members:
     :show-inheritance:
 
+
+.. _espnet2.tasks.hubert:
+
+espnet2.tasks.hubert
+--------------------
+
+.. automodule:: espnet2.tasks.hubert
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
