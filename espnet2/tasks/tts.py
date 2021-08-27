@@ -409,35 +409,6 @@ class TTSTask(AbsTask):
                 logging.warning("Vocoder is not available. Skipped its building.")
                 return None
 
-        elif not Path(vocoder_file).exists():
-            # Assume that vocoder file is the tag of pretrained model
-            try:
-                from parallel_wavegan.utils import download_pretrained_model
-
-            except ImportError:
-                logging.error(
-                    "`parallel_wavegan` is not installed. "
-                    "Please install via `pip install -U parallel_wavegan`."
-                )
-                raise
-
-            from parallel_wavegan import __version__
-
-            # NOTE(kan-bayashi): Filelock download is supported from 0.5.2
-            assert LooseVersion(__version__) > LooseVersion("0.5.1"), (
-                "Please install the latest parallel_wavegan "
-                "via `pip install -U parallel_wavegan`."
-            )
-
-            logging.info(
-                f"{vocoder_file} does not exist. "
-                f"We assume that {vocoder_file} is tag of the pretrained model."
-            )
-            vocoder = ParallelWaveGANPretrainedVocoder(
-                download_pretrained_model(vocoder_file)
-            )
-            return vocoder.to(device)
-
         elif str(vocoder_file).endswith(".pkl"):
             # If the extension is ".pkl", the model is trained with parallel_wavegan
             vocoder = ParallelWaveGANPretrainedVocoder(
