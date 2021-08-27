@@ -56,7 +56,7 @@ class Text2Speech:
 
     def __init__(
         self,
-        train_config: Union[Path, str],
+        train_config: Union[Path, str] = None,
         model_file: Union[Path, str] = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
