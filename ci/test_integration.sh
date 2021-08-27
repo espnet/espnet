@@ -248,6 +248,23 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
     cd "${cwd}" || exit 1
 fi
 
+# [ESPnet2] test ssl1 recipe
+if ! python3 -c "import fairseq" > /dev/null; then
+    echo "Info: installing fairseq and its dependencies:"
+    cd ${MAIN_ROOT}/tools && make fairseq.done || exit 1
+    cd "${cwd}" || exit 1
+fi
+# fairseq only supprot pytorch.version > 1.6.0
+if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.6.0")' &> /dev/null;  then
+    cd ./egs2/mini_an4/ssl1 || exit 1
+    ln -sf ${cwd}/.coverage .
+    echo "==== [ESPnet2] SSL1/HUBERT ==="
+    ./run.sh --ngpu 0 --stage 1 --stop-stage 7 --feats-type "raw" --token_type "word" --skip-upload false --pt-args "--max_epoch=1" --pretrain_start_iter 0 --pretrain_stop_iter 1 --python "${python}"
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data
+    cd "${cwd}" || exit 1
+fi
+
 # [ESPnet2] Validate configuration files
 echo "<blank>" > dummy_token_list
 echo "==== [ESPnet2] Validation configuration files ==="
@@ -263,6 +280,9 @@ if python3 -c 'import torch as t; from distutils.version import LooseVersion as 
     done
     for f in egs2/*/enh1/conf/train*.yaml; do
         python -m espnet2.bin.enh_train --config "${f}" --iterator_type none --dry_run true --output_dir out
+    done
+    for f in egs2/*/ssl1/conf/train*.yaml; do
+        python -m espnet2.bin.hubert_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
     done
 fi
 

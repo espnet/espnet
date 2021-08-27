@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu's help in this implementation,
+# Their origial Hubert work is in:
+#     Paper: https://arxiv.org/pdf/2106.07447.pdf
+#     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
 import argparse
 import logging
 from typing import Callable
@@ -12,45 +19,18 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet2.asr.ctc import CTC
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet2.asr.decoder.rnn_decoder import RNNDecoder
-from espnet2.asr.decoder.transformer_decoder import (
-    DynamicConvolution2DTransformerDecoder,  # noqa: H301
-)
-from espnet2.asr.decoder.transformer_decoder import DynamicConvolutionTransformerDecoder
-from espnet2.asr.decoder.transformer_decoder import (
-    LightweightConvolution2DTransformerDecoder,  # noqa: H301
-)
-from espnet2.asr.decoder.transformer_decoder import (
-    LightweightConvolutionTransformerDecoder,  # noqa: H301
-)
-from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
-from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
-from espnet2.asr.encoder.hubert_encoder import FairseqHubertPretrainEncoder
-from espnet2.asr.encoder.rnn_encoder import RNNEncoder
-from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.asr.encoder.contextual_block_transformer_encoder import (
-    ContextualBlockTransformerEncoder,  # noqa: H301
+from espnet2.asr.encoder.hubert_encoder import (
+    FairseqHubertPretrainEncoder,  # noqa: H301
 )
-from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
-from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
-from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
-from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
-    HuggingFaceTransformersPostEncoder,  # noqa: H301
-)
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
-from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.hubert.espnet_model import HubertPretrainModel
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -69,11 +49,7 @@ from espnet2.utils.types import str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",
-    classes=dict(
-        default=DefaultFrontend,
-        sliding_window=SlidingWindow,
-        s3prl=S3prlFrontend,
-    ),
+    classes=dict(default=DefaultFrontend, sliding_window=SlidingWindow),
     type_check=AbsFrontend,
     default="default",
 )
@@ -98,7 +74,6 @@ preencoder_choices = ClassChoices(
     name="preencoder",
     classes=dict(
         sinc=LightweightSincConvs,
-        linear=LinearProjection,
     ),
     type_check=AbsPreEncoder,
     default=None,
@@ -107,43 +82,14 @@ preencoder_choices = ClassChoices(
 encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
-        conformer=ConformerEncoder,
-        transformer=TransformerEncoder,
-        contextual_block_transformer=ContextualBlockTransformerEncoder,
-        vgg_rnn=VGGRNNEncoder,
-        rnn=RNNEncoder,
-        wav2vec2=FairSeqWav2Vec2Encoder,
-        hubert=FairseqHubertEncoder,
         hubert_pretrain=FairseqHubertPretrainEncoder,
     ),
     type_check=AbsEncoder,
-    default="rnn",
-)
-postencoder_choices = ClassChoices(
-    name="postencoder",
-    classes=dict(
-        hugging_face_transformers=HuggingFaceTransformersPostEncoder,
-    ),
-    type_check=AbsPostEncoder,
-    default=None,
-    optional=True,
-)
-decoder_choices = ClassChoices(
-    "decoder",
-    classes=dict(
-        transformer=TransformerDecoder,
-        lightweight_conv=LightweightConvolutionTransformerDecoder,
-        lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
-        dynamic_conv=DynamicConvolutionTransformerDecoder,
-        dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
-        rnn=RNNDecoder,
-    ),
-    type_check=AbsDecoder,
-    default="rnn",
+    default="hubert_pretrain",
 )
 
 
-class ASRTask(AbsTask):
+class HubertTask(AbsTask):
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
@@ -159,10 +105,6 @@ class ASRTask(AbsTask):
         preencoder_choices,
         # --encoder and --encoder_conf
         encoder_choices,
-        # --postencoder and --postencoder_conf
-        postencoder_choices,
-        # --decoder and --decoder_conf
-        decoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -206,15 +148,9 @@ class ASRTask(AbsTask):
         )
 
         group.add_argument(
-            "--ctc_conf",
-            action=NestedDictAction,
-            default=get_default_kwargs(CTC),
-            help="The keyword arguments for CTC class.",
-        )
-        group.add_argument(
             "--model_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ESPnetASRModel),
+            default=get_default_kwargs(HubertPretrainModel),
             help="The keyword arguments for model class.",
         )
 
@@ -253,28 +189,7 @@ class ASRTask(AbsTask):
         parser.add_argument(
             "--g2p",
             type=str_or_none,
-            choices=[
-                None,
-                "g2p_en",
-                "g2p_en_no_space",
-                "pyopenjtalk",
-                "pyopenjtalk_kana",
-                "pyopenjtalk_accent",
-                "pyopenjtalk_accent_with_pause",
-                "pypinyin_g2p",
-                "pypinyin_g2p_phone",
-                "espeak_ng_arabic",
-                "espeak_ng_german",
-                "espeak_ng_french",
-                "espeak_ng_spanish",
-                "espeak_ng_russian",
-                "espeak_ng_greek",
-                "espeak_ng_finnish",
-                "espeak_ng_hungarian",
-                "espeak_ng_dutch",
-                "g2pk",
-                "g2pk_no_space",
-            ],
+            choices=[None, "g2p_en", "pyopenjtalk", "pyopenjtalk_kana"],
             default=None,
             help="Specify g2p method if --token_type=phn",
         )
@@ -314,6 +229,30 @@ class ASRTask(AbsTask):
             default="13_15",
             help="The range of noise decibel level.",
         )
+        parser.add_argument(
+            "--pred_masked_weight",
+            type=float,
+            default=1.0,
+            help="weight for predictive loss for masked frames",
+        )
+        parser.add_argument(
+            "--pred_nomask_weight",
+            type=float,
+            default=0.0,
+            help="weight for predictive loss for unmasked frames",
+        )
+        parser.add_argument(
+            "--loss_weights",
+            type=float,
+            default=0.0,
+            help="weights for additional loss terms (not first one)",
+        )
+        parser.add_argument(
+            "--hubert_dict",
+            type=str,
+            default="./dict.txt",
+            help="word-based target dictionary for Hubert pretraining stage",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -328,7 +267,6 @@ class ASRTask(AbsTask):
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
         assert check_argument_types()
-        # NOTE(kamo): int value = 0 is reserved by CTC-blank symbol
         return CommonCollateFn(float_pad_value=0.0, int_pad_value=-1)
 
     @classmethod
@@ -386,12 +324,11 @@ class ASRTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetASRModel:
+    def build_model(cls, args: argparse.Namespace) -> HubertPretrainModel:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
                 token_list = [line.rstrip() for line in f]
-
             # Overwriting token_list to keep it as "portable".
             args.token_list = list(token_list)
         elif isinstance(args.token_list, (tuple, list)):
@@ -439,54 +376,25 @@ class ASRTask(AbsTask):
 
         # 4. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
-        encoder = encoder_class(input_size=input_size, **args.encoder_conf)
-
-        # 5. Post-encoder block
-        # NOTE(kan-bayashi): Use getattr to keep the compatibility
-        encoder_output_size = encoder.output_size()
-        if getattr(args, "postencoder", None) is not None:
-            postencoder_class = postencoder_choices.get_class(args.postencoder)
-            postencoder = postencoder_class(
-                input_size=encoder_output_size, **args.postencoder_conf
-            )
-            encoder_output_size = postencoder.output_size()
-        else:
-            postencoder = None
-
-        # 5. Decoder
-        decoder_class = decoder_choices.get_class(args.decoder)
-
-        decoder = decoder_class(
-            vocab_size=vocab_size,
-            encoder_output_size=encoder_output_size,
-            **args.decoder_conf,
+        encoder = encoder_class(
+            input_size=input_size,
+            use_amp=args.use_amp,
+            hubert_dict=args.hubert_dict,
+            **args.encoder_conf,
         )
-
-        # 6. CTC
-        ctc = CTC(
-            odim=vocab_size, encoder_output_sizse=encoder_output_size, **args.ctc_conf
-        )
-
-        # 7. RNN-T Decoder (Not implemented)
-        rnnt_decoder = None
 
         # 8. Build model
-        model = ESPnetASRModel(
+        model = HubertPretrainModel(
             vocab_size=vocab_size,
             frontend=frontend,
             specaug=specaug,
             normalize=normalize,
             preencoder=preencoder,
             encoder=encoder,
-            postencoder=postencoder,
-            decoder=decoder,
-            ctc=ctc,
-            rnnt_decoder=rnnt_decoder,
             token_list=token_list,
             **args.model_conf,
         )
 
-        # FIXME(kamo): Should be done in model?
         # 9. Initialize
         if args.init is not None:
             initialize(model, args.init)
