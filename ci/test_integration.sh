@@ -259,8 +259,8 @@ if ! python3 -c "import fairseq" > /dev/null; then
     cd ${MAIN_ROOT}/tools && make fairseq.done || exit 1
     cd "${cwd}" || exit 1
 fi
-# fairseq only supprot pytorch.version > 1.5.0
-if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.5.0")' &> /dev/null;  then
+# fairseq only supprot pytorch.version > 1.6.0
+if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.6.0")' &> /dev/null;  then
     cd ./egs2/mini_an4/ssl1 || exit 1
     ln -sf ${cwd}/.coverage .
     echo "==== [ESPnet2] SSL1/HUBERT ==="
