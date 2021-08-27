@@ -39,8 +39,6 @@
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
 |inference_asr_model_valid.acc.ave_5best/test|3793|99.5|
-<<<<<<< HEAD
-|inference_asr_model_valid.acc.ave_5best/valid|3118|96.3|
 
 ###ASR results
 
@@ -48,15 +46,6 @@
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|inference_asr_model_valid.acc.ave_5best/test|3793|20316|99.7|0.2|0.1|0.1|0.5|1.5|
-|inference_asr_model_valid.acc.ave_5best/valid|3118|16751|97.6|1.9|0.5|0.4|2.8|5.5|
+|inference_asr_model_valid.acc.ave_5best/test|3793|20316|99.7|0.2|0.1|0.2|0.4|1.5|
+|inference_asr_model_valid.acc.ave_5best/valid|3118|16751|97.9|1.5|0.6|0.5|2.6|5.5|
 
-#### CER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|inference_asr_model_valid.acc.ave_5best/test|3793|172445|99.9|0.1|0.1|0.1|0.2|1.5|
-|inference_asr_model_valid.acc.ave_5best/valid|3118|142122|98.8|0.7|0.5|0.4|1.5|5.5|
-=======
-|inference_asr_model_valid.acc.ave_5best/valid|3118|96.3|
->>>>>>> 50c7e47ae0120fcabf9a099356d003ba0083f06f
