@@ -2,8 +2,6 @@
 
 """Script to run the inference of text-to-speeech model."""
 
-from __future__ import annotations
-
 import argparse
 import logging
 import shutil
@@ -214,7 +212,7 @@ class Text2Speech:
         model_tag: Optional[str] = None,
         vocoder_tag: Optional[str] = None,
         **kwargs: Optional[Any],
-    ) -> Text2Speech:
+    ):
         """Build Text2Speech instance from the pretrained model.
 
         Args:
@@ -356,7 +354,9 @@ def inference(
         always_fix_seed=always_fix_seed,
     )
     text2speech = Text2Speech.from_pretrained(
-        model_tag=model_tag, vocoder_tag=vocoder_tag, **text2speech_kwargs
+        model_tag=model_tag,
+        vocoder_tag=vocoder_tag,
+        **text2speech_kwargs,
     )
 
     # 3. Build data-iterator
@@ -701,7 +701,7 @@ def get_parser():
     group.add_argument(
         "--vocoder_file",
         type=str_or_none,
-        help="Vocoder parameter file.",
+        help="Vocoder parameter file",
     )
     group.add_argument(
         "--vocoder_tag",
@@ -713,7 +713,7 @@ def get_parser():
 
 
 def main(cmd=None):
-    """Run TTS model decoding."""
+    """Run TTS model inference."""
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)

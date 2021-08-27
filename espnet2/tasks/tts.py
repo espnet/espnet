@@ -1,8 +1,9 @@
 """Text-to-speech task."""
 
 import argparse
-from distutils.version import LooseVersion
 import logging
+import yaml
+
 from pathlib import Path
 from typing import Callable
 from typing import Collection
@@ -11,10 +12,10 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
-import yaml
 
 import numpy as np
 import torch
+
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
