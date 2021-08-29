@@ -79,7 +79,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log " Data Formatting"
-     # remove ._ . _1 symboles from text  
+     # remove ._ . _1 symbols from text  
      cp data/train_nodup/text data/train_nodup/text.backup
      cp data/train_dev/text data/train_dev/text.backup
      sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/train_nodup/text

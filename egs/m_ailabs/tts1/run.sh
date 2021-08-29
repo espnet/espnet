@@ -94,7 +94,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev name by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-    # Trim silence parts at the begining and the end of audio
+    # Trim silence parts at the beginning and the end of audio
     if ${do_trimming}; then
         trim_silence.sh --cmd "${train_cmd}" \
             --fs ${fs} \

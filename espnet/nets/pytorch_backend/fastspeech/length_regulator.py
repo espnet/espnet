@@ -58,7 +58,7 @@ class LengthRegulator(torch.nn.Module):
                 "predicted durations includes all 0 sequences. "
                 "fill the first element with 1."
             )
-            # NOTE(kan-bayashi): This case must not be happend in teacher forcing.
+            # NOTE(kan-bayashi): This case must not be happened in teacher forcing.
             #   It will be happened in inference with a bad duration predictor.
             #   So we do not need to care the padded sequence case here.
             ds[ds.sum(dim=1).eq(0)] = 1

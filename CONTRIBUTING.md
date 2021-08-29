@@ -132,7 +132,7 @@ You can also test the scripts in `utils` with [bats-core](https://github.com/bat
 To test:
 
 ``` console
-./ci/test_bash.sh
+./ci/test_shell.sh
 ```
 
 ## 5 Integration testing

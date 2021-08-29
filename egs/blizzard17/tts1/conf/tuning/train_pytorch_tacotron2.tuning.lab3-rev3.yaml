@@ -1,5 +1,5 @@
 # To make the attention wight diagonal in decoding, we use forward attention.
-# Futhermore, we use reduction-fucter :3 to generate clear speech.
+# Furthermore, we use reduction-fucter :3 to generate clear speech.
 
 # encoder related
 embed-dim: 512

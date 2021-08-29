@@ -1,17 +1,25 @@
+"""Text-to-speech task."""
+
 import argparse
+from distutils.version import LooseVersion
 import logging
+from pathlib import Path
 from typing import Callable
 from typing import Collection
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
+import yaml
 
 import numpy as np
 import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet2.gan_tts.joint import JointText2Wav
+from espnet2.gan_tts.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
@@ -26,11 +34,14 @@ from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
+from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
+from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
+from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
@@ -38,7 +49,11 @@ from espnet2.utils.types import str_or_none
 
 feats_extractor_choices = ClassChoices(
     "feats_extract",
-    classes=dict(fbank=LogMelFbank, spectrogram=LogSpectrogram),
+    classes=dict(
+        fbank=LogMelFbank,
+        spectrogram=LogSpectrogram,
+        linear_spectrogram=LinearSpectrogram,
+    ),
     type_check=AbsFeatsExtract,
     default="fbank",
 )
@@ -84,6 +99,9 @@ tts_choices = ClassChoices(
         transformer=Transformer,
         fastspeech=FastSpeech,
         fastspeech2=FastSpeech2,
+        # NOTE(kan-bayashi): available only for inference
+        vits=VITS,
+        joint_text2wav=JointText2Wav,
     ),
     type_check=AbsTTS,
     default="tacotron2",
@@ -195,6 +213,12 @@ class TTSTask(AbsTask):
                 "espeak_ng_french",
                 "espeak_ng_spanish",
                 "espeak_ng_russian",
+                "espeak_ng_greek",
+                "espeak_ng_finnish",
+                "espeak_ng_hungarian",
+                "espeak_ng_dutch",
+                "g2pk",
+                "g2pk_no_space",
             ],
             default=None,
             help="Specify g2p method if --token_type=phn",
@@ -214,7 +238,9 @@ class TTSTask(AbsTask):
     ]:
         assert check_argument_types()
         return CommonCollateFn(
-            float_pad_value=0.0, int_pad_value=0, not_sequence=["spembs"]
+            float_pad_value=0.0,
+            int_pad_value=0,
+            not_sequence=["spembs", "sids", "lids"],
         )
 
     @classmethod
@@ -253,10 +279,10 @@ class TTSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "durations", "pitch", "energy")
+            retval = ("spembs", "durations", "pitch", "energy", "sids", "lids")
         else:
             # Inference mode
-            retval = ("spembs", "speech", "durations")
+            retval = ("spembs", "speech", "durations", "sids", "lids")
         return retval
 
     @classmethod
@@ -354,3 +380,70 @@ class TTSTask(AbsTask):
         )
         assert check_return_type(model)
         return model
+
+    @classmethod
+    def build_vocoder_from_file(
+        cls,
+        vocoder_config_file: Union[Path, str] = None,
+        vocoder_file: Union[Path, str] = None,
+        model: Optional[ESPnetTTSModel] = None,
+        device: str = "cpu",
+    ):
+        # Build vocoder
+        if vocoder_file is None:
+            # If vocoder file is not provided, use griffin-lim as a vocoder
+            vocoder_conf = {}
+            if vocoder_config_file is not None:
+                vocoder_config_file = Path(vocoder_config_file)
+                with vocoder_config_file.open("r", encoding="utf-8") as f:
+                    vocoder_conf = yaml.safe_load(f)
+            if model.feats_extract is not None:
+                vocoder_conf.update(model.feats_extract.get_parameters())
+            if (
+                "n_fft" in vocoder_conf
+                and "n_shift" in vocoder_conf
+                and "fs" in vocoder_conf
+            ):
+                return Spectrogram2Waveform(**vocoder_conf)
+            else:
+                logging.warning("Vocoder is not available. Skipped its building.")
+                return None
+
+        elif not Path(vocoder_file).exists():
+            # Assume that vocoder file is the tag of pretrained model
+            try:
+                from parallel_wavegan.utils import download_pretrained_model
+
+            except ImportError:
+                logging.error(
+                    "`parallel_wavegan` is not installed. "
+                    "Please install via `pip install -U parallel_wavegan`."
+                )
+                raise
+
+            from parallel_wavegan import __version__
+
+            # NOTE(kan-bayashi): Filelock download is supported from 0.5.2
+            assert LooseVersion(__version__) > LooseVersion("0.5.1"), (
+                "Please install the latest parallel_wavegan "
+                "via `pip install -U parallel_wavegan`."
+            )
+
+            logging.info(
+                f"{vocoder_file} does not exist. "
+                f"We assume that {vocoder_file} is tag of the pretrained model."
+            )
+            vocoder = ParallelWaveGANPretrainedVocoder(
+                download_pretrained_model(vocoder_file)
+            )
+            return vocoder.to(device)
+
+        elif str(vocoder_file).endswith(".pkl"):
+            # If the extension is ".pkl", the model is trained with parallel_wavegan
+            vocoder = ParallelWaveGANPretrainedVocoder(
+                vocoder_file, vocoder_config_file
+            )
+            return vocoder.to(device)
+
+        else:
+            raise ValueError(f"{vocoder_file} is not supported format.")

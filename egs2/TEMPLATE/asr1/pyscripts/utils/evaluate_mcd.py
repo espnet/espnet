@@ -178,7 +178,7 @@ def calculate(
 
 def get_parser() -> argparse.Namespace:
     """Get argument parser."""
-    parser = argparse.ArgumentParser(description="Evaluate Mel-cepstrum distorsion.")
+    parser = argparse.ArgumentParser(description="Evaluate Mel-cepstrum distortion.")
     parser.add_argument(
         "--wavdir",
         required=True,

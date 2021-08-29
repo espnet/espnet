@@ -155,7 +155,7 @@ class Postnet(torch.nn.Module):
     Conditioning WaveNet on Mel Spectrogram Predictions`_.
     The Postnet predicts refines the predicted
     Mel-filterbank of the decoder,
-    which helps to compensate the detail sturcture of spectrogram.
+    which helps to compensate the detail structure of spectrogram.
 
     .. _`Natural TTS Synthesis by Conditioning WaveNet on Mel Spectrogram Predictions`:
        https://arxiv.org/abs/1712.05884

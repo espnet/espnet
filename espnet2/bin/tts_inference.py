@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""TTS mode decoding."""
+"""Script to run the inference of text-to-speeech model."""
 
 import argparse
 import logging
@@ -8,6 +8,8 @@ from pathlib import Path
 import shutil
 import sys
 import time
+from typing import Any
+from typing import Dict
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -21,37 +23,35 @@ from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.npy_scp import NpyScpWriter
+from espnet2.gan_tts.vits import VITS
 from espnet2.tasks.tts import TTSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.tts.duration_calculator import DurationCalculator
 from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
+from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
-from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet2.utils.griffin_lim import Spectrogram2Waveform
-from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 
 
 class Text2Speech:
-    """Speech2Text class
+    """Text2Speech module.
 
     Examples:
         >>> import soundfile
         >>> text2speech = Text2Speech("config.yml", "model.pth")
-        >>> wav = text2speech("Hello World")[0]
+        >>> wav = text2speech("Hello World")["wav"]
         >>> soundfile.write("out.wav", wav.numpy(), text2speech.fs, "PCM_16")
 
     """
 
     def __init__(
         self,
-        train_config: Optional[Union[Path, str]],
+        train_config: Union[Path, str],
         model_file: Optional[Union[Path, str]] = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
@@ -61,12 +61,19 @@ class Text2Speech:
         backward_window: int = 1,
         forward_window: int = 3,
         speed_control_alpha: float = 1.0,
-        vocoder_conf: dict = None,
+        noise_scale: float = 0.667,
+        noise_scale_dur: float = 0.8,
+        vocoder_config: Optional[Union[Path, str]] = None,
+        vocoder_file: Optional[Union[Path, str]] = None,
         dtype: str = "float32",
         device: str = "cpu",
+        seed: int = 777,
+        always_fix_seed: bool = False,
     ):
+        """Initialize Text2Speech module."""
         assert check_argument_types()
 
+        # setup model
         model, train_args = TTSTask.build_model_from_file(
             train_config, model_file, device
         )
@@ -81,47 +88,45 @@ class Text2Speech:
         self.duration_calculator = DurationCalculator()
         self.preprocess_fn = TTSTask.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
-
-        logging.info(f"Normalization:\n{self.normalize}")
+        self.seed = seed
+        self.always_fix_seed = always_fix_seed
+        self.vocoder = None
+        if self.tts.require_vocoder:
+            vocoder = TTSTask.build_vocoder_from_file(
+                vocoder_config, vocoder_file, model, device
+            )
+            if isinstance(vocoder, torch.nn.Module):
+                vocoder.to(dtype=getattr(torch, dtype)).eval()
+            self.vocoder = vocoder
+        logging.info(f"Extractor:\n{self.feats_extract}")
+        logging.info(f"Normalizer:\n{self.normalize}")
         logging.info(f"TTS:\n{self.tts}")
+        if self.vocoder is not None:
+            logging.info(f"Vocoder:\n{self.vocoder}")
 
-        decode_config = {}
+        # setup decoding config
+        decode_conf = {}
+        decode_conf.update(use_teacher_forcing=use_teacher_forcing)
         if isinstance(self.tts, (Tacotron2, Transformer)):
-            decode_config.update(
-                {
-                    "threshold": threshold,
-                    "maxlenratio": maxlenratio,
-                    "minlenratio": minlenratio,
-                }
+            decode_conf.update(
+                threshold=threshold,
+                maxlenratio=maxlenratio,
+                minlenratio=minlenratio,
             )
         if isinstance(self.tts, Tacotron2):
-            decode_config.update(
-                {
-                    "use_att_constraint": use_att_constraint,
-                    "forward_window": forward_window,
-                    "backward_window": backward_window,
-                }
+            decode_conf.update(
+                use_att_constraint=use_att_constraint,
+                forward_window=forward_window,
+                backward_window=backward_window,
             )
-        if isinstance(self.tts, (FastSpeech, FastSpeech2)):
-            decode_config.update({"alpha": speed_control_alpha})
-        decode_config.update({"use_teacher_forcing": use_teacher_forcing})
-
-        self.decode_config = decode_config
-
-        if vocoder_conf is None:
-            vocoder_conf = {}
-        if self.feats_extract is not None:
-            vocoder_conf.update(self.feats_extract.get_parameters())
-        if (
-            "n_fft" in vocoder_conf
-            and "n_shift" in vocoder_conf
-            and "fs" in vocoder_conf
-        ):
-            self.spc2wav = Spectrogram2Waveform(**vocoder_conf)
-            logging.info(f"Vocoder: {self.spc2wav}")
-        else:
-            self.spc2wav = None
-            logging.info("Vocoder is not used because vocoder_conf is not sufficient")
+        if isinstance(self.tts, (FastSpeech, FastSpeech2, VITS)):
+            decode_conf.update(alpha=speed_control_alpha)
+        if isinstance(self.tts, VITS):
+            decode_conf.update(
+                noise_scale=noise_scale,
+                noise_scale_dur=noise_scale_dur,
+            )
+        self.decode_conf = decode_conf
 
     @torch.no_grad()
     def __call__(
@@ -130,61 +135,73 @@ class Text2Speech:
         speech: Union[torch.Tensor, np.ndarray] = None,
         durations: Union[torch.Tensor, np.ndarray] = None,
         spembs: Union[torch.Tensor, np.ndarray] = None,
-        speed_control_alpha: Optional[float] = None,
-    ):
+        sids: Union[torch.Tensor, np.ndarray] = None,
+        lids: Union[torch.Tensor, np.ndarray] = None,
+        decode_conf: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, torch.Tensor]:
+        """Run text-to-speech."""
         assert check_argument_types()
 
+        # check inputs
         if self.use_speech and speech is None:
             raise RuntimeError("missing required argument: 'speech'")
 
+        # prepare batch
         if isinstance(text, str):
-            # str -> np.ndarray
-            text = self.preprocess_fn("<dummy>", {"text": text})["text"]
-        batch = {"text": text}
+            text = self.preprocess_fn("<dummy>", dict(text=text))["text"]
+        batch = dict(text=text)
         if speech is not None:
-            batch["speech"] = speech
+            batch.update(speech=speech)
         if durations is not None:
-            batch["durations"] = durations
+            batch.update(durations=durations)
         if spembs is not None:
-            batch["spembs"] = spembs
-
-        cfg = self.decode_config
-        if speed_control_alpha is not None and isinstance(
-            self.tts, (FastSpeech, FastSpeech2)
-        ):
-            cfg = self.decode_config.copy()
-            cfg.update({"alpha": speed_control_alpha})
-
+            batch.update(spembs=spembs)
+        if sids is not None:
+            batch.update(sids=sids)
+        if lids is not None:
+            batch.update(lids=lids)
         batch = to_device(batch, self.device)
-        outs, outs_denorm, probs, att_ws = self.model.inference(**batch, **cfg)
 
-        if att_ws is not None:
-            duration, focus_rate = self.duration_calculator(att_ws)
-        else:
-            duration, focus_rate = None, None
+        # overwrite the decode configs if provided
+        cfg = self.decode_conf
+        if decode_conf is not None:
+            cfg = self.decode_conf.copy()
+            cfg.update(decode_conf)
 
-        if self.spc2wav is not None:
-            wav = torch.tensor(self.spc2wav(outs_denorm.cpu().numpy()))
-        else:
-            wav = None
+        # inference
+        if self.always_fix_seed:
+            set_all_random_seed(self.seed)
+        output_dict = self.model.inference(**batch, **cfg)
 
-        return wav, outs, outs_denorm, probs, att_ws, duration, focus_rate
+        # calculate additional metrics
+        if output_dict.get("att_w") is not None:
+            duration, focus_rate = self.duration_calculator(output_dict["att_w"])
+            output_dict.update(duration=duration, focus_rate=focus_rate)
+
+        # apply vocoder (mel-to-wav)
+        if self.vocoder is not None:
+            if output_dict.get("feat_gen_denorm") is not None:
+                input_feat = output_dict["feat_gen_denorm"]
+            else:
+                input_feat = output_dict["feat_gen"]
+            wav = self.vocoder(input_feat)
+            output_dict.update(wav=wav)
+
+        return output_dict
 
     @property
     def fs(self) -> Optional[int]:
-        if self.spc2wav is not None:
-            return self.spc2wav.fs
+        """Return sampling rate."""
+        if hasattr(self.vocoder, "fs"):
+            return self.vocoder.fs
+        elif hasattr(self.tts, "fs"):
+            return self.tts.fs
         else:
             return None
 
     @property
     def use_speech(self) -> bool:
-        """Check whether to require speech in inference.
-
-        Returns:
-            bool: True if speech is required else False.
-
-        """
+        """Return speech is needed or not in the inference."""
         return self.use_teacher_forcing or getattr(self.tts, "use_gst", False)
 
 
@@ -198,7 +215,7 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    train_config: Optional[str],
+    train_config: str,
     model_file: Optional[str],
     threshold: float,
     minlenratio: float,
@@ -208,10 +225,14 @@ def inference(
     backward_window: int,
     forward_window: int,
     speed_control_alpha: float,
+    noise_scale: float,
+    noise_scale_dur: float,
+    always_fix_seed: bool,
     allow_variable_data_keys: bool,
-    vocoder_conf: dict,
+    vocoder_config: Optional[str],
+    vocoder_file: Optional[str],
 ):
-    """Perform TTS model decoding."""
+    """Run text-to-speech inference."""
     assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
@@ -242,9 +263,14 @@ def inference(
         backward_window=backward_window,
         forward_window=forward_window,
         speed_control_alpha=speed_control_alpha,
-        vocoder_conf=vocoder_conf,
+        noise_scale=noise_scale,
+        noise_scale_dur=noise_scale_dur,
+        vocoder_config=vocoder_config,
+        vocoder_file=vocoder_file,
         dtype=dtype,
         device=device,
+        seed=seed,
+        always_fix_seed=always_fix_seed,
     )
 
     # 3. Build data-iterator
@@ -303,53 +329,72 @@ def inference(
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
             start_time = time.perf_counter()
-            wav, outs, outs_denorm, probs, att_ws, duration, focus_rate = text2speech(
-                **batch
-            )
+            output_dict = text2speech(**batch)
 
             key = keys[0]
             insize = next(iter(batch.values())).size(0) + 1
-            logging.info(
-                "inference speed = {:.1f} frames / sec.".format(
-                    int(outs.size(0)) / (time.perf_counter() - start_time)
+            if output_dict.get("feat_gen") is not None:
+                # standard text2mel model case
+                feat_gen = output_dict["feat_gen"]
+                logging.info(
+                    "inference speed = {:.1f} frames / sec.".format(
+                        int(feat_gen.size(0)) / (time.perf_counter() - start_time)
+                    )
                 )
-            )
-            logging.info(f"{key} (size:{insize}->{outs.size(0)})")
-            if outs.size(0) == insize * maxlenratio:
-                logging.warning(f"output length reaches maximum length ({key}).")
+                logging.info(f"{key} (size:{insize}->{feat_gen.size(0)})")
+                if feat_gen.size(0) == insize * maxlenratio:
+                    logging.warning(f"output length reaches maximum length ({key}).")
 
-            norm_writer[key] = outs.cpu().numpy()
-            shape_writer.write(f"{key} " + ",".join(map(str, outs.shape)) + "\n")
+                norm_writer[key] = output_dict["feat_gen"].cpu().numpy()
+                shape_writer.write(
+                    f"{key} " + ",".join(map(str, output_dict["feat_gen"].shape)) + "\n"
+                )
+                if output_dict.get("feat_gen_denorm") is not None:
+                    denorm_writer[key] = output_dict["feat_gen_denorm"].cpu().numpy()
+            else:
+                # end-to-end text2wav model case
+                wav = output_dict["wav"]
+                logging.info(
+                    "inference speed = {:.1f} points / sec.".format(
+                        int(wav.size(0)) / (time.perf_counter() - start_time)
+                    )
+                )
+                logging.info(f"{key} (size:{insize}->{wav.size(0)})")
 
-            denorm_writer[key] = outs_denorm.cpu().numpy()
-
-            if duration is not None:
+            if output_dict.get("duration") is not None:
                 # Save duration and fucus rates
                 duration_writer.write(
-                    f"{key} " + " ".join(map(str, duration.cpu().numpy())) + "\n"
+                    f"{key} "
+                    + " ".join(map(str, output_dict["duration"].long().cpu().numpy()))
+                    + "\n"
                 )
-                focus_rate_writer.write(f"{key} {float(focus_rate):.5f}\n")
 
+            if output_dict.get("focus_rate") is not None:
+                focus_rate_writer.write(
+                    f"{key} {float(output_dict['focus_rate']):.5f}\n"
+                )
+
+            if output_dict.get("att_w") is not None:
                 # Plot attention weight
-                att_ws = att_ws.cpu().numpy()
+                att_w = output_dict["att_w"].cpu().numpy()
 
-                if att_ws.ndim == 2:
-                    att_ws = att_ws[None][None]
-                elif att_ws.ndim != 4:
-                    raise RuntimeError(f"Must be 2 or 4 dimension: {att_ws.ndim}")
+                if att_w.ndim == 2:
+                    att_w = att_w[None][None]
+                elif att_w.ndim != 4:
+                    raise RuntimeError(f"Must be 2 or 4 dimension: {att_w.ndim}")
 
-                w, h = plt.figaspect(att_ws.shape[0] / att_ws.shape[1])
+                w, h = plt.figaspect(att_w.shape[0] / att_w.shape[1])
                 fig = plt.Figure(
                     figsize=(
-                        w * 1.3 * min(att_ws.shape[0], 2.5),
-                        h * 1.3 * min(att_ws.shape[1], 2.5),
+                        w * 1.3 * min(att_w.shape[0], 2.5),
+                        h * 1.3 * min(att_w.shape[1], 2.5),
                     )
                 )
                 fig.suptitle(f"{key}")
-                axes = fig.subplots(att_ws.shape[0], att_ws.shape[1])
-                if len(att_ws) == 1:
+                axes = fig.subplots(att_w.shape[0], att_w.shape[1])
+                if len(att_w) == 1:
                     axes = [[axes]]
-                for ax, att_w in zip(axes, att_ws):
+                for ax, att_w in zip(axes, att_w):
                     for ax_, att_w_ in zip(ax, att_w):
                         ax_.imshow(att_w_.astype(np.float32), aspect="auto")
                         ax_.set_xlabel("Input")
@@ -361,13 +406,13 @@ def inference(
                 fig.savefig(output_dir / f"att_ws/{key}.png")
                 fig.clf()
 
-            if probs is not None:
+            if output_dict.get("prob") is not None:
                 # Plot stop token prediction
-                probs = probs.cpu().numpy()
+                prob = output_dict["prob"].cpu().numpy()
 
                 fig = plt.Figure()
                 ax = fig.add_subplot(1, 1, 1)
-                ax.plot(probs)
+                ax.plot(prob)
                 ax.set_title(f"{key}")
                 ax.set_xlabel("Output")
                 ax.set_ylabel("Stop probability")
@@ -378,19 +423,30 @@ def inference(
                 fig.savefig(output_dir / f"probs/{key}.png")
                 fig.clf()
 
-            # TODO(kamo): Write scp
-            if wav is not None:
+            if output_dict.get("wav") is not None:
+                # TODO(kamo): Write scp
                 sf.write(
-                    f"{output_dir}/wav/{key}.wav", wav.numpy(), text2speech.fs, "PCM_16"
+                    f"{output_dir}/wav/{key}.wav",
+                    output_dict["wav"].cpu().numpy(),
+                    text2speech.fs,
+                    "PCM_16",
                 )
 
-    # remove duration related files if attention is not provided
-    if att_ws is None:
+    # remove files if those are not included in output dict
+    if output_dict.get("feat_gen") is None:
+        shutil.rmtree(output_dir / "norm")
+    if output_dict.get("feat_gen_denorm") is None:
+        shutil.rmtree(output_dir / "denorm")
+    if output_dict.get("att_w") is None:
         shutil.rmtree(output_dir / "att_ws")
+    if output_dict.get("duration") is None:
         shutil.rmtree(output_dir / "durations")
+    if output_dict.get("focus_rate") is None:
         shutil.rmtree(output_dir / "focus_rates")
-    if probs is None:
+    if output_dict.get("prob") is None:
         shutil.rmtree(output_dir / "probs")
+    if output_dict.get("wav") is None:
+        shutil.rmtree(output_dir / "wav")
 
 
 def get_parser():
@@ -525,13 +581,37 @@ def get_parser():
         default=1.0,
         help="Alpha in FastSpeech to change the speed of generated speech",
     )
-
-    group = parser.add_argument_group("Grriffin-Lim related")
+    parser.add_argument(
+        "--noise_scale",
+        type=float,
+        default=0.667,
+        help="Noise scale parameter for the flow in vits",
+    )
+    parser.add_argument(
+        "--noise_scale_dur",
+        type=float,
+        default=0.8,
+        help="Noise scale parameter for the stochastic duration predictor in vits",
+    )
     group.add_argument(
-        "--vocoder_conf",
-        action=NestedDictAction,
-        default=get_default_kwargs(Spectrogram2Waveform),
-        help="The configuration for Grriffin-Lim",
+        "--always_fix_seed",
+        type=str2bool,
+        default=False,
+        help="Whether to always fix seed",
+    )
+
+    group = parser.add_argument_group("Vocoder related")
+    group.add_argument(
+        "--vocoder_config",
+        type=str_or_none,
+        default=None,
+        help="Vocoder configuration file",
+    )
+    group.add_argument(
+        "--vocoder_file",
+        type=str_or_none,
+        default=None,
+        help="Vocoder checkpoint file or pretrained model tag",
     )
     return parser
 

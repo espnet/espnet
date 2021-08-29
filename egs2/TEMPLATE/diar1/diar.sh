@@ -60,6 +60,8 @@ num_spk=2    # # Number of speakers in the input audio
 inference_config=    # Config for diar model inference
 inference_model=valid.acc.best.pth
 inference_tag=       # Suffix to the inference dir for diar model inference
+download_model= # Download a model from Model Zoo and use it for diarization.
+
 
 # scoring related
 collar=0         # collar for der scoring
@@ -117,6 +119,7 @@ Options:
     --inference_config # Config for diar model inference 
     --inference_model  # diarization model path for inference (default="${inference_model}").
     --inference_tag    # Suffix to the inference dir for diar model inference
+    --download_model      # Download a model from Model Zoo and use it for diarization (default="${download_model}").
 
     # Scoring related
     --collar      # collar for der scoring
@@ -332,8 +335,8 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${diar_stats_dir}/run.sh'. You can resume the process from stage 9 using this script"
-        mkdir -p "${diar_stats_dir}"; echo "${run_args} --stage 9 \"\$@\"; exit \$?" > "${diar_stats_dir}/run.sh"; chmod +x "${diar_stats_dir}/run.sh"
+        log "Generate '${diar_stats_dir}/run.sh'. You can resume the process from stage 4 using this script"
+        mkdir -p "${diar_stats_dir}"; echo "${run_args} --stage 4 \"\$@\"; exit \$?" > "${diar_stats_dir}/run.sh"; chmod +x "${diar_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "Diarization collect-stats started... log: '${_logdir}/stats.*.log'"
@@ -410,8 +413,8 @@ if ! "${skip_train}"; then
         _opts+="--valid_shape_file ${diar_stats_dir}/valid/speech_shape "
         _opts+="--valid_shape_file ${diar_stats_dir}/valid/spk_labels_shape "
 
-        log "Generate '${diar_exp}/run.sh'. You can resume the process from stage 10 using this script"
-        mkdir -p "${diar_exp}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${diar_exp}/run.sh"; chmod +x "${diar_exp}/run.sh"
+        log "Generate '${diar_exp}/run.sh'. You can resume the process from stage 5 using this script"
+        mkdir -p "${diar_exp}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${diar_exp}/run.sh"; chmod +x "${diar_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
         log "Diarization training started... log: '${diar_exp}/train.log'"
@@ -443,6 +446,24 @@ else
     log "Skip the training stages"
 fi
 
+if [ -n "${download_model}" ]; then
+    log "Use ${download_model} for decoding and evaluation"
+    diar_exp="${expdir}/${download_model}"
+    mkdir -p "${diar_exp}"
+
+    # If the model already exists, you can skip downloading
+    espnet_model_zoo_download --unpack true "${download_model}" > "${diar_exp}/config.txt"
+
+    # Get the path of each file
+    _diar_model_file=$(<"${diar_exp}/config.txt" sed -e "s/.*'diar_model_file': '\([^']*\)'.*$/\1/")
+    _diar_train_config=$(<"${diar_exp}/config.txt" sed -e "s/.*'diar_train_config': '\([^']*\)'.*$/\1/")
+
+    # Create symbolic links
+    ln -sf "${_diar_model_file}" "${diar_exp}"
+    ln -sf "${_diar_train_config}" "${diar_exp}"
+    inference_diar_model=$(basename "${_diar_model_file}")
+
+fi
 
 if ! "${skip_eval}"; then
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
@@ -457,7 +478,7 @@ if ! "${skip_eval}"; then
         fi
 
         log "Generate '${diar_exp}/run_diarize.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${diar_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${diar_exp}/run_diarize.sh"; chmod +x "${diar_exp}/run_diarize.sh"
+        mkdir -p "${diar_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${diar_exp}/run_diarize.sh"; chmod +x "${diar_exp}/run_diarize.sh"
         _opts=
 
         if [ -n "${inference_config}" ]; then
@@ -520,6 +541,10 @@ if ! "${skip_eval}"; then
                 --collar ${collar} --fs ${fs} --frame_shift ${frame_shift}
         done
 
+        # Show results in Markdown syntax
+        scripts/utils/show_diar_result.sh "${diar_exp}" > "${diar_exp}"/RESULTS.md
+        cat "${diar_exp}"/RESULTS.md
+
     fi
 else
     log "Skip the evaluation stages"
@@ -534,7 +559,7 @@ if ! "${skip_upload}"; then
         ${python} -m espnet2.bin.pack diar \
             --train_config "${diar_exp}"/config.yaml \
             --model_file "${diar_exp}"/"${inference_model}" \
-            --option "${diar_exp}"/RESULTS.TXT \
+            --option "${diar_exp}"/RESULTS.md \
             --option "${diar_stats_dir}"/train/feats_stats.npz  \
             --option "${diar_exp}"/images \
             --outpath "${packed_model}"
