@@ -9,7 +9,7 @@ train_set="train"
 valid_set="devel"
 test_sets="test devel"
 
-asr_config=conf/tuning/train_asr_transformer_adam_specaug_fast.yaml
+asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
