@@ -3,6 +3,7 @@ import argparse
 import logging
 from pathlib import Path
 import sys
+from typing import Any
 from typing import Dict
 from typing import Optional
 from typing import Sequence
@@ -245,6 +246,36 @@ class k2Speech2Text:
         assert check_return_type(results)
         return results
 
+    @staticmethod
+    def from_pretrained(
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
+        """Build k2Speech2Text instance from the pretrained model.
+
+        Args:
+            model_tag (Optional[str]): Model tag of the pretrained models.
+                Currently, the tags of espnet_model_zoo are supported.
+
+        Returns:
+            Speech2Text: Speech2Text instance.
+
+        """
+        if model_tag is not None:
+            try:
+                from espnet_model_zoo.downloader import ModelDownloader
+
+            except ImportError:
+                logging.error(
+                    "`espnet_model_zoo` is not installed. "
+                    "Please install via `pip install -U espnet_model_zoo`."
+                )
+                raise
+            d = ModelDownloader()
+            kwargs.update(**d.download_and_unpack(model_tag))
+
+        return k2Speech2Text(**kwargs)
+
 
 def inference(
     output_dir: str,
@@ -263,12 +294,13 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    asr_train_config: str,
-    asr_model_file: str,
+    asr_train_config: Optional[str],
+    asr_model_file: Optional[str],
     lm_train_config: Optional[str],
     lm_file: Optional[str],
     word_lm_train_config: Optional[str],
     word_lm_file: Optional[str],
+    model_tag: Optional[str],
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
@@ -292,7 +324,7 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build speech2text
-    speech2text = k2Speech2Text(
+    speech2text_kwargs = dict(
         asr_train_config=asr_train_config,
         asr_model_file=asr_model_file,
         lm_train_config=lm_train_config,
@@ -309,6 +341,10 @@ def inference(
         penalty=penalty,
         nbest=nbest,
         streaming=streaming,
+    )
+    speech2text = k2Speech2Text.from_pretrained(
+        model_tag=model_tag,
+        **speech2text_kwargs,
     )
 
     # 3. Build data-iterator
@@ -396,12 +432,42 @@ def get_parser():
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("The model configuration related")
-    group.add_argument("--asr_train_config", type=str, required=True)
-    group.add_argument("--asr_model_file", type=str, required=True)
-    group.add_argument("--lm_train_config", type=str)
-    group.add_argument("--lm_file", type=str)
-    group.add_argument("--word_lm_train_config", type=str)
-    group.add_argument("--word_lm_file", type=str)
+    group.add_argument(
+        "--asr_train_config",
+        type=str,
+        help="ASR training configuration",
+    )
+    group.add_argument(
+        "--asr_model_file",
+        type=str,
+        help="ASR model parameter file",
+    )
+    group.add_argument(
+        "--lm_train_config",
+        type=str,
+        help="LM training configuration",
+    )
+    group.add_argument(
+        "--lm_file",
+        type=str,
+        help="LM parameter file",
+    )
+    group.add_argument(
+        "--word_lm_train_config",
+        type=str,
+        help="Word LM training configuration",
+    )
+    group.add_argument(
+        "--word_lm_file",
+        type=str,
+        help="Word LM parameter file",
+    )
+    group.add_argument(
+        "--model_tag",
+        type=str,
+        help="Pretrained model tag. If specify this option, *_train_config and "
+        "*_file will be overwritten",
+    )
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
