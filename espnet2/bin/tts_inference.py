@@ -4,10 +4,12 @@
 
 import argparse
 import logging
-from pathlib import Path
 import shutil
 import sys
 import time
+
+from distutils.version import LooseVersion
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import Optional
@@ -19,6 +21,7 @@ import matplotlib
 import numpy as np
 import soundfile as sf
 import torch
+
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
@@ -51,8 +54,8 @@ class Text2Speech:
 
     def __init__(
         self,
-        train_config: Union[Path, str],
-        model_file: Optional[Union[Path, str]] = None,
+        train_config: Union[Path, str] = None,
+        model_file: Union[Path, str] = None,
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
@@ -63,8 +66,8 @@ class Text2Speech:
         speed_control_alpha: float = 1.0,
         noise_scale: float = 0.667,
         noise_scale_dur: float = 0.8,
-        vocoder_config: Optional[Union[Path, str]] = None,
-        vocoder_file: Optional[Union[Path, str]] = None,
+        vocoder_config: Union[Path, str] = None,
+        vocoder_file: Union[Path, str] = None,
         dtype: str = "float32",
         device: str = "cpu",
         seed: int = 777,
@@ -204,6 +207,82 @@ class Text2Speech:
         """Return speech is needed or not in the inference."""
         return self.use_teacher_forcing or getattr(self.tts, "use_gst", False)
 
+    @staticmethod
+    def from_pretrained(
+        model_tag: Optional[str] = None,
+        vocoder_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
+        """Build Text2Speech instance from the pretrained model.
+
+        Args:
+            model_tag (Optional[str]): Model tag of the pretrained models.
+                Currently, the tags of espnet_model_zoo are supported.
+            vocoder_tag (Optional[str]): Vocoder tag of the pretrained vocoders.
+                Currently, the tags of parallel_wavegan are supported, which should
+                start with the prefix "parallel_wavegan/".
+
+        Returns:
+            Text2Speech: Text2Speech instance.
+
+        Examples:
+            >>> from espnet2.bin.tts_inference import Text2Speech
+            >>> # Load the pretrained model and use Griffin-Lim vocoder.
+            >>> text2speech = Text2Speech.from_pretrained(
+            >>>     "kan-bayashi/ljspeech_tacotron2",
+            >>> )
+            >>> text2speech("Hello World")["wav"]
+            >>> # Load the pretrained model and the pretrained vocoder
+            >>> text2speech = Text2Speech.from_pretrained(
+            >>>     "kan-bayashi/ljspeech_tacotron2",
+            >>>     "parallel_wavegan/ljspeech_parallel_wavegan.v1",
+            >>> )
+            >>> text2speech("Hello, World")["wav"]
+
+        """
+        if model_tag is not None:
+            try:
+                from espnet_model_zoo.downloader import ModelDownloader
+
+            except ImportError:
+                logging.error(
+                    "`espnet_model_zoo` is not installed. "
+                    "Please install via `pip install -U espnet_model_zoo`."
+                )
+                raise
+            d = ModelDownloader()
+            train_config, model_file = d.download_and_unpack(model_tag).values()
+            kwargs.update(train_config=train_config, model_file=model_file)
+
+        if vocoder_tag is not None:
+            if vocoder_tag.startswith("parallel_wavegan/"):
+                try:
+                    from parallel_wavegan.utils import download_pretrained_model
+
+                except ImportError:
+                    logging.error(
+                        "`parallel_wavegan` is not installed. "
+                        "Please install via `pip install -U parallel_wavegan`."
+                    )
+                    raise
+
+                from parallel_wavegan import __version__
+
+                # NOTE(kan-bayashi): Filelock download is supported from 0.5.2
+                assert LooseVersion(__version__) > LooseVersion("0.5.1"), (
+                    "Please install the latest parallel_wavegan "
+                    "via `pip install -U parallel_wavegan`."
+                )
+                vocoder_tag = vocoder_tag.replace("parallel_wavegan/", "")
+                vocoder_file = download_pretrained_model(vocoder_tag)
+                vocoder_config = Path(vocoder_file).parent / "config.yml"
+                kwargs.update(vocoder_config=vocoder_config, vocoder_file=vocoder_file)
+
+            else:
+                raise ValueError(f"{vocoder_tag} is unsupported format.")
+
+        return Text2Speech(**kwargs)
+
 
 def inference(
     output_dir: str,
@@ -215,8 +294,9 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    train_config: str,
+    train_config: Optional[str],
     model_file: Optional[str],
+    model_tag: Optional[str],
     threshold: float,
     minlenratio: float,
     maxlenratio: float,
@@ -231,6 +311,7 @@ def inference(
     allow_variable_data_keys: bool,
     vocoder_config: Optional[str],
     vocoder_file: Optional[str],
+    vocoder_tag: Optional[str],
 ):
     """Run text-to-speech inference."""
     assert check_argument_types()
@@ -252,7 +333,7 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build model
-    text2speech = Text2Speech(
+    text2speech_kwargs = dict(
         train_config=train_config,
         model_file=model_file,
         threshold=threshold,
@@ -271,6 +352,11 @@ def inference(
         device=device,
         seed=seed,
         always_fix_seed=always_fix_seed,
+    )
+    text2speech = Text2Speech.from_pretrained(
+        model_tag=model_tag,
+        vocoder_tag=vocoder_tag,
+        **text2speech_kwargs,
     )
 
     # 3. Build data-iterator
@@ -452,7 +538,7 @@ def inference(
 def get_parser():
     """Get argument parser."""
     parser = config_argparse.ArgumentParser(
-        description="TTS Decode",
+        description="TTS inference",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -524,12 +610,18 @@ def get_parser():
     group.add_argument(
         "--train_config",
         type=str,
-        help="Training configuration file.",
+        help="Training configuration file",
     )
     group.add_argument(
         "--model_file",
         type=str,
-        help="Model parameter file.",
+        help="Model parameter file",
+    )
+    group.add_argument(
+        "--model_tag",
+        type=str,
+        help="Pretrained model tag. If specify this option, train_config and "
+        "model_file will be overwritten",
     )
 
     group = parser.add_argument_group("Decoding related")
@@ -604,20 +696,24 @@ def get_parser():
     group.add_argument(
         "--vocoder_config",
         type=str_or_none,
-        default=None,
         help="Vocoder configuration file",
     )
     group.add_argument(
         "--vocoder_file",
         type=str_or_none,
-        default=None,
-        help="Vocoder checkpoint file or pretrained model tag",
+        help="Vocoder parameter file",
+    )
+    group.add_argument(
+        "--vocoder_tag",
+        type=str,
+        help="Pretrained vocoder tag. If specify this option, vocoder_config and "
+        "vocoder_file will be overwritten",
     )
     return parser
 
 
 def main(cmd=None):
-    """Run TTS model decoding."""
+    """Run TTS model inference."""
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)

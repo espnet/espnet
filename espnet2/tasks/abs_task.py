@@ -1759,20 +1759,29 @@ class AbsTask(ABC):
     @classmethod
     def build_model_from_file(
         cls,
-        config_file: Union[Path, str],
+        config_file: Union[Path, str] = None,
         model_file: Union[Path, str] = None,
         device: str = "cpu",
     ) -> Tuple[AbsESPnetModel, argparse.Namespace]:
-        """This method is used for inference or fine-tuning.
+        """Build model from the files.
+
+        This method is used for inference or fine-tuning.
 
         Args:
             config_file: The yaml file saved when training.
             model_file: The model file saved when training.
-            device:
+            device: Device type, "cpu", "cuda", or "cuda:N".
 
         """
         assert check_argument_types()
-        config_file = Path(config_file)
+        if config_file is None:
+            assert model_file is not None, (
+                "The argument 'model_file' must be provided "
+                "if the argument 'config_file' is not specified."
+            )
+            config_file = Path(model_file).parent / "config.yaml"
+        else:
+            config_file = Path(config_file)
 
         with config_file.open("r", encoding="utf-8") as f:
             args = yaml.safe_load(f)
