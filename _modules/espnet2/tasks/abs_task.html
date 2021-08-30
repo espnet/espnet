@@ -1974,20 +1974,29 @@
 <div class="viewcode-block" id="AbsTask.build_model_from_file"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_model_from_file">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">build_model_from_file</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">config_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+        <span class="n">config_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">model_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AbsESPnetModel</span><span class="p">,</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;This method is used for inference or fine-tuning.</span>
+        <span class="sd">&quot;&quot;&quot;Build model from the files.</span>
+
+<span class="sd">        This method is used for inference or fine-tuning.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            config_file: The yaml file saved when training.</span>
 <span class="sd">            model_file: The model file saved when training.</span>
-<span class="sd">            device:</span>
+<span class="sd">            device: Device type, &quot;cpu&quot;, &quot;cuda&quot;, or &quot;cuda:N&quot;.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
-        <span class="n">config_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">config_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">model_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;The argument &#39;model_file&#39; must be provided &quot;</span>
+                <span class="s2">&quot;if the argument &#39;config_file&#39; is not specified.&quot;</span>
+            <span class="p">)</span>
+            <span class="n">config_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;config.yaml&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">config_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
 
         <span class="k">with</span> <span class="n">config_file</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">args</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>

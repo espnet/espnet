@@ -3350,7 +3350,8 @@ tts_inference.py
                             DATA_PATH_AND_NAME_AND_TYPE [--key_file KEY_FILE]
                             [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                             [--train_config TRAIN_CONFIG]
-                            [--model_file MODEL_FILE] [--maxlenratio MAXLENRATIO]
+                            [--model_file MODEL_FILE] [--model_tag MODEL_TAG]
+                            [--maxlenratio MAXLENRATIO]
                             [--minlenratio MINLENRATIO] [--threshold THRESHOLD]
                             [--use_att_constraint USE_ATT_CONSTRAINT]
                             [--backward_window BACKWARD_WINDOW]
@@ -3362,8 +3363,9 @@ tts_inference.py
                             [--always_fix_seed ALWAYS_FIX_SEED]
                             [--vocoder_config VOCODER_CONFIG]
                             [--vocoder_file VOCODER_FILE]
+                            [--vocoder_tag VOCODER_TAG]
     
-    TTS Decode
+    TTS inference
     
     optional arguments:
       --config CONFIG       Give config file in yaml format (default: None)
@@ -3396,9 +3398,13 @@ tts_inference.py
     
     The model configuration related:
       --train_config TRAIN_CONFIG
-                            Training configuration file. (default: None)
+                            Training configuration file (default: None)
       --model_file MODEL_FILE
-                            Model parameter file. (default: None)
+                            Model parameter file (default: None)
+      --model_tag MODEL_TAG
+                            Pretrained model tag. If specify this option,
+                            train_config and model_file will be overwritten
+                            (default: None)
     
     Decoding related:
       --maxlenratio MAXLENRATIO
@@ -3424,7 +3430,10 @@ tts_inference.py
       --vocoder_config VOCODER_CONFIG
                             Vocoder configuration file (default: None)
       --vocoder_file VOCODER_FILE
-                            Vocoder checkpoint file or pretrained model tag
+                            Vocoder parameter file (default: None)
+      --vocoder_tag VOCODER_TAG
+                            Pretrained vocoder tag. If specify this option,
+                            vocoder_config and vocoder_file will be overwritten
                             (default: None)
 .. _tts_train.py:
 

@@ -681,14 +681,15 @@ e.g. If The number of mini-batches equals to 4, the following two are same:</p>
 
 <dl class="method">
 <dt id="espnet2.tasks.abs_task.AbsTask.build_model_from_file">
-<em class="property">classmethod </em><code class="sig-name descname">build_model_from_file</code><span class="sig-paren">(</span><em class="sig-param">config_file: Union[pathlib.Path, str], model_file: Union[pathlib.Path, str] = None, device: str = 'cpu'</em><span class="sig-paren">)</span> &#x2192; Tuple[espnet2.train.abs_espnet_model.AbsESPnetModel, argparse.Namespace]<a class="reference internal" href="../_modules/espnet2/tasks/abs_task.html#AbsTask.build_model_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.abs_task.AbsTask.build_model_from_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>This method is used for inference or fine-tuning.</p>
+<em class="property">classmethod </em><code class="sig-name descname">build_model_from_file</code><span class="sig-paren">(</span><em class="sig-param">config_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">model_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">device: str = 'cpu'</em><span class="sig-paren">)</span> &#x2192; Tuple[espnet2.train.abs_espnet_model.AbsESPnetModel, argparse.Namespace]<a class="reference internal" href="../_modules/espnet2/tasks/abs_task.html#AbsTask.build_model_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.abs_task.AbsTask.build_model_from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build model from the files.</p>
+<p>This method is used for inference or fine-tuning.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>config_file</strong> – The yaml file saved when training.</p></li>
 <li><p><strong>model_file</strong> – The model file saved when training.</p></li>
-<li><p><strong>device</strong> – </p></li>
+<li><p><strong>device</strong> – Device type, “cpu”, “cuda”, or “cuda:N”.</p></li>
 </ul>
 </dd>
 </dl>

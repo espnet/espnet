@@ -219,10 +219,12 @@
 
 <span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">import</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
@@ -234,6 +236,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">soundfile</span> <span class="k">as</span> <span class="nn">sf</span>
 <span class="kn">import</span> <span class="nn">torch</span>
+
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_utils</span> <span class="kn">import</span> <span class="n">get_commandline_args</span>
@@ -266,8 +269,8 @@
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">train_config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
-        <span class="n">model_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">train_config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">model_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="n">minlenratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">maxlenratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
@@ -278,8 +281,8 @@
         <span class="n">speed_control_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">noise_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.667</span><span class="p">,</span>
         <span class="n">noise_scale_dur</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span>
-        <span class="n">vocoder_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">vocoder_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">vocoder_config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">vocoder_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
         <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
         <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">777</span><span class="p">,</span>
@@ -417,7 +420,83 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">use_speech</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Return speech is needed or not in the inference.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_teacher_forcing</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">,</span> <span class="s2">&quot;use_gst&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_teacher_forcing</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="p">,</span> <span class="s2">&quot;use_gst&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Text2Speech.from_pretrained"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.tts_inference.Text2Speech.from_pretrained">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">from_pretrained</span><span class="p">(</span>
+        <span class="n">model_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">vocoder_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build Text2Speech instance from the pretrained model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            model_tag (Optional[str]): Model tag of the pretrained models.</span>
+<span class="sd">                Currently, the tags of espnet_model_zoo are supported.</span>
+<span class="sd">            vocoder_tag (Optional[str]): Vocoder tag of the pretrained vocoders.</span>
+<span class="sd">                Currently, the tags of parallel_wavegan are supported, which should</span>
+<span class="sd">                start with the prefix &quot;parallel_wavegan/&quot;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Text2Speech: Text2Speech instance.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; from espnet2.bin.tts_inference import Text2Speech</span>
+<span class="sd">            &gt;&gt;&gt; # Load the pretrained model and use Griffin-Lim vocoder.</span>
+<span class="sd">            &gt;&gt;&gt; text2speech = Text2Speech.from_pretrained(</span>
+<span class="sd">            &gt;&gt;&gt;     &quot;kan-bayashi/ljspeech_tacotron2&quot;,</span>
+<span class="sd">            &gt;&gt;&gt; )</span>
+<span class="sd">            &gt;&gt;&gt; text2speech(&quot;Hello World&quot;)[&quot;wav&quot;]</span>
+<span class="sd">            &gt;&gt;&gt; # Load the pretrained model and the pretrained vocoder</span>
+<span class="sd">            &gt;&gt;&gt; text2speech = Text2Speech.from_pretrained(</span>
+<span class="sd">            &gt;&gt;&gt;     &quot;kan-bayashi/ljspeech_tacotron2&quot;,</span>
+<span class="sd">            &gt;&gt;&gt;     &quot;parallel_wavegan/ljspeech_parallel_wavegan.v1&quot;,</span>
+<span class="sd">            &gt;&gt;&gt; )</span>
+<span class="sd">            &gt;&gt;&gt; text2speech(&quot;Hello, World&quot;)[&quot;wav&quot;]</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model_tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">espnet_model_zoo.downloader</span> <span class="kn">import</span> <span class="n">ModelDownloader</span>
+
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;`espnet_model_zoo` is not installed. &quot;</span>
+                    <span class="s2">&quot;Please install via `pip install -U espnet_model_zoo`.&quot;</span>
+                <span class="p">)</span>
+                <span class="k">raise</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">ModelDownloader</span><span class="p">()</span>
+            <span class="n">train_config</span><span class="p">,</span> <span class="n">model_file</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">download_and_unpack</span><span class="p">(</span><span class="n">model_tag</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">train_config</span><span class="o">=</span><span class="n">train_config</span><span class="p">,</span> <span class="n">model_file</span><span class="o">=</span><span class="n">model_file</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">vocoder_tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">vocoder_tag</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;parallel_wavegan/&quot;</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="kn">from</span> <span class="nn">parallel_wavegan.utils</span> <span class="kn">import</span> <span class="n">download_pretrained_model</span>
+
+                <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="s2">&quot;`parallel_wavegan` is not installed. &quot;</span>
+                        <span class="s2">&quot;Please install via `pip install -U parallel_wavegan`.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">raise</span>
+
+                <span class="kn">from</span> <span class="nn">parallel_wavegan</span> <span class="kn">import</span> <span class="n">__version__</span>
+
+                <span class="c1"># NOTE(kan-bayashi): Filelock download is supported from 0.5.2</span>
+                <span class="k">assert</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;0.5.1&quot;</span><span class="p">),</span> <span class="p">(</span>
+                    <span class="s2">&quot;Please install the latest parallel_wavegan &quot;</span>
+                    <span class="s2">&quot;via `pip install -U parallel_wavegan`.&quot;</span>
+                <span class="p">)</span>
+                <span class="n">vocoder_tag</span> <span class="o">=</span> <span class="n">vocoder_tag</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;parallel_wavegan/&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="n">vocoder_file</span> <span class="o">=</span> <span class="n">download_pretrained_model</span><span class="p">(</span><span class="n">vocoder_tag</span><span class="p">)</span>
+                <span class="n">vocoder_config</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">vocoder_file</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;config.yml&quot;</span>
+                <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">vocoder_config</span><span class="o">=</span><span class="n">vocoder_config</span><span class="p">,</span> <span class="n">vocoder_file</span><span class="o">=</span><span class="n">vocoder_file</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">vocoder_tag</span><span class="si">}</span><span class="s2"> is unsupported format.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">Text2Speech</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="inference"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.tts_inference.inference">[docs]</a><span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>
@@ -430,8 +509,9 @@
     <span class="n">log_level</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
     <span class="n">data_path_and_name_and_type</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
     <span class="n">key_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">train_config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">train_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">model_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">model_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">minlenratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="n">maxlenratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
@@ -446,6 +526,7 @@
     <span class="n">allow_variable_data_keys</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">vocoder_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">vocoder_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">vocoder_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Run text-to-speech inference.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
@@ -467,7 +548,7 @@
     <span class="n">set_all_random_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
 
     <span class="c1"># 2. Build model</span>
-    <span class="n">text2speech</span> <span class="o">=</span> <span class="n">Text2Speech</span><span class="p">(</span>
+    <span class="n">text2speech_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
         <span class="n">train_config</span><span class="o">=</span><span class="n">train_config</span><span class="p">,</span>
         <span class="n">model_file</span><span class="o">=</span><span class="n">model_file</span><span class="p">,</span>
         <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
@@ -486,6 +567,11 @@
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
         <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
         <span class="n">always_fix_seed</span><span class="o">=</span><span class="n">always_fix_seed</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">text2speech</span> <span class="o">=</span> <span class="n">Text2Speech</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+        <span class="n">model_tag</span><span class="o">=</span><span class="n">model_tag</span><span class="p">,</span>
+        <span class="n">vocoder_tag</span><span class="o">=</span><span class="n">vocoder_tag</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">text2speech_kwargs</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># 3. Build data-iterator</span>
@@ -667,7 +753,7 @@
 <div class="viewcode-block" id="get_parser"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.tts_inference.get_parser">[docs]</a><span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Get argument parser.&quot;&quot;&quot;</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">config_argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
-        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;TTS Decode&quot;</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;TTS inference&quot;</span><span class="p">,</span>
         <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span><span class="p">,</span>
     <span class="p">)</span>
 
@@ -739,12 +825,18 @@
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--train_config&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Training configuration file.&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Training configuration file&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--model_file&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Model parameter file.&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Model parameter file&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--model_tag&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Pretrained model tag. If specify this option, train_config and &quot;</span>
+        <span class="s2">&quot;model_file will be overwritten&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Decoding related&quot;</span><span class="p">)</span>
@@ -819,20 +911,24 @@
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--vocoder_config&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Vocoder configuration file&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--vocoder_file&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Vocoder checkpoint file or pretrained model tag&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Vocoder parameter file&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--vocoder_tag&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Pretrained vocoder tag. If specify this option, vocoder_config and &quot;</span>
+        <span class="s2">&quot;vocoder_file will be overwritten&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">parser</span></div>
 
 
 <div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.tts_inference.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">cmd</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Run TTS model decoding.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Run TTS model inference.&quot;&quot;&quot;</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">get_commandline_args</span><span class="p">(),</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">get_parser</span><span class="p">()</span>
     <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
