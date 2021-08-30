@@ -251,8 +251,7 @@ class Text2Speech:
                 )
                 raise
             d = ModelDownloader()
-            train_config, model_file = d.download_and_unpack(model_tag).values()
-            kwargs.update(train_config=train_config, model_file=model_file)
+            kwargs.update(**d.download_and_unpack(model_tag))
 
         if vocoder_tag is not None:
             if vocoder_tag.startswith("parallel_wavegan/"):
