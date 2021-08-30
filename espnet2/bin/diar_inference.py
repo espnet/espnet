@@ -166,11 +166,14 @@ class DiarizeSpeech:
         **kwargs: Optional[Any],
     ):
         """Build DiarizeSpeech instance from the pretrained model.
+
         Args:
             model_tag (Optional[str]): Model tag of the pretrained models.
                 Currently, the tags of espnet_model_zoo are supported.
+
         Returns:
             DiarizeSpeech: DiarizeSpeech instance.
+
         """
         if model_tag is not None:
             try:
