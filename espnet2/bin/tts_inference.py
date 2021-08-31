@@ -42,13 +42,34 @@ from espnet2.utils.types import str_or_none
 
 
 class Text2Speech:
-    """Text2Speech module.
+    """Text2Speech class.
 
     Examples:
-        >>> import soundfile
-        >>> text2speech = Text2Speech("config.yml", "model.pth")
-        >>> wav = text2speech("Hello World")["wav"]
-        >>> soundfile.write("out.wav", wav.numpy(), text2speech.fs, "PCM_16")
+        >>> from espnet2.bin.tts_inference import Text2Speech
+        >>> # Case 1: Load the local model and use Griffin-Lim vocoder
+        >>> text2speech = Text2Speech(
+        >>>     train_config="/path/to/config.yml",
+        >>>     model_file="/path/to/model.pth",
+        >>> )
+        >>> # Case 2: Load the local model and the pretrained vocoder
+        >>> text2speech = Text2Speech.from_pretrained(
+        >>>     train_config="/path/to/config.yml",
+        >>>     model_file="/path/to/model.pth",
+        >>>     vocoder_tag="kan-bayashi/ljspeech_tacotron2",
+        >>> )
+        >>> # Case 3: Load the pretrained model and use Griffin-Lim vocoder
+        >>> text2speech = Text2Speech.from_pretrained(
+        >>>     model_tag="kan-bayashi/ljspeech_tacotron2",
+        >>> )
+        >>> # Case 4: Load the pretrained model and the pretrained vocoder
+        >>> text2speech = Text2Speech.from_pretrained(
+        >>>     model_tag="kan-bayashi/ljspeech_tacotron2",
+        >>>     vocoder_tag="parallel_wavegan/ljspeech_parallel_wavegan.v1",
+        >>> )
+        >>> # Run inference and save as wav file
+        >>> import soundfile as sf
+        >>> wav = text2speech("Hello, World")["wav"]
+        >>> sf.write("out.wav", wav.numpy(), text2speech.fs, "PCM_16")
 
     """
 
@@ -225,20 +246,6 @@ class Text2Speech:
         Returns:
             Text2Speech: Text2Speech instance.
 
-        Examples:
-            >>> from espnet2.bin.tts_inference import Text2Speech
-            >>> # Load the pretrained model and use Griffin-Lim vocoder.
-            >>> text2speech = Text2Speech.from_pretrained(
-            >>>     "kan-bayashi/ljspeech_tacotron2",
-            >>> )
-            >>> text2speech("Hello World")["wav"]
-            >>> # Load the pretrained model and the pretrained vocoder
-            >>> text2speech = Text2Speech.from_pretrained(
-            >>>     "kan-bayashi/ljspeech_tacotron2",
-            >>>     "parallel_wavegan/ljspeech_parallel_wavegan.v1",
-            >>> )
-            >>> text2speech("Hello, World")["wav"]
-
         """
         if model_tag is not None:
             try:
@@ -251,8 +258,7 @@ class Text2Speech:
                 )
                 raise
             d = ModelDownloader()
-            train_config, model_file = d.download_and_unpack(model_tag).values()
-            kwargs.update(train_config=train_config, model_file=model_file)
+            kwargs.update(**d.download_and_unpack(model_tag))
 
         if vocoder_tag is not None:
             if vocoder_tag.startswith("parallel_wavegan/"):
