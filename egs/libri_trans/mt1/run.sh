@@ -37,9 +37,9 @@ asr_model_dir=
 decode_config_asr=
 dict_asr=
 # example:
-asr_model_dir=../asr1/exp/train_sp.en_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug
-decode_config_asr=../asr1/config/tuning/decode_pytorch_transformer.yaml
-dict_asr=../asr1/data/lang_1spm/train_sp.en_bpe1000_units_lc.rm.txt
+# asr_model_dir=../asr1/exp/train_sp.en_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug
+# decode_config_asr=../asr1/config/tuning/decode_pytorch_transformer.yaml
+# dict_asr=../asr1/data/lang_1spm/train_sp.en_bpe1000_units_lc.rm.txt
 
 # preprocessing related
 src_case=lc.rm
