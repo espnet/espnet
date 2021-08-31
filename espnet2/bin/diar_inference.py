@@ -4,6 +4,7 @@ import argparse
 import logging
 from pathlib import Path
 import sys
+from typing import Any
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -41,7 +42,7 @@ class DiarizeSpeech:
 
     def __init__(
         self,
-        diar_train_config: Union[Path, str],
+        diar_train_config: Union[Path, str] = None,
         diar_model_file: Union[Path, str] = None,
         segment_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
@@ -159,6 +160,38 @@ class DiarizeSpeech:
 
         return spk_prediction
 
+    @staticmethod
+    def from_pretrained(
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
+        """Build DiarizeSpeech instance from the pretrained model.
+
+        Args:
+            model_tag (Optional[str]): Model tag of the pretrained models.
+                Currently, the tags of espnet_model_zoo are supported.
+
+        Returns:
+            DiarizeSpeech: DiarizeSpeech instance.
+
+        """
+        if model_tag is not None:
+            try:
+                from espnet_model_zoo.downloader import ModelDownloader
+
+            except ImportError:
+                logging.error(
+                    "`espnet_model_zoo` is not installed. "
+                    "Please install via `pip install -U espnet_model_zoo`."
+                )
+                raise
+            d = ModelDownloader()
+            train_config, model_file = d.download_and_unpack(model_tag).values()
+            # FIXME: The argument name is mismatched, it is better to rename.
+            kwargs.update(diar_train_config=train_config, diar_model_file=model_file)
+
+        return DiarizeSpeech(**kwargs)
+
 
 def inference(
     output_dir: str,
@@ -171,8 +204,9 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    diar_train_config: str,
-    diar_model_file: str,
+    diar_train_config: Optional[str],
+    diar_model_file: Optional[str],
+    model_tag: Optional[str],
     allow_variable_data_keys: bool,
     segment_size: Optional[float],
     show_progressbar: bool,
@@ -197,13 +231,17 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build separate_speech
-    diarize_speech = DiarizeSpeech(
+    diarize_speech_kwargs = dict(
         diar_train_config=diar_train_config,
         diar_model_file=diar_model_file,
         segment_size=segment_size,
         show_progressbar=show_progressbar,
         device=device,
         dtype=dtype,
+    )
+    diarize_speech = DiarizeSpeech.from_pretrained(
+        model_tag=model_tag,
+        **diarize_speech_kwargs,
     )
 
     # 3. Build data-iterator
@@ -294,8 +332,22 @@ def get_parser():
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("The model configuration related")
-    group.add_argument("--diar_train_config", type=str, required=True)
-    group.add_argument("--diar_model_file", type=str, required=True)
+    group.add_argument(
+        "--diar_train_config",
+        type=str,
+        help="Diarization training configuration",
+    )
+    group.add_argument(
+        "--diar_model_file",
+        type=str,
+        help="Diarization model parameter file",
+    )
+    group.add_argument(
+        "--model_tag",
+        type=str,
+        help="Pretrained model tag. If specify this option, diar_train_config and "
+        "diar_model_file will be overwritten",
+    )
 
     group = parser.add_argument_group("Data loading related")
     group.add_argument(
