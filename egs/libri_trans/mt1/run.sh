@@ -7,7 +7,7 @@
 . ./cmd.sh || exit 1;
 
 # general configuration
-backend=pytorch # chainer or pytorch
+backend=pytorch
 stage=-1        # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=1          # number of gpus during training ("0" uses cpu, otherwise use gpu)
@@ -33,12 +33,12 @@ use_valbest_average=true     # if true, the validation `n_average`-best MT model
 metric=bleu                  # loss/acc/bleu
 
 # cascaded-ST related
-asr_model=
+asr_model_dir=
 decode_config_asr=
 dict_asr=
 # example:
 # asr_model_dir=../asr1/exp/train_sp.en_lc.rm_pytorch_train_pytorch_conformer_bpe1000_specaug
-# decode_config_asr=../asr1/config/tuning/decode_pytorch_transformer.yaml
+# decode_config_asr=../asr1/config/tuning/decode_pytorch_transformer_beam4.yaml
 # dict_asr=../asr1/data/lang_1spm/train_sp.en_bpe1000_units_lc.rm.txt
 
 # preprocessing related
@@ -292,10 +292,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
         if [ ${reverse_direction} = true ]; then
             score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-                ${expdir}/${decode_dir} en ${dict}
+                ${expdir}/${decode_dir} "en" ${dict}
         else
             score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-                ${expdir}/${decode_dir} fr ${dict}
+                ${expdir}/${decode_dir} "fr" ${dict}
         fi
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
@@ -307,7 +307,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "Finished"
 fi
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -n "${decode_config_asr}" ] && [ -n "${dict_asr}" ] && [ ${reverse_direction} = false ]; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model_dir}" ] && [ -n "${decode_config_asr}" ] && [ -n "${dict_asr}" ] && [ ${reverse_direction} = false ]; then
     echo "stage 6: Cascaded-ST decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
         # Average MT models
@@ -319,14 +319,14 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
     fi
 
     for x in ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model} | rev | cut -f 2 -d "/" | rev); mkdir -p ${feat_trans_dir}
+        feat_trans_dir=${expdir}/$(echo ${asr_model_dir} | rev | cut -f 1 -d "/" | rev)/${x}; mkdir -p ${feat_trans_dir}
         rtask=$(echo ${x} | cut -f -1 -d ".").en
         data_dir=data/${rtask}
 
         # ASR outputs
         asr_decode_dir=decode_${rtask}_$(basename ${decode_config_asr%.*})
-        json2text.py ${asr_model}/${asr_decode_dir}/data.json ${dict_asr} ${data_dir}/text_asr_ref.${src_case} ${data_dir}/text_asr_hyp.${src_case}
-        spm_decode --model=${bpemodel}.model --input_format=piece < ${data_dir}/text_asr_hyp.${src_case} | sed -e "s/▁/ /g" \
+        json2text.py ${asr_model_dir}/${asr_decode_dir}/data.json ${dict_asr} ${data_dir}/text_asr_ref.${src_case} ${data_dir}/text_asr_hyp.${src_case}
+        paste -d " " <(cut -d " " -f 1 ${data_dir}/text_asr_hyp.${src_case}) <(cut -d " " -f 2- ${data_dir}/text_asr_hyp.${src_case} | spm_decode --model=${bpemodel}.model --input_format=piece | sed -e "s/▁/ /g" | awk '{if(NF>0) {print $0;} else {print "emptyutterance";}}') \
             > ${data_dir}/text_asr_hyp.wrd.${src_case}
 
         data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "fr" \
@@ -343,7 +343,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
     for x in ${trans_set}; do
     (
         decode_dir=decode_${x}_$(basename ${decode_config%.*})_pipeline
-        feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model} | rev | cut -f 2 -d "/" | rev)
+        feat_trans_dir=${expdir}/$(echo ${asr_model_dir} | rev | cut -f 1 -d "/" | rev)/${x}
 
         # reset log for RTF calculation
         if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
@@ -364,7 +364,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
             --model ${expdir}/results/${trans_model}
 
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-            ${expdir}/${decode_dir} fr ${dict}
+            ${expdir}/${decode_dir} "fr" ${dict}
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &
