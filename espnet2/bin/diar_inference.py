@@ -186,7 +186,9 @@ class DiarizeSpeech:
                 )
                 raise
             d = ModelDownloader()
-            kwargs.update(**d.download_and_unpack(model_tag))
+            train_config, model_file = d.download_and_unpack(model_tag).values()
+            # FIXME: The argument name is mismatched, it is better to rename.
+            kwargs.update(diar_train_config=train_config, diar_model_file=model_file)
 
         return DiarizeSpeech(**kwargs)
 
@@ -339,6 +341,12 @@ def get_parser():
         "--diar_model_file",
         type=str,
         help="Diarization model parameter file",
+    )
+    group.add_argument(
+        "--model_tag",
+        type=str,
+        help="Pretrained model tag. If specify this option, diar_train_config and "
+        "diar_model_file will be overwritten",
     )
 
     group = parser.add_argument_group("Data loading related")
