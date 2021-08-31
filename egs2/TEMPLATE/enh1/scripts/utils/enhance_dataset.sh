@@ -181,8 +181,8 @@ ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enhance_dataset.JOB.log \
         --fs "${fs}" \
         --data_path_and_name_and_type "${destdir}/wav.scp,speech_mix,sound" \
         --key_file "${_logdir}"/keys.JOB.scp \
-        --enh_train_config "${modeldir}"/config.yaml \
-        --enh_model_file "${modelfile}" \
+        --train_config "${modeldir}"/config.yaml \
+        --model_file "${modelfile}" \
         --output_dir "${_logdir}"/output.JOB \
         ${enh_args}
 

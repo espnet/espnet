@@ -43,7 +43,7 @@ def test_SeparateSpeech(
     config_file, batch_size, input_size, segment_size, hop_size, normalize_segment_scale
 ):
     separate_speech = SeparateSpeech(
-        enh_train_config=config_file,
+        train_config=config_file,
         segment_size=segment_size,
         hop_size=hop_size,
         normalize_segment_scale=normalize_segment_scale,

@@ -595,8 +595,8 @@ if ! "${skip_eval}"; then
                     --fs "${fs}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --enh_train_config "${enh_exp}"/config.yaml \
-                    --enh_model_file "${enh_exp}"/"${inference_model}" \
+                    --train_config "${enh_exp}"/config.yaml \
+                    --model_file "${enh_exp}"/"${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${inference_args}
 
