@@ -34,6 +34,7 @@ n_average=5                  # the number of ST models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best ST models will be averaged.
                              # if false, the last `n_average` ST models will be averaged.
 metric=bleu                  # loss/acc/bleu
+max_epoch=50                 # for checkpoint selection
 
 # pre-training related
 asr_model=
@@ -246,7 +247,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --backend ${backend} \
             --snapshots ${expdir}/results/snapshot.ep.* \
             --out ${expdir}/results/${trans_model} \
-            --num ${n_average}
+            --num ${n_average} \
+            --max-epoch ${max_epoch}
     fi
 
     if [ ${dec_ngpu} = 1 ]; then
