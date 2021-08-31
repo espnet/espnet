@@ -259,8 +259,8 @@
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">enh_train_config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">enh_model_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">train_config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">model_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">segment_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">hop_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">normalize_segment_scale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -274,7 +274,7 @@
 
         <span class="c1"># 1. Build Enh model</span>
         <span class="n">enh_model</span><span class="p">,</span> <span class="n">enh_train_args</span> <span class="o">=</span> <span class="n">EnhancementTask</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
-            <span class="n">enh_train_config</span><span class="p">,</span> <span class="n">enh_model_file</span><span class="p">,</span> <span class="n">device</span>
+            <span class="n">train_config</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
         <span class="n">enh_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
 
@@ -471,20 +471,20 @@
 
 <div class="viewcode-block" id="SeparateSpeech.from_pretrained"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.enh_inference.SeparateSpeech.from_pretrained">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">from_pretrained</span><span class="p">(</span>
-        <span class="n">enh_model_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">model_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Build SeparateSpeech instance from the pretrained model.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            enh_model_tag (Optional[str]): Model tag of the pretrained models.</span>
+<span class="sd">            model_tag (Optional[str]): Model tag of the pretrained models.</span>
 <span class="sd">                Currently, the tags of espnet_model_zoo are supported.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            SeparateSpeech: SeparateSpeech instance.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">enh_model_tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">model_tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="kn">from</span> <span class="nn">espnet_model_zoo.downloader</span> <span class="kn">import</span> <span class="n">ModelDownloader</span>
 
@@ -495,9 +495,7 @@
                 <span class="p">)</span>
                 <span class="k">raise</span>
             <span class="n">d</span> <span class="o">=</span> <span class="n">ModelDownloader</span><span class="p">()</span>
-            <span class="n">train_config</span><span class="p">,</span> <span class="n">model_file</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">download_and_unpack</span><span class="p">(</span><span class="n">enh_model_tag</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
-            <span class="c1"># FIXME: The arugment name is mismatched, it is better to rename.</span>
-            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">enh_train_config</span><span class="o">=</span><span class="n">train_config</span><span class="p">,</span> <span class="n">enh_model_file</span><span class="o">=</span><span class="n">model_file</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="o">.</span><span class="n">download_and_unpack</span><span class="p">(</span><span class="n">model_tag</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">SeparateSpeech</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
 
@@ -519,9 +517,9 @@
     <span class="n">log_level</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
     <span class="n">data_path_and_name_and_type</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
     <span class="n">key_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">enh_train_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">enh_model_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">enh_model_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">train_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">model_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">model_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">allow_variable_data_keys</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">segment_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
     <span class="n">hop_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
@@ -551,8 +549,8 @@
 
     <span class="c1"># 2. Build separate_speech</span>
     <span class="n">separate_speech_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-        <span class="n">enh_train_config</span><span class="o">=</span><span class="n">enh_train_config</span><span class="p">,</span>
-        <span class="n">enh_model_file</span><span class="o">=</span><span class="n">enh_model_file</span><span class="p">,</span>
+        <span class="n">train_config</span><span class="o">=</span><span class="n">train_config</span><span class="p">,</span>
+        <span class="n">model_file</span><span class="o">=</span><span class="n">model_file</span><span class="p">,</span>
         <span class="n">segment_size</span><span class="o">=</span><span class="n">segment_size</span><span class="p">,</span>
         <span class="n">hop_size</span><span class="o">=</span><span class="n">hop_size</span><span class="p">,</span>
         <span class="n">normalize_segment_scale</span><span class="o">=</span><span class="n">normalize_segment_scale</span><span class="p">,</span>
@@ -563,7 +561,7 @@
         <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">separate_speech</span> <span class="o">=</span> <span class="n">SeparateSpeech</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
-        <span class="n">enh_model_tag</span><span class="o">=</span><span class="n">enh_model_tag</span><span class="p">,</span>
+        <span class="n">model_tag</span><span class="o">=</span><span class="n">model_tag</span><span class="p">,</span>
         <span class="o">**</span><span class="n">separate_speech_kwargs</span><span class="p">,</span>
     <span class="p">)</span>
 
@@ -667,20 +665,20 @@
 
     <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;The model configuration related&quot;</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--enh_train_config&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--train_config&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Training configuration file&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--enh_model_file&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--model_file&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Model parameter file&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--enh_model_tag&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--model_tag&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Pretrained model tag. If specify this option, enh_train_config and &quot;</span>
-        <span class="s2">&quot;enh_model_file will be overwritten&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Pretrained model tag. If specify this option, train_config and &quot;</span>
+        <span class="s2">&quot;model_file will be overwritten&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Data loading related&quot;</span><span class="p">)</span>

@@ -968,9 +968,9 @@ Optimizer related:
                          --data_path_and_name_and_type
                          DATA_PATH_AND_NAME_AND_TYPE [--key_file KEY_FILE]
                          [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
-                         [--diar_train_config DIAR_TRAIN_CONFIG]
-                         [--diar_model_file DIAR_MODEL_FILE]
-                         [--model_tag MODEL_TAG] [--batch_size BATCH_SIZE]
+                         [--train_config TRAIN_CONFIG]
+                         [--model_file MODEL_FILE] [--model_tag MODEL_TAG]
+                         [--batch_size BATCH_SIZE]
                          [--segment_size SEGMENT_SIZE]
                          [--show_progressbar SHOW_PROGRESSBAR]
 
@@ -995,14 +995,14 @@ Input data related:
   --allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS
 
 The model configuration related:
-  --diar_train_config DIAR_TRAIN_CONFIG
+  --train_config TRAIN_CONFIG
                         Diarization training configuration (default: None)
-  --diar_model_file DIAR_MODEL_FILE
+  --model_file MODEL_FILE
                         Diarization model parameter file (default: None)
   --model_tag MODEL_TAG
                         Pretrained model tag. If specify this option,
-                        diar_train_config and diar_model_file will be
-                        overwritten (default: None)
+                        train_config and model_file will be overwritten
+                        (default: None)
 
 Data loading related:
   --batch_size BATCH_SIZE
@@ -1456,9 +1456,8 @@ Optimizer related:
                         DATA_PATH_AND_NAME_AND_TYPE [--key_file KEY_FILE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                         [--normalize_output_wav NORMALIZE_OUTPUT_WAV]
-                        [--enh_train_config ENH_TRAIN_CONFIG]
-                        [--enh_model_file ENH_MODEL_FILE]
-                        [--enh_model_tag ENH_MODEL_TAG]
+                        [--train_config TRAIN_CONFIG]
+                        [--model_file MODEL_FILE] [--model_tag MODEL_TAG]
                         [--batch_size BATCH_SIZE]
                         [--segment_size SEGMENT_SIZE] [--hop_size HOP_SIZE]
                         [--normalize_segment_scale NORMALIZE_SEGMENT_SCALE]
@@ -1491,14 +1490,14 @@ Output data related:
                         (default: False)
 
 The model configuration related:
-  --enh_train_config ENH_TRAIN_CONFIG
+  --train_config TRAIN_CONFIG
                         Training configuration file (default: None)
-  --enh_model_file ENH_MODEL_FILE
+  --model_file MODEL_FILE
                         Model parameter file (default: None)
-  --enh_model_tag ENH_MODEL_TAG
+  --model_tag MODEL_TAG
                         Pretrained model tag. If specify this option,
-                        enh_train_config and enh_model_file will be
-                        overwritten (default: None)
+                        train_config and model_file will be overwritten
+                        (default: None)
 
 Data loading related:
   --batch_size BATCH_SIZE
