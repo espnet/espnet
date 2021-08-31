@@ -511,7 +511,7 @@ start with the prefix “parallel_wavegan/”.</p></li>
 <span id="id7"></span><h2>espnet2.bin.diar_inference<a class="headerlink" href="#espnet2-bin-diar-inference" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.diar_inference"></span><dl class="class">
 <dt id="espnet2.bin.diar_inference.DiarizeSpeech">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.diar_inference.</code><code class="sig-name descname">DiarizeSpeech</code><span class="sig-paren">(</span><em class="sig-param">diar_train_config: Union[pathlib.Path, str], diar_model_file: Union[pathlib.Path, str] = None, segment_size: Optional[float] = None, normalize_segment_scale: bool = False, show_progressbar: bool = False, device: str = 'cpu', dtype: str = 'float32'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#DiarizeSpeech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.DiarizeSpeech" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.diar_inference.</code><code class="sig-name descname">DiarizeSpeech</code><span class="sig-paren">(</span><em class="sig-param">diar_train_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">diar_model_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">segment_size: Optional[float] = None</em>, <em class="sig-param">normalize_segment_scale: bool = False</em>, <em class="sig-param">show_progressbar: bool = False</em>, <em class="sig-param">device: str = 'cpu'</em>, <em class="sig-param">dtype: str = 'float32'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#DiarizeSpeech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.DiarizeSpeech" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>DiarizeSpeech class</p>
 <p class="rubric">Examples</p>
@@ -522,6 +522,24 @@ start with the prefix “parallel_wavegan/”.</p></li>
 <span class="go">[(spk_id, start, end), (spk_id2, start2, end2)]</span>
 </pre></div>
 </div>
+<dl class="method">
+<dt id="espnet2.bin.diar_inference.DiarizeSpeech.from_pretrained">
+<em class="property">static </em><code class="sig-name descname">from_pretrained</code><span class="sig-paren">(</span><em class="sig-param">model_tag: Optional[str] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#DiarizeSpeech.from_pretrained"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.DiarizeSpeech.from_pretrained" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build DiarizeSpeech instance from the pretrained model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model_tag</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Model tag of the pretrained models.
+Currently, the tags of espnet_model_zoo are supported.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>DiarizeSpeech instance.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet2.bin.diar_inference.DiarizeSpeech" title="espnet2.bin.diar_inference.DiarizeSpeech">DiarizeSpeech</a></p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="function">
@@ -531,7 +549,7 @@ start with the prefix “parallel_wavegan/”.</p></li>
 
 <dl class="function">
 <dt id="espnet2.bin.diar_inference.inference">
-<code class="sig-prename descclassname">espnet2.bin.diar_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, fs: int, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], diar_train_config: str, diar_model_file: str, allow_variable_data_keys: bool, segment_size: Optional[float], show_progressbar: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">espnet2.bin.diar_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, fs: int, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], diar_train_config: Optional[str], diar_model_file: Optional[str], model_tag: Optional[str], allow_variable_data_keys: bool, segment_size: Optional[float], show_progressbar: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.inference" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">

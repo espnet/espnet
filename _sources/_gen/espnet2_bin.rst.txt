@@ -714,9 +714,9 @@ diar_inference.py
                              --data_path_and_name_and_type
                              DATA_PATH_AND_NAME_AND_TYPE [--key_file KEY_FILE]
                              [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
-                             --diar_train_config DIAR_TRAIN_CONFIG
-                             --diar_model_file DIAR_MODEL_FILE
-                             [--batch_size BATCH_SIZE]
+                             [--diar_train_config DIAR_TRAIN_CONFIG]
+                             [--diar_model_file DIAR_MODEL_FILE]
+                             [--model_tag MODEL_TAG] [--batch_size BATCH_SIZE]
                              [--segment_size SEGMENT_SIZE]
                              [--show_progressbar SHOW_PROGRESSBAR]
     
@@ -742,7 +742,13 @@ diar_inference.py
     
     The model configuration related:
       --diar_train_config DIAR_TRAIN_CONFIG
+                            Diarization training configuration (default: None)
       --diar_model_file DIAR_MODEL_FILE
+                            Diarization model parameter file (default: None)
+      --model_tag MODEL_TAG
+                            Pretrained model tag. If specify this option,
+                            diar_train_config and diar_model_file will be
+                            overwritten (default: None)
     
     Data loading related:
       --batch_size BATCH_SIZE
