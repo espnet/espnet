@@ -38,6 +38,8 @@ recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.bes
 n_average=5                  # the number of ASR models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best ASR models will be averaged.
                              # if false, the last `n_average` ASR models will be averaged.
+metric=acc                   # loss/acc/cer/cer_ctc
+max_epoch=400
 
 # preprocessing related
 src_case=lc.rm
@@ -81,8 +83,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 0: Data Preparation"
-    # for x in dev test train other; do
-    for x in other; do
+    for x in dev test train other; do
         local/data_prep.sh ${datadir}/${x} data/${x}
     done
 fi
@@ -236,12 +237,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
        [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+       [[ $(get_yaml.py ${train_config} model-module) = *maskctc* ]] || \
        [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
        [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
         # Average ASR models
         if ${use_valbest_average}; then
             recog_model=model.val${n_average}.avg.best
-            opt="--log ${expdir}/results/log"
+            opt="--log ${expdir}/results/log --metric ${metric}"
         else
             recog_model=model.last${n_average}.avg.best
             opt="--log"
@@ -251,8 +253,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --backend ${backend} \
             --snapshots ${expdir}/results/snapshot.ep.* \
             --out ${expdir}/results/${recog_model} \
-            --num ${n_average}
-    fi
+            --num ${n_average} \
+            --max-epoch ${max_epoch}
+ fi
 
     if [ ${dec_ngpu} = 1 ]; then
         nj=1
@@ -280,8 +283,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --batchsize 0 \
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${recog_model} \
-            --rnnlm ${lmexpdir}/rnnlm.model.best
+            --model ${expdir}/results/${recog_model}
+            # --rnnlm ${lmexpdir}/rnnlm.model.best
 
         score_sclite_case.sh --case ${src_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
             ${expdir}/${decode_dir} ${dict}
