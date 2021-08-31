@@ -398,14 +398,16 @@ Input/output arguments:
                         --data_path_and_name_and_type
                         DATA_PATH_AND_NAME_AND_TYPE [--key_file KEY_FILE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
-                        --asr_train_config ASR_TRAIN_CONFIG --asr_model_file
-                        ASR_MODEL_FILE [--lm_train_config LM_TRAIN_CONFIG]
+                        [--asr_train_config ASR_TRAIN_CONFIG]
+                        [--asr_model_file ASR_MODEL_FILE]
+                        [--lm_train_config LM_TRAIN_CONFIG]
                         [--lm_file LM_FILE]
                         [--word_lm_train_config WORD_LM_TRAIN_CONFIG]
                         [--word_lm_file WORD_LM_FILE]
-                        [--ngram_file NGRAM_FILE] [--batch_size BATCH_SIZE]
-                        [--nbest NBEST] [--beam_size BEAM_SIZE]
-                        [--penalty PENALTY] [--maxlenratio MAXLENRATIO]
+                        [--ngram_file NGRAM_FILE] [--model_tag MODEL_TAG]
+                        [--batch_size BATCH_SIZE] [--nbest NBEST]
+                        [--beam_size BEAM_SIZE] [--penalty PENALTY]
+                        [--maxlenratio MAXLENRATIO]
                         [--minlenratio MINLENRATIO] [--ctc_weight CTC_WEIGHT]
                         [--lm_weight LM_WEIGHT] [--ngram_weight NGRAM_WEIGHT]
                         [--streaming STREAMING] [--token_type {char,bpe,None}]
@@ -432,12 +434,22 @@ Input data related:
 
 The model configuration related:
   --asr_train_config ASR_TRAIN_CONFIG
+                        ASR training configuration (default: None)
   --asr_model_file ASR_MODEL_FILE
+                        ASR model parameter file (default: None)
   --lm_train_config LM_TRAIN_CONFIG
-  --lm_file LM_FILE
+                        LM training configuration (default: None)
+  --lm_file LM_FILE     LM parameter file (default: None)
   --word_lm_train_config WORD_LM_TRAIN_CONFIG
+                        Word LM training configuration (default: None)
   --word_lm_file WORD_LM_FILE
+                        Word LM parameter file (default: None)
   --ngram_file NGRAM_FILE
+                        N-gram parameter file (default: None)
+  --model_tag MODEL_TAG
+                        Pretrained model tag. If specify this option,
+                        *_train_config and *_file will be overwritten
+                        (default: None)
 
 Beam-search related:
   --batch_size BATCH_SIZE
@@ -1438,8 +1450,10 @@ Optimizer related:
                         DATA_PATH_AND_NAME_AND_TYPE [--key_file KEY_FILE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                         [--normalize_output_wav NORMALIZE_OUTPUT_WAV]
-                        --enh_train_config ENH_TRAIN_CONFIG --enh_model_file
-                        ENH_MODEL_FILE [--batch_size BATCH_SIZE]
+                        [--enh_train_config ENH_TRAIN_CONFIG]
+                        [--enh_model_file ENH_MODEL_FILE]
+                        [--enh_model_tag ENH_MODEL_TAG]
+                        [--batch_size BATCH_SIZE]
                         [--segment_size SEGMENT_SIZE] [--hop_size HOP_SIZE]
                         [--normalize_segment_scale NORMALIZE_SEGMENT_SCALE]
                         [--show_progressbar SHOW_PROGRESSBAR]
@@ -1472,7 +1486,13 @@ Output data related:
 
 The model configuration related:
   --enh_train_config ENH_TRAIN_CONFIG
+                        Training configuration file (default: None)
   --enh_model_file ENH_MODEL_FILE
+                        Model parameter file (default: None)
+  --enh_model_tag ENH_MODEL_TAG
+                        Pretrained model tag. If specify this option,
+                        enh_train_config and enh_model_file will be
+                        overwritten (default: None)
 
 Data loading related:
   --batch_size BATCH_SIZE
@@ -2891,15 +2911,15 @@ Optimizer related:
                            --data_path_and_name_and_type
                            DATA_PATH_AND_NAME_AND_TYPE [--key_file KEY_FILE]
                            [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
-                           --asr_train_config ASR_TRAIN_CONFIG
-                           --asr_model_file ASR_MODEL_FILE
+                           [--asr_train_config ASR_TRAIN_CONFIG]
+                           [--asr_model_file ASR_MODEL_FILE]
                            [--lm_train_config LM_TRAIN_CONFIG]
                            [--lm_file LM_FILE]
                            [--word_lm_train_config WORD_LM_TRAIN_CONFIG]
                            [--word_lm_file WORD_LM_FILE]
-                           [--batch_size BATCH_SIZE] [--nbest NBEST]
-                           [--beam_size BEAM_SIZE] [--penalty PENALTY]
-                           [--maxlenratio MAXLENRATIO]
+                           [--model_tag MODEL_TAG] [--batch_size BATCH_SIZE]
+                           [--nbest NBEST] [--beam_size BEAM_SIZE]
+                           [--penalty PENALTY] [--maxlenratio MAXLENRATIO]
                            [--minlenratio MINLENRATIO]
                            [--ctc_weight CTC_WEIGHT] [--lm_weight LM_WEIGHT]
                            [--streaming STREAMING]
@@ -2927,11 +2947,20 @@ Input data related:
 
 The model configuration related:
   --asr_train_config ASR_TRAIN_CONFIG
+                        ASR training configuration (default: None)
   --asr_model_file ASR_MODEL_FILE
+                        ASR model parameter file (default: None)
   --lm_train_config LM_TRAIN_CONFIG
-  --lm_file LM_FILE
+                        LM training configuration (default: None)
+  --lm_file LM_FILE     LM parameter file (default: None)
   --word_lm_train_config WORD_LM_TRAIN_CONFIG
+                        Word LM training configuration (default: None)
   --word_lm_file WORD_LM_FILE
+                        Word LM parameter file (default: None)
+  --model_tag MODEL_TAG
+                        Pretrained model tag. If specify this option,
+                        *_train_config and *_file will be overwritten
+                        (default: None)
 
 Beam-search related:
   --batch_size BATCH_SIZE
