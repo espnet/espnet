@@ -44,8 +44,8 @@ class SeparateSpeech:
 
     def __init__(
         self,
-        enh_train_config: Union[Path, str] = None,
-        enh_model_file: Union[Path, str] = None,
+        train_config: Union[Path, str] = None,
+        model_file: Union[Path, str] = None,
         segment_size: Optional[float] = None,
         hop_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
@@ -59,7 +59,7 @@ class SeparateSpeech:
 
         # 1. Build Enh model
         enh_model, enh_train_args = EnhancementTask.build_model_from_file(
-            enh_train_config, enh_model_file, device
+            train_config, model_file, device
         )
         enh_model.to(dtype=getattr(torch, dtype)).eval()
 
@@ -256,20 +256,20 @@ class SeparateSpeech:
 
     @staticmethod
     def from_pretrained(
-        enh_model_tag: Optional[str] = None,
+        model_tag: Optional[str] = None,
         **kwargs: Optional[Any],
     ):
         """Build SeparateSpeech instance from the pretrained model.
 
         Args:
-            enh_model_tag (Optional[str]): Model tag of the pretrained models.
+            model_tag (Optional[str]): Model tag of the pretrained models.
                 Currently, the tags of espnet_model_zoo are supported.
 
         Returns:
             SeparateSpeech: SeparateSpeech instance.
 
         """
-        if enh_model_tag is not None:
+        if model_tag is not None:
             try:
                 from espnet_model_zoo.downloader import ModelDownloader
 
@@ -280,9 +280,7 @@ class SeparateSpeech:
                 )
                 raise
             d = ModelDownloader()
-            train_config, model_file = d.download_and_unpack(enh_model_tag).values()
-            # FIXME: The arugment name is mismatched, it is better to rename.
-            kwargs.update(enh_train_config=train_config, enh_model_file=model_file)
+            kwargs.update(**d.download_and_unpack(model_tag))
 
         return SeparateSpeech(**kwargs)
 
@@ -304,9 +302,9 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    enh_train_config: Optional[str],
-    enh_model_file: Optional[str],
-    enh_model_tag: Optional[str],
+    train_config: Optional[str],
+    model_file: Optional[str],
+    model_tag: Optional[str],
     allow_variable_data_keys: bool,
     segment_size: Optional[float],
     hop_size: Optional[float],
@@ -336,8 +334,8 @@ def inference(
 
     # 2. Build separate_speech
     separate_speech_kwargs = dict(
-        enh_train_config=enh_train_config,
-        enh_model_file=enh_model_file,
+        train_config=train_config,
+        model_file=model_file,
         segment_size=segment_size,
         hop_size=hop_size,
         normalize_segment_scale=normalize_segment_scale,
@@ -348,7 +346,7 @@ def inference(
         dtype=dtype,
     )
     separate_speech = SeparateSpeech.from_pretrained(
-        enh_model_tag=enh_model_tag,
+        model_tag=model_tag,
         **separate_speech_kwargs,
     )
 
@@ -452,20 +450,20 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--enh_train_config",
+        "--train_config",
         type=str,
         help="Training configuration file",
     )
     group.add_argument(
-        "--enh_model_file",
+        "--model_file",
         type=str,
         help="Model parameter file",
     )
     group.add_argument(
-        "--enh_model_tag",
+        "--model_tag",
         type=str,
-        help="Pretrained model tag. If specify this option, enh_train_config and "
-        "enh_model_file will be overwritten",
+        help="Pretrained model tag. If specify this option, train_config and "
+        "model_file will be overwritten",
     )
 
     group = parser.add_argument_group("Data loading related")

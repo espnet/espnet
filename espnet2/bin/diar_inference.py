@@ -42,8 +42,8 @@ class DiarizeSpeech:
 
     def __init__(
         self,
-        diar_train_config: Union[Path, str] = None,
-        diar_model_file: Union[Path, str] = None,
+        train_config: Union[Path, str] = None,
+        model_file: Union[Path, str] = None,
         segment_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
         show_progressbar: bool = False,
@@ -54,7 +54,7 @@ class DiarizeSpeech:
 
         # 1. Build Diar model
         diar_model, diar_train_args = DiarizationTask.build_model_from_file(
-            diar_train_config, diar_model_file, device
+            train_config, model_file, device
         )
         diar_model.to(dtype=getattr(torch, dtype)).eval()
 
@@ -186,9 +186,7 @@ class DiarizeSpeech:
                 )
                 raise
             d = ModelDownloader()
-            train_config, model_file = d.download_and_unpack(model_tag).values()
-            # FIXME: The argument name is mismatched, it is better to rename.
-            kwargs.update(diar_train_config=train_config, diar_model_file=model_file)
+            kwargs.update(**d.download_and_unpack(model_tag))
 
         return DiarizeSpeech(**kwargs)
 
@@ -204,8 +202,8 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    diar_train_config: Optional[str],
-    diar_model_file: Optional[str],
+    train_config: Optional[str],
+    model_file: Optional[str],
     model_tag: Optional[str],
     allow_variable_data_keys: bool,
     segment_size: Optional[float],
@@ -232,8 +230,8 @@ def inference(
 
     # 2. Build separate_speech
     diarize_speech_kwargs = dict(
-        diar_train_config=diar_train_config,
-        diar_model_file=diar_model_file,
+        train_config=train_config,
+        model_file=model_file,
         segment_size=segment_size,
         show_progressbar=show_progressbar,
         device=device,
@@ -333,20 +331,20 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--diar_train_config",
+        "--train_config",
         type=str,
         help="Diarization training configuration",
     )
     group.add_argument(
-        "--diar_model_file",
+        "--model_file",
         type=str,
         help="Diarization model parameter file",
     )
     group.add_argument(
         "--model_tag",
         type=str,
-        help="Pretrained model tag. If specify this option, diar_train_config and "
-        "diar_model_file will be overwritten",
+        help="Pretrained model tag. If specify this option, train_config and "
+        "model_file will be overwritten",
     )
 
     group = parser.add_argument_group("Data loading related")
