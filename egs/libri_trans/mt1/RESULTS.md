@@ -15,6 +15,13 @@
   - e2e JSON file: `exp/train.fr_lc.rm_tc_pytorch_train_pytorch_transformer_large_bpe8000/results/model.json`
 - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
 
+#### cascade results from Conformer ASR (sacreBLEU)
+
+| dataset                                                                                                               | BLEU     | 1-gram | 2-gram | 3-gram | 4-gram | BP    | ratio | hyp_len | ref_len |
+| --------------------------------------------------------------------------------------------------------------------- | -------- | ------ | ------ | ------ | ------ | ----- | ----- | ------- | ------- |
+| exp/train.fr_lc.rm_tc_pytorch_train_pytorch_transformer_large_bpe8000/decode_dev.fr_decode_pytorch_transformer_bpe8k  | **23.0** | 51.6   | 27.2   | 17.1   | 11.7   | 1.000 | 1.008 | 22555   | 22365   |
+| exp/train.fr_lc.rm_tc_pytorch_train_pytorch_transformer_large_bpe8000/decode_test.fr_decode_pytorch_transformer_bpe8k | **17.5** | 48.5   | 22.5   | 12.3   | 7.0    | 0.999 | 0.999 | 43808   | 43837   |
+
 ### train.fr_lc.rm_tc_pytorch_train_pytorch_transformer_bpe8000 (sacreBLEU)
 
 | dataset                                                                                                         | BLEU     | 1-gram | 2-gram | 3-gram | 4-gram | BP    | ratio | hyp_len | ref_len |
@@ -30,6 +37,13 @@
   - e2e JSON file: `exp/train.fr_lc.rm_tc_pytorch_train_pytorch_transformer_bpe8000/results/model.json`
 - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
 
+#### cascade results from Conformer ASR (sacreBLEU)
+
+| dataset                                                                                                         | BLEU     | 1-gram | 2-gram | 3-gram | 4-gram | BP    | ratio | hyp_len | ref_len |
+| --------------------------------------------------------------------------------------------------------------- | -------- | ------ | ------ | ------ | ------ | ----- | ----- | ------- | ------- |
+| exp/train.fr_lc.rm_tc_pytorch_train_pytorch_transformer_bpe8000/decode_dev.fr_decode_pytorch_transformer_bpe8k  | **20.2** | 50.7   | 25.2   | 14.8   | 9.1    | 0.994 | 0.994 | 22228   | 22365   |
+| exp/train.fr_lc.rm_tc_pytorch_train_pytorch_transformer_bpe8000/decode_test.fr_decode_pytorch_transformer_bpe8k | **17.4** | 48.4   | 22.5   | 12.2   | 7.0    | 1.000 | 1.000 | 43851   | 43837   |
+
 ### train.fr_lc.rm_tc_pytorch_train_pytorch_transformer_bpe1000 (sacreBLEU)
 
 | dataset                                                                                                   | BLEU     | 1-gram | 2-gram | 3-gram | 4-gram | BP    | ratio | hyp_len | ref_len |
@@ -44,6 +58,13 @@
   - e2e file: `exp/train.fr_lc.rm_tc_pytorch_train_pytorch_transformer_bpe1000/results/model.val5.avg.best`
   - e2e JSON file: `exp/train.fr_lc.rm_tc_pytorch_train_pytorch_transformer_bpe1000/results/model.json`
 - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+
+#### cascade results from Conformer ASR (sacreBLEU)
+
+| dataset                                                                                                   | BLEU     | 1-gram | 2-gram | 3-gram | 4-gram | BP    | ratio | hyp_len | ref_len |
+| --------------------------------------------------------------------------------------------------------- | -------- | ------ | ------ | ------ | ------ | ----- | ----- | ------- | ------- |
+| exp/train.fr_lc.rm_tc_pytorch_train_pytorch_transformer_bpe1000/decode_dev.fr_decode_pytorch_transformer  | **18.7** | 50.1   | 24.2   | 13.6   | 7.7    | 0.987 | 0.987 | 22078   | 22365   |
+| exp/train.fr_lc.rm_tc_pytorch_train_pytorch_transformer_bpe1000/decode_test.fr_decode_pytorch_transformer | **17.5** | 49.0   | 22.9   | 12.5   | 7.0    | 0.988 | 0.988 | 43329   | 43837   |
 
 # RNN baseline
 
