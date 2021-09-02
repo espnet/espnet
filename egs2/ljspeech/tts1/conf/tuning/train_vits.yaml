@@ -4,12 +4,8 @@
 # option for tts.sh at least and use 22050 hz audio as
 # the training data (mainly tested on LJspeech).
 # This configuration tested on 4 GPUs (V100) with 32GB GPU
-# memory. It takes around 2 weeks to finish the training
+# memory. It takes around 4 weeks to finish the training
 # but 100k iters model should generate reasonable results.
-# This configuration trains only 500k iters, but maybe
-# more iters give us better results (around 4M?). If you
-# have sufficient GPUs, I recommend increaseing the number
-# epochs, e.g., from 1000 to 8000.
 
 ##########################################################
 #                  TTS MODEL SETTING                     #
@@ -162,7 +158,7 @@ generator_first: false # whether to start updating generator first
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 500  # number of iterations per epoch
+num_iters_per_epoch: 1000 # number of iterations per epoch
 max_epoch: 1000           # number of epochs
 accum_grad: 1             # gradient accumulation
 batch_bins: 5000000       # batch bins (feats_type=raw)
