@@ -535,6 +535,10 @@ $ ./run.sh \
     --train_config ./conf/tuning/finetune_joint_conformer_fastspeech2_hifigan.yaml
 ```
 
+You can find the example configs in:
+- [`egs2/ljspeech/tts1/conf/tuning/train_joint_conformer_fastspeech2_hifigan.yaml`: Joint training of conformer fastspeech2 + hifigan](../../ljspeech/tts1/conf/tuning/train_joint_conformer_fastspeech2_hifigan.yaml).
+- [`egs2/ljspeech/tts1/conf/tuning/finetune_joint_conformer_fastspeech2_hifigan.yaml`: Joint fine-tuning of conformer fastspeech2 + hifigan](../../ljspeech/tts1/conf/tuning/finetune_joint_conformer_fastspeech2_hifigan.yaml).
+
 ## Supported text frontend
 
 You can change via `--g2p` option in `tts.sh`.
