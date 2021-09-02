@@ -239,6 +239,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span> <span class="o">=</span> <span class="n">dropout_rate</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ctc_lo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">eprojs</span><span class="p">,</span> <span class="n">odim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout_rate</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">probs</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># for visualization</span>
 
         <span class="c1"># In case of Pytorch &gt;= 1.7.0, CTC will be always builtin</span>
@@ -308,7 +309,7 @@
         <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="n">y</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">]</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys_pad</span><span class="p">]</span>  <span class="c1"># parse padded ys</span>
 
         <span class="c1"># zero padding for hs</span>
-        <span class="n">ys_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_lo</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">))</span>
+        <span class="n">ys_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_lo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">))</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">!=</span> <span class="s2">&quot;gtnctc&quot;</span><span class="p">:</span>
             <span class="n">ys_hat</span> <span class="o">=</span> <span class="n">ys_hat</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
