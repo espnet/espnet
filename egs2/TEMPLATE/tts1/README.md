@@ -8,7 +8,7 @@ This is a template of TTS recipe for ESPnet2.
   * [Table of Contents](#table-of-contents)
   * [Recipe flow](#recipe-flow)
     * [1\. Data preparation](#1-data-preparation)
-    * [2\. Wav dump or Feature extraction](#2-wav-dump-or-feature-extraction)
+    * [2\. Wav dump / Embedding preapartion](#2-wav-dump--embedding-preparation)
     * [3\. Removal of long / short data](#3-removal-of-long--short-data)
     * [4\. Token list generation](#4-token-list-generation)
     * [5\. TTS statistics collection](#5-tts-statistics-collection)
@@ -19,6 +19,10 @@ This is a template of TTS recipe for ESPnet2.
     * [FastSpeech training](#fastspeech-training)
     * [FastSpeech2 training](#fastspeech2-training)
     * [Multi speaker model with X-vector training](#multi-speaker-model-with-x-vector-training)
+    * [Multi speaker model with speaker ID embedding training](#multi-speaker-model-with-speaker-id-embedding-training)
+    * [Multi language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
+    * [VITS training](#vits-training)
+    * [Joint text2wav training](#joint-text2wav-training)
   * [Supported text frontend](#supported-text-frontend)
   * [Supported text cleaner](#supported-text-cleaner)
   * [Supported Models](#supported-models)
@@ -32,7 +36,7 @@ This is a template of TTS recipe for ESPnet2.
     * [How to add a new cleaner module?](#how-to-add-a-new-cleaner-module)
     * [How to use trained model in python?](#how-to-use-trained-model-in-python)
     * [How to get pretrained models?](#how-to-get-pretrained-models)
-    * [How to load the pretrained model?](#how-to-load-the-pretrained-model)
+    * [How to load the pretrained parameters?](#how-to-load-the-pretrained-parameters)
     * [How to finetune the pretrained model?](#how-to-finetune-the-pretrained-model)
     * [How to add a new model?](#how-to-add-a-new-model)
     * [How to test my model with an arbitrary given text?](#how-to-test-my-model-with-an-arbitrary-given-text)
@@ -186,8 +190,20 @@ Then, you can get the following directories in the recipe directory.
         └── *.best.pth              # symlink to the best model parameter loss
 ```
 In decoding, we use Griffin-Lim for waveform generation as a default (End-to-end text-to-wav model can generate waveform directly such as VITS and Joint training model).
-If you want to combine with neural vocoders, please use [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN).
-See the detail in [decoding with ESPnet-TTS model's feature](https://github.com/kan-bayashi/ParallelWaveGAN#decoding-with-espnet-tts-models-features).
+If you want to combine with neural vocoders, you can combine with [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN).
+
+```sh
+# Make sure you already install parallel_wavegan repo
+$ . ./path.sh && pip install -U parallel_wavegan
+
+# Use parallel_wavegan provided pretrained ljspeech style melgan as a vocoder
+$ ./run.sh --stage 7 --inference_args "--vocoder_tag parallel_wavegan/ljspeech_style_melgan.v1" --inference_tag decode_with_ljspeech_style_melgan.v1
+
+# Use the vocoder trained by `parallel_wavegan` repo manually
+$ ./run.sh --stage 7 --vocoder_file /path/to/checkpoint-xxxxxxsteps.pkl --inference_tag decode_with_my_vocoder
+```
+
+If you want to generate waveform from dumped features, please check [decoding with ESPnet-TTS model's feature](https://github.com/kan-bayashi/ParallelWaveGAN#decoding-with-espnet-tts-models-features).
 
 For the first time, we recommend performing each stage step-by-step via `--stage` and `--stop-stage` options.
 ```sh
@@ -257,92 +273,6 @@ $ ./run.sh --stage 5 \
 ```
 where `--tts_stats_dir` is the option to specify the directory to dump Statistics, and `--write_collected_feats` is the option to dump features in statistics calculation.
 The use of `--write_collected_feats` is optional but it helps to accelerate the training.
-
-### VITS training
-
-First, the VITS config is **hard coded for 22.05 khz or 44.1 khz** and use different feature extraction method.
-If you want to use it with 24 khz or 16 khz dataset, please be careful about these point.
-
-```bash
-# Assume that data prep stage (stage 1) is finished
-$ ./run.sh --stage 1 --stop-stage 1
-
-# Single speaker 22.05 khz case
-$ ./run.sh \
-    --stage 2 \
-    --ngpu 4 \
-    --fs 22050 \
-    --n_fft 1024 \
-    --n_shift 256 \
-    --win_length null \
-    --dumpdir dump/22k \
-    --expdir exp/22k \
-    --tts_task gan_tts \
-    --feats_extract linear_spectrogram \
-    --feats_normalize none \
-    --train_config ./conf/tuning/train_vits.yaml \
-    --inference_config ./conf/tuning/decode_vits.yaml \
-    --inference_model latest.pth
-
-# Single speaker 44.1 khz case
-$ ./run.sh \
-    --stage 2 \
-    --ngpu 4 \
-    --fs 44100 \
-    --n_fft 2048 \
-    --n_shift 512 \
-    --win_length null \
-    --dumpdir dump/44k \
-    --expdir exp/44k \
-    --tts_task gan_tts \
-    --feats_extract linear_spectrogram \
-    --feats_normalize none \
-    --train_config ./conf/tuning/train_full_band_vits.yaml \
-    --inference_config ./conf/tuning/decode_vits.yaml \
-    --inference_model latest.pth
-
-# Multi speaker with SID 22.05 khz case
-$ ./run.sh \
-    --stage 2 \
-    --use_sid true \
-    --ngpu 4 \
-    --fs 22050 \
-    --n_fft 1024 \
-    --n_shift 256 \
-    --win_length null \
-    --dumpdir dump/22k \
-    --expdir exp/22k \
-    --tts_task gan_tts \
-    --feats_extract linear_spectrogram \
-    --feats_normalize none \
-    --train_config ./conf/tuning/train_multi_spk_vits.yaml \
-    --inference_config ./conf/tuning/decode_vits.yaml \
-    --inference_model latest.pth
-
-# Multi speaker with X-vector 22.05 khz case (need compiled kaldi to run)
-$ ./run.sh \
-    --stage 2 \
-    --use_xvector true \
-    --ngpu 4 \
-    --fs 22050 \
-    --n_fft 1024 \
-    --n_shift 256 \
-    --win_length null \
-    --dumpdir dump/22k \
-    --expdir exp/22k \
-    --tts_task gan_tts \
-    --feats_extract linear_spectrogram \
-    --feats_normalize none \
-    --train_config ./conf/tuning/train_xvector_vits.yaml \
-    --inference_config ./conf/tuning/decode_vits.yaml \
-    --inference_model latest.pth
-```
-
-You can find the example configs in:
-- [`egs2/ljspeech/tts1/conf/tuning`: Single speaker 22.05 khz config](../../ljspeech/tts1/conf/tuning).
-- [`egs2/jsut/tts1/conf/tuning`: Single speaker 44.1 khz config](../../jsut/tts1/conf/tuning).
-- [`egs2/vctk/tts1/conf/tuning`: Multi speaker with SID 22.05 khz config](../../vctk/tts1/conf/tuning).
-- [`egs2/libritts/tts1/conf/tuning`: Multi speaker with X-vector 22.05 khz config](../../libritts/tts1/conf/tuning).
 
 ### Multi-speaker model with X-vector training
 
@@ -418,6 +348,191 @@ tts_conf:
 Please run the training from stage 6.
 ```sh
 $ ./run.sh --stage 6 --use_lid true --use_sid true --train_config /path/to/your_multi_spk_multi_lang_config.yaml
+```
+
+### VITS training
+
+First, the VITS config is **hard coded for 22.05 khz or 44.1 khz** and use different feature extraction method.
+(Note that you can use any feature extraction method but the default method is `linear_spectrogram`.)
+If you want to use it with 24 khz or 16 khz dataset, please be careful about these point.
+
+```sh
+# Assume that data prep stage (stage 1) is finished
+$ ./run.sh --stage 1 --stop-stage 1
+
+# Single speaker 22.05 khz case
+$ ./run.sh \
+    --stage 2 \
+    --ngpu 4 \
+    --fs 22050 \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --win_length null \
+    --dumpdir dump/22k \
+    --expdir exp/22k \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_vits.yaml \
+    --inference_config ./conf/tuning/decode_vits.yaml \
+    --inference_model latest.pth
+
+# Single speaker 44.1 khz case
+$ ./run.sh \
+    --stage 2 \
+    --ngpu 4 \
+    --fs 44100 \
+    --n_fft 2048 \
+    --n_shift 512 \
+    --win_length null \
+    --dumpdir dump/44k \
+    --expdir exp/44k \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_full_band_vits.yaml \
+    --inference_config ./conf/tuning/decode_vits.yaml \
+    --inference_model latest.pth
+
+# Multi speaker with SID 22.05 khz case
+$ ./run.sh \
+    --stage 2 \
+    --use_sid true \
+    --ngpu 4 \
+    --fs 22050 \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --win_length null \
+    --dumpdir dump/22k \
+    --expdir exp/22k \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_multi_spk_vits.yaml \
+    --inference_config ./conf/tuning/decode_vits.yaml \
+    --inference_model latest.pth
+
+# Multi speaker with SID 44.1 khz case
+$ ./run.sh \
+    --stage 2 \
+    --use_sid true \
+    --ngpu 4 \
+    --fs 44100 \
+    --n_fft 2048 \
+    --n_shift 512 \
+    --win_length null \
+    --dumpdir dump/44k \
+    --expdir exp/44k \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_full_band_multi_spk_vits.yaml \
+    --inference_config ./conf/tuning/decode_vits.yaml \
+    --inference_model latest.pth
+
+# Multi speaker with X-vector 22.05 khz case (need compiled kaldi to run)
+$ ./run.sh \
+    --stage 2 \
+    --use_xvector true \
+    --ngpu 4 \
+    --fs 22050 \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --win_length null \
+    --dumpdir dump/22k \
+    --expdir exp/22k \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_xvector_vits.yaml \
+    --inference_config ./conf/tuning/decode_vits.yaml \
+    --inference_model latest.pth
+```
+
+The training time requires long times (around several weeks) but around 100k samples can generate a reasonable sounds.
+
+You can find the example configs in:
+- [`egs2/ljspeech/tts1/conf/tuning/train_vits.yaml`: Single speaker 22.05 khz config](../../ljspeech/tts1/conf/tuning/train_vits.yaml).
+- [`egs2/jsut/tts1/conf/tuning/train_full_band_vits.yaml`: Single speaker 44.1 khz config](../../jsut/tts1/conf/tuning/train_full_band_vits.yaml).
+- [`egs2/vctk/tts1/conf/tuning/train_multi_spk_vits.yaml`: Multi speaker with SID 22.05 khz config](../../vctk/tts1/conf/tuning/train_multi_spk_vits.yaml).
+- [`egs2/vctk/tts1/conf/tuning/train_full_band_multi_spk_vits.yaml`: Multi speaker with SID 44.1 khz config](../../vctk/tts1/conf/tuning/train_full_band_multi_spk_vits.yaml).
+- [`egs2/libritts/tts1/conf/tuning/train_xvector_vits.yaml`: Multi speaker with X-vector 22.05 khz config](../../libritts/tts1/conf/tuning/train_xvector_vits.yaml).
+
+### Joint text2wav training
+
+Joint training enables us to train both text2mel and vocoder model jointly with GAN-based training.
+Currently, we tested on only for non-autoregressive text2mel models with ljspeech dataset but the following models and vocoders are supported.
+
+**Text2mel**
+
+- Tacotron2
+- Transformer
+- FastSpeech
+- FastSpeech2
+
+**Vocoder**
+
+- ParallelWaveGAN G / D
+- (Multi-band) MelGAN G / D
+- HiFiGAN G / D
+- StyleMelGAN G / D
+
+Here, we show the example procedure to train conformer fastspeech2 + hifigan jointly with two training strategy (training from scratch and fine-tuning of pretrained text2mel and vocoder).
+
+```sh
+# Make sure you are ready to train fastspeech2 (already prepared durations file with teacher model)
+$ ...
+
+# Case 1: Train conformer fastspeech2 + hifigan G + hifigan D from scratch
+$ ./run.sh \
+    --stage 6 \
+    --tts_task gan_tts \
+    --train_config ./conf/tuning/train_joint_conformer_fastspeech2_hifigan.yaml
+
+# Case 2: Fine-tuning of pretrained conformer fastspeech2 + hifigan G + hifigan D
+# (a) Prepare pretrained models as follows
+$ tree -L 2 exp
+exp
+...
+├── ljspeech_hifigan.v1  # pretrained vocoder
+│   ├── checkpoint-2500000steps.pkl
+│   ├── config.yml
+│   └── stats.h5
+├── tts_train_conformer_fastspeech2_raw_phn_tacotron_g2p_en_no_space  # pretrained text2mel
+│   ├── config.yaml
+│   ├── images
+│   └── train.loss.ave_5best.pth
+...
+# If you want to use the same files of this example
+$ ipython
+# Download text2mel model
+[ins] In [1]: from espnet_model_zoo.downloader import ModelDownloader
+[ins] In [2]: d = ModelDownloader("./downloads")
+[ins] In [3]: d.download_and_unpack("kan-bayashi/ljspeech_conformer_fastspeech2")
+# Download vocoder
+[ins] In [4]: from parallel_wavegan.utils import download_pretrained_model
+[ins] In [5]: download_pretrained_model("ljspeech_hifigan.v1", "downloads")
+# Move them to exp directory
+$ mv download/59c43ac0d40b121060bd71dd418f5ece/exp/tts_train_conformer_fastspeech2_raw_phn_tacotron_g2p_en_no_space exp
+$ mv downloads/ljspeech_hifigan.v1 exp
+
+# (b) Convert .pkl checkpoint to espnet loadable format
+$ ipython
+[ins] In [1]: import torch
+[ins] In [2]: d = torch.load("./exp/ljspeech_hifigan.v1/checkpoint-2500000steps.pkl")
+[ins] In [3]: torch.save(d["model"]["generator"], "generator.pth")
+[ins] In [4]: torch.save(d["model"]["discriminator"], "discriminator.pth")
+
+# (c) Prepare configuration
+$ vim conf/tuning/finetune_joint_conformer_fastspeech2_hifigan.yaml
+# edit text2mel_params / generator_params / discriminator_params to be the same as the pretrained model
+# edit init_param part to specify the correct path of the pretrained model
+
+# (d) Run training
+$ ./run.sh \
+    --stage 6 \
+    --tts_task gan_tts \
+    --train_config ./conf/tuning/finetune_joint_conformer_fastspeech2_hifigan.yaml
 ```
 
 ## Supported text frontend
@@ -559,6 +674,20 @@ Then, add new choice in the argument parser of [`espnet2/bin/tokenize_text.py`](
 
 ### How to use trained model in python?
 
+```python
+from espnet2.bin.tts_inference import Text2Speech
+# without vocoder
+tts = Text2Speech.from_pretrained(model_file="/path/to/model.pth")
+wav = tts("Hello, world")["wav"]
+
+# with local vocoder
+tts = Text2Speech.from_pretrained(model_file="/path/to/model.pth", vocoder_file="/path/to/vocoder.pkl")
+wav = tts("Hello, world")["wav"]
+
+# with pretrained vocoder (use ljseepch style melgan as an example)
+tts = Text2Speech.from_pretrained(model_file="/path/to/model.pth", vocoder_tag="parallel_wavegan/ljspeech_style_melgan.v1")
+wav = tts("Hello, world")["wav"]
+```
 See [use a pretrained model for inference](https://github.com/espnet/espnet_model_zoo#use-a-pretrained-model-for-inference).
 
 ### How to get pretrained models?
@@ -566,7 +695,7 @@ See [use a pretrained model for inference](https://github.com/espnet/espnet_mode
 Use [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo).
 You can find the all of the pretrained model list from [here](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv).
 
-### How to load the pretrained model?
+### How to load the pretrained parameters?
 
 Please use `--init_param` option or add it in training config (`*.yaml`).
 
@@ -604,6 +733,28 @@ Under construction.
 ### How to test my model with an arbitrary given text?
 
 See Google Colab demo notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
+
+If you want to try in local:
+
+```python
+from espnet2.bin.tts_inference import Text2Speech
+
+# with local model
+tts = Text2Speech.from_pretrained(model_file="/path/to/model.pth")
+wav = tts("Hello, world")["wav"]
+
+# with local model and local vocoder
+tts = Text2Speech.from_pretrained(model_file="/path/to/model.pth", vocoder_file="/path/to/vocoder.pkl")
+wav = tts("Hello, world")["wav"]
+
+# with local model and pretrained vocoder (use ljseepch as an example)
+tts = Text2Speech.from_pretrained(model_file="/path/to/model.pth", vocoder_tag="parallel_wavegan/ljspeech_style_melgan.v1")
+wav = tts("Hello, world")["wav"]
+
+# with pretrained model and pretrained vocoder (use ljseepch as an example)
+tts = Text2Speech.from_pretrained(model_tag="kan-bayashi/ljspeech_conformer_fastspeech2", vocoder_tag="parallel_wavegan/ljspeech_style_melgan.v1")
+wav = tts("Hello, world")["wav"]
+```
 
 ### How to handle the errors in `validate_data_dir.sh`?
 
