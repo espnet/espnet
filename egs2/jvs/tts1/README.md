@@ -74,7 +74,7 @@ You need to specify `--init_param` for `--train_args` to load pretrained paramet
 
 # Recommend using --tag to name the experiment directory
 $ ./run.sh --stage 6 --train_config conf/tuning/finetune_tacotron2.yaml \
-    --train_args "--init_param downloads/2dc62478870c846065fe39e609ba6657/exp/tts_train_tacotron2_raw_phn_jaconv_pyopenjtalk/199epoch.pth" \
+    --train_args "--init_param downloads/2dc62478870c846065fe39e609ba6657/exp/tts_train_tacotron2_raw_phn_jaconv_pyopenjtalk/199epoch.pth:tts:tts" \
     --tag finetune_jsut_pretrained_tacotron2
 ```
 
