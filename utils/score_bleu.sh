@@ -42,7 +42,7 @@ perl -pe 's/\([^\)]+\)//g;' ${dir}/ref.trn > ${dir}/ref.rm.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/hyp.trn > ${dir}/hyp.rm.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/src.trn > ${dir}/src.rm.trn
 
-if [ -n "$bpe" ]; then
+if [ ! -z ${bpemodel} ]; then
     if [ ${remove_nonverbal} = true ]; then
         cat ${dir}/ref.rm.trn > ${dir}/ref.wrd.trn
         spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.rm.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
@@ -95,12 +95,20 @@ fi
 if [ ${case} = tc ]; then
     echo "  multi-bleu-detok.perl" >> ${dir}/result.${case}.txt
     multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.${case}.txt
+    echo "############################################################" >> ${dir}/result.${case}.txt
+    echo "|||sacleBLEU|||" >> ${dir}/result.${case}.txt
+    cat ${dir}/hyp.wrd.trn.detok | sacrebleu ${dir}/ref.wrd.trn.detok -m bleu chrf ter >> ${dir}/result.${case}.txt
+    echo "############################################################" >> ${dir}/result.${case}.txt
     echo "write a case-sensitive BLEU result in ${dir}/result.tc.txt"
 else
     echo "  multi-bleu-detok.perl" >> ${dir}/result.${case}.txt
     multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.${case}.txt
+    echo "############################################################" >> ${dir}/result.${case}.txt
+    echo "|||sacleBLEU|||" >> ${dir}/result.${case}.txt
+    cat ${dir}/hyp.wrd.trn.detok | sacrebleu -lc ${dir}/ref.wrd.trn.detok -m bleu chrf ter >> ${dir}/result.${case}.txt
+    echo "############################################################" >> ${dir}/result.${case}.txt
     echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
 fi
 cat ${dir}/result.${case}.txt
 
-# TODO(hirofumi): add TER & METEOR metrics here
+# TODO(hirofumi): add METEOR, BERTscore here
