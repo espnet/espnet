@@ -24,6 +24,7 @@ class CTC(torch.nn.Module):
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
+        self.dropout = torch.nn.Dropout(dropout_rate)
         self.probs = None  # for visualization
 
         # In case of Pytorch >= 1.7.0, CTC will be always builtin
@@ -93,7 +94,7 @@ class CTC(torch.nn.Module):
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
 
         # zero padding for hs
-        ys_hat = self.ctc_lo(F.dropout(hs_pad, p=self.dropout_rate))
+        ys_hat = self.ctc_lo(self.dropout(hs_pad))
         if self.ctc_type != "gtnctc":
             ys_hat = ys_hat.transpose(0, 1)
 
