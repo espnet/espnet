@@ -46,7 +46,6 @@ Since we use the same language data for fine-tuning, we need to use the token li
 The downloaded pretrained model has `tokens_list` in the config, so first we create `tokens.txt` (`token_list`) from the config.
 
 ```sh
-# NOTE: The path may be changed. Please change it to match with your case.
 $ pyscripts/utils/make_token_list_from_config.py downloads/0afe7c220cac7d9893eea4ff1e4ca64e/exp/tts_train_tacotron2_raw_phn_jaconv_pyopenjtalk_accent_with_pause/config.yaml
 
 # tokens.txt is created in model directory
@@ -56,8 +55,6 @@ config.yaml  images  tokens.txt  train.loss.ave_5best.pth
 
 Let us replace the `tokens.txt` with pretrained model's one.
 ```sh
-# NOTE: The path may be changed. Please change it to match with your case.
-
 # Make backup (Rename -> *.bak)
 $ mv dump/token_list/phn_jaconv_pyopenjtalk_accent_with_pause/tokens.{txt,txt.bak}
 # Make symlink to pretrained model's one (Just copy is also OK)
@@ -70,8 +67,6 @@ Sometimes, using the feature statistics of the pretrained models is better than 
 This is an optional step, so you can skip if you use the original statistics.
 
 ```sh
-# NOTE: The path may be changed. Please change it to match with your case.
-
 # Make backup (Rename -> *.bak)
 $ mv exp/tts_stats_raw_phn_jaconv_pyopenjtalk_accent_with_pause/train/feats_stats.{npz,npz.bak}
 # Make symlink to pretrained model's one (Just copy is also OK)
@@ -83,23 +78,18 @@ $ ln -s $(pwd)/downloads/0afe7c220cac7d9893eea4ff1e4ca64e/exp/tts_stats_raw_phn_
 Run the recipe from stage 6.
 
 You need to specify `--init_param` for `--train_args` to load pretrained parameters (Or you can write them in `*.yaml` config).
+Here `--init_param /path/to/model.pth:a:b` represents loading "a" parameters in model.pth into "b", and `:tts:tts` means load parameters except for the feature normalizer.
 
 ```sh
-# NOTE: The path may be changed. Please change it to match with your case.
-
 # Recommend using --tag to name the experiment directory
 $ ./run.sh \
     --stage 6 \
     --train_config conf/tuning/finetune_tacotron2.yaml \
     --train_args "--init_param downloads/0afe7c220cac7d9893eea4ff1e4ca64e/exp/tts_train_tacotron2_raw_phn_jaconv_pyopenjtalk_accent_with_pause/train.loss.ave_5best.pth:tts:tts" \
     --tag finetune_tacotron2_raw_phn_jaconv_pyopenjtalk_accent_with_pause
-
-# Here --init_param /path/to/model.pth:a:b represents load "a" parameters in model.pth into "b".
-# `:tts:tts` means load parameters except for the feature normalizer.
-# You can also write init_param in `conf/tuning/finetune_tacotron2.yaml` if you do not want to use long command line option.
 ```
 
-If you want to load part of the pretrained model, please see [`How to load pretrained model?`](../../TEMPLATE/tts1/README.md#how-to-load-the-pretrained-model) For example, if you want to perform fine-tuning of English model with Japanese data, you may want to load the network except for the token embedding layer.
+For more complex loading of pretrained parameters, please check [`How to load pretrained model?`](../../TEMPLATE/tts1/README.md#how-to-load-the-pretrained-model) For example, if you want to perform fine-tuning of English model with Japanese data, you may want to load the network except for the token embedding layer.
 
 ### Non-AR model case (FastSpeech / FastSpeech2)
 
@@ -142,8 +132,6 @@ And we assume that `tokens.txt` is already replaced in AR model fine-tuning.
 Since fastspeech2 requires extra feature calculation, run from stage 5.
 
 ```sh
-# NOTE: The path may be changed. Please change it to match with your case.
-
 # Recommend using --tag to name the experiment directory
 $ ./run.sh \
     --stage 5 \
@@ -153,10 +141,6 @@ $ ./run.sh \
     --train_config conf/tuning/finetune_fastspeech2.yaml \
     --train_args "--init_param downloads/0293a01e429a84a604304bf06f2cc0b0/exp/tts_train_fastspeech2_tacotron2_teacher_raw_phn_jaconv_pyopenjtalk_accent_with_pause/train.loss.ave_5best.pth:tts:tts" \
     --tag finetune_fastspeech2_raw_phn_jaconv_pyopenjtalk_accent_with_pause
-
-# Here --init_param /path/to/model.pth:a:b represents load "a" parameters in model.pth into "b".
-# `:tts:tts` means load parameters except for the feature normalizer.
-# You can also write init_param in `conf/tuning/finetune_fastspeech2.yaml` if you do not want to use long command line option.
 ```
 
 ### VITS case
@@ -201,31 +185,27 @@ Since we use the same language data for fine-tuning, we need to use the token li
 The downloaded pretrained model has `tokens_list` in the config, so first we create `tokens.txt` (`token_list`) from the config.
 
 ```sh
-# NOTE: The path may be changed. Please change it to match with your case.
-$ pyscripts/utils/make_token_list_from_config.py downloads/xxxxx/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_with_accent/config.yaml
+$ pyscripts/utils/make_token_list_from_config.py downloads/f3698edf589206588f58f5ec837fa516/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_with_accent/config.yaml
 
 # tokens.txt is created in model directory
-$ ls downloads/xxxxx/exp/tts_train_tacotron2_raw_phn_jaconv_pyopenjtalk
-199epoch.pth    config.yaml   tokens.txt
+$ ls downloads/f3698edf589206588f58f5ec837fa516/exp/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause
+config.yaml  images  train.total_count.ave_10best.pth
 ```
 
 Let us replace the `tokens.txt` and `feats_stats.npz` with pretrained model's one.
 ```sh
-# NOTE: The path may be changed. Please change it to match with your case.
-
 # Make backup (Rename -> *.bak)
 $ mv dump/22k/token_list/phn_jaconv_pyopenjtalk_accent_with_pause/tokens.{txt,txt.bak}
 # Make symlink to pretrained model's one (Just copy is also OK)
-$ ln -s downloads/xxxxx/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause/tokens.txt dump/22k/token_list/phn_jaconv_pyopenjtalk_accent_with_pause
+$ ln -s $(pwd)/downloads/f3698edf589206588f58f5ec837fa516/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause/tokens.txt dump/22k/token_list/phn_jaconv_pyopenjtalk_accent_with_pause
 ```
 
 #### 4. Run fine-tuning
 
-Run fine-tuning.
+Run from stage 6.
 
 ```sh
-# NOTE: The path may be changed. Please change it to match with your case.
-
+# Recommend using --tag to name the experiment directory
 $ ./run.sh \
     --stage 6 \
     --min_wav_duration 0.38 \
@@ -238,10 +218,6 @@ $ ./run.sh \
     --feats_extract linear_spectrogram \
     --feats_normalize none \
     --train_config ./conf/tuning/finetune_vits.yaml \
-    --train_args "--init_param downloads/xxxxx/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause/latest.pth:tts:tts" \
+    --train_args "--init_param downloads/f3698edf589206588f58f5ec837fa516/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause/train.total_count.ave_10best.pth:tts:tts" \
     --tag finetune_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause
-
-# Here --init_param /path/to/model.pth:a:b represents load "a" parameters in model.pth into "b".
-# `:tts:tts` means load parameters except for the feature normalizer.
-# You can also write init_param in `conf/tuning/finetune_vits.yaml` if you do not want to use long command line option.
 ```
