@@ -3,6 +3,8 @@ import argparse
 import logging
 from pathlib import Path
 import sys
+from typing import Any
+from typing import Dict
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -64,13 +66,9 @@ def build_ctc_topo(tokens: List[int]) -> k2.Fsa:
     return ans
 
 
-# copied from: https://github.com/k2-fsa/snowfall/blob/master/snowfall/common.py#L309
-def get_texts(
-    best_paths: k2.Fsa, indices: Optional[torch.Tensor] = None
-) -> List[List[int]]:
+# Modified from: https://github.com/k2-fsa/snowfall/blob/master/snowfall/common.py#L309
+def get_texts(best_paths: k2.Fsa) -> List[List[int]]:
     """Extract the texts from the best-path FSAs.
-
-     In the original order (before the permutation given by `indices`).
 
      Args:
          best_paths:  a k2.Fsa with best_paths.arcs.num_axes() == 3, i.e.
@@ -78,10 +76,6 @@ def get_texts(
                   of k2.shortest_path (otherwise the returned values won't
                   be meaningful).  Must have the 'aux_labels' attribute, as
                 a ragged tensor.
-         indices: possibly a torch.Tensor giving the permutation that we used
-                  on the supervisions of this minibatch to put them in decreasing
-                  order of num-frames.  We'll apply the inverse permutation.
-                  Doesn't have to be on the same device as `best_paths`
     Return:
         Returns a list of lists of int, containing the label sequences we
         decoded.
@@ -106,17 +100,7 @@ def get_texts(
         aux_labels = k2r.remove_values_leq(aux_labels, 0)
 
     assert aux_labels.num_axes() == 2
-    aux_labels, _ = k2r.index(
-        aux_labels,
-        invert_permutation(indices).to(dtype=torch.int32, device=best_paths.device),
-    )
     return k2r.to_list(aux_labels)
-
-
-def invert_permutation(indices: torch.Tensor) -> torch.Tensor:
-    ans = torch.zeros(indices.shape, device=indices.device, dtype=torch.long)
-    ans[indices] = torch.arange(0, indices.shape[0], device=indices.device)
-    return ans
 
 
 class k2Speech2Text:
@@ -126,7 +110,10 @@ class k2Speech2Text:
         >>> import soundfile
         >>> speech2text = k2Speech2Text("asr_config.yml", "asr.pth")
         >>> audio, rate = soundfile.read("speech.wav")
-        >>> speech2text(audio)
+        >>> speech = np.expand_dims(audio, 0) # shape: [batch_size, speech_length]
+        >>> speech_lengths = np.array([audio.shape[0]]) # shape: [batch_size]
+        >>> batch = {"speech": speech, "speech_lengths", speech_lengths}
+        >>> speech2text(batch)
         [(text, token, token_int, score), ...]
 
     """
@@ -193,45 +180,42 @@ class k2Speech2Text:
 
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
+        self, batch: Dict[str, Union[torch.Tensor, np.ndarray]]
     ) -> List[Tuple[Optional[str], List[str], List[int], float]]:
         """Inference
 
         Args:
-            data: Input speech data
+            batch: Input speech data and corresponding lengths
         Returns:
             text, token, token_int, hyp
 
         """
         assert check_argument_types()
 
-        # Input as audio signal
-        if isinstance(speech, np.ndarray):
-            speech = torch.tensor(speech)
-
-        # data: (Nsamples,) -> (1, Nsamples)
-        speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-        # lenghts: (1,)
-        lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
-        batch = {"speech": speech, "speech_lengths": lengths}
+        if isinstance(batch["speech"], np.ndarray):
+            batch["speech"] = torch.tensor(batch["speech"])
+        if isinstance(batch["speech_lengths"], np.ndarray):
+            batch["speech_lengths"] = torch.tensor(batch["speech_lengths"])
 
         # a. To device
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
         # enc: [N, T, C]
-        enc, _ = self.asr_model.encode(**batch)
-        assert len(enc) == 1, len(enc)
+        enc, encoder_out_lens = self.asr_model.encode(**batch)
 
         # logp_encoder_output: [N, T, C]
         logp_encoder_output = torch.nn.functional.log_softmax(
             self.asr_model.ctc.ctc_lo(enc), dim=2
         )
 
-        # TODO(Liyong Guo): Support batch decoding.
-        # Following statement only support batch_size == 1
-        supervision_segments = torch.tensor([[0, 0, enc.shape[1]]], dtype=torch.int32)
-        indices = torch.tensor([0])
+        batch_size = encoder_out_lens.size(0)
+        sequence_idx = torch.arange(0, batch_size).unsqueeze(0).t().to(torch.int32)
+        start_frame = torch.zeros([batch_size], dtype=torch.int32).unsqueeze(0).t()
+        num_frames = encoder_out_lens.cpu().unsqueeze(0).t().to(torch.int32)
+        supervision_segments = torch.cat([sequence_idx, start_frame, num_frames], dim=1)
+
+        supervision_segments = supervision_segments.to(torch.int32)
 
         dense_fsa_vec = k2.DenseFsaVec(logp_encoder_output, supervision_segments)
 
@@ -244,9 +228,7 @@ class k2Speech2Text:
             use_double_scores=True, log_semiring=False
         ).tolist()
 
-        hyps = get_texts(best_paths, indices)
-        # TODO(Liyong Guo): Support batch decoding. now batch_size == 1.
-        assert len(scores) == 1
+        hyps = get_texts(best_paths)
         assert len(scores) == len(hyps)
 
         results = []
@@ -263,6 +245,36 @@ class k2Speech2Text:
 
         assert check_return_type(results)
         return results
+
+    @staticmethod
+    def from_pretrained(
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
+        """Build k2Speech2Text instance from the pretrained model.
+
+        Args:
+            model_tag (Optional[str]): Model tag of the pretrained models.
+                Currently, the tags of espnet_model_zoo are supported.
+
+        Returns:
+            Speech2Text: Speech2Text instance.
+
+        """
+        if model_tag is not None:
+            try:
+                from espnet_model_zoo.downloader import ModelDownloader
+
+            except ImportError:
+                logging.error(
+                    "`espnet_model_zoo` is not installed. "
+                    "Please install via `pip install -U espnet_model_zoo`."
+                )
+                raise
+            d = ModelDownloader()
+            kwargs.update(**d.download_and_unpack(model_tag))
+
+        return k2Speech2Text(**kwargs)
 
 
 def inference(
@@ -282,20 +294,19 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    asr_train_config: str,
-    asr_model_file: str,
+    asr_train_config: Optional[str],
+    asr_model_file: Optional[str],
     lm_train_config: Optional[str],
     lm_file: Optional[str],
     word_lm_train_config: Optional[str],
     word_lm_file: Optional[str],
+    model_tag: Optional[str],
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
     streaming: bool,
 ):
     assert check_argument_types()
-    if batch_size > 1:
-        raise NotImplementedError("batch decoding is not implemented")
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
 
@@ -313,7 +324,7 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build speech2text
-    speech2text = k2Speech2Text(
+    speech2text_kwargs = dict(
         asr_train_config=asr_train_config,
         asr_model_file=asr_model_file,
         lm_train_config=lm_train_config,
@@ -330,6 +341,10 @@ def inference(
         penalty=penalty,
         nbest=nbest,
         streaming=streaming,
+    )
+    speech2text = k2Speech2Text.from_pretrained(
+        model_tag=model_tag,
+        **speech2text_kwargs,
     )
 
     # 3. Build data-iterator
@@ -353,15 +368,12 @@ def inference(
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
-            batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
             # 1-best list of (text, token, token_int)
-            results = speech2text(**batch)
+            results = speech2text(batch)
 
-            # Only supporting batch_size==1
-            key = keys[0]
-            for text, token, token_int, score in results:
-
+            for key_idx, (text, token, token_int, score) in enumerate(results):
+                key = keys[key_idx]
                 best_writer = writer["1best_recog"]
                 # Write the result to each file
                 best_writer["token"][key] = " ".join(token)
@@ -420,12 +432,42 @@ def get_parser():
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("The model configuration related")
-    group.add_argument("--asr_train_config", type=str, required=True)
-    group.add_argument("--asr_model_file", type=str, required=True)
-    group.add_argument("--lm_train_config", type=str)
-    group.add_argument("--lm_file", type=str)
-    group.add_argument("--word_lm_train_config", type=str)
-    group.add_argument("--word_lm_file", type=str)
+    group.add_argument(
+        "--asr_train_config",
+        type=str,
+        help="ASR training configuration",
+    )
+    group.add_argument(
+        "--asr_model_file",
+        type=str,
+        help="ASR model parameter file",
+    )
+    group.add_argument(
+        "--lm_train_config",
+        type=str,
+        help="LM training configuration",
+    )
+    group.add_argument(
+        "--lm_file",
+        type=str,
+        help="LM parameter file",
+    )
+    group.add_argument(
+        "--word_lm_train_config",
+        type=str,
+        help="Word LM training configuration",
+    )
+    group.add_argument(
+        "--word_lm_file",
+        type=str,
+        help="Word LM parameter file",
+    )
+    group.add_argument(
+        "--model_tag",
+        type=str,
+        help="Pretrained model tag. If specify this option, *_train_config and "
+        "*_file will be overwritten",
+    )
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(

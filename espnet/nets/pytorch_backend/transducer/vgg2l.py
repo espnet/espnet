@@ -1,4 +1,4 @@
-"""VGG2L module definition for transformer encoder."""
+"""VGG2L module definition for custom encoder."""
 
 from typing import Tuple
 from typing import Union
@@ -10,9 +10,9 @@ class VGG2L(torch.nn.Module):
     """VGG2L module for custom encoder.
 
     Args:
-        idim: Dimension of inputs
-        odim: Dimension of outputs
-        pos_enc: Positional encoding class
+        idim: Input dimension.
+        odim: Output dimension.
+        pos_enc: Positional encoding class.
 
     """
 
@@ -41,49 +41,53 @@ class VGG2L(torch.nn.Module):
             self.output = torch.nn.Linear(128 * ((idim // 2) // 2), odim)
 
     def forward(
-        self, x: torch.Tensor, x_mask: torch.Tensor
+        self, feats: torch.Tensor, feats_mask: torch.Tensor
     ) -> Union[
         Tuple[torch.Tensor, torch.Tensor],
         Tuple[Tuple[torch.Tensor, torch.Tensor], torch.Tensor],
     ]:
-        """VGG2L forward for x.
+        """Forward VGG2L bottleneck.
 
         Args:
-            x: Input tensor (B, T, idim)
-            x_mask: Input mask (B, 1, T)
+            feats: Feature sequences. (B, F, D_feats)
+            feats_mask: Mask of feature sequences. (B, 1, F)
 
         Returns:
-            x: Output tensor (B, sub(T), odim)
-                   or ((B, sub(T), odim), (B, sub(T), att_dim))
-            x_mask: Output mask (B, 1, sub(T))
+            vgg_output: VGG output sequences.
+                   (B, sub(F), D_out) or ((B, sub(F), D_out), (B, sub(F), D_att))
+            vgg_mask: Mask of VGG output sequences. (B, 1, sub(F))
 
         """
-        x = x.unsqueeze(1)
-        x = self.vgg2l(x)
+        feats = feats.unsqueeze(1)
+        vgg_output = self.vgg2l(feats)
 
-        b, c, t, f = x.size()
+        b, c, t, f = vgg_output.size()
 
-        x = self.output(x.transpose(1, 2).contiguous().view(b, t, c * f))
+        vgg_output = self.output(
+            vgg_output.transpose(1, 2).contiguous().view(b, t, c * f)
+        )
 
-        if x_mask is not None:
-            x_mask = self.create_new_mask(x_mask)
+        if feats_mask is not None:
+            vgg_mask = self.create_new_mask(feats_mask)
+        else:
+            vgg_mask = feats_mask
 
-        return x, x_mask
+        return vgg_output, vgg_mask
 
-    def create_new_mask(self, x_mask: torch.Tensor) -> torch.Tensor:
-        """Create a subsampled version of x_mask.
+    def create_new_mask(self, feats_mask: torch.Tensor) -> torch.Tensor:
+        """Create a subsampled mask of feature sequences.
 
         Args:
-            x_mask: Input mask (B, 1, T)
+            feats_mask: Mask of feature sequences. (B, 1, F)
 
         Returns:
-            x_mask: Output mask (B, 1, sub(T))
+            vgg_mask: Mask of VGG2L output sequences. (B, 1, sub(F))
 
         """
-        x_t1 = x_mask.size(2) - (x_mask.size(2) % 3)
-        x_mask = x_mask[:, :, :x_t1][:, :, ::3]
+        vgg1_t_len = feats_mask.size(2) - (feats_mask.size(2) % 3)
+        vgg_mask = feats_mask[:, :, :vgg1_t_len][:, :, ::3]
 
-        x_t2 = x_mask.size(2) - (x_mask.size(2) % 2)
-        x_mask = x_mask[:, :, :x_t2][:, :, ::2]
+        vgg2_t_len = vgg_mask.size(2) - (vgg_mask.size(2) % 2)
+        vgg_mask = vgg_mask[:, :, :vgg2_t_len][:, :, ::2]
 
-        return x_mask
+        return vgg_mask

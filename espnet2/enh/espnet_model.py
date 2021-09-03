@@ -27,6 +27,8 @@ ALL_LOSS_TYPES = (
     "spectrum",
     # log_mse_loss(enhanced_complex_spectrum, target_complex_spectrum)
     "spectrum_log",
+    # snr(enhanced_waveform, target_waveform)
+    "snr",
     # si_snr(enhanced_waveform, target_waveform)
     "si_snr",
     # ci_sdr(enhanced_waveform, target_waveform)
@@ -57,7 +59,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.num_spk = separator.num_spk
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
 
-        if loss_type not in ["si_snr", "ci_sdr"] and isinstance(encoder, ConvEncoder):
+        if loss_type not in ("snr", "si_snr", "ci_sdr") and isinstance(
+            encoder, ConvEncoder
+        ):
             raise TypeError(f"{loss_type} is not supported with {type(ConvEncoder)}")
 
         # get mask type for TF-domain models (only used when loss_type="mask_*")
@@ -67,7 +71,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # whether to compute the TF-domain loss while enforcing STFT consistency
         self.stft_consistency = stft_consistency
 
-        if stft_consistency and loss_type in ["mask_mse", "si_snr", "ci_sdr"]:
+        if stft_consistency and loss_type in ("mask_mse", "snr", "si_snr", "ci_sdr"):
             raise ValueError(
                 f"stft_consistency will not work when '{loss_type}' loss is used"
             )
@@ -219,7 +223,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         )
 
         # add stats for logging
-        if self.loss_type not in ["ci_sdr", "si_snr"]:
+        if self.loss_type not in ("snr", "ci_sdr", "si_snr"):
             if self.training:
                 si_snr = None
             else:
@@ -243,6 +247,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 stats = dict(ci_sdr=-loss.detach(), loss=loss.detach())
             elif self.loss_type == "si_snr":
                 stats = dict(si_snr=-loss.detach(), loss=loss.detach())
+            elif self.loss_type == "snr":
+                stats = dict(snr=-loss.detach(), loss=loss.detach())
             else:
                 raise ValueError("Unsupported loss type: %s" % self.loss_type)
 
@@ -273,7 +279,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                         or (Batch, num_speaker, samples, channels)
             noise_ref: (Batch, num_noise_type, samples)
                         or (Batch, num_speaker, samples, channels)
-            cal_loss: whether to calculate enh loss, defualt is True
+            cal_loss: whether to calculate enh loss, default is True
 
         Returns:
             loss: (torch.Tensor) speech enhancement loss
@@ -286,7 +292,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         feature_mix, flens = self.encoder(speech_mix, speech_lengths)
         feature_pre, flens, others = self.separator(feature_mix, flens)
 
-        if self.loss_type not in ["si_snr", "ci_sdr"]:
+        if self.loss_type not in ("snr", "si_snr", "ci_sdr"):
             spectrum_mix = feature_mix
             spectrum_pre = feature_pre
             # predict separated speech and masks
@@ -442,7 +448,12 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 speech_ref = speech_ref[..., self.ref_channel]
             speech_ref = torch.unbind(speech_ref, dim=1)
 
-            if self.loss_type == "si_snr":
+            if self.loss_type == "snr":
+                # compute snr loss
+                loss, perm = self._permutation_loss(
+                    speech_ref, speech_pre, self.snr_loss
+                )
+            elif self.loss_type == "si_snr":
                 # compute si-snr loss
                 loss, perm = self._permutation_loss(
                     speech_ref, speech_pre, self.si_snr_loss_zeromean
@@ -556,6 +567,24 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         return ci_sdr.pt.ci_sdr_loss(inf, ref, compute_permutation=False)
 
     @staticmethod
+    def snr_loss(ref, inf):
+        """SNR loss
+
+        Args:
+            ref: (Batch, samples)
+            inf: (Batch, samples)
+        Returns:
+            loss: (Batch,)
+        """
+        noise = inf - ref
+
+        snr = 20 * (
+            torch.log10(torch.norm(ref, p=2, dim=1).clamp(min=EPS))
+            - torch.log10(torch.norm(noise, p=2, dim=1).clamp(min=EPS))
+        )
+        return -snr
+
+    @staticmethod
     def si_snr_loss(ref, inf):
         """SI-SNR loss
 
@@ -612,9 +641,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         pair_wise_si_snr = torch.sum(pair_wise_proj ** 2, dim=1) / (
             torch.sum(e_noise ** 2, dim=1) + EPS
         )
-        # print('pair_si_snr',pair_wise_si_snr[0,:])
         pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + EPS)  # [B]
-        # print(pair_wise_si_snr)
 
         return -1 * pair_wise_si_snr
 

@@ -255,7 +255,7 @@ e.g.
     ```
 
 ### Check installation
-You can check whether your installation is succesfully finished by
+You can check whether your installation is successfully finished by
 ```sh
 cd <espnet-root>/tools
 . ./activate_python.sh; python3 check_install.py

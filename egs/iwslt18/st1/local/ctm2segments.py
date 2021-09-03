@@ -46,7 +46,7 @@ def main():
 
         if start_t is not None and i < num_lines - 1:
             if (float(start_time_w) - end_t >= threshold) and (end_t - start_t > 0.2):
-                # differnece utterance
+                # difference utterance
                 hyps += [(utt_id, start_t, end_t, hyp[1:])]
 
                 # reset

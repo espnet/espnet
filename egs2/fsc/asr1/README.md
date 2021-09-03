@@ -20,13 +20,32 @@
 |inference_asr_model_valid.acc.best/valid|3118|91.6|
 
 ## Using Transformer based encoder-decoder and decoding sentence with spectral augmentation
-- ASR config: [conf/tuning/train_asr_transfomer_adam_specaug_small.yaml](conf/tuning/train_asr_transfomer_adam_specaug_small.yaml)
+- ASR config: [conf/tuning/train_asr_transformer_adam_specaug_small.yaml](conf/tuning/train_asr_transformer_adam_specaug_small.yaml)
 - token_type: word
 - keep_nbest_models: 5
 - Pretrainded model: https://zenodo.org/record/5171544
 
-|dataset|Snt|S.Err|
+|dataset|Snt|Intent Classification (%)|
 |---|---|---|
 |inference_asr_model_valid.acc.ave_5best/test|3793|98.8|
 |inference_asr_model_valid.acc.ave_5best/valid|3118|93.6|
+
+
+## Using Transformer based encoder-decoder and decoding sentence with spectral augmentation and predicting transcript along with intent
+- ASR config: [conf/tuning/train_asr_transformer_adam_specaug.yaml](conf/tuning/train_asr_transformer_adam_specaug.yaml)
+- token_type: word
+- keep_nbest_models: 5
+
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|
+|inference_asr_model_valid.acc.ave_5best/test|3793|99.5|
+
+###ASR results
+
+#### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|inference_asr_model_valid.acc.ave_5best/test|3793|20316|99.7|0.2|0.1|0.2|0.4|1.5|
+|inference_asr_model_valid.acc.ave_5best/valid|3118|16751|97.9|1.5|0.6|0.5|2.6|5.5|
 

@@ -45,13 +45,13 @@ if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
 fi
 
 if [ ! -z ${bpemodel} ]; then
-    spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref.trn | sed -e "s/▁/ /g" > ${dir}/ref.wrd.trn
+    cat ${dir}/ref.trn > ${dir}/ref.wrd.trn
     spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
     spm_decode --model=${bpemodel} --input_format=piece < ${dir}/src.trn | sed -e "s/▁/ /g" > ${dir}/src.wrd.trn
     if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
-        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref1.trn | sed -e "s/▁/ /g" > ${dir}/ref1.wrd.trn
-        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref2.trn | sed -e "s/▁/ /g" > ${dir}/ref2.wrd.trn
-        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref3.trn | sed -e "s/▁/ /g" > ${dir}/ref3.wrd.trn
+        cat ${dir}/ref1.trn > ${dir}/ref1.wrd.trn
+        cat ${dir}/ref2.trn > ${dir}/ref2.wrd.trn
+        cat ${dir}/ref3.trn > ${dir}/ref3.wrd.trn
     fi
 else
     sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/ref.trn > ${dir}/ref.wrd.trn
@@ -128,6 +128,7 @@ echo ${set} > ${dir}/result.lc.txt
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
     # 4 references
     echo "4-ref BLEU"
+    echo "  multi-bleu-detok.perl" >> ${dir}/result.lc.txt
     multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok.lc.rm  \
                               ${dir}/ref1.wrd.trn.detok.lc.rm \
                               ${dir}/ref2.wrd.trn.detok.lc.rm \
@@ -135,6 +136,7 @@ if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
 fi
 # 1 reference
 echo "1-ref BLEU"
+echo "  multi-bleu-detok.perl" >> ${dir}/result.lc.txt
 multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok.lc.rm < ${dir}/hyp.wrd.trn.detok.lc.rm >> ${dir}/result.lc.txt
 
 echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"

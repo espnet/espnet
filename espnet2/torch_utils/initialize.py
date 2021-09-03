@@ -94,3 +94,7 @@ def initialize(model: torch.nn.Module, init: str):
             model.frontend, "reload_pretrained_parameters", None
         ):
             model.frontend.reload_pretrained_parameters()
+        if getattr(model, "postencoder", None) and getattr(
+            model.postencoder, "reload_pretrained_parameters", None
+        ):
+            model.postencoder.reload_pretrained_parameters()
