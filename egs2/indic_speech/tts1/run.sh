@@ -5,10 +5,10 @@ set -e
 set -u
 set -o pipefail
 
-fs=16000
-n_fft=1024
-n_shift=256
-win_length=null
+fs=24000
+n_fft=2048
+n_shift=300
+win_length=1200
 
 opts="--audio_format wav "
 

@@ -7,6 +7,9 @@
 import argparse
 import csv
 import os
+import subprocess
+
+from tqdm import tqdm
 
 
 if __name__ == "__main__":
@@ -24,16 +27,25 @@ if __name__ == "__main__":
 
     with open(annotations_path) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter="|")
+        rows = []
         for row in csv_reader:
+            rows.append(row)
+        for row in tqdm(rows):
             f = row[0]  # e.g. Dataset/3487.wav
             f = os.path.basename(row[0])
-            utt = f[:-4]
-            utt = spk + "_" + utt
-            utt2f[utt] = f
-            text = row[1]
-            utt2text[utt] = text
+            wav_path = os.path.join(wav_dir, f)
+            mp3_path = wav_path.replace(".wav", ".mp3")
+            if os.path.exists(wav_path) or os.path.exists(mp3_path):
+                if not os.path.exists(mp3_path):
+                    os.rename(wav_path, mp3_path)
+                if not os.path.exists(wav_path):
+                    os.system("ffmpeg -i %s %s -loglevel quiet" % (mp3_path, wav_path))
+                utt = f[:-4]
+                utt = spk + "_" + utt
+                utt2f[utt] = f
+                text = row[1]
+                utt2text[utt] = text
 
-    sr = 16000
     utts = [utt for utt in utt2text]
     utts = sorted(utts)
     utts_str = " ".join(utts)
@@ -41,12 +53,7 @@ if __name__ == "__main__":
     text_strs = ["%s %s" % (utt, utt2text[utt]) for utt in utts]
     wav_scp_strs = []
     for utt in utts:
-        cmd = "ffmpeg -i %s/%s -f wav -ar %d -ab 16 -ac 1 - |" % (
-            wav_dir,
-            utt2f[utt],
-            sr,
-        )
-        wav_scp_strs.append("%s %s" % (utt, cmd))
+        wav_scp_strs.append("%s %s/%s" % (utt, wav_dir, utt2f[utt]))
 
     data_subdir = "data/%s" % spk
     if not os.path.exists(data_subdir):

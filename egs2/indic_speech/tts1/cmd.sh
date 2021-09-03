@@ -22,7 +22,7 @@
 # If jobs failed, your configuration might be wrong for your environment.
 #
 #
-# The official documentaion for run.pl, queue.pl, slurm.pl, and ssh.pl:
+# The official documentation for run.pl, queue.pl, slurm.pl, and ssh.pl:
 #   "Parallelization in Kaldi": http://kaldi-asr.org/doc/queue.html
 # =========================================================~
 
