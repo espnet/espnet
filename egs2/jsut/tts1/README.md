@@ -13,6 +13,23 @@ See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
+
+# FIFTH RESULTS
+
+## Environments
+- date: `Fri Sep  3 21:09:25 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a1`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `dee654041cddf80281048b3e7525c1cdafc377ff`
+  - Commit date: `Thu Sep 2 14:45:48 2021 +0900`
+
+## Pretrained Models
+
+### jsut_tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause_train.total_count.ave
+- https://zenodo.org/record/5414980
+
+
 # FORTH RESULTS
 
 - Use phoneme + accent + pause as the inputs
