@@ -699,7 +699,19 @@ See [use a pretrained model for inference](https://github.com/espnet/espnet_mode
 Use [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo).
 You can find the all of the pretrained model list from [here](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv).
 
+If you want to use pretrained models written in `egs2/hogehoge/tts1/README.md`, go to Zenodo URL and copy the URL of download in the below of the page.
+Then, you can use as follows:
+```python
+from espnet2.bin.tts_inference import Text2Speech
+
+# provide copied URL directly
+tts = Text2Speech.from_pretrained(
+    "https://zenodo.org/record/5414980/files/tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause_train.total_count.ave.zip?download=1",
+)
+wav = tts("こんにちは、世界。")["wav"]
+```
 ### How to load the pretrained parameters?
+
 
 Please use `--init_param` option or add it in training config (`*.yaml`).
 
