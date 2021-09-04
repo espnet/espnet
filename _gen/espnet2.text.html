@@ -360,6 +360,34 @@ You can define various g2p modules by specifying options for phonemizer.</p>
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_prosody">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pyopenjtalk_g2p_prosody</code><span class="sig-paren">(</span><em class="sig-param">text: str</em>, <em class="sig-param">drop_unvoiced_vowels: bool = True</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pyopenjtalk_g2p_prosody"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_prosody" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract phoneme + prosoody symbol sequence from input full-context labels.</p>
+<p>The algorithm is based on <a class="reference external" href="https://doi.org/10.1587/transinf.2020EDP7104">Prosodic features control by symbols as input of
+sequence-to-sequence acoustic modeling for neural TTS</a> with some r9y9’s tweaks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>str</em>) – Input text.</p></li>
+<li><p><strong>drop_unvoiced_vowels</strong> (<em>bool</em>) – whether to drop unvoiced vowels.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>List of phoneme + prosody symbols.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>List[str]</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet2.text.phoneme_tokenizer</span> <span class="kn">import</span> <span class="n">pyopenjtalk_g2p_prosody</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pyopenjtalk_g2p_prosody</span><span class="p">(</span><span class="s2">&quot;こんにちは。&quot;</span><span class="p">)</span>
+<span class="go">[&#39;^&#39;, &#39;k&#39;, &#39;o&#39;, &#39;[&#39;, &#39;N&#39;, &#39;n&#39;, &#39;i&#39;, &#39;ch&#39;, &#39;i&#39;, &#39;w&#39;, &#39;a&#39;, &#39;$&#39;]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
 <dt id="espnet2.text.phoneme_tokenizer.pypinyin_g2p">
 <code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pypinyin_g2p</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pypinyin_g2p"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pypinyin_g2p" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>

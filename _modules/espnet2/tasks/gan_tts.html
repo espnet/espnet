@@ -243,6 +243,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.layers.utterance_mvn</span> <span class="kn">import</span> <span class="n">UtteranceMVN</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.abs_task</span> <span class="kn">import</span> <span class="n">AbsTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.abs_task</span> <span class="kn">import</span> <span class="n">optim_classes</span>
+<span class="kn">from</span> <span class="nn">espnet2.text.phoneme_tokenizer</span> <span class="kn">import</span> <span class="n">g2p_choices</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.class_choices</span> <span class="kn">import</span> <span class="n">ClassChoices</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.collate_fn</span> <span class="kn">import</span> <span class="n">CommonCollateFn</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.gan_trainer</span> <span class="kn">import</span> <span class="n">GANTrainer</span>
@@ -416,24 +417,7 @@
         <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--g2p&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
-            <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
-                <span class="kc">None</span><span class="p">,</span>
-                <span class="s2">&quot;g2p_en&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;g2p_en_no_space&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;pyopenjtalk&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;pyopenjtalk_kana&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;pyopenjtalk_accent&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;pyopenjtalk_accent_with_pause&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;pypinyin_g2p&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;pypinyin_g2p_phone&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;espeak_ng_arabic&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;espeak_ng_german&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;espeak_ng_french&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;espeak_ng_spanish&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;espeak_ng_russian&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;g2pk&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;g2pk_no_space&quot;</span><span class="p">,</span>
-            <span class="p">],</span>
+            <span class="n">choices</span><span class="o">=</span><span class="n">g2p_choices</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Specify g2p method if --token_type=phn&quot;</span><span class="p">,</span>
         <span class="p">)</span>

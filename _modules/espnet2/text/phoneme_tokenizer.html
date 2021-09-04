@@ -214,6 +214,7 @@
             
   <h1>Source code for espnet2.text.phoneme_tokenizer</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
@@ -224,6 +225,31 @@
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.text.abs_tokenizer</span> <span class="kn">import</span> <span class="n">AbsTokenizer</span>
+
+
+<span class="n">g2p_choices</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">&quot;g2p_en&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;g2p_en_no_space&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pyopenjtalk&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pyopenjtalk_kana&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pyopenjtalk_accent&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pyopenjtalk_accent_with_pause&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pyopenjtalk_prosody&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pypinyin_g2p&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pypinyin_g2p_phone&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;espeak_ng_arabic&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;espeak_ng_german&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;espeak_ng_french&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;espeak_ng_spanish&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;espeak_ng_russian&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;espeak_ng_greek&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;espeak_ng_finnish&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;espeak_ng_hungarian&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;espeak_ng_dutch&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;g2pk&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;g2pk_no_space&quot;</span><span class="p">,</span>
+<span class="p">]</span>
 
 
 <div class="viewcode-block" id="split_by_space"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.split_by_space">[docs]</a><span class="k">def</span> <span class="nf">split_by_space</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -271,6 +297,92 @@
 
     <span class="n">kanas</span> <span class="o">=</span> <span class="n">pyopenjtalk</span><span class="o">.</span><span class="n">g2p</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">kana</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">kanas</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="pyopenjtalk_g2p_prosody"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_prosody">[docs]</a><span class="k">def</span> <span class="nf">pyopenjtalk_g2p_prosody</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">drop_unvoiced_vowels</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Extract phoneme + prosoody symbol sequence from input full-context labels.</span>
+
+<span class="sd">    The algorithm is based on `Prosodic features control by symbols as input of</span>
+<span class="sd">    sequence-to-sequence acoustic modeling for neural TTS`_ with some r9y9&#39;s tweaks.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        text (str): Input text.</span>
+<span class="sd">        drop_unvoiced_vowels (bool): whether to drop unvoiced vowels.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[str]: List of phoneme + prosody symbols.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from espnet2.text.phoneme_tokenizer import pyopenjtalk_g2p_prosody</span>
+<span class="sd">        &gt;&gt;&gt; pyopenjtalk_g2p_prosody(&quot;こんにちは。&quot;)</span>
+<span class="sd">        [&#39;^&#39;, &#39;k&#39;, &#39;o&#39;, &#39;[&#39;, &#39;N&#39;, &#39;n&#39;, &#39;i&#39;, &#39;ch&#39;, &#39;i&#39;, &#39;w&#39;, &#39;a&#39;, &#39;$&#39;]</span>
+
+<span class="sd">    .. _`Prosodic features control by symbols as input of sequence-to-sequence acoustic</span>
+<span class="sd">        modeling for neural TTS`: https://doi.org/10.1587/transinf.2020EDP7104</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">pyopenjtalk</span>
+
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">pyopenjtalk</span><span class="o">.</span><span class="n">run_frontend</span><span class="p">(</span><span class="n">text</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+
+    <span class="n">phones</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+        <span class="n">lab_curr</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+
+        <span class="c1"># current phoneme</span>
+        <span class="n">p3</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\-(.*?)\+&quot;</span><span class="p">,</span> <span class="n">lab_curr</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># deal unvoiced vowels as normal vowels</span>
+        <span class="k">if</span> <span class="n">drop_unvoiced_vowels</span> <span class="ow">and</span> <span class="n">p3</span> <span class="ow">in</span> <span class="s2">&quot;AEIOU&quot;</span><span class="p">:</span>
+            <span class="n">p3</span> <span class="o">=</span> <span class="n">p3</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="c1"># deal with sil at the beginning and the end of text</span>
+        <span class="k">if</span> <span class="n">p3</span> <span class="o">==</span> <span class="s2">&quot;sil&quot;</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">n</span> <span class="o">==</span> <span class="n">N</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;^&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">n</span> <span class="o">==</span> <span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># check question form or not</span>
+                <span class="n">e3</span> <span class="o">=</span> <span class="n">_numeric_feature_by_regex</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;!(\d+)_&quot;</span><span class="p">,</span> <span class="n">lab_curr</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">e3</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;$&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">e3</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;?&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="k">elif</span> <span class="n">p3</span> <span class="o">==</span> <span class="s2">&quot;pau&quot;</span><span class="p">:</span>
+            <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p3</span><span class="p">)</span>
+
+        <span class="c1"># accent type and position info (forward or backward)</span>
+        <span class="n">a1</span> <span class="o">=</span> <span class="n">_numeric_feature_by_regex</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;/A:([0-9\-]+)\+&quot;</span><span class="p">,</span> <span class="n">lab_curr</span><span class="p">)</span>
+        <span class="n">a2</span> <span class="o">=</span> <span class="n">_numeric_feature_by_regex</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\+(\d+)\+&quot;</span><span class="p">,</span> <span class="n">lab_curr</span><span class="p">)</span>
+        <span class="n">a3</span> <span class="o">=</span> <span class="n">_numeric_feature_by_regex</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\+(\d+)/&quot;</span><span class="p">,</span> <span class="n">lab_curr</span><span class="p">)</span>
+
+        <span class="c1"># number of mora in accent phrase</span>
+        <span class="n">f1</span> <span class="o">=</span> <span class="n">_numeric_feature_by_regex</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;/F:(\d+)_&quot;</span><span class="p">,</span> <span class="n">lab_curr</span><span class="p">)</span>
+
+        <span class="n">a2_next</span> <span class="o">=</span> <span class="n">_numeric_feature_by_regex</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\+(\d+)\+&quot;</span><span class="p">,</span> <span class="n">labels</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># accent phrase border</span>
+        <span class="k">if</span> <span class="n">a3</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">a2_next</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)</span>
+        <span class="c1"># pitch falling</span>
+        <span class="k">elif</span> <span class="n">a1</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">a2_next</span> <span class="o">==</span> <span class="n">a2</span> <span class="o">+</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">a2</span> <span class="o">!=</span> <span class="n">f1</span><span class="p">:</span>
+            <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;]&quot;</span><span class="p">)</span>
+        <span class="c1"># pitch rising</span>
+        <span class="k">elif</span> <span class="n">a2</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">a2_next</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;[&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">phones</span></div>
+
+
+<span class="k">def</span> <span class="nf">_numeric_feature_by_regex</span><span class="p">(</span><span class="n">regex</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">regex</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">50</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
 
 
 <div class="viewcode-block" id="pypinyin_g2p"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.pypinyin_g2p">[docs]</a><span class="k">def</span> <span class="nf">pypinyin_g2p</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -419,6 +531,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">pyopenjtalk_g2p_accent</span>
         <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;pyopenjtalk_accent_with_pause&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">pyopenjtalk_g2p_accent_with_pause</span>
+        <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;pyopenjtalk_prosody&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">pyopenjtalk_g2p_prosody</span>
         <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;pypinyin_g2p&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">pypinyin_g2p</span>
         <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;pypinyin_g2p_phone&quot;</span><span class="p">:</span>
