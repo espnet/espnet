@@ -98,9 +98,9 @@ class FastSpeech(AbsTTS):
         conformer_dec_kernel_size: int = 31,
         zero_triu: bool = False,
         # extra embedding related
-        spks: int = -1,
-        langs: int = -1,
-        spk_embed_dim: int = None,
+        spks: Optional[int] = None,
+        langs: Optional[int] = None,
+        spk_embed_dim: Optional[int] = None,
         spk_embed_integration_type: str = "add",
         use_gst: bool = False,
         gst_tokens: int = 10,
@@ -202,15 +202,10 @@ class FastSpeech(AbsTTS):
         self.odim = odim
         self.eos = idim - 1
         self.reduction_factor = reduction_factor
-        self.spks = spks
-        self.langs = langs
         self.encoder_type = encoder_type
         self.decoder_type = decoder_type
         self.use_scaled_pos_enc = use_scaled_pos_enc
         self.use_gst = use_gst
-        self.spk_embed_dim = spk_embed_dim
-        if self.spk_embed_dim is not None:
-            self.spk_embed_integration_type = spk_embed_integration_type
 
         # use idx 0 as padding idx
         self.padding_idx = 0
@@ -306,9 +301,13 @@ class FastSpeech(AbsTTS):
             )
 
         # define spk and lang embedding
-        if self.spks > 0:
+        self.spks = None
+        if spks is not None and spks > 1:
+            self.spks = spks
             self.sid_emb = torch.nn.Embedding(spks, adim)
-        if self.langs > 0:
+        self.langs = None
+        if langs is not None and langs > 1:
+            self.langs = langs
             self.lid_emb = torch.nn.Embedding(langs, adim)
 
         # define additional projection for speaker embedding
