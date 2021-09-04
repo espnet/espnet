@@ -12,6 +12,31 @@ from typeguard import check_argument_types
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
 
+g2p_choices = [
+    None,
+    "g2p_en",
+    "g2p_en_no_space",
+    "pyopenjtalk",
+    "pyopenjtalk_kana",
+    "pyopenjtalk_accent",
+    "pyopenjtalk_accent_with_pause",
+    "pyopenjtalk_prosody",
+    "pypinyin_g2p",
+    "pypinyin_g2p_phone",
+    "espeak_ng_arabic",
+    "espeak_ng_german",
+    "espeak_ng_french",
+    "espeak_ng_spanish",
+    "espeak_ng_russian",
+    "espeak_ng_greek",
+    "espeak_ng_finnish",
+    "espeak_ng_hungarian",
+    "espeak_ng_dutch",
+    "g2pk",
+    "g2pk_no_space",
+]
+
+
 def split_by_space(text) -> List[str]:
     return text.split(" ")
 
