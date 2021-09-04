@@ -99,6 +99,7 @@ NOISY_REVERBERANT_SPEECH=
 LRS2=
 SUNDA=downloads
 CMU_INDIC=downloads
+INDIC_SPEECH=downloads
 JKAC=
 MUCS_SUBTASK1=downloads
 MUCS_SUBTASK2=downloads
@@ -196,6 +197,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     SIWIS=downloads
     SUNDA=
     CMU_INDIC=
+    INDIC_SPEECH=
     JKAC=
     MUCS_SUBTASK1=downloads
     MUCS_SUBTASK2=downloads
