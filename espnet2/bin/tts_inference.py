@@ -168,7 +168,13 @@ class Text2Speech:
 
         # check inputs
         if self.use_speech and speech is None:
-            raise RuntimeError("missing required argument: 'speech'")
+            raise RuntimeError("Missing required argument: 'speech'")
+        if self.use_sids and sids is None:
+            raise RuntimeError("Missing required argument: 'sids'")
+        if self.use_lids and lids is None:
+            raise RuntimeError("Missing required argument: 'lids'")
+        if self.use_spembs and spembs is None:
+            raise RuntimeError("Missing required argument: 'spembs'")
 
         # prepare batch
         if isinstance(text, str):
@@ -227,6 +233,21 @@ class Text2Speech:
     def use_speech(self) -> bool:
         """Return speech is needed or not in the inference."""
         return self.use_teacher_forcing or getattr(self.tts, "use_gst", False)
+
+    @property
+    def use_sids(self) -> bool:
+        """Return sid is needed or not in the inference."""
+        return self.tts.spks is not None
+
+    @property
+    def use_lids(self) -> bool:
+        """Return sid is needed or not in the inference."""
+        return self.tts.langs is not None
+
+    @property
+    def use_spembs(self) -> bool:
+        """Return spemb is needed or not in the inference."""
+        return self.tts.spk_embed_dim is not None
 
     @staticmethod
     def from_pretrained(
