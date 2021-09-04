@@ -454,17 +454,17 @@ class VITSGenerator(torch.nn.Module):
         # encoder
         x, m_p, logs_p, x_mask = self.text_encoder(text, text_lengths)
         g = None
-        if self.spks > 0:
+        if self.spks is not None:
             # (B, global_channels, 1)
             g = self.global_emb(sids.view(-1)).unsqueeze(-1)
-        if self.spk_embed_dim > 0:
+        if self.spk_embed_dim is not None:
             # (B, global_channels, 1)
             g_ = self.spemb_proj(F.normalize(spembs.unsqueeze(0))).unsqueeze(-1)
             if g is None:
                 g = g_
             else:
                 g = g + g_
-        if self.langs > 0:
+        if self.langs is not None:
             # (B, global_channels, 1)
             g_ = self.lang_emb(lids.view(-1)).unsqueeze(-1)
             if g is None:
