@@ -27,8 +27,12 @@ See the following pages before asking the question:
 ## Pretrained Models
 
 ### jsut_tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause_train.total_count.ave
+- 22.05khz / 1M iters / Average the last 10 epoch models
 - https://zenodo.org/record/5414980
 
+### jsut_tts_train_full_band_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause_train.total_count.ave
+- 44.1khz / 0.5M iters / Average the last 10 epoch models
+- https://zenodo.org/record/5431984
 
 # FORTH RESULTS
 
