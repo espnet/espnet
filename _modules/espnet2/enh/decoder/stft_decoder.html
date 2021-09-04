@@ -213,11 +213,14 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet2.enh.decoder.stft_decoder</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span></span><span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
+<span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.enh.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.stft</span> <span class="kn">import</span> <span class="n">Stft</span>
+
+<span class="n">is_torch_1_9_plus</span> <span class="o">=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.9.0&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="STFTDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.decoder.stft_decoder.STFTDecoder">[docs]</a><span class="k">class</span> <span class="nc">STFTDecoder</span><span class="p">(</span><span class="n">AbsDecoder</span><span class="p">):</span>
@@ -251,8 +254,10 @@
 <span class="sd">            input (ComplexTensor): spectrum [Batch, T, F]</span>
 <span class="sd">            ilens (torch.Tensor): input lengths [Batch]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Only support ComplexTensor for stft decoder&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">is_torch_1_9_plus</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_complex</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Only support complex tensors for stft decoder&quot;</span><span class="p">)</span>
 
         <span class="n">wav</span><span class="p">,</span> <span class="n">wav_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stft</span><span class="o">.</span><span class="n">inverse</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
 

@@ -213,11 +213,14 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet2.enh.encoder.stft_encoder</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span></span><span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
+<span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.enh.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.stft</span> <span class="kn">import</span> <span class="n">Stft</span>
+
+<span class="n">is_torch_1_9_plus</span> <span class="o">=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.9.0&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="STFTEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.encoder.stft_encoder.STFTEncoder">[docs]</a><span class="k">class</span> <span class="nc">STFTEncoder</span><span class="p">(</span><span class="n">AbsEncoder</span><span class="p">):</span>
@@ -232,6 +235,7 @@
         <span class="n">center</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">normalized</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">onesided</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">use_builtin_complex</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stft</span> <span class="o">=</span> <span class="n">Stft</span><span class="p">(</span>
@@ -245,6 +249,7 @@
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dim</span> <span class="o">=</span> <span class="n">n_fft</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">onesided</span> <span class="k">else</span> <span class="n">n_fft</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_builtin_complex</span> <span class="o">=</span> <span class="n">use_builtin_complex</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">output_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -256,12 +261,12 @@
 <span class="sd">        Args:</span>
 <span class="sd">            input (torch.Tensor): mixed speech [Batch, sample]</span>
 <span class="sd">            ilens (torch.Tensor): input lengths [Batch]</span>
-<span class="sd">        Returns:</span>
-<span class="sd">            stft spectrum (torch.ComplexTensor):  (Batch, Frames, Freq)</span>
-<span class="sd">                                                  or (Batch, Frames, Channels, Freq)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">spectrum</span><span class="p">,</span> <span class="n">flens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stft</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
-        <span class="n">spectrum</span> <span class="o">=</span> <span class="n">ComplexTensor</span><span class="p">(</span><span class="n">spectrum</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">spectrum</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">is_torch_1_9_plus</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_builtin_complex</span><span class="p">:</span>
+            <span class="n">spectrum</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">complex</span><span class="p">(</span><span class="n">spectrum</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">spectrum</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">spectrum</span> <span class="o">=</span> <span class="n">ComplexTensor</span><span class="p">(</span><span class="n">spectrum</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">spectrum</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 
         <span class="k">return</span> <span class="n">spectrum</span><span class="p">,</span> <span class="n">flens</span></div></div>
 </pre></div>

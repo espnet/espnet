@@ -216,6 +216,7 @@
 <span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
@@ -339,16 +340,17 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">shared_power</span> <span class="o">=</span> <span class="n">shared_power</span> <span class="ow">and</span> <span class="n">use_wpe</span>
 
 <div class="viewcode-block" id="NeuralBeamformer.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.separator.neural_beamformer.NeuralBeamformer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">ComplexTensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">]:</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">]],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            input (ComplexTensor): mixed speech [Batch, Frames, Channel, Freq]</span>
+<span class="sd">            input (torch.complex64/ComplexTensor):</span>
+<span class="sd">                mixed speech [Batch, Frames, Channel, Freq]</span>
 <span class="sd">            ilens (torch.Tensor): input lengths [Batch]</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            enhanced speech (single-channel): List[ComplexTensor]</span>
+<span class="sd">            enhanced speech (single-channel): List[torch.complex64/ComplexTensor]</span>
 <span class="sd">            output lengths</span>
 <span class="sd">            other predcited data: OrderedDict[</span>
 <span class="sd">                &#39;dereverb1&#39;: ComplexTensor(Batch, Frames, Channel, Freq),</span>

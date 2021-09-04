@@ -92,12 +92,34 @@ espnet2.enh.layers.__init__
     :show-inheritance:
 
 
+.. _espnet2.enh.layers.wpe:
+
+espnet2.enh.layers.wpe
+----------------------
+
+.. automodule:: espnet2.enh.layers.wpe
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.layers.dnn_beamformer:
 
 espnet2.enh.layers.dnn_beamformer
 ---------------------------------
 
 .. automodule:: espnet2.enh.layers.dnn_beamformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.complex_utils:
+
+espnet2.enh.layers.complex_utils
+--------------------------------
+
+.. automodule:: espnet2.enh.layers.complex_utils
     :members:
     :undoc-members:
     :show-inheritance:

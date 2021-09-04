@@ -213,7 +213,9 @@
            <div itemprop="articleBody">
             
   <h1>Source code for espnet2.enh.layers.mask_estimator</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span></span><span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -223,6 +225,10 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.encoders</span> <span class="kn">import</span> <span class="n">RNN</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.encoders</span> <span class="kn">import</span> <span class="n">RNNP</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">is_complex</span>
+
+
+<span class="n">is_torch_1_9_plus</span> <span class="o">=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.9.0&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="MaskEstimator"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.mask_estimator.MaskEstimator">[docs]</a><span class="k">class</span> <span class="nc">MaskEstimator</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
@@ -250,7 +256,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">nonlinear</span> <span class="o">=</span> <span class="n">nonlinear</span>
 
 <div class="viewcode-block" id="MaskEstimator.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.mask_estimator.MaskEstimator.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">ComplexTensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Mask estimator forward function.</span>
 
@@ -268,7 +274,8 @@
         <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
         <span class="c1"># Calculate amplitude: (B, C, T, F) -&gt; (B, C, T, F)</span>
-        <span class="n">xs</span> <span class="o">=</span> <span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">real</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">xs</span><span class="o">.</span><span class="n">imag</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
+        <span class="k">if</span> <span class="n">is_complex</span><span class="p">(</span><span class="n">xs</span><span class="p">):</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">real</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">xs</span><span class="o">.</span><span class="n">imag</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
         <span class="c1"># xs: (B, C, T, F) -&gt; xs: (B * C, T, F)</span>
         <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">xs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="n">xs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
         <span class="c1"># ilens: (B,) -&gt; ilens_: (B * C)</span>

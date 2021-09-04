@@ -214,13 +214,16 @@
             
   <h1>Source code for espnet2.enh.layers.dnn_wpe</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
 
-<span class="kn">from</span> <span class="nn">pytorch_wpe</span> <span class="kn">import</span> <span class="n">wpe_one_iteration</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">to_double</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">to_float</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.mask_estimator</span> <span class="kn">import</span> <span class="n">MaskEstimator</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.wpe</span> <span class="kn">import</span> <span class="n">wpe_one_iteration</span>
 
 
 <div class="viewcode-block" id="DNN_WPE"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dnn_wpe.DNN_WPE">[docs]</a><span class="k">class</span> <span class="nc">DNN_WPE</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
@@ -278,8 +281,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">nmask</span> <span class="o">=</span> <span class="mi">1</span>
 
 <div class="viewcode-block" id="DNN_WPE.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dnn_wpe.DNN_WPE.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">ComplexTensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ComplexTensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">]:</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
+        <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
+        <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span>
+    <span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;DNN_WPE forward function.</span>
 
 <span class="sd">        Notation:</span>
@@ -325,8 +332,8 @@
             <span class="c1"># NOTE(kamo): Calculate in double precision</span>
             <span class="n">enhanced</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">wpe_one_iteration</span><span class="p">(</span>
-                    <span class="n">data</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
-                    <span class="n">p</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
                     <span class="n">taps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">taps</span><span class="p">,</span>
                     <span class="n">delay</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">delay</span><span class="p">,</span>
                     <span class="n">inverse_power</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inverse_power</span><span class="p">,</span>
@@ -352,19 +359,19 @@
         <span class="k">return</span> <span class="n">enhanced</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">masks</span><span class="p">,</span> <span class="n">power</span></div>
 
 <div class="viewcode-block" id="DNN_WPE.predict_mask"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dnn_wpe.DNN_WPE.predict_mask">[docs]</a>    <span class="k">def</span> <span class="nf">predict_mask</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">ComplexTensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Predict mask for WPE dereverberation.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            data (ComplexTensor): (B, T, C, F), double precision</span>
+<span class="sd">            data (torch.complex64/ComplexTensor): (B, T, C, F), double precision</span>
 <span class="sd">            ilens (torch.Tensor): (B,)</span>
 <span class="sd">        Returns:</span>
 <span class="sd">            masks (torch.Tensor or List[torch.Tensor]): (B, T, C, F)</span>
 <span class="sd">            ilens (torch.Tensor): (B,)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_dnn_mask</span><span class="p">:</span>
-            <span class="n">masks</span><span class="p">,</span> <span class="n">ilens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_est</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="n">ilens</span><span class="p">)</span>
+            <span class="n">masks</span><span class="p">,</span> <span class="n">ilens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_est</span><span class="p">(</span><span class="n">to_float</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">ilens</span><span class="p">)</span>
             <span class="c1"># (B, F, C, T) -&gt; (B, T, C, F)</span>
             <span class="n">masks</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masks</span><span class="p">]</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmask</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>

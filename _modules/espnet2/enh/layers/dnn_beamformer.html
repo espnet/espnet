@@ -214,6 +214,7 @@
             
   <h1>Source code for espnet2.enh.layers.dnn_beamformer</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;DNN beamformer module.&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
@@ -224,18 +225,20 @@
 <span class="kn">from</span> <span class="nn">torch_complex</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">FC</span>
 <span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
 
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.frontends.beamformer</span> <span class="kn">import</span> <span class="n">apply_beamforming_vector</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.frontends.beamformer</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">get_power_spectral_density_matrix</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">apply_beamforming_vector</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_covariances</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_mvdr_vector</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_mvdr_vector_with_rtf</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_power_spectral_density_matrix</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_WPD_filter_v2</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_WPD_filter_with_rtf</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">perform_WPD_filtering</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">to_double</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">to_float</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.mask_estimator</span> <span class="kn">import</span> <span class="n">MaskEstimator</span>
 
+
+<span class="n">is_torch_1_9_plus</span> <span class="o">=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.9.0&quot;</span><span class="p">)</span>
 
 <span class="n">BEAMFORMER_TYPES</span> <span class="o">=</span> <span class="p">(</span>
     <span class="c1"># Minimum Variance Distortionless Response beamformer</span>
@@ -349,10 +352,10 @@
 
 <div class="viewcode-block" id="DNN_Beamformer.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">data</span><span class="p">:</span> <span class="n">ComplexTensor</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span>
         <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
         <span class="n">powers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">ComplexTensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;DNN_Beamformer forward function.</span>
 
 <span class="sd">        Notation:</span>
@@ -362,11 +365,11 @@
 <span class="sd">            F: Freq</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            data (ComplexTensor): (B, T, C, F)</span>
+<span class="sd">            data (torch.complex64/ComplexTensor): (B, T, C, F)</span>
 <span class="sd">            ilens (torch.Tensor): (B,)</span>
 <span class="sd">            powers (List[torch.Tensor] or None): used for wMPDR or WPD (B, F, T)</span>
 <span class="sd">        Returns:</span>
-<span class="sd">            enhanced (ComplexTensor): (B, T, F)</span>
+<span class="sd">            enhanced (torch.complex64/ComplexTensor): (B, T, F)</span>
 <span class="sd">            ilens (torch.Tensor): (B,)</span>
 <span class="sd">            masks (torch.Tensor): (B, T, C, F)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -375,17 +378,19 @@
             <span class="sd">&quot;&quot;&quot;Beamforming with the provided statistics.</span>
 
 <span class="sd">            Args:</span>
-<span class="sd">                data (ComplexTensor): (B, F, C, T)</span>
+<span class="sd">                data (torch.complex64/ComplexTensor): (B, F, C, T)</span>
 <span class="sd">                ilens (torch.Tensor): (B,)</span>
-<span class="sd">                psd_n (ComplexTensor):</span>
+<span class="sd">                psd_n (torch.complex64/ComplexTensor):</span>
 <span class="sd">                    Noise covariance matrix for MVDR (B, F, C, C)</span>
 <span class="sd">                    Observation covariance matrix for MPDR/wMPDR (B, F, C, C)</span>
 <span class="sd">                    Stacked observation covariance for WPD (B,F,(btaps+1)*C,(btaps+1)*C)</span>
-<span class="sd">                psd_speech (ComplexTensor): Speech covariance matrix (B, F, C, C)</span>
-<span class="sd">                psd_distortion (ComplexTensor): Noise covariance matrix (B, F, C, C)</span>
+<span class="sd">                psd_speech (torch.complex64/ComplexTensor):</span>
+<span class="sd">                    Speech covariance matrix (B, F, C, C)</span>
+<span class="sd">                psd_distortion (torch.complex64/ComplexTensor):</span>
+<span class="sd">                    Noise covariance matrix (B, F, C, C)</span>
 <span class="sd">            Return:</span>
-<span class="sd">                enhanced (ComplexTensor): (B, F, T)</span>
-<span class="sd">                ws (ComplexTensor): (B, F) or (B, F, (btaps+1)*C)</span>
+<span class="sd">                enhanced (torch.complex64/ComplexTensor): (B, F, T)</span>
+<span class="sd">                ws (torch.complex64/ComplexTensor): (B, F) or (B, F, (btaps+1)*C)</span>
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="c1"># u: (B, C)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -406,9 +411,9 @@
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mvdr&quot;</span><span class="p">,</span> <span class="s2">&quot;mpdr&quot;</span><span class="p">,</span> <span class="s2">&quot;wmpdr&quot;</span><span class="p">):</span>
                 <span class="n">ws</span> <span class="o">=</span> <span class="n">get_mvdr_vector_with_rtf</span><span class="p">(</span>
-                    <span class="n">psd_n</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
-                    <span class="n">psd_speech</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
-                    <span class="n">psd_distortion</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_distortion</span><span class="p">),</span>
                     <span class="n">iterations</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rtf_iterations</span><span class="p">,</span>
                     <span class="n">reference_vector</span><span class="o">=</span><span class="n">u</span><span class="p">,</span>
                     <span class="n">normalize_ref_channel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">,</span>
@@ -416,22 +421,22 @@
                     <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
                     <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">enhanced</span> <span class="o">=</span> <span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">double</span><span class="p">())</span>
+                <span class="n">enhanced</span> <span class="o">=</span> <span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mpdr_souden&quot;</span><span class="p">,</span> <span class="s2">&quot;mvdr_souden&quot;</span><span class="p">,</span> <span class="s2">&quot;wmpdr_souden&quot;</span><span class="p">):</span>
                 <span class="n">ws</span> <span class="o">=</span> <span class="n">get_mvdr_vector</span><span class="p">(</span>
-                    <span class="n">psd_speech</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
-                    <span class="n">psd_n</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
                     <span class="n">u</span><span class="p">,</span>
                     <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
                     <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
                     <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
                 <span class="p">)</span>
-                <span class="n">enhanced</span> <span class="o">=</span> <span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">double</span><span class="p">())</span>
+                <span class="n">enhanced</span> <span class="o">=</span> <span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wpd&quot;</span><span class="p">:</span>
                 <span class="n">ws</span> <span class="o">=</span> <span class="n">get_WPD_filter_with_rtf</span><span class="p">(</span>
-                    <span class="n">psd_n</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
-                    <span class="n">psd_speech</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
-                    <span class="n">psd_distortion</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_distortion</span><span class="p">),</span>
                     <span class="n">iterations</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rtf_iterations</span><span class="p">,</span>
                     <span class="n">reference_vector</span><span class="o">=</span><span class="n">u</span><span class="p">,</span>
                     <span class="n">normalize_ref_channel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">,</span>
@@ -440,18 +445,18 @@
                     <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">enhanced</span> <span class="o">=</span> <span class="n">perform_WPD_filtering</span><span class="p">(</span>
-                    <span class="n">ws</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bdelay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">btaps</span>
+                    <span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bdelay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">btaps</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wpd_souden&quot;</span><span class="p">:</span>
                 <span class="n">ws</span> <span class="o">=</span> <span class="n">get_WPD_filter_v2</span><span class="p">(</span>
-                    <span class="n">psd_speech</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
-                    <span class="n">psd_n</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
                     <span class="n">u</span><span class="p">,</span>
                     <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
                     <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">enhanced</span> <span class="o">=</span> <span class="n">perform_WPD_filtering</span><span class="p">(</span>
-                    <span class="n">ws</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">double</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bdelay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">btaps</span>
+                    <span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bdelay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">btaps</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -460,9 +465,17 @@
 
             <span class="k">return</span> <span class="n">enhanced</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">ws</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">):</span>
+            <span class="n">complex_wrapper</span> <span class="o">=</span> <span class="n">FC</span>
+        <span class="k">elif</span> <span class="n">is_torch_1_9_plus</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_complex</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+            <span class="n">complex_wrapper</span> <span class="o">=</span> <span class="n">torch</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Please update your PyTorch version to 1.8+ for compelx support.&quot;</span>
+            <span class="p">)</span>
         <span class="c1"># data (B, T, C, F) -&gt; (B, F, C, T)</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">data_d</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
+        <span class="n">data_d</span> <span class="o">=</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
         <span class="c1"># mask: [(B, F, C, T)]</span>
         <span class="n">masks</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
@@ -508,15 +521,19 @@
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mvdr_souden&quot;</span><span class="p">:</span>
                 <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_noise</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mpdr&quot;</span><span class="p">:</span>
-                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">data_d</span><span class="p">,</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
+                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">complex_wrapper</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                    <span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">data_d</span><span class="p">,</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()]</span>
+                <span class="p">)</span>
                 <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span>
                     <span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_observed</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_distortion</span><span class="o">=</span><span class="n">psd_noise</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mpdr_souden&quot;</span><span class="p">:</span>
-                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">data_d</span><span class="p">,</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
+                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">complex_wrapper</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                    <span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">data_d</span><span class="p">,</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()]</span>
+                <span class="p">)</span>
                 <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_observed</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wmpdr&quot;</span><span class="p">:</span>
-                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">complex_wrapper</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
                     <span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span>
                     <span class="p">[</span><span class="n">data_d</span> <span class="o">*</span> <span class="n">inverse_power</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span>
                 <span class="p">)</span>
@@ -524,7 +541,7 @@
                     <span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_observed</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_distortion</span><span class="o">=</span><span class="n">psd_noise</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wmpdr_souden&quot;</span><span class="p">:</span>
-                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">complex_wrapper</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
                     <span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span>
                     <span class="p">[</span><span class="n">data_d</span> <span class="o">*</span> <span class="n">inverse_power</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span>
                 <span class="p">)</span>
@@ -586,10 +603,12 @@
                     <span class="n">data_d</span><span class="p">,</span> <span class="n">mask_noise</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
                 <span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mpdr&quot;</span><span class="p">,</span> <span class="s2">&quot;mpdr_souden&quot;</span><span class="p">):</span>
-                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">data_d</span><span class="p">,</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()])</span>
+                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">complex_wrapper</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                    <span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">data_d</span><span class="p">,</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()]</span>
+                <span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;wmpdr&quot;</span><span class="p">,</span> <span class="s2">&quot;wmpdr_souden&quot;</span><span class="p">):</span>
                 <span class="n">psd_observed</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="n">FC</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                    <span class="n">complex_wrapper</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
                         <span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span>
                         <span class="p">[</span><span class="n">data_d</span> <span class="o">*</span> <span class="n">inv_p</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span>
                     <span class="p">)</span>
@@ -670,18 +689,18 @@
         <span class="k">return</span> <span class="n">enhanced</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">masks</span></div>
 
 <div class="viewcode-block" id="DNN_Beamformer.predict_mask"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.predict_mask">[docs]</a>    <span class="k">def</span> <span class="nf">predict_mask</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">ComplexTensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Predict masks for beamforming.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            data (ComplexTensor): (B, T, C, F), double precision</span>
+<span class="sd">            data (torch.complex64/ComplexTensor): (B, T, C, F), double precision</span>
 <span class="sd">            ilens (torch.Tensor): (B,)</span>
 <span class="sd">        Returns:</span>
 <span class="sd">            masks (torch.Tensor): (B, T, C, F)</span>
 <span class="sd">            ilens (torch.Tensor): (B,)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">masks</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="n">ilens</span><span class="p">)</span>
+        <span class="n">masks</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="n">to_float</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">ilens</span><span class="p">)</span>
         <span class="c1"># (B, F, C, T) -&gt; (B, T, C, F)</span>
         <span class="n">masks</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masks</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">masks</span><span class="p">,</span> <span class="n">ilens</span></div></div>
@@ -694,12 +713,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">gvec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">att_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
 <div class="viewcode-block" id="AttentionReference.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dnn_beamformer.AttentionReference.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">psd_in</span><span class="p">:</span> <span class="n">ComplexTensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span> <span class="n">scaling</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">psd_in</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span>
+        <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
+        <span class="n">scaling</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Attention-based reference forward function.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            psd_in (ComplexTensor): (B, F, C, C)</span>
+<span class="sd">            psd_in (torch.complex64/ComplexTensor): (B, F, C, C)</span>
 <span class="sd">            ilens (torch.Tensor): (B,)</span>
 <span class="sd">            scaling (float):</span>
 <span class="sd">        Returns:</span>
@@ -710,7 +732,7 @@
         <span class="k">assert</span> <span class="n">psd_in</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="n">psd_in</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">psd_in</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
         <span class="c1"># psd_in: (B, F, C, C)</span>
         <span class="n">psd</span> <span class="o">=</span> <span class="n">psd_in</span><span class="o">.</span><span class="n">masked_fill</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">psd_in</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="mi">0</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">psd_in</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="mi">0</span>
         <span class="p">)</span>
         <span class="c1"># psd: (B, F, C, C) -&gt; (B, C, F)</span>
         <span class="n">psd</span> <span class="o">=</span> <span class="p">(</span><span class="n">psd</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">C</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>

@@ -301,9 +301,9 @@
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;relu&quot;</span><span class="p">:</span>
             <span class="n">est_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;sigmoid&quot;</span><span class="p">:</span>
-            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;tanh&quot;</span><span class="p">:</span>
-            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported mask non-linear function&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">est_mask</span></div></div>
