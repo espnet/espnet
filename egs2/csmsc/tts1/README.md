@@ -14,6 +14,23 @@ See the following pages before asking the question:
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
 
+# THIRD RESULTS
+
+## Environments
+- date: `Sat Sep  4 19:38:35 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a1`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `dee654041cddf80281048b3e7525c1cdafc377ff`
+  - Commit date: `Thu Sep 2 14:45:48 2021 +0900`
+
+## Pretrained Models
+
+### kan-bayashi/csmsc_tts_train_full_band_vits_raw_phn_pypinyin_g2p_phone_train.total_count.ave
+- 44.1khz / 0.5M iters / Average the last 10 epoch models
+- https://zenodo.org/record/5443852
+
+
 # SECOND RESULTS
 
 ## Environments
