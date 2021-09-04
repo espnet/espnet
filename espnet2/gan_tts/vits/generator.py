@@ -45,9 +45,9 @@ class VITSGenerator(torch.nn.Module):
         vocabs: int,
         aux_channels: int = 513,
         hidden_channels: int = 192,
-        spks: int = -1,
-        langs: int = -1,
-        spk_embed_dim: int = -1,
+        spks: Optional[int] = None,
+        langs: Optional[int] = None,
+        spk_embed_dim: Optional[int] = None,
         global_channels: int = -1,
         segment_size: int = 32,
         text_encoder_attention_heads: int = 2,
@@ -96,8 +96,12 @@ class VITSGenerator(torch.nn.Module):
             vocabs (int): Input vocabulary size.
             aux_channels (int): Number of acoustic feature channels.
             hidden_channels (int): Number of hidden channels.
-            spks (int): Number of speakers.
-            langs (int): Number of languages.
+            spks (Optional[int]): Number of speakers. If set to > 1, assume that the
+                sids will be provided as the input and use sid embedding layer.
+            langs (Optional[int]): Number of languages. If set to > 1, assume that the
+                lids will be provided as the input and use sid embedding layer.
+            spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to > 0,
+                assume that spembs will be provided as the input.
             global_channels (int): Number of global conditioning channels.
             segment_size (int): Segment size for decoder.
             text_encoder_attention_heads (int): Number of heads in conformer block
@@ -234,17 +238,20 @@ class VITSGenerator(torch.nn.Module):
         )
 
         self.upsample_factor = int(np.prod(decoder_upsample_scales))
-        self.spks = spks
-        if self.spks > 1:
+        self.spks = None
+        if spks is not None and spks > 1:
             assert global_channels > 0
+            self.spks = spks
             self.global_emb = torch.nn.Embedding(spks, global_channels)
-        self.spk_embed_dim = spk_embed_dim
-        if self.spk_embed_dim > 0:
+        self.spk_embed_dim = None
+        if spk_embed_dim is not None and spk_embed_dim > 0:
             assert global_channels > 0
+            self.spk_embed_dim
             self.spemb_proj = torch.nn.Linear(spk_embed_dim, global_channels)
-        self.langs = langs
-        if self.langs > 1:
+        self.langs = None
+        if langs is not None and langs > 1:
             assert global_channels > 0
+            self.langs = langs
             self.lang_emb = torch.nn.Embedding(langs, global_channels)
 
         # delayed import
@@ -309,17 +316,17 @@ class VITSGenerator(torch.nn.Module):
 
         # calculate global conditioning
         g = None
-        if self.spks > 0:
+        if self.spks is not None:
             # speaker one-hot vector embedding: (B, global_channels, 1)
             g = self.global_emb(sids.view(-1)).unsqueeze(-1)
-        if self.spk_embed_dim > 0:
+        if self.spk_embed_dim is not None:
             # pretreined speaker embedding, e.g., X-vector (B, global_channels, 1)
             g_ = self.spemb_proj(F.normalize(spembs)).unsqueeze(-1)
             if g is None:
                 g = g_
             else:
                 g = g + g_
-        if self.langs > 0:
+        if self.langs is not None:
             # language one-hot vector embedding: (B, global_channels, 1)
             g_ = self.lang_emb(lids.view(-1)).unsqueeze(-1)
             if g is None:
@@ -447,17 +454,17 @@ class VITSGenerator(torch.nn.Module):
         # encoder
         x, m_p, logs_p, x_mask = self.text_encoder(text, text_lengths)
         g = None
-        if self.spks > 0:
+        if self.spks is not None:
             # (B, global_channels, 1)
             g = self.global_emb(sids.view(-1)).unsqueeze(-1)
-        if self.spk_embed_dim > 0:
+        if self.spk_embed_dim is not None:
             # (B, global_channels, 1)
             g_ = self.spemb_proj(F.normalize(spembs.unsqueeze(0))).unsqueeze(-1)
             if g is None:
                 g = g_
             else:
                 g = g + g_
-        if self.langs > 0:
+        if self.langs is not None:
             # (B, global_channels, 1)
             g_ = self.lang_emb(lids.view(-1)).unsqueeze(-1)
             if g is None:

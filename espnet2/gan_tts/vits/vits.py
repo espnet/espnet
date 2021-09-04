@@ -58,9 +58,9 @@ class VITS(AbsGANTTS):
         generator_type: str = "vits_generator",
         generator_params: Dict[str, Any] = {
             "hidden_channels": 192,
-            "spks": -1,
-            "langs": -1,
-            "spk_embed_dim": -1,
+            "spks": None,
+            "langs": None,
+            "spk_embed_dim": None,
             "global_channels": -1,
             "segment_size": 32,
             "text_encoder_attention_heads": 2,
@@ -248,6 +248,11 @@ class VITS(AbsGANTTS):
         # store sampling rate for saving wav file
         # (not used for the training)
         self.fs = sampling_rate
+
+        # store parameters for test compatibility
+        self.spks = self.generator.spks
+        self.langs = self.generator.langs
+        self.spk_embed_dim = self.generator.spk_embed_dim
 
     @property
     def require_raw_speech(self):
