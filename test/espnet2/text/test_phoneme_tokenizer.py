@@ -12,6 +12,7 @@ try:
             "pyopenjtalk_accent",
             "pyopenjtalk_kana",
             "pyopenjtalk_accent_with_pause",
+            "pyopenjtalk_prosody",
         ]
     )
     del pyopenjtalk
@@ -238,6 +239,40 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
             "a",
             "2",
             "3",
+        ]
+    elif phoneme_tokenizer.g2p_type == "pyopenjtalk_prosody":
+        input = "昔は、俺も若かった"
+        output = [
+            "^",
+            "m",
+            "u",
+            "[",
+            "k",
+            "a",
+            "sh",
+            "i",
+            "w",
+            "a",
+            "_",
+            "o",
+            "[",
+            "r",
+            "e",
+            "m",
+            "o",
+            "#",
+            "w",
+            "a",
+            "[",
+            "k",
+            "a",
+            "]",
+            "k",
+            "a",
+            "cl",
+            "t",
+            "a",
+            "$",
         ]
     elif phoneme_tokenizer.g2p_type == "pypinyin_g2p":
         input = "卡尔普陪外孙玩滑梯。"

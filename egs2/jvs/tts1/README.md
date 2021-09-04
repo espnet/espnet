@@ -16,13 +16,13 @@ See the following pages before asking the question:
 
 ## AR model case (Tacotron2 / Transformer)
 
-Here, we show the procedure of the fine-tuning using Tacotron2 pretrained with [JSUT](../../jsut/tts1) corpus.
+Here, we show the procedure of the fine-tuning using Tacotron2, which was pretrained on [JSUT](../../jsut/tts1) corpus using `pyopenjtalk_accent_with_pause` G2P.
 
 ### 1. Run the recipe until stage 5
 
 ```sh
 # From data preparation to statistics calculation
-$ ./run.sh --stop-stage 5
+$ ./run.sh --stop-stage 5 --g2p pyopenjtalk_accent_with_pause
 ```
 
 The detail of stage 1-5 can be found in [`Recipe flow`](../../TEMPLATE/tts1/README.md#recipe-flow).
@@ -83,6 +83,7 @@ Here `--init_param /path/to/model.pth:a:b` represents loading "a" parameters in 
 # Recommend using --tag to name the experiment directory
 $ ./run.sh \
     --stage 6 \
+    --g2p pyopenjtalk_accent_with_pause \
     --train_config conf/tuning/finetune_tacotron2.yaml \
     --train_args "--init_param downloads/0afe7c220cac7d9893eea4ff1e4ca64e/exp/tts_train_tacotron2_raw_phn_jaconv_pyopenjtalk_accent_with_pause/train.loss.ave_5best.pth:tts:tts" \
     --tag finetune_tacotron2_raw_phn_jaconv_pyopenjtalk_accent_with_pause
@@ -104,6 +105,7 @@ First, prepare the `durations` for all sets by running AR model inference with t
 ```sh
 $ ./run.sh \
     --stage 7 \
+    --g2p pyopenjtalk_accent_with_pause \
     --tts_exp exp/tts_finetune_tacotron2_raw_phn_jaconv_pyopenjtalk_accent_with_pause \
     --inference_args "--use_teacher_forcing true" \
     --test_sets "jvs010_tr_no_dev jvs010_dev jvs010_eval1"
@@ -134,6 +136,7 @@ Since fastspeech2 requires extra feature calculation, run from stage 5.
 # Recommend using --tag to name the experiment directory
 $ ./run.sh \
     --stage 5 \
+    --g2p pyopenjtalk_accent_with_pause \
     --write_collected_feats true \
     --teacher_dumpdir exp/tts_finetune_tacotron2_raw_phn_jaconv_pyopenjtalk_accent_with_pause/decode_use_teacher_forcingtrue_train.loss.ave \
     --tts_stats_dir exp/tts_finetune_tacotron2_raw_phn_jaconv_pyopenjtalk_accent_with_pause/decode_use_teacher_forcingtrue_train.loss.ave/stats \
@@ -156,6 +159,7 @@ As a default, vits used 22.05 khz (but this recipe default is 24khz).
 $ ./run.sh \
     --stage 1 \
     --stop-stage 5 \
+    --g2p pyopenjtalk_accent_with_pause \
     --min_wav_duration 0.38 \
     --fs 22050 \
     --n_fft 1024 \
@@ -207,6 +211,7 @@ Run from stage 6.
 # Recommend using --tag to name the experiment directory
 $ ./run.sh \
     --stage 6 \
+    --g2p pyopenjtalk_accent_with_pause \
     --min_wav_duration 0.38 \
     --fs 22050 \
     --n_fft 1024 \
