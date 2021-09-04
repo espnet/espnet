@@ -169,9 +169,12 @@ class FastSpeech(AbsTTS):
             conformer_enc_kernel_size: Kernel size of encoder conformer.
             conformer_dec_kernel_size: Kernel size of decoder conformer.
             zero_triu: Whether to use zero triu in relative self-attention module.
-            spks: Number of speakers. If set to > 0, speaker ID embedding will be used.
-            langs: Number of langs. If set to > 0, lang ID embedding will be used.
-            spk_embed_dim (int): Number of speaker embedding dimensions.
+            spks (Optional[int]): Number of speakers. If set to > 1, assume that the
+                sids will be provided as the input and use sid embedding layer.
+            langs (Optional[int]): Number of languages. If set to > 1, assume that the
+                lids will be provided as the input and use sid embedding layer.
+            spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to > 0,
+                assume that spembs will be provided as the input.
             spk_embed_integration_type: How to integrate speaker embedding.
             use_gst (str): Whether to use global style token.
             gst_tokens (int): The number of GST embeddings.
@@ -311,6 +314,10 @@ class FastSpeech(AbsTTS):
             self.lid_emb = torch.nn.Embedding(langs, adim)
 
         # define additional projection for speaker embedding
+        self.spk_embed_dim = None
+        if spk_embed_dim is not None and spk_embed_dim > 0:
+            self.spk_embed_dim = spk_embed_dim
+            self.spk_embed_integration_type = spk_embed_integration_type
         if self.spk_embed_dim is not None:
             if self.spk_embed_integration_type == "add":
                 self.projection = torch.nn.Linear(self.spk_embed_dim, adim)
@@ -427,10 +434,10 @@ class FastSpeech(AbsTTS):
             hs = hs + style_embs.unsqueeze(1)
 
         # integrate with SID and LID embeddings
-        if self.spks > 0:
+        if self.spks is not None:
             sid_embs = self.sid_emb(sids.view(-1))
             hs = hs + sid_embs.unsqueeze(1)
-        if self.langs > 0:
+        if self.langs is not None:
             lid_embs = self.lid_emb(lids.view(-1))
             hs = hs + lid_embs.unsqueeze(1)
 
