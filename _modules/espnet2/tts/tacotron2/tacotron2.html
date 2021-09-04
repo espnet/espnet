@@ -284,9 +284,9 @@
         <span class="n">use_residual</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">reduction_factor</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="c1"># extra embedding related</span>
-        <span class="n">spks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">langs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">spk_embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">langs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spk_embed_dim</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spk_embed_integration_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;concat&quot;</span><span class="p">,</span>
         <span class="n">use_gst</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">gst_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
@@ -334,9 +334,12 @@
 <span class="sd">            use_batch_norm (bool): Whether to use batch normalization.</span>
 <span class="sd">            use_concate (bool): Whether to concat enc outputs w/ dec lstm outputs.</span>
 <span class="sd">            reduction_factor (int): Reduction factor.</span>
-<span class="sd">            spks: Number of speakers. If set to &gt; 0, speaker ID embedding will be used.</span>
-<span class="sd">            langs: Number of langs. If set to &gt; 0, lang ID embedding will be used.</span>
-<span class="sd">            spk_embed_dim (int): Pretrained speaker embedding dimension.</span>
+<span class="sd">            spks (Optional[int]): Number of speakers. If set to &gt; 1, assume that the</span>
+<span class="sd">                sids will be provided as the input and use sid embedding layer.</span>
+<span class="sd">            langs (Optional[int]): Number of languages. If set to &gt; 1, assume that the</span>
+<span class="sd">                lids will be provided as the input and use sid embedding layer.</span>
+<span class="sd">            spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to &gt; 0,</span>
+<span class="sd">                assume that spembs will be provided as the input.</span>
 <span class="sd">            spk_embed_integration_type (str): How to integrate speaker embedding.</span>
 <span class="sd">            use_gst (str): Whether to use global style token.</span>
 <span class="sd">            gst_tokens (int): Number of GST embeddings.</span>
@@ -368,16 +371,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">idim</span> <span class="o">=</span> <span class="n">idim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">=</span> <span class="n">odim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">idim</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="o">=</span> <span class="n">spk_embed_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cumulate_att_w</span> <span class="o">=</span> <span class="n">cumulate_att_w</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">=</span> <span class="n">reduction_factor</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="o">=</span> <span class="n">spks</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">=</span> <span class="n">langs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_gst</span> <span class="o">=</span> <span class="n">use_gst</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_guided_attn_loss</span> <span class="o">=</span> <span class="n">use_guided_attn_loss</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">=</span> <span class="n">loss_type</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_integration_type</span> <span class="o">=</span> <span class="n">spk_embed_integration_type</span>
 
         <span class="c1"># define activation function for the final output</span>
         <span class="k">if</span> <span class="n">output_activation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -422,16 +420,24 @@
                 <span class="n">gru_units</span><span class="o">=</span><span class="n">gst_gru_units</span><span class="p">,</span>
             <span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">sid_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">spks</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">lid_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">langs</span><span class="p">,</span> <span class="n">embed_dim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">spks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">spks</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="o">=</span> <span class="n">spks</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sid_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">spks</span><span class="p">,</span> <span class="n">eunits</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">langs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">langs</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">=</span> <span class="n">langs</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lid_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">langs</span><span class="p">,</span> <span class="n">eunits</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">spk_embed_dim</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="o">=</span> <span class="n">spk_embed_dim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_integration_type</span> <span class="o">=</span> <span class="n">spk_embed_integration_type</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dec_idim</span> <span class="o">=</span> <span class="n">eunits</span>
-        <span class="k">elif</span> <span class="n">spk_embed_integration_type</span> <span class="o">==</span> <span class="s2">&quot;concat&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_integration_type</span> <span class="o">==</span> <span class="s2">&quot;concat&quot;</span><span class="p">:</span>
             <span class="n">dec_idim</span> <span class="o">=</span> <span class="n">eunits</span> <span class="o">+</span> <span class="n">spk_embed_dim</span>
-        <span class="k">elif</span> <span class="n">spk_embed_integration_type</span> <span class="o">==</span> <span class="s2">&quot;add&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_integration_type</span> <span class="o">==</span> <span class="s2">&quot;add&quot;</span><span class="p">:</span>
             <span class="n">dec_idim</span> <span class="o">=</span> <span class="n">eunits</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span><span class="p">,</span> <span class="n">eunits</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -612,10 +618,10 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_gst</span><span class="p">:</span>
             <span class="n">style_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gst</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
             <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">style_embs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">sid_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sid_emb</span><span class="p">(</span><span class="n">sids</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
             <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">sid_embs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">lid_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lid_emb</span><span class="p">(</span><span class="n">lids</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
             <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">lid_embs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -692,6 +698,12 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_gst</span><span class="p">:</span>
             <span class="n">style_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gst</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
             <span class="n">h</span> <span class="o">=</span> <span class="n">h</span> <span class="o">+</span> <span class="n">style_emb</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sid_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sid_emb</span><span class="p">(</span><span class="n">sids</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">h</span> <span class="o">+</span> <span class="n">sid_emb</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lid_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lid_emb</span><span class="p">(</span><span class="n">lids</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">h</span> <span class="o">+</span> <span class="n">lid_emb</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">hs</span><span class="p">,</span> <span class="n">spembs</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">spemb</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
             <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_integrate_with_spk_embed</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">spembs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>

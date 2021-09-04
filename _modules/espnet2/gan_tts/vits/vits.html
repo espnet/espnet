@@ -273,9 +273,9 @@
         <span class="n">generator_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;vits_generator&quot;</span><span class="p">,</span>
         <span class="n">generator_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;hidden_channels&quot;</span><span class="p">:</span> <span class="mi">192</span><span class="p">,</span>
-            <span class="s2">&quot;spks&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-            <span class="s2">&quot;langs&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-            <span class="s2">&quot;spk_embed_dim&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;spks&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;langs&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;spk_embed_dim&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s2">&quot;global_channels&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
             <span class="s2">&quot;segment_size&quot;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
             <span class="s2">&quot;text_encoder_attention_heads&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
@@ -463,6 +463,11 @@
         <span class="c1"># store sampling rate for saving wav file</span>
         <span class="c1"># (not used for the training)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fs</span> <span class="o">=</span> <span class="n">sampling_rate</span>
+
+        <span class="c1"># store parameters for test compatibility</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">spks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">langs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">spk_embed_dim</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">require_raw_speech</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

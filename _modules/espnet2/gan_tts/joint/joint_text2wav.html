@@ -548,6 +548,11 @@
         <span class="c1"># (not used for the training)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fs</span> <span class="o">=</span> <span class="n">sampling_rate</span>
 
+        <span class="c1"># store parameters for test compatibility</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">[</span><span class="s2">&quot;text2mel&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">spks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">[</span><span class="s2">&quot;text2mel&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">langs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">[</span><span class="s2">&quot;text2mel&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">spk_embed_dim</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">require_raw_speech</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return whether or not speech is required.&quot;&quot;&quot;</span>
