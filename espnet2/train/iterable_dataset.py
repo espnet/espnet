@@ -6,6 +6,7 @@ from typing import Callable
 from typing import Collection
 from typing import Dict
 from typing import Iterator
+from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -80,7 +81,7 @@ class IterableESPnetDataset(IterableDataset):
         ] = None,
         float_dtype: str = "float32",
         int_dtype: str = "long",
-        key_file: str = None,
+        key_file: Optional[str] = None,
     ):
         assert check_argument_types()
         if len(path_name_type_list) == 0:
