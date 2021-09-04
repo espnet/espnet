@@ -1,4 +1,5 @@
 """DNN beamformer module."""
+from distutils.version import LooseVersion
 from typing import List
 from typing import Tuple
 from typing import Union
@@ -9,18 +10,20 @@ from torch.nn import functional as F
 from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.frontends.beamformer import apply_beamforming_vector
-from espnet.nets.pytorch_backend.frontends.beamformer import (
-    get_power_spectral_density_matrix,  # noqa: H301
-)
+from espnet2.enh.layers.beamformer import apply_beamforming_vector
 from espnet2.enh.layers.beamformer import get_covariances
 from espnet2.enh.layers.beamformer import get_mvdr_vector
 from espnet2.enh.layers.beamformer import get_mvdr_vector_with_rtf
+from espnet2.enh.layers.beamformer import get_power_spectral_density_matrix
 from espnet2.enh.layers.beamformer import get_WPD_filter_v2
 from espnet2.enh.layers.beamformer import get_WPD_filter_with_rtf
 from espnet2.enh.layers.beamformer import perform_WPD_filtering
+from espnet2.enh.layers.complex_utils import to_double
+from espnet2.enh.layers.complex_utils import to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 
+
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 BEAMFORMER_TYPES = (
     # Minimum Variance Distortionless Response beamformer
@@ -134,10 +137,10 @@ class DNN_Beamformer(torch.nn.Module):
 
     def forward(
         self,
-        data: ComplexTensor,
+        data: Union[torch.Tensor, ComplexTensor],
         ilens: torch.LongTensor,
         powers: Union[List[torch.Tensor], None] = None,
-    ) -> Tuple[ComplexTensor, torch.LongTensor, torch.Tensor]:
+    ) -> Tuple[Union[torch.Tensor, ComplexTensor], torch.LongTensor, torch.Tensor]:
         """DNN_Beamformer forward function.
 
         Notation:
@@ -147,11 +150,11 @@ class DNN_Beamformer(torch.nn.Module):
             F: Freq
 
         Args:
-            data (ComplexTensor): (B, T, C, F)
+            data (torch.complex64/ComplexTensor): (B, T, C, F)
             ilens (torch.Tensor): (B,)
             powers (List[torch.Tensor] or None): used for wMPDR or WPD (B, F, T)
         Returns:
-            enhanced (ComplexTensor): (B, T, F)
+            enhanced (torch.complex64/ComplexTensor): (B, T, F)
             ilens (torch.Tensor): (B,)
             masks (torch.Tensor): (B, T, C, F)
         """
@@ -160,17 +163,19 @@ class DNN_Beamformer(torch.nn.Module):
             """Beamforming with the provided statistics.
 
             Args:
-                data (ComplexTensor): (B, F, C, T)
+                data (torch.complex64/ComplexTensor): (B, F, C, T)
                 ilens (torch.Tensor): (B,)
-                psd_n (ComplexTensor):
+                psd_n (torch.complex64/ComplexTensor):
                     Noise covariance matrix for MVDR (B, F, C, C)
                     Observation covariance matrix for MPDR/wMPDR (B, F, C, C)
                     Stacked observation covariance for WPD (B,F,(btaps+1)*C,(btaps+1)*C)
-                psd_speech (ComplexTensor): Speech covariance matrix (B, F, C, C)
-                psd_distortion (ComplexTensor): Noise covariance matrix (B, F, C, C)
+                psd_speech (torch.complex64/ComplexTensor):
+                    Speech covariance matrix (B, F, C, C)
+                psd_distortion (torch.complex64/ComplexTensor):
+                    Noise covariance matrix (B, F, C, C)
             Return:
-                enhanced (ComplexTensor): (B, F, T)
-                ws (ComplexTensor): (B, F) or (B, F, (btaps+1)*C)
+                enhanced (torch.complex64/ComplexTensor): (B, F, T)
+                ws (torch.complex64/ComplexTensor): (B, F) or (B, F, (btaps+1)*C)
             """
             # u: (B, C)
             if self.ref_channel < 0:
@@ -191,9 +196,9 @@ class DNN_Beamformer(torch.nn.Module):
 
             if self.beamformer_type in ("mvdr", "mpdr", "wmpdr"):
                 ws = get_mvdr_vector_with_rtf(
-                    psd_n.double(),
-                    psd_speech.double(),
-                    psd_distortion.double(),
+                    to_double(psd_n),
+                    to_double(psd_speech),
+                    to_double(psd_distortion),
                     iterations=self.rtf_iterations,
                     reference_vector=u,
                     normalize_ref_channel=self.ref_channel,
@@ -201,22 +206,22 @@ class DNN_Beamformer(torch.nn.Module):
                     diagonal_loading=self.diagonal_loading,
                     diag_eps=self.diag_eps,
                 )
-                enhanced = apply_beamforming_vector(ws, data.double())
+                enhanced = apply_beamforming_vector(ws, to_double(data))
             elif self.beamformer_type in ("mpdr_souden", "mvdr_souden", "wmpdr_souden"):
                 ws = get_mvdr_vector(
-                    psd_speech.double(),
-                    psd_n.double(),
+                    to_double(psd_speech),
+                    to_double(psd_n),
                     u,
                     use_torch_solver=self.use_torch_solver,
                     diagonal_loading=self.diagonal_loading,
                     diag_eps=self.diag_eps,
                 )
-                enhanced = apply_beamforming_vector(ws, data.double())
+                enhanced = apply_beamforming_vector(ws, to_double(data))
             elif self.beamformer_type == "wpd":
                 ws = get_WPD_filter_with_rtf(
-                    psd_n.double(),
-                    psd_speech.double(),
-                    psd_distortion.double(),
+                    to_double(psd_n),
+                    to_double(psd_speech),
+                    to_double(psd_distortion),
                     iterations=self.rtf_iterations,
                     reference_vector=u,
                     normalize_ref_channel=self.ref_channel,
@@ -225,18 +230,18 @@ class DNN_Beamformer(torch.nn.Module):
                     diag_eps=self.diag_eps,
                 )
                 enhanced = perform_WPD_filtering(
-                    ws, data.double(), self.bdelay, self.btaps
+                    ws, to_double(data), self.bdelay, self.btaps
                 )
             elif self.beamformer_type == "wpd_souden":
                 ws = get_WPD_filter_v2(
-                    psd_speech.double(),
-                    psd_n.double(),
+                    to_double(psd_speech),
+                    to_double(psd_n),
                     u,
                     diagonal_loading=self.diagonal_loading,
                     diag_eps=self.diag_eps,
                 )
                 enhanced = perform_WPD_filtering(
-                    ws, data.double(), self.bdelay, self.btaps
+                    ws, to_double(data), self.bdelay, self.btaps
                 )
             else:
                 raise ValueError(
@@ -245,9 +250,17 @@ class DNN_Beamformer(torch.nn.Module):
 
             return enhanced.to(dtype=data.dtype), ws.to(dtype=data.dtype)
 
+        if isinstance(data, ComplexTensor):
+            complex_wrapper = FC
+        elif is_torch_1_9_plus and torch.is_complex(data):
+            complex_wrapper = torch
+        else:
+            raise ValueError(
+                "Please update your PyTorch version to 1.8+ for compelx support."
+            )
         # data (B, T, C, F) -> (B, F, C, T)
         data = data.permute(0, 3, 2, 1)
-        data_d = data.double()
+        data_d = to_double(data)
 
         # mask: [(B, F, C, T)]
         masks, _ = self.mask(data, ilens)
@@ -293,15 +306,19 @@ class DNN_Beamformer(torch.nn.Module):
             elif self.beamformer_type == "mvdr_souden":
                 enhanced, ws = apply_beamforming(data, ilens, psd_noise, psd_speech)
             elif self.beamformer_type == "mpdr":
-                psd_observed = FC.einsum("...ct,...et->...ce", [data_d, data_d.conj()])
+                psd_observed = complex_wrapper.einsum(
+                    "...ct,...et->...ce", [data_d, data_d.conj()]
+                )
                 enhanced, ws = apply_beamforming(
                     data, ilens, psd_observed, psd_speech, psd_distortion=psd_noise
                 )
             elif self.beamformer_type == "mpdr_souden":
-                psd_observed = FC.einsum("...ct,...et->...ce", [data_d, data_d.conj()])
+                psd_observed = complex_wrapper.einsum(
+                    "...ct,...et->...ce", [data_d, data_d.conj()]
+                )
                 enhanced, ws = apply_beamforming(data, ilens, psd_observed, psd_speech)
             elif self.beamformer_type == "wmpdr":
-                psd_observed = FC.einsum(
+                psd_observed = complex_wrapper.einsum(
                     "...ct,...et->...ce",
                     [data_d * inverse_power[..., None, :], data_d.conj()],
                 )
@@ -309,7 +326,7 @@ class DNN_Beamformer(torch.nn.Module):
                     data, ilens, psd_observed, psd_speech, psd_distortion=psd_noise
                 )
             elif self.beamformer_type == "wmpdr_souden":
-                psd_observed = FC.einsum(
+                psd_observed = complex_wrapper.einsum(
                     "...ct,...et->...ce",
                     [data_d * inverse_power[..., None, :], data_d.conj()],
                 )
@@ -371,10 +388,12 @@ class DNN_Beamformer(torch.nn.Module):
                     data_d, mask_noise.double()
                 )
             if self.beamformer_type in ("mpdr", "mpdr_souden"):
-                psd_observed = FC.einsum("...ct,...et->...ce", [data_d, data_d.conj()])
+                psd_observed = complex_wrapper.einsum(
+                    "...ct,...et->...ce", [data_d, data_d.conj()]
+                )
             elif self.beamformer_type in ("wmpdr", "wmpdr_souden"):
                 psd_observed = [
-                    FC.einsum(
+                    complex_wrapper.einsum(
                         "...ct,...et->...ce",
                         [data_d * inv_p[..., None, :], data_d.conj()],
                     )
@@ -455,18 +474,18 @@ class DNN_Beamformer(torch.nn.Module):
         return enhanced, ilens, masks
 
     def predict_mask(
-        self, data: ComplexTensor, ilens: torch.LongTensor
+        self, data: Union[torch.Tensor, ComplexTensor], ilens: torch.LongTensor
     ) -> Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]:
         """Predict masks for beamforming.
 
         Args:
-            data (ComplexTensor): (B, T, C, F), double precision
+            data (torch.complex64/ComplexTensor): (B, T, C, F), double precision
             ilens (torch.Tensor): (B,)
         Returns:
             masks (torch.Tensor): (B, T, C, F)
             ilens (torch.Tensor): (B,)
         """
-        masks, _ = self.mask(data.permute(0, 3, 2, 1).float(), ilens)
+        masks, _ = self.mask(to_float(data.permute(0, 3, 2, 1)), ilens)
         # (B, F, C, T) -> (B, T, C, F)
         masks = [m.transpose(-1, -3) for m in masks]
         return masks, ilens
@@ -479,12 +498,15 @@ class AttentionReference(torch.nn.Module):
         self.gvec = torch.nn.Linear(att_dim, 1)
 
     def forward(
-        self, psd_in: ComplexTensor, ilens: torch.LongTensor, scaling: float = 2.0
+        self,
+        psd_in: Union[torch.Tensor, ComplexTensor],
+        ilens: torch.LongTensor,
+        scaling: float = 2.0,
     ) -> Tuple[torch.Tensor, torch.LongTensor]:
         """Attention-based reference forward function.
 
         Args:
-            psd_in (ComplexTensor): (B, F, C, C)
+            psd_in (torch.complex64/ComplexTensor): (B, F, C, C)
             ilens (torch.Tensor): (B,)
             scaling (float):
         Returns:
@@ -495,7 +517,7 @@ class AttentionReference(torch.nn.Module):
         assert psd_in.size(2) == psd_in.size(3), psd_in.size()
         # psd_in: (B, F, C, C)
         psd = psd_in.masked_fill(
-            torch.eye(C, dtype=torch.bool, device=psd_in.device), 0
+            torch.eye(C, dtype=torch.bool, device=psd_in.device).type(torch.bool), 0
         )
         # psd: (B, F, C, C) -> (B, C, F)
         psd = (psd.sum(dim=-1) / (C - 1)).transpose(-1, -2)
