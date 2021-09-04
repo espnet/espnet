@@ -52,6 +52,7 @@ SWBD=
 SWBD_NXT=
 THCHS30=downloads
 TIMIT=$(realpath ../../../../TIMIT)
+TSUKUYOMI=downloads
 VOXFORGE=downloads
 AMI=
 COMMONVOICE=downloads
@@ -152,6 +153,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     KSS=
     THCHS30=downloads
     TIMIT=
+    TSUKUYOMI=downloads
     VOXFORGE=
     AMI=/export/corpora4/ami/amicorpus
     COMMONVOICE=downloads
