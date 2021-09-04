@@ -221,3 +221,23 @@ $ ./run.sh \
     --train_args "--init_param downloads/f3698edf589206588f58f5ec837fa516/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause/train.total_count.ave_10best.pth:tts:tts" \
     --tag finetune_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause
 ```
+
+# VITS EXAMPLE RESULTS
+
+## Environments
+- date: `Fri Sep  3 21:09:25 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a1`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `dee654041cddf80281048b3e7525c1cdafc377ff`
+  - Commit date: `Thu Sep 2 14:45:48 2021 +0900`
+
+## Pretrained Models
+
+### kan-bayashi/jvs_tts_finetune_jvs001_jsut_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause_latest
+- 22.05 khz / jvs001 (male) / 50k iters
+- https://zenodo.org/record/5432540
+
+### kan-bayashi/jvs_tts_finetune_jvs010_jsut_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause_latest
+- 22.05 khz / jvs010 (female) / 50k iters
+- https://zenodo.org/record/5432566
