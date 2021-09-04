@@ -4,22 +4,21 @@ This is the recipe of the adaptation with Japanese single speaker in [JVS](https
 
 This recipe assumes the use of pretrained model.
 Please follow the usage to perform fine-tuning with pretrained model.
-
 See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
-## How to run
+# HOW TO RUN
 
 - [AR model case (Tacotron2 / Transformer)](#ar-model-case-tacotron2--transformer)
 - [Non-AR model case (FastSpeech / FastSpeech2)](#non-ar-model-case-fastspeech--fastspeech2)
 - [VITS case](#vits-case)
 
-### AR model case (Tacotron2 / Transformer)
+## AR model case (Tacotron2 / Transformer)
 
 Here, we show the procedure of the fine-tuning using Tacotron2 pretrained with [JSUT](../../jsut/tts1) corpus.
 
-#### 1. Run the recipe until stage 5
+### 1. Run the recipe until stage 5
 
 ```sh
 # From data preparation to statistics calculation
@@ -28,7 +27,7 @@ $ ./run.sh --stop-stage 5
 
 The detail of stage 1-5 can be found in [`Recipe flow`](../../TEMPLATE/tts1/README.md#recipe-flow).
 
-#### 2. Download pretrained model
+### 2. Download pretrained model
 
 Download pretrained model from ESPnet model zoo here.
 If you have your own pretrained model, you can skip this step.
@@ -40,7 +39,7 @@ $ espnet_model_zoo_download --unpack true --cachedir downloads kan-bayashi/jsut_
 
 You can find the other pretrained models in [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv).
 
-#### 3. Replace token list with pretrained model's one
+### 3. Replace token list with pretrained model's one
 
 Since we use the same language data for fine-tuning, we need to use the token list of the pretrained model instead of that of data for fine-tuning.
 The downloaded pretrained model has `tokens_list` in the config, so first we create `tokens.txt` (`token_list`) from the config.
@@ -61,7 +60,7 @@ $ mv dump/token_list/phn_jaconv_pyopenjtalk_accent_with_pause/tokens.{txt,txt.ba
 $ ln -s $(pwd)/downloads/0afe7c220cac7d9893eea4ff1e4ca64e/exp/tts_train_tacotron2_raw_phn_jaconv_pyopenjtalk_accent_with_pause/tokens.txt dump/token_list/phn_jaconv_pyopenjtalk_accent_with_pause
 ```
 
-#### 4 (Optional). Replace statistics with pretrained model's one
+### 4 (Optional). Replace statistics with pretrained model's one
 
 Sometimes, using the feature statistics of the pretrained models is better than using that of adaptation data.
 This is an optional step, so you can skip if you use the original statistics.
@@ -73,7 +72,7 @@ $ mv exp/tts_stats_raw_phn_jaconv_pyopenjtalk_accent_with_pause/train/feats_stat
 $ ln -s $(pwd)/downloads/0afe7c220cac7d9893eea4ff1e4ca64e/exp/tts_stats_raw_phn_jaconv_pyopenjtalk_accent_with_pause/train/feats_stats.npz exp/tts_stats_raw_phn_jaconv_pyopenjtalk_accent_with_pause/train
 ```
 
-#### 5. Run fine-tuning
+### 5. Run fine-tuning
 
 Run the recipe from stage 6.
 
@@ -91,14 +90,14 @@ $ ./run.sh \
 
 For more complex loading of pretrained parameters, please check [`How to load pretrained model?`](../../TEMPLATE/tts1/README.md#how-to-load-the-pretrained-model) For example, if you want to perform fine-tuning of English model with Japanese data, you may want to load the network except for the token embedding layer.
 
-### Non-AR model case (FastSpeech / FastSpeech2)
+## Non-AR model case (FastSpeech / FastSpeech2)
 
 To finetune non-AR models, we need to preapre `durations` file.
 Therefore, at first, please finish the finetuning of AR models by the above steps.
 
 Here, we show the procedure of FastSpeech2 fine-tuning with the above fine-tuened tacotron2 as the teacher.
 
-#### 1. Prepare durations file using the adapted AR model
+### 1. Prepare durations file using the adapted AR model
 
 First, prepare the `durations` for all sets by running AR model inference with teacher forcing.
 
@@ -112,7 +111,7 @@ $ ./run.sh \
 
 You can find `durations` files in `exp/tts_finetune_tacotron2_raw_phn_jaconv_pyopenjtalk_accent_with_pause/decode_use_teacher_forcingtrue_train.loss.ave/*`.
 
-#### 2. Download pretrained model
+### 2. Download pretrained model
 
 Download pretrained model from ESPnet model zoo here.
 If you have your own pretrained model, you can skip this step.
@@ -124,7 +123,7 @@ $ espnet_model_zoo_download --unpack true --cachedir downloads kan-bayashi/jsut_
 
 Please make sure this model used the same `token_list` as the teacher AR model.
 
-#### 3. Run fine-tuning
+### 3. Run fine-tuning
 
 Here we skip the replacement of the statistics (Of course you can do it).
 And we assume that `tokens.txt` is already replaced in AR model fine-tuning.
@@ -143,12 +142,12 @@ $ ./run.sh \
     --tag finetune_fastspeech2_raw_phn_jaconv_pyopenjtalk_accent_with_pause
 ```
 
-### VITS case
+## VITS case
 
 In the case of VITS, please be careful about the sampling rate.
 As a default, vits used 22.05 khz (but this recipe default is 24khz).
 
-#### 1. Run the recipe until stage 5 with 22.05khz setup
+### 1. Run the recipe until stage 5 with 22.05khz setup
 
 ```sh
 # Here we changed root dumpdir from dump -> dump/22k and
@@ -169,7 +168,7 @@ $ ./run.sh \
     --train_config ./conf/tuning/finetune_vits.yaml
 ```
 
-#### 2. Download pretrained model
+### 2. Download pretrained model
 
 Download pretrained model from ESPnet model zoo here.
 If you have your own pretrained model, you can skip this step.
@@ -179,7 +178,7 @@ $ . ./path.sh
 $ espnet_model_zoo_download --unpack true --cachedir downloads kan-bayashi/jsut_vits_accent_with_pause
 ```
 
-#### 3. Replace token list with pretrained model's one
+### 3. Replace token list with pretrained model's one
 
 Since we use the same language data for fine-tuning, we need to use the token list of the pretrained model instead of that of data for fine-tuning.
 The downloaded pretrained model has `tokens_list` in the config, so first we create `tokens.txt` (`token_list`) from the config.
@@ -200,7 +199,7 @@ $ mv dump/22k/token_list/phn_jaconv_pyopenjtalk_accent_with_pause/tokens.{txt,tx
 $ ln -s $(pwd)/downloads/f3698edf589206588f58f5ec837fa516/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause/tokens.txt dump/22k/token_list/phn_jaconv_pyopenjtalk_accent_with_pause
 ```
 
-#### 4. Run fine-tuning
+### 4. Run fine-tuning
 
 Run from stage 6.
 
