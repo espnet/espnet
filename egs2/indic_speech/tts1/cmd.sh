@@ -77,7 +77,7 @@ elif [ "${cmd_backend}" = slurm ]; then
     # The default setting is written in conf/slurm.conf.
     # You must change "-p cpu" and "-p gpu" for the "partition" for your environment.
     # To know the "partion" names, type "sinfo".
-    # You can use "--gpu * " by defualt for slurm and it is interpreted as "--gres gpu:*"
+    # You can use "--gpu * " by default for slurm and it is interpreted as "--gres gpu:*"
     # The devices are allocated exclusively using "${CUDA_VISIBLE_DEVICES}".
 
     export train_cmd="slurm.pl"
