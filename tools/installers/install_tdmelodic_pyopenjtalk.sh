@@ -11,8 +11,10 @@ fi
 if [ ! -e tdmelodic_pyopenjtalk.done ]; then
     (
         set -euo pipefail
-        # NOTE(kan-bayashi): Better to fix tagged version
-        # commit id: 766477584a423a1e62b0f81f79fb7e5e189962b5
+        # Since this installer overwrite existing pyopenjtalk, remove done file.
+        [ -e pyopenjtalk.done ] && rm pyopenjtalk.done
+        # TODO(kan-bayashi): Better to fix tagged version
+        #   commit id when creating PR: 766477584a423a1e62b0f81f79fb7e5e189962b5
         rm -rf tdmelodic_openjtalk && git clone https://github.com/sarulab-speech/tdmelodic_openjtalk.git
         rm -rf pyopenjtalk && git clone https://github.com/r9y9/pyopenjtalk.git -b v0.1.3
         cd pyopenjtalk
