@@ -47,6 +47,7 @@ JSUT=downloads
 JTUBESPEECH=downloads
 JVS=downloads
 KSS=
+SNIPS= # smart-light-en-closed-field data path
 SPGISPEECH=
 SWBD=
 SWBD_NXT=
@@ -143,6 +144,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     TEDXJP=
     LIBRISPEECH=
     FSC=
+    SNIPS= # smart-light-en-closed-field data path
     SLURP=
     MINI_LIBRISPEECH=downloads
     LIBRITTS=
