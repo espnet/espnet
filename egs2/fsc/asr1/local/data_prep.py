@@ -24,7 +24,11 @@ dir_dict = {
 for x in dir_dict:
     with open(os.path.join("data", x, "text"), "w") as text_f, open(
         os.path.join("data", x, "wav.scp"), "w"
-    ) as wav_scp_f, open(os.path.join("data", x, "utt2spk"), "w") as utt2spk_f:
+    ) as wav_scp_f, open(
+        os.path.join("data", x, "transcript"), "w"
+    ) as transcript_f, open(
+        os.path.join("data", x, "utt2spk"), "w"
+    ) as utt2spk_f:
 
         text_f.truncate()
         wav_scp_f.truncate()
@@ -38,7 +42,10 @@ for x in dir_dict:
                 + row[5].replace(" ", "_")
                 + "_"
                 + row[6].replace(" ", "_")
+                + " "
+                + row[3].encode("ascii", "ignore").decode()
             )
+            print(words)
             path_arr = row[1].split("/")
             utt_id = path_arr[-2] + "_" + path_arr[-1]
             # print(utt_id + " " + words + "\n")

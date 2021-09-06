@@ -28,6 +28,8 @@ from espnet2.asr.decoder.transformer_decoder import (
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
+from espnet2.asr.encoder.hubert_encoder import FairseqHubertPretrainEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
@@ -53,6 +55,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
+from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
@@ -111,6 +114,8 @@ encoder_choices = ClassChoices(
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
         wav2vec2=FairSeqWav2Vec2Encoder,
+        hubert=FairseqHubertEncoder,
+        hubert_pretrain=FairseqHubertPretrainEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
@@ -249,28 +254,7 @@ class ASRTask(AbsTask):
         parser.add_argument(
             "--g2p",
             type=str_or_none,
-            choices=[
-                None,
-                "g2p_en",
-                "g2p_en_no_space",
-                "pyopenjtalk",
-                "pyopenjtalk_kana",
-                "pyopenjtalk_accent",
-                "pyopenjtalk_accent_with_pause",
-                "pypinyin_g2p",
-                "pypinyin_g2p_phone",
-                "espeak_ng_arabic",
-                "espeak_ng_german",
-                "espeak_ng_french",
-                "espeak_ng_spanish",
-                "espeak_ng_russian",
-                "espeak_ng_greek",
-                "espeak_ng_finnish",
-                "espeak_ng_hungarian",
-                "espeak_ng_dutch",
-                "g2pk",
-                "g2pk_no_space",
-            ],
+            choices=g2p_choices,
             default=None,
             help="Specify g2p method if --token_type=phn",
         )

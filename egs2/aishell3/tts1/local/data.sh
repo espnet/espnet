@@ -88,7 +88,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     utils/filter_scp.pl --exclude data/dev/wav.scp \
         data/train/wav.scp > data/train_no_dev/wav.scp
     utils/filter_scp.pl --exclude data/dev_phn/wav.scp \
-        data/train_phn/wav.scp.tmp > data/train_phn_no_dev/wav.scp
+        data/train_phn/wav.scp > data/train_phn_no_dev/wav.scp
     utils/fix_data_dir.sh data/train_no_dev
     utils/fix_data_dir.sh data/train_phn_no_dev
 fi

@@ -31,7 +31,7 @@ class StyleEncoder(torch.nn.Module):
         conv_chans_list: (Sequence[int], optional):
             List of the number of channels of conv layers in the referece encoder.
         conv_kernel_size (int, optional):
-            Kernal size of conv layers in the reference encoder.
+            Kernel size of conv layers in the reference encoder.
         conv_stride (int, optional):
             Stride size of conv layers in the reference encoder.
         gru_layers (int, optional): The number of GRU layers in the reference encoder.
@@ -106,7 +106,7 @@ class ReferenceEncoder(torch.nn.Module):
         conv_chans_list: (Sequence[int], optional):
             List of the number of channels of conv layers in the referece encoder.
         conv_kernel_size (int, optional):
-            Kernal size of conv layers in the reference encoder.
+            Kernel size of conv layers in the reference encoder.
         conv_stride (int, optional):
             Stride size of conv layers in the reference encoder.
         gru_layers (int, optional): The number of GRU layers in the reference encoder.

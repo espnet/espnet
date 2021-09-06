@@ -1,0 +1,55 @@
+# minibatch related
+batch-size: 32
+maxlen-in: 800
+maxlen-out: 150
+
+# optimization related
+criterion: loss
+early-stop-criterion: "validation/main/loss"
+sortagrad: 0
+opt: noam
+noam-lr: 2.0
+noam-adim: 256
+optimizer-warmup-steps: 4000
+epochs: 40
+patience: 0
+accum-grad: 2
+grad-clip: 5.0
+
+# network architecture
+## general
+custom-enc-positional-encoding-type: rel_pos
+custom-enc-self-attn-type: rel_self_attn
+## encoder related
+etype: custom
+custom-enc-input-layer: vgg2l
+enc-block-arch:
+        - type: conformer
+          d_hidden: 320
+          d_ff: 320
+          heads: 4
+          macaron_style: True
+          use_conv_mod: True
+          conv_mod_kernel: 15
+          dropout-rate: 0.3
+          att-dropout-rate: 0.3
+          pos-dropout-rate: 0.3
+enc-block-repeat: 8
+## decoder related
+dtype: lstm
+dlayers: 1
+dec-embed-dim: 256
+dunits: 256
+dropout-rate-decoder: 0.1
+dropout-rate-embed-decoder: 0.2
+## joint network related
+joint-dim: 128
+
+# transducer related
+model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
+use-ctc-loss: True
+ctc-loss-weight: 0.3
+ctc-loss-dropout-rate: 0.1
+use-lm-loss: True
+lm-loss-weight: 0.3
+lm-loss-smoothing-rate: 0.05

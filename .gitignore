@@ -26,6 +26,7 @@ test_spm.model
 .vscode*
 *.vim
 *.swp
+*.nfs*
 
 # recipe related
 egs*/*/*/data*
@@ -65,6 +66,7 @@ tools/PESQ*
 tools/hts_engine_API*
 tools/open_jtalk*
 tools/pyopenjtalk*
+tools/tdmelodic_openjtalk*
 tools/sctk*
 tools/sph2pipe*
 tools/espeak-ng*
@@ -72,3 +74,5 @@ tools/MBROLA*
 tools/festival*
 tools/speech_tools*
 tools/phonemizer*
+tools/py3mmseg
+tools/._*

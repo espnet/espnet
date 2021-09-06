@@ -54,7 +54,7 @@ max_wav_duration=20    # Maximum duration in second
 # Enhancement model related
 enh_exp=    # Specify the directory path for enhancement experiment. If this option is specified, enh_tag is ignored.
 enh_tag=    # Suffix to the result dir for enhancement model training.
-enh_config= # Config for ehancement model training.
+enh_config= # Config for enhancement model training.
 enh_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in enhancement config.
 spk_num=2   # Number of speakers
@@ -587,7 +587,7 @@ if ! "${skip_eval}"; then
             utils/split_scp.pl "${key_file}" ${split_scps}
 
             # 2. Submit inference jobs
-            log "Ehancement started... log: '${_logdir}/enh_inference.*.log'"
+            log "Enhancement started... log: '${_logdir}/enh_inference.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
                 ${python} -m espnet2.bin.enh_inference \
@@ -595,8 +595,8 @@ if ! "${skip_eval}"; then
                     --fs "${fs}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --enh_train_config "${enh_exp}"/config.yaml \
-                    --enh_model_file "${enh_exp}"/"${inference_model}" \
+                    --train_config "${enh_exp}"/config.yaml \
+                    --model_file "${enh_exp}"/"${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${inference_args}
 

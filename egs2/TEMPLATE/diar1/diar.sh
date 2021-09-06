@@ -23,30 +23,30 @@ min() {
 SECONDS=0
 
 # General configuration
-stage=1          # Processes starts from the specified stage.
-stop_stage=10000 # Processes is stopped at the specified stage.
+stage=1              # Processes starts from the specified stage.
+stop_stage=10000     # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages
 skip_train=false     # Skip training stages
 skip_eval=false      # Skip decoding and evaluation stages
 skip_upload=true     # Skip packing and uploading stages
-ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
-num_nodes=1      # The number of nodes
-nj=32            # The number of parallel jobs.
-dumpdir=dump     # Directory to dump features.
-inference_nj=32     # The number of parallel jobs in decoding.
-gpu_inference=false # Whether to perform gpu decoding.
-expdir=exp       # Directory to save experiments.
+ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
+num_nodes=1          # The number of nodes
+nj=32                # The number of parallel jobs.
+dumpdir=dump         # Directory to dump features.
+inference_nj=32      # The number of parallel jobs in decoding.
+gpu_inference=false  # Whether to perform gpu decoding.
+expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
 
 # Feature extraction related
-feats_type=raw    # Feature type (raw or fbank_pitch).
-audio_format=flac # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
-fs=8k             # Sampling rate.
-hop_length=128    # Hop length in sample number
-min_wav_duration=0.1   # Minimum duration in second
+feats_type=raw       # Feature type (raw or fbank_pitch).
+audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+fs=8k                # Sampling rate.
+hop_length=128       # Hop length in sample number
+min_wav_duration=0.1 # Minimum duration in second
 
 # diar model related
 diar_tag=    # Suffix to the result dir for diar model training.
@@ -54,12 +54,14 @@ diar_config= # Config for diar model training.
 diar_args=   # Arguments for diar model training, e.g., "--max_epoch 10".
              # Note that it will overwrite args in diar config.
 feats_normalize=global_mvn # Normalizaton layer type.
-num_spk=2    # # Number of speakers in the input audio 
+num_spk=2    # Number of speakers in the input audio
 
 # diar related
-inference_config=    # Config for diar model inference
+inference_config= # Config for diar model inference
 inference_model=valid.acc.best.pth
-inference_tag=       # Suffix to the inference dir for diar model inference
+inference_tag=    # Suffix to the inference dir for diar model inference
+download_model=   # Download a model from Model Zoo and use it for diarization.
+
 
 # scoring related
 collar=0         # collar for der scoring
@@ -79,53 +81,54 @@ Usage: $0 --train-set <train_set_name> --valid-set <valid_set_name> --test_sets 
 
 Options:
     # General configuration
-    --stage         # Processes starts from the specified stage (default="${stage}").
-    --stop_stage    # Processes is stopped at the specified stage (default="${stop_stage}").
+    --stage          # Processes starts from the specified stage (default="${stage}").
+    --stop_stage     # Processes is stopped at the specified stage (default="${stop_stage}").
     --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train     # Skip training stages (default="${skip_train}").
     --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
     --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
-    --ngpu          # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
-    --num_nodes     # The number of nodes
-    --nj            # The number of parallel jobs (default="${nj}").
-    --inference_nj  # The number of parallel jobs in inference (default="${inference_nj}").
-    --gpu_inference # Whether to use gpu for inference (default="${gpu_inference}").
-    --dumpdir       # Directory to dump features (default="${dumpdir}").
-    --expdir        # Directory to save experiments (default="${expdir}").
+    --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
+    --num_nodes      # The number of nodes
+    --nj             # The number of parallel jobs (default="${nj}").
+    --inference_nj   # The number of parallel jobs in inference (default="${inference_nj}").
+    --gpu_inference  # Whether to use gpu for inference (default="${gpu_inference}").
+    --dumpdir        # Directory to dump features (default="${dumpdir}").
+    --expdir         # Directory to save experiments (default="${expdir}").
     --python         # Specify python to execute espnet commands (default="${python}").
 
     # Data preparation related
     --local_data_opts # The options given to local/data.sh (default="${local_data_opts}").
 
     # Feature extraction related
-    --feats_type   # Feature type (only support raw currently).
-    --audio_format # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
-    --fs           # Sampling rate (default="${fs}").
-    --hop_length   # Hop length in sample number (default="${hop_length}")
+    --feats_type       # Feature type (only support raw currently).
+    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
+    --fs               # Sampling rate (default="${fs}").
+    --hop_length       # Hop length in sample number (default="${hop_length}")
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
 
 
     # Diarization model related
-    --diar_tag    # Suffix to the result dir for diarization model training (default="${diar_tag}").
-    --diar_config # Config for diarization model training (default="${diar_config}").
-    --diar_args   # Arguments for diarization model training, e.g., "--max_epoch 10" (default="${diar_args}").
-                 # Note that it will overwrite args in diar config.
-    --feats_normalize  # Normalizaton layer type (default="${feats_normalize}").
-    --num_spk    # Number of speakers in the input audio (default="${num_spk}")
+    --diar_tag        # Suffix to the result dir for diarization model training (default="${diar_tag}").
+    --diar_config     # Config for diarization model training (default="${diar_config}").
+    --diar_args       # Arguments for diarization model training, e.g., "--max_epoch 10" (default="${diar_args}").
+                      # Note that it will overwrite args in diar config.
+    --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
+    --num_spk         # Number of speakers in the input audio (default="${num_spk}")
 
     # Diarization related
-    --inference_config # Config for diar model inference 
+    --inference_config # Config for diar model inference
     --inference_model  # diarization model path for inference (default="${inference_model}").
     --inference_tag    # Suffix to the inference dir for diar model inference
+    --download_model   # Download a model from Model Zoo and use it for diarization (default="${download_model}").
 
     # Scoring related
     --collar      # collar for der scoring
     --frame_shift # frame shift to convert frame-level label into real time
 
     # [Task dependent] Set the datadir name created by local/data.sh
-    --train_set     # Name of training set (required).
-    --valid_set       # Name of development set (required).
-    --test_sets     # Names of evaluation sets (required).
+    --train_set               # Name of training set (required).
+    --valid_set               # Name of development set (required).
+    --test_sets               # Names of evaluation sets (required).
     --diar_speech_fold_length # fold_length for speech data during diarization training  (default="${diar_speech_fold_length}").
 EOF
 )
@@ -252,7 +255,7 @@ if ! "${skip_data_prep}"; then
             <"${data_feats}/org/${dset}/wav.scp" \
                 utils/filter_scp.pl "${data_feats}/${dset}/utt2num_samples"  \
                 >"${data_feats}/${dset}/wav.scp"
-            
+
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh "${data_feats}/${dset}"
 
@@ -443,6 +446,24 @@ else
     log "Skip the training stages"
 fi
 
+if [ -n "${download_model}" ]; then
+    log "Use ${download_model} for decoding and evaluation"
+    diar_exp="${expdir}/${download_model}"
+    mkdir -p "${diar_exp}"
+
+    # If the model already exists, you can skip downloading
+    espnet_model_zoo_download --unpack true "${download_model}" > "${diar_exp}/config.txt"
+
+    # Get the path of each file
+    _diar_model_file=$(<"${diar_exp}/config.txt" sed -e "s/.*'diar_model_file': '\([^']*\)'.*$/\1/")
+    _diar_train_config=$(<"${diar_exp}/config.txt" sed -e "s/.*'diar_train_config': '\([^']*\)'.*$/\1/")
+
+    # Create symbolic links
+    ln -sf "${_diar_model_file}" "${diar_exp}"
+    ln -sf "${_diar_train_config}" "${diar_exp}"
+    inference_diar_model=$(basename "${_diar_model_file}")
+
+fi
 
 if ! "${skip_eval}"; then
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
@@ -464,8 +485,7 @@ if ! "${skip_eval}"; then
             _opts+="--config ${inference_config} "
         fi
 
-        # for dset in "${valid_set}" ${test_sets}; do
-        for dset in "${valid_set}"; do
+        for dset in "${valid_set}" ${test_sets}; do
             _data="${data_feats}/${dset}"
             _dir="${diar_exp}/diarized_${dset}"
             _logdir="${_dir}/logdir"
@@ -493,8 +513,8 @@ if ! "${skip_eval}"; then
                     --fs "${fs}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --diar_train_config "${diar_exp}"/config.yaml \
-                    --diar_model_file "${diar_exp}"/"${inference_model}" \
+                    --train_config "${diar_exp}"/config.yaml \
+                    --model_file "${diar_exp}"/"${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts}
 
@@ -520,6 +540,10 @@ if ! "${skip_eval}"; then
                 --collar ${collar} --fs ${fs} --frame_shift ${frame_shift}
         done
 
+        # Show results in Markdown syntax
+        scripts/utils/show_diar_result.sh "${diar_exp}" > "${diar_exp}"/RESULTS.md
+        cat "${diar_exp}"/RESULTS.md
+
     fi
 else
     log "Skip the evaluation stages"
@@ -534,7 +558,7 @@ if ! "${skip_upload}"; then
         ${python} -m espnet2.bin.pack diar \
             --train_config "${diar_exp}"/config.yaml \
             --model_file "${diar_exp}"/"${inference_model}" \
-            --option "${diar_exp}"/RESULTS.TXT \
+            --option "${diar_exp}"/RESULTS.md \
             --option "${diar_stats_dir}"/train/feats_stats.npz  \
             --option "${diar_exp}"/images \
             --outpath "${packed_model}"

@@ -3,6 +3,7 @@
 
 AISHELL=downloads
 AISHELL3=downloads
+ALFFA=downloads
 AN4=downloads
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
@@ -33,7 +34,9 @@ HUI_ACG=downloads
 LABOROTV=
 TEDXJP=
 LIBRISPEECH=
+LIBRILIGHT_LIMITED=
 FSC=
+SLURP=
 MINI_LIBRISPEECH=downloads
 LIBRITTS=
 LJSPEECH=downloads
@@ -50,6 +53,7 @@ SWBD=
 SWBD_NXT=
 THCHS30=downloads
 TIMIT=$(realpath ../../../../TIMIT)
+TSUKUYOMI=downloads
 VOXFORGE=downloads
 AMI=
 COMMONVOICE=downloads
@@ -97,14 +101,18 @@ NOISY_REVERBERANT_SPEECH=
 LRS2=
 SUNDA=downloads
 CMU_INDIC=downloads
+INDIC_SPEECH=downloads
 JKAC=
 MUCS_SUBTASK1=downloads
 MUCS_SUBTASK2=downloads
+GAMAYUN=downloads
+IWSLT21LR=downloads/iwslt21
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AISHELL=
     AISHELL3=downloads
+    ALFFA=downloads
     AN4=
     DIRHA_ENGLISH_PHDEV=
     DIRHA_WSJ=
@@ -137,6 +145,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     LIBRISPEECH=
     FSC=
     SNIPS= # smart-light-en-closed-field data path
+    SLURP=
     MINI_LIBRISPEECH=downloads
     LIBRITTS=
     LJSPEECH=downloads
@@ -147,6 +156,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     KSS=
     THCHS30=downloads
     TIMIT=
+    TSUKUYOMI=downloads
     VOXFORGE=
     AMI=/export/corpora4/ami/amicorpus
     COMMONVOICE=downloads
@@ -191,7 +201,10 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     SIWIS=downloads
     SUNDA=
     CMU_INDIC=
+    INDIC_SPEECH=
     JKAC=
     MUCS_SUBTASK1=downloads
     MUCS_SUBTASK2=downloads
+    GAMAYUN=downloads
+    IWSLT21LR=downloads/iwslt21
 fi
