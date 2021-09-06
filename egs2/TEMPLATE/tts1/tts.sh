@@ -1008,9 +1008,9 @@ if ! "${skip_eval}"; then
                     mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
                     rm -rf "${_logdir}/output.${i}"/wav
                 done
-                find "${_logdir}/wav" -name "*.wav" | while read -r line; do
+                find "${_dir}/wav" -name "*.wav" | while read -r line; do
                     echo "$(basename "${line}" .wav) ${line}"
-                done | LC_ALL=C sort -k1 > "${_logdir}/wav/wav.scp"
+                done | LC_ALL=C sort -k1 > "${_dir}/wav/wav.scp"
             fi
             if [ -e "${_logdir}/output.${_nj}/att_ws" ]; then
                 mkdir -p "${_dir}"/att_ws
