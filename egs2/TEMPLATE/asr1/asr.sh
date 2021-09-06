@@ -100,6 +100,34 @@ hf_repo=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
+export is_ctc_decoding=true
+export use_nbest_rescoring=true # use transformer-decoder
+                                # and transformer language model for nbest rescoring
+export search_beam_size=20
+export output_beam_size=20
+export blank_bias="-0.0"
+export lattice_weight="1.0"
+export am_weight="1.0"
+export decoder_weight="0.5"
+export nnlm_weight="1.0"
+
+# flags appened to _opts in eval stage
+inference_opts_flags_k2="is_ctc_decoding
+                         use_nbest_rescoring
+                         search_beam_size
+                         output_beam_size
+                         blank_bias
+                         lattice_weight
+                         am_weight
+                         decoder_weight
+                         nnlm_weight"
+
+# flags appended to inference_tag
+inference_tag_flags_k2="is_ctc_decoding
+                        use_nbest_rescoring
+                        decoder_weight
+                        nnlm_weight"
+
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -417,6 +445,9 @@ if [ -z "${inference_tag}" ]; then
 
     if "${use_k2}"; then
       inference_tag+="_use_k2"
+      for flag in ${inference_tag_flags_k2}; do
+        inference_tag+="_${flag}_${!flag}"
+      done
     fi
 fi
 
@@ -1171,6 +1202,18 @@ if ! "${skip_eval}"; then
         log "Generate '${asr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
         mkdir -p "${asr_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${asr_exp}/${inference_tag}/run.sh"; chmod +x "${asr_exp}/${inference_tag}/run.sh"
 
+        if "${use_k2}"; then
+          # Now only _nj=1 is verified if using k2
+          _nj=1
+          asr_inference_tool="espnet2.bin.asr_inference_k2"
+
+          for flag in ${inference_opts_flags_k2}; do
+            _opts+="--${flag} ${!flag} "
+          done
+        else
+          _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+          asr_inference_tool="espnet2.bin.asr_inference"
+        fi
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
             _dir="${asr_exp}/${inference_tag}/${dset}"
@@ -1193,14 +1236,6 @@ if ! "${skip_eval}"; then
             # 1. Split the key file
             key_file=${_data}/${_scp}
             split_scps=""
-            if "${use_k2}"; then
-              # Now only _nj=1 is verified
-              _nj=1
-              asr_inference_tool="espnet2.bin.k2_asr_inference"
-            else
-              _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-              asr_inference_tool="espnet2.bin.asr_inference"
-            fi
 
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
@@ -1224,9 +1259,11 @@ if ! "${skip_eval}"; then
 
             # 3. Concatenates the output files from each jobs
             for f in token token_int score text; do
-                for i in $(seq "${_nj}"); do
-                    cat "${_logdir}/output.${i}/1best_recog/${f}"
-                done | LC_ALL=C sort -k1 >"${_dir}/${f}"
+                if [ -f "${_logdir}/output.1/1best_recog/${f}" ]; then
+                  for i in $(seq "${_nj}"); do
+                      cat "${_logdir}/output.${i}/1best_recog/${f}"
+                  done | LC_ALL=C sort -k1 >"${_dir}/${f}"
+                fi
             done
         done
     fi
