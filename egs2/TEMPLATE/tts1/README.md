@@ -40,9 +40,12 @@ This is a template of TTS recipe for ESPnet2.
     * [How to finetune the pretrained model?](#how-to-finetune-the-pretrained-model)
     * [How to add a new model?](#how-to-add-a-new-model)
     * [How to test my model with an arbitrary given text?](#how-to-test-my-model-with-an-arbitrary-given-text)
+    * [How to train vocoder?](#how-to-train-vocoder)
+    * [How to train vocoder with text2mel GTA outputs?](#how-to-train-vocoder-with-text2mel-gta-outputs)
     * [How to handle the errors in validate_data_dir.sh?](#how-to-handle-the-errors-in-validate_data_dirsh)
     * [Why the model generate meaningless speech at the end?](#why-the-model-generate-meaningless-speech-at-the-end)
     * [Why the model cannot be trained well with my own dataset?](#why-the-model-cannot-be-trained-well-with-my-own-dataset)
+    * [Why the outputs contains metallic noise when combining neural vocoder?](#why-the-outputs-contains-metallic-noise-when-combining-neural-vocoder)
     * [How is the duration for FastSpeech2 generated?](#how-is-the-duration-for-fastspeech2-generated)
     * [Why the output of Tacotron2 or Transformer is non-deterministic?](#why-the-output-of-tacotron2-or-transformer-is-non-deterministic)
 
@@ -715,8 +718,8 @@ tts = Text2Speech.from_pretrained(
 )
 wav = tts("こんにちは、世界。")["wav"]
 ```
-### How to load the pretrained parameters?
 
+### How to load the pretrained parameters?
 
 Please use `--init_param` option or add it in training config (`*.yaml`).
 
@@ -777,6 +780,35 @@ tts = Text2Speech.from_pretrained(model_tag="kan-bayashi/ljspeech_conformer_fast
 wav = tts("Hello, world")["wav"]
 ```
 
+### How to train vocoder?
+
+Please use [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), which provides the recipes to train various GAN-based vocoders.
+If the recipe is not prepared, you can quickly start the training with espnet2 TTS recipe.
+See [Run training using ESPnet2-TTS recipe within 5 minutes](https://github.com/kan-bayashi/ParallelWaveGAN/tree/master/egs#run-training-using-espnet2-tts-recipe-within-5-minutes).
+
+Or you can try [joint training of text2mel & vocoder](#joint-text2wav-training).
+
+The trained vocoder can be used as follows:
+
+- With python
+  ```python
+  from espnet2.bin.tts_inference import Text2Speech
+  tts = Text2Speech.from_pretrained(model_file="/path/to/model.pth", vocoder_file="/path/to/your_trained_vocoder_checkpoint.pkl")
+  wav = tts("Hello, world")["wav"]
+  ```
+
+- With TTS recipe
+  ```sh
+  $ ./run.sh --stage 7 --vocoder_file /path/to/your_trained_vocoder_checkpoint.pkl --inference_tag decode_with_my_vocoder
+  ```
+
+- [With command line](https://github.com/kan-bayashi/ParallelWaveGAN#decoding-with-espnet-tts-models-features)
+
+### How to train vocoder with text2mel GTA outputs?
+
+Sometimes, we want to finetune the vocoder with text2mel groundtruth aligned (GTA) outputs.
+See [Run finetuning using ESPnet2-TTS GTA outputs](https://github.com/kan-bayashi/ParallelWaveGAN/tree/master/egs#run-finetuning-using-espnet2-tts-gta-outputs).
+
 ### How to handle the errors in `validate_data_dir.sh`?
 
 > `utils/validate_data_dir.sh: text contains N lines with non-printable characters which occurs at this line`
@@ -815,6 +847,11 @@ Please check the following items carefully:
 - If the dataset is small, please consider the use of adaptation with pretrained model.
 - If the dataset is small, please consider the use of large reduction factor, which helps the attention learning.
 - Check the attention plot during the training. Loss value is not so meaningfull in TTS.
+
+### Why the outputs contains metallic noise when combining neural vocoder?
+
+This will be happened especially when the neural vocoders did not use noise as the input (e.g., MelGAN, HiFiGAN), which are less robust to the mismatch of acoustic features.
+The metallic sound can reduce by performing vocder [finetuning with text2mel GTA outputs](#how-to-train-vocoder-with-text2mel-gta-outputs) or [joint training / finetuning of text2mel and vocoder](#joint-text2wav-training).
 
 ### How is the duration for FastSpeech2 generated?
 
