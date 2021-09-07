@@ -28,8 +28,8 @@ SECONDS=0
 # General configuration
 stage=1
 stop_stage=1
-nj=1
-gpu_inference=true
+nj=8
+gpu_inference=false
 
 # Model related configuration
 model_tag=""
@@ -124,18 +124,22 @@ else
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    _opts=
+    _opts=()
     if [ -n "${inference_config}" ]; then
-        _opts+="--config ${inference_config} "
+        _opts+=("--config")
+        _opts+=("${inference_config}")
     fi
     if [ -n "${asr_model_file}" ]; then
-        _opts+="--asr_model_file ${asr_model_file} "
+        _opts+=("--asr_model_file")
+        _opts+=("${asr_model_file}")
     fi
     if [ -n "${lm_file}" ]; then
-        _opts+="--lm_file ${lm_file} "
+        _opts+=("--lm_file")
+        _opts+=("${lm_file}")
     fi
     if [ -n "${model_tag}" ]; then
-        _opts+="--model_tag ${model_tag} "
+        _opts+=("--model_tag")
+        _opts+=("${model_tag}")
     fi
 
     logdir="${outdir}/logdir"
@@ -160,7 +164,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --data_path_and_name_and_type "${wavscp},speech,sound" \
             --key_file "${logdir}"/keys.JOB.scp \
             --output_dir "${logdir}"/output.JOB \
-            ${_opts} ${inference_args}
+            "${_opts[@]}" ${inference_args}
 
     # 3. Concatenates the output files from each jobs
     for f in token token_int score gt_text; do
