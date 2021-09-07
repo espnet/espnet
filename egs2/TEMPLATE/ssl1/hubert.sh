@@ -245,9 +245,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         # i.e. the input file format and rate is same as the output.
         
         for dset in "${train_set}" "${valid_set}"; do
-            _suf="/org"
-            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
-            rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
+            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}/${dset}"
+            rm -f ${data_feats}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
             _opts=
             if [ -e data/"${dset}"/segments ]; then
                 # "segments" is used for splitting wav files which are written in "wav".scp
@@ -260,9 +259,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                                             --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
-                                            "data/${dset}/wav.scp" "${data_feats}${_suf}/${dset}"
+                                            "data/${dset}/wav.scp" "${data_feats}/${dset}"
             
-            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
         done
     else
         log "Error: not supported: --feats_type ${feats_type}"

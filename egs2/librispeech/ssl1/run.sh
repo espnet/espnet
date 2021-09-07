@@ -38,6 +38,5 @@ pretrain_config_iter2=conf/tuning/train_asr_hubert_base_960h_pretrain_it2.yaml
     --pretrain_configs "${pretrain_config_iter0} ${pretrain_config_iter1} ${pretrain_config_iter2}" \
     --n_clusters "${n_clusters_iter0} ${n_clusters_iter1} ${n_clusters_iter2}" \
     --features_km "${feature_iter0} ${feature_iter1} ${feature_iter2}" \
-    --use_lm false \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" "$@"
