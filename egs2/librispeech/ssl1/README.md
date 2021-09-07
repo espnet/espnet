@@ -48,7 +48,11 @@ The `cer` and `wer` in following result is got after librilight_limited-10hr fin
   - Results
   (TO BE ADDED)
 
-# MORE RESULT TO BE ADDED
+  (MORE RESULT PENDING TO BE ADDED)
+  
+### iteration 0 with 4-gram language model:
+### iteration 0 without language model:
+### iteration 1 with 4-gram language model:
 
 ===HUBERT IN FAIRSEQ===
 
