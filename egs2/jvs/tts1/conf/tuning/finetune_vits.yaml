@@ -135,7 +135,7 @@ tts_conf:
 # optimizer setting for generator
 optim: adamw
 optim_conf:
-    lr: 2.0e-5
+    lr: 1.0e-4
     betas: [0.8, 0.99]
     eps: 1.0e-9
     weight_decay: 0.0
@@ -145,7 +145,7 @@ scheduler_conf:
 # optimizer setting for discriminator
 optim2: adamw
 optim2_conf:
-    lr: 2.0e-5
+    lr: 1.0e-4
     betas: [0.8, 0.99]
     eps: 1.0e-9
     weight_decay: 0.0
@@ -158,7 +158,7 @@ generator_first: false # whether to start updating generator first
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 1000 # number of iterations per epoch
-max_epoch: 50             # number of epochs
+max_epoch: 100            # number of epochs
 accum_grad: 1             # gradient accumulation
 batch_bins: 5000000       # batch bins (feats_type=raw)
 batch_type: numel         # how to make batch
@@ -178,3 +178,7 @@ best_model_criterion:     # criterion to save the best models
 -   - train
     - total_count
     - max
+cudnn_deterministic: false # setting to false accelerates the training speed but makes it non-deterministic
+                           # in the case of GAN-TTS training, we strongly recommend setting to false
+cudnn_benchmark: false     # setting to true might acdelerate the training speed but sometimes decrease it
+                           # therefore, we set to false as a default (recommend trying both cases)
