@@ -1,4 +1,4 @@
-===INTRODUCTION===
+## INTRODUCTION
 
 This recipe trains a [Hubert](https://arxiv.org/pdf/2106.07447.pdf) pretrain model using data Librispeech 960hr data, including the k-means-based psuedo label generation and mask-prediction training.
 
@@ -35,7 +35,9 @@ After the pretraining stage finish, you can run the finetuning stage with run.sh
     cd ../../librilight_limited/asr1/
 	./run.sh
 
-===RESULTS===
+================================================
+
+## RESULTS
 
 The `cer` and `wer` in following result is got after librilight_limited-10hr finetuning:
 
@@ -54,13 +56,17 @@ The `cer` and `wer` in following result is got after librilight_limited-10hr fin
 ### iteration 0 without language model:
 ### iteration 1 with 4-gram language model:
 
-===HUBERT IN FAIRSEQ===
+================================================
+
+## HUBERT IN FAIRSEQ
 
 The original Hubert paper, code and model can be found in:
 paper: https://arxiv.org/pdf/2106.07447.pdf
 code and model: https://github.com/pytorch/fairseq/tree/master/examples/hubert
 
-===ACKNOWLEDGEMENT===
+================================================
+
+## ACKNOWLEDGEMENT
 
 We would like to thank Wei-Ning Hsu(Facebook) and Abdelrahman Mohamed(Facebook) for their work on Hubert and valuable
 information/kind help of this implementaion.
