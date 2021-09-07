@@ -138,6 +138,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         _opts+=("${lm_file}")
     fi
     if [ -n "${model_tag}" ]; then
+        # FIXME: workaround until fixing filelock
+        espnet_model_zoo_download --unpack true "${model_tag}"
         _opts+=("--model_tag")
         _opts+=("${model_tag}")
     fi
