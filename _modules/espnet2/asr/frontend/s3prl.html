@@ -296,7 +296,7 @@
             <span class="n">source</span><span class="o">=</span><span class="s2">&quot;local&quot;</span><span class="p">,</span>
         <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
 
-        <span class="kn">from</span> <span class="nn">upstream.interfaces</span> <span class="kn">import</span> <span class="n">Featurizer</span>
+        <span class="kn">from</span> <span class="nn">s3prl.upstream.interfaces</span> <span class="kn">import</span> <span class="n">Featurizer</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">multilayer_feature</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">feature_selection</span> <span class="o">=</span> <span class="s2">&quot;last_hidden_state&quot;</span>
