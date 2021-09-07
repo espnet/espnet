@@ -4,7 +4,7 @@
 # option for tts.sh at least and use 22050 hz audio as the
 # training data (mainly tested on LJspeech).
 # This configuration tested on 4 GPUs with 12GB GPU memory.
-# It takes around 4 weeks to finish the training but 100k
+# It takes around 1.5 weeks to finish the training but 100k
 # iters model should generate reasonable results.
 
 ##########################################################
@@ -204,7 +204,7 @@ sort_in_batch: descending # how to sort data in making batch
 sort_batch: descending    # how to sort created batches
 num_workers: 4            # number of workers of data loader
 use_amp: false            # whether to use pytorch amp
-log_interval: 10          # log interval in iterations
+log_interval: 50          # log interval in iterations
 keep_nbest_models: 5      # number of models to keep
 num_att_plot: 3           # number of attention figures to be saved in every check
 seed: 777                 # random seed number
@@ -220,3 +220,7 @@ best_model_criterion:     # criterion to save the best models
 -   - train
     - total_count
     - max
+cudnn_deterministic: false # setting to false accelerates the training speed but makes it non-deterministic
+                           # in the case of GAN-TTS training, we strongly recommend setting to false
+cudnn_benchmark: false     # setting to true might acdelerate the training speed but sometimes decrease it
+                           # therefore, we set to false as a default (recommend trying both cases)
