@@ -246,7 +246,7 @@ class VITSGenerator(torch.nn.Module):
         self.spk_embed_dim = None
         if spk_embed_dim is not None and spk_embed_dim > 0:
             assert global_channels > 0
-            self.spk_embed_dim
+            self.spk_embed_dim = spk_embed_dim
             self.spemb_proj = torch.nn.Linear(spk_embed_dim, global_channels)
         self.langs = None
         if langs is not None and langs > 1:
