@@ -461,7 +461,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">spk_embed_dim</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">global_channels</span> <span class="o">&gt;</span> <span class="mi">0</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="o">=</span> <span class="n">spk_embed_dim</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">spemb_proj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">spk_embed_dim</span><span class="p">,</span> <span class="n">global_channels</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">langs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">langs</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
