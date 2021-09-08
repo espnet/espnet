@@ -28,7 +28,7 @@ Note that stage 5-7 could run multiple times, which is specified by `pretrain_st
     pretrain_start_iter=0
     pretrain_stop_iter=2
 	
-That refers to 3 iterations, n_clusters_iter[0-2] and feature_iter[0-2] specify the number of clusters and the feature type used for k-means clustering of different iterations. Follow the [Hubert](https://arxiv.org/pdf/2106.07447.pdf) settings of base model, we use mfcc and 100 clusters for the iteration 0, and extract the latent features from transformer layer 6 of HuBERT model(HuBERT6) pre-trained in previous iteration, 500 clusters for iteration 1, and (HuBERT9) 500 clusters for iteration 2. Each iteration has different config files. Please refer to conf/tuning/train_asr_hubert_base_960h_pretrain_it*.yaml
+That refers to 3 iterations, n_clusters_iter[0-2] and feature_iter[0-2] specify the number of clusters and the feature type used for k-means clustering of different iterations. Follow the [Hubert](https://arxiv.org/pdf/2106.07447.pdf) settings of base model, we use mfcc and 100 clusters for the iteration 0, and extract the latent features from transformer layer 6 of HuBERT model(HuBERT6) pre-trained in previous iteration, 500 clusters for iteration 1, and (HuBERT9) 500 clusters for iteration 2. Each iteration has a different config file. Please refer to conf/tuning/train_asr_hubert_base_960h_pretrain_it*.yaml
 
 This is the end of Hubert pretraining. After the pretraining finish, you can run the finetuning stage with run.sh under any asr recipes. An example finetuning config file is egs2/librilight_limited/asr1/conf/tuning/train_asr_hubert_base_10h_finetuning.yaml:
 
