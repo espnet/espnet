@@ -5,7 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-
 pretrain_start_iter=0
 pretrain_stop_iter=2
 
