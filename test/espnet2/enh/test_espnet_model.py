@@ -86,7 +86,6 @@ transformer_separator = TransformerSeparator(
 @pytest.mark.parametrize(
     "loss_type",
     ["ci_sdr", "si_snr", "snr", "mask_mse", "magnitude", "spectrum", "spectrum_log"],
-
 )
 @pytest.mark.parametrize("stft_consistency", [True, False])
 @pytest.mark.parametrize(
@@ -96,8 +95,6 @@ transformer_separator = TransformerSeparator(
 def test_single_channel_model(
     encoder, decoder, separator, stft_consistency, loss_type, mask_type, training
 ):
-    if not is_torch_1_2_plus:
-        pytest.skip("Pytorch Version Under 1.2 is not supported for Enh task")
 
     if loss_type == "ci_sdr":
         inputs = torch.randn(2, 300)
@@ -108,7 +105,6 @@ def test_single_channel_model(
         inputs = torch.randn(2, 100)
         ilens = torch.LongTensor([100, 80])
         speech_refs = [torch.randn(2, 100).float(), torch.randn(2, 100).float()]
-
 
     if loss_type not in ("snr", "si_snr", "ci_sdr") and isinstance(
         encoder, ConvEncoder
@@ -246,7 +242,6 @@ def test_forward_with_beamformer_net(
         n_fft=8, hop_length=2, use_builtin_complex=use_builtin_complex
     )
     decoder = STFTDecoder(n_fft=8, hop_length=2)
-
 
     if stft_consistency and loss_type in (
         "mask_mse",

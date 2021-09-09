@@ -8,12 +8,12 @@ from typing import Tuple
 
 import ci_sdr
 import torch
+from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.enh.encoder.conv_encoder import ConvEncoder
-from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -69,7 +69,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
 
         if loss_type not in ("ci_sdr", "si_snr", "snr") and isinstance(
-          encoder, ConvEncoder
+            encoder, ConvEncoder
         ):
             raise TypeError(f"{loss_type} is not supported with {type(ConvEncoder)}")
 
@@ -79,7 +79,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.loss_type = loss_type
         # whether to compute the TF-domain loss while enforcing STFT consistency
         self.stft_consistency = stft_consistency
-
 
         if stft_consistency and loss_type in ("mask_mse", "snr", "si_snr", "ci_sdr"):
             raise ValueError(
@@ -431,7 +430,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     self.encoder(sp, speech_lengths)[0] for sp in tmp_t_domain
                 ]
 
-
             if (
                 spectrum_pre is not None
                 and not isinstance(spectrum_pre[0], ComplexTensor)
@@ -440,7 +438,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 spectrum_pre = [
                     complex_impl(*torch.unbind(sp, dim=-1)) for sp in spectrum_pre
                 ]
-
 
             # prepare reference speech and reference spectrum
             # List[ComplexTensor(Batch, T, F)] or List[ComplexTensor(Batch, T, C, F)]
@@ -573,7 +570,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             else:
                 speech_ref2 = speech_ref.clone()
             speech_ref2 = torch.unbind(speech_ref2, dim=1)
-
 
             if self.loss_type == "snr":
                 # compute snr loss
@@ -731,24 +727,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         return ci_sdr.pt.ci_sdr_loss(
             inf, ref, compute_permutation=False, filter_length=filter_length
         )
-
-    @staticmethod
-    def snr_loss(ref, inf):
-        """SNR loss
-
-        Args:
-            ref: (Batch, samples)
-            inf: (Batch, samples)
-        Returns:
-            loss: (Batch,)
-        """
-        noise = inf - ref
-
-        snr = 20 * (
-            torch.log10(torch.norm(ref, p=2, dim=1).clamp(min=EPS))
-            - torch.log10(torch.norm(noise, p=2, dim=1).clamp(min=EPS))
-        )
-        return -snr
 
     @staticmethod
     def snr_loss(ref, inf):
