@@ -86,9 +86,9 @@ class TemporalConvNet(nn.Module):
         elif self.mask_nonlinear == "relu":
             est_mask = F.relu(score)
         elif self.mask_nonlinear == "sigmoid":
-            est_mask = F.sigmoid(score)
+            est_mask = torch.sigmoid(score)
         elif self.mask_nonlinear == "tanh":
-            est_mask = F.tanh(score)
+            est_mask = torch.tanh(score)
         else:
             raise ValueError("Unsupported mask non-linear function")
         return est_mask

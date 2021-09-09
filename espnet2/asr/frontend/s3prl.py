@@ -81,7 +81,7 @@ class S3prlFrontend(AbsFrontend):
             source="local",
         ).to("cpu")
 
-        from upstream.interfaces import Featurizer
+        from s3prl.upstream.interfaces import Featurizer
 
         if self.multilayer_feature is None:
             feature_selection = "last_hidden_state"

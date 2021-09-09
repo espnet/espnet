@@ -333,6 +333,11 @@ class JointText2Wav(AbsGANTTS):
         # (not used for the training)
         self.fs = sampling_rate
 
+        # store parameters for test compatibility
+        self.spks = self.generator["text2mel"].spks
+        self.langs = self.generator["text2mel"].langs
+        self.spk_embed_dim = self.generator["text2mel"].spk_embed_dim
+
     @property
     def require_raw_speech(self):
         """Return whether or not speech is required."""

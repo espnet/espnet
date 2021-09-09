@@ -88,16 +88,12 @@ download_model= # Download a model from Model Zoo and use it for decoding.
 train_set=     # Name of pretrain training set
 valid_set=     # Name of pretraining valid set
 bpe_train_text= # Text file path of bpe training set.
-lm_train_text=  # Text file path of language model training set.
-lm_dev_text=   # Text file path of language model development set (default="${lm_dev_text}").
-lm_test_text=  # Text file path of language model evaluation set (default="${lm_test_text}").
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
 g2p=none         # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
 asr_speech_fold_length=800 # fold_length for speech data during ASR training.
 asr_text_fold_length=150   # fold_length for text data during ASR training.
-lm_fold_length=150         # fold_length for LM training.
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
@@ -156,16 +152,12 @@ Options:
     --train_set     # Name of pretraining train set
     --valid_set     # Name of pretraining valid set
     --bpe_train_text # Text file path of bpe training set.
-    --lm_train_text  # Text file path of language model training set.
-    --lm_dev_text   # Text file path of language model development set (default="${lm_dev_text}").
-    --lm_test_text  # Text file path of language model evaluation set (default="${lm_test_text}").
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
     --cleaner       # Text cleaner (default="${cleaner}").
     --g2p           # g2p method (default="${g2p}").
     --lang          # The language type of corpus (default=${lang}).
     --asr_speech_fold_length # fold_length for speech data during ASR training (default="${asr_speech_fold_length}").
     --asr_text_fold_length   # fold_length for text data during ASR training (default="${asr_text_fold_length}").
-    --lm_fold_length         # fold_length for LM training (default="${lm_fold_length}").
 EOF
 )
 
@@ -245,7 +237,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         # i.e. the input file format and rate is same as the output.
         
         for dset in "${train_set}" "${valid_set}"; do
-            _suf="/org"
+	    _suf="/org"
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
             rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
             _opts=

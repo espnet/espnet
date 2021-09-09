@@ -40,9 +40,12 @@ This is a template of TTS recipe for ESPnet2.
     * [How to finetune the pretrained model?](#how-to-finetune-the-pretrained-model)
     * [How to add a new model?](#how-to-add-a-new-model)
     * [How to test my model with an arbitrary given text?](#how-to-test-my-model-with-an-arbitrary-given-text)
+    * [How to train vocoder?](#how-to-train-vocoder)
+    * [How to train vocoder with text2mel GTA outputs?](#how-to-train-vocoder-with-text2mel-gta-outputs)
     * [How to handle the errors in validate_data_dir.sh?](#how-to-handle-the-errors-in-validate_data_dirsh)
     * [Why the model generate meaningless speech at the end?](#why-the-model-generate-meaningless-speech-at-the-end)
     * [Why the model cannot be trained well with my own dataset?](#why-the-model-cannot-be-trained-well-with-my-own-dataset)
+    * [Why the outputs contains metallic noise when combining neural vocoder?](#why-the-outputs-contains-metallic-noise-when-combining-neural-vocoder)
     * [How is the duration for FastSpeech2 generated?](#how-is-the-duration-for-fastspeech2-generated)
     * [Why the output of Tacotron2 or Transformer is non-deterministic?](#why-the-output-of-tacotron2-or-transformer-is-non-deterministic)
 
@@ -557,10 +560,16 @@ You can change via `--g2p` option in `tts.sh`.
     - e.g. `こ、こんにちは` -> `[コ, 、, コ, ン, ニ, チ, ワ]`
 - `pyopenjtalk_accent`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
     - Add accent labels in addition to phoneme labels
+    - Based on [Developing a Japanese End-to-End Speech Synthesis Server Considering Accent Phrases](https://jglobal.jst.go.jp/detail?JGLOBAL_ID=202102244593559954)
     - e.g. `こ、こんにちは` -> `[k, 1, 0, o, 1, 0, k, 5, -4, o, 5, -4, N, 5, -3, n, 5, -2, i, 5, -2, ch, 5, -1, i, 5, -1, w, 5, 0, a, 5, 0]`
 - `pyopenjtalk_accent_with_pause`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
-    - Add a pause label in addition to phoneme and accenet labels
+    - Add a pause label in addition to phoneme and accent labels
+    - Based on [Developing a Japanese End-to-End Speech Synthesis Server Considering Accent Phrases](https://jglobal.jst.go.jp/detail?JGLOBAL_ID=202102244593559954)
     - e.g. `こ、こんにちは` -> `[k, 1, 0, o, 1, 0, pau, k, 5, -4, o, 5, -4, N, 5, -3, n, 5, -2, i, 5, -2, ch, 5, -1, i, 5, -1, w, 5, 0, a, 5, 0]`
+- `pyopenjtalk_prosody`: [r9y9/pyopenjtalk](https://github.com/r9y9/pyopenjtalk)
+    - Use special symbols for prosody control
+    - Based on [Prosodic features control by symbols as input of sequence-to-sequence acoustic modeling for neural TTS](https://doi.org/10.1587/transinf.2020EDP7104)
+    - e.g. `こ、こんにちは` -> `[^, k, #, o, _, k, o, [, N, n, i, ch, i, w, a, $]`
 - `pypinyin`: [mozillanzg/python-pinyin](https://github.com/mozillazg/python-pinyin)
     - e.g. `卡尔普陪外孙玩滑梯。` -> `[ka3, er3, pu3, pei2, wai4, sun1, wan2, hua2, ti1, 。]`
 - `pypinyin_phone`: [mozillanzg/python-pinyin](https://github.com/mozillazg/python-pinyin)
@@ -660,8 +669,7 @@ See [how to make/port new recipe](https://github.com/espnet/espnet/tree/master/e
 
 ### How to add a new `g2p` module?
 
-Update [`espnet2/text/phoneme_tokenizer.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py) to add new module.
-Then, add new choice in the argument parser of [`espnet2/bin/tokenize_text.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/bin/tokenize_text.py#L226-L240) and [`espnet2/tasks/tts.py`](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/espnet2/tasks/tts.py#L180-L194).
+Add a new module in [`espnet2/text/phoneme_tokenizer.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py) and add it to `g2p_choices` in [`espnet2/text/phoneme_tokenizer.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py).
 
 We have the warpper module of [bootphon/phonemizer](https://github.com/bootphon/phonemizer).
 You can find the module [`espnet2/text/phoneme_tokenizer.py`](https://github.com/kan-bayashi/espnet/blob/7cc12c6a25924892b281c2c1513de52365a1be0b/espnet2/text/phoneme_tokenizer.py#L110).
@@ -710,8 +718,8 @@ tts = Text2Speech.from_pretrained(
 )
 wav = tts("こんにちは、世界。")["wav"]
 ```
-### How to load the pretrained parameters?
 
+### How to load the pretrained parameters?
 
 Please use `--init_param` option or add it in training config (`*.yaml`).
 
@@ -772,6 +780,35 @@ tts = Text2Speech.from_pretrained(model_tag="kan-bayashi/ljspeech_conformer_fast
 wav = tts("Hello, world")["wav"]
 ```
 
+### How to train vocoder?
+
+Please use [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN), which provides the recipes to train various GAN-based vocoders.
+If the recipe is not prepared, you can quickly start the training with espnet2 TTS recipe.
+See [Run training using ESPnet2-TTS recipe within 5 minutes](https://github.com/kan-bayashi/ParallelWaveGAN/tree/master/egs#run-training-using-espnet2-tts-recipe-within-5-minutes).
+
+Or you can try [joint training of text2mel & vocoder](#joint-text2wav-training).
+
+The trained vocoder can be used as follows:
+
+- With python
+  ```python
+  from espnet2.bin.tts_inference import Text2Speech
+  tts = Text2Speech.from_pretrained(model_file="/path/to/model.pth", vocoder_file="/path/to/your_trained_vocoder_checkpoint.pkl")
+  wav = tts("Hello, world")["wav"]
+  ```
+
+- With TTS recipe
+  ```sh
+  $ ./run.sh --stage 7 --vocoder_file /path/to/your_trained_vocoder_checkpoint.pkl --inference_tag decode_with_my_vocoder
+  ```
+
+- [With command line](https://github.com/kan-bayashi/ParallelWaveGAN#decoding-with-espnet-tts-models-features)
+
+### How to train vocoder with text2mel GTA outputs?
+
+Sometimes, we want to finetune the vocoder with text2mel groundtruth aligned (GTA) outputs.
+See [Run finetuning using ESPnet2-TTS GTA outputs](https://github.com/kan-bayashi/ParallelWaveGAN/tree/master/egs#run-finetuning-using-espnet2-tts-gta-outputs).
+
 ### How to handle the errors in `validate_data_dir.sh`?
 
 > `utils/validate_data_dir.sh: text contains N lines with non-printable characters which occurs at this line`
@@ -810,6 +847,11 @@ Please check the following items carefully:
 - If the dataset is small, please consider the use of adaptation with pretrained model.
 - If the dataset is small, please consider the use of large reduction factor, which helps the attention learning.
 - Check the attention plot during the training. Loss value is not so meaningfull in TTS.
+
+### Why the outputs contains metallic noise when combining neural vocoder?
+
+This will be happened especially when the neural vocoders did not use noise as the input (e.g., MelGAN, HiFiGAN), which are less robust to the mismatch of acoustic features.
+The metallic sound can reduce by performing vocder [finetuning with text2mel GTA outputs](#how-to-train-vocoder-with-text2mel-gta-outputs) or [joint training / finetuning of text2mel and vocoder](#joint-text2wav-training).
 
 ### How is the duration for FastSpeech2 generated?
 

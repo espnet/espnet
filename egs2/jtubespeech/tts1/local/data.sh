@@ -68,7 +68,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     utils/subset_data_dir.sh --first data/devtest 250 data/dev
     utils/subset_data_dir.sh --last data/devtest 250 data/test
     utils/copy_data_dir.sh data/all data/tr_no_dev
-    utils/filter_scp.pl --exclude data/deveval/wav.scp \
+    utils/filter_scp.pl --exclude data/devtest/wav.scp \
         data/all/wav.scp > data/tr_no_dev/wav.scp
     utils/fix_data_dir.sh data/tr_no_dev
 fi
