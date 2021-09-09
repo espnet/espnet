@@ -39,7 +39,7 @@ if __name__ == "__main__":
                 if not os.path.exists(mp3_path):
                     os.rename(wav_path, mp3_path)
                 if not os.path.exists(wav_path):
-                    os.system("ffmpeg -i %s %s -loglevel quiet" % (mp3_path, wav_path))
+                    os.system("ffmpeg -i %s -ac 1 %s -loglevel quiet" % (mp3_path, wav_path))
                 utt = f[:-4]
                 utt = spk + "_" + utt
                 utt2f[utt] = f
