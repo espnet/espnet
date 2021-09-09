@@ -6,10 +6,29 @@ See the following pages for the usage:
 - [How to run the recipe](../../TEMPLATE/tts1/README.md#how-to-run)
 - [How to train FastSpeech](../../TEMPLATE/tts1/README.md#fastspeech-training)
 - [How to train FastSpeech2](../../TEMPLATE/tts1/README.md#fastspeech2-training)
+- [How to train VITS](../../TEMPLATE/tts1/README.md#vits-training)
+- [How to train joint text2wav](../../TEMPLATE/tts1/README.md#joint-text2wav-training)
 
 See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
+
+
+# THIRD RESULTS
+
+## Environments
+- date: `Sat Sep  4 19:38:35 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a1`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `dee654041cddf80281048b3e7525c1cdafc377ff`
+  - Commit date: `Thu Sep 2 14:45:48 2021 +0900`
+
+## Pretrained Models
+
+### kan-bayashi/ljspeech_tts_train_vits_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+- 22.05khz / 1M iters / Average the last 10 epoch models
+- https://zenodo.org/record/5443814
 
 
 # SECOND RESULTS

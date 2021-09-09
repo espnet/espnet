@@ -20,13 +20,20 @@ ${CXX:-g++} -v
     . ./activate_python.sh
     make TH_VERSION="${TH_VERSION}"
 
-    make warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done
+    make warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done s3prl.done
     rm -rf kaldi
 )
 . tools/activate_python.sh
 python3 --version
 
 pip3 install https://github.com/kpu/kenlm/archive/master.zip
+
+if ${USE_CONDA}; then
+  conda install -c k2-fsa -c pytorch k2=${K2_VERSION} cpuonly pytorch=${TH_VERSION}
+else
+  pip3 install k2==${K2_VERSION}.torch${TH_VERSION} -f https://k2-fsa.org/nightly/
+fi
+
 
 # NOTE(kan-bayashi): Fix the error in black installation.
 #   See: https://github.com/psf/black/issues/1707

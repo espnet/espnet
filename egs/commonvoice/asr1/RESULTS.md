@@ -939,71 +939,140 @@
 |decode_dev_pl_decode_lm|4458|32280|91.6|7.8|0.6|0.5|8.9|28.1|
 |decode_test_pl_decode_lm|4458|31588|97.6|2.1|0.3|0.2|2.6|8.1|
 
----
+# Transducer
 
-# Transducer results (no data augmentation)
-# Encoder: VGG2L + 12 x Conformer / Decoder: embedding + 3 x LSTM
+## Summary
+
+|Lang|Model|Algo|CER¹|WER¹|SER¹|RTF¹²|
+|-|-|-|-|-|-|-|
+|cs³|Conformer/RNN-T|default|7.9|15.3|30.4|0.089|
+|-|-|ALSD|8.2|15.6|30.8|0.080|
+|-|-|TSD|8.1|15.5|31.3|0.111|
+|-|-|NSC|8.0|15.5|30.8|0.123|
+|-|-|mAES|8.1|15.5|31.0|0.081|
+|-|Conformer/RNN-T + Aux|default|8.0|14.7|27.8|0.200|
+|-|-|ALSD|8.4|14.9|27.7|0.080|
+|-|-|TSD|7.8|14.6|27.4|0.107|
+|-|-|NSC|7.9|14.5|27.4|0.123|
+|-|-|mAES|8.0|14.8|27.7|0.082|
+
+¹ Reported on the test set only.
+² RTF was computed using `line-profiler` tool applied to [recognize method](https://github.com/espnet/espnet/blob/master/espnet/nets/pytorch_backend/e2e_asr_transducer.py#L470). The reported value is averaged on 5 runs with `nj=1`. All experiments were performed using a single AMD EPYC 7502P.  
+³ We do not use a language model for these experiments.
+
+## Czech (cs)
+
+### Conformer/RNN-Transducer (Enc: VGG + 12 x Conformer, Dec: 1 x LSTM)
+
+- General information
+  - GPU: Nvidia A100 40Gb
+  - Peak VRAM usage during training: ~ 24.3 GiB
+  - Training time: ~ 8 hours and 5 minutes
+  - Decoding time (4 jobs, `search-type: default`): ~ 3 minutes and 30 seconds
+  - Model averaging: `n_average=20`, `use_valbest_average=true`
 
 - Environments
-  - date: `Thu Nov 27 12:25:08 CET 2020`
-  - python version: `3.7.6 (default, Jan  8 2020, 19:59:22)  [GCC 7.3.0]`
-  - espnet version: `espnet 0.9.4`
+  - date: `Wed Aug 22 08:54:04 UTC 2021`
+  - python version: `3.8.5 (default, Sept  4 2020, 07:30:14)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.10.2a1`
   - chainer version: `chainer 6.0.0`
-  - pytorch version: `pytorch 1.4.0`
-  - Git hash: `e9c1a554f0fbeeaeedd0f7e5c9ab096d243011b2`
-  - Commit date: `Wed Nov 18 22:06:15 2020 +0100`
-
-# Czech (train_cs_pytorch_cs_train_conformer-rnn_transducer)
+  - pytorch version: `pytorch 1.8.1`
+  - Git hash: `4406f25ebf507daf33f68787ff0e3699a0937913`
+  - Commit date: `Sat Aug 14 06:25:18 2021 -0400`
 
 - Model files
-  - model link:
-  - training config file: `conf/tuning/transducer/cs_train_conformer-rnn_transducer.yaml`
-  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
+  - model link: https://drive.google.com/file/d/11zF8CCQMWG4rcR4nLe3tdGoyXgJMu3Nf
+  - training config file: `conf/tuning/transducer/cs/train_conformer-rnn_transducer.yaml`
+  - decoding config file: `conf/tuning/transducer/cs/decode_default.yaml`
   - cmvn file: `data/train_cs/cmvn.ark`
-  - e2e file: `exp/train_cs_pytorch_train_cs_conformer-rnn_transducer/results/model.last20.avg.best`
-  - e2e JSON file: `exp/train_cs_pytorch_cs_train_conformer-rnn_transducer/results/model.json`
-  - lm file: `exp/train_cs_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
-  - lm JSON file: `exp/train_cs_rnnlm_pytorch_lm_unigram150/model.json`
+  - e2e file: `exp/train_cs_pytorch_cs_train_conformer-rnn_transducer_specaug/results/model.val20.avg.best`
+  - e2e JSON file: `exp/train_cs_pytorch_cs_train_conformer-rnn_transducer_specaug/results/model.json`
   - dict file: `data/cs_lang_char/`
 
-## CER
+### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_dev_cs_decode_default_lm|2584|62452|91.8|5.9|2.3|1.1|9.3|41.2|
-|decode_test_cs_decode_default_lm|2574|65232|88.5|8.6|2.9|1.8|13.3|48.6|
+|decode_dev_cs_decode_alsd|2584|62520|96.2|2.6|1.2|0.5|4.3|20.7|
+|decode_dev_cs_decode_default|2584|62520|96.3|2.6|1.1|0.5|4.2|20.4|
+|decode_dev_cs_decode_maes|2584|62520|96.0|2.7|1.2|0.5|4.5|21.1|
+|decode_dev_cs_decode_nsc|2584|62520|96.0|2.7|1.3|0.5|4.5|21.1|
+|decode_dev_cs_decode_tsd|2584|62520|95.8|2.8|1.4|0.5|4.6|21.9|
+|decode_test_cs_decode_alsd|2574|65285|92.9|5.2|1.9|1.1|8.2|30.8|
+|decode_test_cs_decode_default|2574|65285|93.1|5.0|1.8|1.0|7.9|30.4|
+|decode_test_cs_decode_maes|2574|65285|92.9|5.1|2.0|1.0|8.1|31.0|
+|decode_test_cs_decode_nsc|2574|65285|93.0|5.1|2.0|1.0|8.0|30.8|
+|decode_test_cs_decode_tsd|2574|65285|92.8|5.1|2.0|1.0|8.1|31.3|
 
-## WER
+### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_dev_cs_decode_default_lm|2584|16239|84.4|13.3|2.3|1.6|17.2|41.2|
-|decode_test_cs_decode_default_lm|2574|16508|78.4|19.1|2.5|2.5|24.0|48.6|
+|decode_dev_cs_decode_alsd|2584|16239|92.3|6.5|1.2|0.7|8.4|20.7|
+|decode_dev_cs_decode_default|2584|16239|92.3|6.5|1.1|0.7|8.4|20.4|
+|decode_dev_cs_decode_maes|2584|16239|92.1|6.7|1.3|0.8|8.7|21.1|
+|decode_dev_cs_decode_nsc|2584|16239|92.1|6.7|1.2|0.7|8.7|21.1|
+|decode_dev_cs_decode_tsd|2584|16239|91.8|6.9|1.3|0.7|9.0|21.9|
+|decode_test_cs_decode_alsd|2574|16508|86.0|12.2|1.8|1.7|15.6|30.8|
+|decode_test_cs_decode_default|2574|16508|86.3|11.9|1.8|1.6|15.3|30.4|
+|decode_test_cs_decode_maes|2574|16508|86.0|12.1|1.9|1.5|15.5|31.0|
+|decode_test_cs_decode_nsc|2574|16508|86.1|12.0|1.9|1.5|15.5|30.7|
+|decode_test_cs_decode_tsd|2574|16508|85.9|12.1|2.0|1.5|15.6|31.2|
 
-# Welsh (train_cy_pytorch_cy_train_conformer-rnn_transducer)
-# Note: early results, lm-weight = 0.1 for decoding
+### Conformer/RNN-Transducer (Enc: VGG + 12 x Conformer, Dec: 1 x LSTM)
+##   + CTC loss + Label Smoothing loss + aux. Transducer loss + symm. KL div loss
+
+- General information
+  - GPU: Nvidia A100 40Gb
+  - Peak VRAM usage during training: ~ 38.2 GiB
+  - Training time: ~ 9 hours and 34 minutes
+  - Decoding time (4 jobs, `search-type: default`): ~ 6 minutes and 28 seconds
+  - Model averaging: `n_average=20`, `use_valbest_average=true`
+
+- Environments
+  - date: `Wed Aug 22 08:54:04 UTC 2021`
+  - python version: `3.8.5 (default, Sept  4 2020, 07:30:14)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.10.2a1`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.8.1`
+  - Git hash: `4406f25ebf507daf33f68787ff0e3699a0937913`
+  - Commit date: `Sat Aug 14 06:25:18 2021 -0400`
 
 - Model files
-  - model link: https://drive.google.com/open?id=1POQmnorwiZrWwwszvkEKNaAfsuyQStjU
-  - training config file: `conf/tuning/transducer/cy_train_conformer-rnn_transducer.yaml`
-  - decoding config file: `conf/tuning/transducer/decode_default.yaml`
-  - cmvn file: `data/train_cy/cmvn.ark`
-  - e2e file: `exp/train_cy_pytorch_cy_train_conformer-rnn_transducer/results/model.last20.avg.best`
-  - e2e JSON file: `exp/train_cy_pytorch_cy_train_conformer-rnn_transducer/results/model.json`
-  - lm file: `exp/train_cy_rnnlm_pytorch_lm_unigram150/rnnlm.model.best`
-  - lm JSON file: `exp/train_cy_rnnlm_pytorch_lm_unigram150/model.json`
-  - dict file: `data/cy_lang_char/`
+  - model link: https://drive.google.com/file/d/1Ik8EpLeedsGYTIPNJXjZkUqcElEBv1gV
+  - training config file: `conf/tuning/transducer/cs/train_conformer-rnn_transducer_aux.yaml`
+  - decoding config file: `conf/tuning/transducer/cs/decode_default.yaml`
+  - cmvn file: `data/train_cs/cmvn.ark`
+  - e2e file: `exp/train_cs_pytorch_cs_train_conformer-rnn_transducer_aux_specaug/results/model.val20.avg.best`
+  - e2e JSON file: `exp/train_cs_pytorch_cs_train_conformer-rnn_transducer_aux_specaug/results/model.json`
+  - dict file: `data/cs_lang_char/`
 
-## CER
+#### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_dev_cy_decode_default_lm|2933|91050|86.5|9.3|4.2|2.3|15.8|64.6|
-|decode_test_cy_decode_default_lm|2937|80473|89.9|6.9|3.2|1.7|11.8|35.6|
+|decode_dev_cs_decode_alsd|2584|62520|96.3|1.8|1.8|0.4|4.1|16.5|
+|decode_dev_cs_decode_default|2584|62520|96.5|1.8|1.7|0.4|3.9|17.0|
+|decode_dev_cs_decode_maes|2584|62520|96.4|1.8|1.8|0.4|3.9|16.8|
+|decode_dev_cs_decode_nsc|2584|62520|96.5|1.8|1.7|0.4|3.8|16.6|
+|decode_dev_cs_decode_tsd|2584|62520|96.5|1.8|1.7|0.3|3.8|17.0|
+|decode_test_cs_decode_alsd|2574|65285|92.6|4.1|3.2|1.0|8.4|27.7|
+|decode_test_cs_decode_default|2574|65285|92.9|4.0|3.0|0.9|8.0|27.8|
+|decode_test_cs_decode_maes|2574|65285|92.8|4.1|3.1|0.9|8.0|27.7|
+|decode_test_cs_decode_nsc|2574|65285|92.9|4.0|3.0|0.8|7.9|27.4|
+|decode_test_cs_decode_tsd|2574|65285|92.9|4.0|3.1|0.8|7.8|27.4|
 
-## WER
+#### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_dev_cy_decode_default_lm|2933|28498|78.1|19.1|2.8|2.3|24.2|64.6|
-|decode_test_cy_decode_default_lm|2937|26046|85.4|12.6|2.1|1.6|16.2|35.6|
+|decode_dev_cs_decode_alsd|2584|16239|93.0|5.3|1.7|0.5|7.4|16.5|
+|decode_dev_cs_decode_default|2584|16239|93.1|5.4|1.5|0.6|7.5|17.0|
+|decode_dev_cs_decode_maes|2584|16239|93.1|5.2|1.6|0.5|7.3|16.8|
+|decode_dev_cs_decode_nsc|2584|16239|93.2|5.2|1.6|0.5|7.2|16.6|
+|decode_dev_cs_decode_tsd|2584|16239|93.2|5.3|1.6|0.5|7.3|17.0|
+|decode_test_cs_decode_alsd|2574|16508|86.2|11.0|2.8|1.0|14.9|27.7|
+|decode_test_cs_decode_default|2574|16508|86.3|11.0|2.7|1.0|14.7|27.8|
+|decode_test_cs_decode_maes|2574|16508|86.2|11.1|2.7|1.0|14.8|27.7|
+|decode_test_cs_decode_nsc|2574|16508|86.4|10.9|2.7|0.9|14.5|27.4|
+|decode_test_cs_decode_tsd|2574|16508|86.3|10.9|2.8|0.9|14.6|27.4|

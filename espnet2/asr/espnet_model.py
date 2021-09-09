@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from distutils.version import LooseVersion
+import logging
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -19,6 +20,7 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -46,6 +48,7 @@ class ESPnetASRModel(AbsESPnetModel):
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
+        postencoder: Optional[AbsPostEncoder],
         decoder: AbsDecoder,
         ctc: CTC,
         rnnt_decoder: None,
@@ -57,6 +60,7 @@ class ESPnetASRModel(AbsESPnetModel):
         report_wer: bool = True,
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
+        extract_feats_in_collect_stats: bool = True,
     ):
         assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
@@ -75,6 +79,7 @@ class ESPnetASRModel(AbsESPnetModel):
         self.specaug = specaug
         self.normalize = normalize
         self.preencoder = preencoder
+        self.postencoder = postencoder
         self.encoder = encoder
         # we set self.decoder = None in the CTC mode since
         # self.decoder parameters were never used and PyTorch complained
@@ -102,6 +107,8 @@ class ESPnetASRModel(AbsESPnetModel):
             )
         else:
             self.error_calculator = None
+
+        self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
     def forward(
         self,
@@ -182,7 +189,16 @@ class ESPnetASRModel(AbsESPnetModel):
         text: torch.Tensor,
         text_lengths: torch.Tensor,
     ) -> Dict[str, torch.Tensor]:
-        feats, feats_lengths = self._extract_feats(speech, speech_lengths)
+        if self.extract_feats_in_collect_stats:
+            feats, feats_lengths = self._extract_feats(speech, speech_lengths)
+        else:
+            # Generate dummy stats if extract_feats_in_collect_stats is False
+            logging.warning(
+                "Generating dummy stats for feats and feats_lengths, "
+                "because encoder_conf.extract_feats_in_collect_stats is "
+                f"{self.extract_feats_in_collect_stats}"
+            )
+            feats, feats_lengths = speech, speech_lengths
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
@@ -214,6 +230,12 @@ class ESPnetASRModel(AbsESPnetModel):
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
         encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
+
+        # Post-encoder, e.g. NLU
+        if self.postencoder is not None:
+            encoder_out, encoder_out_lens = self.postencoder(
+                encoder_out, encoder_out_lens
+            )
 
         assert encoder_out.size(0) == speech.size(0), (
             encoder_out.size(),

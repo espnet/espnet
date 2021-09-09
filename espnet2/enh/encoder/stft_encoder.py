@@ -1,8 +1,11 @@
+from distutils.version import LooseVersion
 import torch
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 from espnet2.layers.stft import Stft
+
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
 class STFTEncoder(AbsEncoder):
@@ -17,6 +20,7 @@ class STFTEncoder(AbsEncoder):
         center: bool = True,
         normalized: bool = False,
         onesided: bool = True,
+        use_builtin_complex: bool = True,
     ):
         super().__init__()
         self.stft = Stft(
@@ -30,6 +34,7 @@ class STFTEncoder(AbsEncoder):
         )
 
         self._output_dim = n_fft // 2 + 1 if onesided else n_fft
+        self.use_builtin_complex = use_builtin_complex
 
     @property
     def output_dim(self) -> int:
@@ -41,11 +46,11 @@ class STFTEncoder(AbsEncoder):
         Args:
             input (torch.Tensor): mixed speech [Batch, sample]
             ilens (torch.Tensor): input lengths [Batch]
-        Returns:
-            stft spectrum (torch.ComplexTensor):  (Batch, Frames, Freq)
-                                                  or (Batch, Frames, Channels, Freq)
         """
         spectrum, flens = self.stft(input, ilens)
-        spectrum = ComplexTensor(spectrum[..., 0], spectrum[..., 1])
+        if is_torch_1_9_plus and self.use_builtin_complex:
+            spectrum = torch.complex(spectrum[..., 0], spectrum[..., 1])
+        else:
+            spectrum = ComplexTensor(spectrum[..., 0], spectrum[..., 1])
 
         return spectrum, flens

@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from distutils.version import LooseVersion
 from typing import List
 from typing import Tuple
 from typing import Union
@@ -15,7 +16,11 @@ from espnet.nets.pytorch_backend.transformer.embedding import (
 from espnet.nets.pytorch_backend.transformer.encoder import (
     Encoder as TransformerEncoder,  # noqa: H301
 )
+from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
+
+
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
 class TransformerSeparator(AbsSeparator):
@@ -42,7 +47,7 @@ class TransformerSeparator(AbsSeparator):
         Args:
             input_dim: input feature dimension
             num_spk: number of speakers
-            adim (int): Dimention of attention.
+            adim (int): Dimension of attention.
             aheads (int): The number of heads of multi head attention.
             linear_units (int): The number of units of position-wise feed forward.
             layers (int): The number of transformer blocks.
@@ -120,7 +125,7 @@ class TransformerSeparator(AbsSeparator):
         """
 
         # if complex spectrum,
-        if isinstance(input, ComplexTensor):
+        if is_complex(input):
             feature = abs(input)
         else:
             feature = input

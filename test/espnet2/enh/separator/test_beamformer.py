@@ -1,9 +1,12 @@
+from distutils.version import LooseVersion
 import pytest
 import torch
 
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 
+
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 random_speech = torch.tensor(
     [
         [
@@ -199,7 +202,10 @@ def test_neural_beamformer_wpe_output(
     else:
         assert len(specs) == num_spk
     assert specs[0].shape == input_spectrum.shape
-    assert specs[0].dtype == torch.float
+    if is_torch_1_9_plus and torch.is_complex(specs[0]):
+        assert specs[0].dtype == torch.complex64
+    else:
+        assert specs[0].dtype == torch.float
     assert isinstance(others, dict)
     if use_dnn_mask_for_wpe:
         assert "mask_dereverb1" in others, others.keys()
@@ -221,7 +227,18 @@ def test_neural_beamformer_wpe_output(
         "wpd",
     ],
 )
-def test_neural_beamformer_bf_output(num_spk, use_noise_mask, beamformer_type):
+@pytest.mark.parametrize(
+    "diagonal_loading, mask_flooring, use_torch_solver",
+    [(True, True, True), (False, False, False)],
+)
+def test_neural_beamformer_bf_output(
+    num_spk,
+    use_noise_mask,
+    beamformer_type,
+    diagonal_loading,
+    mask_flooring,
+    use_torch_solver,
+):
     ch = 2
     inputs = random_speech[..., :ch].float()
     ilens = torch.LongTensor([16, 12])
@@ -241,6 +258,9 @@ def test_neural_beamformer_bf_output(num_spk, use_noise_mask, beamformer_type):
         badim=2,
         use_noise_mask=use_noise_mask,
         beamformer_type=beamformer_type,
+        diagonal_loading=diagonal_loading,
+        mask_flooring=mask_flooring,
+        use_torch_solver=use_torch_solver,
     )
     model.eval()
     input_spectrum, flens = stft(inputs, ilens)
@@ -256,7 +276,10 @@ def test_neural_beamformer_bf_output(num_spk, use_noise_mask, beamformer_type):
         assert others["mask_spk{}".format(n)].shape[-2] == ch
         assert specs[n - 1].shape == others["mask_spk{}".format(n)][..., 0, :].shape
         assert specs[n - 1].shape == input_spectrum[..., 0, :].shape
-        assert specs[n - 1].dtype == torch.float
+        if is_torch_1_9_plus and torch.is_complex(specs[n - 1]):
+            assert specs[n - 1].dtype == torch.complex64
+        else:
+            assert specs[n - 1].dtype == torch.float
 
 
 def test_beamformer_net_invalid_bf_type():

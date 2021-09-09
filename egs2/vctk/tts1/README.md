@@ -7,6 +7,9 @@ See the following pages for the usage:
 - [How to train FastSpeech](../../TEMPLATE/tts1/README.md#fastspeech-training)
 - [How to train FastSpeech2](../../TEMPLATE/tts1/README.md#fastspeech2-training)
 - [How to train with X-vector](../../TEMPLATE/tts1/README.md#multi-speaker-model-with-x-vector-training)
+- [How to train with speaker ID](../../TEMPLATE/tts1/README.md#multi-speaker-model-with-speaker-id-embedding-training)
+- [How to train VITS](../../TEMPLATE/tts1/README.md#vits-training)
+- [How to train joint text2wav](../../TEMPLATE/tts1/README.md#joint-text2wav-training)
 
 See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
@@ -27,10 +30,10 @@ See the following pages before asking the question:
 
 ## Pretrained Models
 
-### vctk_tts_train_xvector_trasnformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
+### vctk_tts_train_xvector_transformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
 - https://zenodo.org/record/4393279
 
-### vctk_tts_train_gst+xvector_trasnformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
+### vctk_tts_train_gst+xvector_transformer_raw_phn_tacotron_g2p_en_no_space_train.loss.ave
 - https://zenodo.org/record/4393277
 
 ### vctk_tts_train_xvector_tacotron2_raw_phn_tacotron_g2p_en_no_space_train.loss.ave

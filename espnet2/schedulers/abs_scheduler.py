@@ -73,8 +73,12 @@ for s in [
     L.MultiStepLR,
     L.ExponentialLR,
     L.CosineAnnealingLR,
-    L.CyclicLR,
+]:
+    AbsEpochStepScheduler.register(s)
+
+AbsBatchStepScheduler.register(L.CyclicLR)
+for s in [
     L.OneCycleLR,
     L.CosineAnnealingWarmRestarts,
 ]:
-    AbsEpochStepScheduler.register(s)
+    AbsBatchStepScheduler.register(s)
