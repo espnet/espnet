@@ -16,6 +16,8 @@ See the following pages before asking the question:
 
 # THIRD RESULTS
 
+- Initial VITS models
+
 ## Environments
 - date: `Sat Sep  4 19:38:35 JST 2021`
 - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
@@ -26,7 +28,11 @@ See the following pages before asking the question:
 
 ## Pretrained Models
 
-### kan-bayashi/csmsc_tts_train_full_band_vits_raw_phn_pypinyin_g2p_phone_train.total_count.ave
+### csmsc_tts_train_vits_raw_phn_pypinyin_g2p_phone_train.total_count.ave
+- 22.05khz / 1M iters / Average the last 10 epoch models
+- https://zenodo.org/record/5499120
+
+### csmsc_tts_train_full_band_vits_raw_phn_pypinyin_g2p_phone_train.total_count.ave
 - 44.1khz / 0.5M iters / Average the last 10 epoch models
 - https://zenodo.org/record/5443852
 
