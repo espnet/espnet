@@ -43,6 +43,8 @@ See the following pages before asking the question:
 
 # FIFTH RESULTS
 
+- Initial VITS models
+
 ## Environments
 - date: `Fri Sep  3 21:09:25 JST 2021`
 - python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
@@ -60,6 +62,7 @@ See the following pages before asking the question:
 ### jsut_tts_train_full_band_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause_train.total_count.ave
 - 44.1khz / 0.5M iters / Average the last 10 epoch models
 - https://zenodo.org/record/5431984
+
 
 # FORTH RESULTS
 
