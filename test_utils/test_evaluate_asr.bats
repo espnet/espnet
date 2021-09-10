@@ -2,15 +2,13 @@
 
 setup() {
     tmpdir=/tmp/espnet2-test-evaluate-asr-${RANDOM}
+    # Create dummy data
     mkdir -p ${tmpdir}/data
     echo "dummy A" > ${tmpdir}/data/text
     echo "dummy ${tmpdir}/data/dummy.wav" > ${tmpdir}/data/wav.scp
-
-    # Create dummy model
     python << EOF
 import numpy as np
 import soundfile as sf
-
 sf.write("${tmpdir}/data/dummy.wav", np.zeros(16000 * 2,), 16000, "PCM_16")
 EOF
 }
@@ -27,6 +25,5 @@ EOF
 }
 
 teardown() {
-    # rm -r $tmpdir
-    echo
+    rm -r $tmpdir
 }
