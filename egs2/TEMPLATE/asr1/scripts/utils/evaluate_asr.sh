@@ -27,9 +27,10 @@ SECONDS=0
 
 # General configuration
 stage=1
-stop_stage=1
+stop_stage=2
 nj=8
 gpu_inference=false
+fs=16000
 
 # Model related configuration
 model_tag=""
@@ -55,6 +56,7 @@ Options:
     --stop_stage     # Processes is stopped at the specified stage (default="${stop_stage}").
     --nj             # Number of parallel jobs (default="${nj}").
     --gpu_inference  # Whether to use gpu in the inference (default="${gpu_inference}").
+    --fs             # Sampling rate for ASR model inputs (default="${fs}").
 
     # Model related configuration
     --model_tag       # Model tag or url available in espnet_model_zoo (default="${model_tag}")
@@ -104,8 +106,8 @@ fi
 . ./cmd.sh
 
 # Check the option is valid
-if [ -z "${gt_text}" ] && [ "${stop_stage}" -ge 2 ]; then
-    log "--gt_text must be provided if perform scoring. Skipped scoring."
+if [ -z "${gt_text}" ] && [ "${stop_stage}" -ge 3 ]; then
+    log "--gt_text must be provided if perform scoring."
     exit 1
 fi
 if [ -z "${model_tag}" ] && [ -z "${asr_model_file}" ]; then
@@ -124,24 +126,36 @@ else
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    log "stage 1: Format wav.scp"
+    # shellcheck disable=SC2154
+    scripts/audio/format_wav_scp.sh \
+        --nj "${nj}" \
+        --cmd "${train_cmd}" \
+        --audio-format wav \
+        --fs "${fs}" \
+        "${wavscp}" "${outdir}/tmp"
+fi
+
+if [ -e "${outdir}/tmp/wav.scp" ]; then
+    wavscp="${outdir}/tmp/wav.scp"
+fi
+
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    log "stage 2: ASR inference"
     _opts=()
     if [ -n "${inference_config}" ]; then
-        _opts+=("--config")
-        _opts+=("${inference_config}")
+        _opts+=("--config" "${inference_config}")
     fi
     if [ -n "${asr_model_file}" ]; then
-        _opts+=("--asr_model_file")
-        _opts+=("${asr_model_file}")
+        _opts+=("--asr_model_file" "${asr_model_file}")
     fi
     if [ -n "${lm_file}" ]; then
-        _opts+=("--lm_file")
-        _opts+=("${lm_file}")
+        _opts+=("--lm_file" "${lm_file}")
     fi
     if [ -n "${model_tag}" ]; then
-        # FIXME: workaround until fixing filelock
-        espnet_model_zoo_download --unpack true "${model_tag}"
-        _opts+=("--model_tag")
-        _opts+=("${model_tag}")
+        # FIXME: workaround until fixing filelock in espnet_model_zoo
+        espnet_model_zoo_download --unpack true "${model_tag}" > /dev/null
+        _opts+=("--model_tag" "${model_tag}")
     fi
 
     logdir="${outdir}/logdir"
@@ -169,15 +183,18 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             "${_opts[@]}" ${inference_args}
 
     # 3. Concatenates the output files from each jobs
-    for f in token token_int score gt_text; do
+    for f in token token_int score text; do
         for i in $(seq "${_nj}"); do
             cat "${logdir}/output.${i}/1best_recog/${f}"
         done | LC_ALL=C sort -k1 >"${outdir}/${f}"
     done
+
+    # 4. Remove tmp dir if exists
+    rm -rf "${outdir}/tmp"
 fi
 
-# 4. Scoring
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "stage 3: Scoring"
     for _type in cer wer ter; do
         [ "${_type}" = ter ] && [ ! -f "${bpemodel}" ] && continue
 
