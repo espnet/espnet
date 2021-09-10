@@ -19,18 +19,17 @@ test_sets="eval"
 train_config=conf/train.yaml
 inference_config=conf/decode.yaml
 
-# g2p=g2p_en # Include word separator
-g2p=g2p_en_no_space # Include no word separator
+g2p=espeak_ng_hindi
 
 ./tts.sh \
-    --lang en \
+    --lang hi \
     --feats_type raw \
     --fs "${fs}" \
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
     --win_length "${win_length}" \
     --token_type phn \
-    --cleaner tacotron \
+    --cleaner none \
     --g2p "${g2p}" \
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
