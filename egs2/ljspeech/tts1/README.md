@@ -38,7 +38,7 @@ See the following pages before asking the question:
 - 0.5M iters / Average the last 5 epoch models
 - https://zenodo.org/record/5498497
 
-### jspeech_tts_finetune_joint_conformer_fastspeech2_hifigan_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+### ljspeech_tts_finetune_joint_conformer_fastspeech2_hifigan_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
 - Joint finetuning with pretrained text2mel, vocoder and discriminator
 - 0.5M iters / Average the last 5 epoch models
 - https://zenodo.org/record/5498896
