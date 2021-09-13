@@ -76,7 +76,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                         | sed "s/^.*\]:\s\(.*\)$/\1/g")
                 emo=$(grep ${utt_id} ${datadir}/Session${n}/dialog/EmoEvaluation/${ses_id}.txt \
                         | sed "s/^.*\t${utt_id}\t\([a-z]\{3\}\)\t.*$/\1/g")
-                if ! eval "echo ${remove_emo} | grep -q "$emo"" ; then
+                if ! eval "echo ${remove_emo} | grep -q ${emo}" ; then
                     echo "${utt_id} ${file}" >> data/${tmp}/wav.scp
                     echo "${utt_id} ${utt_id}" >> data/${tmp}/utt2spk
                     echo "${utt_id} <${emo}> ${words}" >> data/${tmp}/text
