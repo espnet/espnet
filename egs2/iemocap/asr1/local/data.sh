@@ -69,14 +69,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         mkdir -p data/${tmp}
         echo -n "" > data/${tmp}/wav.scp; echo -n "" > data/${tmp}/utt2spk; echo -n "" > data/${tmp}/text
         for n in {1..5}; do
-            for file in ${datadir}/Session${n}/sentences/wav/*/*.wav; do
+            for file in "${datadir}"/Session"${n}"/sentences/wav/*/*.wav; do
                 utt_id=$(echo "$(basename -- ${file})" | sed "s/\.wav//g")
                 ses_id=$(echo "${utt_id}" | sed "s/_[FM][0-9]\{3\}//g")
                 words=$(grep ${utt_id} ${datadir}/Session${n}/dialog/transcriptions/${ses_id}.txt \
                         | sed "s/^.*\]:\s\(.*\)$/\1/g")
                 emo=$(grep ${utt_id} ${datadir}/Session${n}/dialog/EmoEvaluation/${ses_id}.txt \
                         | sed "s/^.*\t${utt_id}\t\([a-z]\{3\}\)\t.*$/\1/g")
-                if ! $(echo ${remove_emo} | grep -q "$emo") ; then
+                if ! eval "echo ${remove_emo} | grep -q "$emo"" ; then
                     echo "${utt_id} ${file}" >> data/${tmp}/wav.scp
                     echo "${utt_id} ${utt_id}" >> data/${tmp}/utt2spk
                     echo "${utt_id} <${emo}> ${words}" >> data/${tmp}/text
