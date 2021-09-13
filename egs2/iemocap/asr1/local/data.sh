@@ -70,7 +70,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         echo -n "" > data/${tmp}/wav.scp; echo -n "" > data/${tmp}/utt2spk; echo -n "" > data/${tmp}/text
         for n in {1..5}; do
             for file in "${datadir}"/Session"${n}"/sentences/wav/*/*.wav; do
-                utt_id=$(echo "$(basename -- ${file})" | sed "s/\.wav//g")
+                utt_id=$(basename ${file} .wav)
                 ses_id=$(echo "${utt_id}" | sed "s/_[FM][0-9]\{3\}//g")
                 words=$(grep ${utt_id} ${datadir}/Session${n}/dialog/transcriptions/${ses_id}.txt \
                         | sed "s/^.*\]:\s\(.*\)$/\1/g")
