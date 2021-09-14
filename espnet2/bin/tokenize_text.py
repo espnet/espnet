@@ -202,7 +202,7 @@ def get_parser() -> argparse.ArgumentParser:
         "--token_type",
         "-t",
         default="char",
-        choices=["char", "bpe", "word", "phn"],
+        choices=["char", "bpe", "word", "phn", "korean_jaso"],
         help="Token type",
     )
     parser.add_argument("--delimiter", "-d", default=None, help="The delimiter")
@@ -222,7 +222,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--cleaner",
         type=str_or_none,
-        choices=[None, "tacotron", "jaconv", "vietnamese"],
+        choices=[None, "tacotron", "jaconv", "vietnamese", "korean_cleaner"],
         default=None,
         help="Apply text cleaning",
     )

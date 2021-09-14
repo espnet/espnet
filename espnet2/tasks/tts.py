@@ -176,7 +176,7 @@ class TTSTask(AbsTask):
             "--token_type",
             type=str,
             default="phn",
-            choices=["bpe", "char", "word", "phn"],
+            choices=["bpe", "char", "word", "phn", "korean_jaso"],
             help="The text will be tokenized in the specified level token",
         )
         group.add_argument(
@@ -193,7 +193,7 @@ class TTSTask(AbsTask):
         parser.add_argument(
             "--cleaner",
             type=str_or_none,
-            choices=[None, "tacotron", "jaconv", "vietnamese"],
+            choices=[None, "tacotron", "jaconv", "vietnamese", "korean_cleaner"],
             default=None,
             help="Apply text cleaning",
         )
