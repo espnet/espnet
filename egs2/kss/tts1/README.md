@@ -29,6 +29,23 @@ See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
+# SECOND RESULTS
+- run by run2.sh with sampling frequency of 44,100 Hz
+
+## Environments
+- date: `Tue Sep 14 13:39:16 KST 2021`
+- python version: `3.9.5 (default, Jun  4 2021, 12:28:51)  [GCC 7.5.0]`
+- espnet version: `espnet 0.10.3a2`
+- chainer version: `chainer 7.8.0`
+- pytorch version: `pytorch 1.9.0+cu102`
+- Git hash: `97b9dad4dbca71702cb7928a126ec45d96414a3f`
+  - Commit date: `Mon Sep 13 22:55:04 2021 +0900`
+
+## Pretrained models
+
+### kss_tts_train_tacotron2_raw_phn_korean_cleaner_korean_jaso_train.loss.ave, fs=44100
+- https://zenodo.org/record/5508413
+
 # INITIAL RESULTS
 
 ## Environments
