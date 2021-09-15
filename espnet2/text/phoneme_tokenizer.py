@@ -8,6 +8,7 @@ import warnings
 
 import g2p_en
 from typeguard import check_argument_types
+import jamo
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
@@ -34,8 +35,9 @@ g2p_choices = [
     "espeak_ng_dutch",
     "g2pk",
     "g2pk_no_space",
+    "korean_jaso",
+    "korean_jaso_no_space"
 ]
-
 
 def split_by_space(text) -> List[str]:
     return text.split(" ")
@@ -258,6 +260,40 @@ class G2pk:
         return phones
 
 
+class Jaso:
+    PUNC = '!\'(),-.:;?'
+    SPACE = ' '
+
+    JAMO_LEADS = "".join([chr(_) for _ in range(0x1100, 0x1113)])
+    JAMO_VOWELS = "".join([chr(_) for _ in range(0x1161, 0x1176)])
+    JAMO_TAILS = "".join([chr(_) for _ in range(0x11A8, 0x11C3)])
+
+    VALID_CHARS = JAMO_LEADS + JAMO_VOWELS + JAMO_TAILS + PUNC + SPACE
+
+    def __init__(self, space_symbol=" ", no_space=False):
+        self.space_symbol = space_symbol
+        self.no_space = no_space
+
+    def _text_to_jaso(self, line : str) -> List[str]:
+        jasos = list(jamo.hangul_to_jamo(line))
+        return jasos
+
+    def _remove_non_korean_characters(self, tokens):
+        new_tokens = [token for token in tokens if token in self.VALID_CHARS]
+        return new_tokens
+
+    def __call__(self, text) -> List[str]:
+        graphemes = [x for x in self._text_to_jaso(text)]
+        graphemes = self._remove_non_korean_characters(graphemes)
+        
+        if self.no_space:
+            # remove space which represents word serapater
+            graphemes = list(filter(lambda s: s != " ", graphemes))
+        else:
+            graphemes = [x if x != " " else self.space_symbol for x in graphemes]
+        return graphemes
+
+
 class Phonemizer:
     """Phonemizer module for various languages.
 
@@ -389,6 +425,10 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = G2pk(no_space=False)
         elif g2p_type == "g2pk_no_space":
             self.g2p = G2pk(no_space=True)
+        elif g2p_type == "korean_jaso":
+            self.g2p = Jaso(space_symbol=space_symbol, no_space=False)
+        elif g2p_type == "korean_jaso_no_space":
+            self.g2p = Jaso(no_space=True)
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 

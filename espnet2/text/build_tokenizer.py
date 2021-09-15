@@ -10,7 +10,6 @@ from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
 from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
 from espnet2.text.word_tokenizer import WordTokenizer
 
-
 def build_tokenizer(
     token_type: str,
     bpemodel: Union[Path, str, Iterable[str]] = None,
@@ -56,6 +55,7 @@ def build_tokenizer(
             space_symbol=space_symbol,
             remove_non_linguistic_symbols=remove_non_linguistic_symbols,
         )
+
     else:
         raise ValueError(
             f"token_mode must be one of bpe, word, char or phn: " f"{token_type}"
