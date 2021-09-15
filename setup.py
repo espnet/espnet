@@ -33,6 +33,7 @@ requirements = {
         # Natural language processing related
         "sentencepiece",
         "nltk>=3.4.5",
+        "jamo==0.4.1",  # For kss
         # File IO related
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
