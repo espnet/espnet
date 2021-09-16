@@ -24,19 +24,20 @@ class TransducerTasks(torch.nn.Module):
         joint_dim: int,
         output_dim: int,
         joint_activation_type: str = "tanh",
-        ctc_loss: bool = False,
-        lm_loss: bool = False,
-        aux_transducer_loss: bool = False,
-        symm_kl_div_loss: bool = False,
         transducer_loss_weight: float = 1.0,
+        ctc_loss: bool = False,
         ctc_loss_weight: float = 0.5,
-        lm_loss_weight: float = 1.0,
-        aux_transducer_loss_weight: float = 0.2,
-        symm_kl_div_loss_weight: float = 0.2,
         ctc_loss_dropout_rate: float = 0.0,
+        lm_loss: bool = False,
+        lm_loss_weight: float = 1.0,
+        lm_loss_smoothing_rate: float = 0.0,
+        aux_transducer_loss: bool = False,
+        aux_transducer_loss_weight: float = 0.2,
         aux_transducer_loss_mlp_dim: int = 320,
         aux_trans_loss_mlp_dropout_rate: float = 0.0,
-        lm_loss_smoothing_rate: float = 0.0,
+        symm_kl_div_loss: bool = False,
+        symm_kl_div_loss_weight: float = 0.2,
+        fastemit_lambda: float = 0.0,
         blank_id: int = 0,
         ignore_id: int = -1,
         training: bool = False,
@@ -60,8 +61,10 @@ class TransducerTasks(torch.nn.Module):
             aux_transducer_loss_weight: Weight of auxiliary transducer loss.
             symm_kl_div_loss_weight: Weight of KL divergence loss.
             ctc_loss_dropout_rate: Dropout rate for CTC loss inputs.
+            lm_loss_smoothing_rate: Smoothing rate for LM loss' label smoothing.
             aux_transducer_loss_mlp_dim: Hidden dimension for aux. transducer MLP.
             aux_trans_loss_mlp_dropout_rate: Dropout rate for aux. transducer MLP.
+            fastemit_lambda: Regularization parameter for FastEmit.
             blank_id: Blank symbol ID.
             ignore_id: Padding symbol ID.
 
@@ -86,6 +89,7 @@ class TransducerTasks(torch.nn.Module):
             self.transducer_loss = RNNTLoss(
                 blank=blank_id,
                 reduction="sum",
+                fastemit_lambda=fastemit_lambda,
             )
 
         if ctc_loss:
