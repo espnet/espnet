@@ -24,11 +24,11 @@ class TransducerTasks(torch.nn.Module):
         joint_dim: int,
         output_dim: int,
         joint_activation_type: str = "tanh",
-        transducer_loss_weight: float = 1.0,
         ctc_loss: bool = False,
         lm_loss: bool = False,
         aux_transducer_loss: bool = False,
         symm_kl_div_loss: bool = False,
+        transducer_loss_weight: float = 1.0,
         ctc_loss_weight: float = 0.5,
         lm_loss_weight: float = 1.0,
         aux_transducer_loss_weight: float = 0.2,
@@ -54,12 +54,16 @@ class TransducerTasks(torch.nn.Module):
             lm_loss: Compute LM loss.
             aux_transducer_loss: Compute auxiliary transducer loss.
             symm_kl_div_loss: Compute KL divergence loss.
-            transducer_loss_weight: Weight of transducer loss.
+            transducer_loss_weight: Weight for main transducer loss.
             ctc_loss_weight: Weight of CTC loss.
             lm_loss_weight: Weight of LM loss.
             aux_transducer_loss_weight: Weight of auxiliary transducer loss.
             symm_kl_div_loss_weight: Weight of KL divergence loss.
             ctc_loss_dropout_rate: Dropout rate for CTC loss inputs.
+            aux_transducer_loss_mlp_dim: Hidden dimension for aux. transducer MLP.
+            aux_trans_loss_mlp_dropout_rate: Dropout rate for aux. transducer MLP.
+            blank_id: Blank symbol ID.
+            ignore_id: Padding symbol ID.
 
         """
         super().__init__()
