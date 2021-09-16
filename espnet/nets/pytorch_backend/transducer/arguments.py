@@ -279,7 +279,7 @@ def add_transducer_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         "--fastemit-lambda",
         default=0.0,
         type=float,
-        help="Regularization parameter for FastEmit (https://arxiv.org/abs/2010.11148)"
+        help="Regularization parameter for FastEmit (https://arxiv.org/abs/2010.11148)",
     )
 
     return group
