@@ -30,7 +30,26 @@ See the following pages before asking the question:
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
 # SECOND RESULTS
-- run by run2.sh with sampling frequency of 44,100 Hz
+- New G2P of `korean_jaso`
+- New cleaner of `korean_cleaner` (basic one, not sophisticated)
+- Sampling frequency of 44,100 Hz
+
+```sh
+# Run with the following command:
+./run.sh \
+    --fs 44100 \
+    --fmin 80 \
+    --fmax 22050 \
+    --n_mels 120 \
+    --n_fft 2048 \
+    --n_shift 512 \
+    --win_length 2048 \
+    --train_config conf/tuning/train_tacotron2.yaml \
+    --inference_config conf/tuning/decode_tacotron2.yaml \
+    --token_type phn \
+    --g2p korean_jaso \
+    --cleaner korean_cleaner
+```
 
 ## Environments
 - date: `Tue Sep 14 13:39:16 KST 2021`
