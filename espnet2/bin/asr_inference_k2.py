@@ -18,6 +18,7 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 from typing import List
+import yaml
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
@@ -32,6 +33,23 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
+
+
+def indices_to_split_size(indices, total_elements: int = None):
+    """convert indices to split_size
+
+    During decoding, the api torch.tensor_split should be used.
+    However, torch.tensor_split is only available with pytorch >= 1.8.0.
+    So torch.split is used to pass ci with pytorch < 1.8.0.
+    This fuction is used to prepare input for torch.split.
+    """
+    if indices[0] != 0:
+        indices = [0] + indices
+
+    split_size = [indices[i] - indices[i - 1] for i in range(1, len(indices))]
+    if total_elements is not None and sum(split_size) != total_elements:
+        split_size.append(total_elements - sum(split_size))
+    return split_size
 
 
 # copied from:
@@ -152,6 +170,7 @@ class k2Speech2Text:
         decoder_weight: float = 0.5,
         nnlm_weight: float = 1.0,
         num_paths: int = 1000,
+        nll_batch_size: int = 100,
     ):
         assert check_argument_types()
 
@@ -211,6 +230,7 @@ class k2Speech2Text:
         self.decoder_weight = decoder_weight
         self.nnlm_weight = nnlm_weight
         self.num_paths = num_paths
+        self.nll_batch_size = nll_batch_size
 
     @torch.no_grad()
     def __call__(
@@ -279,7 +299,7 @@ class k2Speech2Text:
                 new2old,
                 path_to_seq_map,
                 seq_to_path_splits,
-            ) = nbest_am_lm_scores(lattices, self.num_paths)
+            ) = nbest_am_lm_scores(lattices, self.num_paths, self.device)
 
             ys_pad_lens = torch.tensor([len(hyp) for hyp in token_ids]).to(self.device)
             max_token_length = max(ys_pad_lens)
@@ -291,7 +311,7 @@ class k2Speech2Text:
                             torch.tensor(hyp, dtype=torch.long),
                             torch.tensor(
                                 [self.asr_model.ignore_id]
-                                * (max_token_length - len(hyp)),
+                                * (max_token_length.item() - len(hyp)),
                                 dtype=torch.long,
                             ),
                         ]
@@ -302,20 +322,24 @@ class k2Speech2Text:
                 torch.stack(ys_pad_list).to(torch.long).to(self.device)
             )  # [batch, max_token_length]
 
-            encoder_out = enc.index_select(0, path_to_seq_map).to(
+            encoder_out = enc.index_select(0, path_to_seq_map.to(torch.long)).to(
                 self.device
             )  # [batch, T, dim]
-            encoder_out_lens = encoder_out_lens.index_select(0, path_to_seq_map).to(
+            encoder_out_lens = encoder_out_lens.index_select(
+                0, path_to_seq_map.to(torch.long)
+            ).to(
                 self.device
             )  # [batch]
 
             decoder_scores = -self.asr_model.batchify_nll(
-                encoder_out, encoder_out_lens, ys_pad, ys_pad_lens
+                encoder_out, encoder_out_lens, ys_pad, ys_pad_lens, self.nll_batch_size
             )
 
             # padded_value for nnlm is 0
             ys_pad[ys_pad == self.asr_model.ignore_id] = 0
-            nnlm_nll, x_lengths = self.lm.batchify_nll(ys_pad, ys_pad_lens)
+            nnlm_nll, x_lengths = self.lm.batchify_nll(
+                ys_pad, ys_pad_lens, self.nll_batch_size
+            )
             nnlm_scores = -nnlm_nll.sum(dim=1)
 
             batch_tot_scores = (
@@ -323,8 +347,12 @@ class k2Speech2Text:
                 + self.decoder_weight * decoder_scores
                 + self.nnlm_weight * nnlm_scores
             )
-            batch_tot_scores = torch.tensor_split(
-                batch_tot_scores, seq_to_path_splits[1:].to("cpu").to(torch.long)
+            split_size = indices_to_split_size(
+                seq_to_path_splits.tolist(), total_elements=batch_tot_scores.size(0)
+            )
+            batch_tot_scores = torch.split(
+                batch_tot_scores,
+                split_size,
             )
 
             hyps = []
@@ -345,7 +373,7 @@ class k2Speech2Text:
                 hyps.append(best_token_seqs)
                 scores.append(tot_scores.max().item())
 
-            assert len(hyps) == seq_to_path_splits.nelement() - 1
+            assert len(hyps) == len(split_size)
         else:
             # TODO(Liyong Guo): use GPU version of get_tot_scores
             best_paths = k2.shortest_path(lattices.to("cpu"), use_double_scores=True)
@@ -432,14 +460,9 @@ def inference(
     streaming: bool,
     is_ctc_decoding: bool,
     use_nbest_rescoring: bool,
-    search_beam_size: int,
-    output_beam_size: int,
-    blank_bias: float,
-    lattice_weight: float,
-    am_weight: float,
-    decoder_weight: float,
-    nnlm_weight: float,
     num_paths: int,
+    nll_batch_size: int,
+    k2_config: Optional[str],
 ):
     assert is_ctc_decoding, "Currently, only ctc_decoding graph is supported."
     assert check_argument_types()
@@ -458,6 +481,8 @@ def inference(
 
     # 1. Set random-seed
     set_all_random_seed(seed)
+    with open(k2_config) as k2_config_file:
+        dict_k2_config = yaml.safe_load(k2_config_file)
 
     # 2. Build speech2text
     speech2text_kwargs = dict(
@@ -479,15 +504,11 @@ def inference(
         streaming=streaming,
         is_ctc_decoding=is_ctc_decoding,
         use_nbest_rescoring=use_nbest_rescoring,
-        search_beam_size=search_beam_size,
-        output_beam_size=output_beam_size,
-        blank_bias=blank_bias,
-        lattice_weight=lattice_weight,
-        am_weight=am_weight,
-        decoder_weight=decoder_weight,
-        nnlm_weight=nnlm_weight,
         num_paths=num_paths,
+        nll_batch_size=nll_batch_size,
     )
+
+    speech2text_kwargs = dict(**speech2text_kwargs, **dict_k2_config)
     speech2text = k2Speech2Text.from_pretrained(
         model_tag=model_tag,
         **speech2text_kwargs,
@@ -670,16 +691,26 @@ def get_parser():
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
     )
-    group.add_argument("--is_ctc_decoding", type=str2bool, default=True)
+    group.add_argument(
+        "--is_ctc_decoding",
+        type=str2bool,
+        default=True,
+        help="Use ctc topology as decoding graph",
+    )
     group.add_argument("--use_nbest_rescoring", type=str2bool, default=False)
-    group.add_argument("--search_beam_size", type=int, default=20)
-    group.add_argument("--output_beam_size", type=int, default=8)
-    group.add_argument("--blank_bias", type=float, default=0.0)
-    group.add_argument("--lattice_weight", type=float, default=1.0)
-    group.add_argument("--am_weight", type=float, default=1.0)
-    group.add_argument("--decoder_weight", type=float, default=0.5)
-    group.add_argument("--nnlm_weight", type=float, default=1.0)
-    group.add_argument("--num_paths", type=int, default=1000)
+    group.add_argument(
+        "--num_paths",
+        type=int,
+        default=1000,
+        help="The third argument for k2.random_paths",
+    )
+    group.add_argument(
+        "--nll_batch_size",
+        type=int,
+        default=100,
+        help="batch_size when computing nll during nbest rescoring",
+    )
+    group.add_argument("--k2_config", type=str, help="Config file for decoding with k2")
 
     return parser
 

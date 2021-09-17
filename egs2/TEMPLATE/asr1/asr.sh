@@ -100,33 +100,13 @@ hf_repo=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
-export is_ctc_decoding=true
-export use_nbest_rescoring=true # use transformer-decoder
-                                # and transformer language model for nbest rescoring
-export search_beam_size=20
-export output_beam_size=20
-export blank_bias="-0.0"
-export lattice_weight="1.0"
-export am_weight="1.0"
-export decoder_weight="0.5"
-export nnlm_weight="1.0"
-
-# flags appened to _opts in eval stage
-inference_opts_flags_k2="is_ctc_decoding
-                         use_nbest_rescoring
-                         search_beam_size
-                         output_beam_size
-                         blank_bias
-                         lattice_weight
-                         am_weight
-                         decoder_weight
-                         nnlm_weight"
-
-# flags appended to inference_tag
-inference_tag_flags_k2="is_ctc_decoding
-                        use_nbest_rescoring
-                        decoder_weight
-                        nnlm_weight"
+is_ctc_decoding=true
+use_nbest_rescoring=true # use transformer-decoder
+                         # and transformer language model for nbest rescoring
+num_paths=1000 # The 3rd argument of k2.random_paths.
+nll_batch_size=100 # Affect GPU memory usage when computing nll
+                   # during nbest rescoring
+k2_config=./conf/decode_asr_transformer_with_k2.yaml
 
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
@@ -445,9 +425,8 @@ if [ -z "${inference_tag}" ]; then
 
     if "${use_k2}"; then
       inference_tag+="_use_k2"
-      for flag in ${inference_tag_flags_k2}; do
-        inference_tag+="_${flag}_${!flag}"
-      done
+      inference_tag+="_is_ctc_decoding_${is_ctc_decoding}"
+      inference_tag+="_use_nbest_rescoring_${use_nbest_rescoring}"
     fi
 fi
 
@@ -1207,9 +1186,11 @@ if ! "${skip_eval}"; then
           _nj=1
           asr_inference_tool="espnet2.bin.asr_inference_k2"
 
-          for flag in ${inference_opts_flags_k2}; do
-            _opts+="--${flag} ${!flag} "
-          done
+          _opts+="--is_ctc_decoding ${is_ctc_decoding} "
+          _opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
+          _opts+="--num_paths ${num_paths} "
+          _opts+="--nll_batch_size ${nll_batch_size} "
+          _opts+="--k2_config ${k2_config} "
         else
           _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
           asr_inference_tool="espnet2.bin.asr_inference"

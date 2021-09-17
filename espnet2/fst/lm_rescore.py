@@ -70,7 +70,10 @@ def _intersect_device(
 
 
 def compute_am_scores_and_lm_scores(
-    lats: k2.Fsa, word_fsas_with_epsilon_loops: k2.Fsa, path_to_seq_map: torch.Tensor
+    lats: k2.Fsa,
+    word_fsas_with_epsilon_loops: k2.Fsa,
+    path_to_seq_map: torch.Tensor,
+    device: str = "cuda",
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Compute AM and LM scores of n-best lists (represented as word_fsas).
 
@@ -124,7 +127,7 @@ def compute_am_scores_and_lm_scores(
         am_scores = (
             am_path_lats.to(tot_score_device)
             .get_tot_scores(use_double_scores=True, log_semiring=False)
-            .to("cuda")
+            .to(device)
         )
 
         # Start to compute lm_scores
@@ -132,20 +135,20 @@ def compute_am_scores_and_lm_scores(
         lm_scores = (
             am_path_lats.to(tot_score_device)
             .get_tot_scores(use_double_scores=True, log_semiring=False)
-            .to("cuda")
+            .to(device)
         )
     else:
         am_scores = (
             am_path_lats.to(tot_score_device)
             .get_tot_scores(use_double_scores=True, log_semiring=False)
-            .to("cuda")
+            .to(device)
         )
         lm_scores = None
 
     return am_scores, lm_scores
 
 
-def nbest_am_lm_scores(lats: k2.Fsa, num_paths: int):
+def nbest_am_lm_scores(lats: k2.Fsa, num_paths: int, device: str = "cuda"):
     """Compute am scores with word_seqs
 
     Compatible with both ctc_decoding or TLG decoding.
@@ -175,7 +178,7 @@ def nbest_am_lm_scores(lats: k2.Fsa, num_paths: int):
     word_fsas_with_epsilon_loops = k2.add_epsilon_self_loops(word_fsas)
 
     am_scores, lm_scores = compute_am_scores_and_lm_scores(
-        lats, word_fsas_with_epsilon_loops, path_to_seq_map
+        lats, word_fsas_with_epsilon_loops, path_to_seq_map, device
     )
 
     token_seqs = k2.index(lats.labels.contiguous(), paths)

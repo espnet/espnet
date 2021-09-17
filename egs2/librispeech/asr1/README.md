@@ -144,6 +144,28 @@
 |decode_asr_asr_model_valid.acc.ave/test_other|2939|65101|93.7|4.5|1.8|0.9|7.2|49.0|
 
 
+## With transformer LM decode with k2 + ctc + nbest rescoring
+
+### WER
+Test with a single Tesla V100 gpu and batch_size==2
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|Decoding time, seconds|
+|---|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/dev_clean|2703|54402|98.2|1.6|0.2|0.2|2.0|26.5|613|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/dev_other|2864|50948|95.1|4.3|0.5|0.5|5.4|42.7|959|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/test_clean|2620|52576|98.0|1.8|0.2|0.3|2.3|27.6|618|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/test_other|2939|52343|95.2|4.2|0.5|0.5|5.3|44.7|970|
+
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/dev_clean|2703|288456|99.5|0.3|0.3|0.2|0.7|26.5|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/dev_other|2864|265951|98.1|1.0|0.9|0.6|2.5|42.7|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/test_clean|2620|281530|99.4|0.3|0.3|0.2|0.8|27.6|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/test_other|2939|272758|98.2|0.9|0.9|0.6|2.3|44.7|
+
 
 # Updated the result of conformer with transformer LM
 ## Environments
