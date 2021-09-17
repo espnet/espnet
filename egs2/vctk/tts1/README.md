@@ -15,6 +15,25 @@ See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
+# THIRD RESULTS
+
+- Initial VITS models
+
+## Environments
+- date: `Sat Sep 11 09:52:43 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a2`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `628b46282537ce532d613d6bafb75e826e8455de`
+  - Commit date: `Wed Sep 8 13:30:50 2021 +0900`
+
+## Pretrained Models
+
+### vctk_tts_train_multi_spk_vits_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+- 22.05 kHz / 1M iters / Use speaker ID (one-hot)
+- https://zenodo.org/record/5500759
+
+
 # SECOND RESULTS
 
 - Use X-vector as the speaker embedding

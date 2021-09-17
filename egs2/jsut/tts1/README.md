@@ -14,7 +14,36 @@ See the following pages before asking the question:
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
 
+# SIXTH RESULTS
+
+- New g2p (`pyopenjtalk_prosody`)
+
+## Environments
+- date: `Fri Sep 10 13:04:49 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a2`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `628b46282537ce532d613d6bafb75e826e8455de`
+  - Commit date: `Wed Sep 8 13:30:50 2021 +0900`
+
+## Pretrained models
+
+### jsut_tts_train_tacotron2_raw_phn_jaconv_pyopenjtalk_prosody_train.loss.ave
+- https://zenodo.org/record/5499026
+
+### jsut_tts_train_transformer_raw_phn_jaconv_pyopenjtalk_prosody_train.loss.ave
+- https://zenodo.org/record/5499040
+
+### jsut_tts_train_conformer_fastspeech2_tacotron2_teacher_raw_phn_jaconv_pyopenjtalk_prosody_train.loss.ave
+- https://zenodo.org/record/5499050
+
+### jsut_tts_train_conformer_fastspeech2_transformer_teacher_raw_phn_jaconv_pyopenjtalk_prosody_train.loss.ave
+- https://zenodo.org/record/5499066
+
+
 # FIFTH RESULTS
+
+- Initial VITS models
 
 ## Environments
 - date: `Fri Sep  3 21:09:25 JST 2021`
@@ -33,6 +62,7 @@ See the following pages before asking the question:
 ### jsut_tts_train_full_band_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause_train.total_count.ave
 - 44.1khz / 0.5M iters / Average the last 10 epoch models
 - https://zenodo.org/record/5431984
+
 
 # FORTH RESULTS
 

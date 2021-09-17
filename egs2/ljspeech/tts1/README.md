@@ -14,7 +14,39 @@ See the following pages before asking the question:
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
 
+# FORTH RESULTS
+
+- Initial joint training models
+
+## Environments
+- date: `Fri Sep 10 13:04:49 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a2`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `628b46282537ce532d613d6bafb75e826e8455de`
+  - Commit date: `Wed Sep 8 13:30:50 2021 +0900`
+
+## Pretrained models
+
+### ljspeech_tts_train_joint_conformer_fastspeech2_hifigan_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+- Joint training from scrath
+- 1M iters / Average the last 10 epoch models
+- https://zenodo.org/record/5498487
+
+### ljspeech_tts_finetune_joint_conformer_fastspeech2_hifigan_initilized_discriminator_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+- Joint finetuning with the initialized discriminator
+- 0.5M iters / Average the last 5 epoch models
+- https://zenodo.org/record/5498497
+
+### ljspeech_tts_finetune_joint_conformer_fastspeech2_hifigan_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+- Joint finetuning with pretrained text2mel, vocoder and discriminator
+- 0.5M iters / Average the last 5 epoch models
+- https://zenodo.org/record/5498896
+
+
 # THIRD RESULTS
+
+- Initial VITS model
 
 ## Environments
 - date: `Sat Sep  4 19:38:35 JST 2021`
@@ -26,8 +58,8 @@ See the following pages before asking the question:
 
 ## Pretrained Models
 
-### kan-bayashi/ljspeech_tts_train_vits_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
-- 22.05khz / 1M iters / Average the last 10 epoch models
+### ljspeech_tts_train_vits_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+- 1M iters / Average the last 10 epoch models
 - https://zenodo.org/record/5443814
 
 

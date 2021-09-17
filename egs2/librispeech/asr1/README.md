@@ -7,6 +7,7 @@
 - pytorch version: `pytorch 1.7.0`
 - Git hash: `0f7558a716ab830d0c29da8785840124f358d47b`
   - Commit date: `Tue Jun 8 15:33:49 2021 -0400`
+- Pretrained model: https://huggingface.co/espnet/xuankai_chang_librispeech_asr_train_asr_conformer7_hubert_960hr_large_raw_en_bpe5000_sp_26epoch
 
 ### WER
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -42,6 +43,7 @@
 - pytorch version: `pytorch 1.7.0`
 - Git hash: `0f7558a716ab830d0c29da8785840124f358d47b`
   - Commit date: `Tue Jun 8 15:33:49 2021 -0400`
+- Pretrained model: https://huggingface.co/espnet/xuankai_chang_librispeech_asr_train_asr_conformer7_wav2vec2_960hr_large_raw_en_bpe5000_sp_25epoch
 
 ### WER
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|

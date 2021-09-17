@@ -17,10 +17,8 @@ See the following pages before asking the question:
 
 # INITIAL RESULTS
 
-## Environments
-
-TBD
-
 ## Pretrained models
 
-TBD
+### thchs30_tts_train_raw_phn_pypinyin_g2p_phone_train.loss.best
+- Tacotron2
+- https://huggingface.co/ftshijt/ESPnet2_pretrained_model_ftshijt_thchs30_tts_train_raw_phn_pypinyin_g2p_phone_train.loss.best

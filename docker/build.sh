@@ -143,7 +143,7 @@ build_local(){
     elif [[ ${build_ver} == "gpu" ]]; then
         echo "building ESPnet GPU Image with ubuntu:${ubuntu_ver} and cuda:${cuda_ver}"
         if [ "${build_base_image}" = true ] ; then
-            docker build -f prebuilt/devel/gpu/${ver}/cudnn7/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 . || exit 1
+            docker build -f prebuilt/devel/gpu/${ver}/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 . || exit 1
         else
             if ! [[ -n $( docker images -q espnet/espnet:cuda-latest)  ]]; then
                 docker pull espnet/espnet:cuda-latest

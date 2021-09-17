@@ -550,7 +550,7 @@ class AbsTask(ABC):
             "--use_matplotlib",
             type=str2bool,
             default=True,
-            help="Enable tensorboard logging",
+            help="Enable matplotlib logging",
         )
         group.add_argument(
             "--use_tensorboard",
