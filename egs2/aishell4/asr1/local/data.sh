@@ -39,7 +39,7 @@ fi
 
 
 
-if false ; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then
 
     for room_name in "train_L" "train_M" "train_S" 
     do 
@@ -90,7 +90,7 @@ fi
 #####            Join train_L, train_M and train_S       ########
 #################################################################
 
-if false; then 
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then 
     mkdir ${AISHELL4}/full_train
     rm ${AISHELL4}/full_train/wav_list.txt
     rm ${AISHELL4}/full_train/TextGrid_list.txt
@@ -114,7 +114,7 @@ text_grid_aishell4=${AISHELL4}/full_train/TextGrid_list.txt
 
 output_folder=$PWD/data/
 
-if false ; then 
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] ; then 
 
     log "generating asr training data ..."
     log "(this can take some time)"
@@ -134,7 +134,7 @@ fi
 #################################################################
 
 
-if false ; then 
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] ; then 
     rm $output_folder/train/wav.scp
     FILES="$output_folder/train/wav/*"
     for f in $FILES
@@ -150,7 +150,7 @@ fi
 #####            creating utt2spk and spk2utt  ########
 #################################################################
 
-if false ; then 
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] ; then 
     rm $output_folder/train/utt2spk
     FILES="$output_folder/train/wav/*"
     for f in $FILES
@@ -173,7 +173,7 @@ fi
 #################################################################
 
 
-if false ; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] ; then
     log "sorting files ... "
     sort data/train/utt2spk -o data/train/utt2spk
     # creating spk2utt from utt2spk
@@ -193,11 +193,13 @@ fi
 
 ########################## generate the nlsyms.txt list 
 
-cat data/train/text | perl -pe 's/(\<[^\>\<]+\>)/$1\n/g' | perl -pe 's/(\<[^\>\<]+\>)/\n$1/' | grep ^\<.*\>$ | sort -u > data/nlsyms.txt
+
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] ; then 
+    cat data/train/text | perl -pe 's/(\<[^\>\<]+\>)/$1\n/g' | perl -pe 's/(\<[^\>\<]+\>)/\n$1/' | grep ^\<.*\>$ | sort -u > data/nlsyms.txt
+fi
 
 
-
-if false ; then 
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] ; then 
     log "random shuffling to prepare dev and test sets ..."
 
     get_seeded_random()
@@ -213,7 +215,7 @@ if false ; then
 
 fi 
 
-if false ; then 
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] ; then 
     log "selecting lines for train, dev and test ..."
 
     utils/subset_data_dir.sh --first data/train 600 data/dev
@@ -223,7 +225,7 @@ if false ; then
 fi
 
 
-if false ; then 
+if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] ; then 
     log "resorting the files ..."
     log "train ..."
     sort data/train_nodev/utt2spk -o data/train_nodev/utt2spk
@@ -253,7 +255,7 @@ fi
 
 # pay attention : sorting issues with utt2spk :  (fix this by making speaker-ids prefixes of utt-ids)
 
-if true ; then 
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] ; then 
     
     aishell1_data=/ocean/projects/cis210027p/berrebbi/espnet/egs2/aishell/asr1/data/train
     aishell4_data=data/train_nodev
@@ -275,128 +277,4 @@ if true ; then
 
 
 fi 
-
-
-#################################################################
-#####            test                                    ########
-#################################################################
-
-
-
-if false ; then
-
-    #wget https://www.openslr.org/resources/111/test.tar.gz -P ${AISHELL4}/  
-    
-    
-    #tar -xzvf ${AISHELL4}/test.tar.gz -C ${AISHELL4}/
-    
-
-    rm  ${AISHELL4}/test/wav_list.txt
-    FILES="$PWD/${AISHELL4}/test/wav/*"
-    for f in $FILES
-    do
-        echo "$f" >> ${AISHELL4}/test/wav_list.txt
-    done
-
-
-    rm ${AISHELL4}/test/TextGrid_list.txt
-    FILES="$PWD/${AISHELL4}/test/TextGrid/*.TextGrid"
-    for f in $FILES
-    do
-        echo "$f" >> ${AISHELL4}/test/TextGrid_list.txt
-    done
-
-fi
-
-
-
-
-#################################################################
-#####            ground truth for asr, using aishell4 github     ##############
-#################################################################
-
-
-wav_list_aishell4_test=${AISHELL4}/test/wav_list.txt
-text_grid_aishell4_test=${AISHELL4}/test/TextGrid_list.txt
-
-output_folder=$PWD/data/test/
-
-if false ; then 
-
-    log "generating asr test data ..."
-    log "(this can take some time)"
-    rm -rf "$output_folder"
- 
-    #python "$FOLDER"/data_preparation/generate_asr_trainingdata.py  --output_dir "$output_folder" --mode train --aishell4_wav_list "$wav_list_aishell4_test" --textgrid_list "$text_grid_aishell4_test" || log "ca a pas marché" ;
-
-    log "asr test data generated."
-
-    python "$FOLDER"/data_preparation/generate_nospk_testdata.py --wav_list $wav_list_aishell4_test --textgrid_list $text_grid_aishell4_test --output_dir $output_folder 
-
-    #mv $output_folder/train/* $output_folder/
-    #rm -r $output_folder/train
-
-fi
- 
-
-
-
-#################################################################
-#####     creating wav.scp from output/train/wav directory    ##############
-#################################################################
-
-
-if false ; then 
-    rm $output_folder/wav.scp
-    FILES="$output_folder/wav/*"
-    for f in $FILES
-    do
-
-        g=$(echo $f | cut -d'/' -f 14 | cut -d'.' -f 1) 
-        echo "$g" "$f" >> $output_folder/wav.scp
-    done
-
-fi
-
-
-
-#################################################################
-#####            creating utt2spk and spk2utt  ########
-#################################################################
-
-if false ; then 
-    rm $output_folder/utt2spk
-    FILES="$output_folder/wav/*"
-    for f in $FILES
-    do
-        g=$(echo $f | cut -d'/' -f 14 | cut -d'.' -f 1) 
-        echo "$g" "$g"  >> $output_folder/utt2spk  # we put speaker_id = utt_id
-    done
-
-    # creationg spk2utt from utt2spk
-    rm $output_folder/spk2utt
-    utils/utt2spk_to_spk2utt.pl $output_folder/utt2spk > $output_folder/spk2utt
-fi 
-
-
-
-
-#################################################################
-#####            sort and fix the data  ########
-#################################################################
-
-
-if false ; then
-    log "sorting files ... "
-    sort data/test/utt2spk -o data/test/utt2spk
-    sort data/test/wav.scp -o data/test/wav.scp
-    sort data/test/text -o data/test/text
-    log "files sorted"
-
-    # then, removing empty lines , IL FAUDRA TROUVER PQ JAI DES EMPTY LINES CEST CHELOU
-
-    log "fixing files ..."
-    ./utils/fix_data_dir.sh data/test
-    log "files fixed"
-fi
 
