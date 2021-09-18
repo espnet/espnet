@@ -114,7 +114,7 @@ text_grid_aishell4=${AISHELL4}/full_train/TextGrid_list.txt
 
 output_folder=$PWD/data/
 
-if true ; then 
+if false ; then 
 
     log "generating asr training data ..."
     log "(this can take some time)"
@@ -134,7 +134,7 @@ fi
 #################################################################
 
 
-if true ; then 
+if false ; then 
     rm $output_folder/train/wav.scp
     FILES="$output_folder/train/wav/*"
     for f in $FILES
@@ -150,7 +150,7 @@ fi
 #####            creating utt2spk and spk2utt  ########
 #################################################################
 
-if true ; then 
+if false ; then 
     rm $output_folder/train/utt2spk
     FILES="$output_folder/train/wav/*"
     for f in $FILES
@@ -159,9 +159,7 @@ if true ; then
         echo "$g" "$g"  >> $output_folder/train/utt2spk  # we put speaker_id = utt_id
     done
 
-    # creationg spk2utt from utt2spk
-    rm $output_folder/train/spk2utt
-    utils/utt2spk_to_spk2utt.pl $output_folder/train/utt2spk > $output_folder/train/spk2utt
+
 fi 
 
 
@@ -175,9 +173,12 @@ fi
 #################################################################
 
 
-if true ; then
+if false ; then
     log "sorting files ... "
     sort data/train/utt2spk -o data/train/utt2spk
+    # creating spk2utt from utt2spk
+    rm $output_folder/train/spk2utt
+    utils/utt2spk_to_spk2utt.pl $output_folder/train/utt2spk > $output_folder/train/spk2utt
     sort data/train/wav.scp -o data/train/wav.scp
     sort data/train/text -o data/train/text
     log "files sorted"
@@ -190,7 +191,90 @@ if true ; then
 fi
 
 
+########################## generate the nlsyms.txt list 
 
+cat data/train/text | perl -pe 's/(\<[^\>\<]+\>)/$1\n/g' | perl -pe 's/(\<[^\>\<]+\>)/\n$1/' | grep ^\<.*\>$ | sort -u > data/nlsyms.txt
+
+
+
+if false ; then 
+    log "random shuffling to prepare dev and test sets ..."
+
+    get_seeded_random()
+        {
+        seed="$1"
+        openssl enc -aes-256-ctr -pass pass:"$seed" -nosalt \
+            </dev/zero 2>/dev/null
+        }
+
+    shuf  --random-source=<(get_seeded_random 76) data/train/utt2spk  -o data/train/utt2spk
+    shuf  --random-source=<(get_seeded_random 76) data/train/wav.scp  -o data/train/wav.scp
+    shuf  --random-source=<(get_seeded_random 76) data/train/text  -o data/train/text
+
+fi 
+
+if false ; then 
+    log "selecting lines for train, dev and test ..."
+
+    utils/subset_data_dir.sh --first data/train 600 data/dev
+    n=$(($(wc -l < data/train/text) - 600))
+    utils/subset_data_dir.sh --last data/train ${n} data/train_nodev
+
+fi
+
+
+if false ; then 
+    log "resorting the files ..."
+    log "train ..."
+    sort data/train_nodev/utt2spk -o data/train_nodev/utt2spk
+    utils/utt2spk_to_spk2utt.pl data/train_nodev/utt2spk > data/train_nodev/spk2utt
+    sort data/train_nodev/wav.scp -o data/train_nodev/wav.scp
+    sort data/train_nodev/text -o data/train_nodev/text
+    log "files sorted"
+    log "test ..."
+    sort data/dev/utt2spk -o data/dev/utt2spk
+    utils/utt2spk_to_spk2utt.pl data/dev/utt2spk > data/dev/spk2utt
+    sort data/dev/wav.scp -o data/dev/wav.scp
+    sort data/dev/text -o data/dev/text
+    log "files sorted"
+
+
+fi 
+
+
+
+
+
+
+#################################################################
+#####      Combining with aishell1 data  (train only for now)   
+#################################################################
+
+
+# pay attention : sorting issues with utt2spk :  (fix this by making speaker-ids prefixes of utt-ids)
+
+if true ; then 
+    
+    aishell1_data=/ocean/projects/cis210027p/berrebbi/espnet/egs2/aishell/asr1/data/train
+    aishell4_data=data/train_nodev
+
+    u2s=/ocean/projects/cis210027p/berrebbi/espnet/egs2/aishell/asr1/data/train/utt2spk
+    awk 'BEGIN {FS=" "; OFS="\n"}; {print $1" "$1}' $u2s > /ocean/projects/cis210027p/berrebbi/espnet/egs2/aishell/asr1/data/train/utt2spk2
+
+    mv /ocean/projects/cis210027p/berrebbi/espnet/egs2/aishell/asr1/data/train/utt2spk2 /ocean/projects/cis210027p/berrebbi/espnet/egs2/aishell/asr1/data/train/utt2spk
+    
+    utils/combine_data.sh data/combined_aishell_dir/train $aishell1_data $aishell4_data 
+
+    
+    sort data/combined_aishell_dir/train/utt2spk -o data/combined_aishell_dir/train/utt2spk
+    utils/utt2spk_to_spk2utt.pl data/combined_aishell_dir/train/utt2spk > data/combined_aishell_dir/train/spk2utt
+    sort data/combined_aishell_dir/train/wav.scp -o data/combined_aishell_dir/train/wav.scp
+    sort data/combined_aishell_dir/train/text -o data/combined_aishell_dir/train/text
+
+    wc -l data/combined_aishell_dir/train/*
+
+
+fi 
 
 
 #################################################################
@@ -199,8 +283,7 @@ fi
 
 
 
-
-if true ; then
+if false ; then
 
     #wget https://www.openslr.org/resources/111/test.tar.gz -P ${AISHELL4}/  
     
@@ -233,23 +316,25 @@ fi
 #################################################################
 
 
-wav_list_aishell4=${AISHELL4}/test/wav_list.txt
-text_grid_aishell4=${AISHELL4}/test/TextGrid_list.txt
+wav_list_aishell4_test=${AISHELL4}/test/wav_list.txt
+text_grid_aishell4_test=${AISHELL4}/test/TextGrid_list.txt
 
 output_folder=$PWD/data/test/
 
-if true ; then 
+if false ; then 
 
-    log "generating asr training data ..."
+    log "generating asr test data ..."
     log "(this can take some time)"
     rm -rf "$output_folder"
  
-    python "$FOLDER"/data_preparation/generate_asr_trainingdata.py  --output_dir "$output_folder" --mode train --aishell4_wav_list "$wav_list_aishell4" --textgrid_list "$text_grid_aishell4" || log "ca a pas marché" ;
+    #python "$FOLDER"/data_preparation/generate_asr_trainingdata.py  --output_dir "$output_folder" --mode train --aishell4_wav_list "$wav_list_aishell4_test" --textgrid_list "$text_grid_aishell4_test" || log "ca a pas marché" ;
 
-    log "asr training data generated."
+    log "asr test data generated."
 
-    mv $output_folder/train/* $output_folder/
-    rm -r $output_folder/train
+    python "$FOLDER"/data_preparation/generate_nospk_testdata.py --wav_list $wav_list_aishell4_test --textgrid_list $text_grid_aishell4_test --output_dir $output_folder 
+
+    #mv $output_folder/train/* $output_folder/
+    #rm -r $output_folder/train
 
 fi
  
@@ -261,7 +346,7 @@ fi
 #################################################################
 
 
-if true ; then 
+if false ; then 
     rm $output_folder/wav.scp
     FILES="$output_folder/wav/*"
     for f in $FILES
@@ -275,12 +360,11 @@ fi
 
 
 
-
 #################################################################
 #####            creating utt2spk and spk2utt  ########
 #################################################################
 
-if true ; then 
+if false ; then 
     rm $output_folder/utt2spk
     FILES="$output_folder/wav/*"
     for f in $FILES
@@ -302,7 +386,7 @@ fi
 #################################################################
 
 
-if true ; then
+if false ; then
     log "sorting files ... "
     sort data/test/utt2spk -o data/test/utt2spk
     sort data/test/wav.scp -o data/test/wav.scp
