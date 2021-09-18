@@ -26,11 +26,12 @@ use_wordlm=false
     --lm_config "${lm_config}"                         \
     --asr_config "${asr_config}"                       \
     --inference_config "${inference_config}"           \
-    --train_set "train"                       \
-    --valid_set "test"                       \
-    --test_sets "test"                        \
+    --train_set "train_nodev"                       \
+    --valid_set "dev"                       \
+    --test_sets "dev"                        \
     --asr_speech_fold_length 512 \
     --asr_text_fold_length 150 \
     --lm_fold_length 150 \
     --max_wav_duration 20. \
-    --lm_train_text "data/train/text" "$@"
+    --lm_train_text "data/train/text" "$@" \
+    --nlsyms_txt /ocean/projects/cis210027p/berrebbi/espnet/egs2/aishell4/asr1/data/nlsyms.txt
