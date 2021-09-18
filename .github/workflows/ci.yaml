@@ -68,8 +68,10 @@ jobs:
       - name: install kaldi
         run: |
           ./ci/install_kaldi.sh
-      # Disable quantization for older pytorch (<= 1.2). It is tested in debian9.yml though.
-      - name: test integration
-        run: |
-          ./ci/test_integration.sh
+      - name: test utils
+        run: ./ci/test_utils.sh
+      - name: test espnet1 integration
+        run: ./ci/test_integration_espnet1.sh
+      - name: test espnet2 integration
+        run: ./ci/test_integration_espnet2.sh
       - uses: codecov/codecov-action@v1
