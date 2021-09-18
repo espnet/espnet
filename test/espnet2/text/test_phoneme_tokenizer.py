@@ -61,8 +61,8 @@ def test_repr(phoneme_tokenizer: PhonemeTokenizer):
 @pytest.mark.execution_timeout(5)
 def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
     if phoneme_tokenizer.g2p_type is None:
-        input = "HH AH0 L OW1 <space> W ER1 L D"
-        output = ["HH", "AH0", "L", "OW1", "<space>", "W", "ER1", "L", "D"]
+        input = "HH AH0 L OW1   W ER1 L D"
+        output = ["HH", "AH0", "L", "OW1", " ", "W", "ER1", "L", "D"]
     elif phoneme_tokenizer.g2p_type == "g2p_en":
         input = "Hello World"
         output = ["HH", "AH0", "L", "OW1", " ", "W", "ER1", "L", "D"]

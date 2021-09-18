@@ -38,7 +38,11 @@ g2p_choices = [
 
 
 def split_by_space(text) -> List[str]:
-    return text.split(" ")
+    if "   " in text:
+        text = text.replace("   ", " <space> ")
+        return [c.replace("<space>", " ") for c in text.split(" ")]
+    else:
+        return text.split(" ")
 
 
 def pyopenjtalk_g2p(text) -> List[str]:
