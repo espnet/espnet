@@ -188,9 +188,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             cat "${logdir}/output.${i}/1best_recog/${f}"
         done | LC_ALL=C sort -k1 >"${outdir}/${f}"
     done
-
-    # 4. Remove tmp dir if exists
-    rm -rf "${outdir}/tmp"
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
@@ -270,7 +267,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
         fi
 
-        # scoring
+        # Scoring
         sclite \
             -r "${_scoredir}/ref.trn" trn \
             -h "${_scoredir}/hyp.trn" trn \
@@ -280,4 +277,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
     done
 fi
+
+# Remove tmp dir if exists
+rm -rf "${outdir}/tmp"
+
 log "Successfully finished. [elapsed=${SECONDS}s]"
