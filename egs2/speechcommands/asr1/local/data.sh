@@ -19,7 +19,7 @@ log() {
 SECONDS=0
 
 stage=1
-stop_stage=2
+stop_stage=100
 
 # data_url: the original location.
 # test_data_url: a canonical test set for top-1 error.
@@ -133,9 +133,11 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    mkdir -p data/{train,valid,test}
-    python3 local/data_prep.py ${SWBD}/LDC97S62 ${SWBD_NXT}/LDC2009T26
-    for x in test valid train; do
+    cd ${SPEECHCOMMANDS}/.. || exit 1
+    mkdir -p data/{train,dev,test}
+    python3 local/data_prep.py --data_path ${SPEECHCOMMANDS}/speech_commands_v0.02 \
+        --test_data_path ${SPEECHCOMMANDS}/speech_commands_test_set_v0.02
+    for x in train dev test; do
         utils/fix_data_dir.sh data/${x} || exit 1
     done
 fi
