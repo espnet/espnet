@@ -78,7 +78,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             exit 1
         fi
 
-        cd ${SPEECHCOMMANDS} || exit 1
+        cd ${SPEECHCOMMANDS}
         if ! wget --no-check-certificate ${data_url}; then
             log "$0: error executing wget ${data_url}"
             exit 1
@@ -104,7 +104,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             exit 1
         fi
 
-        cd ${SPEECHCOMMANDS} || exit 1
+        cd ${SPEECHCOMMANDS}
         if ! wget --no-check-certificate ${test_data_url}; then
             log "$0: error executing wget ${test_data_url}"
             exit 1
@@ -114,7 +114,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "$0: successfully downloaded ${data_tar} and ${test_data_tar}"
 
     # un-tar
-    cd ${SPEECHCOMMANDS} || exit 1
+    cd ${SPEECHCOMMANDS}
     mkdir -p speech_commands_v0.02
     if ! tar -xzf ${data_tar} -C speech_commands_v0.02; then
         log "$0: error un-tarring archive ${data_tar}"
@@ -133,12 +133,18 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    cd ${SPEECHCOMMANDS}/.. || exit 1
+    cd ${SPEECHCOMMANDS}/..
     mkdir -p data/{train,dev,test}
-    python3 local/data_prep.py --data_path ${SPEECHCOMMANDS}/speech_commands_v0.02 \
-        --test_data_path ${SPEECHCOMMANDS}/speech_commands_test_set_v0.02
+    python3 local/data_prep.py \
+        --data_path ${SPEECHCOMMANDS}/speech_commands_v0.02 \
+        --test_data_path ${SPEECHCOMMANDS}/speech_commands_test_set_v0.02 \
+        --train_dir data/train \
+        --dev_dir data/dev \
+        --test_dir data/test
     for x in train dev test; do
-        utils/fix_data_dir.sh data/${x} || exit 1
+        utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
+        utils/fix_data_dir.sh data/${x}
+        utils/validate_data_dir.sh --no-feats data/${x}
     done
 fi
 
