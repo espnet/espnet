@@ -109,6 +109,7 @@ MUCS_SUBTASK2=downloads
 GAMAYUN=downloads
 IWSLT21LR=downloads/iwslt21
 WENETSPEECH=
+SPEECHCOMMANDS=downloads
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
