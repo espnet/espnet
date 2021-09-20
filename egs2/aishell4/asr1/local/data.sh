@@ -12,7 +12,8 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
-
+stage=0       # start from 0 if you need to start from data preparation
+stop_stage=100
 
 #################################################################
 #####             Downloading their git          ################
