@@ -4,8 +4,6 @@
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
- . utils/parse_options.sh || exit 1;
-
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
@@ -14,6 +12,23 @@ log() {
 
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
+FOLDER=git_aishell
+
+ . utils/parse_options.sh || exit 1;
+
+mkdir ${AISHELL4}
+if [ -z "${AISHELL4}" ]; then
+    log "Fill the value of 'AISHELL4' of db.sh"
+    exit 1
+fi
+
+# Set bash to 'debug' mode, it will exit on :
+# -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
+set -e
+set -u
+set -o pipefail
+
+log "data preparation started"
 
 #################################################################
 #####             Downloading their git          ################
@@ -21,8 +36,7 @@ stop_stage=100
 
 
 # Github AISHELL4 : https://github.com/felixfuyihui/AISHELL-4.git
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then 
-    FOLDER=git_aishell  
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then  
     URL=https://github.com/DanBerrebbi/AISHELL-4.git
     # our fork 
 
@@ -34,6 +48,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then
     pip install -r "$FOLDER"/requirements.txt 
 
 fi
+
 
 
 #################################################################
