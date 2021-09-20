@@ -137,10 +137,10 @@ To test:
 
 ## 5 Integration testing
 
-Write new integration tests in [ci/test_integration.sh](ci/test_integration.sh) when you add new features in [espnet/bin](espnet/bin). They use our smallest dataset [egs/mini_an4](egs/mini_an4) to test `run.sh`. To make the coverage take them into account, don't forget `--python ${python}` support in your `run.sh`
+Write new integration tests in [ci/test_integration_espnet1.sh](ci/test_integration_espnet1.sh) or [ci/test_integration_espnet2.sh](ci/test_integration_espnet2.sh) when you add new features in [espnet/bin](espnet/bin) or [espnet2/bin](espnet2/bin), respectively. They use our smallest dataset [egs/mini_an4](egs/mini_an4) or [egs2/mini_an4](egs/mini_an4) to test `run.sh`. **Don't call `python` directly in integration tests. Instead, use `coverage run --append`** as a python interpreter. Especially, `run.sh` should support `--python ${python}` to call the custom interpreter.
 
 ```bash
-# ci/integration_test.sh
+# ci/test_integration_espnet{1,2}.sh
 
 python="coverage run --append"
 

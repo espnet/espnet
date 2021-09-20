@@ -8,5 +8,3 @@ coverage:
         # this allows a 1% drop from the previous base commit coverage
         threshold: 1%
         informational: true
-  notify:
-    wait_for_ci: false
