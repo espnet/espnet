@@ -127,6 +127,6 @@ for d in egs2/TEMPLATE/*; do
 done
 echo "=== report ==="
 
-coverage combine egs2/*/*/.coverage .coverage
+coverage combine egs2/*/*/.coverage
 coverage report
 coverage xml
