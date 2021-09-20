@@ -3,6 +3,7 @@
 
 AISHELL=downloads
 AISHELL3=downloads
+AISHELL4=downloads
 ALFFA=downloads
 AN4=downloads
 DIRHA_ENGLISH_PHDEV=
@@ -104,6 +105,7 @@ MUCS_SUBTASK1=downloads
 MUCS_SUBTASK2=downloads
 GAMAYUN=downloads
 IWSLT21LR=downloads/iwslt21
+
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
