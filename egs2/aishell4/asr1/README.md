@@ -14,6 +14,7 @@
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_transformer_lm_lm_nuit_valid.loss.ave_asr_model_valid.acc.ave/dev|599|14916|64.1|28.7|7.1|8.3|44.2|92.7|
+|decode_asr_rnn_lm_lm_nuit_valid.loss.ave_asr_model_valid.acc.ave/dev|599|15936|66.9|25.6|7.5|9.8|42.9|93.2|
 
 (lm weight 0.3 for decoding)
 
