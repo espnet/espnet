@@ -198,7 +198,7 @@ fi
 
 
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] ; then 
-    cat data/train/text | perl -pe 's/(\<[^\>\<]+\>)/$1\n/g' | perl -pe 's/(\<[^\>\<]+\>)/\n$1/' | grep ^\<.*\>$ | sort -u > data/nlsyms.txt
+    echo data/train/text | perl -pe 's/(\<[^\>\<]+\>)/$1\n/g' | perl -pe 's/(\<[^\>\<]+\>)/\n$1/' | grep "^\<.*\>$" | sort -u > data/nlsyms.txt
 fi
 
 
