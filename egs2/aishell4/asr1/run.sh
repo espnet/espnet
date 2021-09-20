@@ -6,14 +6,15 @@ set -u
 set -o pipefail
 
 
-asr_config=conf/train_asr_conformer.yaml
-inference_config=conf/decode_asr_rnn.yaml
+
+asr_config=conf/tuning/train_asr_conformer5.yaml
+inference_config=conf/tuning/decode_rnn.yaml
 lm_config=conf/train_lm_transformer.yaml
 use_lm=true
 use_wordlm=false
 
-#pour l'instant je vais mettre les 3 train pour train/dev/test
-# token_type are char and not bpe for chineese ! (and Japaneese)
+
+# token_type are char and not bpe for chineese 
 
 ./asr.sh                                               \
     --lang zh                                          \
