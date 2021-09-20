@@ -47,4 +47,3 @@ jobs:
         run: ./ci/test_integration_espnet1.sh
       - name: test espnet2 integration
         run: ./ci/test_integration_espnet2.sh
-      - uses: codecov/codecov-action@v1
