@@ -1,23 +1,16 @@
 #!/usr/bin/env bash
 
-python="coverage run --append"
-
-touch .coverage
-cwd=$(pwd)
-
-cd ./egs/mini_an4/asr1 || exit 1
-ln -sf ${cwd}/.coverage .
-. path.sh  # source here to avoid undefined variable errors
-
 set -euo pipefail
-cd "${cwd}" || exit 1
+
+source tools/activate_python.sh
+python="coverage run --append"
+cwd=$(pwd)
 
 #### Make sure chainer-independent ####
 python3 -m pip uninstall -y chainer
 
 # [ESPnet2] test asr recipe
 cd ./egs2/mini_an4/asr1 || exit 1
-ln -sf ${cwd}/.coverage .
 echo "==== [ESPnet2] ASR ==="
 ./run.sh --stage 1 --stop-stage 1
 feats_types="raw fbank_pitch"
@@ -45,7 +38,6 @@ cd "${cwd}" || exit 1
 
 # [ESPnet2] test tts recipe
 cd ./egs2/mini_an4/tts1 || exit 1
-ln -sf ${cwd}/.coverage .
 echo "==== [ESPnet2] TTS ==="
 ./run.sh --ngpu 0 --stage 1 --stop-stage 8 --skip-upload false  --train-args "--max_epoch 1" --python "${python}"
 # Remove generated files in order to reduce the disk usage
@@ -65,7 +57,6 @@ cd "${cwd}" || exit 1
 # [ESPnet2] test enh recipe
 if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
     cd ./egs2/mini_an4/enh1 || exit 1
-    ln -sf ${cwd}/.coverage .
     echo "==== [ESPnet2] ENH ==="
     ./run.sh --stage 1 --stop-stage 1 --python "${python}"
     feats_types="raw"
@@ -81,13 +72,12 @@ fi
 # [ESPnet2] test ssl1 recipe
 if ! python3 -c "import fairseq" > /dev/null; then
     echo "Info: installing fairseq and its dependencies:"
-    cd ${MAIN_ROOT}/tools && make fairseq.done || exit 1
+    cd "${cwd}/tools" && make fairseq.done || exit 1
     cd "${cwd}" || exit 1
 fi
 # fairseq only supprot pytorch.version > 1.6.0
 if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.6.0")' &> /dev/null;  then
     cd ./egs2/mini_an4/ssl1 || exit 1
-    ln -sf ${cwd}/.coverage .
     echo "==== [ESPnet2] SSL1/HUBERT ==="
     ./run.sh --ngpu 0 --stage 1 --stop-stage 7 --feats-type "raw" --token_type "word" --skip-upload false --pt-args "--max_epoch=1" --pretrain_start_iter 0 --pretrain_stop_iter 1 --python "${python}"
     # Remove generated files in order to reduce the disk usage
@@ -137,5 +127,6 @@ for d in egs2/TEMPLATE/*; do
 done
 echo "=== report ==="
 
+coverage combine egs2/*/*/.coverage
 coverage report
 coverage xml

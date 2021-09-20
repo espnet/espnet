@@ -35,6 +35,9 @@ jobs:
             chainer-verssion: 6.0.0
             use-conda: false
     steps:
+      - uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
       - uses: actions/checkout@master
       - uses: actions/cache@v1
         with:
@@ -69,8 +72,10 @@ jobs:
       - uses: codecov/codecov-action@v2
         with:
           flags: unittests
-      - name: reset coverage
-        run: rm .coverage
+      - name: coverage erase
+        run: |
+          source tools/activate_python.sh
+          coverage erase
 
       - name: install kaldi
         run: |
@@ -81,16 +86,20 @@ jobs:
       - uses: codecov/codecov-action@v2
         with:
           flags: utils
-      - name: reset coverage
-        run: rm .coverage
+      - name: coverage erase
+        run: |
+          source tools/activate_python.sh
+          coverage erase
 
       - name: test espnet1 integration
         run: ./ci/test_integration_espnet1.sh
       - uses: codecov/codecov-action@v2
         with:
-          flags: integration_espnet2
-      - name: reset coverage
-        run: rm .coverage
+          flags: integration_espnet1
+      - name: coverage erase
+        run: |
+          source tools/activate_python.sh
+          coverage erase
 
       - name: test espnet2 integration
         run: ./ci/test_integration_espnet2.sh
