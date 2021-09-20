@@ -20,17 +20,19 @@ log() {
 
 
 # Github AISHELL4 : https://github.com/felixfuyihui/AISHELL-4.git
-FOLDER=AISHELL-4   # voir à quel endroit le mettre ! 
-URL=https://github.com/felixfuyihui/AISHELL-4.git
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then 
+    FOLDER=git_aishell  
+    URL=https://github.com/DanBerrebbi/AISHELL-4.git
+    # our fork 
 
-if [ ! -d "$FOLDER" ] ; then
-    git clone "$URL" "$FOLDER"
-    log "git successfully downloaded"
+    if [ ! -d "$FOLDER" ] ; then
+        git clone "$URL" "$FOLDER"
+        log "git successfully downloaded"
+    fi
+
+    pip install -r "$FOLDER"/requirements.txt 
+
 fi
-
-#pip install -r "$FOLDER"/requirements.txt   # ATTENTION JE CHANGE LEURS REQUIERMENTS POUR METTRE SENTENCE PIECE 0.1.94 AU LIEU DE 0.1.91 QUI FAIT TOUT BUGUER
-# IDEM POUR TORCH JE MET 1.9, voir le vrai git pour les versions d'origine ! 
-# rappel : attention, j'ai modifié leur Git  --> oui, il faut que je le fork
 
 
 #################################################################
@@ -56,9 +58,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then
 
         # then you have to produce a list of the names of the files located in the "$room_name"/wav/ directory 
         # list should be like : 
-        #/ocean/projects/cis210027p/shared/corpora/AISHELL4/train_L/wav/20200707_L_R001S01C01.flac
-        #/ocean/projects/cis210027p/shared/corpora/AISHELL4/train_L/wav/20200709_L_R002S06C01.flac
-        #/ocean/projects/cis210027p/shared/corpora/AISHELL4/train_L/wav/20200707_L_R001S04C01.flac
+        #/dataset_dir/corpora/aishell4/train_L/wav/20200707_L_R001S01C01.flac
+        #/dataset_dir/corpora/aishell4/train_L/wav/20200709_L_R002S06C01.flac
+        #/dataset_dir/corpora/aishell4/train_L/wav/20200707_L_R001S04C01.flac
         # ...
 
         rm  ${AISHELL4}/$room_name/wav_list.txt
@@ -72,7 +74,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then
 
         # then you have to produce a list of the names of the .TextGrid files located in the "$room_name"/textgrid/ directory 
         # list should be like : 
-        #/ocean/projects/cis210027p/shared/corpora/AISHELL4/train_L/TextGrid/textgrid_list/20200706_L_R001S08C01.TextGrid
+        #/dataset_dir/corpora/aishell4/train_L/TextGrid/textgrid_list/20200706_L_R001S08C01.TextGrid
         # ...
 
         rm ${AISHELL4}/$room_name/TextGrid_list.txt
