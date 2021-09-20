@@ -90,19 +90,19 @@ echo "<blank>" > dummy_token_list
 echo "==== [ESPnet2] Validation configuration files ==="
 if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.6.0")' &> /dev/null;  then
     for f in egs2/*/asr1/conf/train_asr*.yaml; do
-        python3 -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
+        ${python} -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done
     for f in egs2/*/asr1/conf/train_lm*.yaml; do
-        python3 -m espnet2.bin.lm_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
+        ${python} -m espnet2.bin.lm_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done
     for f in egs2/*/tts1/conf/train*.yaml; do
-        python3 -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
+        ${python} -m espnet2.bin.tts_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
     done
     for f in egs2/*/enh1/conf/train*.yaml; do
-        python -m espnet2.bin.enh_train --config "${f}" --iterator_type none --dry_run true --output_dir out
+        ${python} -m espnet2.bin.enh_train --config "${f}" --iterator_type none --dry_run true --output_dir out
     done
     for f in egs2/*/ssl1/conf/train*.yaml; do
-        python -m espnet2.bin.hubert_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
+        ${python} -m espnet2.bin.hubert_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
     done
 fi
 
@@ -127,6 +127,6 @@ for d in egs2/TEMPLATE/*; do
 done
 echo "=== report ==="
 
-coverage combine egs2/*/*/.coverage
+coverage combine egs2/*/*/.coverage .coverage
 coverage report
 coverage xml
