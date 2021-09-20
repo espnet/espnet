@@ -86,6 +86,23 @@ with open(os.path.join(args.data_path, 'testing_list.txt'), 'r') as test_f:
 full_file_list = [os.path.abspath(p) for p in glob.glob(os.path.join(args.data_path, '*', '*.wav'))]
 train_file_list = list(set(full_file_list) - set(dev_file_list) - set(test_file_list))
 
+# UNKOWN is around 18 times as large as any other word
+def filter_file_list(file_list, ratio=18, excluded=WORDS + [BACKGROUND_NOISE]):
+    file_dict = {}
+    for p in file_list:
+        w = p.split('/')[-2]    # word, i.e. folder name
+        if w not in file_dict:
+            file_dict[w] = []
+        file_dict[w].append(p)
+    
+    new_file_list = []
+    for w in file_dict:
+        if w in excluded:
+            new_file_list += file_dict[w]
+        else:
+            new_file_list += sorted(file_dict[w])[::ratio]   # every `ratio` files
+    return new_file_list
+
 for name in ['train', 'dev']:
     if name == 'train':
         file_list = train_file_list
@@ -94,6 +111,9 @@ for name in ['train', 'dev']:
         file_list = dev_file_list
         out_dir = args.dev_dir
     
+    # filter the list to reduce unknown words
+    file_list = filter_file_list(file_list)
+
     with open(
         os.path.join(out_dir, 'text'), 'w'
     ) as text_f, open(
@@ -126,7 +146,7 @@ for name in ['train', 'dev']:
                     print(wav)
                 else:
                     assert wav_rate == SAMPLE_RATE
-                    for start in range(0, wav_data.shape[0] - SAMPLE_RATE, SAMPLE_RATE // 2):
+                    for start in range(0, wav_data.shape[0] - SAMPLE_RATE, SAMPLE_RATE // 9):
                         audio_segment = wav_data[start:start + SAMPLE_RATE]
                         uttid = f'{wav.rstrip(".wav")}_{start:08d}'
                         wavfile.write(
