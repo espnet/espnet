@@ -556,7 +556,10 @@ The five losses can be simultaneously trained and jointly optimize the total los
 <ul class="simple">
 <li><p>Similarly to training with CTC, Transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., –recog_model model.loss.best).</p></li>
 <li><p>There are several differences between MTL and Transducer training/decoding options. The users should refer to <code class="docutils literal notranslate"><span class="pre">espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py</span></code> for an overview and <code class="docutils literal notranslate"><span class="pre">espnet/espnet/nets/pytorch_backend/transducer/arguments</span></code> for all possible arguments.</p></li>
-<li><p>Memory usage during training can be reduced with minor training time augmentation using efficient encoder and decoder output combination <a class="reference external" href="https://arxiv.org/pdf/1909.12415.pdf">Li et al. (2019)</a>. To enable the feature, <code class="docutils literal notranslate"><span class="pre">joint-memory-reduction</span></code> can be set to True in training config.</p></li>
+<li><p>FastEmit regularization <a class="reference external" href="https://arxiv.org/pdf/2010.11148">Yu et al. (2021)</a> is available through <code class="docutils literal notranslate"><span class="pre">--fastemit-lambda</span></code> parameter (Default: 0.0). If you encounter any issue related to an undefined parameter in <code class="docutils literal notranslate"><span class="pre">warp-transducer</span></code>, make sure your repo is up-to-date and re-install warp-transducer module (See <code class="docutils literal notranslate"><span class="pre">installation.md</span></code>)</p></li>
+</ul>
+<hr class="docutils" />
+<ul class="simple">
 <li><p>RNN-decoder pre-initialization using an LM is supported. The LM state dict keys (<code class="docutils literal notranslate"><span class="pre">predictor.*</span></code>) will be matched to AM state dict keys (<code class="docutils literal notranslate"><span class="pre">dec.*</span></code>).</p></li>
 <li><p>Transformer-decoder pre-initialization using a Transformer LM is not supported yet.</p></li>
 </ul>

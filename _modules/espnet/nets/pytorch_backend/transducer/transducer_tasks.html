@@ -151,17 +151,18 @@
         <span class="n">joint_activation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;tanh&quot;</span><span class="p">,</span>
         <span class="n">transducer_loss_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">ctc_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">lm_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">aux_transducer_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">symm_kl_div_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">ctc_loss_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-        <span class="n">lm_loss_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
-        <span class="n">aux_transducer_loss_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
-        <span class="n">symm_kl_div_loss_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
         <span class="n">ctc_loss_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">lm_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">lm_loss_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">lm_loss_smoothing_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">aux_transducer_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">aux_transducer_loss_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
         <span class="n">aux_transducer_loss_mlp_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">320</span><span class="p">,</span>
         <span class="n">aux_trans_loss_mlp_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">lm_loss_smoothing_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">symm_kl_div_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">symm_kl_div_loss_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
+        <span class="n">fastemit_lambda</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">blank_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">ignore_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -179,12 +180,18 @@
 <span class="sd">            lm_loss: Compute LM loss.</span>
 <span class="sd">            aux_transducer_loss: Compute auxiliary transducer loss.</span>
 <span class="sd">            symm_kl_div_loss: Compute KL divergence loss.</span>
-<span class="sd">            transducer_loss_weight: Weight of transducer loss.</span>
+<span class="sd">            transducer_loss_weight: Weight for main transducer loss.</span>
 <span class="sd">            ctc_loss_weight: Weight of CTC loss.</span>
 <span class="sd">            lm_loss_weight: Weight of LM loss.</span>
 <span class="sd">            aux_transducer_loss_weight: Weight of auxiliary transducer loss.</span>
 <span class="sd">            symm_kl_div_loss_weight: Weight of KL divergence loss.</span>
 <span class="sd">            ctc_loss_dropout_rate: Dropout rate for CTC loss inputs.</span>
+<span class="sd">            lm_loss_smoothing_rate: Smoothing rate for LM loss&#39; label smoothing.</span>
+<span class="sd">            aux_transducer_loss_mlp_dim: Hidden dimension for aux. transducer MLP.</span>
+<span class="sd">            aux_trans_loss_mlp_dropout_rate: Dropout rate for aux. transducer MLP.</span>
+<span class="sd">            fastemit_lambda: Regularization parameter for FastEmit.</span>
+<span class="sd">            blank_id: Blank symbol ID.</span>
+<span class="sd">            ignore_id: Padding symbol ID.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -207,6 +214,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">transducer_loss</span> <span class="o">=</span> <span class="n">RNNTLoss</span><span class="p">(</span>
                 <span class="n">blank</span><span class="o">=</span><span class="n">blank_id</span><span class="p">,</span>
                 <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span><span class="p">,</span>
+                <span class="n">fastemit_lambda</span><span class="o">=</span><span class="n">fastemit_lambda</span><span class="p">,</span>
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">ctc_loss</span><span class="p">:</span>

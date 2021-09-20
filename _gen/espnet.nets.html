@@ -10074,7 +10074,7 @@ label: Label ID for LM. (1,)</p>
 <span class="target" id="module-espnet.nets.pytorch_backend.transducer.transducer_tasks"></span><p>Module implementing transducer main and auxiliary tasks.</p>
 <dl class="class">
 <dt id="espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transducer.transducer_tasks.</code><code class="sig-name descname">TransducerTasks</code><span class="sig-paren">(</span><em class="sig-param">encoder_dim: int</em>, <em class="sig-param">decoder_dim: int</em>, <em class="sig-param">joint_dim: int</em>, <em class="sig-param">output_dim: int</em>, <em class="sig-param">joint_activation_type: str = 'tanh'</em>, <em class="sig-param">transducer_loss_weight: float = 1.0</em>, <em class="sig-param">ctc_loss: bool = False</em>, <em class="sig-param">lm_loss: bool = False</em>, <em class="sig-param">aux_transducer_loss: bool = False</em>, <em class="sig-param">symm_kl_div_loss: bool = False</em>, <em class="sig-param">ctc_loss_weight: float = 0.5</em>, <em class="sig-param">lm_loss_weight: float = 1.0</em>, <em class="sig-param">aux_transducer_loss_weight: float = 0.2</em>, <em class="sig-param">symm_kl_div_loss_weight: float = 0.2</em>, <em class="sig-param">ctc_loss_dropout_rate: float = 0.0</em>, <em class="sig-param">aux_transducer_loss_mlp_dim: int = 320</em>, <em class="sig-param">aux_trans_loss_mlp_dropout_rate: float = 0.0</em>, <em class="sig-param">lm_loss_smoothing_rate: float = 0.0</em>, <em class="sig-param">blank_id: int = 0</em>, <em class="sig-param">ignore_id: int = -1</em>, <em class="sig-param">training: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transducer/transducer_tasks.html#TransducerTasks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transducer.transducer_tasks.</code><code class="sig-name descname">TransducerTasks</code><span class="sig-paren">(</span><em class="sig-param">encoder_dim: int</em>, <em class="sig-param">decoder_dim: int</em>, <em class="sig-param">joint_dim: int</em>, <em class="sig-param">output_dim: int</em>, <em class="sig-param">joint_activation_type: str = 'tanh'</em>, <em class="sig-param">transducer_loss_weight: float = 1.0</em>, <em class="sig-param">ctc_loss: bool = False</em>, <em class="sig-param">ctc_loss_weight: float = 0.5</em>, <em class="sig-param">ctc_loss_dropout_rate: float = 0.0</em>, <em class="sig-param">lm_loss: bool = False</em>, <em class="sig-param">lm_loss_weight: float = 1.0</em>, <em class="sig-param">lm_loss_smoothing_rate: float = 0.0</em>, <em class="sig-param">aux_transducer_loss: bool = False</em>, <em class="sig-param">aux_transducer_loss_weight: float = 0.2</em>, <em class="sig-param">aux_transducer_loss_mlp_dim: int = 320</em>, <em class="sig-param">aux_trans_loss_mlp_dropout_rate: float = 0.0</em>, <em class="sig-param">symm_kl_div_loss: bool = False</em>, <em class="sig-param">symm_kl_div_loss_weight: float = 0.2</em>, <em class="sig-param">fastemit_lambda: float = 0.0</em>, <em class="sig-param">blank_id: int = 0</em>, <em class="sig-param">ignore_id: int = -1</em>, <em class="sig-param">training: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transducer/transducer_tasks.html#TransducerTasks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Transducer tasks module.</p>
 <p>Initialize module for transducer tasks.</p>
@@ -10091,12 +10091,18 @@ label: Label ID for LM. (1,)</p>
 <li><p><strong>lm_loss</strong> – Compute LM loss.</p></li>
 <li><p><strong>aux_transducer_loss</strong> – Compute auxiliary transducer loss.</p></li>
 <li><p><strong>symm_kl_div_loss</strong> – Compute KL divergence loss.</p></li>
-<li><p><strong>transducer_loss_weight</strong> – Weight of transducer loss.</p></li>
+<li><p><strong>transducer_loss_weight</strong> – Weight for main transducer loss.</p></li>
 <li><p><strong>ctc_loss_weight</strong> – Weight of CTC loss.</p></li>
 <li><p><strong>lm_loss_weight</strong> – Weight of LM loss.</p></li>
 <li><p><strong>aux_transducer_loss_weight</strong> – Weight of auxiliary transducer loss.</p></li>
 <li><p><strong>symm_kl_div_loss_weight</strong> – Weight of KL divergence loss.</p></li>
 <li><p><strong>ctc_loss_dropout_rate</strong> – Dropout rate for CTC loss inputs.</p></li>
+<li><p><strong>lm_loss_smoothing_rate</strong> – Smoothing rate for LM loss’ label smoothing.</p></li>
+<li><p><strong>aux_transducer_loss_mlp_dim</strong> – Hidden dimension for aux. transducer MLP.</p></li>
+<li><p><strong>aux_trans_loss_mlp_dropout_rate</strong> – Dropout rate for aux. transducer MLP.</p></li>
+<li><p><strong>fastemit_lambda</strong> – Regularization parameter for FastEmit.</p></li>
+<li><p><strong>blank_id</strong> – Blank symbol ID.</p></li>
+<li><p><strong>ignore_id</strong> – Padding symbol ID.</p></li>
 </ul>
 </dd>
 </dl>
