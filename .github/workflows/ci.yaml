@@ -35,9 +35,6 @@ jobs:
             chainer-verssion: 6.0.0
             use-conda: false
     steps:
-      - uses: styfle/cancel-workflow-action@0.9.1
-        with:
-          access_token: ${{ github.token }}
       - uses: actions/checkout@master
       - uses: actions/cache@v1
         with:
@@ -71,7 +68,7 @@ jobs:
         run: ./ci/test_python.sh
       - uses: codecov/codecov-action@v2
         with:
-          flags: unittests
+          flags: test_python
       - name: coverage erase
         run: |
           source tools/activate_python.sh
@@ -85,7 +82,7 @@ jobs:
         run: ./ci/test_utils.sh
       - uses: codecov/codecov-action@v2
         with:
-          flags: utils
+          flags: test_utils
       - name: coverage erase
         run: |
           source tools/activate_python.sh
@@ -95,7 +92,7 @@ jobs:
         run: ./ci/test_integration_espnet1.sh
       - uses: codecov/codecov-action@v2
         with:
-          flags: integration_espnet1
+          flags: test_integration_espnet1
       - name: coverage erase
         run: |
           source tools/activate_python.sh
@@ -105,4 +102,4 @@ jobs:
         run: ./ci/test_integration_espnet2.sh
       - uses: codecov/codecov-action@v2
         with:
-          flags: integration_espnet2
+          flags: test_integration_espnet2
