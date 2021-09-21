@@ -13,6 +13,10 @@ SECONDS=0
 stage=-1
 stop_stage=2
 
+g2p=espeak_ng_hindi
+nj=12
+text_format=phn
+
 log "$0 $*"
 . utils/parse_options.sh
 
@@ -26,10 +30,6 @@ spk="Hindi_TTS_dataset"
 train_set="train_no_dev"
 dev_set="dev"
 eval_set="eval"
-
-g2p=espeak_ng_hindi
-nj=12
-text_format=phn
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data Download"
