@@ -1488,7 +1488,8 @@ This model was trained by ${_creator_name} using ${_task} recipe in [espnet](htt
 ### Demo: How to use in ESPnet2
 
 \`\`\`bash
-cd espnet${_checkout}
+cd espnet
+${_checkout}
 pip install -e .
 cd $(pwd | rev | cut -d/ -f1-3 | rev)
 ./run.sh --skip_data_prep false --skip_train true --download_model ${hf_repo}
@@ -1498,14 +1499,23 @@ $(cat "${asr_exp}"/RESULTS.md)
 
 ## ASR config
 
+<details><summary>expand</summary>
+
 \`\`\`
 $(cat "${asr_exp}"/config.yaml)
 \`\`\`
 
+</details>
+
 ## LM config
+
+<details><summary>expand</summary>
+
 \`\`\`
 $(if ${use_lm}; then cat "${lm_exp}"/config.yaml; else echo NONE; fi)
 \`\`\`
+
+</details>
 EOF
     this_folder=${PWD}
     cd ${dir_repo}
