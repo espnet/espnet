@@ -1,13 +1,8 @@
 """Parallel beam search module for online simulation."""
 
 import logging
-from pathlib import Path
-from typing import List, Tuple, Dict, Any
-
-import yaml
-
 import torch
-
+from typing import List, Tuple, Dict, Any
 from espnet.nets.batch_beam_search import BatchBeamSearch, BatchHypothesis
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.e2e_asr_common import end_detect
@@ -118,10 +113,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             maxlen = x.shape[0]
         else:
             maxlen = max(1, int(maxlenratio * x.size(0)))
-        minlen = int(minlenratio * x.size(0))
-        #logging.info("decoder input length: " + str(x.shape[0]))
-        #logging.info("max output length: " + str(maxlen))
-        #logging.info("min output length: " + str(minlen))
 
         ret = None
         while True:
@@ -140,7 +131,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             logging.debug("  Feature length: {}, current position: {}".format(h.shape[0], self.process_idx))
             if self.encoded_feat_length_limit > 0 and h.shape[0] > self.encoded_feat_length_limit:
                 h = h.narrow(0, h.shape[0] - self.encoded_feat_length_limit, self.encoded_feat_length_limit)
-                #self.running_hyps.states['decoder'] = [ None for _ in self.running_hyps.states['decoder']]
                 
             if self.running_hyps is None:
                 self.running_hyps = self.init_hyp(h)
