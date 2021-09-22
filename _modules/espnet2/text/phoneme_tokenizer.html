@@ -157,6 +157,7 @@
     <span class="s2">&quot;espeak_ng_finnish&quot;</span><span class="p">,</span>
     <span class="s2">&quot;espeak_ng_hungarian&quot;</span><span class="p">,</span>
     <span class="s2">&quot;espeak_ng_dutch&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;espeak_ng_hindi&quot;</span><span class="p">,</span>
     <span class="s2">&quot;g2pk&quot;</span><span class="p">,</span>
     <span class="s2">&quot;g2pk_no_space&quot;</span><span class="p">,</span>
 <span class="p">]</span>
@@ -506,6 +507,13 @@
         <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;espeak_ng_dutch&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">Phonemizer</span><span class="p">(</span>
                 <span class="n">language</span><span class="o">=</span><span class="s2">&quot;nl&quot;</span><span class="p">,</span>
+                <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;espeak&quot;</span><span class="p">,</span>
+                <span class="n">with_stress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">preserve_punctuation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;espeak_ng_hindi&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">Phonemizer</span><span class="p">(</span>
+                <span class="n">language</span><span class="o">=</span><span class="s2">&quot;hi&quot;</span><span class="p">,</span>
                 <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;espeak&quot;</span><span class="p">,</span>
                 <span class="n">with_stress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">preserve_punctuation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
