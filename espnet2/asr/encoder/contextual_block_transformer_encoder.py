@@ -10,7 +10,7 @@ from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.pytorch_backend.transformer.embedding import StreamPositionalEncoding
 from espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer import (
     ContextualBlockEncoderLayer,  # noqa: H301
 )
@@ -72,7 +72,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.0,
         input_layer: Optional[str] = "conv2d",
-        pos_enc_class=PositionalEncoding,
+        pos_enc_class=StreamPositionalEncoding,
         normalize_before: bool = True,
         concat_after: bool = False,
         positionwise_layer_type: str = "linear",
@@ -194,7 +194,6 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             return self.forward_train(xs_pad, ilens, prev_states)
         else:
             return self.forward_infer(xs_pad, ilens, prev_states, is_final)
-            #return self.forward_train2(xs_pad, ilens, prev_states) # Refactored implementation of Emiru's code 
         
     def forward_train(
         self,
@@ -468,10 +467,6 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                 xs_pad = self.after_norm(xs_pad)
             olens = masks.squeeze(1).sum(1)
             return xs_pad, olens, None
-        #elif total_frame_num < self.block_size:
-        #    print("error")
-        #    import sys
-        #sys.exit(1)
 
         # start block processing
         xs_chunk = xs_pad.new_zeros(
@@ -488,7 +483,6 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                 addin = addin.max(1, keepdim=True)
             if self.ctx_pos_enc:
                 addin = self.pos_enc(addin, i + n_processed_blocks)
-            #addin2[:, i:i+1, :] = temp_addin
 
             if prev_addin is None:
                 prev_addin = addin
@@ -523,9 +517,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             ys_chunk = torch.cat(ys_chunks, dim=1)
         else:        
             ys_chunk, mask_online, _, past_encoder_ctx, _,_ = self.encoders(xs_chunk, mask_online, past_encoder_ctx)
-        #print(xs_chunk.shape, mask_online.shape, ys_chunk.shape)
-        #import sys
-        #sys.exit(1)
+            
         # remove addin
         ys_chunk = ys_chunk.narrow(2, 1, self.block_size)
 
@@ -572,117 +564,3 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             }
         
         return ys_pad, olens, next_states
-
-    # Refactored implementation of Emiru's code
-    def forward_train2(
-        self,
-        xs_pad: torch.Tensor,
-        ilens: torch.Tensor,
-        prev_states: torch.Tensor = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Embed positions in tensor.
-
-        Args:
-            xs_pad: input tensor (B, L, D)
-            ilens: input length (B)
-            prev_states: Not to be used now.
-        Returns:
-            position embedded tensor and mask
-        """
-
-        if prev_states is None:
-            prev_addin = None
-        else:
-            prev_addin = prev_states['prev_addin']
-            
-        masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
-        if isinstance(self.embed, Conv2dSubsamplingWOPosEnc):
-            xs_pad, masks = self.embed(xs_pad, masks)
-        elif self.embed is not None:
-            xs_pad = self.embed(xs_pad)
-
-        # create empty output container
-        total_frame_num = xs_pad.size(1)
-
-        past_size = self.block_size - self.hop_size - self.look_ahead
-
-        # block_size could be 0 meaning infinite
-        # apply usual encoder for short sequence
-        if self.block_size == 0 or total_frame_num <= self.block_size:
-            xs_pad, masks, _, _, _ = self.encoders(
-                self.pos_enc(xs_pad), masks, None, None
-            )
-            if self.normalize_before:
-                xs_pad = self.after_norm(xs_pad)
-            olens = masks.squeeze(1).sum(1)
-            return xs_pad, olens, None
-
-        # start block processing
-        block_num = math.ceil(
-            float(total_frame_num - past_size - self.look_ahead) / float(self.hop_size)
-        )
-        bsize = xs_pad.size(0)
-        xs_chunk = xs_pad.new_zeros(
-            bsize, block_num, self.block_size + 2, xs_pad.size(-1)
-        )
-        
-        for i in range(block_num):
-            cur_hop = i * self.hop_size
-            chunk_length = min(self.block_size, total_frame_num - cur_hop)
-            addin = xs_pad.narrow(1, cur_hop, chunk_length)
-            if self.init_average:
-                addin = addin.mean(1, keepdim=True)
-            else:
-                addin = addin.max(1, keepdim=True)
-            if self.ctx_pos_enc:
-                addin = self.pos_enc(addin, i)
-            #addin2[:, i:i+1, :] = temp_addin
-
-            if prev_addin is None:
-                prev_addin = addin
-            xs_chunk[:,i,0] = prev_addin
-            xs_chunk[:,i,-1] = addin
-
-            chunk = self.pos_enc(xs_pad.narrow(1, cur_hop, chunk_length), cur_hop)
-            xs_chunk[:, i, 1:chunk_length+1] = chunk
-
-            prev_addin = addin
-
-            
-        # set up masks
-        mask_online = xs_pad.new_zeros(
-            xs_pad.size(0), block_num, self.block_size + 2, self.block_size + 2
-        )
-        mask_online.narrow(2, 1, self.block_size + 1).narrow(
-            3, 0, self.block_size + 1
-        ).fill_(1)
-
-        # forward
-        ys_chunk, mask_online, _, _, _ = self.encoders(xs_chunk, mask_online, xs_chunk)
-
-        # remove addin
-        ys_chunk = ys_chunk.narrow(2, 1, self.block_size)
-        
-        ys_pad = xs_pad.new_zeros(xs_pad.size())
-        offset = self.block_size - self.look_ahead - self.hop_size
-        for i in range(block_num):
-            if i == 0:
-                ys_pad[:, 0:offset] = ys_chunk[:,i,0:offset]
-                
-            cur_hop=offset+i*self.hop_size
-            if i != block_num-1:
-                chunk_length = min(self.hop_size, total_frame_num-cur_hop)
-            else:
-                chunk_length = total_frame_num-cur_hop
-            ys_pad[:, cur_hop:cur_hop+chunk_length] = ys_chunk[
-                    :, i, offset:offset+chunk_length
-            ]
-            
-        if self.normalize_before:
-            ys_pad = self.after_norm(ys_pad)
-
-        olens = masks.squeeze(1).sum(1)
-
-        next_states = {"prev_addin": prev_addin}
-        
-        return ys_pad, olens, None
