@@ -66,8 +66,8 @@ See the following pages before asking the question:
     --n_fft 2048 \
     --n_shift 512 \
     --win_length null \
-    --dumpdir dump/44.1k \
-    --expdir exp/44.1k \
+    --dumpdir dump/44k \
+    --expdir exp/44k \
     --tts_task gan_tts \
     --feats_extract linear_spectrogram \
     --feats_normalize none \

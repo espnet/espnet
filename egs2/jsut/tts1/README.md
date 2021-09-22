@@ -79,8 +79,8 @@ See the following pages before asking the question:
     --fs 44100 \
     --n_fft 2048 \
     --n_shift 512 \
-    --dumpdir dump/44.1k \
-    --expdir exp/44.1k
+    --dumpdir dump/44k \
+    --expdir exp/44k
     --win_length null \
     --tts_task gan_tts \
     --feats_extract linear_spectrogram \
