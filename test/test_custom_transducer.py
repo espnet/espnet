@@ -631,4 +631,4 @@ def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
     )
 
     with torch.no_grad():
-        nbest = model.recognize(feats[0, : feats_len[0]].numpy(), beam_search)
+        model.recognize(feats[0, : feats_len[0]].numpy(), beam_search)
