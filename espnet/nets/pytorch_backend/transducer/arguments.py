@@ -275,6 +275,12 @@ def add_transducer_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         default=True,
         help="Normalize transducer scores by length",
     )
+    group.add_argument(
+        "--fastemit-lambda",
+        default=0.0,
+        type=float,
+        help="Regularization parameter for FastEmit (https://arxiv.org/abs/2010.11148)",
+    )
 
     return group
 

@@ -38,6 +38,7 @@ try:
     params.extend(["espeak_ng_hungarian"])
     params.extend(["espeak_ng_dutch"])
     params.extend(["espeak_ng_english_us_vits"])
+    params.extend(["espeak_ng_hindi"])
     del phonemizer
 except ImportError:
     pass
@@ -353,6 +354,28 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
     elif phoneme_tokenizer.g2p_type == "espeak_ng_dutch":
         input = "Hallo Wereld."
         output = ["h", "ˈɑ", "l", "oː", "ʋ", "ˈɪː", "r", "ə", "l", "t", "."]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_hindi":
+        input = "नमस्ते दुनिया"
+        output = [
+            "n",
+            "ə",
+            "m",
+            "ˈ",
+            "ʌ",
+            "s",
+            "t",
+            "e",
+            "ː",
+            "d",
+            "ˈ",
+            "ʊ",
+            "n",
+            "ɪ",
+            "j",
+            "ˌ",
+            "a",
+            "ː",
+        ]
     elif phoneme_tokenizer.g2p_type == "g2pk":
         input = "안녕하세요 세계입니다."
         output = [
