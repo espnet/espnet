@@ -14,9 +14,7 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 from typing import List
 
-from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online import BatchBeamSearchOnline
-from espnet.nets.beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
@@ -35,7 +33,6 @@ from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 from espnet2.asr.encoder.contextual_block_transformer_encoder import ContextualBlockTransformerEncoder
-from espnet2.asr.encoder.contextual_block_conformer_encoder import ContextualBlockConformerEncoder
 
 class Speech2TextStreaming:
     """Speech2TextStreaming class
@@ -80,7 +77,7 @@ class Speech2TextStreaming:
         )
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
-        assert isinstance(asr_model.encoder, ContextualBlockTransformerEncoder) or isinstance(asr_model.encoder, ContextualBlockConformerEncoder)
+        assert isinstance(asr_model.encoder, ContextualBlockTransformerEncoder)
         
         decoder = asr_model.decoder
         ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
@@ -110,9 +107,9 @@ class Speech2TextStreaming:
         assert 'look_ahead' in asr_train_args.encoder_conf
         assert 'hop_size' in asr_train_args.encoder_conf
         assert 'block_size' in asr_train_args.encoder_conf
-        look_ahead = asr_train_args.encoder_conf['look_ahead']
-        hop_size   = asr_train_args.encoder_conf['hop_size']
-        block_size = asr_train_args.encoder_conf['block_size']
+        # look_ahead = asr_train_args.encoder_conf['look_ahead']
+        # hop_size   = asr_train_args.encoder_conf['hop_size']
+        # block_size = asr_train_args.encoder_conf['block_size']
         
         assert batch_size == 1
         
