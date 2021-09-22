@@ -2,12 +2,10 @@
 
 python="coverage run --append"
 
-touch .coverage
 cwd=$(pwd)
 
 # test asr recipe
 cd ./egs/mini_an4/asr1 || exit 1
-ln -sf ${cwd}/.coverage .
 . path.sh  # source here to avoid undefined variable errors
 
 set -euo pipefail
@@ -98,7 +96,6 @@ cd ${cwd} || exit 1
 
 # test asr_mix recipe
 cd ./egs/mini_an4/asr_mix1 || exit 1
-ln -sf ${cwd}/.coverage .
 
 echo "==== ASR Mix (backend=pytorch, model=rnn) ==="
 ./run.sh --python "${python}" --train-config conf/train_multispkr.yaml
@@ -110,7 +107,6 @@ cd "${cwd}" || exit 1
 
 # test st recipe
 cd ./egs/mini_an4/st1 || exit 1
-ln -sf ${cwd}/.coverage .
 
 echo "==== ST (backend=pytorch) ==="
 ./run.sh --python "${python}"
@@ -146,7 +142,6 @@ cd "${cwd}" || exit 1
 
 # test mt recipe
 cd ./egs/mini_an4/mt1 || exit 1
-ln -sf ${cwd}/.coverage .
 
 echo "==== MT (backend=pytorch) ==="
 ./run.sh --python "${python}"
@@ -164,7 +159,6 @@ cd "${cwd}" || exit 1
 
 # test tts recipe
 cd ./egs/mini_an4/tts1 || exit 1
-ln -sf ${cwd}/.coverage .
 
 echo "==== TTS (backend=pytorch) ==="
 ./run.sh --python "${python}"
@@ -174,5 +168,6 @@ cd "${cwd}" || exit 1
 
 echo "=== report ==="
 
+coverage combine egs/*/*/.coverage
 coverage report
 coverage xml
