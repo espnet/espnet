@@ -166,7 +166,7 @@ Options:
     --tts_stats_dir # Specify the directory path for statistics.
                     # If empty, automatically decided (default="${tts_stats_dir}").
     --num_splits    # Number of splitting for tts corpus (default="${num_splits}").
-    --teacher_dumpdir       # Directory of teacher outputs (needed if tts=fastspeech).
+    --teacher_dumpdir       # Directory of teacher outputs (needed if tts=fastspeech, default="${teacher_dumpdir}").
     --write_collected_feats # Whether to dump features in statistics collection (default="${write_collected_feats}").
     --tts_task              # TTS task {tts or gan_tts} (default="${tts_task}").
 
