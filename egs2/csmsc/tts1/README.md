@@ -29,12 +29,56 @@ See the following pages before asking the question:
 ## Pretrained Models
 
 ### csmsc_tts_train_vits_raw_phn_pypinyin_g2p_phone_train.total_count.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+./run.sh \
+    --stage 1 \
+    --ngpu 4 \
+    --fs 22050 \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --dumpdir dump/22k \
+    --expdir exp/22k \
+    --win_length null \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
 - 22.05khz / 1M iters / Average the last 10 epoch models
 - https://zenodo.org/record/5499120
 
 ### csmsc_tts_train_full_band_vits_raw_phn_pypinyin_g2p_phone_train.total_count.ave
-- 44.1khz / 0.5M iters / Average the last 10 epoch models
-- https://zenodo.org/record/5443852
+
+<details><summary>Command</summary><div>
+
+```sh
+./run.sh \
+    --stage 1 \
+    --ngpu 4 \
+    --fs 44100 \
+    --n_fft 2048 \
+    --n_shift 512 \
+    --win_length null \
+    --dumpdir dump/44.1k \
+    --expdir exp/44.1k \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_full_band_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
+- 44.1khz / 1M iters / Average the last 10 epoch models
+- https://zenodo.org/record/5521404
 
 
 # SECOND RESULTS
