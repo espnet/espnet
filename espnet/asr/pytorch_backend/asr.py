@@ -986,10 +986,7 @@ def recog(args):
         q_config = {torch.nn.Linear}
 
     if args.quantize_asr_model:
-        assert (
-            "transducer" not in train_args.model_module
-        ), "Quantization of transducer model is not supported yet."
-        logging.info("Use quantized asr model for decoding")
+        logging.info("Use a quantized ASR model for decoding.")
 
         dtype = getattr(torch, args.quantize_dtype)
         model = torch.quantization.quantize_dynamic(model, q_config, dtype=dtype)
@@ -1099,6 +1096,7 @@ def recog(args):
             score_norm=args.score_norm,
             softmax_temperature=args.softmax_temperature,
             nbest=args.nbest,
+            quantization=args.quantize_asr_model,
         )
 
     if args.batchsize == 0:
