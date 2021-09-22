@@ -16,7 +16,7 @@ FOLDER=git_aishell
 
  . utils/parse_options.sh || exit 1;
 
-mkdir ${AISHELL4}
+mkdir -p ${AISHELL4}
 if [ -z "${AISHELL4}" ]; then
     log "Fill the value of 'AISHELL4' of db.sh"
     exit 1
@@ -109,12 +109,9 @@ fi
 #################################################################
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then 
-    mkdir ${AISHELL4}/full_train
-    rm ${AISHELL4}/full_train/wav_list.txt
-    rm ${AISHELL4}/full_train/TextGrid_list.txt
 
-    for r in "train_L" "train_M" "train_S" 
-    do 
+    mkdir -p ${AISHELL4}/full_train
+    for r in train_L train_M train_S ; do 
         cat ${AISHELL4}/$r/TextGrid_list.txt >> ${AISHELL4}/full_train/TextGrid_list.txt
         cat ${AISHELL4}/$r/wav_list.txt >> ${AISHELL4}/full_train/wav_list.txt
     done
@@ -136,7 +133,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] ; then
 
     log "generating asr training data ..."
     log "(this can take some time)"
-    rm -rf "$output_folder"
  
     python "$FOLDER"/data_preparation/generate_asr_trainingdata.py  --output_dir "$output_folder" --mode train --aishell4_wav_list "$wav_list_aishell4" --textgrid_list "$text_grid_aishell4" || log "ca a pas marché" ;
 
@@ -153,7 +149,6 @@ fi
 
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] ; then 
-    rm $output_folder/train/wav.scp
     FILES="$output_folder/train/wav/*"
     for f in $FILES
     do
@@ -169,7 +164,6 @@ fi
 #################################################################
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] ; then 
-    rm $output_folder/train/utt2spk
     FILES="$output_folder/train/wav/*"
     for f in $FILES
     do
@@ -195,7 +189,6 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] ; then
     log "sorting files ... "
     sort data/train/utt2spk -o data/train/utt2spk
     # creating spk2utt from utt2spk
-    rm $output_folder/train/spk2utt
     utils/utt2spk_to_spk2utt.pl $output_folder/train/utt2spk > $output_folder/train/spk2utt
     sort data/train/wav.scp -o data/train/wav.scp
     sort data/train/text -o data/train/text
@@ -204,7 +197,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] ; then
     # then, removing empty lines
 
     log "fixing files ..."
-    ./utils/fix_data_dir.sh data/train
+    ./utils/fix_data_dir.sh data/train/
     log "files fixed"
 fi
 
@@ -236,8 +229,8 @@ fi
 if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] ; then 
     log "selecting lines for train, dev and test ..."
 
-    utils/subset_data_dir.sh --first data/train 600 data/dev
-    n=$(($(wc -l < data/train/text) - 600))
+    utils/subset_data_dir.sh --first data/train 1000 data/dev
+    n=$(($(wc -l < data/train/text) - 1000))
     utils/subset_data_dir.sh --last data/train ${n} data/train_nodev
 
 fi
@@ -251,7 +244,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] ; then
     sort data/train_nodev/wav.scp -o data/train_nodev/wav.scp
     sort data/train_nodev/text -o data/train_nodev/text
     log "files sorted"
-    log "test ..."
+    log "dev ..."
     sort data/dev/utt2spk -o data/dev/utt2spk
     utils/utt2spk_to_spk2utt.pl data/dev/utt2spk > data/dev/spk2utt
     sort data/dev/wav.scp -o data/dev/wav.scp
@@ -296,3 +289,71 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] ; then
 
 fi 
 
+
+
+
+
+##########################
+##       test set 
+##########################
+
+
+wav_list_aishell4=${AISHELL4}/test/wav_list.txt
+text_grid_aishell4=${AISHELL4}/test/TextGrid_list.txt
+
+output_folder=$PWD/data
+
+if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] ; then 
+
+    log "generating asr training data ..."
+    log "(this can take some time)"
+ 
+    python "$FOLDER"/data_preparation/generate_asr_trainingdata.py  --output_dir "$output_folder"/test --mode train --aishell4_wav_list "$wav_list_aishell4" --textgrid_list "$text_grid_aishell4" || log "ca a pas marché" ;
+
+    log "asr training data generated."
+
+    mv data/test/train/* data/test/
+    rm -r data/test/train
+
+fi
+ 
+
+
+if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] ; then 
+    FILES="$output_folder/test/wav/*"
+    for f in $FILES
+    do
+        g=$(echo $f | cut -d'/' -f 13 | cut -d'.' -f 1) 
+        echo "$g" "$f" >> $output_folder/test/wav.scp
+    done
+
+fi
+
+
+if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] ; then 
+    FILES="$output_folder/test/wav/*"
+    for f in $FILES
+    do
+        g=$(echo $f | cut -d'/' -f 13 | cut -d'.' -f 1) 
+        echo "$g" "$g"  >> $output_folder/test/utt2spk  # we put speaker_id = utt_id
+    done
+
+
+fi 
+
+
+if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] ; then
+    log "sorting files ... "
+    sort data/test/utt2spk -o data/test/utt2spk
+    # creating spk2utt from utt2spk
+    utils/utt2spk_to_spk2utt.pl $output_folder/test/utt2spk > $output_folder/test/spk2utt
+    sort data/test/wav.scp -o data/test/wav.scp
+    sort data/test/text -o data/test/text
+    log "files sorted"
+
+    # then, removing empty lines
+
+    log "fixing files ..."
+    ./utils/fix_data_dir.sh data/test/
+    log "files fixed"
+fi
