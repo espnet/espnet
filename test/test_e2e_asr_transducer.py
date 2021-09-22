@@ -391,3 +391,64 @@ def test_invalid_aux_transducer_loss_enc_layers():
 
     with pytest.raises(ValueError):
         E2E(idim, odim, train_args)
+
+
+@pytest.mark.parametrize(
+    "train_dic",
+    [
+        {},
+        {"etype": "vggblstm"},
+    ],
+)
+@pytest.mark.parametrize(
+    "recog_dic",
+    [
+        {},
+        {"beam_size": 2, "search_type": "default"},
+        {"beam_size": 2, "search_type": "alsd"},
+        {"beam_size": 2, "search_type": "tsd"},
+        {"beam_size": 2, "search_type": "nsc"},
+        {"beam_size": 2, "search_type": "maes"},
+    ],
+)
+@pytest.mark.parametrize(
+    "quantize_dic",
+    [
+        {"mod": {torch.nn.Linear}, "dtype": torch.qint8},
+        {"mod": {torch.nn.Linear}, "dtype": torch.float16},
+        {"mod": {torch.nn.LSTM}, "dtype": torch.qint8},
+        {"mod": {torch.nn.LSTM}, "dtype": torch.float16},
+        {"mod": {torch.nn.Linear, torch.nn.LSTM}, "dtype": torch.qint8},
+        {"mod": {torch.nn.Linear, torch.nn.LSTM}, "dtype": torch.float16},
+    ],
+)
+def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
+    idim, odim, ilens, olens = get_default_scope_inputs()
+
+    train_args = get_default_train_args(**train_dic)
+    recog_args = get_default_recog_args(**recog_dic)
+
+    model = E2E(idim, odim, train_args)
+    model = torch.quantization.quantize_dynamic(
+        model, quantize_dic["mod"], dtype=quantize_dic["dtype"]
+    )
+
+    beam_search = BeamSearchTransducer(
+        decoder=model.dec,
+        joint_network=model.transducer_tasks.joint_network,
+        beam_size=recog_args.beam_size,
+        lm=recog_args.rnnlm,
+        lm_weight=recog_args.lm_weight,
+        search_type=recog_args.search_type,
+        max_sym_exp=recog_args.max_sym_exp,
+        u_max=recog_args.u_max,
+        nstep=recog_args.nstep,
+        prefix_alpha=recog_args.prefix_alpha,
+        score_norm=recog_args.score_norm_transducer,
+        quantization=True,
+    )
+
+    with torch.no_grad():
+        in_data = np.random.randn(20, idim)
+
+        model.recognize(in_data, beam_search)
