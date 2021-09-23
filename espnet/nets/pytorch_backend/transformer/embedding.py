@@ -238,8 +238,9 @@ class RelPositionalEncoding(torch.nn.Module):
         ]
         return self.dropout(x), self.dropout(pos_emb)
 
+
 class StreamPositionalEncoding(torch.nn.Module):
-    """ Streaming Positional encoding.
+    """Streaming Positional encoding.
 
     Args:
         d_model (int): Embedding dimension.
@@ -276,7 +277,7 @@ class StreamPositionalEncoding(torch.nn.Module):
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0)
         self.pe = pe.to(device=device, dtype=dtype)
-        
+
     def forward(self, x: torch.Tensor, start_idx: int = 0):
         """Add positional encoding.
 
@@ -287,6 +288,6 @@ class StreamPositionalEncoding(torch.nn.Module):
             torch.Tensor: Encoded tensor (batch, time, `*`).
 
         """
-        self.extend_pe(x.size(1)+start_idx, x.device, x.dtype)
-        x = x * self.xscale + self.pe[:, start_idx: start_idx+x.size(1)]
+        self.extend_pe(x.size(1) + start_idx, x.device, x.dtype)
+        x = x * self.xscale + self.pe[:, start_idx : start_idx + x.size(1)]
         return self.dropout(x)
