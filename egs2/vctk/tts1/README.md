@@ -30,8 +30,60 @@ See the following pages before asking the question:
 ## Pretrained Models
 
 ### vctk_tts_train_multi_spk_vits_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
-- 22.05 kHz / 1M iters / Use speaker ID (one-hot)
+
+<details><summary>Command</summary><div>
+
+```sh
+./run.sh \
+    --stage 1 \
+    --use_sid true \
+    --min_wav_duration 0.38 \
+    --ngpu 4 \
+    --fs 22050 \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --dumpdir dump/22k \
+    --expdir exp/22k \
+    --win_length null \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_full_band_multi_spk_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
+- 22.05 kHz / 1M iters / Use speaker ID (one-hot) / Averaged the last 10 epochs
 - https://zenodo.org/record/5500759
+
+### vctk_tts_train_full_band_multi_spk_vits_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+./run.sh \
+    --stage 1 \
+    --use_sid true \
+    --min_wav_duration 0.38 \
+    --ngpu 4 \
+    --fs 44100 \
+    --n_fft 2048 \
+    --n_shift 512 \
+    --dumpdir dump/44k \
+    --expdir exp/44k \
+    --win_length null \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_full_band_multi_spk_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
+- 44.1 kHz / 1M iters / Use speaker ID (one-hot) / Averaged the last 10 epochs
+- https://zenodo.org/record/5521431
 
 
 # SECOND RESULTS

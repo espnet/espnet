@@ -15,6 +15,49 @@ See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
+
+# SECOND RESULTS
+
+- Initial VITS model
+
+## Environments
+
+- date: `Wed Sep 22 22:46:46 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a2`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `628b46282537ce532d613d6bafb75e826e8455de`
+  - Commit date: `Wed Sep 8 13:30:50 2021 +0900`
+
+### libritts_tts_train_xvector_vits_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+./run.sh \
+    --stage 1 \
+    --min_wav_duration 0.38 \
+    --use_xvector true \
+    --ngpu 4 \
+    --fs 22050 \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --win_length null \
+    --dumpdir dump/22k \
+    --expdir exp/22k \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_xvector_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
+- 22.05 kHz / 1M iters / Use x-vector / Average the last 10 epochs
+- https://zenodo.org/record/5521416
+
+
 # FIRST RESULTS
 
 ## Environments
