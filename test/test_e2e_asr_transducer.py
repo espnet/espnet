@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import argparse
+from distutils.version import LooseVersion
 import tempfile
 
 import json
@@ -14,6 +15,8 @@ from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.nets_utils import pad_list
+
+is_torch_1_5_plus = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 
 
 def get_default_train_args(**kwargs):
@@ -428,9 +431,14 @@ def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
     train_args = get_default_train_args(**train_dic)
     recog_args = get_default_recog_args(**recog_dic)
 
+    if not is_torch_1_5_plus:
+        q_dtype = torch.qint8
+    else:
+        q_dtype = quantize_dic["mod"]
+
     model = E2E(idim, odim, train_args)
     model = torch.quantization.quantize_dynamic(
-        model, quantize_dic["mod"], dtype=quantize_dic["dtype"]
+        model, q_dtype, dtype=quantize_dic["dtype"]
     )
 
     beam_search = BeamSearchTransducer(
