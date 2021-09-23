@@ -58,13 +58,26 @@ class ContextualBlockEncoderLayer(nn.Module):
         if self.concat_after:
             self.concat_linear = nn.Linear(size + size, size)
 
-    def forward(self, x, mask, past_ctx=None, next_ctx=None, is_short_segment=False, layer_idx=0, cache=None):
-        if self.training or x.size(0)>1:
+    def forward(
+        self,
+        x,
+        mask,
+        past_ctx=None,
+        next_ctx=None,
+        is_short_segment=False,
+        layer_idx=0,
+        cache=None,
+    ):
+        if self.training or x.size(0) > 1:
             return self.forward_train(x, mask, past_ctx, next_ctx, layer_idx, cache)
         else:
-            return self.forward_infer(x, mask, past_ctx, next_ctx, is_short_segment, layer_idx, cache)
+            return self.forward_infer(
+                x, mask, past_ctx, next_ctx, is_short_segment, layer_idx, cache
+            )
 
-    def forward_train(self, x, mask, past_ctx=None, next_ctx=None, layer_idx=0, cache=None):
+    def forward_train(
+        self, x, mask, past_ctx=None, next_ctx=None, layer_idx=0, cache=None
+    ):
         """Compute encoded features.
 
         Args:
@@ -143,7 +156,16 @@ class ContextualBlockEncoderLayer(nn.Module):
 
         return x, mask, next_ctx, next_ctx, layer_idx
 
-    def forward_infer(self, x, mask, past_ctx=None, next_ctx=None, is_short_segment=False, layer_idx=0, cache=None):
+    def forward_infer(
+        self,
+        x,
+        mask,
+        past_ctx=None,
+        next_ctx=None,
+        is_short_segment=False,
+        layer_idx=0,
+        cache=None,
+    ):
         """Compute encoded features.
 
         Args:
@@ -166,11 +188,8 @@ class ContextualBlockEncoderLayer(nn.Module):
         # if layer_idx == 0, next_ctx has to be None
         if layer_idx == 0:
             assert next_ctx is None
-            next_ctx = x.new_zeros(
-                nbatch, self.total_layer_num, x.size(-1)
-            )
+            next_ctx = x.new_zeros(nbatch, self.total_layer_num, x.size(-1))
 
-        
         # reshape ( nbatch, nblock, block_size + 2, dim )
         #     -> ( nbatch * nblock, block_size + 2, dim )
         x = x.view(-1, x.size(-2), x.size(-1))
@@ -188,7 +207,6 @@ class ContextualBlockEncoderLayer(nn.Module):
             x_q = x[:, -1:, :]
             residual = residual[:, -1:, :]
             mask = None if mask is None else mask[:, -1:, :]
-            
 
         if self.concat_after:
             x_concat = torch.cat((x, self.self_attn(x_q, x, x, mask)), dim=-1)
@@ -223,10 +241,10 @@ class ContextualBlockEncoderLayer(nn.Module):
                 x[:, 0, 0, :] = x[:, 0, -1, :]
             else:
                 x[:, 0, 0, :] = past_ctx[:, layer_idx, :]
-            if nblock > 1: x[:, 1:, 0, :] = x[:, 0:-1, -1, :]
+            if nblock > 1:
+                x[:, 1:, 0, :] = x[:, 0:-1, -1, :]
             next_ctx[:, layer_idx, :] = x[:, -1, -1, :]
         else:
             next_ctx = None
-        
-        return x, mask, past_ctx, next_ctx, is_short_segment, layer_idx+1
 
+        return x, mask, past_ctx, next_ctx, is_short_segment, layer_idx + 1
