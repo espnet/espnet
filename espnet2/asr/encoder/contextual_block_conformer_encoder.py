@@ -161,7 +161,7 @@ class ContextualBlockConformerEncoder(AbsEncoder):
             raise NotImplementedError("Support only linear or conv1d.")
         convolution_layer = ConvolutionModule
         convolution_layer_args = (output_size, cnn_module_kernel, activation)
-        
+
         self.encoders = repeat(
             num_blocks,
             lambda lnum: ContextualBlockEncoderLayer(
@@ -196,7 +196,7 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
-        is_final = True
+        is_final=True,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Embed positions in tensor.
 
@@ -207,7 +207,7 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         Returns:
             position embedded tensor and mask
         """
-        if self.training or xs_pad.size(0)>1:
+        if self.training or xs_pad.size(0) > 1:
             return self.forward_train(xs_pad, ilens, prev_states)
         else:
             return self.forward_infer(xs_pad, ilens, prev_states, is_final)
@@ -369,7 +369,7 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
-        is_final: bool = True
+        is_final: bool = True,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Embed positions in tensor.
 
@@ -389,11 +389,11 @@ class ContextualBlockConformerEncoder(AbsEncoder):
             past_encoder_ctx = None
             masks_buffer = None
         else:
-            prev_addin = prev_states['prev_addin']
-            buffer_before_downsampling = prev_states['buffer_before_downsampling']
-            ilens_buffer = prev_states['ilens_buffer'] 
-            buffer_after_downsampling = prev_states['buffer_after_downsampling']
-            masks_buffer = prev_states['masks_buffer']
+            prev_addin = prev_states["prev_addin"]
+            buffer_before_downsampling = prev_states["buffer_before_downsampling"]
+            ilens_buffer = prev_states["ilens_buffer"]
+            buffer_after_downsampling = prev_states["buffer_after_downsampling"]
+            masks_buffer = prev_states["masks_buffer"]
             n_processed_blocks = prev_states["n_processed_blocks"]
             past_encoder_ctx = prev_states["past_encoder_ctx"]
         bsize = xs_pad.size(0)
@@ -403,32 +403,38 @@ class ContextualBlockConformerEncoder(AbsEncoder):
             xs_pad = torch.cat([buffer_before_downsampling, xs_pad], dim=1)
             ilens += ilens_buffer
 
-
-        #print(xs_pad.shape, ilens, is_final)
+        # print(xs_pad.shape, ilens, is_final)
         if is_final:
             buffer_before_downsampling = None
         else:
             n_samples = xs_pad.size(1) // 6 - 1
             if n_samples < 2:
                 next_states = {
-                    "prev_addin":prev_addin,
+                    "prev_addin": prev_addin,
                     "buffer_before_downsampling": xs_pad,
                     "ilens_buffer": ilens,
                     "buffer_after_downsampling": buffer_after_downsampling,
                     "masks_buffer": masks_buffer,
                     "n_processed_blocks": n_processed_blocks,
-                    "past_encoder_ctx": past_encoder_ctx
+                    "past_encoder_ctx": past_encoder_ctx,
                 }
-                return xs_pad.new_zeros(bsize, 0, self._output_size), \
-                    xs_pad.new_zeros(bsize), next_states
-        
-            n_res_samples = xs_pad.size(1) % 6 + 12
-            buffer_before_downsampling = xs_pad.narrow(1, xs_pad.size(1)-n_res_samples,n_res_samples)
-            xs_pad = xs_pad.narrow(1, 0, n_samples*6)
+                return (
+                    xs_pad.new_zeros(bsize, 0, self._output_size),
+                    xs_pad.new_zeros(bsize),
+                    next_states,
+                )
 
-            ilens_buffer = ilens.new_full([1], dtype=torch.long, fill_value=n_res_samples)
+            n_res_samples = xs_pad.size(1) % 6 + 12
+            buffer_before_downsampling = xs_pad.narrow(
+                1, xs_pad.size(1) - n_res_samples, n_res_samples
+            )
+            xs_pad = xs_pad.narrow(1, 0, n_samples * 6)
+
+            ilens_buffer = ilens.new_full(
+                [1], dtype=torch.long, fill_value=n_res_samples
+            )
             ilens = ilens.new_full([1], dtype=torch.long, fill_value=n_samples * 6)
-            
+
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
         if isinstance(self.embed, Conv2dSubsamplingWOPosEnc):
             xs_pad, masks = self.embed(xs_pad, masks)
@@ -442,43 +448,49 @@ class ContextualBlockConformerEncoder(AbsEncoder):
             masks = torch.cat([masks_buffer, masks], dim=2)
 
         total_frame_num = xs_pad.size(1)
-        
+
         if is_final:
             past_size = self.block_size - self.hop_size - self.look_ahead
             block_num = math.ceil(
-                float(total_frame_num - past_size - self.look_ahead) / float(self.hop_size)
+                float(total_frame_num - past_size - self.look_ahead)
+                / float(self.hop_size)
             )
             buffer_after_downsampling = None
         else:
             if total_frame_num <= self.block_size:
                 next_states = {
-                    "prev_addin":prev_addin,
+                    "prev_addin": prev_addin,
                     "buffer_before_downsampling": buffer_before_downsampling,
                     "ilens_buffer": ilens_buffer,
                     "buffer_after_downsampling": xs_pad,
                     "masks_buffer": masks,
                     "n_processed_blocks": n_processed_blocks,
-                    "past_encoder_ctx": past_encoder_ctx
+                    "past_encoder_ctx": past_encoder_ctx,
                 }
-                return xs_pad.new_zeros(bsize, 0, self._output_size), \
-                    xs_pad.new_zeros(bsize), next_states
+                return (
+                    xs_pad.new_zeros(bsize, 0, self._output_size),
+                    xs_pad.new_zeros(bsize),
+                    next_states,
+                )
 
             overlap_size = self.block_size - self.hop_size
-            block_num = max(0,xs_pad.size(1)-overlap_size)//self.hop_size
+            block_num = max(0, xs_pad.size(1) - overlap_size) // self.hop_size
             res_frame_num = xs_pad.size(1) - self.hop_size * block_num
-            buffer_after_downsampling = xs_pad.narrow(1, xs_pad.size(1)-res_frame_num, res_frame_num)
+            buffer_after_downsampling = xs_pad.narrow(
+                1, xs_pad.size(1) - res_frame_num, res_frame_num
+            )
             xs_pad = xs_pad.narrow(1, 0, block_num * self.hop_size + overlap_size)
-            masks_buffer = masks.narrow(2, xs_pad.size(1)-res_frame_num, res_frame_num)
+            masks_buffer = masks.narrow(
+                2, xs_pad.size(1) - res_frame_num, res_frame_num
+            )
             masks = masks.narrow(2, 0, block_num * self.hop_size + overlap_size)
 
         # block_size could be 0 meaning infinite
         # apply usual encoder for short sequence
         assert self.block_size > 0
-        if n_processed_blocks ==0 and total_frame_num <= self.block_size and is_final:
+        if n_processed_blocks == 0 and total_frame_num <= self.block_size and is_final:
             xs_chunk = self.pos_enc(xs_pad).unsqueeze(1)
-            xs_pad, masks, _, _, _, _ = self.encoders(
-                xs_chunk, masks, None, None, True
-            )
+            xs_pad, masks, _, _, _, _ = self.encoders(xs_chunk, masks, None, None, True)
             xs_pad = xs_pad.squeeze(0)
             if self.normalize_before:
                 xs_pad = self.after_norm(xs_pad)
@@ -489,7 +501,7 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         xs_chunk = xs_pad.new_zeros(
             bsize, block_num, self.block_size + 2, xs_pad.size(-1)
         )
-        
+
         for i in range(block_num):
             cur_hop = i * self.hop_size
             chunk_length = min(self.block_size, total_frame_num - cur_hop)
@@ -503,16 +515,18 @@ class ContextualBlockConformerEncoder(AbsEncoder):
 
             if prev_addin is None:
                 prev_addin = addin
-            xs_chunk[:,i,0] = prev_addin
-            xs_chunk[:,i,-1] = addin
+            xs_chunk[:, i, 0] = prev_addin
+            xs_chunk[:, i, -1] = addin
 
-            chunk = self.pos_enc(xs_pad.narrow(1, cur_hop, chunk_length), cur_hop+self.hop_size*n_processed_blocks)
+            chunk = self.pos_enc(
+                xs_pad.narrow(1, cur_hop, chunk_length),
+                cur_hop + self.hop_size * n_processed_blocks,
+            )
 
-            xs_chunk[:, i, 1:chunk_length+1] = chunk
+            xs_chunk[:, i, 1 : chunk_length + 1] = chunk
 
             prev_addin = addin
 
-            
         # set up masks
         mask_online = xs_pad.new_zeros(
             xs_pad.size(0), block_num, self.block_size + 2, self.block_size + 2
@@ -523,17 +537,21 @@ class ContextualBlockConformerEncoder(AbsEncoder):
 
         # forward
         if False:
-            ys_chunks=[]
+            ys_chunks = []
             for i in range(block_num):
                 print("loop ", i)
                 cur_mask_online = mask_online.narrow(1, i, 1)
                 cur_xs_chunk = xs_chunk.narrow(1, i, 1)
-                ys_chunk, _, _, past_encoder_ctx, _,_ = self.encoders(cur_xs_chunk, cur_mask_online, past_encoder_ctx)
+                ys_chunk, _, _, past_encoder_ctx, _, _ = self.encoders(
+                    cur_xs_chunk, cur_mask_online, past_encoder_ctx
+                )
                 ys_chunks.append(ys_chunk)
-                
+
             ys_chunk = torch.cat(ys_chunks, dim=1)
-        else:        
-            ys_chunk, mask_online, _, past_encoder_ctx, _,_ = self.encoders(xs_chunk, mask_online, past_encoder_ctx)
+        else:
+            ys_chunk, mask_online, _, past_encoder_ctx, _, _ = self.encoders(
+                xs_chunk, mask_online, past_encoder_ctx
+            )
 
         # remove addin
         ys_chunk = ys_chunk.narrow(2, 1, self.block_size)
@@ -550,17 +568,17 @@ class ContextualBlockConformerEncoder(AbsEncoder):
                 y_length += offset
         ys_pad = xs_pad.new_zeros((xs_pad.size(0), y_length, xs_pad.size(2)))
         if n_processed_blocks == 0:
-            ys_pad[:,0:offset] = ys_chunk[:,0,0:offset]
+            ys_pad[:, 0:offset] = ys_chunk[:, 0, 0:offset]
         for i in range(block_num):
-            cur_hop=i*self.hop_size
+            cur_hop = i * self.hop_size
             if n_processed_blocks == 0:
                 cur_hop += offset
-            if i == block_num-1 and is_final:
-                chunk_length = min(self.block_size-offset, ys_pad.size(1)-cur_hop)
+            if i == block_num - 1 and is_final:
+                chunk_length = min(self.block_size - offset, ys_pad.size(1) - cur_hop)
             else:
                 chunk_length = self.hop_size
-            ys_pad[:, cur_hop:cur_hop+chunk_length] = ys_chunk[
-                :, i, offset:offset+chunk_length
+            ys_pad[:, cur_hop : cur_hop + chunk_length] = ys_chunk[
+                :, i, offset : offset + chunk_length
             ]
         if self.normalize_before:
             ys_pad = self.after_norm(ys_pad)
@@ -571,13 +589,13 @@ class ContextualBlockConformerEncoder(AbsEncoder):
             next_states = None
         else:
             next_states = {
-                "prev_addin":prev_addin,
+                "prev_addin": prev_addin,
                 "buffer_before_downsampling": buffer_before_downsampling,
                 "ilens_buffer": ilens_buffer,
                 "buffer_after_downsampling": buffer_after_downsampling,
                 "masks_buffer": masks_buffer,
-                "n_processed_blocks": n_processed_blocks+block_num,
-                "past_encoder_ctx": past_encoder_ctx
+                "n_processed_blocks": n_processed_blocks + block_num,
+                "past_encoder_ctx": past_encoder_ctx,
             }
-        
+
         return ys_pad, olens, next_states
