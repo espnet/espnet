@@ -434,7 +434,7 @@ def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
     if not is_torch_1_5_plus:
         q_dtype = torch.qint8
     else:
-        q_dtype = quantize_dic["mod"]
+        q_dtype = quantize_dic["dtype"]
 
     model = E2E(idim, odim, train_args)
     model = torch.quantization.quantize_dynamic(
