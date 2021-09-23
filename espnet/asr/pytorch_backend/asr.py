@@ -4,6 +4,7 @@
 """Training/decoding definition for the speech recognition task."""
 
 import copy
+from distutils.version import LooseVersion
 import itertools
 import json
 import logging
@@ -988,7 +989,19 @@ def recog(args):
     if args.quantize_asr_model:
         logging.info("Use a quantized ASR model for decoding.")
 
-        dtype = getattr(torch, args.quantize_dtype)
+        # Dunno why but weight_observer from dynamic quantized module must have
+        # dtype=torch.qint8 with torch < 1.5 although dtype=torch.float16 is supported.
+        if args.quantize_dtype == "float16" and LooseVersion(
+            torch.__version__
+        ) < LooseVersion("1.5.0"):
+            logging.warning(
+                "float16 dtype for dynamic quantization is not supported with torch "
+                "version < 1.5.0. Switching to qint8 dtype instead."
+            )
+            dtype = torch.qint8
+        else:
+            dtype = getattr(torch, args.quantize_dtype)
+
         model = torch.quantization.quantize_dynamic(model, q_config, dtype=dtype)
 
     if args.streaming_mode and "transformer" in train_args.model_module:
