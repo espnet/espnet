@@ -1,14 +1,14 @@
 batch_type: numel
 batch_bins: 7000000
 accum_grad: 1
-max_epoch: 100
+max_epoch: 200
 patience: none
 init: none
 best_model_criterion:
 -   - valid
     - loss
     - min
-keep_nbest_models: 2
+keep_nbest_models: 5
 
 encoder: transformer
 encoder_conf:
@@ -34,10 +34,10 @@ decoder_conf:
 
 optim: adam
 optim_conf:
-    lr: 0.0001
+    lr: 0.001
 scheduler: warmuplr     # pytorch v1.1.0+ required
 scheduler_conf:
-    warmup_steps: 2000
+    warmup_steps: 10000
 
 model_conf:
     ctc_weight: 0.0

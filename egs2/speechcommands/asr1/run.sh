@@ -5,7 +5,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
+. ./path.sh
+
+train_set=train_sp
 valid_set=dev
 test_sets="dev test"
 
@@ -18,8 +20,8 @@ speed_perturb_factors="0.9 1.0 1.1"
 
 # lm_train_text is set to avoid errors if speed_perturb is used
 ./asr.sh                                                \
-    --skip_data_prep true                              \
-    --skip_train true                                  \
+    --skip_data_prep true                               \
+    --skip_train false                                  \
     --skip_eval false                                   \
     --ngpu 1                                            \
     --nj 8                                              \
@@ -30,11 +32,11 @@ speed_perturb_factors="0.9 1.0 1.1"
     --fs 16000                                          \
     --token_type word                                   \
     --use_lm false                                      \
-    --asr_tag balanced                                  \
+    --asr_tag transformer_warmup10k_lr1e-3                     \
     --asr_config "${asr_config}"                        \
     --inference_tag infer                               \
     --inference_config "${inference_config}"            \
-    --inference_asr_model valid.loss.ave_2best.pth      \
+    --inference_asr_model valid.loss.ave.pth           \
     --train_set "${train_set}"                          \
     --valid_set "${valid_set}"                          \
     --test_sets "${test_sets}"                          \
