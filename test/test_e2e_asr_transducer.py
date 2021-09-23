@@ -438,7 +438,9 @@ def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
 
     model = E2E(idim, odim, train_args)
     model = torch.quantization.quantize_dynamic(
-        model, q_dtype, dtype=quantize_dic["dtype"]
+        model,
+        quantize_dic["mod"],
+        dtype=q_dtype,
     )
 
     beam_search = BeamSearchTransducer(
