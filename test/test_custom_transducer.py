@@ -15,6 +15,7 @@ from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
 
+is_torch_1_4_plus = LooseVersion(torch.__version__) >= LooseVersion("1.4.0")
 is_torch_1_5_plus = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 
 
@@ -610,13 +611,16 @@ def test_invalid_block_io():
     ],
 )
 def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
+    if not is_torch_1_4_plus:
+        pytest.skip("Dynamic quantization in ESPnet requires PyTorch 1.4.0+")
+
     train_args = make_train_args(**train_dic)
     recog_args = make_recog_args(**recog_dic)
 
-    if not is_torch_1_5_plus:
-        q_dtype = torch.qint8
-    else:
+    if is_torch_1_5_plus:
         q_dtype = quantize_dic["dtype"]
+    else:
+        q_dtype = torch.qint8
 
     model, feats, feats_len, _, _, _ = prepare(train_args)
     model = torch.quantization.quantize_dynamic(
