@@ -989,6 +989,15 @@ def recog(args):
     if args.quantize_asr_model:
         logging.info("Use a quantized ASR model for decoding.")
 
+        # It seems quantized LSTM only supports non-packed sequence before torch 1.4.0.
+        # Reference issue: https://github.com/pytorch/pytorch/issues/27963
+        if (
+            torch.__version__ < LooseVersion("1.4.0")
+            and "lstm" in args.etype
+            and torch.nn.LSTM in q_config
+        ):
+            logging.error("Quantized LSTM in ESPnet is only supported with torch 1.4+.")
+
         # Dunno why but weight_observer from dynamic quantized module must have
         # dtype=torch.qint8 with torch < 1.5 although dtype=torch.float16 is supported.
         if args.quantize_dtype == "float16" and LooseVersion(
