@@ -19,11 +19,14 @@ class CTC(torch.nn.Module):
     :param bool reduce: reduce the CTC loss into a scalar
     """
 
-    def __init__(self, odim, eprojs, dropout_rate, ctc_type="warpctc", reduce=True):
+    def __init__(self, odim, eprojs, dropout_rate, ctc_type="warpctc", reduce=True, include_fc=True):
         super().__init__()
         self.dropout_rate = dropout_rate
         self.loss = None
-        self.ctc_lo = torch.nn.Linear(eprojs, odim)
+        if include_fc:
+            self.ctc_lo = torch.nn.Linear(eprojs, odim)
+        else:
+            self.ctc_lo = lambda x: x
         self.dropout = torch.nn.Dropout(dropout_rate)
         self.probs = None  # for visualization
 
@@ -79,6 +82,31 @@ class CTC(torch.nn.Module):
             return self.ctc_loss(log_probs, targets, th_ilen, 0, "none")
         else:
             raise NotImplementedError
+
+    def ctc_alignment_targets(self, hs_pad, hlens, ys_pad):
+        with torch.no_grad():
+            ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
+    
+            hlens = torch.from_numpy(np.fromiter(hlens, dtype=np.int64))
+            olens = torch.from_numpy(np.fromiter(
+                (x.size(0) for x in ys), dtype=np.int64))
+            ys_hat = self.ctc_lo(F.dropout(hs_pad, p=self.dropout_rate)).transpose(0, 1).log_softmax(dim=-1)
+            ys_true = ys_pad.clone()
+            ys_true[ys_true == self.ignore_id] = 0
+    
+            ys_hat.requires_grad = True
+            with torch.enable_grad():
+                loss = F.ctc_loss(ys_hat, ys_true, hlens, olens, blank = 0, reduction = 'sum')
+            probs = ys_hat.exp()
+            # to simplify API we inline log_softmax gradient, i.e. next two lines are equivalent to: 
+            # grad_logits, = torch.autograd.grad(loss, logits, retain_graph = True).
+            # gradient formula explained at https://stackoverflow.com/questions/35304393/trying-to-understand-code-that-computes-the
+            grad_log_probs, = torch.autograd.grad(loss, ys_hat, retain_graph=True)
+            grad_logits = grad_log_probs - probs * grad_log_probs.sum(dim = -1, keepdim = True)
+            temporal_mask = (torch.arange(len(ys_hat), device = hs_pad.device, dtype = hlens.dtype).unsqueeze(1) < hlens.unsqueeze(0).to(device = hs_pad.device)).unsqueeze(-1).float()
+            
+            ret = torch.clamp(probs * temporal_mask - grad_logits * temporal_mask, min=0, max=1).detach().to(device=hs_pad.device)
+        return ret
 
     def forward(self, hs_pad, hlens, ys_pad):
         """CTC forward
