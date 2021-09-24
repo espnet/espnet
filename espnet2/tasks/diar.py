@@ -19,11 +19,11 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
-from espnet2.diar.decoder.abs_decoder import AbsDecoder
-from espnet2.diar.decoder.linear_decoder import LinearDecoder
 from espnet2.diar.attractor.abs_attractor import AbsAttractor
 from espnet2.diar.attractor.rnn_attractor import RnnAttractor
 from espnet2.diar.attractor.rnn_attractor import RnnAttractorNoGrad
+from espnet2.diar.decoder.abs_decoder import AbsDecoder
+from espnet2.diar.decoder.linear_decoder import LinearDecoder
 from espnet2.diar.espnet_model import ESPnetDiarizationModel
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
@@ -89,7 +89,7 @@ attractor_choices = ClassChoices(
         rnn_nograd=RnnAttractorNoGrad,
     ),
     type_check=AbsAttractor,
-    default="rnn",
+    default=None,
 )
 
 

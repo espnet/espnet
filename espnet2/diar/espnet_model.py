@@ -32,7 +32,13 @@ else:
 
 
 class ESPnetDiarizationModel(AbsESPnetModel):
-    """Speaker Diarization model"""
+    """Speaker Diarization model
+    
+    model_type can be chosen from "sa"(SA-EEND) or "eda"(EEND-EDA).
+    For the details about SA-EEND and EEND-EDA, refer to the following papers:
+    SA-EEND: https://arxiv.org/pdf/1909.06247.pdf
+    EEND-EDA: https://arxiv.org/pdf/2005.09921.pdf, https://arxiv.org/pdf/2106.10654.pdf
+    """
 
     def __init__(
         self,
