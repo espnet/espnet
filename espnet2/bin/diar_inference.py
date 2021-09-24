@@ -22,7 +22,7 @@ from espnet2.tasks.diar import DiarizationTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.types import humanfriendly_parse_size_or_none
+from espnet2.utils.types import humanfriendly_parse_size_or_none, int_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -47,6 +47,7 @@ class DiarizeSpeech:
         segment_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
         show_progressbar: bool = False,
+        num_spk: Optional[int] = None,
         device: str = "cpu",
         dtype: str = "float32",
     ):
@@ -68,8 +69,9 @@ class DiarizeSpeech:
         self.segment_size = segment_size
         self.normalize_segment_scale = normalize_segment_scale
         self.show_progressbar = show_progressbar
-
-        self.num_spk = diar_model.num_spk
+        # not specifying "num_spk" in inference config file
+        # will enable speaker number prediction during inference
+        self.num_spk = num_spk
 
         self.segmenting = segment_size is not None
         if self.segmenting:
@@ -136,21 +138,107 @@ class DiarizeSpeech:
                 encoder_out, encoder_out_lens = self.diar_model.encode(
                     speech_seg, lengths_seg
                 )
-                spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
-
+                # SA-EEND
+                if self.diar_model.model_type == "sa":
+                    assert (
+                        self.num_spk is not None
+                    ), 'Argument "num_spk" must be specified if model_type="sa"'
+                    spk_prediction = self.diar_model.decoder(
+                        encoder_out, encoder_out_lens
+                    )
+                # EEND-EDA
+                elif self.diar_model.model_type == "eda":
+                    # if num_spk is specified, use that number
+                    if self.num_spk is not None:
+                        attractor, att_prob = self.diar_model.attractor(
+                            encoder_out,
+                            encoder_out_lens,
+                            torch.zeros(
+                                encoder_out.size(0),
+                                self.num_spk + 1,
+                                encoder_out.size(2),
+                            ),
+                        )
+                        spk_prediction = torch.bmm(
+                            encoder_out,
+                            attractor[:, : self.num_spk, :].permute(0, 2, 1),
+                        )
+                    # else find the first att_prob[i] < 0
+                    else:
+                        max_num_spk = 15  # upper bound number for estimation
+                        attractor, att_prob = self.diar_model.attractor(
+                            encoder_out,
+                            encoder_out_lens,
+                            torch.zeros(
+                                encoder_out.size(0),
+                                max_num_spk + 1,
+                                encoder_out.size(2),
+                            ),
+                        )
+                        att_prob = torch.squeeze(att_prob)
+                        for pred_num_spk in range(len(att_prob)):
+                            if att_prob[pred_num_spk].item() < 0:
+                                break
+                        spk_prediction = torch.bmm(
+                            encoder_out, attractor[:, :pred_num_spk, :].permute(0, 2, 1)
+                        )
                 # List[torch.Tensor(B, T, num_spks)]
                 diarized_wavs.append(spk_prediction)
-
+            # Determine maximum estimated number of speakers among the segments
+            max_len = max([x.size(2) for x in diarized_wavs])
+            # pad tensors in diarized_wavs with "float('-inf')" to have same size
+            diarized_wavs = [
+                torch.nn.functional.pad(
+                    x, (0, max_len - x.size(2)), "constant", float("-inf")
+                )
+                for x in diarized_wavs
+            ]
             spk_prediction = torch.cat(diarized_wavs, dim=1)
         else:
             # b. Diarization Forward
             encoder_out, encoder_out_lens = self.diar_model.encode(speech, lengths)
-            spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
-
-        assert spk_prediction.size(2) == self.num_spk, (
-            spk_prediction.size(2),
-            self.num_spk,
-        )
+            # SA-EEND
+            if self.diar_model.model_type == "sa":
+                assert (
+                    self.num_spk is not None
+                ), 'Argument "num_spk" must be specified in SA-EEND'
+                spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
+            # EEND-EDA
+            elif self.diar_model.model_type == "eda":
+                # if num_spk is specified, use that number
+                if self.num_spk is not None:
+                    attractor, att_prob = self.diar_model.attractor(
+                        encoder_out,
+                        encoder_out_lens,
+                        torch.zeros(
+                            encoder_out.size(0), self.num_spk + 1, encoder_out.size(2)
+                        ),
+                    )
+                    spk_prediction = torch.bmm(
+                        encoder_out, attractor[:, : self.num_spk, :].permute(0, 2, 1)
+                    )
+                # else find the first att_prob[i] < 0
+                else:
+                    max_num_spk = 15  # upper bound number for estimation
+                    attractor, att_prob = self.diar_model.attractor(
+                        encoder_out,
+                        encoder_out_lens,
+                        torch.zeros(
+                            encoder_out.size(0), max_num_spk + 1, encoder_out.size(2)
+                        ),
+                    )
+                    att_prob = torch.squeeze(att_prob)
+                    for pred_num_spk in range(len(att_prob)):
+                        if att_prob[pred_num_spk].item() < 0:
+                            break
+                    spk_prediction = torch.bmm(
+                        encoder_out, attractor[:, :pred_num_spk, :].permute(0, 2, 1)
+                    )
+        if self.num_spk is not None:
+            assert spk_prediction.size(2) == self.num_spk, (
+                spk_prediction.size(2),
+                self.num_spk,
+            )
         assert spk_prediction.size(0) == batch_size, (
             spk_prediction.size(0),
             batch_size,
@@ -208,6 +296,7 @@ def inference(
     allow_variable_data_keys: bool,
     segment_size: Optional[float],
     show_progressbar: bool,
+    num_spk: Optional[int],
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -234,6 +323,7 @@ def inference(
         model_file=model_file,
         segment_size=segment_size,
         show_progressbar=show_progressbar,
+        num_spk=num_spk,
         device=device,
         dtype=dtype,
     )
@@ -367,6 +457,12 @@ def get_parser():
         default=False,
         help="Whether to show a progress bar when performing segment-wise speaker "
         "diarization",
+    )
+    group.add_argument(
+        "--num_spk",
+        type=int_or_none,
+        default=None,
+        help="Predetermined number of speakers for inference",
     )
 
     return parser
