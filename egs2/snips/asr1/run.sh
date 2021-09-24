@@ -9,7 +9,7 @@ train_set=train
 valid_set=dev
 test_sets="dev test"
 
-asr_config=conf/tuning/train_asr_transformer_adam.yaml
+asr_config=conf/tuning/train_asr_hubert_conformer.yaml
 inference_config=conf/decode_asr_transformer.yaml
 
 
@@ -21,6 +21,7 @@ speed_perturb_factors="0.9 1.0 1.1"
     --use_lm false                                     \
     --audio_format wav                                 \
     --feats_type raw                                   \
+    --feats_normalize "utterance_mvn"                  \
     --token_type word                                  \
     --asr_config "${asr_config}"                       \
     --inference_config "${inference_config}"           \
