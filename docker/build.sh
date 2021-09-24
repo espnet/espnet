@@ -11,7 +11,7 @@ ubuntu_ver=20.04
 cuda_ver=11.1
 build_ver=cpu
 build_cores=24
-th_ver=1.8.0
+th_ver=1.9.0
 
 docker_ver=$(docker version -f '{{.Server.Version}}')
 echo "Using Docker Ver.${docker_ver}"
@@ -101,8 +101,9 @@ build(){
     fi
 
     # build gpu based
-    build_args="--build-arg FROM_TAG=cuda-latest 
-                --build-arg CUDA_VER=${default_cuda_ver}"
+    build_args="--build-arg FROM_TAG=cuda-latest"
+    build_args="${build_args} --build-arg CUDA_VER=${default_cuda_ver}"
+    build_args="${build_args} --build-arg TH_VERSION=${th_ver}"
     this_tag=espnet/espnet:gpu-latest
     docker_image=$( docker images -q ${this_tag}  )
     if ! [[ -n ${docker_image} ]]; then
@@ -143,18 +144,19 @@ build_local(){
     elif [[ ${build_ver} == "gpu" ]]; then
         echo "building ESPnet GPU Image with ubuntu:${ubuntu_ver} and cuda:${cuda_ver}"
         if [ "${build_base_image}" = true ] ; then
-            docker build -f prebuilt/devel/gpu/${ver}/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 . || exit 1
+            docker build --build-arg FROM_TAG=runtime-local \
+                         -f prebuilt/devel/gpu/${cuda_ver}/Dockerfile -t espnet/espnet:cuda${cuda_ver}-cudnn7 . || exit 1
         else
             if ! [[ -n $( docker images -q espnet/espnet:cuda-latest)  ]]; then
                 docker pull espnet/espnet:cuda-latest
             fi
         fi
-        build_args="--build-arg FROM_TAG=cuda${ver}-cudnn7"
-        build_args="${build_args} --build-arg CUDA_VER=${ver}"
+        build_args="--build-arg FROM_TAG=cuda${cuda_ver}-cudnn7"
+        build_args="${build_args} --build-arg CUDA_VER=${cuda_ver}"
         build_args="${build_args} --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE}"
-        docker build ${build_args} -f prebuilt/local/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7-u18-local . || exit 1
+        docker build ${build_args} -f prebuilt/local/Dockerfile -t espnet/espnet:gpu-cuda${cuda_ver}-cudnn7-u${ubuntu_ver}-local . || exit 1
     else
-        echo "Parameter invalid: " ${ver}
+        echo "Parameter invalid: " ${build_ver}
     fi
 
     echo "cleanup."

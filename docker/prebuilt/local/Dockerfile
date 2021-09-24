@@ -3,6 +3,7 @@ FROM espnet/espnet:${FROM_TAG}
 LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
 ARG CUDA_VER
+ARG TH_VERSION
 WORKDIR /
 
 # IF using a local ESPNet repository, a temporary file containing the ESPnet git repo is copied over
@@ -25,7 +26,7 @@ WORKDIR /espnet/tools
 # Replace nvidia-smi for nvcc because docker does not load nvidia-smi
 RUN if [ -z "$( which nvcc )" ]; then \
         echo "Build without CUDA" && \
-        MY_OPTS='CUPY_VERSION=""  TH_VERSION=1.6.0'; \
+        MY_OPTS="CUPY_VERSION=''  TH_VERSION=${TH_VERSION}"; \
     else \
         echo "Build with CUDA" && \
         # Disable cupy test
@@ -41,7 +42,7 @@ RUN if [ -z "$( which nvcc )" ]; then \
         MY_OPTS="${MY_OPTS} TH_VERSION=1.6.0";  \
     fi; \
     echo "Make with options ${MY_OPTS}" && \
-    ln -s /kaldi ./ && \
+    ln -s /opt/kaldi ./ && \
     ./setup_anaconda.sh /miniconda espnet 3.7.4 && \
     make KALDI=/kaldi ${MY_OPTS}
 
