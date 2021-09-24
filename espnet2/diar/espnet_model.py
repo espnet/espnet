@@ -33,7 +33,7 @@ else:
 
 class ESPnetDiarizationModel(AbsESPnetModel):
     """Speaker Diarization model
-    
+
     model_type can be chosen from "sa"(SA-EEND) or "eda"(EEND-EDA).
     For the details about SA-EEND and EEND-EDA, refer to the following papers:
     SA-EEND: https://arxiv.org/pdf/1909.06247.pdf

@@ -53,7 +53,7 @@ class RnnAttractor(AbsAttractor):
 
 class RnnAttractorNoGrad(AbsAttractor):
     """encoder decoder attractor for speaker diarization.
-    
+
     This model will update only the fully connected (linear_projection) layer
     """
 
