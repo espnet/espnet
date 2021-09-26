@@ -5,13 +5,11 @@ set -e
 set -u
 set -o pipefail
 
-. ./path.sh
-
 train_set=train_sp
 valid_set=dev
 test_sets="dev test"
 
-asr_config=conf/tuning/train_asr_transformer_adam.yaml
+asr_config=conf/tuning/train_asr_conformer_adam.yaml
 inference_config=conf/decode_asr.yaml
 
 # speed perturbation related
@@ -32,7 +30,7 @@ speed_perturb_factors="0.9 1.0 1.1"
     --fs 16000                                          \
     --token_type word                                   \
     --use_lm false                                      \
-    --asr_tag transformer_warmup10k_lr1e-3                     \
+    --asr_tag conformer_warmup3.5k_lr1e-4_accum3_lsm0.1_noMacaron_noCNN  \
     --asr_config "${asr_config}"                        \
     --inference_tag infer                               \
     --inference_config "${inference_config}"            \
