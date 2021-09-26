@@ -1,4 +1,4 @@
-"""RNN decoder definition for transducer model."""
+"""RNN decoder definition for Transducer model."""
 
 from typing import Any
 from typing import Dict
@@ -15,7 +15,7 @@ from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
 
 
 class RNNDecoder(TransducerDecoderInterface, torch.nn.Module):
-    """RNN decoder module for transducer model.
+    """RNN decoder module for Transducer model.
 
     Args:
         odim: Output dimension.
