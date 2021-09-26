@@ -1,4 +1,4 @@
-"""CER/WER computation for transducer model."""
+"""CER/WER computation for Transducer model."""
 
 from typing import List
 from typing import Tuple
@@ -14,7 +14,7 @@ from espnet.nets.pytorch_backend.transducer.rnn_decoder import RNNDecoder
 
 
 class ErrorCalculator(object):
-    """CER and WER computation for transducer model.
+    """CER and WER computation for Transducer model.
 
     Args:
         decoder: Decoder module.
@@ -37,7 +37,7 @@ class ErrorCalculator(object):
         report_cer: bool = False,
         report_wer: bool = False,
     ):
-        """Construct an ErrorCalculator object for transducer model."""
+        """Construct an ErrorCalculator object for Transducer model."""
         super().__init__()
 
         self.beam_search = BeamSearchTransducer(
