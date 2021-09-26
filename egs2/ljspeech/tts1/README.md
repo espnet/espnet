@@ -59,6 +59,22 @@ See the following pages before asking the question:
 ## Pretrained Models
 
 ### ljspeech_tts_train_vits_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+./run.sh \
+    --stage 1 \
+    --ngpu 4 \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
 - 1M iters / Average the last 10 epoch models
 - https://zenodo.org/record/5443814
 

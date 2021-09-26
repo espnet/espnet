@@ -67,6 +67,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
   - Features:
     - Multi-task learning with various auxiliary tasks: CTC, Label smoothing, auxiliary RNN-T and symmetric KL divergence.
     - Transfer learning with acoustic model and/or language model.
+    - Training with [FastEmit regularization method](https://arxiv.org/abs/2010.11148).
   > Please refer to the [tutorial page](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
 - CTC segmentation
 - Non-autoregressive model based on Mask-CTC
