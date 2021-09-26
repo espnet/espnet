@@ -15,23 +15,23 @@ espnet2.diar.espnet_model
     :show-inheritance:
 
 
-.. _espnet2.diar.__init__:
-
-espnet2.diar.__init__
----------------------
-
-.. automodule:: espnet2.diar.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.diar.label_processor:
 
 espnet2.diar.label_processor
 ----------------------------
 
 .. automodule:: espnet2.diar.label_processor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.diar.__init__:
+
+espnet2.diar.__init__
+---------------------
+
+.. automodule:: espnet2.diar.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -48,23 +48,23 @@ espnet2.diar.abs_diar
     :show-inheritance:
 
 
-.. _espnet2.diar.decoder.linear_decoder:
-
-espnet2.diar.decoder.linear_decoder
------------------------------------
-
-.. automodule:: espnet2.diar.decoder.linear_decoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.diar.decoder.__init__:
 
 espnet2.diar.decoder.__init__
 -----------------------------
 
 .. automodule:: espnet2.diar.decoder.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.diar.decoder.linear_decoder:
+
+espnet2.diar.decoder.linear_decoder
+-----------------------------------
+
+.. automodule:: espnet2.diar.decoder.linear_decoder
     :members:
     :undoc-members:
     :show-inheritance:

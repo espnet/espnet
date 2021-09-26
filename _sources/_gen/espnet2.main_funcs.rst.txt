@@ -4,23 +4,23 @@ espnet2.main_funcs package
 
 
 
-.. _espnet2.main_funcs.average_nbest_models:
-
-espnet2.main_funcs.average_nbest_models
----------------------------------------
-
-.. automodule:: espnet2.main_funcs.average_nbest_models
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.main_funcs.collect_stats:
 
 espnet2.main_funcs.collect_stats
 --------------------------------
 
 .. automodule:: espnet2.main_funcs.collect_stats
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.main_funcs.average_nbest_models:
+
+espnet2.main_funcs.average_nbest_models
+---------------------------------------
+
+.. automodule:: espnet2.main_funcs.average_nbest_models
     :members:
     :undoc-members:
     :show-inheritance:
