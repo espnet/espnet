@@ -46,8 +46,6 @@ requirements = {
         "torch_complex",
         "pytorch_wpe",
         "ci_sdr",
-        # NLU postencoder related
-        "transformers>=4.9.1",
     ],
     "recipe": [
         "espnet_model_zoo",
