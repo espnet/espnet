@@ -29,6 +29,14 @@ class ESPnetLanguageModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         max_length: Optional[int] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Compute negative log likelihood(nll)
+
+        Normally, this function is called in batchify_nll.
+        Args:
+            text: (Batch, Length)
+            text_lengths: (Batch,)
+            max_lengths: int
+        """
         batch_size = text.size(0)
         # For data parallel
         if max_length is None:
@@ -66,6 +74,17 @@ class ESPnetLanguageModel(AbsESPnetModel):
     def batchify_nll(
         self, text: torch.Tensor, text_lengths: torch.Tensor, batch_size: int = 100
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Compute negative log likelihood(nll) from transformer language model
+
+        To avoid OOM, this fuction seperate the input into batches.
+        Then call nll for each batch and combine and return results.
+        Args:
+            text: (Batch, Length)
+            text_lengths: (Batch,)
+            batch_size: int, samples each batch contain when computing nll,
+                        you may change this to avoid OOM or increase
+
+        """
         total_num = text.size(0)
         if total_num <= batch_size:
             nll, x_lengths = self.nll(text, text_lengths)
