@@ -13,6 +13,13 @@ import copy
 import logging
 import torch
 
+try:
+    from transformers import AutoModel
+
+    is_transformers_available = True
+except ImportError:
+    is_transformers_available = False
+
 
 class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
     """Hugging Face Transformers PostEncoder."""
@@ -26,8 +33,12 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
         assert check_argument_types()
         super().__init__()
 
-        # NOTE(kan-bayashi): Delayed import to avoid ImportError when not using
-        from transformers import AutoModel
+        if not is_transformers_available:
+            raise ImportError(
+                "`transformers` is not available. Please install it via `pip install"
+                " transformers` or `cd /path/to/espnet/tools && . ./activate_python.sh"
+                " && ./installers/install_transformers.sh`."
+            )
 
         model = AutoModel.from_pretrained(model_name_or_path)
 
