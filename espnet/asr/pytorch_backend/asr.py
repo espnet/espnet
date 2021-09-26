@@ -1005,7 +1005,7 @@ def recog(args):
         if args.quantize_dtype == "float16" and LooseVersion(
             torch.__version__
         ) < LooseVersion("1.5.0"):
-            logging.warning(
+            raise ValueError(
                 "float16 dtype for dynamic quantization is not supported with torch "
                 "version < 1.5.0. Switching to qint8 dtype instead."
             )
