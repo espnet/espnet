@@ -6,7 +6,6 @@
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from transformers import AutoModel
 from typeguard import check_argument_types
 from typing import Tuple
 
@@ -26,6 +25,9 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
         """Initialize the module."""
         assert check_argument_types()
         super().__init__()
+
+        # NOTE(kan-bayashi): Delayed import to avoid ImportError when not using
+        from transformers import AutoModel
 
         model = AutoModel.from_pretrained(model_name_or_path)
 
