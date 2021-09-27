@@ -611,9 +611,6 @@ def test_invalid_block_io():
     ],
 )
 def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
-    if not is_torch_1_4_plus:
-        pytest.skip("Dynamic quantization in ESPnet requires PyTorch 1.4.0+")
-
     train_args = make_train_args(**train_dic)
     recog_args = make_recog_args(**recog_dic)
 
@@ -623,11 +620,26 @@ def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
         q_dtype = torch.qint8
 
     model, feats, feats_len, _, _, _ = prepare(train_args)
-    model = torch.quantization.quantize_dynamic(
-        model,
-        quantize_dic["mod"],
-        dtype=q_dtype,
-    )
+
+    if not is_torch_1_5_plus and (
+        torch.nn.Linear in quantize_dic["mod"]
+        and quantize_dic["dtype"] == torch.float16
+    ):
+        # In recognize(...) from asr.py we raise ValueError however
+        # AssertionError is originaly raised by torch.
+        with pytest.raises(AssertionError):
+            model = torch.quantization.quantize_dynamic(
+                model,
+                quantize_dic["mod"],
+                dtype=quantize_dic["dtype"],
+            )
+        pytest.skip("Skip rest of the test after checking AssertionError")
+    else:
+        model = torch.quantization.quantize_dynamic(
+            model,
+            quantize_dic["mod"],
+            dtype=quantize_dic["dtype"],
+        )
 
     beam_search = BeamSearchTransducer(
         decoder=model.decoder,

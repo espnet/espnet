@@ -16,8 +16,8 @@ from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
-is_torch_1_5_plus = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 is_torch_1_4_plus = LooseVersion(torch.__version__) >= LooseVersion("1.4.0")
+is_torch_1_5_plus = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 
 
 def get_default_train_args(**kwargs):
@@ -427,25 +427,32 @@ def test_invalid_aux_transducer_loss_enc_layers():
     ],
 )
 def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
-    if not is_torch_1_4_plus:
-        pytest.skip("Dynamic quantization in ESPnet requires PyTorch 1.4.0+")
-
     idim, odim, ilens, olens = get_default_scope_inputs()
 
     train_args = get_default_train_args(**train_dic)
     recog_args = get_default_recog_args(**recog_dic)
 
-    if is_torch_1_5_plus:
-        q_dtype = quantize_dic["dtype"]
-    else:
-        q_dtype = torch.qint8
-
     model = E2E(idim, odim, train_args)
-    model = torch.quantization.quantize_dynamic(
-        model,
-        quantize_dic["mod"],
-        dtype=q_dtype,
-    )
+
+    if not is_torch_1_5_plus and (
+        torch.nn.Linear in quantize_dic["mod"]
+        and quantize_dic["dtype"] == torch.float16
+    ):
+        # In recognize(...) from asr.py we raise ValueError however
+        # AssertionError is originaly raised by torch.
+        with pytest.raises(AssertionError):
+            model = torch.quantization.quantize_dynamic(
+                model,
+                quantize_dic["mod"],
+                dtype=quantize_dic["dtype"],
+            )
+        pytest.skip("Skip rest of the test after checking AssertionError")
+    else:
+        model = torch.quantization.quantize_dynamic(
+            model,
+            quantize_dic["mod"],
+            quantize_dic["dtype"],
+        )
 
     beam_search = BeamSearchTransducer(
         decoder=model.dec,
@@ -465,4 +472,9 @@ def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
     with torch.no_grad():
         in_data = np.random.randn(20, idim)
 
-        model.recognize(in_data, beam_search)
+        if not is_torch_1_4_plus and torch.nn.LSTM in quantize_dic["mod"]:
+            # Cf. previous comment
+            with pytest.raises(AssertionError):
+                model.recognize(in_data, beam_search)
+        else:
+            model.recognize(in_data, beam_search)
