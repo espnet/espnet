@@ -1009,9 +1009,8 @@ def recog(args):
                 "float16 dtype for dynamic quantization is not supported with torch "
                 "version < 1.5.0. Switching to qint8 dtype instead."
             )
-            dtype = torch.qint8
-        else:
-            dtype = getattr(torch, args.quantize_dtype)
+
+        dtype = getattr(torch, args.quantize_dtype)
 
         model = torch.quantization.quantize_dynamic(model, q_config, dtype=dtype)
 
