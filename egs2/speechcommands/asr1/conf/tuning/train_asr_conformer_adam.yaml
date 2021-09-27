@@ -26,8 +26,8 @@ encoder_conf:
     pos_enc_layer_type: rel_pos
     selfattention_layer_type: rel_selfattn
     activation_type: swish
-    use_cnn_module:  false
-    cnn_module_kernel: 31
+    use_cnn_module: true
+    cnn_module_kernel: 3
 
 decoder: transformer
 decoder_conf:
