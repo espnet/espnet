@@ -1002,9 +1002,9 @@ def recog(args):
 
         # Dunno why but weight_observer from dynamic quantized module must have
         # dtype=torch.qint8 with torch < 1.5 although dtype=torch.float16 is supported.
-        if args.quantize_dtype == "float16" and LooseVersion(
-            torch.__version__
-        ) < LooseVersion("1.5.0"):
+        if args.quantize_dtype == "float16" and torch.__version__ < LooseVersion(
+            "1.5.0"
+        ):
             raise ValueError(
                 "float16 dtype for dynamic quantization is not supported with torch "
                 "version < 1.5.0. Switching to qint8 dtype instead."

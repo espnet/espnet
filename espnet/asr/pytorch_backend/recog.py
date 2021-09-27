@@ -1,5 +1,6 @@
 """V2 backend for `asr_recog.py` using py:class:`espnet.nets.beam_search.BeamSearch`."""
 
+from distutils.version import LooseVersion
 import json
 import logging
 
@@ -61,9 +62,9 @@ def recog_v2(args):
                 "Quantized LSTM in ESPnet is only supported with torch 1.4+."
             )
 
-        if args.quantize_dtype == "float16" and LooseVersion(
-            torch.__version__
-        ) < LooseVersion("1.5.0"):
+        if args.quantize_dtype == "float16" and torch.__version__ < LooseVersion(
+            "1.5.0"
+        ):
             raise ValueError(
                 "float16 dtype for dynamic quantization is not supported with torch "
                 "version < 1.5.0. Switching to qint8 dtype instead."
