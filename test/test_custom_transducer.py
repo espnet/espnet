@@ -614,11 +614,6 @@ def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
     train_args = make_train_args(**train_dic)
     recog_args = make_recog_args(**recog_dic)
 
-    if is_torch_1_5_plus:
-        q_dtype = quantize_dic["dtype"]
-    else:
-        q_dtype = torch.qint8
-
     model, feats, feats_len, _, _, _ = prepare(train_args)
 
     if not is_torch_1_5_plus and (
