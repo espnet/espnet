@@ -45,7 +45,7 @@ from espnet.utils.fill_missing_args import fill_missing_args
 
 
 class Reporter(chainer.Chain):
-    """A chainer reporter wrapper for transducer models."""
+    """A chainer reporter wrapper for Transducer models."""
 
     def report(
         self,
@@ -58,7 +58,19 @@ class Reporter(chainer.Chain):
         cer: float,
         wer: float,
     ):
-        """Instantiate reporter attributes."""
+        """Instantiate reporter attributes.
+
+        Args:
+            loss: Model loss.
+            loss_trans: Main Transducer loss.
+            loss_ctc: CTC loss.
+            loss_aux_trans: Auxiliary Transducer loss.
+            loss_symm_kl_div: Symmetric KL-divergence loss.
+            loss_lm: Label smoothing loss.
+            cer: Character Error Rate.
+            wer: Word Error Rate.
+
+        """
         chainer.reporter.report({"loss": loss}, self)
         chainer.reporter.report({"loss_trans": loss_trans}, self)
         chainer.reporter.report({"loss_ctc": loss_ctc}, self)
@@ -72,7 +84,7 @@ class Reporter(chainer.Chain):
 
 
 class E2E(ASRInterface, torch.nn.Module):
-    """E2E module for transducer models.
+    """E2E module for Transducer models.
 
     Args:
         idim: Dimension of inputs.
@@ -80,12 +92,13 @@ class E2E(ASRInterface, torch.nn.Module):
         args: Namespace containing model options.
         ignore_id: Padding symbol ID.
         blank_id: Blank symbol ID.
+        training: Whether the model is initialized in training or inference mode.
 
     """
 
     @staticmethod
     def add_arguments(parser: ArgumentParser) -> ArgumentParser:
-        """Add arguments for transducer model."""
+        """Add arguments for Transducer model."""
         E2E.encoder_add_general_arguments(parser)
         E2E.encoder_add_rnn_arguments(parser)
         E2E.encoder_add_custom_arguments(parser)
@@ -158,7 +171,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
     @staticmethod
     def transducer_add_arguments(parser: ArgumentParser) -> ArgumentParser:
-        """Add arguments for transducer model."""
+        """Add arguments for Transducer model."""
         group = parser.add_argument_group("Transducer model arguments")
         group = add_transducer_arguments(group)
 
@@ -195,7 +208,7 @@ class E2E(ASRInterface, torch.nn.Module):
         blank_id: int = 0,
         training: bool = True,
     ):
-        """Construct an E2E object for transducer model."""
+        """Construct an E2E object for Transducer model."""
         torch.nn.Module.__init__(self)
 
         args = fill_missing_args(args, self.add_arguments)
@@ -345,7 +358,7 @@ class E2E(ASRInterface, torch.nn.Module):
         self.rnnlm = None
 
     def default_parameters(self, args: Namespace):
-        """Initialize/reset parameters for transducer.
+        """Initialize/reset parameters for Transducer.
 
         Args:
             args: Namespace containing model options.
@@ -399,7 +412,7 @@ class E2E(ASRInterface, torch.nn.Module):
 
             dec_out = self.dec(dec_in)
 
-        # 3. transducer tasks computation
+        # 3. Transducer task and auxiliary tasks computation
         losses = self.transducer_tasks(
             enc_out,
             aux_enc_out,
