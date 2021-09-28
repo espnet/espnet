@@ -30,7 +30,7 @@ speed_perturb_factors="0.9 1.0 1.1"
     --fs 16000                                          \
     --token_type word                                   \
     --use_lm false                                      \
-    --asr_tag conformer_warmup3.5k_lr1e-4_accum3_lsm0.1_noMacaron_conv3  \
+    --asr_tag conformer_warmup3.5k_lr1e-4_accum3_lsm0.1_Macaron_conv15_noBatchNorm  \
     --asr_config "${asr_config}"                        \
     --inference_tag infer                               \
     --inference_config "${inference_config}"            \
