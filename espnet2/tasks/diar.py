@@ -21,7 +21,6 @@ from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.diar.attractor.abs_attractor import AbsAttractor
 from espnet2.diar.attractor.rnn_attractor import RnnAttractor
-from espnet2.diar.attractor.rnn_attractor import RnnAttractorNoGrad
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.diar.decoder.linear_decoder import LinearDecoder
 from espnet2.diar.espnet_model import ESPnetDiarizationModel
@@ -86,7 +85,6 @@ attractor_choices = ClassChoices(
     "attractor",
     classes=dict(
         rnn=RnnAttractor,
-        rnn_nograd=RnnAttractorNoGrad,
     ),
     type_check=AbsAttractor,
     default=None,

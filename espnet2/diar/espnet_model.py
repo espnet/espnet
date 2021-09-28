@@ -15,8 +15,8 @@ from typeguard import check_argument_types
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.diar.attractor.abs_attractor import AbsAttractor
+from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -34,7 +34,8 @@ else:
 class ESPnetDiarizationModel(AbsESPnetModel):
     """Speaker Diarization model
 
-    model_type can be chosen from "sa"(SA-EEND) or "eda"(EEND-EDA).
+    If "attractor" is "None", SA-EEND will be used.
+    Else if "attractor" is not "None", EEND-EDA will be used.
     For the details about SA-EEND and EEND-EDA, refer to the following papers:
     SA-EEND: https://arxiv.org/pdf/1909.06247.pdf
     EEND-EDA: https://arxiv.org/pdf/2005.09921.pdf, https://arxiv.org/pdf/2106.10654.pdf
@@ -48,7 +49,6 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         attractor: AbsAttractor,
-        model_type: str = "sa",  # "sa":sa-eend, "eda":eend-eda
         attractor_weight: float = 1.0,
     ):
         assert check_argument_types()
@@ -59,16 +59,14 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         self.normalize = normalize
         self.frontend = frontend
         self.label_aggregator = label_aggregator
-        self.model_type = model_type
         self.attractor_weight = attractor_weight
+        self.attractor = attractor
+        self.decoder = decoder
 
-        if model_type == "sa":
-            self.attractor = None
-            self.decoder = decoder
-            self.num_spk = decoder.num_spk
-        elif model_type == "eda":
+        if self.attractor is not None:
             self.decoder = None
-            self.attractor = attractor
+        elif self.decoder is not None:
+            self.num_spk = decoder.num_spk
         else:
             raise NotImplementedError
 
@@ -96,15 +94,17 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
 
-        if self.model_type == "sa":
+        if self.attractor is None:
             # 2a. Decoder (baiscally a predction layer after encoder_out)
             pred = self.decoder(encoder_out, encoder_out_lens)
-        elif self.model_type == "eda":
+        else:
             # 2b. Encoder Decoder Attractors
             # Shuffle the chronological order of encoder_out, then calculate attractor
-            encoder_out_shuffled = encoder_out[
-                :, torch.randperm(encoder_out.size()[1]), :
-            ]
+            encoder_out_shuffled = encoder_out
+            for i in range(len(encoder_out_lens)):
+                encoder_out_shuffled[i, : encoder_out_lens[i], :] = encoder_out[
+                    i, torch.randperm(encoder_out_lens[i]), :
+                ]
             attractor, att_prob = self.attractor(
                 encoder_out_shuffled,
                 encoder_out_lens,
@@ -123,20 +123,17 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         spk_labels, spk_labels_lengths = self.label_aggregator(
             spk_labels, spk_labels_lengths
         )
-
-        if self.model_type == "sa":
+        if self.attractor is None:
             loss_pit, loss_att = None, None
             loss, perm_idx, perm_list, label_perm = self.pit_loss(
                 pred, spk_labels, encoder_out_lens
             )
-        elif self.model_type == "eda":
+        else:
             loss_pit, perm_idx, perm_list, label_perm = self.pit_loss(
                 pred, spk_labels, encoder_out_lens
             )
             loss_att = self.attractor_loss(att_prob, spk_labels)
-            loss = (loss_pit + self.attractor_weight * loss_att) / (
-                1.0 + self.attractor_weight
-            )
+            loss = loss_pit + self.attractor_weight * loss_att
         (
             correct,
             num_frames,

@@ -140,15 +140,15 @@ class DiarizeSpeech:
                     speech_seg, lengths_seg
                 )
                 # SA-EEND
-                if self.diar_model.model_type == "sa":
+                if self.diar_model.attractor is None:
                     assert (
                         self.num_spk is not None
-                    ), 'Argument "num_spk" must be specified if model_type="sa"'
+                    ), 'Argument "num_spk" must be specified'
                     spk_prediction = self.diar_model.decoder(
                         encoder_out, encoder_out_lens
                     )
                 # EEND-EDA
-                elif self.diar_model.model_type == "eda":
+                else:
                     # if num_spk is specified, use that number
                     if self.num_spk is not None:
                         attractor, att_prob = self.diar_model.attractor(
@@ -199,13 +199,11 @@ class DiarizeSpeech:
             # b. Diarization Forward
             encoder_out, encoder_out_lens = self.diar_model.encode(speech, lengths)
             # SA-EEND
-            if self.diar_model.model_type == "sa":
-                assert (
-                    self.num_spk is not None
-                ), 'Argument "num_spk" must be specified in SA-EEND'
+            if self.diar_model.attractor is None:
+                assert self.num_spk is not None, 'Argument "num_spk" must be specified'
                 spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
             # EEND-EDA
-            elif self.diar_model.model_type == "eda":
+            else:
                 # if num_spk is specified, use that number
                 if self.num_spk is not None:
                     attractor, att_prob = self.diar_model.attractor(
