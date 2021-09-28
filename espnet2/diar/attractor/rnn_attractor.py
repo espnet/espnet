@@ -53,7 +53,7 @@ class RnnAttractor(AbsAttractor):
         """
         _, hs = self.attractor_encoder(enc_input)
         attractor, _ = self.attractor_decoder(dec_input, hs)
-        if self.attractor_grad == True:
+        if self.attractor_grad is True:
             att_prob = self.linear_projection(attractor)
         else:
             att_prob = self.linear_projection(attractor.detach())
