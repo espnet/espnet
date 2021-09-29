@@ -287,7 +287,6 @@ class Jaso:
         graphemes = self._remove_non_korean_characters(graphemes)
         
         if self.no_space:
-            # remove space which represents word serapater
             graphemes = list(filter(lambda s: s != " ", graphemes))
         else:
             graphemes = [x if x != " " else self.space_symbol for x in graphemes]

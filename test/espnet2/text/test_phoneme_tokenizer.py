@@ -47,6 +47,7 @@ try:
     del g2pk
 except ImportError:
     pass
+params.extend(["korean_jaso", "korean_jaso_no_space"])
 
 
 @pytest.fixture(params=params)
@@ -408,6 +409,56 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
             "ᄃ",
             "ᅡ",
             ".",
+        ]
+    elif phoneme_tokenizer.g2p_type == "korean_jaso":
+        input = "나는 학교에 갑니다."
+        output = [
+            "ᄂ", 
+            "ᅡ", 
+            "ᄂ", 
+            "ᅳ", 
+            "ᆫ", 
+            " ", 
+            "ᄒ", 
+            "ᅡ", 
+            "ᆨ", 
+            "ᄀ", 
+            "ᅭ", 
+            "ᄋ", 
+            "ᅦ", 
+            " ", 
+            "ᄀ", 
+            "ᅡ", 
+            "ᆸ", 
+            "ᄂ", 
+            "ᅵ", 
+            "ᄃ", 
+            "ᅡ", 
+            "."
+        ]
+    elif phoneme_tokenizer.g2p_type == "korean_jaso_no_space":
+        input = "나는 학교에 갑니다."
+        output = [
+            "ᄂ", 
+            "ᅡ", 
+            "ᄂ", 
+            "ᅳ", 
+            "ᆫ", 
+            "ᄒ", 
+            "ᅡ", 
+            "ᆨ", 
+            "ᄀ", 
+            "ᅭ", 
+            "ᄋ", 
+            "ᅦ",
+            "ᄀ", 
+            "ᅡ", 
+            "ᆸ", 
+            "ᄂ", 
+            "ᅵ", 
+            "ᄃ", 
+            "ᅡ", 
+            "."
         ]
     else:
         raise NotImplementedError

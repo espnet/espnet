@@ -3,7 +3,7 @@
 
 import re
 
-class Korean_cleaner:
+class KoreanCleaner:
     @classmethod
     def _normalize_numbers(cls, text):
         number_to_kor = {
@@ -51,7 +51,7 @@ class Korean_cleaner:
             'Y': '와이',
             'Z': '지',
         }
-        new_text = re.sub('[a-z]+', text.upper(), text)
+        new_text = re.sub('[a-z]+', lambda x : str.upper(x.group()), text)
         new_text = "".join(upper_alphabet_to_kor[char] if char in upper_alphabet_to_kor.keys() else char for char in new_text)
 
         return new_text
@@ -68,10 +68,3 @@ class Korean_cleaner:
         # stage 2 : normalize english text
         text = cls._normalize_english_text(text)
         return text
-
-if __name__ == '__main__':
-    sentence = "내가 ABC 마트에 가는길은 너무나 험난해. 1분 1초도 아까워"
-    sentence = "지난 mbC 프로그램 봤어? 12세 이상 관람가인데 이상해"
-
-    new_sentence = Korean_cleaner.normalize_text(sentence)
-    print(new_sentence)
