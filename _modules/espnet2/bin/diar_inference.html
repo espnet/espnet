@@ -148,6 +148,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.set_all_random_seed</span> <span class="kn">import</span> <span class="n">set_all_random_seed</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils</span> <span class="kn">import</span> <span class="n">config_argparse</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">humanfriendly_parse_size_or_none</span>
+<span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">int_or_none</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2triple_str</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str_or_none</span>
@@ -172,6 +173,7 @@
         <span class="n">segment_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">normalize_segment_scale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">show_progressbar</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">num_spk</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
     <span class="p">):</span>
@@ -193,8 +195,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">=</span> <span class="n">segment_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">normalize_segment_scale</span> <span class="o">=</span> <span class="n">normalize_segment_scale</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">show_progressbar</span> <span class="o">=</span> <span class="n">show_progressbar</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">=</span> <span class="n">diar_model</span><span class="o">.</span><span class="n">num_spk</span>
+        <span class="c1"># not specifying &quot;num_spk&quot; in inference config file</span>
+        <span class="c1"># will enable speaker number prediction during inference</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">=</span> <span class="n">num_spk</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">segmenting</span> <span class="o">=</span> <span class="n">segment_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">segmenting</span><span class="p">:</span>
@@ -261,21 +264,105 @@
                 <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diar_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
                     <span class="n">speech_seg</span><span class="p">,</span> <span class="n">lengths_seg</span>
                 <span class="p">)</span>
-                <span class="n">spk_prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diar_model</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">)</span>
-
+                <span class="c1"># SA-EEND</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">diar_model</span><span class="o">.</span><span class="n">attractor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="p">),</span> <span class="s1">&#39;Argument &quot;num_spk&quot; must be specified&#39;</span>
+                    <span class="n">spk_prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diar_model</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span>
+                        <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span>
+                    <span class="p">)</span>
+                <span class="c1"># EEND-EDA</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># if num_spk is specified, use that number</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">attractor</span><span class="p">,</span> <span class="n">att_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diar_model</span><span class="o">.</span><span class="n">attractor</span><span class="p">(</span>
+                            <span class="n">encoder_out</span><span class="p">,</span>
+                            <span class="n">encoder_out_lens</span><span class="p">,</span>
+                            <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                                <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+                            <span class="p">),</span>
+                        <span class="p">)</span>
+                        <span class="n">spk_prediction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span>
+                            <span class="n">encoder_out</span><span class="p">,</span>
+                            <span class="n">attractor</span><span class="p">[:,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                        <span class="p">)</span>
+                    <span class="c1"># else find the first att_prob[i] &lt; 0</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">max_num_spk</span> <span class="o">=</span> <span class="mi">15</span>  <span class="c1"># upper bound number for estimation</span>
+                        <span class="n">attractor</span><span class="p">,</span> <span class="n">att_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diar_model</span><span class="o">.</span><span class="n">attractor</span><span class="p">(</span>
+                            <span class="n">encoder_out</span><span class="p">,</span>
+                            <span class="n">encoder_out_lens</span><span class="p">,</span>
+                            <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                                <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                <span class="n">max_num_spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+                            <span class="p">),</span>
+                        <span class="p">)</span>
+                        <span class="n">att_prob</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">att_prob</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">pred_num_spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">att_prob</span><span class="p">)):</span>
+                            <span class="k">if</span> <span class="n">att_prob</span><span class="p">[</span><span class="n">pred_num_spk</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="k">break</span>
+                        <span class="n">spk_prediction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span>
+                            <span class="n">encoder_out</span><span class="p">,</span> <span class="n">attractor</span><span class="p">[:,</span> <span class="p">:</span><span class="n">pred_num_spk</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="p">)</span>
                 <span class="c1"># List[torch.Tensor(B, T, num_spks)]</span>
                 <span class="n">diarized_wavs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">spk_prediction</span><span class="p">)</span>
-
+            <span class="c1"># Determine maximum estimated number of speakers among the segments</span>
+            <span class="n">max_len</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">diarized_wavs</span><span class="p">])</span>
+            <span class="c1"># pad tensors in diarized_wavs with &quot;float(&#39;-inf&#39;)&quot; to have same size</span>
+            <span class="n">diarized_wavs</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                    <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_len</span> <span class="o">-</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)),</span> <span class="s2">&quot;constant&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;-inf&quot;</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">diarized_wavs</span>
+            <span class="p">]</span>
             <span class="n">spk_prediction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">diarized_wavs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># b. Diarization Forward</span>
             <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diar_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">lengths</span><span class="p">)</span>
-            <span class="n">spk_prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diar_model</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">)</span>
-
-        <span class="k">assert</span> <span class="n">spk_prediction</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">,</span> <span class="p">(</span>
-            <span class="n">spk_prediction</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">,</span>
-        <span class="p">)</span>
+            <span class="c1"># SA-EEND</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">diar_model</span><span class="o">.</span><span class="n">attractor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Argument &quot;num_spk&quot; must be specified&#39;</span>
+                <span class="n">spk_prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diar_model</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">)</span>
+            <span class="c1"># EEND-EDA</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># if num_spk is specified, use that number</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">attractor</span><span class="p">,</span> <span class="n">att_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diar_model</span><span class="o">.</span><span class="n">attractor</span><span class="p">(</span>
+                        <span class="n">encoder_out</span><span class="p">,</span>
+                        <span class="n">encoder_out_lens</span><span class="p">,</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                            <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                        <span class="p">),</span>
+                    <span class="p">)</span>
+                    <span class="n">spk_prediction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span>
+                        <span class="n">encoder_out</span><span class="p">,</span> <span class="n">attractor</span><span class="p">[:,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="c1"># else find the first att_prob[i] &lt; 0</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">max_num_spk</span> <span class="o">=</span> <span class="mi">15</span>  <span class="c1"># upper bound number for estimation</span>
+                    <span class="n">attractor</span><span class="p">,</span> <span class="n">att_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diar_model</span><span class="o">.</span><span class="n">attractor</span><span class="p">(</span>
+                        <span class="n">encoder_out</span><span class="p">,</span>
+                        <span class="n">encoder_out_lens</span><span class="p">,</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                            <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">max_num_spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                        <span class="p">),</span>
+                    <span class="p">)</span>
+                    <span class="n">att_prob</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">att_prob</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">pred_num_spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">att_prob</span><span class="p">)):</span>
+                        <span class="k">if</span> <span class="n">att_prob</span><span class="p">[</span><span class="n">pred_num_spk</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="k">break</span>
+                    <span class="n">spk_prediction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span>
+                        <span class="n">encoder_out</span><span class="p">,</span> <span class="n">attractor</span><span class="p">[:,</span> <span class="p">:</span><span class="n">pred_num_spk</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">spk_prediction</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">,</span> <span class="p">(</span>
+                <span class="n">spk_prediction</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">assert</span> <span class="n">spk_prediction</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="n">batch_size</span><span class="p">,</span> <span class="p">(</span>
             <span class="n">spk_prediction</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
             <span class="n">batch_size</span><span class="p">,</span>
@@ -333,6 +420,7 @@
     <span class="n">allow_variable_data_keys</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">segment_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
     <span class="n">show_progressbar</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">num_spk</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
 <span class="p">):</span>
     <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -359,6 +447,7 @@
         <span class="n">model_file</span><span class="o">=</span><span class="n">model_file</span><span class="p">,</span>
         <span class="n">segment_size</span><span class="o">=</span><span class="n">segment_size</span><span class="p">,</span>
         <span class="n">show_progressbar</span><span class="o">=</span><span class="n">show_progressbar</span><span class="p">,</span>
+        <span class="n">num_spk</span><span class="o">=</span><span class="n">num_spk</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
     <span class="p">)</span>
@@ -492,6 +581,12 @@
         <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to show a progress bar when performing segment-wise speaker &quot;</span>
         <span class="s2">&quot;diarization&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--num_spk&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">int_or_none</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Predetermined number of speakers for inference&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">parser</span></div>

@@ -142,7 +142,10 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.transformer_encoder</span> <span class="kn">import</span> <span class="n">TransformerEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.default</span> <span class="kn">import</span> <span class="n">DefaultFrontend</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.frontend.s3prl</span> <span class="kn">import</span> <span class="n">S3prlFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.windowing</span> <span class="kn">import</span> <span class="n">SlidingWindow</span>
+<span class="kn">from</span> <span class="nn">espnet2.diar.attractor.abs_attractor</span> <span class="kn">import</span> <span class="n">AbsAttractor</span>
+<span class="kn">from</span> <span class="nn">espnet2.diar.attractor.rnn_attractor</span> <span class="kn">import</span> <span class="n">RnnAttractor</span>
 <span class="kn">from</span> <span class="nn">espnet2.diar.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.diar.decoder.linear_decoder</span> <span class="kn">import</span> <span class="n">LinearDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.diar.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetDiarizationModel</span>
@@ -164,7 +167,11 @@
 
 <span class="n">frontend_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;frontend&quot;</span><span class="p">,</span>
-    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">DefaultFrontend</span><span class="p">,</span> <span class="n">sliding_window</span><span class="o">=</span><span class="n">SlidingWindow</span><span class="p">),</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="n">DefaultFrontend</span><span class="p">,</span>
+        <span class="n">sliding_window</span><span class="o">=</span><span class="n">SlidingWindow</span><span class="p">,</span>
+        <span class="n">s3prl</span><span class="o">=</span><span class="n">S3prlFrontend</span><span class="p">,</span>
+    <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsFrontend</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">,</span>
 <span class="p">)</span>
@@ -199,6 +206,14 @@
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsDecoder</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="n">attractor_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="s2">&quot;attractor&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">rnn</span><span class="o">=</span><span class="n">RnnAttractor</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsAttractor</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <div class="viewcode-block" id="DiarizationTask"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask">[docs]</a><span class="k">class</span> <span class="nc">DiarizationTask</span><span class="p">(</span><span class="n">AbsTask</span><span class="p">):</span>
@@ -217,6 +232,8 @@
         <span class="n">decoder_choices</span><span class="p">,</span>
         <span class="c1"># --label_aggregator and --label_aggregator_conf</span>
         <span class="n">label_aggregator_choices</span><span class="p">,</span>
+        <span class="c1"># --attractor and --attractor_conf</span>
+        <span class="n">attractor_choices</span><span class="p">,</span>
     <span class="p">]</span>
 
     <span class="c1"># If you need to modify train() or eval() procedures, change Trainer class here</span>
@@ -362,18 +379,26 @@
             <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="c1"># 5. Build model</span>
+        <span class="c1"># 5. Attractor</span>
+        <span class="n">attractor_class</span> <span class="o">=</span> <span class="n">attractor_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">attractor</span><span class="p">)</span>
+        <span class="n">attractor</span> <span class="o">=</span> <span class="n">attractor_class</span><span class="p">(</span>
+            <span class="n">encoder_output_size</span><span class="o">=</span><span class="n">encoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">(),</span>
+            <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">attractor_conf</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># 6. Build model</span>
         <span class="n">model</span> <span class="o">=</span> <span class="n">ESPnetDiarizationModel</span><span class="p">(</span>
             <span class="n">frontend</span><span class="o">=</span><span class="n">frontend</span><span class="p">,</span>
             <span class="n">normalize</span><span class="o">=</span><span class="n">normalize</span><span class="p">,</span>
             <span class="n">label_aggregator</span><span class="o">=</span><span class="n">label_aggregator</span><span class="p">,</span>
             <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span>
             <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
+            <span class="n">attractor</span><span class="o">=</span><span class="n">attractor</span><span class="p">,</span>
             <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># FIXME(kamo): Should be done in model?</span>
-        <span class="c1"># 6. Initialize</span>
+        <span class="c1"># 7. Initialize</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">init</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">initialize</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">init</span><span class="p">)</span>
 

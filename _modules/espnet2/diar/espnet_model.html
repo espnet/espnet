@@ -140,6 +140,7 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">to_device</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
+<span class="kn">from</span> <span class="nn">espnet2.diar.attractor.abs_attractor</span> <span class="kn">import</span> <span class="n">AbsAttractor</span>
 <span class="kn">from</span> <span class="nn">espnet2.diar.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
@@ -156,7 +157,14 @@
 
 
 <div class="viewcode-block" id="ESPnetDiarizationModel"><a class="viewcode-back" href="../../../_gen/espnet2.diar.html#espnet2.diar.espnet_model.ESPnetDiarizationModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetDiarizationModel</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Speaker Diarization model&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Speaker Diarization model</span>
+
+<span class="sd">    If &quot;attractor&quot; is &quot;None&quot;, SA-EEND will be used.</span>
+<span class="sd">    Else if &quot;attractor&quot; is not &quot;None&quot;, EEND-EDA will be used.</span>
+<span class="sd">    For the details about SA-EEND and EEND-EDA, refer to the following papers:</span>
+<span class="sd">    SA-EEND: https://arxiv.org/pdf/1909.06247.pdf</span>
+<span class="sd">    EEND-EDA: https://arxiv.org/pdf/2005.09921.pdf, https://arxiv.org/pdf/2106.10654.pdf</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -165,19 +173,27 @@
         <span class="n">label_aggregator</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
         <span class="n">encoder</span><span class="p">:</span> <span class="n">AbsEncoder</span><span class="p">,</span>
         <span class="n">decoder</span><span class="p">:</span> <span class="n">AbsDecoder</span><span class="p">,</span>
-        <span class="n">loss_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;pit&quot;</span><span class="p">,</span>  <span class="c1"># only support pit loss for now</span>
+        <span class="n">attractor</span><span class="p">:</span> <span class="n">AbsAttractor</span><span class="p">,</span>
+        <span class="n">attractor_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">num_spk</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="o">=</span> <span class="n">frontend</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">label_aggregator</span> <span class="o">=</span> <span class="n">label_aggregator</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">=</span> <span class="n">loss_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attractor_weight</span> <span class="o">=</span> <span class="n">attractor_weight</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attractor</span> <span class="o">=</span> <span class="n">attractor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">attractor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">num_spk</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
 <div class="viewcode-block" id="ESPnetDiarizationModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.diar.html#espnet2.diar.espnet_model.ESPnetDiarizationModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -203,55 +219,83 @@
         <span class="c1"># 1. Encoder</span>
         <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
 
-        <span class="c1"># 2. Decoder (baiscally a predction layer after encoder_out)</span>
-        <span class="n">pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">attractor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># 2a. Decoder (baiscally a predction layer after encoder_out)</span>
+            <span class="n">pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># 2b. Encoder Decoder Attractors</span>
+            <span class="c1"># Shuffle the chronological order of encoder_out, then calculate attractor</span>
+            <span class="n">encoder_out_shuffled</span> <span class="o">=</span> <span class="n">encoder_out</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">encoder_out_lens</span><span class="p">)):</span>
+                <span class="n">encoder_out_shuffled</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">encoder_out_lens</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">encoder_out</span><span class="p">[</span>
+                    <span class="n">i</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">randperm</span><span class="p">(</span><span class="n">encoder_out_lens</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="p">:</span>
+                <span class="p">]</span>
+            <span class="n">attractor</span><span class="p">,</span> <span class="n">att_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attractor</span><span class="p">(</span>
+                <span class="n">encoder_out_shuffled</span><span class="p">,</span>
+                <span class="n">encoder_out_lens</span><span class="p">,</span>
+                <span class="n">to_device</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="p">,</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                        <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">spk_labels</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+                    <span class="p">),</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="c1"># Remove the final attractor which does not correspond to a speaker</span>
+            <span class="c1"># Then multiply the attractors and encoder_out</span>
+            <span class="n">pred</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bmm</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="n">attractor</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 
         <span class="c1"># 3. Aggregate time-domain labels</span>
         <span class="n">spk_labels</span><span class="p">,</span> <span class="n">spk_labels_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_aggregator</span><span class="p">(</span>
             <span class="n">spk_labels</span><span class="p">,</span> <span class="n">spk_labels_lengths</span>
         <span class="p">)</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">==</span> <span class="s2">&quot;pit&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">attractor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">loss_pit</span><span class="p">,</span> <span class="n">loss_att</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
             <span class="n">loss</span><span class="p">,</span> <span class="n">perm_idx</span><span class="p">,</span> <span class="n">perm_list</span><span class="p">,</span> <span class="n">label_perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pit_loss</span><span class="p">(</span>
                 <span class="n">pred</span><span class="p">,</span> <span class="n">spk_labels</span><span class="p">,</span> <span class="n">encoder_out_lens</span>
             <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">loss_pit</span><span class="p">,</span> <span class="n">perm_idx</span><span class="p">,</span> <span class="n">perm_list</span><span class="p">,</span> <span class="n">label_perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pit_loss</span><span class="p">(</span>
+                <span class="n">pred</span><span class="p">,</span> <span class="n">spk_labels</span><span class="p">,</span> <span class="n">encoder_out_lens</span>
+            <span class="p">)</span>
+            <span class="n">loss_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attractor_loss</span><span class="p">(</span><span class="n">att_prob</span><span class="p">,</span> <span class="n">spk_labels</span><span class="p">)</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_pit</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">attractor_weight</span> <span class="o">*</span> <span class="n">loss_att</span>
+        <span class="p">(</span>
+            <span class="n">correct</span><span class="p">,</span>
+            <span class="n">num_frames</span><span class="p">,</span>
+            <span class="n">speech_scored</span><span class="p">,</span>
+            <span class="n">speech_miss</span><span class="p">,</span>
+            <span class="n">speech_falarm</span><span class="p">,</span>
+            <span class="n">speaker_scored</span><span class="p">,</span>
+            <span class="n">speaker_miss</span><span class="p">,</span>
+            <span class="n">speaker_falarm</span><span class="p">,</span>
+            <span class="n">speaker_error</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_diarization_error</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">label_perm</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">)</span>
 
-            <span class="p">(</span>
-                <span class="n">correct</span><span class="p">,</span>
-                <span class="n">num_frames</span><span class="p">,</span>
-                <span class="n">speech_scored</span><span class="p">,</span>
-                <span class="n">speech_miss</span><span class="p">,</span>
-                <span class="n">speech_falarm</span><span class="p">,</span>
-                <span class="n">speaker_scored</span><span class="p">,</span>
-                <span class="n">speaker_miss</span><span class="p">,</span>
-                <span class="n">speaker_falarm</span><span class="p">,</span>
-                <span class="n">speaker_error</span><span class="p">,</span>
-            <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calc_diarization_error</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">label_perm</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">)</span>
-
-            <span class="k">if</span> <span class="n">speech_scored</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">num_frames</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">sad_mr</span><span class="p">,</span> <span class="n">sad_fr</span><span class="p">,</span> <span class="n">mi</span><span class="p">,</span> <span class="n">fa</span><span class="p">,</span> <span class="n">cf</span><span class="p">,</span> <span class="n">acc</span><span class="p">,</span> <span class="n">der</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="n">speech_miss</span> <span class="o">/</span> <span class="n">speech_scored</span><span class="p">,</span>
-                    <span class="n">speech_falarm</span> <span class="o">/</span> <span class="n">speech_scored</span><span class="p">,</span>
-                    <span class="n">speaker_miss</span> <span class="o">/</span> <span class="n">speaker_scored</span><span class="p">,</span>
-                    <span class="n">speaker_falarm</span> <span class="o">/</span> <span class="n">speaker_scored</span><span class="p">,</span>
-                    <span class="n">speaker_error</span> <span class="o">/</span> <span class="n">speaker_scored</span><span class="p">,</span>
-                    <span class="n">correct</span> <span class="o">/</span> <span class="n">num_frames</span><span class="p">,</span>
-                    <span class="p">(</span><span class="n">speaker_miss</span> <span class="o">+</span> <span class="n">speaker_falarm</span> <span class="o">+</span> <span class="n">speaker_error</span><span class="p">)</span> <span class="o">/</span> <span class="n">speaker_scored</span><span class="p">,</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">sad_mr</span><span class="p">,</span> <span class="n">sad_fr</span><span class="p">,</span> <span class="n">mi</span><span class="p">,</span> <span class="n">fa</span><span class="p">,</span> <span class="n">cf</span><span class="p">,</span> <span class="n">acc</span><span class="p">,</span> <span class="n">der</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
-            <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-                <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
-                <span class="n">sad_mr</span><span class="o">=</span><span class="n">sad_mr</span><span class="p">,</span>
-                <span class="n">sad_fr</span><span class="o">=</span><span class="n">sad_fr</span><span class="p">,</span>
-                <span class="n">mi</span><span class="o">=</span><span class="n">mi</span><span class="p">,</span>
-                <span class="n">fa</span><span class="o">=</span><span class="n">fa</span><span class="p">,</span>
-                <span class="n">cf</span><span class="o">=</span><span class="n">cf</span><span class="p">,</span>
-                <span class="n">acc</span><span class="o">=</span><span class="n">acc</span><span class="p">,</span>
-                <span class="n">der</span><span class="o">=</span><span class="n">der</span><span class="p">,</span>
+        <span class="k">if</span> <span class="n">speech_scored</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">num_frames</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sad_mr</span><span class="p">,</span> <span class="n">sad_fr</span><span class="p">,</span> <span class="n">mi</span><span class="p">,</span> <span class="n">fa</span><span class="p">,</span> <span class="n">cf</span><span class="p">,</span> <span class="n">acc</span><span class="p">,</span> <span class="n">der</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">speech_miss</span> <span class="o">/</span> <span class="n">speech_scored</span><span class="p">,</span>
+                <span class="n">speech_falarm</span> <span class="o">/</span> <span class="n">speech_scored</span><span class="p">,</span>
+                <span class="n">speaker_miss</span> <span class="o">/</span> <span class="n">speaker_scored</span><span class="p">,</span>
+                <span class="n">speaker_falarm</span> <span class="o">/</span> <span class="n">speaker_scored</span><span class="p">,</span>
+                <span class="n">speaker_error</span> <span class="o">/</span> <span class="n">speaker_scored</span><span class="p">,</span>
+                <span class="n">correct</span> <span class="o">/</span> <span class="n">num_frames</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">speaker_miss</span> <span class="o">+</span> <span class="n">speaker_falarm</span> <span class="o">+</span> <span class="n">speaker_error</span><span class="p">)</span> <span class="o">/</span> <span class="n">speaker_scored</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+            <span class="n">sad_mr</span><span class="p">,</span> <span class="n">sad_fr</span><span class="p">,</span> <span class="n">mi</span><span class="p">,</span> <span class="n">fa</span><span class="p">,</span> <span class="n">cf</span><span class="p">,</span> <span class="n">acc</span><span class="p">,</span> <span class="n">der</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+
+        <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
+            <span class="n">loss_att</span><span class="o">=</span><span class="n">loss_att</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_att</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">loss_pit</span><span class="o">=</span><span class="n">loss_pit</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_pit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">sad_mr</span><span class="o">=</span><span class="n">sad_mr</span><span class="p">,</span>
+            <span class="n">sad_fr</span><span class="o">=</span><span class="n">sad_fr</span><span class="p">,</span>
+            <span class="n">mi</span><span class="o">=</span><span class="n">mi</span><span class="p">,</span>
+            <span class="n">fa</span><span class="o">=</span><span class="n">fa</span><span class="p">,</span>
+            <span class="n">cf</span><span class="o">=</span><span class="n">cf</span><span class="p">,</span>
+            <span class="n">acc</span><span class="o">=</span><span class="n">acc</span><span class="p">,</span>
+            <span class="n">der</span><span class="o">=</span><span class="n">der</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">force_gatherable</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">loss</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span></div>
@@ -360,6 +404,17 @@
             <span class="n">mask</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">length</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">mask</span></div>
+
+<div class="viewcode-block" id="ESPnetDiarizationModel.attractor_loss"><a class="viewcode-back" href="../../../_gen/espnet2.diar.html#espnet2.diar.espnet_model.ESPnetDiarizationModel.attractor_loss">[docs]</a>    <span class="k">def</span> <span class="nf">attractor_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">att_prob</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+        <span class="n">bce_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">BCEWithLogitsLoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+        <span class="c1"># create attractor label [1, 1, ..., 1, 0]</span>
+        <span class="c1"># att_label: (Batch, num_spk + 1, 1)</span>
+        <span class="n">att_label</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">label</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">att_label</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">label</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">bce_loss</span><span class="p">(</span><span class="n">att_prob</span><span class="p">,</span> <span class="n">att_label</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">loss</span></div>
 
 <div class="viewcode-block" id="ESPnetDiarizationModel.calc_diarization_error"><a class="viewcode-back" href="../../../_gen/espnet2.diar.html#espnet2.diar.espnet_model.ESPnetDiarizationModel.calc_diarization_error">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">calc_diarization_error</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">length</span><span class="p">):</span>

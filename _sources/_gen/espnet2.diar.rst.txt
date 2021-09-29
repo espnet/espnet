@@ -48,6 +48,39 @@ espnet2.diar.abs_diar
     :show-inheritance:
 
 
+.. _espnet2.diar.attractor.abs_attractor:
+
+espnet2.diar.attractor.abs_attractor
+------------------------------------
+
+.. automodule:: espnet2.diar.attractor.abs_attractor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.diar.attractor.rnn_attractor:
+
+espnet2.diar.attractor.rnn_attractor
+------------------------------------
+
+.. automodule:: espnet2.diar.attractor.rnn_attractor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.diar.attractor.__init__:
+
+espnet2.diar.attractor.__init__
+-------------------------------
+
+.. automodule:: espnet2.diar.attractor.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.diar.decoder.__init__:
 
 espnet2.diar.decoder.__init__

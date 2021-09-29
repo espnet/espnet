@@ -882,6 +882,7 @@ Optimizer related:
                          [--batch_size BATCH_SIZE]
                          [--segment_size SEGMENT_SIZE]
                          [--show_progressbar SHOW_PROGRESSBAR]
+                         [--num_spk NUM_SPK]
 
 Speaker Diarization inference
 
@@ -924,6 +925,8 @@ Diarize speech related:
   --show_progressbar SHOW_PROGRESSBAR
                         Whether to show a progress bar when performing
                         segment-wise speaker diarization (default: False)
+  --num_spk NUM_SPK     Predetermined number of speakers for inference
+                        (default: None)
 </pre></div>
 </div>
 </section>
@@ -999,7 +1002,7 @@ Diarize speech related:
                      [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                      [--input_size INPUT_SIZE] [--model_conf MODEL_CONF]
                      [--use_preprocessor USE_PREPROCESSOR]
-                     [--frontend {default,sliding_window}]
+                     [--frontend {default,sliding_window,s3prl}]
                      [--frontend_conf FRONTEND_CONF]
                      [--normalize {global_mvn,utterance_mvn,None}]
                      [--normalize_conf NORMALIZE_CONF]
@@ -1008,6 +1011,8 @@ Diarize speech related:
                      [--decoder_conf DECODER_CONF]
                      [--label_aggregator {label_aggregator}]
                      [--label_aggregator_conf LABEL_AGGREGATOR_CONF]
+                     [--attractor {rnn,None}]
+                     [--attractor_conf ATTRACTOR_CONF]
 
 base parser
 
@@ -1326,13 +1331,13 @@ Optimizer related:
   --input_size INPUT_SIZE
                         The number of input dimension of the feature (default: None)
   --model_conf MODEL_CONF
-                        The keyword arguments for model class. (default: {&#39;loss_type&#39;: &#39;pit&#39;})
+                        The keyword arguments for model class. (default: {&#39;attractor_weight&#39;: 1.0})
 
   Preprocess related
 
   --use_preprocessor USE_PREPROCESSOR
                         Apply preprocessing to data or not (default: True)
-  --frontend {default,sliding_window}
+  --frontend {default,sliding_window,s3prl}
                         The frontend type (default: default)
   --frontend_conf FRONTEND_CONF
                         The keyword arguments for frontend (default: {})
@@ -1351,6 +1356,10 @@ Optimizer related:
                         The label_aggregator type (default: label_aggregator)
   --label_aggregator_conf LABEL_AGGREGATOR_CONF
                         The keyword arguments for label_aggregator (default: {})
+  --attractor {rnn,None}
+                        The attractor type (default: None)
+  --attractor_conf ATTRACTOR_CONF
+                        The keyword arguments for attractor (default: {})
 </pre></div>
 </div>
 </section>
