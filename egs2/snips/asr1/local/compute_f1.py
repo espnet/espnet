@@ -26,7 +26,7 @@ if __name__ == "__main__":
     with open(args.hyp_trn, "r") as hyp, open(args.ref_trn, "r") as ref:
         for line_hyp, line_ref in zip(hyp, ref):
             line_hyp, line_ref = line_hyp.split(), line_ref.split()
-            assert line_hyp[1] == line_ref[1]
+            assert line_hyp[-1] == line_ref[-1]
             predicted_intent, actual_intent = line_hyp[0], line_ref[0]
             if predicted_intent not in metrics:
                 metrics[predicted_intent] = {"TP": 0, "FP": 0, "FN": 0}
