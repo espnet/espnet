@@ -58,7 +58,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
    cut -d "|" -f 1,3 data/tmp/wav_sem_text > data/tmp/wav_sem
    cut -d "|" -f 2 data/tmp/wav_sem_text > data/tmp/pure_text
    tr '[:upper:]' '[:lower:]' <data/tmp/pure_text>data/tmp/pure_text_lower
-   cat data/tmp/pure_text_lower  | tr -d '[:punct:]' > data/tmp/pure_text_norm
+   tr -d '[:punct:]'< data/tmp/pure_text_lower > data/tmp/pure_text_norm
    sed -r 's/\|/ /g' data/tmp/wav_sem > data/tmp/wav_sem.2
    cut -f 1,2 -d " " data/tmp/wav_sem.2  > data/tmp/wav_intent
    paste -d " " data/tmp/wav_intent data/tmp/pure_text_norm > data/text
