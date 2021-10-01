@@ -24,6 +24,11 @@ parser.add_argument(
     help='folder containing the original data'
 )
 parser.add_argument(
+    '--sox_path',
+    type=str,
+    help='path to sox command'
+)
+parser.add_argument(
     '--train_dir',
     type=str,
     default='data/train',
@@ -42,9 +47,6 @@ parser.add_argument(
     help='output folder for test data'
 )
 args = parser.parse_args()
-
-
-SAMPLE_RATE = 44100     # 44.1 kHz
 
 
 def frametotask(infile):
@@ -129,5 +131,6 @@ for n in ['train', 'dev', 'test']:
     ) as utt2spk_f:
         for sample in sample_list:
             text_f.write(sample['wav_id'] + ' ' + sample['task_str'] + '\n')
-            wav_scp_f.write(sample['wav_id'] + ' ' + sample['wav_abspath'] + '\n')
+            downsampled_wav = f'{args.sox_path} {sample["wav_abspath"]} -t wav -r 16k -c 1 - |'
+            wav_scp_f.write(sample['wav_id'] + ' ' + downsampled_wav + '\n')
             utt2spk_f.write(sample['wav_id'] + ' ' + sample['wav_id'] + '\n')

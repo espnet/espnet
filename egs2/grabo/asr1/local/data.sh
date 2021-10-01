@@ -98,6 +98,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     mkdir -p data/{train,dev,test}
     python3 local/data_prep.py \
         --data_path ${GRABO}/grabo/grabo/speakers \
+        --sox_path "$(which sox)" \
         --train_dir data/train \
         --dev_dir data/dev \
         --test_dir data/test
