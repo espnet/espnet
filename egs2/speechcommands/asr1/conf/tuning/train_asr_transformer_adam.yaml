@@ -1,14 +1,17 @@
 batch_type: numel
-batch_bins: 7000000
-accum_grad: 1
-max_epoch: 200
+batch_bins: 4000000
+accum_grad: 3
+max_epoch: 150
 patience: none
 init: none
 best_model_criterion:
 -   - valid
     - loss
     - min
-keep_nbest_models: 5
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
 
 encoder: transformer
 encoder_conf:
@@ -18,7 +21,7 @@ encoder_conf:
     num_blocks: 12      # the number of encoder blocks
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
-    attention_dropout_rate: 0.0
+    attention_dropout_rate: 0.1
     input_layer: conv2d # encoder architecture type
     normalize_before: true
 
@@ -29,19 +32,19 @@ decoder_conf:
     num_blocks: 6
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
-    self_attention_dropout_rate: 0.0
-    src_attention_dropout_rate: 0.0
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
 
 optim: adam
 optim_conf:
-    lr: 0.001
+    lr: 0.0002
 scheduler: warmuplr     # pytorch v1.1.0+ required
 scheduler_conf:
-    warmup_steps: 10000
+    warmup_steps: 5000
 
 model_conf:
     ctc_weight: 0.0
-    lsm_weight: 0.0
+    lsm_weight: 0.1
     length_normalized_loss: false
 
 specaug: specaug

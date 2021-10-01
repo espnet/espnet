@@ -1,24 +1,27 @@
 batch_type: numel
-batch_bins: 4000000
-accum_grad: 3
-max_epoch: 200
+batch_bins: 2000000
+accum_grad: 6
+max_epoch: 100
 patience: none
 init: none
 best_model_criterion:
 -   - valid
     - loss
     - min
-keep_nbest_models: 5
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
 
 encoder: conformer
 encoder_conf:
-    output_size: 256
-    attention_heads: 4
+    output_size: 512
+    attention_heads: 8
     linear_units: 2048
     num_blocks: 12
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
-    attention_dropout_rate: 0.0
+    attention_dropout_rate: 0.1
     input_layer: conv2d
     normalize_before: true
     macaron_style: true
@@ -31,20 +34,20 @@ encoder_conf:
 
 decoder: transformer
 decoder_conf:
-    attention_heads: 4
+    attention_heads: 8
     linear_units: 2048
     num_blocks: 6
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
-    self_attention_dropout_rate: 0.0
-    src_attention_dropout_rate: 0.0
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
 
 optim: adam
 optim_conf:
     lr: 0.0002
 scheduler: warmuplr     # pytorch v1.1.0+ required
 scheduler_conf:
-    warmup_steps: 5000
+    warmup_steps: 2500
 
 model_conf:
     ctc_weight: 0.0

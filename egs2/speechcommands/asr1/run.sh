@@ -9,12 +9,12 @@ train_set=train_sp
 valid_set=dev
 test_sets="dev test"
 
-asr_config=conf/tuning/train_asr_conformer_adam.yaml
+asr_config=conf/tuning/train_asr_transformer_adam.yaml
 inference_config=conf/decode_asr.yaml
 
 # speed perturbation related
 # (train_set will be "${train_set}_sp" if speed_perturb_factors is specified)
-speed_perturb_factors="0.9 1.0 1.1"
+speed_perturb_factors="0.9 0.95 1.0 1.05 1.1"
 
 # lm_train_text is set to avoid errors if speed_perturb is used
 ./asr.sh                                                \
@@ -30,11 +30,11 @@ speed_perturb_factors="0.9 1.0 1.1"
     --fs 16000                                          \
     --token_type word                                   \
     --use_lm false                                      \
-    --asr_tag conformer_warmup5k_lr2e-4_accum3_lsm0.1_Macaron_conv15_noBatchNorm  \
+    --asr_tag transformer_warmup5k_lr2e-4_accum3_lsm0.1_dropout0.1_5speeds \
     --asr_config "${asr_config}"                        \
     --inference_tag infer                               \
     --inference_config "${inference_config}"            \
-    --inference_asr_model valid.loss.ave.pth           \
+    --inference_asr_model valid.acc.ave.pth             \
     --train_set "${train_set}"                          \
     --valid_set "${valid_set}"                          \
     --test_sets "${test_sets}"                          \
