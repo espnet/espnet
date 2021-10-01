@@ -3,6 +3,7 @@
 """ESPnet setup script."""
 
 import os
+import sys
 
 from distutils.version import LooseVersion
 from setuptools import find_packages
@@ -96,7 +97,8 @@ try:
         requirements["install"].append("fairscale")
 
     if LooseVersion(torch.__version__) >= LooseVersion("1.9.1"):
-        raise NotImplementedError("Not yet supported")
+        requirements["install"].append("torchaudio")
+        sys.stderr.write("The installed Pytorch version is not yet supported!\n")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.9.0"):
         requirements["install"].append("torchaudio==0.9.0")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.8.1"):
