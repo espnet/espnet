@@ -4,6 +4,61 @@ espnet2.torch_utils package
 
 
 
+.. _espnet2.torch_utils.pytorch_version:
+
+espnet2.torch_utils.pytorch_version
+-----------------------------------
+
+.. automodule:: espnet2.torch_utils.pytorch_version
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.torch_utils.load_pretrained_model:
+
+espnet2.torch_utils.load_pretrained_model
+-----------------------------------------
+
+.. automodule:: espnet2.torch_utils.load_pretrained_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.torch_utils.model_summary:
+
+espnet2.torch_utils.model_summary
+---------------------------------
+
+.. automodule:: espnet2.torch_utils.model_summary
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.torch_utils.__init__:
+
+espnet2.torch_utils.__init__
+----------------------------
+
+.. automodule:: espnet2.torch_utils.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.torch_utils.device_funcs:
+
+espnet2.torch_utils.device_funcs
+--------------------------------
+
+.. automodule:: espnet2.torch_utils.device_funcs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.torch_utils.add_gradient_noise:
 
 espnet2.torch_utils.add_gradient_noise
@@ -26,28 +81,6 @@ espnet2.torch_utils.forward_adaptor
     :show-inheritance:
 
 
-.. _espnet2.torch_utils.device_funcs:
-
-espnet2.torch_utils.device_funcs
---------------------------------
-
-.. automodule:: espnet2.torch_utils.device_funcs
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.torch_utils.load_pretrained_model:
-
-espnet2.torch_utils.load_pretrained_model
------------------------------------------
-
-.. automodule:: espnet2.torch_utils.load_pretrained_model
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.torch_utils.set_all_random_seed:
 
 espnet2.torch_utils.set_all_random_seed
@@ -65,39 +98,6 @@ espnet2.torch_utils.recursive_op
 --------------------------------
 
 .. automodule:: espnet2.torch_utils.recursive_op
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.torch_utils.pytorch_version:
-
-espnet2.torch_utils.pytorch_version
------------------------------------
-
-.. automodule:: espnet2.torch_utils.pytorch_version
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.torch_utils.__init__:
-
-espnet2.torch_utils.__init__
-----------------------------
-
-.. automodule:: espnet2.torch_utils.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.torch_utils.model_summary:
-
-espnet2.torch_utils.model_summary
----------------------------------
-
-.. automodule:: espnet2.torch_utils.model_summary
     :members:
     :undoc-members:
     :show-inheritance:

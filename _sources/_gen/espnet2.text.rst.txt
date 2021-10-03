@@ -4,34 +4,12 @@ espnet2.text package
 
 
 
-.. _espnet2.text.token_id_converter:
+.. _espnet2.text.word_tokenizer:
 
-espnet2.text.token_id_converter
--------------------------------
+espnet2.text.word_tokenizer
+---------------------------
 
-.. automodule:: espnet2.text.token_id_converter
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.text.abs_tokenizer:
-
-espnet2.text.abs_tokenizer
---------------------------
-
-.. automodule:: espnet2.text.abs_tokenizer
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.text.phoneme_tokenizer:
-
-espnet2.text.phoneme_tokenizer
-------------------------------
-
-.. automodule:: espnet2.text.phoneme_tokenizer
+.. automodule:: espnet2.text.word_tokenizer
     :members:
     :undoc-members:
     :show-inheritance:
@@ -59,12 +37,23 @@ espnet2.text.build_tokenizer
     :show-inheritance:
 
 
-.. _espnet2.text.cleaner:
+.. _espnet2.text.__init__:
 
-espnet2.text.cleaner
---------------------
+espnet2.text.__init__
+---------------------
 
-.. automodule:: espnet2.text.cleaner
+.. automodule:: espnet2.text.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.text.abs_tokenizer:
+
+espnet2.text.abs_tokenizer
+--------------------------
+
+.. automodule:: espnet2.text.abs_tokenizer
     :members:
     :undoc-members:
     :show-inheritance:
@@ -81,23 +70,34 @@ espnet2.text.sentencepiece_tokenizer
     :show-inheritance:
 
 
-.. _espnet2.text.word_tokenizer:
+.. _espnet2.text.token_id_converter:
 
-espnet2.text.word_tokenizer
----------------------------
+espnet2.text.token_id_converter
+-------------------------------
 
-.. automodule:: espnet2.text.word_tokenizer
+.. automodule:: espnet2.text.token_id_converter
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.text.__init__:
+.. _espnet2.text.phoneme_tokenizer:
 
-espnet2.text.__init__
----------------------
+espnet2.text.phoneme_tokenizer
+------------------------------
 
-.. automodule:: espnet2.text.__init__
+.. automodule:: espnet2.text.phoneme_tokenizer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.text.cleaner:
+
+espnet2.text.cleaner
+--------------------
+
+.. automodule:: espnet2.text.cleaner
     :members:
     :undoc-members:
     :show-inheritance:

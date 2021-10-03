@@ -26,23 +26,23 @@ espnet.mt.__init__
     :show-inheritance:
 
 
-.. _espnet.mt.pytorch_backend.__init__:
-
-espnet.mt.pytorch_backend.__init__
-----------------------------------
-
-.. automodule:: espnet.mt.pytorch_backend.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet.mt.pytorch_backend.mt:
 
 espnet.mt.pytorch_backend.mt
 ----------------------------
 
 .. automodule:: espnet.mt.pytorch_backend.mt
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.mt.pytorch_backend.__init__:
+
+espnet.mt.pytorch_backend.__init__
+----------------------------------
+
+.. automodule:: espnet.mt.pytorch_backend.__init__
     :members:
     :undoc-members:
     :show-inheritance:
