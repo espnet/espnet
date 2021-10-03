@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# Copyright 2021 Yifan Peng
+# Copyright 2021 Carnegie Mellon University (Yifan Peng)
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-# Speech Commands Paper: https://arxiv.org/abs/1804.03209
+# Google Speech Commands Paper: https://arxiv.org/abs/1804.03209
 
 
 # Set bash to 'debug' mode, it will exit on :
@@ -134,14 +134,16 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
     cd ${SPEECHCOMMANDS}/..
-    mkdir -p data/{train,dev,test}
+    mkdir -p data/{train,dev,test,test_speechbrain}
     python3 local/data_prep.py \
         --data_path ${SPEECHCOMMANDS}/speech_commands_v0.02 \
         --test_data_path ${SPEECHCOMMANDS}/speech_commands_test_set_v0.02 \
         --train_dir data/train \
         --dev_dir data/dev \
-        --test_dir data/test
-    for x in train dev test; do
+        --test_dir data/test \
+        --speechbrain_testcsv local/speechbrain_test.csv \
+        --speechbrain_test_dir data/test_speechbrain
+    for x in train dev test test_speechbrain; do
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
         utils/fix_data_dir.sh data/${x}
         utils/validate_data_dir.sh --no-feats data/${x}

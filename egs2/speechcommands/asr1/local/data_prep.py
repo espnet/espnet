@@ -10,6 +10,7 @@
 
 import os
 import os.path
+import csv
 import glob
 import argparse
 import numpy as np
@@ -46,6 +47,18 @@ parser.add_argument(
     type=str,
     default='data/test',
     help='output folder for test data'
+)
+parser.add_argument(
+    '--speechbrain_testcsv',
+    type=str,
+    default='local/speechbrain_test.csv',
+    help='speechbrain test csv file'
+)
+parser.add_argument(
+    '--speechbrain_test_dir',
+    type=str,
+    default='data/test_speechbrain',
+    help='output folder for speechbrain test data'
 )
 args = parser.parse_args()
 
@@ -157,3 +170,62 @@ for name in ['train', 'dev']:
                         text_f.write(uttid + ' ' + label + '\n')
                         wav_scp_f.write(uttid + ' ' + os.path.abspath(os.path.join(processed_dir, f'{uttid}.wav')) + '\n')
                         utt2spk_f.write(uttid + ' ' + uttid + '\n')
+
+# Generate SpeechBrain test data
+with open(args.speechbrain_testcsv, 'r') as f:
+    speechbrain_lines = list(csv.reader(f))[1:]   # remove header line
+
+with open(
+    os.path.join(args.speechbrain_test_dir, 'text'), 'w'
+) as text_f, open(
+    os.path.join(args.speechbrain_test_dir, 'wav.scp'), 'w'
+) as wav_scp_f, open(
+    os.path.join(args.speechbrain_test_dir, 'utt2spk'), 'w'
+) as utt2spk_f:
+    for sb_line in speechbrain_lines:
+        sb_id, _, start, stop, sb_wav = sb_line[:5]
+        command = sb_line[10]
+        wav_path = os.path.join(args.data_path, '/'.join(sb_wav.split('/')[-2:]))
+        if command == 'silence':
+            speechbrain_processed_dir = os.path.join(
+                os.path.split(wav_path)[0], 
+                'speechbrain_processed'
+            )
+            os.makedirs(
+                speechbrain_processed_dir,
+                exist_ok=True
+            )
+            # extract audio segment
+            wav_rate, wav_data = wavfile.read(wav_path)
+            assert wav_rate == SAMPLE_RATE
+            audio_segment = wav_data[int(start):int(stop)]
+
+            uttid = '_'.join(['silence'] + sb_id.split('/')[1:])
+            wav_save_path = os.path.abspath(
+                os.path.join(
+                    speechbrain_processed_dir,
+                    uttid + '.wav'
+                )
+            )
+            wavfile.write(
+                wav_save_path,
+                SAMPLE_RATE,
+                audio_segment
+            )
+
+            text_f.write(uttid + ' ' + '_silence_' + '\n')
+            wav_scp_f.write(uttid + ' ' + wav_save_path + '\n')
+            utt2spk_f.write(uttid + ' ' + uttid + '\n')
+        else:
+            wav_save_path = os.path.abspath(
+                os.path.join(args.data_path, '/'.join(sb_wav.split('/')[-2:]))
+            )
+            if command == 'unknown':
+                uttid = '_'.join(['unknown'] + sb_id.split('/'))
+                command = '_unknown_'
+            else:
+                uttid = '_'.join(sb_id.split('/'))
+            
+            text_f.write(uttid + ' ' + command + '\n')
+            wav_scp_f.write(uttid + ' ' + wav_save_path + '\n')
+            utt2spk_f.write(uttid + ' ' + uttid + '\n')

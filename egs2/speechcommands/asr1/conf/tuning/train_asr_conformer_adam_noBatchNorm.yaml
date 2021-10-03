@@ -44,7 +44,7 @@ decoder_conf:
 
 optim: adam
 optim_conf:
-    lr: 0.0004
+    lr: 0.0002
 scheduler: warmuplr     # pytorch v1.1.0+ required
 scheduler_conf:
     warmup_steps: 5000
