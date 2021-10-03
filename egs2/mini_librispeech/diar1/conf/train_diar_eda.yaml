@@ -1,0 +1,58 @@
+#    If "attractor" is "None" or not specified, SA-EEND will be used. 
+#    Else if "attractor" is not "None" EEND-EDA will be used.
+#    For the details about SA-EEND and EEND-EDA, refer to the following papers:
+#    SA-EEND: https://arxiv.org/pdf/1909.06247.pdf
+#    EEND-EDA: https://arxiv.org/pdf/2005.09921.pdf, https://arxiv.org/pdf/2106.10654.pdf
+
+
+# network architecture
+# encoder related
+encoder: transformer
+encoder_conf:
+    input_layer: "linear"
+    num_blocks: 4
+    linear_units: 512
+    dropout_rate: 0.1
+    output_size: 256  # dimension of attention
+    attention_heads: 4
+    attention_dropout_rate: 0.0
+
+# attractor related
+attractor: rnn
+attractor_conf:
+    unit: 256 # same as encoder output size
+    layer: 1
+    dropout: 0.1
+    attractor_grad: True
+
+# decoder related
+#decoder: linear
+
+# chunk-based training
+iterator_type: chunk
+chunk_length: 200000
+num_cache_chunks: 64
+
+# minibatch related
+batch_type: folded
+batch_size: 16
+
+# optimization related
+optim: adam
+accum_grad: 2
+grad_clip: 5
+max_epoch: 100
+optim_conf:
+    lr: 0.02
+scheduler: noamlr
+scheduler_conf:
+    warmup_steps: 1000
+
+# others:
+best_model_criterion:
+-  - valid
+   - acc
+   - max
+keep_nbest_models: 3
+
+init: xavier_uniform
