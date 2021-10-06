@@ -17,6 +17,9 @@ class CausalConv1d(torch.nn.Module):
         dilation: Spacing between the kernel points.
         groups: Number of blocked connections from input channels to output channels.
         bias: Whether to add a learnable bias to the output.
+        batch_norm: Whether to apply batch normalization.
+        relu: Whether to pass final output through ReLU activation.
+        dropout_rate: Dropout rate.
 
     """
 
@@ -29,6 +32,9 @@ class CausalConv1d(torch.nn.Module):
         dilation: int = 1,
         groups: int = 1,
         bias: bool = True,
+        batch_norm: bool = False,
+        relu: bool = True,
+        dropout_rate: float = 0.0,
     ):
         """Construct a CausalConv1d object."""
         super().__init__()
@@ -58,6 +64,7 @@ class CausalConv1d(torch.nn.Module):
             sequence: CausalConv1d input sequences. (B, U, D_in)
             mask: Mask of CausalConv1d input sequences. (B, 1, U)
 
+
         Returns:
             sequence: CausalConv1d output sequences. (B, sub(U), D_out)
             mask: Mask of CausalConv1d output sequences. (B, 1, sub(U))
@@ -70,5 +77,13 @@ class CausalConv1d(torch.nn.Module):
             sequence = sequence[:, :, : -self._pad]
 
         sequence = sequence.permute(0, 2, 1)
+
+        if self.batch_norm:
+            sequence = self.bn(sequence)
+
+        sequence = self.dropout(sequence)
+
+        if self.relu:
+            sequence = self.relu_func(sequence)
 
         return sequence, mask
