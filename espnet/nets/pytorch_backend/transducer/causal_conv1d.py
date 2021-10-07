@@ -52,6 +52,17 @@ class CausalConv1d(torch.nn.Module):
             bias=bias,
         )
 
+        self.dropout = torch.nn.Dropout(p=dropout_rate)
+
+        if relu:
+            self.relu_func = torch.nn.ReLU()
+
+        if batch_norm:
+            self.bn = torch.nn.BatchNorm1d(odim)
+
+        self.batch_norm = batch_norm
+        self.relu = relu
+
     def forward(
         self,
         sequence: torch.Tensor,
