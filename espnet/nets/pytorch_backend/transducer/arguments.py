@@ -296,7 +296,7 @@ def add_auxiliary_task_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     )
     group.add_argument(
         "--ctc-loss-weight",
-        default=0.0,
+        default=0.5,
         type=float,
         help="Weight of auxiliary CTC loss.",
     )
@@ -315,7 +315,7 @@ def add_auxiliary_task_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     )
     group.add_argument(
         "--lm-loss-weight",
-        default=0.0,
+        default=0.5,
         type=float,
         help="Weight of auxiliary LM loss.",
     )
@@ -334,7 +334,7 @@ def add_auxiliary_task_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     )
     group.add_argument(
         "--aux-transducer-loss-weight",
-        default=0.0,
+        default=0.2,
         type=float,
         help="Weight of auxiliary Transducer loss.",
     )
@@ -366,7 +366,7 @@ def add_auxiliary_task_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     )
     group.add_argument(
         "--symm-kl-div-loss-weight",
-        default=0.0,
+        default=0.2,
         type=float,
         help="Weight of symmetric KL divergence loss.",
     )
