@@ -16,10 +16,10 @@ from espnet.nets.pytorch_backend.conformer.encoder_layer import (
 from espnet.nets.pytorch_backend.nets_utils import get_activation
 
 from espnet.nets.pytorch_backend.transducer.causal_conv1d import CausalConv1d
+from espnet.nets.pytorch_backend.transducer.conv_nd import ConvNd
 from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
     TransformerDecoderLayer,  # noqa: H301
 )
-from espnet.nets.pytorch_backend.transducer.tdnn import TDNN
 from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
 
 from espnet.nets.pytorch_backend.transformer.attention import (
@@ -142,26 +142,24 @@ def check_and_prepare(
                     + str(i + 1)
                     + " in "
                     + net_part
-                    + ": causal conv1d block format is: {'type: causal-conv1d', "
-                    "'idim': int, 'odim': int, 'kernel_size': int}"
+                    + ": Causal conv1d block format is: {'type: causal-conv1d', "
+                    "'idim': int, 'odim': int, 'kernel_size': int, [...]}"
                 )
 
             if i == 0:
                 input_layer_type = "c-embed"
 
             cmp_io.append((blocks_arch[i]["idim"], blocks_arch[i]["odim"]))
-        elif block_type == "tdnn":
-            if not {"idim", "odim", "ctx_size", "dilation", "stride"}.issubset(
-                blocks_arch[i]
-            ):
+        elif block_type == "conv-nd":
+            if not {"conv_dim", "idim", "odim", "kernel_size"}.issubset(blocks_arch[i]):
                 raise ValueError(
                     "Block "
                     + str(i + 1)
                     + " in "
                     + net_part
-                    + ": TDNN block format is: {'type: tdnn', "
-                    "'idim': int, 'odim': int, 'ctx_size': int, "
-                    "'dilation': int, 'stride': int, [...]}"
+                    + ": N-d convolution block format is: {'type: conv-nd', "
+                    "'conv_dim': int, 'idim': int, 'odim': int, "
+                    "'kernel_size': int, [...]}"
                 )
 
             cmp_io.append((blocks_arch[i]["idim"], blocks_arch[i]["odim"]))
@@ -172,7 +170,7 @@ def check_and_prepare(
                 + " in "
                 + net_part
                 + ". Currently supported: "
-                "tdnn, causal-conv1d or transformer"
+                "conv-nd, causal-conv1d or transformer"
             )
 
     if has_transformer and has_conformer:
@@ -192,12 +190,12 @@ def check_and_prepare(
                 + net_part
             )
 
-    if blocks_arch[0]["type"] in ("tdnn", "causal-conv1d"):
+    if blocks_arch[0]["type"] in ("conv-nd", "causal-conv1d"):
         input_layer_odim = blocks_arch[0]["idim"]
     else:
         input_layer_odim = blocks_arch[0]["d_hidden"]
 
-    if blocks_arch[-1]["type"] in ("tdnn", "causal-conv1d"):
+    if blocks_arch[-1]["type"] in ("conv-nd", "causal-conv1d"):
         net_out_dim = blocks_arch[-1]["odim"]
     else:
         net_out_dim = blocks_arch[-1]["d_hidden"]
@@ -274,7 +272,7 @@ def build_input_layer(
 
     Returns:
         : Input layer module.
-        subsampling_factor: subsampling factor.
+        subsampling_factor: Subsampling factor.
 
     """
     if pos_enc_class.__name__ == "RelPositionalEncoding":
@@ -434,41 +432,69 @@ def build_causal_conv1d_block(block_arch: Dict) -> CausalConv1d:
     odim = block_arch["odim"]
     kernel_size = block_arch["kernel_size"]
 
-    return lambda: CausalConv1d(idim, odim, kernel_size)
-
-
-def build_tdnn_block(block_arch: Dict) -> TDNN:
-    """Build function for tdnn block.
-
-    Args:
-        block_arch: TDNN block parameters.
-
-    Returns:
-        : function to create tdnn (encoder) block.
-
-    """
-    idim = block_arch["idim"]
-    odim = block_arch["odim"]
-    ctx_size = block_arch["ctx_size"]
-    dilation = block_arch["dilation"]
-    stride = block_arch["stride"]
+    stride = block_arch["stride"] if "stride" in block_arch else 1
+    dilation = block_arch["dilation"] if "dilation" in block_arch else 1
+    groups = block_arch["groups"] if "groups" in block_arch else 1
+    bias = block_arch["bias"] if "bias" in block_arch else True
 
     use_batch_norm = (
         block_arch["use-batch-norm"] if "use-batch-norm" in block_arch else False
     )
     use_relu = block_arch["use-relu"] if "use-relu" in block_arch else False
-
     dropout_rate = block_arch["dropout-rate"] if "dropout-rate" in block_arch else 0.0
 
-    return lambda: TDNN(
+    return lambda: CausalConv1d(
         idim,
         odim,
-        ctx_size=ctx_size,
-        dilation=dilation,
+        kernel_size,
         stride=stride,
-        dropout_rate=dropout_rate,
-        batch_norm=use_batch_norm,
+        dilation=dilation,
+        groups=groups,
+        bias=bias,
         relu=use_relu,
+        batch_norm=use_batch_norm,
+        dropout_rate=dropout_rate,
+    )
+
+
+def build_convNd_block(block_arch: Dict) -> ConvNd:
+    """Build function for N-d convolution block.
+
+    Args:
+        block_arch: N-d convolution block parameters.
+
+    Returns:
+        : function to create ConvNd (encoder) block.
+
+    """
+    conv_dim = block_arch["conv_dim"]
+    idim = block_arch["idim"]
+    odim = block_arch["odim"]
+    kernel_size = block_arch["kernel_size"]
+
+    stride = block_arch["stride"] if "stride" in block_arch else 1
+    dilation = block_arch["dilation"] if "dilation" in block_arch else 1
+    groups = block_arch["groups"] if "groups" in block_arch else 1
+    bias = block_arch["bias"] if "bias" in block_arch else True
+
+    use_batch_norm = (
+        block_arch["use-batch-norm"] if "use-batch-norm" in block_arch else False
+    )
+    use_relu = block_arch["use-relu"] if "use-relu" in block_arch else False
+    dropout_rate = block_arch["dropout-rate"] if "dropout-rate" in block_arch else 0.0
+
+    return lambda: ConvNd(
+        conv_dim,
+        idim,
+        odim,
+        kernel_size,
+        stride=stride,
+        dilation=dilation,
+        groups=groups,
+        bias=bias,
+        relu=use_relu,
+        batch_norm=use_batch_norm,
+        dropout_rate=dropout_rate,
     )
 
 
@@ -538,8 +564,8 @@ def build_blocks(
     for i in range(len(blocks_arch)):
         block_type = blocks_arch[i]["type"]
 
-        if block_type == "tdnn":
-            module = build_tdnn_block(blocks_arch[i])
+        if block_type == "conv-nd":
+            module = build_convNd_block(blocks_arch[i])
         elif block_type == "transformer":
             module = build_transformer_block(
                 net_part,
