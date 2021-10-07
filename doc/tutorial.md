@@ -225,20 +225,20 @@ Here, the *custom* architecture is a unique feature of the Transducer model in E
                   conv_dim : 2
                   idim: 80
                   odim: 32
-                  kernel_size: (3,7)
-                  stride: (1,2)
+                  kernel_size: [3, 7]
+                  stride: [1, 2]
                 - type: conv-nd
                   conv_dim : 2
                   idim: 32
                   odim: 32
-                  kernel_size: (3,5)
-                  stride: (2,2)
+                  kernel_size: [3, 5]
+                  stride: [2, 2]
                 - type: conv-nd
                   conv_dim : 1
                   idim: 32
                   odim: 384
-                  kernel_size: (3,7)
-                  stride: (1,2)
+                  kernel_size: [3, 7]
+                  stride: [1, 2]
                 - type: transformer
                   d_hidden: 384
                   d_ff: 1536
