@@ -14,6 +14,59 @@ See the following pages before asking the question:
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
 
+# FIFTH RESULTS
+
+- Use espeak-ng based G2P
+
+## Environments
+- date: `Fri Oct  8 15:48:44 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a2`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `628b46282537ce532d613d6bafb75e826e8455de`
+  - Commit date: `Wed Sep 8 13:30:50 2021 +0900`
+
+## Pretrained Models
+
+### ljspeech_tts_train_vits_raw_phn_tacotron_espeak_ng_english_us_vits_train.total_count.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+# Prep data directory
+./run.sh --stage 1 --stop-stage 1
+
+# Since espeak is super slow, dump phonemized text at first
+for dset in tr_no_dev dev eval1; do
+    utils/copy_data_dir.sh data/"${dset}"{,_phn}
+    ./pyscripts/utils/convert_text_to_phn.py \
+        --nj 32 \
+        --g2p espeak_ng_english_us_vits \
+        --cleaer tacotron \
+        data/"${dset}"{,_phn}/text
+done
+
+# Run from stage 2
+./run.sh \
+    --train_set tr_no_dev_phn \
+    --valid_set dev_phn \
+    --test_sets "dev_phn eval1_phn" \
+    --stage 2 \
+    --ngpu 4 \
+    --g2p none \
+    --cleaner none \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
+- 1M iters / Average the last 10 epoch models
+- https://zenodo.org/record/5555690
+
 # FORTH RESULTS
 
 - Initial joint training models
