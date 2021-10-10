@@ -29,25 +29,25 @@ def get_classification_result(hyp_file, ref_file, hyp_write, ref_write):
 exp_root = sys.argv[1]
 valid_hyp_file = open(
     os.path.join(
-        exp_root, "decode_asr_asr_model_valid.acc.ave_10best/valid/score_wer/hyp.trn"
+        exp_root, "decode_asr_asr_model_valid.acc.ave_5best/valid/score_wer/hyp.trn"
     )
 )
 valid_ref_file = open(
     os.path.join(
-        exp_root, "decode_asr_asr_model_valid.acc.ave_10best/valid/score_wer/ref.trn"
+        exp_root, "decode_asr_asr_model_valid.acc.ave_5best/valid/score_wer/ref.trn"
     )
 )
 valid_hyp_write = open(
     os.path.join(
         exp_root,
-        "decode_asr_asr_model_valid.acc.ave_10best/valid/score_wer/hyp_asr.trn",
+        "decode_asr_asr_model_valid.acc.ave_5best/valid/score_wer/hyp_asr.trn",
     ),
     "w",
 )
 valid_ref_write = open(
     os.path.join(
         exp_root,
-        "decode_asr_asr_model_valid.acc.ave_10best/valid/score_wer/ref_asr.trn",
+        "decode_asr_asr_model_valid.acc.ave_5best/valid/score_wer/ref_asr.trn",
     ),
     "w",
 )
@@ -60,23 +60,23 @@ print(result)
 
 test_hyp_file = open(
     os.path.join(
-        exp_root, "decode_asr_asr_model_valid.acc.ave_10best/test/score_wer/hyp.trn"
+        exp_root, "decode_asr_asr_model_valid.acc.ave_5best/test/score_wer/hyp.trn"
     )
 )
 test_ref_file = open(
     os.path.join(
-        exp_root, "decode_asr_asr_model_valid.acc.ave_10best/test/score_wer/ref.trn"
+        exp_root, "decode_asr_asr_model_valid.acc.ave_5best/test/score_wer/ref.trn"
     )
 )
 test_hyp_write = open(
     os.path.join(
-        exp_root, "decode_asr_asr_model_valid.acc.ave_10best/test/score_wer/hyp_asr.trn"
+        exp_root, "decode_asr_asr_model_valid.acc.ave_5best/test/score_wer/hyp_asr.trn"
     ),
     "w",
 )
 test_ref_write = open(
     os.path.join(
-        exp_root, "decode_asr_asr_model_valid.acc.ave_10best/test/score_wer/ref_asr.trn"
+        exp_root, "decode_asr_asr_model_valid.acc.ave_5best/test/score_wer/ref_asr.trn"
     ),
     "w",
 )

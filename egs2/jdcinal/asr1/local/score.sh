@@ -17,7 +17,7 @@ if [ $# -lt 1 ]; then
 fi
 
 asr_expdir=$1
-_scoredir="${asr_expdir}/decode_asr_asr_model_valid.acc.ave_10best/valid/score_wer/"
+_scoredir="${asr_expdir}/decode_asr_asr_model_valid.acc.ave_5best/valid/score_wer/"
 python local/score.py ${asr_expdir}
 sclite \
             -r "${_scoredir}ref_asr.trn" trn \
@@ -25,7 +25,7 @@ sclite \
             -i rm -o all stdout > "${_scoredir}result_asr.txt"
 echo "Write ASR result in ${_scoredir}result_asr.txt"
                 grep -e Avg -e SPKR -m 2 "${_scoredir}result_asr.txt"
-_scoredir="${asr_expdir}/decode_asr_asr_model_valid.acc.ave_10best/test/score_wer/"
+_scoredir="${asr_expdir}/decode_asr_asr_model_valid.acc.ave_5best/test/score_wer/"
 sclite \
             -r "${_scoredir}ref_asr.trn" trn \
             -h "${_scoredir}hyp_asr.trn" trn \

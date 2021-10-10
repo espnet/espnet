@@ -30,11 +30,11 @@ decoder_conf:
 
 optim: adam
 optim_conf:
-    lr: 0.0002
+    lr: 0.0001
 scheduler: warmuplr     # pytorch v1.1.0+ required
 scheduler_conf:
-    warmup_steps: 20000
-max_epoch: 200
+    warmup_steps: 25000
+max_epoch: 50
 batch_size: 64
 
 specaug: specaug
@@ -57,4 +57,4 @@ best_model_criterion:
 -   - valid
     - acc
     - max
-keep_nbest_models: 10
+keep_nbest_models: 5

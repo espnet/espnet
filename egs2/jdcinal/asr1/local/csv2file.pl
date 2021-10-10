@@ -38,7 +38,7 @@ for ($i=@lines-1; $i > 0; $i--){
 for ($i=0; $i<@lines; $i++){
   chomp($lines[$i]);
   my @fields = split "," , $lines[$i];
-  if($#fields >= 5 && $fields[0] ne "*" && $fields[3] =~ /^[0-9]+$/ && $fields[4] =~ /^[0-9]+$/ && $fields[4] > $fields[3]){
+  if($#fields >= 5 && $fields[0] ne "*" && $$fields[2] =~ /[A-Z]{2}-[A-Z]{2}/ && $fields[3] =~ /^[0-9]+$/ && $fields[4] =~ /^[0-9]+$/ && $fields[4] > $fields[3] && $fields[4] - $fields[3] < 400000000){
     my @tag = split "/" , $fields[2];
     my $start_time = $fields[3] / 10000000;
     my $end_time = $fields[4] / 10000000;
@@ -47,8 +47,8 @@ for ($i=0; $i<@lines; $i++){
     # clean words
     $joined_words =~ s/ +/ /g;
     $joined_words =~ s/\?/ /g;
-    $joined_words =~ s/\(R([^a-zA-Z]+)\)/$1/g;
-    $joined_words =~ s/\([LFP][^a-zA-Z]*\)//g;
+    $joined_words =~ s/\([LFR]([^a-zA-Z]+)\)/$1/g;
+    $joined_words =~ s/\(P\)//g;
     $joined_words =~ s/\[.+\]//g;
     $joined_words =~ s/ +/ /g;
     $joined_words =~ s/^ //g;

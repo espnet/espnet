@@ -34,32 +34,28 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # Data Preparation
-    if [ ! -e data/tmp/tmp.done ];then
-        mkdir -p data/{train,valid,test}
-        mkdir -p data/tmp
-        echo -n "" > data/tmp/wav.scp; echo -n "" > data/tmp/utt2spk; echo -n "" > data/tmp/text; echo -n "" > data/tmp/segments
-
-        for m in C P S; do
-            for n in {1..4}; do
-                for file in "${JDCINAL}"infomation_navigation_and_attentive_listening_0.2/"${m}${n}"/*.csv; do
-                    dos2unix -q $file
-                    ses_id=$(basename "${file}" .csv)
-                    wav_file="${JDCINAL}"infomation_navigation_and_attentive_listening_0.2/sound/"${ses_id}".trim.wav
-                    #create files
-                    iconv -f SJIS -t UTF8 ${file} > data/tmp/${ses_id}
-                    perl local/csv2file.pl data/tmp/${ses_id} ${wav_file}
-                    rm data/tmp/${ses_id}
-                done
+    mkdir -p data/{train,valid,test}
+    mkdir -p data/tmp
+    echo -n "" > data/tmp/wav.scp; echo -n "" > data/tmp/utt2spk; echo -n "" > data/tmp/text; echo -n "" > data/tmp/segments
+    for m in C P S; do
+        for n in {1..4}; do
+            for file in "${JDCINAL}"infomation_navigation_and_attentive_listening_0.2/"${m}${n}"/*.csv; do
+                dos2unix -q $file
+                ses_id=$(basename "${file}" .csv)
+                wav_file="${JDCINAL}"infomation_navigation_and_attentive_listening_0.2/sound/"${ses_id}".trim.wav
+                #create files
+                iconv -f SJIS -t UTF8 ${file} > data/tmp/${ses_id}
+                perl local/csv2file.pl data/tmp/${ses_id} ${wav_file}
+                rm data/tmp/${ses_id}
             done
         done
-        dos2unix -q data/tmp/wav.scp; dos2unix -q data/tmp/utt2spk; dos2unix -q data/tmp/text; dos2unix -q data/tmp/segments
-        sort -u data/tmp/wav.scp -o data/tmp/wav.scp
-        sort -u data/tmp/utt2spk -o data/tmp/utt2spk
-        sort -u data/tmp/text -o data/tmp/text
-        sort -u data/tmp/segments -o data/tmp/segments
-        utils/utt2spk_to_spk2utt.pl data/tmp/utt2spk > "data/tmp/spk2utt"
-        touch data/tmp/tmp.done
-    fi
+    done
+    dos2unix -q data/tmp/wav.scp; dos2unix -q data/tmp/utt2spk; dos2unix -q data/tmp/text; dos2unix -q data/tmp/segments
+    sort -u data/tmp/wav.scp -o data/tmp/wav.scp
+    sort -u data/tmp/utt2spk -o data/tmp/utt2spk
+    sort -u data/tmp/text -o data/tmp/text
+    sort -u data/tmp/segments -o data/tmp/segments
+    utils/utt2spk_to_spk2utt.pl data/tmp/utt2spk > "data/tmp/spk2utt"
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
