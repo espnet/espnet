@@ -4,6 +4,17 @@ espnet2.tts package
 
 
 
+.. _espnet2.tts.abs_tts:
+
+espnet2.tts.abs_tts
+-------------------
+
+.. automodule:: espnet2.tts.abs_tts
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tts.__init__:
 
 espnet2.tts.__init__
@@ -26,45 +37,12 @@ espnet2.tts.espnet_model
     :show-inheritance:
 
 
-.. _espnet2.tts.abs_tts:
+.. _espnet2.tts.fastspeech2.fastspeech2:
 
-espnet2.tts.abs_tts
--------------------
+espnet2.tts.fastspeech2.fastspeech2
+-----------------------------------
 
-.. automodule:: espnet2.tts.abs_tts
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.tts.tacotron2.__init__:
-
-espnet2.tts.tacotron2.__init__
-------------------------------
-
-.. automodule:: espnet2.tts.tacotron2.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.tts.tacotron2.tacotron2:
-
-espnet2.tts.tacotron2.tacotron2
--------------------------------
-
-.. automodule:: espnet2.tts.tacotron2.tacotron2
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.tts.fastspeech2.variance_predictor:
-
-espnet2.tts.fastspeech2.variance_predictor
-------------------------------------------
-
-.. automodule:: espnet2.tts.fastspeech2.variance_predictor
+.. automodule:: espnet2.tts.fastspeech2.fastspeech2
     :members:
     :undoc-members:
     :show-inheritance:
@@ -92,23 +70,12 @@ espnet2.tts.fastspeech2.loss
     :show-inheritance:
 
 
-.. _espnet2.tts.fastspeech2.fastspeech2:
+.. _espnet2.tts.fastspeech2.variance_predictor:
 
-espnet2.tts.fastspeech2.fastspeech2
------------------------------------
+espnet2.tts.fastspeech2.variance_predictor
+------------------------------------------
 
-.. automodule:: espnet2.tts.fastspeech2.fastspeech2
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.tts.utils.__init__:
-
-espnet2.tts.utils.__init__
---------------------------
-
-.. automodule:: espnet2.tts.utils.__init__
+.. automodule:: espnet2.tts.fastspeech2.variance_predictor
     :members:
     :undoc-members:
     :show-inheritance:
@@ -136,12 +103,34 @@ espnet2.tts.utils.parallel_wavegan_pretrained_vocoder
     :show-inheritance:
 
 
-.. _espnet2.tts.transformer.__init__:
+.. _espnet2.tts.utils.__init__:
 
-espnet2.tts.transformer.__init__
---------------------------------
+espnet2.tts.utils.__init__
+--------------------------
 
-.. automodule:: espnet2.tts.transformer.__init__
+.. automodule:: espnet2.tts.utils.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.tts.fastspeech.fastspeech:
+
+espnet2.tts.fastspeech.fastspeech
+---------------------------------
+
+.. automodule:: espnet2.tts.fastspeech.fastspeech
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.tts.fastspeech.__init__:
+
+espnet2.tts.fastspeech.__init__
+-------------------------------
+
+.. automodule:: espnet2.tts.fastspeech.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -158,34 +147,12 @@ espnet2.tts.transformer.transformer
     :show-inheritance:
 
 
-.. _espnet2.tts.feats_extract.log_mel_fbank:
+.. _espnet2.tts.transformer.__init__:
 
-espnet2.tts.feats_extract.log_mel_fbank
----------------------------------------
-
-.. automodule:: espnet2.tts.feats_extract.log_mel_fbank
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.tts.feats_extract.__init__:
-
-espnet2.tts.feats_extract.__init__
-----------------------------------
-
-.. automodule:: espnet2.tts.feats_extract.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.tts.feats_extract.energy:
-
-espnet2.tts.feats_extract.energy
+espnet2.tts.transformer.__init__
 --------------------------------
 
-.. automodule:: espnet2.tts.feats_extract.energy
+.. automodule:: espnet2.tts.transformer.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -202,6 +169,28 @@ espnet2.tts.feats_extract.linear_spectrogram
     :show-inheritance:
 
 
+.. _espnet2.tts.feats_extract.log_spectrogram:
+
+espnet2.tts.feats_extract.log_spectrogram
+-----------------------------------------
+
+.. automodule:: espnet2.tts.feats_extract.log_spectrogram
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.tts.feats_extract.__init__:
+
+espnet2.tts.feats_extract.__init__
+----------------------------------
+
+.. automodule:: espnet2.tts.feats_extract.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tts.feats_extract.dio:
 
 espnet2.tts.feats_extract.dio
@@ -213,12 +202,23 @@ espnet2.tts.feats_extract.dio
     :show-inheritance:
 
 
-.. _espnet2.tts.feats_extract.log_spectrogram:
+.. _espnet2.tts.feats_extract.energy:
 
-espnet2.tts.feats_extract.log_spectrogram
------------------------------------------
+espnet2.tts.feats_extract.energy
+--------------------------------
 
-.. automodule:: espnet2.tts.feats_extract.log_spectrogram
+.. automodule:: espnet2.tts.feats_extract.energy
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.tts.feats_extract.log_mel_fbank:
+
+espnet2.tts.feats_extract.log_mel_fbank
+---------------------------------------
+
+.. automodule:: espnet2.tts.feats_extract.log_mel_fbank
     :members:
     :undoc-members:
     :show-inheritance:
@@ -257,23 +257,23 @@ espnet2.tts.gst.style_encoder
     :show-inheritance:
 
 
-.. _espnet2.tts.fastspeech.__init__:
+.. _espnet2.tts.tacotron2.__init__:
 
-espnet2.tts.fastspeech.__init__
--------------------------------
+espnet2.tts.tacotron2.__init__
+------------------------------
 
-.. automodule:: espnet2.tts.fastspeech.__init__
+.. automodule:: espnet2.tts.tacotron2.__init__
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.tts.fastspeech.fastspeech:
+.. _espnet2.tts.tacotron2.tacotron2:
 
-espnet2.tts.fastspeech.fastspeech
----------------------------------
+espnet2.tts.tacotron2.tacotron2
+-------------------------------
 
-.. automodule:: espnet2.tts.fastspeech.fastspeech
+.. automodule:: espnet2.tts.tacotron2.tacotron2
     :members:
     :undoc-members:
     :show-inheritance:
