@@ -51,6 +51,7 @@ done
     --train_set tr_no_dev_phn \
     --valid_set dev_phn \
     --test_sets "dev_phn eval1_phn" \
+    --srctexts "data/tr_no_dev_phn/text" \
     --stage 2 \
     --ngpu 4 \
     --g2p none \
@@ -90,6 +91,7 @@ done
     --train_set tr_no_dev_phn \
     --valid_set dev_phn \
     --test_sets "dev_phn eval1_phn" \
+    --srctexts "data/tr_no_dev_phn/text" \
     --stage 2 \
     --g2p none \
     --cleaner none \

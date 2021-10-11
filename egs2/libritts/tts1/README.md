@@ -49,9 +49,10 @@ done
 
 # Run from stage 2
 ./run.sh \
-    --train_set tr_no_dev_phn \
-    --valid_set dev_phn \
-    --test_sets "dev_phn eval1_phn" \
+    --train_set train-clean-460_phn \
+    --valid_set dev-clean_phn \
+    --test_sets "dev-clean_phn test-clean_phn" \
+    --srctexts "data/train-clean-460_phn/text" \
     --g2p none \
     --cleaner none \
     --stage 2 \

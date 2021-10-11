@@ -53,6 +53,7 @@ done
     --train_set tr_no_dev_phn \
     --valid_set dev_phn \
     --test_sets "dev_phn eval1_phn" \
+    --srctexts "data/tr_no_dev_phn/text" \
     --g2p none \
     --cleaner none \
     --stage 2 \
@@ -100,6 +101,7 @@ done
     --train_set tr_no_dev_phn \
     --valid_set dev_phn \
     --test_sets "dev_phn eval1_phn" \
+    --srctexts "data/tr_no_dev_phn/text" \
     --g2p none \
     --cleaner none \
     --stage 2 \
@@ -147,6 +149,7 @@ done
     --train_set tr_no_dev_phn \
     --valid_set dev_phn \
     --test_sets "dev_phn eval1_phn" \
+    --srctexts "data/tr_no_dev_phn/text" \
     --g2p none \
     --cleaner none \
     --stage 2 \
