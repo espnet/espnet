@@ -20,6 +20,8 @@ asr_config=conf/train_asr.yaml
     --audio_format wav\
     --feats_type raw\
     --max_wav_duration 30 \
+    --feats_normalize utterance_mvn\
+    --inference_nj 8 \
     --inference_asr_model valid.acc.ave_5best.pth\
     --asr_config "${asr_config}" \
     --train_set "${train_set}" \
