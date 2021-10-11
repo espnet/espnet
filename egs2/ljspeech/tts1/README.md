@@ -67,6 +67,77 @@ done
 - 1M iters / Average the last 10 epoch models
 - https://zenodo.org/record/5555690
 
+### ljspeech_tts_train_tacotron2_raw_phn_tacotron_espeak_ng_english_us_vits_train.loss.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+# Prep data directory
+./run.sh --stage 1 --stop-stage 1
+
+# Since espeak is super slow, dump phonemized text at first
+for dset in tr_no_dev dev eval1; do
+    utils/copy_data_dir.sh data/"${dset}"{,_phn}
+    ./pyscripts/utils/convert_text_to_phn.py \
+        --nj 32 \
+        --g2p espeak_ng_english_us_vits \
+        --cleaer tacotron \
+        data/"${dset}"{,_phn}/text
+done
+
+# Run from stage 2
+./run.sh \
+    --train_set tr_no_dev_phn \
+    --valid_set dev_phn \
+    --test_sets "dev_phn eval1_phn" \
+    --stage 2 \
+    --g2p none \
+    --cleaner none \
+    --train_config ./conf/tuning/train_tacotron2.yaml
+```
+
+</div></details>
+
+- Average the best 5 train loss models
+- https://zenodo.org/record/5560125
+
+### ljspeech_tts_train_conformer_fastspeech2_raw_phn_tacotron_espeak_ng_english_us_vits_train.loss.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+# Use the above tacotron2 model as the teacher
+./run.sh \
+    --ngpu 1 \
+    --stage 7 \
+    --train_set tr_no_dev_phn \
+    --valid_set dev_phn \
+    --test_sets "tr_no_dev_phn dev_phn eval1_phn" \
+    --cleaner none \
+    --g2p none \
+    --train_config ./conf/tuning/train_tacotron2.yaml \
+    --tts_exp exp/tts_train_tacotron2_raw_phn_none \
+    --inference_args "--use_teacher_forcing true"
+
+# Run fastspeech2 training
+./run.sh \
+    --train_set tr_no_dev_phn \
+    --valid_set dev_phn \
+    --test_sets "dev_phn eval1_phn" \
+    --stage 5 \
+    --g2p none \
+    --cleaner none \
+    --train_config ./conf/tuning/train_conformer_fastspeech2.yaml \
+    --teacher_dumpdir exp/tts_train_tacotron2_raw_phn_none/decode_use_teacher_forcingtrue_train.loss.ave \
+    --tts_stats_dir exp/tts_train_tacotron2_raw_phn_none/decode_use_teacher_forcingtrue_train.loss.ave/stats
+```
+
+</div></details>
+
+- Average the best 5 train loss models
+- https://zenodo.org/record/5560127
+
+
 # FORTH RESULTS
 
 - Initial joint training models
