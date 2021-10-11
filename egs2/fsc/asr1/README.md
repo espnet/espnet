@@ -2,6 +2,33 @@
 # RESULTS
 
 ## Environments
+- date: `Mon Oct 11 13:11:36 2021 -0400`
+- python version: `3.9.5 (default, Jun  4 2021, 12:28:51) [GCC 7.5.0]`
+- espnet version: `espnet 0.10.3a2`
+- pytorch version: `pytorch 1.8.1+cu102`
+- - Git hash: `4e7d2ba3510463ae744d1a6d98f18388ad929a9d`
+  - Commit date: `Mon Oct 11 12:57:48 2021 -0400`
+
+## Using Transformer based encoder-decoder with Hubert pre encoder and decoding sentence with spectral augmentation and predicting transcript along with intent
+- ASR config: [conf/train_asr.yaml](conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml)
+- token_type: word
+- keep_nbest_models: 5
+
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|
+|inference_asr_model_valid.acc.ave_5best/test|3793|99.6|
+|inference_asr_model_valid.acc.ave_5best/valid|3793|98.4|
+
+###ASR results
+
+#### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|inference_asr_model_valid.acc.ave_5best/test|3793|20316|99.8|0.1|0.1|0.1|0.4|0.9|
+|inference_asr_model_valid.acc.ave_5best/valid|3118|16751|99.2|0.5|0.3|0.3|1.1|2.7|
+
+## Environments
 - date: `Sat Jul 24 00:48:04 2021 -0400`
 - python version: `3.6.13 (default, Jun  4 2021, 14:25:59)  [GCC 7.5.0]`
 - espnet version: `espnet 0.9.10`
