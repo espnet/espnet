@@ -1,19 +1,19 @@
 # How to contribute to ESPnet
 
 ## 1. What to contribute
-If you are interested in contributing to ESPnet, your contributions will fall into three categories: major features, minor updates, and recipes. 
+If you are interested in contributing to ESPnet, your contributions will fall into three categories: major features, minor updates, and recipes.
 
 ### 1.1 Major features
 
-If you want to ask or propose a new feature, please first open a new issue with the tag `Feature request` 
-or directly contact Shinji Watanabe <shinjiw@ieee.org> or other main developers. Each feature implementation 
+If you want to ask or propose a new feature, please first open a new issue with the tag `Feature request`
+or directly contact Shinji Watanabe <shinjiw@ieee.org> or other main developers. Each feature implementation
 and design should be discussed and modified according to ongoing and future works.
-You can find ongoing major development plans at https://github.com/espnet/espnet/milestones 
+You can find ongoing major development plans at https://github.com/espnet/espnet/milestones
 or in https://github.com/espnet/espnet/issues (pinned issues)
 
 ### 1.2 Minor Updates (minor feature, bug-fix for an issue)
 
-If you want to propose a minor feature, update an existing minor feature, or fix a bug, please first take a look at 
+If you want to propose a minor feature, update an existing minor feature, or fix a bug, please first take a look at
 the existing [issues](https://github.com/espnet/espnet/pulls) and/or [pull requests](https://github.com/espnet/espnet/pulls).
 Pick an issue and comment on the task that you want to work on this feature.
 
@@ -21,26 +21,26 @@ If you need help or additional information to propose the feature, you can open 
 
 ### 1.3 Recipes
 
-ESPnet provides and maintains many example scripts, called `recipes`, that demonstrate how to 
+ESPnet provides and maintains many example scripts, called `recipes`, that demonstrate how to
 use the toolkit.  The recipes for ESPnet1 are put under `egs` directory, while ESPnet2 ones are put under `egs2`.
 Similar to Kaldi, each subdirectory of `egs` and `egs2` corresponds to a corpus that we have example scripts for.
 
 #### 1.3.1 ESPnet1 recipes
 
-ESPnet1 recipes (`egs/X`) follow the convention from [Kaldi](https://github.com/kaldi-asr/kaldi) and may rely on 
-several utilities available in Kaldi. As such, porting a new recipe from Kaldi to ESPnet is natural, and the user 
+ESPnet1 recipes (`egs/X`) follow the convention from [Kaldi](https://github.com/kaldi-asr/kaldi) and may rely on
+several utilities available in Kaldi. As such, porting a new recipe from Kaldi to ESPnet is natural, and the user
 may refer to [port-kaldi-recipe](https://github.com/espnet/espnet/wiki/How-to-port-the-Kaldi-recipe-to-the-ESPnet-recipe%3F)
-and other existing recipes for new additions. For the Kaldi-style recipe architecture, please refer to 
+and other existing recipes for new additions. For the Kaldi-style recipe architecture, please refer to
 [Prepare-Kaldi-Style-Directory](https://kaldi-asr.org/doc/data_prep.html).
-   
-For each recipe, we ask you to report the following: experiments results and environnement, model information. 
-For reproducibility, a link to upload the pre-trained model may also be added. All this information should be written 
-in a markdown file called `RESULTS.md` and put at the recipe root. You can refer to 
+
+For each recipe, we ask you to report the following: experiments results and environnement, model information.
+For reproducibility, a link to upload the pre-trained model may also be added. All this information should be written
+in a markdown file called `RESULTS.md` and put at the recipe root. You can refer to
 [tedlium2-example](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md) for an example.
-   
+
 To generate `RESULTS.md` for a recipe, please follow the following instructions:
-- Execute `~/espnet/utils/show_result.sh` at the recipe root (where `run.sh` is located). 
-You'll get your environment information and evaluation results for each experiment in a markdown format. 
+- Execute `~/espnet/utils/show_result.sh` at the recipe root (where `run.sh` is located).
+You'll get your environment information and evaluation results for each experiment in a markdown format.
 From here, you can copy or redirect text output to `RESULTS.md`.
 - Execute `~/espnet/utils/pack_model.sh` at the recipe root to generate a packed ESPnet model called `model.tar.gz`
 and output model information. Executing the utility script without argument will give you the expected arguments.
@@ -50,7 +50,7 @@ and output model information. Executing the utility script without argument will
 #### 1.3.2 ESPnet2 recipes
 
 ESPnet2's recipes correspond to `egs2`. ESPnet2 applies a new paradigm without dependencies of Kaldi's binaries, which makes it lighter and more generalized.
-For ESPnet2, we do not recommend preparing the recipe's stages for each corpus but using the common pipelines we provided in `asr.sh`, `tts.sh`, and 
+For ESPnet2, we do not recommend preparing the recipe's stages for each corpus but using the common pipelines we provided in `asr.sh`, `tts.sh`, and
 `enh.sh`. For details of creating ESPnet2 recipes, please refer to [egs2-readme](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/README.md).
 
 The common pipeline of ESPnet2 recipes will take care of the `RESULTS.md` generation, model packing, and uploading. ESPnet2 models are maintained at Zenodo and Hugging Face.
@@ -60,7 +60,7 @@ To upload your model, you need first:
 2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
 3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
-To port models from zenodo using Hugging Face hub, 
+To port models from zenodo using Hugging Face hub,
 1. Create a Hugging Face account - https://huggingface.co/
 2. Request to be added to espnet organisation - https://huggingface.co/espnet
 3. Go to `egs2/RECIPE/*/scripts/utils` and run `./upload_models_to_hub.sh "ZENODO_MODEL_NAME"`
@@ -68,17 +68,17 @@ To port models from zenodo using Hugging Face hub,
 #### 1.3.3 Additional requirements for new recipe
 
 - Common/shared files and directories such as `utils`, `steps`, `asr.sh`, etc, should be linked using
-a symbolic link (e.g.: `ln -s <source-path> <target-path>`). Please refer to existing recipes if you're 
+a symbolic link (e.g.: `ln -s <source-path> <target-path>`). Please refer to existing recipes if you're
 unaware which files/directories are shared. Noted that in espnet2, some of them are automatically generated by https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/setup.sh.
-- Default training and decoding configurations (i.e.: the default one in `run.sh`) should be named respectively `train.yaml` 
+- Default training and decoding configurations (i.e.: the default one in `run.sh`) should be named respectively `train.yaml`
 and `decode.yaml` and put in `conf/`. Additional or variant configurations should be put in `conf/tuning/` and named accordingly
-to its differences. 
+to its differences.
 - If a recipe for a new corpus is proposed, you should add its name and information to:
-https://github.com/espnet/espnet/blob/master/egs/README.md if it's a ESPnet1 recipe, 
+https://github.com/espnet/espnet/blob/master/egs/README.md if it's a ESPnet1 recipe,
 or https://github.com/espnet/espnet/blob/master/egs2/README.md + `db.sh` if it's a ESPnet2 recipe.
 
 ## 2 Pull Request
-If your proposed feature or bugfix is ready, please open a Pull Request (PR) at https://github.com/espnet/espnet 
+If your proposed feature or bugfix is ready, please open a Pull Request (PR) at https://github.com/espnet/espnet
 or use the Pull Request button in your forked repo. If you're not familiar with the process, please refer to the following guides:
 
 - http://stackoverflow.com/questions/14680711/how-to-do-a-github-pull-request
@@ -90,7 +90,7 @@ We basically develop in the `master` branch.
 
 1. We will keep the first version digit `0` until we have some super major changes in the project organization level.
 
-2. The second version digit will be updated when we have major updates, including new functions and refactoring, and 
+2. The second version digit will be updated when we have major updates, including new functions and refactoring, and
    their related bug fix and recipe changes.
    This version update will be done roughly every half year so far (but it depends on the development plan).
 
@@ -119,11 +119,11 @@ have the format `def test_yyy(...)`.  [Pytest](https://docs.pytest.org/en/latest
 Technically, a test file should only cover methods from one file (e.g.: `test_transformer_utils.py` to test `transformer_utils.py`).
 - To monitor test coverage and avoid the overlapping test, we recommend using  `pytest --cov-report term-missing <test_file|dir>`
 to highlight covered and missed lines. For more details, please refer to [coverage-test](https://pytest-cov.readthedocs.io/en/latest/readme.html).
-- We limited test running time to 2.0 seconds (see: [pytest-timeouts](https://pypi.org/project/pytest-timeouts/)). As such, 
+- We limited test running time to 2.0 seconds (see: [pytest-timeouts](https://pypi.org/project/pytest-timeouts/)). As such,
 we recommend using small model parameters and avoiding dynamic imports, file access, and unnecessary loops. If a unit test needs
 more running time, you can annotate your test with `@pytest.mark.execution_timeout(sec)`.
 - For test initialization (parameters, modules, etc), you can use pytest fixtures. Refer to  [pytest fixtures](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects) for more information.
-   
+
 
 ### 4.2 Bash scripts
 
@@ -137,10 +137,10 @@ To test:
 
 ## 5 Integration testing
 
-Write new integration tests in [ci/test_integration.sh](ci/test_integration.sh) when you add new features in [espnet/bin](espnet/bin). They use our smallest dataset [egs/mini_an4](egs/mini_an4) to test `run.sh`. To make the coverage take them into account, don't forget `--python ${python}` support in your `run.sh`
+Write new integration tests in [ci/test_integration_espnet1.sh](ci/test_integration_espnet1.sh) or [ci/test_integration_espnet2.sh](ci/test_integration_espnet2.sh) when you add new features in [espnet/bin](espnet/bin) or [espnet2/bin](espnet2/bin), respectively. They use our smallest dataset [egs/mini_an4](egs/mini_an4) or [egs2/mini_an4](egs/mini_an4) to test `run.sh`. **Don't call `python` directly in integration tests. Instead, use `coverage run --append`** as a python interpreter. Especially, `run.sh` should support `--python ${python}` to call the custom interpreter.
 
 ```bash
-# ci/integration_test.sh
+# ci/test_integration_espnet{1,2}.sh
 
 python="coverage run --append"
 
@@ -155,6 +155,7 @@ cd egs/mini_an4/your_task
 - [.travis.yml](.travis.yml) configures Travis-CI (unittests, doc deploy).
 - [.circleci/config.yml](.circleci/config.yml) configures Circle-CI (unittests, integration tests).
 - [.github/workflows](.github/workflows/) configures Github Actions (unittests, integration tests).
+- [codecov.yml](codecov.yml) configures CodeCov (code coverage).
 
 ## 6 Writing new tools
 

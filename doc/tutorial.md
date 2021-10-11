@@ -362,13 +362,13 @@ The algorithms share two parameters to control beam size (`beam-size`) and final
         expansion-gamma: [Number of additional candidates in expanded hypotheses selection (int)]
         expansion-beta: [Allowed logp difference for prune-by-value method (float, > 0)]
 
-Except for the default algorithm, performance and decoding time can be controlled through described parameters. A high value will increase performance but also decoding time while a low value will decrease decoding time but will negatively impact performance.
+Except for the default algorithm, the described parameters are used to control the performance and decoding speed. The optimal values for each parameter are task-dependent; a high value will typically increase decoding time to focus on performance while a low value will improve decoding time at the expense of performance.
 
 #### Additional notes
 
 - Similarly to training with CTC, Transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., --recog_model model.loss.best).
 - There are several differences between MTL and Transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview and `espnet/espnet/nets/pytorch_backend/transducer/arguments` for all possible arguments.
-- Memory usage during training can be reduced with minor training time augmentation using efficient encoder and decoder output combination [Li et al. (2019)](https://arxiv.org/pdf/1909.12415.pdf). To enable the feature, `joint-memory-reduction` can be set to True in training config.
+- FastEmit regularization [Yu et al. (2021)](https://arxiv.org/pdf/2010.11148) is available through `--fastemit-lambda` parameter (Default: 0.0). If you encounter any issue related to an undefined parameter in `warp-transducer`, make sure your repo is up-to-date and re-install warp-transducer module (See `installation.md`)
 - RNN-decoder pre-initialization using an LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`).
 - Transformer-decoder pre-initialization using a Transformer LM is not supported yet.
 

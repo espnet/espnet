@@ -3,6 +3,7 @@
 
 AISHELL=downloads
 AISHELL3=downloads
+AISHELL4=downloads
 ALFFA=downloads
 AN4=downloads
 DIRHA_ENGLISH_PHDEV=

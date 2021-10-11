@@ -66,14 +66,14 @@ class TDNN(torch.nn.Module):
         Args:
             sequence: TDNN input sequences.
                         (B, T, D_in) or ((B, T, D_in), (B, T, D_att))
-                        or ((B, T, D_in), (B, 2 * (T - 1), D_att))
+                          or ((B, T, D_in), (B, 2 * (T - 1), D_att))
             mask: Mask of TDNN input sequences. (B, 1, T)
 
         Returns:
-            sequenceput: TDNN output sequences.
-                         (B, sub(T), D_out)
-                         or ((B, sub(T), D_out), (B, sub(T), att_dim))
-                         or ((B, T, D_out), (B, 2 * (sub(T) - 1), D_att)
+            sequence: TDNN output sequences.
+                        (B, sub(T), D_out)
+                          or ((B, sub(T), D_out), (B, sub(T), att_dim))
+                          or ((B, T, D_out), (B, 2 * (sub(T) - 1), D_att)
             mask: Mask of TDNN output sequences. (B, 1, sub(T))
 
         """
