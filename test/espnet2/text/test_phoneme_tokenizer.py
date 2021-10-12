@@ -410,6 +410,25 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
             "ᅡ",
             ".",
         ]
+    elif phoneme_tokenizer.g2p_type == "espeak_ng_english_us_vits":
+        input = "Hello, World."
+        output = [
+            "h",
+            "ə",
+            "l",
+            "ˈ",
+            "o",
+            "ʊ",
+            ",",
+            "<space>",
+            "w",
+            "ˈ",
+            "ɜ",
+            "ː",
+            "l",
+            "d",
+            ".",
+        ]
     elif phoneme_tokenizer.g2p_type == "korean_jaso":
         input = "나는 학교에 갑니다."
         output = [
@@ -418,7 +437,7 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
             "ᄂ", 
             "ᅳ", 
             "ᆫ", 
-            " ", 
+            "<space>", 
             "ᄒ", 
             "ᅡ", 
             "ᆨ", 
@@ -426,7 +445,7 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
             "ᅭ", 
             "ᄋ", 
             "ᅦ", 
-            " ", 
+            "<space>", 
             "ᄀ", 
             "ᅡ", 
             "ᆸ", 
