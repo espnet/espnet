@@ -1,6 +1,6 @@
 # network architecture
 # encoder related
-encoder: contextual_block_conformer
+encoder: contextual_block_conformer    # contextual_block_conformer is the core of streaming conformer
 encoder_conf:
     output_size: 256    # dimension of attention
     attention_heads: 4
@@ -15,11 +15,11 @@ encoder_conf:
     macaron_style: true
     use_cnn_module: true
     cnn_module_kernel: 15
-    block_size: 40
-    hop_size: 16
-    look_ahead: 16
-    init_average: true
-    ctx_pos_enc: true
+    block_size: 40      # streaming configuration
+    hop_size: 16        # streaming configuration
+    look_ahead: 16      # streaming configuration
+    init_average: true  # streaming configuration
+    ctx_pos_enc: true   # streaming configuration
 
 # decoder related
 decoder: transformer
