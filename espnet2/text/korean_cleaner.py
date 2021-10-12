@@ -2,6 +2,7 @@
 
 import re
 
+
 class KoreanCleaner:
     @classmethod
     def _normalize_numbers(cls, text):
