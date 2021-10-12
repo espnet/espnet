@@ -424,6 +424,19 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = G2pk(no_space=False)
         elif g2p_type == "g2pk_no_space":
             self.g2p = G2pk(no_space=True)
+        elif g2p_type == "espeak_ng_english_us_vits":
+            # VITS official implementation-like processing
+            # Reference: https://github.com/jaywalnut310/vits
+            self.g2p = Phonemizer(
+                language="en-us",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+                strip=True,
+                word_separator=" ",
+                phone_separator="",
+                split_by_single_token=True,
+            )
         elif g2p_type == "korean_jaso":
             self.g2p = Jaso(space_symbol=space_symbol, no_space=False)
         elif g2p_type == "korean_jaso_no_space":
