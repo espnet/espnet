@@ -10,6 +10,7 @@ from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
 from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
 from espnet2.text.word_tokenizer import WordTokenizer
 
+
 def build_tokenizer(
     token_type: str,
     bpemodel: Union[Path, str, Iterable[str]] = None,

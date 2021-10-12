@@ -38,8 +38,9 @@ g2p_choices = [
     "g2pk",
     "g2pk_no_space",
     "korean_jaso",
-    "korean_jaso_no_space"
+    "korean_jaso_no_space",
 ]
+
 
 def split_by_space(text) -> List[str]:
     if "   " in text:
@@ -267,8 +268,8 @@ class G2pk:
 
 
 class Jaso:
-    PUNC = '!\'(),-.:;?'
-    SPACE = ' '
+    PUNC = "!'(),-.:;?"
+    SPACE = " "
 
     JAMO_LEADS = "".join([chr(_) for _ in range(0x1100, 0x1113)])
     JAMO_VOWELS = "".join([chr(_) for _ in range(0x1161, 0x1176)])
@@ -280,7 +281,7 @@ class Jaso:
         self.space_symbol = space_symbol
         self.no_space = no_space
 
-    def _text_to_jaso(self, line : str) -> List[str]:
+    def _text_to_jaso(self, line: str) -> List[str]:
         jasos = list(jamo.hangul_to_jamo(line))
         return jasos
 
@@ -291,7 +292,7 @@ class Jaso:
     def __call__(self, text) -> List[str]:
         graphemes = [x for x in self._text_to_jaso(text)]
         graphemes = self._remove_non_korean_characters(graphemes)
-        
+
         if self.no_space:
             graphemes = list(filter(lambda s: s != " ", graphemes))
         else:
