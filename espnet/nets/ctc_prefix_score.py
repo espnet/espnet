@@ -319,7 +319,7 @@ class CTCPrefixScore(object):
             r[0, 0] = xs[0]
             r[0, 1] = self.logzero
         else:
-            r[output_length - 1] = self.logzero
+            r[0] = self.logzero
 
         # prepare forward probabilities for the last label
         r_sum = self.xp.logaddexp(
