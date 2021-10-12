@@ -67,6 +67,7 @@ tools/hts_engine_API*
 tools/open_jtalk*
 tools/pyopenjtalk*
 tools/tdmelodic_openjtalk*
+tools/s3prl
 tools/sctk*
 tools/sph2pipe*
 tools/espeak-ng*

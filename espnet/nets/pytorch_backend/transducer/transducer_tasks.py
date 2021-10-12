@@ -1,4 +1,4 @@
-"""Module implementing transducer main and auxiliary tasks."""
+"""Module implementing Transducer main and auxiliary tasks."""
 
 from typing import Any
 from typing import List
@@ -26,40 +26,47 @@ class TransducerTasks(torch.nn.Module):
         joint_activation_type: str = "tanh",
         transducer_loss_weight: float = 1.0,
         ctc_loss: bool = False,
-        lm_loss: bool = False,
-        aux_transducer_loss: bool = False,
-        symm_kl_div_loss: bool = False,
         ctc_loss_weight: float = 0.5,
-        lm_loss_weight: float = 1.0,
-        aux_transducer_loss_weight: float = 0.2,
-        symm_kl_div_loss_weight: float = 0.2,
         ctc_loss_dropout_rate: float = 0.0,
+        lm_loss: bool = False,
+        lm_loss_weight: float = 1.0,
+        lm_loss_smoothing_rate: float = 0.0,
+        aux_transducer_loss: bool = False,
+        aux_transducer_loss_weight: float = 0.2,
         aux_transducer_loss_mlp_dim: int = 320,
         aux_trans_loss_mlp_dropout_rate: float = 0.0,
-        lm_loss_smoothing_rate: float = 0.0,
+        symm_kl_div_loss: bool = False,
+        symm_kl_div_loss_weight: float = 0.2,
+        fastemit_lambda: float = 0.0,
         blank_id: int = 0,
         ignore_id: int = -1,
         training: bool = False,
     ):
-        """Initialize module for transducer tasks.
+        """Initialize module for Transducer tasks.
 
         Args:
-            joint_network: Joint network module.
             encoder_dim: Encoder outputs dimension.
             decoder_dim: Decoder outputs dimension.
             joint_dim: Joint space dimension.
             output_dim: Output dimension.
             joint_activation_type: Type of activation for joint network.
+            transducer_loss_weight: Weight for main transducer loss.
             ctc_loss: Compute CTC loss.
-            lm_loss: Compute LM loss.
-            aux_transducer_loss: Compute auxiliary transducer loss.
-            symm_kl_div_loss: Compute KL divergence loss.
-            transducer_loss_weight: Weight of transducer loss.
             ctc_loss_weight: Weight of CTC loss.
-            lm_loss_weight: Weight of LM loss.
-            aux_transducer_loss_weight: Weight of auxiliary transducer loss.
-            symm_kl_div_loss_weight: Weight of KL divergence loss.
             ctc_loss_dropout_rate: Dropout rate for CTC loss inputs.
+            lm_loss: Compute LM loss.
+            lm_loss_weight: Weight of LM loss.
+            lm_loss_smoothing_rate: Smoothing rate for LM loss' label smoothing.
+            aux_transducer_loss: Compute auxiliary transducer loss.
+            aux_transducer_loss_weight: Weight of auxiliary transducer loss.
+            aux_transducer_loss_mlp_dim: Hidden dimension for aux. transducer MLP.
+            aux_trans_loss_mlp_dropout_rate: Dropout rate for aux. transducer MLP.
+            symm_kl_div_loss: Compute KL divergence loss.
+            symm_kl_div_loss_weight: Weight of KL divergence loss.
+            fastemit_lambda: Regularization parameter for FastEmit.
+            blank_id: Blank symbol ID.
+            ignore_id: Padding symbol ID.
+            training: Whether the model was initializated in training or inference mode.
 
         """
         super().__init__()
@@ -82,6 +89,7 @@ class TransducerTasks(torch.nn.Module):
             self.transducer_loss = RNNTLoss(
                 blank=blank_id,
                 reduction="sum",
+                fastemit_lambda=fastemit_lambda,
             )
 
         if ctc_loss:
@@ -142,7 +150,7 @@ class TransducerTasks(torch.nn.Module):
         t_len: torch.Tensor,
         u_len: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Compute transducer loss.
+        """Compute Transducer loss.
 
         Args:
             enc_out: Encoder output sequences. (B, T, D_enc)
@@ -204,7 +212,7 @@ class TransducerTasks(torch.nn.Module):
         aux_t_len: torch.Tensor,
         u_len: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Compute auxiliary transducer loss and Jensen-Shannon divergence loss.
+        """Compute auxiliary Transducer loss and Jensen-Shannon divergence loss.
 
         Args:
             aux_enc_out: Encoder auxiliary output sequences. [N x (B, T_aux, D_enc_aux)]
@@ -215,7 +223,7 @@ class TransducerTasks(torch.nn.Module):
             u_len: True U lengths. (B,)
 
         Returns:
-           : Auxiliary transducer loss and KL divergence loss values.
+           : Auxiliary Transducer loss and KL divergence loss values.
 
         """
         aux_trans_loss = 0
@@ -325,7 +333,7 @@ class TransducerTasks(torch.nn.Module):
         enc_out_len: torch.Tensor,
         aux_enc_out_len: Optional[List],
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Get transducer tasks inputs and outputs.
+        """Get Transducer tasks inputs and outputs.
 
         Args:
             labels: Label ID sequences. (B, U)
@@ -407,7 +415,7 @@ class TransducerTasks(torch.nn.Module):
 
         Returns:
             : Weighted losses.
-              (transducer loss, ctc loss, aux transducer loss, KL div loss, LM loss)
+              (transducer loss, ctc loss, aux Transducer loss, KL div loss, LM loss)
             cer: Sentence-level CER score.
             wer: Sentence-level WER score.
 

@@ -33,6 +33,8 @@ g2p_choices = [
     "espeak_ng_finnish",
     "espeak_ng_hungarian",
     "espeak_ng_dutch",
+    "espeak_ng_english_us_vits",
+    "espeak_ng_hindi",
     "g2pk",
     "g2pk_no_space",
     "korean_jaso",
@@ -40,7 +42,11 @@ g2p_choices = [
 ]
 
 def split_by_space(text) -> List[str]:
-    return text.split(" ")
+    if "   " in text:
+        text = text.replace("   ", " <space> ")
+        return [c.replace("<space>", " ") for c in text.split(" ")]
+    else:
+        return text.split(" ")
 
 
 def pyopenjtalk_g2p(text) -> List[str]:
@@ -308,6 +314,8 @@ class Phonemizer:
         self,
         word_separator: Optional[str] = None,
         syllable_separator: Optional[str] = None,
+        phone_separator: Optional[str] = " ",
+        split_by_single_token: bool = False,
         **phonemize_kwargs,
     ):
         # delayed import
@@ -316,16 +324,25 @@ class Phonemizer:
 
         self.phonemize = phonemize
         self.separator = Separator(
-            word=word_separator, syllable=syllable_separator, phone=" "
+            word=word_separator,
+            syllable=syllable_separator,
+            phone=phone_separator,
         )
+        self.split_by_single_token = split_by_single_token
         self.phonemize_kwargs = phonemize_kwargs
 
     def __call__(self, text) -> List[str]:
-        return self.phonemize(
+        tokens = self.phonemize(
             text,
             separator=self.separator,
             **self.phonemize_kwargs,
-        ).split()
+        )
+        if not self.split_by_single_token:
+            return tokens.split()
+        else:
+            # "a: ab" -> ["a", ":", "<space>",  "a", "b"]
+            # TODO(kan-bayashi): space replacement should be dealt in PhonemeTokenizer
+            return [c.replace(" ", "<space>") for c in tokens]
 
 
 class PhonemeTokenizer(AbsTokenizer):
@@ -416,6 +433,13 @@ class PhonemeTokenizer(AbsTokenizer):
         elif g2p_type == "espeak_ng_dutch":
             self.g2p = Phonemizer(
                 language="nl",
+                backend="espeak",
+                with_stress=True,
+                preserve_punctuation=True,
+            )
+        elif g2p_type == "espeak_ng_hindi":
+            self.g2p = Phonemizer(
+                language="hi",
                 backend="espeak",
                 with_stress=True,
                 preserve_punctuation=True,

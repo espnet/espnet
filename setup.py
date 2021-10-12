@@ -47,8 +47,6 @@ requirements = {
         "torch_complex",
         "pytorch_wpe",
         "ci_sdr",
-        # NLU postencoder related
-        "transformers>=4.9.1",
     ],
     "recipe": [
         "espnet_model_zoo",
@@ -96,8 +94,10 @@ try:
     if LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
         requirements["install"].append("fairscale")
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.9.1"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.9.2"):
         raise NotImplementedError("Not yet supported")
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.9.1"):
+        requirements["install"].append("torchaudio==0.9.1")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.9.0"):
         requirements["install"].append("torchaudio==0.9.0")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.8.1"):
