@@ -1,7 +1,6 @@
-## Referenced from https://github.com/hccho2/Tacotron-Wavenet-Vocoder-Korean
+# Referenced from https://github.com/hccho2/Tacotron-Wavenet-Vocoder-Korean
 
 import re
-
 
 class KoreanCleaner:
     @classmethod
