@@ -8,7 +8,8 @@ if [ $# != 0 ]; then
 fi
 
 if [ ! -e PESQ.zip ]; then
-    wget --tries=3 'http://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200511-I!Amd2!SOFT-ZST-E&type=items' -O PESQ.zip
+    wget --tries=3 --no-check-certificate \
+        'http://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-P.862-200511-I!Amd2!SOFT-ZST-E&type=items' -O PESQ.zip
 fi
 if [ ! -e PESQ ]; then
     mkdir -p PESQ_P.862.2
