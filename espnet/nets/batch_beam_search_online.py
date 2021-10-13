@@ -21,15 +21,15 @@ class BatchBeamSearchOnline(BatchBeamSearch):
     """
 
     def __init__(
-            self,
-            *args,
-            block_size=40,
-            hop_size=16,
-            look_ahead=16,
-            disable_repetition_detection=False,
-            encoded_feat_length_limit=0,
-            decoder_text_length_limit=0,
-            **kwargs
+        self,
+        *args,
+        block_size=40,
+        hop_size=16,
+        look_ahead=16,
+        disable_repetition_detection=False,
+        encoded_feat_length_limit=0,
+        decoder_text_length_limit=0,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.block_size = block_size
@@ -40,7 +40,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.decoder_text_length_limit = decoder_text_length_limit
 
         self.reset()
-        
+
     def reset(self):
         self.encbuffer = None
 
@@ -72,21 +72,29 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         scores = dict()
         states = dict()
         for k, d in self.full_scorers.items():
-            if self.decoder_text_length_limit > 0 and len(hyp.yseq) > 0 and len(hyp.yseq[0]) > self.decoder_text_length_limit:
-                temp_yseq = hyp.yseq.narrow(1, -self.decoder_text_length_limit, self.decoder_text_length_limit).clone()
-                temp_yseq[:,0] = self.sos
-                self.running_hyps.states['decoder'] = [ None for _ in self.running_hyps.states['decoder']]
+            if (
+                self.decoder_text_length_limit > 0
+                and len(hyp.yseq) > 0
+                and len(hyp.yseq[0]) > self.decoder_text_length_limit
+            ):
+                temp_yseq = hyp.yseq.narrow(
+                    1, -self.decoder_text_length_limit, self.decoder_text_length_limit
+                ).clone()
+                temp_yseq[:, 0] = self.sos
+                self.running_hyps.states["decoder"] = [
+                    None for _ in self.running_hyps.states["decoder"]
+                ]
                 scores[k], states[k] = d.batch_score(temp_yseq, hyp.states[k], x)
             else:
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
         return scores, states
-        
+
     def forward(
         self,
         x: torch.Tensor,
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
-        is_final: bool = True
+        is_final: bool = True,
     ) -> List[Hypothesis]:
         """Perform beam search.
 
@@ -104,10 +112,10 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         if self.encbuffer is None:
             self.encbuffer = x
         else:
-            self.encbuffer = torch.cat([self.encbuffer,x], axis=0)
+            self.encbuffer = torch.cat([self.encbuffer, x], axis=0)
 
         x = self.encbuffer
-            
+
         # set length bounds
         if maxlenratio == 0:
             maxlen = x.shape[0]
@@ -116,7 +124,9 @@ class BatchBeamSearchOnline(BatchBeamSearch):
 
         ret = None
         while True:
-            cur_end_frame = self.block_size - self.look_ahead + self.hop_size * self.processed_block
+            cur_end_frame = (
+                self.block_size - self.look_ahead + self.hop_size * self.processed_block
+            )
             if cur_end_frame < x.shape[0]:
                 h = x.narrow(0, 0, cur_end_frame)
                 block_is_final = False
@@ -128,10 +138,21 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                     break
 
             logging.debug("Start processing block: %d", self.processed_block)
-            logging.debug("  Feature length: {}, current position: {}".format(h.shape[0], self.process_idx))
-            if self.encoded_feat_length_limit > 0 and h.shape[0] > self.encoded_feat_length_limit:
-                h = h.narrow(0, h.shape[0] - self.encoded_feat_length_limit, self.encoded_feat_length_limit)
-                
+            logging.debug(
+                "  Feature length: {}, current position: {}".format(
+                    h.shape[0], self.process_idx
+                )
+            )
+            if (
+                self.encoded_feat_length_limit > 0
+                and h.shape[0] > self.encoded_feat_length_limit
+            ):
+                h = h.narrow(
+                    0,
+                    h.shape[0] - self.encoded_feat_length_limit,
+                    self.encoded_feat_length_limit,
+                )
+
             if self.running_hyps is None:
                 self.running_hyps = self.init_hyp(h)
             ret = self.process_one_block(h, block_is_final, maxlen, maxlenratio)
@@ -162,9 +183,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 )
             n_batch = best.yseq.shape[0]
             local_ended_hyps = []
-            is_local_eos = (
-                best.yseq[torch.arange(n_batch), best.length - 1] == self.eos
-            )
+            is_local_eos = best.yseq[torch.arange(n_batch), best.length - 1] == self.eos
             prev_repeat = False
             for i in range(is_local_eos.shape[0]):
                 if is_local_eos[i]:
@@ -180,18 +199,22 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 # search starts only after the entire inputs are available.
                 # Empirically, this flag didn't affect the performance.
                 elif (
-                        not self.disable_repetition_detection
-                        and not prev_repeat
-                        and best.yseq[i, -1] in best.yseq[i, :-1]
-                        and not is_final
+                    not self.disable_repetition_detection
+                    and not prev_repeat
+                    and best.yseq[i, -1] in best.yseq[i, :-1]
+                    and not is_final
                 ):
                     prev_repeat = True
             if prev_repeat:
                 logging.info("Detected repetition.")
                 break
-                
-            if is_final and maxlenratio == 0.0 and end_detect(
+
+            if (
+                is_final
+                and maxlenratio == 0.0
+                and end_detect(
                     [lh.asdict() for lh in self.ended_hyps], self.process_idx
+                )
             ):
                 logging.info(f"end detected at {self.process_idx}")
                 return self.assemble_hyps(self.ended_hyps)
@@ -231,7 +254,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
 
             return rets
 
-        
     def assemble_hyps(self, ended_hyps):
         nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
         # check the number of hypotheses reaching to eos
@@ -240,9 +262,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 "there is no N-best results, perform recognition "
                 "again with smaller minlenratio."
             )
-            return (
-                []
-            )
+            return []
 
         # report the best result
         best = nbest_hyps[0]
@@ -260,7 +280,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 + "\n"
             )
         return nbest_hyps
-        
+
     def extend(self, x: torch.Tensor, hyps: Hypothesis) -> List[Hypothesis]:
         """Extend probabilities and states with more encoded chunks.
 
