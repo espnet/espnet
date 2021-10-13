@@ -57,10 +57,10 @@ all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_inst
 
 ifneq ($(strip $(CHAINER_VERSION)),)
 python: activate_python.sh espnet.done pytorch.done chainer.done
-extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done
+extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done
 else
 python: activate_python.sh espnet.done pytorch.done
-extra: warp-ctc.done warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done
+extra: warp-ctc.done warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done
 endif
 
 
