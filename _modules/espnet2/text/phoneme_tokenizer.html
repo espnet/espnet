@@ -132,6 +132,7 @@
 <span class="kn">import</span> <span class="nn">warnings</span>
 
 <span class="kn">import</span> <span class="nn">g2p_en</span>
+<span class="kn">import</span> <span class="nn">jamo</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.text.abs_tokenizer</span> <span class="kn">import</span> <span class="n">AbsTokenizer</span>
@@ -161,6 +162,8 @@
     <span class="s2">&quot;espeak_ng_hindi&quot;</span><span class="p">,</span>
     <span class="s2">&quot;g2pk&quot;</span><span class="p">,</span>
     <span class="s2">&quot;g2pk_no_space&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;korean_jaso&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;korean_jaso_no_space&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
 
@@ -389,6 +392,39 @@
         <span class="k">return</span> <span class="n">phones</span></div>
 
 
+<div class="viewcode-block" id="Jaso"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.Jaso">[docs]</a><span class="k">class</span> <span class="nc">Jaso</span><span class="p">:</span>
+    <span class="n">PUNC</span> <span class="o">=</span> <span class="s2">&quot;!&#39;(),-.:;?&quot;</span>
+    <span class="n">SPACE</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+
+    <span class="n">JAMO_LEADS</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">chr</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0x1100</span><span class="p">,</span> <span class="mh">0x1113</span><span class="p">)])</span>
+    <span class="n">JAMO_VOWELS</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">chr</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0x1161</span><span class="p">,</span> <span class="mh">0x1176</span><span class="p">)])</span>
+    <span class="n">JAMO_TAILS</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">chr</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mh">0x11A8</span><span class="p">,</span> <span class="mh">0x11C3</span><span class="p">)])</span>
+
+    <span class="n">VALID_CHARS</span> <span class="o">=</span> <span class="n">JAMO_LEADS</span> <span class="o">+</span> <span class="n">JAMO_VOWELS</span> <span class="o">+</span> <span class="n">JAMO_TAILS</span> <span class="o">+</span> <span class="n">PUNC</span> <span class="o">+</span> <span class="n">SPACE</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">space_symbol</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">no_space</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">space_symbol</span> <span class="o">=</span> <span class="n">space_symbol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_space</span> <span class="o">=</span> <span class="n">no_space</span>
+
+    <span class="k">def</span> <span class="nf">_text_to_jaso</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="n">jasos</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">jamo</span><span class="o">.</span><span class="n">hangul_to_jamo</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">jasos</span>
+
+    <span class="k">def</span> <span class="nf">_remove_non_korean_characters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
+        <span class="n">new_tokens</span> <span class="o">=</span> <span class="p">[</span><span class="n">token</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">tokens</span> <span class="k">if</span> <span class="n">token</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">VALID_CHARS</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">new_tokens</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="n">graphemes</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_text_to_jaso</span><span class="p">(</span><span class="n">text</span><span class="p">)]</span>
+        <span class="n">graphemes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remove_non_korean_characters</span><span class="p">(</span><span class="n">graphemes</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_space</span><span class="p">:</span>
+            <span class="n">graphemes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span> <span class="o">!=</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">graphemes</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">graphemes</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">if</span> <span class="n">x</span> <span class="o">!=</span> <span class="s2">&quot; &quot;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">space_symbol</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">graphemes</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">graphemes</span></div>
+
+
 <div class="viewcode-block" id="Phonemizer"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.Phonemizer">[docs]</a><span class="k">class</span> <span class="nc">Phonemizer</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Phonemizer module for various languages.</span>
 
@@ -551,6 +587,10 @@
                 <span class="n">phone_separator</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
                 <span class="n">split_by_single_token</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;korean_jaso&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">Jaso</span><span class="p">(</span><span class="n">space_symbol</span><span class="o">=</span><span class="n">space_symbol</span><span class="p">,</span> <span class="n">no_space</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;korean_jaso_no_space&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">Jaso</span><span class="p">(</span><span class="n">no_space</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not supported: g2p_type=</span><span class="si">{</span><span class="n">g2p_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 

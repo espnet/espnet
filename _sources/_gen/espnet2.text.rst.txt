@@ -37,6 +37,17 @@ espnet2.text.word_tokenizer
     :show-inheritance:
 
 
+.. _espnet2.text.korean_cleaner:
+
+espnet2.text.korean_cleaner
+---------------------------
+
+.. automodule:: espnet2.text.korean_cleaner
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.text.token_id_converter:
 
 espnet2.text.token_id_converter
