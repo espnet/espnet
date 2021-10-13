@@ -193,7 +193,7 @@ class TTSTask(AbsTask):
         parser.add_argument(
             "--cleaner",
             type=str_or_none,
-            choices=[None, "tacotron", "jaconv", "vietnamese"],
+            choices=[None, "tacotron", "jaconv", "vietnamese", "korean_cleaner"],
             default=None,
             help="Apply text cleaning",
         )
