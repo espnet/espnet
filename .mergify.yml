@@ -11,7 +11,6 @@ pull_request_rules:
       - "check-success=linter_and_test (ubuntu-18.04, 3.7, 1.9.0, 6.0.0, 1.2.dev20210726+cpu, false)"
       - "check-success=linter_and_test (ubuntu-20.04, 3.8, 1.8.1, 1.2.dev20210726+cpu, false, 6.0.0)"
       - "check-success=linter_and_test (ubuntu-20.04, 3.9, 1.8.1, 1.2.dev20210726+cpu, false, 6.0.0)"
-      - "check-success=linter_and_test"
     actions:
       merge:
         method: merge
