@@ -503,25 +503,6 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
             "ᅡ",
             ".",
         ]
-    elif phoneme_tokenizer.g2p_type == "espeak_ng_english_us_vits":
-        input = "Hello, World."
-        output = [
-            "h",
-            "ə",
-            "l",
-            "ˈ",
-            "o",
-            "ʊ",
-            ",",
-            "<space>",
-            "w",
-            "ˈ",
-            "ɜ",
-            "ː",
-            "l",
-            "d",
-            ".",
-        ]
     else:
         raise NotImplementedError
     assert phoneme_tokenizer.text2tokens(input) == output

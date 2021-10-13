@@ -189,6 +189,10 @@ pyopenjtalk.done: espnet.done conda_packages.done
 	. ./activate_python.sh && ./installers/install_pyopenjtalk.sh
 	touch pyopenjtalk.done
 
+phonemizer.done: espnet.done conda_packages.done
+	. ./activate_python.sh && ./installers/install_phonemizer.sh
+	touch phonemizer.done
+
 moses.done:
 	git clone --depth 1 https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
