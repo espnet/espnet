@@ -269,8 +269,6 @@ class Speech2TextStreaming:
             is_final=is_final,
         )
 
-        # TODO: Add is_final flag to the output
-
         ret = self.assemble_hyps(nbest_hyps)
         if is_final:
             self.reset()
