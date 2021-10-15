@@ -472,7 +472,7 @@
                     <span class="p">[</span><span class="o">--</span><span class="n">maskctc</span><span class="o">-</span><span class="n">n</span><span class="o">-</span><span class="n">iterations</span> <span class="n">MASKCTC_N_ITERATIONS</span><span class="p">]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">maskctc</span><span class="o">-</span><span class="n">probability</span><span class="o">-</span><span class="n">threshold</span> <span class="n">MASKCTC_PROBABILITY_THRESHOLD</span><span class="p">]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">quantize</span><span class="o">-</span><span class="n">config</span> <span class="p">[</span><span class="n">QUANTIZE_CONFIG</span> <span class="p">[</span><span class="n">QUANTIZE_CONFIG</span> <span class="o">...</span><span class="p">]]]</span>
-                    <span class="p">[</span><span class="o">--</span><span class="n">quantize</span><span class="o">-</span><span class="n">dtype</span> <span class="n">QUANTIZE_DTYPE</span><span class="p">]</span>
+                    <span class="p">[</span><span class="o">--</span><span class="n">quantize</span><span class="o">-</span><span class="n">dtype</span> <span class="p">{</span><span class="n">float16</span><span class="p">,</span><span class="n">qint8</span><span class="p">}]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">quantize</span><span class="o">-</span><span class="n">asr</span><span class="o">-</span><span class="n">model</span> <span class="n">QUANTIZE_ASR_MODEL</span><span class="p">]</span>
                     <span class="p">[</span><span class="o">--</span><span class="n">quantize</span><span class="o">-</span><span class="n">lm</span><span class="o">-</span><span class="n">model</span> <span class="n">QUANTIZE_LM_MODEL</span><span class="p">]</span>
 </pre></div>
@@ -707,18 +707,24 @@ the decoding speed of part scorer is musch faster than full one</p>
 <p>Default: 0.999</p>
 </dd>
 <dt><kbd>--quantize-config</kbd></dt>
-<dd><p>Quantize config list. E.g.: –quantize-config=[Linear,LSTM,GRU]</p>
+<dd><dl class="simple">
+<dt>Config for dynamic quantization provided as a list of modules,</dt><dd><p>separated by a comma. E.g.: –quantize-config=[Linear,LSTM,GRU].
+Each specified module should be an attribute of ‘torch.nn’, e.g.:
+torch.nn.Linear, torch.nn.LSTM, torch.nn.GRU, …</p>
+</dd>
+</dl>
 </dd>
 <dt><kbd>--quantize-dtype</kbd></dt>
-<dd><p>Dtype dynamic quantize</p>
+<dd><p>Possible choices: float16, qint8</p>
+<p>Dtype for dynamic quantization.</p>
 <p>Default: “qint8”</p>
 </dd>
 <dt><kbd>--quantize-asr-model</kbd></dt>
-<dd><p>Quantize asr model</p>
+<dd><p>Apply dynamic quantization to ASR model.</p>
 <p>Default: False</p>
 </dd>
 <dt><kbd>--quantize-lm-model</kbd></dt>
-<dd><p>Quantize lm model</p>
+<dd><p>Apply dynamic quantization to LM.</p>
 <p>Default: False</p>
 </dd>
 </dl>

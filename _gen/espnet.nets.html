@@ -1428,7 +1428,7 @@ Tensor: The sequence of attention weights (L, T).</p>
 <span class="target" id="module-espnet.nets.beam_search_transducer"></span><p>Search algorithms for Transducer models.</p>
 <dl class="class">
 <dt id="espnet.nets.beam_search_transducer.BeamSearchTransducer">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.beam_search_transducer.</code><code class="sig-name descname">BeamSearchTransducer</code><span class="sig-paren">(</span><em class="sig-param">decoder: Union[espnet.nets.pytorch_backend.transducer.rnn_decoder.RNNDecoder, espnet.nets.pytorch_backend.transducer.custom_decoder.CustomDecoder], joint_network: espnet.nets.pytorch_backend.transducer.joint_network.JointNetwork, beam_size: int, lm: torch.nn.modules.module.Module = None, lm_weight: float = 0.1, search_type: str = 'default', max_sym_exp: int = 2, u_max: int = 50, nstep: int = 1, prefix_alpha: int = 1, expansion_gamma: int = 2.3, expansion_beta: int = 2, score_norm: bool = True, softmax_temperature: float = 1.0, nbest: int = 1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/beam_search_transducer.html#BeamSearchTransducer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_transducer.BeamSearchTransducer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.beam_search_transducer.</code><code class="sig-name descname">BeamSearchTransducer</code><span class="sig-paren">(</span><em class="sig-param">decoder: Union[espnet.nets.pytorch_backend.transducer.rnn_decoder.RNNDecoder, espnet.nets.pytorch_backend.transducer.custom_decoder.CustomDecoder], joint_network: espnet.nets.pytorch_backend.transducer.joint_network.JointNetwork, beam_size: int, lm: torch.nn.modules.module.Module = None, lm_weight: float = 0.1, search_type: str = 'default', max_sym_exp: int = 2, u_max: int = 50, nstep: int = 1, prefix_alpha: int = 1, expansion_gamma: int = 2.3, expansion_beta: int = 2, score_norm: bool = True, softmax_temperature: float = 1.0, nbest: int = 1, quantization: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/beam_search_transducer.html#BeamSearchTransducer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_transducer.BeamSearchTransducer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Beam search implementation for Transducer.</p>
 <p>Initialize Transducer search module.</p>
@@ -1450,6 +1450,7 @@ Tensor: The sequence of attention weights (L, T).</p>
 <li><p><strong>score_norm</strong> – Normalize final scores by length. (“default”)</p></li>
 <li><p><strong>softmax_temperature</strong> – Penalization term for softmax function.</p></li>
 <li><p><strong>nbest</strong> – Number of final hypothesis.</p></li>
+<li><p><strong>quantization</strong> – Whether dynamic quantization is used.</p></li>
 </ul>
 </dd>
 </dl>
@@ -10449,13 +10450,15 @@ char_hyps: Character list of references.</p>
 <p>Joint network initializer.</p>
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.transducer.joint_network.JointNetwork.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_out: torch.Tensor</em>, <em class="sig-param">dec_out: torch.Tensor</em>, <em class="sig-param">is_aux: bool = False</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transducer/joint_network.html#JointNetwork.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transducer.joint_network.JointNetwork.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_out: torch.Tensor</em>, <em class="sig-param">dec_out: torch.Tensor</em>, <em class="sig-param">is_aux: bool = False</em>, <em class="sig-param">quantization: bool = False</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transducer/joint_network.html#JointNetwork.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transducer.joint_network.JointNetwork.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Joint computation of encoder and decoder hidden state sequences.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>enc_out</strong> – Expanded encoder output state sequences (B, T, 1, D_enc)</p></li>
 <li><p><strong>dec_out</strong> – Expanded decoder output state sequences (B, 1, U, D_dec)</p></li>
+<li><p><strong>is_aux</strong> – Whether auxiliary tasks in used.</p></li>
+<li><p><strong>quantization</strong> – Whether dynamic quantization is used.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

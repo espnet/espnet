@@ -129,6 +129,7 @@
 <span class="sd">&quot;&quot;&quot;Training/decoding definition for the speech recognition task.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">logging</span>
@@ -1111,12 +1112,31 @@
         <span class="n">q_config</span> <span class="o">=</span> <span class="p">{</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">}</span>
 
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">quantize_asr_model</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="p">(</span>
-            <span class="s2">&quot;transducer&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">train_args</span><span class="o">.</span><span class="n">model_module</span>
-        <span class="p">),</span> <span class="s2">&quot;Quantization of transducer model is not supported yet.&quot;</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Use quantized asr model for decoding&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Use a quantized ASR model for decoding.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># It seems quantized LSTM only supports non-packed sequence before torch 1.4.0.</span>
+        <span class="c1"># Reference issue: https://github.com/pytorch/pytorch/issues/27963</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">__version__</span> <span class="o">&lt;</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.4.0&quot;</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="s2">&quot;lstm&quot;</span> <span class="ow">in</span> <span class="n">train_args</span><span class="o">.</span><span class="n">etype</span>
+            <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span> <span class="ow">in</span> <span class="n">q_config</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Quantized LSTM in ESPnet is only supported with torch 1.4+.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Dunno why but weight_observer from dynamic quantized module must have</span>
+        <span class="c1"># dtype=torch.qint8 with torch &lt; 1.5 although dtype=torch.float16 is supported.</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">quantize_dtype</span> <span class="o">==</span> <span class="s2">&quot;float16&quot;</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">__version__</span> <span class="o">&lt;</span> <span class="n">LooseVersion</span><span class="p">(</span>
+            <span class="s2">&quot;1.5.0&quot;</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;float16 dtype for dynamic quantization is not supported with torch &quot;</span>
+                <span class="s2">&quot;version &lt; 1.5.0. Switching to qint8 dtype instead.&quot;</span>
+            <span class="p">)</span>
 
         <span class="n">dtype</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">quantize_dtype</span><span class="p">)</span>
+
         <span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">quantization</span><span class="o">.</span><span class="n">quantize_dynamic</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">q_config</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">streaming_mode</span> <span class="ow">and</span> <span class="s2">&quot;transformer&quot;</span> <span class="ow">in</span> <span class="n">train_args</span><span class="o">.</span><span class="n">model_module</span><span class="p">:</span>
@@ -1224,6 +1244,7 @@
             <span class="n">score_norm</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">score_norm</span><span class="p">,</span>
             <span class="n">softmax_temperature</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">softmax_temperature</span><span class="p">,</span>
             <span class="n">nbest</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">nbest</span><span class="p">,</span>
+            <span class="n">quantization</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">quantize_asr_model</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">batchsize</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
