@@ -26,13 +26,22 @@ fi
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
-JDCINAL="/ocean/projects/cis210027p/shared/corpora/infomation_navigation_and_attentive_listening/"
 if [ ! -e "${JDCINAL}" ]; then
     log "Fill the value of 'JDCINAL' of db.sh"
     exit 1
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    log "Download data to ${JDCINAL}"
+    if [ ! -d "${JDCINAL}" ]; then
+        mkdir -p "${JDCINAL}"
+    fi
+    url=http://tts.speech.cs.cmu.edu/awb/infomation_navigation_and_attentive_listening_0.2.zip
+    wget ${url} ${JDCINAL}
+
+    log "Unzip data to ${JDCINAL}"
+    unzip -q ${JDCINAL}infomation_navigation_and_attentive_listening_0.2.zip -d ${JDCINAL}
+
     # Data Preparation
     mkdir -p data/{train,valid,test}
     mkdir -p data/tmp
