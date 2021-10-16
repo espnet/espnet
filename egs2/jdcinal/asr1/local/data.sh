@@ -48,7 +48,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo -n "" > data/tmp/wav.scp; echo -n "" > data/tmp/utt2spk; echo -n "" > data/tmp/text; echo -n "" > data/tmp/segments
     for m in C P S; do
         for n in {1..4}; do
-            for file in "${JDCINAL}"/infomation_navigation_and_attentive_listening_0.2/${m}${n}/*.csv; do
+            for file in "${JDCINAL}"/infomation_navigation_and_attentive_listening_0.2/"${m}""${n}"/*.csv; do
                 dos2unix -q $file
                 ses_id=$(basename "${file}" .csv)
                 wav_file="${JDCINAL}"/infomation_navigation_and_attentive_listening_0.2/sound/${ses_id}.trim.wav
