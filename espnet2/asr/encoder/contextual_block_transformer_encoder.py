@@ -22,7 +22,7 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
-    Conv2dSubsamplingWOPosEnc,  # noqa: H301
+    Conv2dSubsamplingWOPosEnc,
 )
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 import math
@@ -97,14 +97,17 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                 torch.nn.Dropout(dropout_rate),
                 torch.nn.ReLU(),
             )
+            self.subsample = 1
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsamplingWOPosEnc(
                 input_size, output_size, dropout_rate, kernels=[3, 3], strides=[2, 2]
             )
+            self.subsample = 4
         elif input_layer == "conv2d6":
             self.embed = Conv2dSubsamplingWOPosEnc(
                 input_size, output_size, dropout_rate, kernels=[3, 5], strides=[2, 3]
             )
+            self.subsample = 6
         elif input_layer == "conv2d8":
             self.embed = Conv2dSubsamplingWOPosEnc(
                 input_size,
@@ -113,12 +116,15 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                 kernels=[3, 3, 3],
                 strides=[2, 2, 2],
             )
+            self.subsample = 8
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
             )
+            self.subsample = 1
         elif input_layer is None:
             self.embed = None
+            self.subsample = 1
         else:
             raise ValueError("unknown input_layer: " + input_layer)
         self.normalize_before = normalize_before
@@ -170,6 +176,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         self.look_ahead = look_ahead
         self.init_average = init_average
         self.ctx_pos_enc = ctx_pos_enc
+        self.overlap_subsample = (self.block_size - self.hop_size) // self.subsample
 
     def output_size(self) -> int:
         return self._output_size
@@ -370,13 +377,11 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             buffer_after_downsampling = None
             n_processed_blocks = 0
             past_encoder_ctx = None
-            masks_buffer = None
         else:
             prev_addin = prev_states["prev_addin"]
             buffer_before_downsampling = prev_states["buffer_before_downsampling"]
             ilens_buffer = prev_states["ilens_buffer"]
             buffer_after_downsampling = prev_states["buffer_after_downsampling"]
-            masks_buffer = prev_states["masks_buffer"]
             n_processed_blocks = prev_states["n_processed_blocks"]
             past_encoder_ctx = prev_states["past_encoder_ctx"]
         bsize = xs_pad.size(0)
@@ -386,18 +391,16 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             xs_pad = torch.cat([buffer_before_downsampling, xs_pad], dim=1)
             ilens += ilens_buffer
 
-        # print(xs_pad.shape, ilens, is_final)
         if is_final:
             buffer_before_downsampling = None
         else:
-            n_samples = xs_pad.size(1) // 6 - 1
+            n_samples = xs_pad.size(1) // self.overlap_subsample - 1
             if n_samples < 2:
                 next_states = {
                     "prev_addin": prev_addin,
                     "buffer_before_downsampling": xs_pad,
                     "ilens_buffer": ilens,
                     "buffer_after_downsampling": buffer_after_downsampling,
-                    "masks_buffer": masks_buffer,
                     "n_processed_blocks": n_processed_blocks,
                     "past_encoder_ctx": past_encoder_ctx,
                 }
@@ -407,28 +410,29 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                     next_states,
                 )
 
-            n_res_samples = xs_pad.size(1) % 6 + 12
+            n_res_samples = (
+                xs_pad.size(1) % self.overlap_subsample + self.overlap_subsample * 2
+            )
             buffer_before_downsampling = xs_pad.narrow(
                 1, xs_pad.size(1) - n_res_samples, n_res_samples
             )
-            xs_pad = xs_pad.narrow(1, 0, n_samples * 6)
+            xs_pad = xs_pad.narrow(1, 0, n_samples * self.overlap_subsample)
 
             ilens_buffer = ilens.new_full(
                 [1], dtype=torch.long, fill_value=n_res_samples
             )
-            ilens = ilens.new_full([1], dtype=torch.long, fill_value=n_samples * 6)
+            ilens = ilens.new_full(
+                [1], dtype=torch.long, fill_value=n_samples * self.overlap_subsample
+            )
 
-        masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
         if isinstance(self.embed, Conv2dSubsamplingWOPosEnc):
-            xs_pad, masks = self.embed(xs_pad, masks)
+            xs_pad, _ = self.embed(xs_pad, None)
         elif self.embed is not None:
             xs_pad = self.embed(xs_pad)
 
         # create empty output container
         if buffer_after_downsampling is not None:
             xs_pad = torch.cat([buffer_after_downsampling, xs_pad], dim=1)
-        if masks_buffer is not None:
-            masks = torch.cat([masks_buffer, masks], dim=2)
 
         total_frame_num = xs_pad.size(1)
 
@@ -446,7 +450,6 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                     "buffer_before_downsampling": buffer_before_downsampling,
                     "ilens_buffer": ilens_buffer,
                     "buffer_after_downsampling": xs_pad,
-                    "masks_buffer": masks,
                     "n_processed_blocks": n_processed_blocks,
                     "past_encoder_ctx": past_encoder_ctx,
                 }
@@ -463,22 +466,17 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                 1, xs_pad.size(1) - res_frame_num, res_frame_num
             )
             xs_pad = xs_pad.narrow(1, 0, block_num * self.hop_size + overlap_size)
-            masks_buffer = masks.narrow(
-                2, xs_pad.size(1) - res_frame_num, res_frame_num
-            )
-            masks = masks.narrow(2, 0, block_num * self.hop_size + overlap_size)
 
         # block_size could be 0 meaning infinite
         # apply usual encoder for short sequence
         assert self.block_size > 0
         if n_processed_blocks == 0 and total_frame_num <= self.block_size and is_final:
             xs_chunk = self.pos_enc(xs_pad).unsqueeze(1)
-            xs_pad, masks, _, _, _, _ = self.encoders(xs_chunk, masks, None, None, True)
+            xs_pad, _, _, _, _, _ = self.encoders(xs_chunk, None, None, None, True)
             xs_pad = xs_pad.squeeze(0)
             if self.normalize_before:
                 xs_pad = self.after_norm(xs_pad)
-            olens = masks.squeeze(1).sum(1)
-            return xs_pad, olens, None
+            return xs_pad, None, None
 
         # start block processing
         xs_chunk = xs_pad.new_zeros(
@@ -510,31 +508,9 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
 
             prev_addin = addin
 
-        # set up masks
-        mask_online = xs_pad.new_zeros(
-            xs_pad.size(0), block_num, self.block_size + 2, self.block_size + 2
+        ys_chunk, _, _, past_encoder_ctx, _, _ = self.encoders(
+            xs_chunk, None, past_encoder_ctx
         )
-        mask_online.narrow(2, 1, self.block_size + 1).narrow(
-            3, 0, self.block_size + 1
-        ).fill_(1)
-
-        # forward
-        if False:
-            ys_chunks = []
-            for i in range(block_num):
-                print("loop ", i)
-                cur_mask_online = mask_online.narrow(1, i, 1)
-                cur_xs_chunk = xs_chunk.narrow(1, i, 1)
-                ys_chunk, _, _, past_encoder_ctx, _, _ = self.encoders(
-                    cur_xs_chunk, cur_mask_online, past_encoder_ctx
-                )
-                ys_chunks.append(ys_chunk)
-
-            ys_chunk = torch.cat(ys_chunks, dim=1)
-        else:
-            ys_chunk, mask_online, _, past_encoder_ctx, _, _ = self.encoders(
-                xs_chunk, mask_online, past_encoder_ctx
-            )
 
         # remove addin
         ys_chunk = ys_chunk.narrow(2, 1, self.block_size)
@@ -566,8 +542,6 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         if self.normalize_before:
             ys_pad = self.after_norm(ys_pad)
 
-        olens = masks.squeeze(1).sum(1)
-
         if is_final:
             next_states = None
         else:
@@ -576,9 +550,8 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                 "buffer_before_downsampling": buffer_before_downsampling,
                 "ilens_buffer": ilens_buffer,
                 "buffer_after_downsampling": buffer_after_downsampling,
-                "masks_buffer": masks_buffer,
                 "n_processed_blocks": n_processed_blocks + block_num,
                 "past_encoder_ctx": past_encoder_ctx,
             }
 
-        return ys_pad, olens, next_states
+        return ys_pad, None, next_states
