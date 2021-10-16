@@ -19,6 +19,8 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
+from espnet2.asr.specaug.abs_specaug import AbsSpecAug
+from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.diar.attractor.abs_attractor import AbsAttractor
 from espnet2.diar.attractor.rnn_attractor import RnnAttractor
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
@@ -49,6 +51,13 @@ frontend_choices = ClassChoices(
     ),
     type_check=AbsFrontend,
     default="default",
+)
+specaug_choices = ClassChoices(
+    name="specaug",
+    classes=dict(specaug=SpecAug),
+    type_check=AbsSpecAug,
+    default=None,
+    optional=True,
 )
 normalize_choices = ClassChoices(
     "normalize",
@@ -88,6 +97,7 @@ attractor_choices = ClassChoices(
     ),
     type_check=AbsAttractor,
     default=None,
+    optional=True,
 )
 
 
@@ -99,6 +109,8 @@ class DiarizationTask(AbsTask):
     class_choices_list = [
         # --frontend and --frontend_conf
         frontend_choices,
+        # --specaug and --specaug_conf
+        specaug_choices,
         # --normalize and --normalize_conf
         normalize_choices,
         # --encoder and --encoder_conf
@@ -228,25 +240,32 @@ class DiarizationTask(AbsTask):
             frontend = None
             input_size = args.input_size
 
-        # 2. Normalization layer
+        # 2. Data augmentation for spectrogram
+        if args.specaug is not None:
+            specaug_class = specaug_choices.get_class(args.specaug)
+            specaug = specaug_class(**args.specaug_conf)
+        else:
+            specaug = None
+
+        # 3. Normalization layer
         if args.normalize is not None:
             normalize_class = normalize_choices.get_class(args.normalize)
             normalize = normalize_class(**args.normalize_conf)
         else:
             normalize = None
 
-        # 3. Label Aggregator layer
+        # 4. Label Aggregator layer
         label_aggregator_class = label_aggregator_choices.get_class(
             args.label_aggregator
         )
         label_aggregator = label_aggregator_class(**args.label_aggregator_conf)
 
-        # 3. Encoder
+        # 5. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
         # Note(jiatong): Diarization may not use subsampling when processing
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
 
-        # 4. Decoder
+        # 6a. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
         decoder = decoder_class(
             num_spk=args.num_spk,
@@ -254,16 +273,20 @@ class DiarizationTask(AbsTask):
             **args.decoder_conf,
         )
 
-        # 5. Attractor
-        attractor_class = attractor_choices.get_class(args.attractor)
-        attractor = attractor_class(
-            encoder_output_size=encoder.output_size(),
-            **args.attractor_conf,
-        )
+        # 6b. Attractor
+        if getattr(args, "attractor", None) is not None:
+            attractor_class = attractor_choices.get_class(args.attractor)
+            attractor = attractor_class(
+                encoder_output_size=encoder.output_size(),
+                **args.attractor_conf,
+            )
+        else:
+            attractor = None
 
-        # 6. Build model
+        # 7. Build model
         model = ESPnetDiarizationModel(
             frontend=frontend,
+            specaug=specaug,
             normalize=normalize,
             label_aggregator=label_aggregator,
             encoder=encoder,
@@ -273,7 +296,7 @@ class DiarizationTask(AbsTask):
         )
 
         # FIXME(kamo): Should be done in model?
-        # 7. Initialize
+        # 8. Initialize
         if args.init is not None:
             initialize(model, args.init)
 

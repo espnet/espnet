@@ -15,6 +15,7 @@ from typeguard import check_argument_types
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.diar.attractor.abs_attractor import AbsAttractor
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -44,11 +45,12 @@ class ESPnetDiarizationModel(AbsESPnetModel):
     def __init__(
         self,
         frontend: Optional[AbsFrontend],
+        specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
         label_aggregator: torch.nn.Module,
         encoder: AbsEncoder,
         decoder: AbsDecoder,
-        attractor: AbsAttractor,
+        attractor: Optional[AbsAttractor],
         attractor_weight: float = 1.0,
     ):
         assert check_argument_types()
@@ -58,6 +60,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         self.encoder = encoder
         self.normalize = normalize
         self.frontend = frontend
+        self.specaug = specaug
         self.label_aggregator = label_aggregator
         self.attractor_weight = attractor_weight
         self.attractor = attractor
@@ -198,11 +201,15 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
-            # 2. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
+            # 2. Data augmentation
+            if self.specaug is not None and self.training:
+                feats, feats_lengths = self.specaug(feats, feats_lengths)
+
+            # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
             if self.normalize is not None:
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
 
-            # 3. Forward encoder
+            # 4. Forward encoder
             # feats: (Batch, Length, Dim)
             # -> encoder_out: (Batch, Length2, Dim)
             encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
