@@ -47,7 +47,7 @@ if "${torch_15_plus}" && "${python_36_plus}"; then
 
     rm -rf fairseq
 
-    # FairSeq Commit id when making this PR: `commit 6225dccb989ebfb268274bad36a794b27e4dd43f`
+    # FairSeq Commit id when making this PR: `commit 313ff0581561c7725ea9430321d6af2901573dfb`
     git clone https://github.com/pytorch/fairseq.git
     python3 -m pip install --editable ./fairseq
     python3 -m pip install filelock

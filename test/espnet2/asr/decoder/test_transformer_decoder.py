@@ -91,6 +91,7 @@ def test_TransformerDecoder_invalid_type(decoder_class):
 @pytest.mark.parametrize("normalize_before", [True, False])
 @pytest.mark.parametrize("use_output_layer", [True])
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("maxlenratio", [1.0, 0.0, -1.0])
 @pytest.mark.parametrize(
     "decoder_class",
     [
@@ -102,7 +103,7 @@ def test_TransformerDecoder_invalid_type(decoder_class):
     ],
 )
 def test_TransformerDecoder_beam_search(
-    input_layer, normalize_before, use_output_layer, dtype, decoder_class
+    input_layer, normalize_before, use_output_layer, dtype, maxlenratio, decoder_class
 ):
     token_list = ["<blank>", "a", "b", "c", "unk", "<eos>"]
     vocab_size = len(token_list)
@@ -132,7 +133,7 @@ def test_TransformerDecoder_beam_search(
     with torch.no_grad():
         beam(
             x=enc,
-            maxlenratio=0.0,
+            maxlenratio=maxlenratio,
             minlenratio=0.0,
         )
 

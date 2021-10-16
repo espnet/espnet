@@ -1,16 +1,14 @@
-"""RNN encoder implementation for transducer-based models.
+"""RNN encoder implementation for Transducer model.
 
 These classes are based on the ones in espnet.nets.pytorch_backend.rnn.encoders,
-and modified to output intermediate layers representation based on a list of
-layers given as input. These additional outputs are intended to be used with
-auxiliary tasks.
-It should be noted that, here, RNN class rely on a stack of 1-layer LSTM instead
-of a multi-layer LSTM for that purpose.
+and modified to output intermediate representation based given list of layers as input.
+To do so, RNN class rely on a stack of 1-layer LSTM instead of a multi-layer LSTM.
+The additional outputs are intended to be used with Transducer auxiliary tasks.
+
 
 """
 
-import argparse
-import logging
+from argparse import Namespace
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -31,260 +29,295 @@ class RNNP(torch.nn.Module):
     """RNN with projection layer module.
 
     Args:
-        idim: Dimension of inputs
-        elayers: Dimension of encoder layers
-        cdim: Number of units (results in cdim * 2 if bidirectional)
-        hdim: Number of projection units
-        subsample: List of subsampling number
-        dropout: Dropout rate
-        typ: RNN type
-        aux_task_layer_list: List of layer ids for intermediate output
+        idim: Input dimension.
+        rnn_type: RNNP units type.
+        elayers: Number of RNNP layers.
+        eunits: Number of units ((2 * eunits) if bidirectional).
+        eprojs: Number of projection units.
+        subsample: Subsampling rate per layer.
+        dropout_rate: Dropout rate for RNNP layers.
+        aux_output_layers: Layer IDs for auxiliary RNNP output sequences.
 
     """
 
     def __init__(
         self,
         idim: int,
+        rnn_type: str,
         elayers: int,
-        cdim: int,
-        hdim: int,
+        eunits: int,
+        eprojs: int,
         subsample: np.ndarray,
-        dropout: float,
-        typ: str = "blstm",
-        aux_task_layer_list: List = [],
+        dropout_rate: float,
+        aux_output_layers: List = [],
     ):
         """Initialize RNNP module."""
-        super(RNNP, self).__init__()
+        super().__init__()
 
-        bidir = typ[0] == "b"
+        bidir = rnn_type[0] == "b"
         for i in range(elayers):
             if i == 0:
-                inputdim = idim
+                input_dim = idim
             else:
-                inputdim = hdim
+                input_dim = eprojs
 
-            RNN = torch.nn.LSTM if "lstm" in typ else torch.nn.GRU
-            rnn = RNN(
-                inputdim, cdim, num_layers=1, bidirectional=bidir, batch_first=True
+            rnn_layer = torch.nn.LSTM if "lstm" in rnn_type else torch.nn.GRU
+            rnn = rnn_layer(
+                input_dim, eunits, num_layers=1, bidirectional=bidir, batch_first=True
             )
 
             setattr(self, "%s%d" % ("birnn" if bidir else "rnn", i), rnn)
 
             if bidir:
-                setattr(self, "bt%d" % i, torch.nn.Linear(2 * cdim, hdim))
+                setattr(self, "bt%d" % i, torch.nn.Linear(2 * eunits, eprojs))
             else:
-                setattr(self, "bt%d" % i, torch.nn.Linear(cdim, hdim))
+                setattr(self, "bt%d" % i, torch.nn.Linear(eunits, eprojs))
+
+        self.dropout = torch.nn.Dropout(p=dropout_rate)
 
         self.elayers = elayers
-        self.cdim = cdim
+        self.eunits = eunits
         self.subsample = subsample
-        self.typ = typ
+        self.rnn_type = rnn_type
         self.bidir = bidir
-        self.dropout = dropout
 
-        self.aux_task_layer_list = aux_task_layer_list
+        self.aux_output_layers = aux_output_layers
 
     def forward(
         self,
-        xs_pad: torch.Tensor,
-        ilens: torch.Tensor,
-        prev_state: Optional[torch.Tensor] = None,
-    ) -> Union[Tuple[torch.Tensor, List], torch.Tensor]:
+        rnn_input: torch.Tensor,
+        rnn_len: torch.Tensor,
+        prev_states: Optional[List[torch.Tensor]] = None,
+    ) -> Tuple[torch.Tensor, List[torch.Tensor], torch.Tensor]:
         """RNNP forward.
 
         Args:
-            xs_pad: Batch of padded input sequences (B, Tmax, idim)
-            ilens: Batch of lengths of input sequences (B)
-            prev_state: Batch of previous RNN states
+            rnn_input: RNN input sequences. (B, T, D_in)
+            rnn_len: RNN input sequences lengths. (B,)
+            prev_states: RNN hidden states. [N x (B, T, D_proj)]
 
         Returns:
-            : Batch of padded output sequences (B, Tmax, hdim)
-                    or tuple w/ aux outputs ((B, Tmax, hdim), [L x (B, Tmax, hdim)])
-            : Batch of lengths of output sequences (B)
-            : Batch of hidden state sequences (B, Tmax, hdim)
+            rnn_output : RNN output sequences. (B, T, D_proj)
+                         with or without intermediate RNN output sequences.
+                         ((B, T, D_proj), [N x (B, T, D_proj)])
+            rnn_len: RNN output sequences lengths. (B,)
+            current_states: RNN hidden states. [N x (B, T, D_proj)]
 
         """
-        logging.debug(self.__class__.__name__ + " input lengths: " + str(ilens))
+        aux_rnn_outputs = []
+        aux_rnn_lens = []
+        current_states = []
 
-        aux_xs_list = []
-        elayer_states = []
         for layer in range(self.elayers):
-            if not isinstance(ilens, torch.Tensor):
-                ilens = torch.tensor(ilens)
+            if not isinstance(rnn_len, torch.Tensor):
+                rnn_len = torch.tensor(rnn_len)
 
-            xs_pack = pack_padded_sequence(xs_pad, ilens.cpu(), batch_first=True)
-            rnn = getattr(self, ("birnn" if self.bidir else "rnn") + str(layer))
-            rnn.flatten_parameters()
-
-            if prev_state is not None and rnn.bidirectional:
-                prev_state = reset_backward_rnn_state(prev_state)
-
-            ys, states = rnn(
-                xs_pack, hx=None if prev_state is None else prev_state[layer]
+            pack_rnn_input = pack_padded_sequence(
+                rnn_input, rnn_len.cpu(), batch_first=True
             )
-            elayer_states.append(states)
+            rnn = getattr(self, ("birnn" if self.bidir else "rnn") + str(layer))
 
-            ys_pad, ilens = pad_packed_sequence(ys, batch_first=True)
+            if isinstance(rnn, (torch.nn.LSTM, torch.nn.GRU)):
+                rnn.flatten_parameters()
+
+            if prev_states is not None and rnn.bidirectional:
+                prev_states = reset_backward_rnn_state(prev_states)
+
+            pack_rnn_output, states = rnn(
+                pack_rnn_input, hx=None if prev_states is None else prev_states[layer]
+            )
+            current_states.append(states)
+
+            pad_rnn_output, rnn_len = pad_packed_sequence(
+                pack_rnn_output, batch_first=True
+            )
 
             sub = self.subsample[layer + 1]
             if sub > 1:
-                ys_pad = ys_pad[:, ::sub]
-                ilens = torch.tensor([int(i + 1) // sub for i in ilens])
+                pad_rnn_output = pad_rnn_output[:, ::sub]
+                rnn_len = torch.tensor([int(i + 1) // sub for i in rnn_len])
 
             projection_layer = getattr(self, "bt%d" % layer)
-            projected = projection_layer(ys_pad.contiguous().view(-1, ys_pad.size(2)))
-            xs_pad = projected.view(ys_pad.size(0), ys_pad.size(1), -1)
+            proj_rnn_output = projection_layer(
+                pad_rnn_output.contiguous().view(-1, pad_rnn_output.size(2))
+            )
+            rnn_output = proj_rnn_output.view(
+                pad_rnn_output.size(0), pad_rnn_output.size(1), -1
+            )
 
-            if layer in self.aux_task_layer_list:
-                aux_xs_list.append(xs_pad)
+            if layer in self.aux_output_layers:
+                aux_rnn_outputs.append(rnn_output)
+                aux_rnn_lens.append(rnn_len)
 
             if layer < self.elayers - 1:
-                xs_pad = torch.tanh(F.dropout(xs_pad, p=self.dropout))
+                rnn_output = torch.tanh(self.dropout(rnn_output))
 
-        if aux_xs_list:
-            return (xs_pad, aux_xs_list), ilens, elayer_states
+            rnn_input = rnn_output
+
+        if aux_rnn_outputs:
+            return (
+                (rnn_output, aux_rnn_outputs),
+                (rnn_len, aux_rnn_lens),
+                current_states,
+            )
         else:
-            return xs_pad, ilens, elayer_states
+            return rnn_output, rnn_len, current_states
 
 
 class RNN(torch.nn.Module):
     """RNN module.
 
     Args:
-        idim: Dimension of inputs
-        elayers: Number of encoder layers
-        cdim: Number of rnn units (resulted in cdim * 2 if bidirectional)
-        hdim: Number of final projection units
-        dropout: Dropout rate
-        typ: The RNN type
+        idim: Input dimension.
+        rnn_type: RNN units type.
+        elayers: Number of RNN layers.
+        eunits: Number of units ((2 * eunits) if bidirectional)
+        eprojs: Number of final projection units.
+        dropout_rate: Dropout rate for RNN layers.
+        aux_output_layers: List of layer IDs for auxiliary RNN output sequences.
 
     """
 
     def __init__(
         self,
         idim: int,
+        rnn_type: str,
         elayers: int,
-        cdim: int,
-        hdim: int,
-        dropout: float,
-        typ: str = "blstm",
-        aux_task_layer_list: List = [],
+        eunits: int,
+        eprojs: int,
+        dropout_rate: float,
+        aux_output_layers: List = [],
     ):
         """Initialize RNN module."""
-        super(RNN, self).__init__()
+        super().__init__()
 
-        bidir = typ[0] == "b"
+        bidir = rnn_type[0] == "b"
 
         for i in range(elayers):
             if i == 0:
-                inputdim = idim
+                input_dim = idim
             else:
-                inputdim = cdim
+                input_dim = eunits
 
-            layer_type = torch.nn.LSTM if "lstm" in typ else torch.nn.GRU
-            rnn = layer_type(
-                inputdim, cdim, num_layers=1, bidirectional=bidir, batch_first=True
+            rnn_layer = torch.nn.LSTM if "lstm" in rnn_type else torch.nn.GRU
+            rnn = rnn_layer(
+                input_dim, eunits, num_layers=1, bidirectional=bidir, batch_first=True
             )
 
             setattr(self, "%s%d" % ("birnn" if bidir else "rnn", i), rnn)
 
-        self.dropout = torch.nn.Dropout(p=dropout)
+        self.dropout = torch.nn.Dropout(p=dropout_rate)
 
         self.elayers = elayers
-        self.cdim = cdim
-        self.hdim = hdim
-        self.typ = typ
+        self.eunits = eunits
+        self.eprojs = eprojs
+        self.rnn_type = rnn_type
         self.bidir = bidir
 
-        self.l_last = torch.nn.Linear(cdim, hdim)
+        self.l_last = torch.nn.Linear(eunits, eprojs)
 
-        self.aux_task_layer_list = aux_task_layer_list
+        self.aux_output_layers = aux_output_layers
 
     def forward(
         self,
-        xs_pad: torch.Tensor,
-        ilens: torch.Tensor,
-        prev_state: Optional[torch.Tensor] = None,
-    ) -> Union[Tuple[torch.Tensor, List], torch.Tensor]:
+        rnn_input: torch.Tensor,
+        rnn_len: torch.Tensor,
+        prev_states: Optional[List[torch.Tensor]] = None,
+    ) -> Tuple[torch.Tensor, List[torch.Tensor], torch.Tensor]:
         """RNN forward.
 
         Args:
-            xs_pad: Batch of padded input sequences (B, Tmax, idim)
-            ilens: Batch of lengths of input sequences (B)
-            prev_state: Batch of previous RNN states
+            rnn_input: RNN input sequences. (B, T, D_in)
+            rnn_len: RNN input sequences lengths. (B,)
+            prev_states: RNN hidden states. [N x (B, T, D_proj)]
 
         Returns:
-            : Batch of padded output sequences (B, Tmax, hdim)
-                    or tuple w/ aux outputs ((B, Tmax, hdim), [L x (B, Tmax, hdim)])
-            : Batch of lengths of output sequences (B)
-            : Batch of hidden state sequences (B, Tmax, hdim)
+            rnn_output : RNN output sequences. (B, T, D_proj)
+                         with or without intermediate RNN output sequences.
+                         ((B, T, D_proj), [N x (B, T, D_proj)])
+            rnn_len: RNN output sequences lengths. (B,)
+            current_states: RNN hidden states. [N x (B, T, D_proj)]
 
         """
-        logging.debug(self.__class__.__name__ + " input lengths: " + str(ilens))
+        aux_rnn_outputs = []
+        aux_rnn_lens = []
+        current_states = []
 
-        aux_xs_list = []
-        elayer_states = []
         for layer in range(self.elayers):
-            if not isinstance(ilens, torch.Tensor):
-                ilens = torch.tensor(ilens)
+            if not isinstance(rnn_len, torch.Tensor):
+                rnn_len = torch.tensor(rnn_len)
 
-            xs_pack = pack_padded_sequence(xs_pad, ilens.cpu(), batch_first=True)
+            pack_rnn_input = pack_padded_sequence(
+                rnn_input, rnn_len.cpu(), batch_first=True
+            )
 
             rnn = getattr(self, ("birnn" if self.bidir else "rnn") + str(layer))
-            rnn.flatten_parameters()
 
-            if prev_state is not None and rnn.bidirectional:
-                prev_state = reset_backward_rnn_state(prev_state)
+            if isinstance(rnn, (torch.nn.LSTM, torch.nn.GRU)):
+                rnn.flatten_parameters()
 
-            xs, states = rnn(
-                xs_pack, hx=None if prev_state is None else prev_state[layer]
+            if prev_states is not None and rnn.bidirectional:
+                prev_states = reset_backward_rnn_state(prev_states)
+
+            pack_rnn_output, states = rnn(
+                pack_rnn_input, hx=None if prev_states is None else prev_states[layer]
             )
-            elayer_states.append(states)
+            current_states.append(states)
 
-            xs_pad, ilens = pad_packed_sequence(xs, batch_first=True)
+            rnn_output, rnn_len = pad_packed_sequence(pack_rnn_output, batch_first=True)
 
             if self.bidir:
-                xs_pad = xs_pad[:, :, : self.cdim] + xs_pad[:, :, self.cdim :]
-
-            if layer in self.aux_task_layer_list:
-                aux_projected = torch.tanh(
-                    self.l_last(xs_pad.contiguous().view(-1, xs_pad.size(2)))
+                rnn_output = (
+                    rnn_output[:, :, : self.eunits] + rnn_output[:, :, self.eunits :]
                 )
-                aux_xs_pad = aux_projected.view(xs_pad.size(0), xs_pad.size(1), -1)
 
-                aux_xs_list.append(aux_xs_pad)
+            if layer in self.aux_output_layers:
+                aux_proj_rnn_output = torch.tanh(
+                    self.l_last(rnn_output.contiguous().view(-1, rnn_output.size(2)))
+                )
+                aux_rnn_output = aux_proj_rnn_output.view(
+                    rnn_output.size(0), rnn_output.size(1), -1
+                )
+
+                aux_rnn_outputs.append(aux_rnn_output)
+                aux_rnn_lens.append(rnn_len)
 
             if layer < self.elayers - 1:
-                xs_pad = self.dropout(xs_pad)
+                rnn_input = self.dropout(rnn_output)
 
-        projected = torch.tanh(
-            self.l_last(xs_pad.contiguous().view(-1, xs_pad.size(2)))
+        proj_rnn_output = torch.tanh(
+            self.l_last(rnn_output.contiguous().view(-1, rnn_output.size(2)))
         )
-        xs_pad = projected.view(xs_pad.size(0), xs_pad.size(1), -1)
+        rnn_output = proj_rnn_output.view(rnn_output.size(0), rnn_output.size(1), -1)
 
-        if aux_xs_list:
-            return (xs_pad, aux_xs_list), ilens, elayer_states
+        if aux_rnn_outputs:
+            return (
+                (rnn_output, aux_rnn_outputs),
+                (rnn_len, aux_rnn_lens),
+                current_states,
+            )
         else:
-            return xs_pad, ilens, elayer_states
+            return rnn_output, rnn_len, current_states
 
 
 def reset_backward_rnn_state(
-    states: Union[torch.Tensor, Tuple, List]
-) -> Union[torch.Tensor, Tuple, List]:
+    states: Union[torch.Tensor, List[Optional[torch.Tensor]]]
+) -> Union[torch.Tensor, List[Optional[torch.Tensor]]]:
     """Set backward BRNN states to zeroes.
 
     Args:
-        states: RNN states
+        states: Encoder hidden states.
 
     Returns:
-        states: RNN states with backward set to zeroes
+        states: Encoder hidden states with backward set to zero.
 
     """
-    if isinstance(states, (list, tuple)):
+    if isinstance(states, list):
         for state in states:
             state[1::2] = 0.0
     else:
         states[1::2] = 0.0
+
     return states
 
 
@@ -308,85 +341,84 @@ class VGG2L(torch.nn.Module):
 
         self.in_channel = in_channel
 
-    def forward(self, xs_pad: torch.Tensor, ilens: torch.Tensor, **kwargs):
+    def forward(
+        self, feats: torch.Tensor, feats_len: torch.Tensor, **kwargs
+    ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """VGG2L forward.
 
         Args:
-            xs_pad: Batch of padded input sequences (B, Tmax, D)
-            ilens: Batch of lengths of input sequences (B)
+            feats: Feature sequences. (B, F, D_feats)
+            feats_len: Feature sequences lengths. (B, )
 
         Returns:
-            : Batch of padded output sequences (B, Tmax // 4, 128 * D // 4)
-            : Batch of lengths of output sequences (B)
+            vgg_out: VGG2L output sequences. (B, F // 4, 128 * D_feats // 4)
+            vgg_out_len: VGG2L output sequences lengths. (B,)
 
         """
-        logging.debug(self.__class__.__name__ + " input lengths: " + str(ilens))
-
-        xs_pad = xs_pad.view(
-            xs_pad.size(0),
-            xs_pad.size(1),
+        feats = feats.view(
+            feats.size(0),
+            feats.size(1),
             self.in_channel,
-            xs_pad.size(2) // self.in_channel,
+            feats.size(2) // self.in_channel,
         ).transpose(1, 2)
 
-        xs_pad = F.relu(self.conv1_1(xs_pad))
-        xs_pad = F.relu(self.conv1_2(xs_pad))
-        xs_pad = F.max_pool2d(xs_pad, 2, stride=2, ceil_mode=True)
+        vgg1 = F.relu(self.conv1_1(feats))
+        vgg1 = F.relu(self.conv1_2(vgg1))
+        vgg1 = F.max_pool2d(vgg1, 2, stride=2, ceil_mode=True)
 
-        xs_pad = F.relu(self.conv2_1(xs_pad))
-        xs_pad = F.relu(self.conv2_2(xs_pad))
-        xs_pad = F.max_pool2d(xs_pad, 2, stride=2, ceil_mode=True)
+        vgg2 = F.relu(self.conv2_1(vgg1))
+        vgg2 = F.relu(self.conv2_2(vgg2))
+        vgg2 = F.max_pool2d(vgg2, 2, stride=2, ceil_mode=True)
 
-        if torch.is_tensor(ilens):
-            ilens = ilens.cpu().numpy()
-        else:
-            ilens = np.array(ilens, dtype=np.float32)
-        ilens = np.array(np.ceil(ilens / 2), dtype=np.int64)
-        ilens = np.array(
-            np.ceil(np.array(ilens, dtype=np.float32) / 2), dtype=np.int64
-        ).tolist()
-
-        xs_pad = xs_pad.transpose(1, 2)
-        xs_pad = xs_pad.contiguous().view(
-            xs_pad.size(0), xs_pad.size(1), xs_pad.size(2) * xs_pad.size(3)
+        vgg_out = vgg2.transpose(1, 2)
+        vgg_out = vgg_out.contiguous().view(
+            vgg_out.size(0), vgg_out.size(1), vgg_out.size(2) * vgg_out.size(3)
         )
 
-        return xs_pad, ilens, None
+        if torch.is_tensor(feats_len):
+            feats_len = feats_len.cpu().numpy()
+        else:
+            feats_len = np.array(feats_len, dtype=np.float32)
+
+        vgg1_len = np.array(np.ceil(feats_len / 2), dtype=np.int64)
+        vgg_out_len = np.array(
+            np.ceil(np.array(vgg1_len, dtype=np.float32) / 2), dtype=np.int64
+        ).tolist()
+
+        return vgg_out, vgg_out_len, None
 
 
 class Encoder(torch.nn.Module):
     """Encoder module.
 
     Args:
-        etype: Type of encoder network
-        idim: Number of dimensions of encoder network
-        elayers: Number of layers of encoder network
-        eunits: Number of RNN units of encoder network
-        eprojs: Number of projection units of encoder network
-        subsample: List of subsampling numbers
-        dropout: Dropout rate
-        in_channel: Number of input channels
+        idim: Input dimension.
+        etype: Encoder units type.
+        elayers: Number of encoder layers.
+        eunits: Number of encoder units per layer.
+        eprojs: Number of projection units per layer.
+        subsample: Subsampling rate per layer.
+        dropout_rate: Dropout rate for encoder layers.
+        intermediate_encoder_layers: Layer IDs for auxiliary encoder output sequences.
 
     """
 
     def __init__(
         self,
-        etype: str,
         idim: int,
+        etype: str,
         elayers: int,
         eunits: int,
         eprojs: int,
         subsample: np.ndarray,
-        dropout: float,
-        in_channel: int = 1,
-        aux_task_layer_list: List = [],
+        dropout_rate: float = 0.0,
+        aux_enc_output_layers: List = [],
     ):
         """Initialize Encoder module."""
         super(Encoder, self).__init__()
 
-        typ = etype.lstrip("vgg").rstrip("p")
-        if typ not in ["lstm", "gru", "blstm", "bgru"]:
-            logging.error("Error: need to specify an appropriate encoder architecture")
+        rnn_type = etype.lstrip("vgg").rstrip("p")
+        in_channel = 1
 
         if etype.startswith("vgg"):
             if etype[-1] == "p":
@@ -395,33 +427,31 @@ class Encoder(torch.nn.Module):
                         VGG2L(in_channel),
                         RNNP(
                             get_vgg2l_odim(idim, in_channel=in_channel),
+                            rnn_type,
                             elayers,
                             eunits,
                             eprojs,
                             subsample,
-                            dropout,
-                            typ=typ,
-                            aux_task_layer_list=aux_task_layer_list,
+                            dropout_rate=dropout_rate,
+                            aux_output_layers=aux_enc_output_layers,
                         ),
                     ]
                 )
-                logging.info("Use CNN-VGG + " + typ.upper() + "P for encoder")
             else:
                 self.enc = torch.nn.ModuleList(
                     [
                         VGG2L(in_channel),
                         RNN(
                             get_vgg2l_odim(idim, in_channel=in_channel),
+                            rnn_type,
                             elayers,
                             eunits,
                             eprojs,
-                            dropout,
-                            typ=typ,
-                            aux_task_layer_list=aux_task_layer_list,
+                            dropout_rate=dropout_rate,
+                            aux_output_layers=aux_enc_output_layers,
                         ),
                     ]
                 )
-                logging.info("Use CNN-VGG + " + typ.upper() + " for encoder")
             self.conv_subsampling_factor = 4
         else:
             if etype[-1] == "p":
@@ -429,107 +459,119 @@ class Encoder(torch.nn.Module):
                     [
                         RNNP(
                             idim,
+                            rnn_type,
                             elayers,
                             eunits,
                             eprojs,
                             subsample,
-                            dropout,
-                            typ=typ,
-                            aux_task_layer_list=aux_task_layer_list,
+                            dropout_rate=dropout_rate,
+                            aux_output_layers=aux_enc_output_layers,
                         )
                     ]
                 )
-                logging.info(typ.upper() + " with every-layer projection for encoder")
             else:
                 self.enc = torch.nn.ModuleList(
                     [
                         RNN(
                             idim,
+                            rnn_type,
                             elayers,
                             eunits,
                             eprojs,
-                            dropout,
-                            typ=typ,
-                            aux_task_layer_list=aux_task_layer_list,
+                            dropout_rate=dropout_rate,
+                            aux_output_layers=aux_enc_output_layers,
                         )
                     ]
                 )
-                logging.info(typ.upper() + " without projection for encoder")
             self.conv_subsampling_factor = 1
 
-    def forward(self, xs_pad, ilens, prev_states=None):
+    def forward(
+        self,
+        feats: torch.Tensor,
+        feats_len: torch.Tensor,
+        prev_states: Optional[List[torch.Tensor]] = None,
+    ):
         """Forward encoder.
 
         Args:
-            xs_pad: Batch of padded input sequences (B, Tmax, idim)
-            ilens: Batch of lengths of input sequences (B)
-            prev_state: Batch of previous encoder hidden states (B, ??)
+            feats: Feature sequences. (B, F, D_feats)
+            feats_len: Feature sequences lengths. (B,)
+            prev_states: Previous encoder hidden states. [N x (B, T, D_enc)]
 
         Returns:
-            : Batch of padded output sequences (B, Tmax, hdim)
-                    or tuple w/ aux outputs ((B, Tmax, hdim), [L x (B, Tmax, hdim)])
-            : Batch of lengths of output sequences (B)
-            : Batch of hidden state sequences (B, Tmax, hdim)
+            enc_out: Encoder output sequences. (B, T, D_enc)
+                   with or without encoder intermediate output sequences.
+                   ((B, T, D_enc), [N x (B, T, D_enc)])
+            enc_out_len: Encoder output sequences lengths. (B,)
+            current_states: Encoder hidden states. [N x (B, T, D_enc)]
 
         """
         if prev_states is None:
             prev_states = [None] * len(self.enc)
         assert len(prev_states) == len(self.enc)
 
+        _enc_out = feats
+        _enc_out_len = feats_len
         current_states = []
-        for module, prev_state in zip(self.enc, prev_states):
-            xs_pad, ilens, states = module(
-                xs_pad,
-                ilens,
-                prev_state=prev_state,
+        for rnn_module, prev_state in zip(self.enc, prev_states):
+            _enc_out, _enc_out_len, states = rnn_module(
+                _enc_out,
+                _enc_out_len,
+                prev_states=prev_state,
             )
             current_states.append(states)
 
-        if isinstance(xs_pad, tuple):
-            final_xs_pad, aux_xs_list = xs_pad[0], xs_pad[1]
+        if isinstance(_enc_out, tuple):
+            enc_out, aux_enc_out = _enc_out[0], _enc_out[1]
+            enc_out_len, aux_enc_out_len = _enc_out_len[0], _enc_out_len[1]
 
-            mask = to_device(final_xs_pad, make_pad_mask(ilens).unsqueeze(-1))
+            enc_out_mask = to_device(enc_out, make_pad_mask(enc_out_len).unsqueeze(-1))
+            enc_out = enc_out.masked_fill(enc_out_mask, 0.0)
 
-            aux_xs_list = [layer.masked_fill(mask, 0.0) for layer in aux_xs_list]
+            for i in range(len(aux_enc_out)):
+                aux_mask = to_device(
+                    aux_enc_out[i], make_pad_mask(aux_enc_out_len[i]).unsqueeze(-1)
+                )
+                aux_enc_out[i] = aux_enc_out[i].masked_fill(aux_mask, 0.0)
 
             return (
-                (
-                    final_xs_pad.masked_fill(mask, 0.0),
-                    aux_xs_list,
-                ),
-                ilens,
+                (enc_out, aux_enc_out),
+                (enc_out_len, aux_enc_out_len),
                 current_states,
             )
         else:
-            mask = to_device(xs_pad, make_pad_mask(ilens).unsqueeze(-1))
+            enc_out_mask = to_device(
+                _enc_out, make_pad_mask(_enc_out_len).unsqueeze(-1)
+            )
 
-            return xs_pad.masked_fill(mask, 0.0), ilens, current_states
+            return _enc_out.masked_fill(enc_out_mask, 0.0), _enc_out_len, current_states
 
 
 def encoder_for(
-    args: argparse.Namespace,
-    idim: Union[int, List],
+    args: Namespace,
+    idim: int,
     subsample: np.ndarray,
-    aux_task_layer_list: List = [],
-) -> Union[torch.nn.Module, List[torch.nn.Module]]:
-    """Instantiate an encoder module given the program arguments.
+    aux_enc_output_layers: List = [],
+) -> torch.nn.Module:
+    """Instantiate a RNN encoder with specified arguments.
 
     Args:
-        args: The model arguments
-        idim: Dimension of inputs or list of dimensions of inputs for each encoder
-        subsample: subsample factors or list of subsample factors for each encoder
+        args: The model arguments.
+        idim: Input dimension.
+        subsample: Subsampling rate per layer.
+        aux_enc_output_layers: Layer IDs for auxiliary encoder output sequences.
 
     Returns:
-        : The encoder module or list of encoder modules
+        : Encoder module.
 
     """
     return Encoder(
-        args.etype,
         idim,
+        args.etype,
         args.elayers,
         args.eunits,
         args.eprojs,
         subsample,
-        args.dropout_rate,
-        aux_task_layer_list=aux_task_layer_list,
+        dropout_rate=args.dropout_rate,
+        aux_enc_output_layers=aux_enc_output_layers,
     )

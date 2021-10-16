@@ -12,6 +12,7 @@ from typeguard import check_argument_types
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
+from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
@@ -221,25 +222,14 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--cleaner",
         type=str_or_none,
-        choices=[None, "tacotron", "jaconv", "vietnamese"],
+        choices=[None, "tacotron", "jaconv", "vietnamese", "korean_cleaner"],
         default=None,
         help="Apply text cleaning",
     )
     parser.add_argument(
         "--g2p",
         type=str_or_none,
-        choices=[
-            None,
-            "g2p_en",
-            "g2p_en_no_space",
-            "pyopenjtalk",
-            "pyopenjtalk_kana",
-            "pyopenjtalk_accent",
-            "pyopenjtalk_accent_with_pause",
-            "pypinyin_g2p",
-            "pypinyin_g2p_phone",
-            "espeak_ng_arabic",
-        ],
+        choices=g2p_choices,
         default=None,
         help="Specify g2p method if --token_type=phn",
     )

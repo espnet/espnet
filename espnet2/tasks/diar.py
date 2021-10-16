@@ -17,7 +17,10 @@ from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
+from espnet2.diar.attractor.abs_attractor import AbsAttractor
+from espnet2.diar.attractor.rnn_attractor import RnnAttractor
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.diar.decoder.linear_decoder import LinearDecoder
 from espnet2.diar.espnet_model import ESPnetDiarizationModel
@@ -39,7 +42,11 @@ from espnet2.utils.types import str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",
-    classes=dict(default=DefaultFrontend, sliding_window=SlidingWindow),
+    classes=dict(
+        default=DefaultFrontend,
+        sliding_window=SlidingWindow,
+        s3prl=S3prlFrontend,
+    ),
     type_check=AbsFrontend,
     default="default",
 )
@@ -74,6 +81,14 @@ decoder_choices = ClassChoices(
     type_check=AbsDecoder,
     default="linear",
 )
+attractor_choices = ClassChoices(
+    "attractor",
+    classes=dict(
+        rnn=RnnAttractor,
+    ),
+    type_check=AbsAttractor,
+    default=None,
+)
 
 
 class DiarizationTask(AbsTask):
@@ -92,6 +107,8 @@ class DiarizationTask(AbsTask):
         decoder_choices,
         # --label_aggregator and --label_aggregator_conf
         label_aggregator_choices,
+        # --attractor and --attractor_conf
+        attractor_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -167,7 +184,7 @@ class DiarizationTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
-            # FIXME (jiatong): add more arugment here
+            # FIXME (jiatong): add more argument here
             retval = CommonPreprocessor(train=train)
         else:
             retval = None
@@ -237,18 +254,26 @@ class DiarizationTask(AbsTask):
             **args.decoder_conf,
         )
 
-        # 5. Build model
+        # 5. Attractor
+        attractor_class = attractor_choices.get_class(args.attractor)
+        attractor = attractor_class(
+            encoder_output_size=encoder.output_size(),
+            **args.attractor_conf,
+        )
+
+        # 6. Build model
         model = ESPnetDiarizationModel(
             frontend=frontend,
             normalize=normalize,
             label_aggregator=label_aggregator,
             encoder=encoder,
             decoder=decoder,
+            attractor=attractor,
             **args.model_conf,
         )
 
         # FIXME(kamo): Should be done in model?
-        # 6. Initialize
+        # 7. Initialize
         if args.init is not None:
             initialize(model, args.init)
 

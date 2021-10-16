@@ -116,7 +116,9 @@ def get_parser():
         default=0.0,
         help="""Input length ratio to obtain max output length.
                         If maxlenratio=0.0 (default), it uses a end-detect function
-                        to automatically find maximum hypothesis lengths""",
+                        to automatically find maximum hypothesis lengths.
+                        If maxlenratio<0.0, its absolute value is interpreted
+                        as a constant max output length""",
     )
     parser.add_argument(
         "--minlenratio",
@@ -148,44 +150,63 @@ def get_parser():
         "--search-type",
         type=str,
         default="default",
-        choices=["default", "nsc", "tsd", "alsd"],
+        choices=["default", "nsc", "tsd", "alsd", "maes"],
         help="""Type of beam search implementation to use during inference.
-        Can be either: default beam search, n-step constrained beam search ("nsc"),
-        time-synchronous decoding ("tsd") or alignment-length synchronous decoding
-        ("alsd").
-        Additional associated parameters: "nstep" + "prefix-alpha" (for nsc),
-        "max-sym-exp" (for tsd) and "u-max" (for alsd)""",
+        Can be either: default beam search ("default"),
+        N-Step Constrained beam search ("nsc"), Time-Synchronous Decoding ("tsd"),
+        Alignment-Length Synchronous Decoding ("alsd") or
+        modified Adaptive Expansion Search ("maes").""",
     )
     parser.add_argument(
         "--nstep",
         type=int,
         default=1,
-        help="Number of expansion steps allowed in NSC beam search.",
+        help="""Number of expansion steps allowed in NSC beam search or mAES
+        (nstep > 0 for NSC and nstep > 1 for mAES).""",
     )
     parser.add_argument(
         "--prefix-alpha",
         type=int,
         default=2,
-        help="Length prefix difference allowed in NSC beam search.",
+        help="Length prefix difference allowed in NSC beam search or mAES.",
     )
     parser.add_argument(
         "--max-sym-exp",
         type=int,
         default=2,
-        help="Number of symbol expansions allowed in TSD decoding.",
+        help="Number of symbol expansions allowed in TSD.",
     )
     parser.add_argument(
         "--u-max",
         type=int,
         default=400,
-        help="Length prefix difference allowed in ALSD beam search.",
+        help="Length prefix difference allowed in ALSD.",
+    )
+    parser.add_argument(
+        "--expansion-gamma",
+        type=float,
+        default=2.3,
+        help="Allowed logp difference for prune-by-value method in mAES.",
+    )
+    parser.add_argument(
+        "--expansion-beta",
+        type=int,
+        default=2,
+        help="""Number of additional candidates for expanded hypotheses
+                selection in mAES.""",
     )
     parser.add_argument(
         "--score-norm",
         type=strtobool,
         nargs="?",
         default=True,
-        help="Normalize transducer scores by length",
+        help="Normalize final hypotheses' score by length",
+    )
+    parser.add_argument(
+        "--softmax-temperature",
+        type=float,
+        default=1.0,
+        help="Penalization term for softmax function.",
     )
     # rnnlm related
     parser.add_argument(
@@ -261,22 +282,29 @@ def get_parser():
     parser.add_argument(
         "--quantize-config",
         nargs="*",
-        help="Quantize config list. E.g.: --quantize-config=[Linear,LSTM,GRU]",
+        help="""Config for dynamic quantization provided as a list of modules,
+        separated by a comma. E.g.: --quantize-config=[Linear,LSTM,GRU].
+        Each specified module should be an attribute of 'torch.nn', e.g.:
+        torch.nn.Linear, torch.nn.LSTM, torch.nn.GRU, ...""",
     )
     parser.add_argument(
-        "--quantize-dtype", type=str, default="qint8", help="Dtype dynamic quantize"
+        "--quantize-dtype",
+        type=str,
+        default="qint8",
+        choices=["float16", "qint8"],
+        help="Dtype for dynamic quantization.",
     )
     parser.add_argument(
         "--quantize-asr-model",
         type=bool,
         default=False,
-        help="Quantize asr model",
+        help="Apply dynamic quantization to ASR model.",
     )
     parser.add_argument(
         "--quantize-lm-model",
         type=bool,
         default=False,
-        help="Quantize lm model",
+        help="Apply dynamic quantization to LM.",
     )
     return parser
 

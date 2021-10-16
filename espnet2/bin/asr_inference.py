@@ -3,6 +3,7 @@ import argparse
 import logging
 from pathlib import Path
 import sys
+from typing import Any
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -50,10 +51,12 @@ class Speech2Text:
 
     def __init__(
         self,
-        asr_train_config: Union[Path, str],
+        asr_train_config: Union[Path, str] = None,
         asr_model_file: Union[Path, str] = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
+        ngram_scorer: str = "full",
+        ngram_file: Union[Path, str] = None,
         token_type: str = None,
         bpemodel: str = None,
         device: str = "cpu",
@@ -64,6 +67,7 @@ class Speech2Text:
         beam_size: int = 20,
         ctc_weight: float = 0.5,
         lm_weight: float = 1.0,
+        ngram_weight: float = 0.9,
         penalty: float = 0.0,
         nbest: int = 1,
         streaming: bool = False,
@@ -93,11 +97,26 @@ class Speech2Text:
             )
             scorers["lm"] = lm.lm
 
-        # 3. Build BeamSearch object
+        # 3. Build ngram model
+        if ngram_file is not None:
+            if ngram_scorer == "full":
+                from espnet.nets.scorers.ngram import NgramFullScorer
+
+                ngram = NgramFullScorer(ngram_file, token_list)
+            else:
+                from espnet.nets.scorers.ngram import NgramPartScorer
+
+                ngram = NgramPartScorer(ngram_file, token_list)
+        else:
+            ngram = None
+        scorers["ngram"] = ngram
+
+        # 4. Build BeamSearch object
         weights = dict(
             decoder=1.0 - ctc_weight,
             ctc=ctc_weight,
             lm=lm_weight,
+            ngram=ngram_weight,
             length_bonus=penalty,
         )
         beam_search = BeamSearch(
@@ -186,7 +205,7 @@ class Speech2Text:
 
         # data: (Nsamples,) -> (1, Nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-        # lenghts: (1,)
+        # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         batch = {"speech": speech, "speech_lengths": lengths}
 
@@ -225,6 +244,36 @@ class Speech2Text:
         assert check_return_type(results)
         return results
 
+    @staticmethod
+    def from_pretrained(
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
+        """Build Speech2Text instance from the pretrained model.
+
+        Args:
+            model_tag (Optional[str]): Model tag of the pretrained models.
+                Currently, the tags of espnet_model_zoo are supported.
+
+        Returns:
+            Speech2Text: Speech2Text instance.
+
+        """
+        if model_tag is not None:
+            try:
+                from espnet_model_zoo.downloader import ModelDownloader
+
+            except ImportError:
+                logging.error(
+                    "`espnet_model_zoo` is not installed. "
+                    "Please install via `pip install -U espnet_model_zoo`."
+                )
+                raise
+            d = ModelDownloader()
+            kwargs.update(**d.download_and_unpack(model_tag))
+
+        return Speech2Text(**kwargs)
+
 
 def inference(
     output_dir: str,
@@ -237,18 +286,21 @@ def inference(
     seed: int,
     ctc_weight: float,
     lm_weight: float,
+    ngram_weight: float,
     penalty: float,
     nbest: int,
     num_workers: int,
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    asr_train_config: str,
-    asr_model_file: str,
+    asr_train_config: Optional[str],
+    asr_model_file: Optional[str],
     lm_train_config: Optional[str],
     lm_file: Optional[str],
     word_lm_train_config: Optional[str],
     word_lm_file: Optional[str],
+    ngram_file: Optional[str],
+    model_tag: Optional[str],
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
@@ -276,11 +328,12 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build speech2text
-    speech2text = Speech2Text(
+    speech2text_kwargs = dict(
         asr_train_config=asr_train_config,
         asr_model_file=asr_model_file,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
+        ngram_file=ngram_file,
         token_type=token_type,
         bpemodel=bpemodel,
         device=device,
@@ -290,9 +343,14 @@ def inference(
         beam_size=beam_size,
         ctc_weight=ctc_weight,
         lm_weight=lm_weight,
+        ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
         streaming=streaming,
+    )
+    speech2text = Speech2Text.from_pretrained(
+        model_tag=model_tag,
+        **speech2text_kwargs,
     )
 
     # 3. Build data-iterator
@@ -389,12 +447,47 @@ def get_parser():
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("The model configuration related")
-    group.add_argument("--asr_train_config", type=str, required=True)
-    group.add_argument("--asr_model_file", type=str, required=True)
-    group.add_argument("--lm_train_config", type=str)
-    group.add_argument("--lm_file", type=str)
-    group.add_argument("--word_lm_train_config", type=str)
-    group.add_argument("--word_lm_file", type=str)
+    group.add_argument(
+        "--asr_train_config",
+        type=str,
+        help="ASR training configuration",
+    )
+    group.add_argument(
+        "--asr_model_file",
+        type=str,
+        help="ASR model parameter file",
+    )
+    group.add_argument(
+        "--lm_train_config",
+        type=str,
+        help="LM training configuration",
+    )
+    group.add_argument(
+        "--lm_file",
+        type=str,
+        help="LM parameter file",
+    )
+    group.add_argument(
+        "--word_lm_train_config",
+        type=str,
+        help="Word LM training configuration",
+    )
+    group.add_argument(
+        "--word_lm_file",
+        type=str,
+        help="Word LM parameter file",
+    )
+    group.add_argument(
+        "--ngram_file",
+        type=str,
+        help="N-gram parameter file",
+    )
+    group.add_argument(
+        "--model_tag",
+        type=str,
+        help="Pretrained model tag. If specify this option, *_train_config and "
+        "*_file will be overwritten",
+    )
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
@@ -413,7 +506,9 @@ def get_parser():
         help="Input length ratio to obtain max output length. "
         "If maxlenratio=0.0 (default), it uses a end-detect "
         "function "
-        "to automatically find maximum hypothesis lengths",
+        "to automatically find maximum hypothesis lengths."
+        "If maxlenratio<0.0, its absolute value is interpreted"
+        "as a constant max output length",
     )
     group.add_argument(
         "--minlenratio",
@@ -428,6 +523,7 @@ def get_parser():
         help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
+    group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
     group.add_argument("--streaming", type=str2bool, default=False)
 
     group = parser.add_argument_group("Text converter related")

@@ -432,7 +432,7 @@ for (my $try = 1; $try < 5; $try++) {
         print STDERR "queue.pl: It looks like the queue master may be inaccessible. " .
           " Trying again after $waitfor seconts\n";
         sleep($waitfor);
-        # ... and continue throught the loop.
+        # ... and continue through the loop.
       } else {
         exit(1);
       }

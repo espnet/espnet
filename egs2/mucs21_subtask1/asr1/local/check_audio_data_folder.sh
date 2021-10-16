@@ -1,0 +1,1 @@
+../../../../egs/mucs21_subtask1/asr1/local/check_audio_data_folder.sh

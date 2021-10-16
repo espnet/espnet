@@ -1,24 +1,23 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""Parameter initialization for Transducer model."""
 
-"""Parameter initialization for transducer model."""
-
+from argparse import Namespace
 import math
+
+import torch
 
 from espnet.nets.pytorch_backend.initialization import set_forget_bias_to_one
 
 
-def initializer(model, args):
-    """Initialize transducer model.
+def initializer(model: torch.nn.Module, args: Namespace):
+    """Initialize Transducer model.
 
     Args:
-        model (torch.nn.Module): transducer instance
-        args (Namespace): argument Namespace containing options
+        model: Transducer model.
+        args: Namespace containing model options.
 
     """
     for name, p in model.named_parameters():
-        if any(x in name for x in ["enc.", "dec.", "joint_network"]):
-            # rnn based parts + joint network
+        if any(x in name for x in ["enc.", "dec.", "transducer_tasks."]):
             if p.dim() == 1:
                 # bias
                 p.data.zero_()
