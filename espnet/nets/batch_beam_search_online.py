@@ -167,6 +167,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 return self.prev_output
         else:
             self.prev_output = ret
+            # N-best results
             return ret
 
     def process_one_block(self, h, is_final, maxlen, maxlenratio):
@@ -252,6 +253,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 self.process_idx -= 1
                 self.prev_hyps = []
 
+            # N-best results
             return rets
 
     def assemble_hyps(self, ended_hyps):
