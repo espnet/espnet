@@ -9,20 +9,19 @@ train_set=train
 valid_set=dev
 test_sets="dev test test_speechbrain"
 
-asr_tag=conformer_noBatchNorm_warmup5k_lr2e-4_accum3_conv15_5speeds
+asr_tag=conformer_noBatchNorm
 inference_tag=infer
 
-asr_config=conf/train_asr_conformer_noBatchNorm.yaml
+asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 
 # speed perturbation related
 # (train_set will be "${train_set}_sp" if speed_perturb_factors is specified)
 speed_perturb_factors="0.9 0.95 1.0 1.05 1.1"
 
-# lm_train_text is set to avoid errors if speed_perturb is used
 ./asr.sh                                                \
-    --skip_data_prep false                               \
-    --skip_train false                                   \
+    --skip_data_prep false                              \
+    --skip_train false                                  \
     --skip_eval false                                   \
     --ngpu 1                                            \
     --nj 8                                              \
