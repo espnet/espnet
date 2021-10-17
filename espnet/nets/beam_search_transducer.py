@@ -1,4 +1,4 @@
-"""Search algorithms for transducer models."""
+"""Search algorithms for Transducer models."""
 
 import logging
 from typing import List
@@ -22,7 +22,7 @@ from espnet.nets.transducer_decoder_interface import Hypothesis
 
 
 class BeamSearchTransducer:
-    """Beam search implementation for transducer."""
+    """Beam search implementation for Transducer."""
 
     def __init__(
         self,
@@ -41,8 +41,9 @@ class BeamSearchTransducer:
         score_norm: bool = True,
         softmax_temperature: float = 1.0,
         nbest: int = 1,
+        quantization: bool = False,
     ):
-        """Initialize transducer beam search.
+        """Initialize Transducer search module.
 
         Args:
             decoder: Decoder module.
@@ -61,6 +62,7 @@ class BeamSearchTransducer:
             score_norm: Normalize final scores by length. ("default")
             softmax_temperature: Penalization term for softmax function.
             nbest: Number of final hypothesis.
+            quantization: Whether dynamic quantization is used.
 
         """
         self.decoder = decoder
@@ -121,6 +123,8 @@ class BeamSearchTransducer:
         else:
             self.softmax_temperature = softmax_temperature
 
+        self.quantization = quantization
+
         self.score_norm = score_norm
         self.nbest = nbest
 
@@ -179,7 +183,9 @@ class BeamSearchTransducer:
                     and (curr_id - pref_id) <= self.prefix_alpha
                 ):
                     logp = torch.log_softmax(
-                        self.joint_network(enc_out_t, hyp_i.dec_out[-1])
+                        self.joint_network(
+                            enc_out_t, hyp_i.dec_out[-1], quantization=self.quantization
+                        )
                         / self.softmax_temperature,
                         dim=-1,
                     )
@@ -188,7 +194,11 @@ class BeamSearchTransducer:
 
                     for k in range(pref_id, (curr_id - 1)):
                         logp = torch.log_softmax(
-                            self.joint_network(enc_out_t, hyp_j.dec_out[k])
+                            self.joint_network(
+                                enc_out_t,
+                                hyp_j.dec_out[k],
+                                quantization=self.quantization,
+                            )
                             / self.softmax_temperature,
                             dim=-1,
                         )
@@ -218,7 +228,8 @@ class BeamSearchTransducer:
 
         for enc_out_t in enc_out:
             logp = torch.log_softmax(
-                self.joint_network(enc_out_t, dec_out) / self.softmax_temperature,
+                self.joint_network(enc_out_t, dec_out, quantization=self.quantization)
+                / self.softmax_temperature,
                 dim=-1,
             )
             top_logp, pred = torch.max(logp, dim=-1)
@@ -264,7 +275,10 @@ class BeamSearchTransducer:
                 dec_out, state, lm_tokens = self.decoder.score(max_hyp, cache)
 
                 logp = torch.log_softmax(
-                    self.joint_network(enc_out_t, dec_out) / self.softmax_temperature,
+                    self.joint_network(
+                        enc_out_t, dec_out, quantization=self.quantization
+                    )
+                    / self.softmax_temperature,
                     dim=-1,
                 )
                 top_k = logp[1:].topk(beam_k, dim=-1)
@@ -701,7 +715,7 @@ class BeamSearchTransducer:
     ) -> List[ExtendedHypothesis]:
         """It's the modified Adaptive Expansion Search (mAES) implementation.
 
-        Based on/modified from https://ieeexplore.ieee.org/document/9250505
+        Based on/modified from https://ieeexplore.ieee.org/document/9250505 and NSC.
 
         Args:
             enc_out: Encoder output sequence. (T, D_enc)

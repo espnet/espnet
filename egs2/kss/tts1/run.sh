@@ -39,7 +39,15 @@ token_type=phn
 # g2p=g2pk
 g2p=g2pk_no_space  # No word sparator
 
+# Default settings for non-vits models
+tts_task=tts
+feats_extract=fbank
+feats_normalize=global_mvn
+
 ./tts.sh \
+    --tts_task "${tts_task}" \
+    --feats_extract "${feats_extract}" \
+    --feats_normalize "${feats_normalize}" \
     --local_data_opts "${local_data_opts}" \
     --audio_format wav \
     --lang ko \

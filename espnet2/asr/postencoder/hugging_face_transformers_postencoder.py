@@ -6,13 +6,19 @@
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from transformers import AutoModel
 from typeguard import check_argument_types
 from typing import Tuple
 
 import copy
 import logging
 import torch
+
+try:
+    from transformers import AutoModel
+
+    is_transformers_available = True
+except ImportError:
+    is_transformers_available = False
 
 
 class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
@@ -26,6 +32,13 @@ class HuggingFaceTransformersPostEncoder(AbsPostEncoder):
         """Initialize the module."""
         assert check_argument_types()
         super().__init__()
+
+        if not is_transformers_available:
+            raise ImportError(
+                "`transformers` is not available. Please install it via `pip install"
+                " transformers` or `cd /path/to/espnet/tools && . ./activate_python.sh"
+                " && ./installers/install_transformers.sh`."
+            )
 
         model = AutoModel.from_pretrained(model_name_or_path)
 

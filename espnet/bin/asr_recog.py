@@ -282,22 +282,29 @@ def get_parser():
     parser.add_argument(
         "--quantize-config",
         nargs="*",
-        help="Quantize config list. E.g.: --quantize-config=[Linear,LSTM,GRU]",
+        help="""Config for dynamic quantization provided as a list of modules,
+        separated by a comma. E.g.: --quantize-config=[Linear,LSTM,GRU].
+        Each specified module should be an attribute of 'torch.nn', e.g.:
+        torch.nn.Linear, torch.nn.LSTM, torch.nn.GRU, ...""",
     )
     parser.add_argument(
-        "--quantize-dtype", type=str, default="qint8", help="Dtype dynamic quantize"
+        "--quantize-dtype",
+        type=str,
+        default="qint8",
+        choices=["float16", "qint8"],
+        help="Dtype for dynamic quantization.",
     )
     parser.add_argument(
         "--quantize-asr-model",
         type=bool,
         default=False,
-        help="Quantize asr model",
+        help="Apply dynamic quantization to ASR model.",
     )
     parser.add_argument(
         "--quantize-lm-model",
         type=bool,
         default=False,
-        help="Quantize lm model",
+        help="Apply dynamic quantization to LM.",
     )
     return parser
 

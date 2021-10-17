@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 . tools/activate_python.sh
+. tools/extra_path.sh
 
 set -euo pipefail
 

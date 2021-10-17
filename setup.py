@@ -33,6 +33,7 @@ requirements = {
         # Natural language processing related
         "sentencepiece",
         "nltk>=3.4.5",
+        "jamo==0.4.1",  # For kss
         # File IO related
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
@@ -46,8 +47,6 @@ requirements = {
         "torch_complex",
         "pytorch_wpe",
         "ci_sdr",
-        # NLU postencoder related
-        "transformers>=4.9.1",
     ],
     "recipe": [
         "espnet_model_zoo",
@@ -95,8 +94,10 @@ try:
     if LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
         requirements["install"].append("fairscale")
 
-    if LooseVersion(torch.__version__) >= LooseVersion("1.9.1"):
+    if LooseVersion(torch.__version__) >= LooseVersion("1.9.2"):
         raise NotImplementedError("Not yet supported")
+    elif LooseVersion(torch.__version__) >= LooseVersion("1.9.1"):
+        requirements["install"].append("torchaudio==0.9.1")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.9.0"):
         requirements["install"].append("torchaudio==0.9.0")
     elif LooseVersion(torch.__version__) >= LooseVersion("1.8.1"):

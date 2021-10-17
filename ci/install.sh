@@ -18,9 +18,11 @@ ${CXX:-g++} -v
         ./setup_python.sh "$(command -v python3)" venv
     fi
     . ./activate_python.sh
+    # NOTE(kan-bayashi): Workaround for https://github.com/espnet/espnet/runs/3876865897
+    pip install pip==21.2.4
     make TH_VERSION="${TH_VERSION}"
 
-    make warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done s3prl.done
+    make warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done s3prl.done transformers.done phonemizer.done
     rm -rf kaldi
 )
 . tools/activate_python.sh
