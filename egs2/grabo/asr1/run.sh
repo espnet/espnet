@@ -12,14 +12,13 @@ test_sets="dev test"
 asr_tag=conformer_mono16k_warmup800_lr2e-4_accum2
 inference_tag=infer
 
-asr_config=conf/train_asr_conformer.yaml
+asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 
 # speed perturbation related
 # (train_set will be "${train_set}_sp" if speed_perturb_factors is specified)
 speed_perturb_factors="0.9 0.95 1.0 1.05 1.1"
 
-# lm_train_text is set to avoid errors if speed_perturb is used
 ./asr.sh                                                \
     --skip_data_prep false                               \
     --skip_train false                                  \
