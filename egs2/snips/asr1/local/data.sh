@@ -28,7 +28,6 @@ set -o pipefail
 
 log "data preparation started"
 
-SNIPS=/yuekai/data/slu/snips/smart-lights-en-close-field
 if [ -z "${SNIPS}" ]; then
     log "Fill the value of 'SNIPS' of db.sh"
     exit 1
