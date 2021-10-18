@@ -119,31 +119,28 @@ class Stft(torch.nn.Module, InversibleInterface):
                 # pad the given window to n_fft
                 n_pad_left = (self.n_fft - window.shape[0]) // 2
                 n_pad_right = self.n_fft - window.shape[0] - n_pad_left
-                stft_kwargs['window'] = torch.cat([
-                    torch.zeros(n_pad_left),
-                    window,
-                    torch.zeros(n_pad_right)
-                ], 0).numpy()
+                stft_kwargs["window"] = torch.cat(
+                    [torch.zeros(n_pad_left), window, torch.zeros(n_pad_right)], 0
+                ).numpy()
             else:
-                win_length = (self.win_length if self.win_length is not None
-                              else self.n_fft)
-                stft_kwargs['window'] = torch.ones(win_length)
+                win_length = (
+                    self.win_length if self.win_length is not None else self.n_fft
+                )
+                stft_kwargs["window"] = torch.ones(win_length)
 
             output = []
             # iterate over istances in a batch
             for i, instance in enumerate(input):
                 stft = librosa.stft(input[i].numpy(), **stft_kwargs)
-                output.append(
-                    torch.tensor(np.stack([stft.real, stft.imag], -1))
-                )
+                output.append(torch.tensor(np.stack([stft.real, stft.imag], -1)))
             output = torch.stack(output, 0)
             if not self.onesided:
                 len_conj = self.n_fft - output.shape[1]
-                conj = output[:, 1:1 + len_conj].flip(1)
+                conj = output[:, 1 : 1 + len_conj].flip(1)
                 conj[:, :, :, -1].data *= -1
                 output = torch.cat([output, conj], 1)
             if self.normalized:
-                output = output * (stft_kwargs['window'].shape[0] ** (-0.5))
+                output = output * (stft_kwargs["window"].shape[0] ** (-0.5))
 
         # output: (Batch, Freq, Frames, 2=real_imag)
         # -> (Batch, Frames, Freq, 2=real_imag)
