@@ -658,7 +658,7 @@ if ! "${skip_upload_hf}"; then
         # Generate description file
         hf_task=diarization
         espnet_task=DIAR
-        task_exp=${asr_exp}
+        task_exp=${diar_exp}
         eval "echo \"$(cat ${PWD}/../../TEMPLATE/HF_README.md)\"" > "${dir_repo}"/README.md
 
         this_folder=${PWD}
