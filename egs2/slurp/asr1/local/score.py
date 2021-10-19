@@ -27,12 +27,12 @@ def get_classification_result(hyp_file, ref_file):
 exp_root = sys.argv[1]
 valid_hyp_file = open(
     os.path.join(
-        exp_root, "decode_asr_asr_model_valid.acc.ave_10best/devel/score_wer/hyp.trn"
+        exp_root, "inference_asr_model_valid.acc.ave_10best/devel/score_wer/hyp.trn"
     )
 )
 valid_ref_file = open(
     os.path.join(
-        exp_root, "decode_asr_asr_model_valid.acc.ave_10best/devel/score_wer/ref.trn"
+        exp_root, "inference_asr_model_valid.acc.ave_10best/devel/score_wer/ref.trn"
     )
 )
 
@@ -42,12 +42,12 @@ print(result)
 
 test_hyp_file = open(
     os.path.join(
-        exp_root, "decode_asr_asr_model_valid.acc.ave_10best/test/score_wer/hyp.trn"
+        exp_root, "inference_asr_model_valid.acc.ave_10best/test/score_wer/hyp.trn"
     )
 )
 test_ref_file = open(
     os.path.join(
-        exp_root, "decode_asr_asr_model_valid.acc.ave_10best/test/score_wer/ref.trn"
+        exp_root, "inference_asr_model_valid.acc.ave_10best/test/score_wer/ref.trn"
     )
 )
 

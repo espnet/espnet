@@ -18,6 +18,14 @@ encoder_conf:
     use_cnn_module:  true
     cnn_module_kernel: 31
 
+postencoder: hugging_face_transformers
+postencoder_conf:
+    # pick up a model from https://huggingface.co/models?filter=transformers
+    # most of models should work, but maybe some don't
+    # known to work: bert, gpt2, xlnet, roberta, mpnet, t5, bart
+    # xlnet currently works for single gpu only
+    model_name_or_path: "bert-base-cased"
+
 decoder: transformer
 decoder_conf:
     attention_heads: 8
@@ -28,19 +36,17 @@ decoder_conf:
     self_attention_dropout_rate: 0.1
     src_attention_dropout_rate: 0.1
 
+freeze_param: [
+"postencoder"
+]
+
 optim: adam
 optim_conf:
     lr: 0.0002
-scheduler: warmuplr     # pytorch v1.1.0+ required #Tune warmup steps
+scheduler: warmuplr     # pytorch v1.1.0+ required
 scheduler_conf:
     warmup_steps: 25000
 max_epoch: 50
-
-model_conf:
-    ctc_weight: 0.3
-    lsm_weight: 0.1
-    length_normalized_loss: false
-    extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
 
 specaug: specaug
 specaug_conf:
@@ -57,9 +63,3 @@ specaug_conf:
     - 0
     - 40
     num_time_mask: 2
-
-best_model_criterion:
--   - valid
-    - acc
-    - max
-keep_nbest_models: 10

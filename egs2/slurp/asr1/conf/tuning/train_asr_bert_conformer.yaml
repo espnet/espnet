@@ -28,6 +28,18 @@ decoder_conf:
     self_attention_dropout_rate: 0.1
     src_attention_dropout_rate: 0.1
 
+postencoder: hugging_face_transformers
+postencoder_conf:
+    # pick up a model from https://huggingface.co/models?filter=transformers
+    # most of models should work, but maybe some don't
+    # known to work: bert, gpt2, xlnet, roberta, mpnet, t5, bart
+    # xlnet currently works for single gpu only
+    model_name_or_path: "bert-base-uncased"
+
+freeze_param: [
+"postencoder.transformer"
+]
+
 optim: adam
 optim_conf:
     lr: 0.0002

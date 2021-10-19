@@ -34,7 +34,27 @@ optim_conf:
 scheduler: warmuplr     # pytorch v1.1.0+ required #Tune warmup steps
 scheduler_conf:
     warmup_steps: 25000
-max_epoch: 50
+max_epoch: 38
+
+freeze_param: [
+"frontend.upstream"
+]
+
+frontend_conf:
+  n_fft: 512
+  hop_length: 256
+
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: tera_960hr  # Note: If the upstream is changed, please change the input_size in the preencoder.
+    download_dir: ./hub
+    multilayer_feature: True
+
+preencoder: linear
+preencoder_conf:
+    input_size: 768  # Note: If the upstream is changed, please change this value accordingly.
+    output_size: 80
 
 model_conf:
     ctc_weight: 0.3
