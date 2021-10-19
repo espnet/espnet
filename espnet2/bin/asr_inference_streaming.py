@@ -24,6 +24,9 @@ from espnet.utils.cli_utils import get_commandline_args
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
     ContextualBlockTransformerEncoder,  # noqa: H301
 )
+from espnet2.asr.encoder.contextual_block_conformer_encoder import (
+    ContextualBlockConformerEncoder,  # noqa: H301
+)
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
@@ -80,7 +83,9 @@ class Speech2TextStreaming:
         )
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
-        assert isinstance(asr_model.encoder, ContextualBlockTransformerEncoder)
+        assert isinstance(
+            asr_model.encoder, ContextualBlockTransformerEncoder
+        ) or isinstance(asr_model.encoder, ContextualBlockConformerEncoder)
 
         decoder = asr_model.decoder
         ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
