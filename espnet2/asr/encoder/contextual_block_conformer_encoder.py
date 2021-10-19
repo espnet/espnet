@@ -11,7 +11,7 @@ import torch
 from typeguard import check_argument_types
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.contextual_block_encoder_layer import (
-    ContextualBlockEncoderLayer,
+    ContextualBlockEncoderLayer,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
@@ -20,11 +20,11 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
-    PositionwiseFeedForward,
+    PositionwiseFeedForward,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
-    Conv2dSubsamplingWOPosEnc,
+    Conv2dSubsamplingWOPosEnc,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
