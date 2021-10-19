@@ -16,7 +16,6 @@ asr_config=conf/train_asr.yaml
     --ngpu 1 \
     --use_lm false \
     --nbpe 5000 \
-    --stop_stage 2 \
     --token_type word\
     --feats_type raw\
     --max_wav_duration 30 \
