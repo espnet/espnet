@@ -10,7 +10,7 @@
   - Commit date: `Mon Oct 11 12:57:48 2021 -0400`
 
 ## Using Transformer based encoder-decoder with Hubert pre encoder and decoding sentence with spectral augmentation and predicting transcript along with intent
-- ASR config: [conf/train_asr.yaml](conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml)
+- ASR config: [conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml](conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml)
 - token_type: word
 - keep_nbest_models: 5
 
