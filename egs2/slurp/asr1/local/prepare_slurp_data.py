@@ -31,12 +31,12 @@ for subset in ["train", "devel", "test"]:
 
         for line in meta:
             prompt = json.loads(line.strip())
-            transcript=prompt["sentence"]
-            transcript=transcript.replace("@"," at ")
-            transcript=transcript.replace("#"," hashtag ")
-            transcript=transcript.replace(",","")
-            transcript=transcript.replace(".","")
-            transcript=re.sub(' +', ' ', transcript)
+            transcript = prompt["sentence"]
+            transcript = transcript.replace("@", " at ")
+            transcript = transcript.replace("#", " hashtag ")
+            transcript = transcript.replace(",", "")
+            transcript = transcript.replace(".", "")
+            transcript = re.sub(" +", " ", transcript)
             words = "{}".format(
                 prompt["scenario"] + "_" + prompt["action"] + " " + transcript
             ).replace("<unk>", "unknown")
@@ -52,16 +52,16 @@ for subset in ["train", "devel", "test"]:
                 text.write("{} {}\n".format(uttid, words))
                 utt2spk.write("{} slurp_{}\n".format(uttid, speaker))
                 wavscp.write("{} {}\n".format(uttid, wav))
-        if subset=="train":
+        if subset == "train":
             meta = open(os.path.join(idir, "dataset", "slurp", "train_synthetic.jsonl"))
             for line in meta:
                 prompt = json.loads(line.strip())
-                transcript=prompt["sentence"]
-                transcript=transcript.replace("@"," at ")
-                transcript=transcript.replace("#"," hashtag ")
-                transcript=transcript.replace(",","")
-                transcript=transcript.replace(".","")
-                transcript=re.sub(' +', ' ', transcript).lower()
+                transcript = prompt["sentence"]
+                transcript = transcript.replace("@", " at ")
+                transcript = transcript.replace("#", " hashtag ")
+                transcript = transcript.replace(",", "")
+                transcript = transcript.replace(".", "")
+                transcript = re.sub(" +", " ", transcript).lower()
                 words = "{}".format(
                     prompt["scenario"] + "_" + prompt["action"] + " " + transcript
                 ).replace("<unk>", "unknown")
