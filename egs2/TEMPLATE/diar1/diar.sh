@@ -630,7 +630,7 @@ if ! "${skip_upload_hf}"; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
-        log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
+        log "Stage 10: Upload model to HuggingFace: ${hf_repo}"
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \
