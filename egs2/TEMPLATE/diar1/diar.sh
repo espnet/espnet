@@ -29,6 +29,7 @@ skip_data_prep=false # Skip data preparation stages
 skip_train=false     # Skip training stages
 skip_eval=false      # Skip decoding and evaluation stages
 skip_upload=true     # Skip packing and uploading stages
+skip_upload_hf=true # Skip uploading to hugging face stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes
 nj=32                # The number of parallel jobs.
@@ -62,6 +63,8 @@ inference_model=valid.acc.best.pth
 inference_tag=    # Suffix to the inference dir for diar model inference
 download_model=   # Download a model from Model Zoo and use it for diarization.
 
+# Upload model related
+hf_repo=
 
 # scoring related
 collar=0         # collar for der scoring
@@ -551,20 +554,19 @@ fi
 
 
 packed_model="${diar_exp}/${diar_exp##*/}_${inference_model%.*}.zip"
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+    log "Stage 8: Pack model: ${packed_model}"
+
+    ${python} -m espnet2.bin.pack diar \
+        --train_config "${diar_exp}"/config.yaml \
+        --model_file "${diar_exp}"/"${inference_model}" \
+        --option "${diar_exp}"/RESULTS.md \
+        --option "${diar_stats_dir}"/train/feats_stats.npz  \
+        --option "${diar_exp}"/images \
+        --outpath "${packed_model}"
+fi
+
 if ! "${skip_upload}"; then
-    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-        log "Stage 8: Pack model: ${packed_model}"
-
-        ${python} -m espnet2.bin.pack diar \
-            --train_config "${diar_exp}"/config.yaml \
-            --model_file "${diar_exp}"/"${inference_model}" \
-            --option "${diar_exp}"/RESULTS.md \
-            --option "${diar_stats_dir}"/train/feats_stats.npz  \
-            --option "${diar_exp}"/images \
-            --outpath "${packed_model}"
-    fi
-
-
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         log "Stage 9: Upload model to Zenodo: ${packed_model}"
 
@@ -620,7 +622,56 @@ EOF
             --publish false
     fi
 else
-    log "Skip the uploading stages"
+    log "Skip the uploading stage"
+fi
+
+if ! "${skip_upload_hf}"; then
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        [ -z "${hf_repo}" ] && \
+            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
+
+        gitlfs=$(git lfs --version 2> /dev/null || true)
+        [ -z "${gitlfs}" ] && \
+            log "ERROR: You need to install git-lfs first" && \
+            exit 1
+
+        dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+        [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/asr1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # copy files in ${dir_repo}
+        unzip -o ${packed_model} -d ${dir_repo}
+        # Generate description file
+        hf_task=diarization
+        espnet_task=DIAR
+        task_exp=${asr_exp}
+        eval "echo \"$(cat ${PWD}/../../TEMPLATE/HF_README.md)\"" > "${dir_repo}"/README.md
+
+        this_folder=${PWD}
+        cd ${dir_repo}
+        if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Update model"
+        fi
+        git push
+        cd ${this_folder}
+    fi
+else
+    log "Skip the uploading to HuggingFace stage"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
