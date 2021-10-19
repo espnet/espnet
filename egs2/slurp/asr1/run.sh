@@ -9,7 +9,7 @@ train_set="train"
 valid_set="devel"
 test_sets="test devel"
 
-asr_config=conf/tuning/train_asr_conformer.yaml
+asr_config=conf/train_asr.yaml
 
 ./asr.sh \
     --lang en \
