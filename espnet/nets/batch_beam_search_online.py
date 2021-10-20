@@ -1,11 +1,19 @@
 """Parallel beam search module for online simulation."""
 
-import logging
-import torch
-from typing import List, Tuple, Dict, Any
-from espnet.nets.batch_beam_search import BatchBeamSearch, BatchHypothesis
+from espnet.nets.batch_beam_search import (
+    BatchBeamSearch,  # noqa: H301
+    BatchHypothesis,  # noqa: H301
+)
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.e2e_asr_common import end_detect
+import logging
+import torch
+from typing import (
+    List,  # noqa: H301
+    Tuple,  # noqa: H301
+    Dict,  # noqa: H301
+    Any,  # noqa: H301
+)
 
 
 class BatchBeamSearchOnline(BatchBeamSearch):
@@ -31,6 +39,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         decoder_text_length_limit=0,
         **kwargs,
     ):
+        """Initialize beam search."""
         super().__init__(*args, **kwargs)
         self.block_size = block_size
         self.hop_size = hop_size
@@ -42,14 +51,13 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.reset()
 
     def reset(self):
+        """Reset parameters."""
         self.encbuffer = None
-
         self.running_hyps = None
         self.prev_hyps = []
         self.ended_hyps = []
         self.processed_block = 0
         self.process_idx = 0
-
         self.prev_output = None
 
     def score_full(
@@ -171,6 +179,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             return ret
 
     def process_one_block(self, h, is_final, maxlen, maxlenratio):
+        """Recognize one block."""
         # extend states for ctc
         self.extend(h, self.running_hyps)
         while self.process_idx < maxlen:
@@ -257,6 +266,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             return rets
 
     def assemble_hyps(self, ended_hyps):
+        """Assemble the hypotheses."""
         nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
         # check the number of hypotheses reaching to eos
         if len(nbest_hyps) == 0:
