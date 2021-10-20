@@ -965,8 +965,11 @@ if ! "${skip_upload_hf}"; then
         # copy files in ${dir_repo}
         unzip -o ${packed_model} -d ${dir_repo}
         # Generate description file
+        # shellcheck disable=SC2034
         hf_task=audio-to-audio
+        # shellcheck disable=SC2034
         espnet_task=ENH
+        # shellcheck disable=SC2034
         task_exp=${enh_exp}
         eval "echo \"$(cat ${PWD}/../../TEMPLATE/HF_README.md)\"" > "${dir_repo}"/README.md
 
