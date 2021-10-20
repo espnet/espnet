@@ -68,6 +68,7 @@ class ContextualBlockEncoderLayer(nn.Module):
         layer_idx=0,
         cache=None,
     ):
+        """Calculate forward propagation."""
         if self.training or x.size(0) > 1:
             return self.forward_train(x, mask, past_ctx, next_ctx, layer_idx, cache)
         else:
@@ -232,7 +233,8 @@ class ContextualBlockEncoderLayer(nn.Module):
         if mask is not None:
             mask = mask.view(nbatch, nblock, mask.size(-2), mask.size(-1))
 
-        # Propagete context information (the last frame of each block) to the first frame
+        # Propagete context information (the last frame of each block)
+        # to the first frame
         # of the next block
 
         if not is_short_segment:
