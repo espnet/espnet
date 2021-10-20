@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Aug 21 16:57:31 2021
+Created on Sat Aug 21 16:57:31 2021.
 
 @author: Keqi Deng (UCAS)
 """
 
+from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 import torch
 from torch import nn
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 
 
 class ContextualBlockEncoderLayer(nn.Module):
@@ -82,6 +82,7 @@ class ContextualBlockEncoderLayer(nn.Module):
         layer_idx=0,
         cache=None,
     ):
+        """Calculate forward propagation."""
         if self.training or x.size(0) > 1:
             return self.forward_train(x, mask, past_ctx, next_ctx, layer_idx, cache)
         else:
@@ -288,7 +289,8 @@ class ContextualBlockEncoderLayer(nn.Module):
         if mask is not None:
             mask = mask.view(nbatch, nblock, mask.size(-2), mask.size(-1))
 
-        # Propagete context information (the last frame of each block) to the first frame
+        # Propagete context information (the last frame of each block)
+        # to the first frame
         # of the next block
 
         if not is_short_segment:
