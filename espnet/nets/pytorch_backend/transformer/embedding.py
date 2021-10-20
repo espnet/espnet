@@ -7,7 +7,6 @@
 """Positional Encoding Module."""
 
 import math
-
 import torch
 
 
@@ -34,6 +33,7 @@ def _pre_hook(
 
 class PositionalEncoding(torch.nn.Module):
     """Positional encoding.
+
     Args:
         d_model (int): Embedding dimension.
         dropout_rate (float): Dropout rate.
@@ -79,8 +79,10 @@ class PositionalEncoding(torch.nn.Module):
 
     def forward(self, x: torch.Tensor):
         """Add positional encoding.
+
         Args:
             x (torch.Tensor): Input tensor (batch, time, `*`).
+
         Returns:
             torch.Tensor: Encoded tensor (batch, time, `*`).
         """
