@@ -2,12 +2,6 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Encoder definition."""
-from typing import Optional
-from typing import Tuple
-
-import torch
-from typeguard import check_argument_types
-
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer import (
@@ -26,6 +20,10 @@ from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
 )
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 import math
+import torch
+from typeguard import check_argument_types
+from typing import Optional
+from typing import Tuple
 
 
 class ContextualBlockTransformerEncoder(AbsEncoder):
