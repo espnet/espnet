@@ -1,0 +1,10 @@
+# https://docs.codecov.com/docs/common-recipe-list
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        # adjust accordingly based on how flaky your tests are
+        # this allows a 1% drop from the previous base commit coverage
+        threshold: 1%
+        informational: true

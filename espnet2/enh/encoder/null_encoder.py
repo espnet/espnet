@@ -4,7 +4,7 @@ from espnet2.enh.encoder.abs_encoder import AbsEncoder
 
 
 class NullEncoder(AbsEncoder):
-    """Null encoder. """
+    """Null encoder."""
 
     def __init__(self):
         super().__init__()

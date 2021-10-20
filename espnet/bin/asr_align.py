@@ -279,10 +279,18 @@ def ctc_align(args, device):
             segment_names[name] = segment_names_per_audio
     # apply configuration
     config = CtcSegmentationParameters()
+    subsampling_factor = 1
+    frame_duration_ms = 10
     if args.subsampling_factor is not None:
-        config.subsampling_factor = args.subsampling_factor
+        subsampling_factor = args.subsampling_factor
     if args.frame_duration is not None:
-        config.frame_duration_ms = args.frame_duration
+        frame_duration_ms = args.frame_duration
+    # Backwards compatibility to ctc_segmentation <= 1.5.3
+    if hasattr(config, "index_duration"):
+        config.index_duration = frame_duration_ms * subsampling_factor / 1000
+    else:
+        config.subsampling_factor = subsampling_factor
+        config.frame_duration_ms = frame_duration_ms
     if args.min_window_size is not None:
         config.min_window_size = args.min_window_size
     if args.max_window_size is not None:
@@ -309,9 +317,7 @@ def ctc_align(args, device):
         )
     if args.scoring_length is not None:
         config.score_min_mean_over_L = args.scoring_length
-    logging.info(
-        f"Frame timings: {config.frame_duration_ms}ms * {config.subsampling_factor}"
-    )
+    logging.info(f"Frame timings: {frame_duration_ms}ms * {subsampling_factor}")
     # Iterate over audio files to decode and align
     for idx, name in enumerate(js.keys(), 1):
         logging.info("(%d/%d) Aligning " + name, idx, len(js.keys()))

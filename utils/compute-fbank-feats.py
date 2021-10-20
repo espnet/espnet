@@ -39,7 +39,7 @@ def get_parser():
         type=int_or_none,
         default=None,
         nargs="?",
-        help="Analisys window length in point",
+        help="Analysis window length in point",
     )
     parser.add_argument(
         "--window",

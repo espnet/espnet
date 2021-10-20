@@ -6,10 +6,203 @@ See the following pages for the usage:
 - [How to run the recipe](../../TEMPLATE/tts1/README.md#how-to-run)
 - [How to train FastSpeech](../../TEMPLATE/tts1/README.md#fastspeech-training)
 - [How to train FastSpeech2](../../TEMPLATE/tts1/README.md#fastspeech2-training)
+- [How to train VITS](../../TEMPLATE/tts1/README.md#vits-training)
+- [How to train joint text2wav](../../TEMPLATE/tts1/README.md#joint-text2wav-training)
 
 See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
+
+
+# FIFTH RESULTS
+
+- Use espeak-ng based G2P
+
+## Environments
+- date: `Fri Oct  8 15:48:44 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a2`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `628b46282537ce532d613d6bafb75e826e8455de`
+  - Commit date: `Wed Sep 8 13:30:50 2021 +0900`
+
+## Pretrained Models
+
+### ljspeech_tts_train_vits_raw_phn_tacotron_espeak_ng_english_us_vits_train.total_count.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+# Prep data directory
+./run.sh --stage 1 --stop-stage 1
+
+# Since espeak is super slow, dump phonemized text at first
+for dset in tr_no_dev dev eval1; do
+    utils/copy_data_dir.sh data/"${dset}"{,_phn}
+    ./pyscripts/utils/convert_text_to_phn.py \
+        --nj 32 \
+        --g2p espeak_ng_english_us_vits \
+        --cleaer tacotron \
+        data/"${dset}"{,_phn}/text
+done
+
+# Run from stage 2
+./run.sh \
+    --train_set tr_no_dev_phn \
+    --valid_set dev_phn \
+    --test_sets "dev_phn eval1_phn" \
+    --srctexts "data/tr_no_dev_phn/text" \
+    --stage 2 \
+    --ngpu 4 \
+    --g2p none \
+    --cleaner none \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
+- 1M iters / Average the last 10 epoch models
+- https://zenodo.org/record/5555690
+
+### ljspeech_tts_train_tacotron2_raw_phn_tacotron_espeak_ng_english_us_vits_train.loss.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+# Prep data directory
+./run.sh --stage 1 --stop-stage 1
+
+# Since espeak is super slow, dump phonemized text at first
+for dset in tr_no_dev dev eval1; do
+    utils/copy_data_dir.sh data/"${dset}"{,_phn}
+    ./pyscripts/utils/convert_text_to_phn.py \
+        --nj 32 \
+        --g2p espeak_ng_english_us_vits \
+        --cleaer tacotron \
+        data/"${dset}"{,_phn}/text
+done
+
+# Run from stage 2
+./run.sh \
+    --train_set tr_no_dev_phn \
+    --valid_set dev_phn \
+    --test_sets "dev_phn eval1_phn" \
+    --srctexts "data/tr_no_dev_phn/text" \
+    --stage 2 \
+    --g2p none \
+    --cleaner none \
+    --train_config ./conf/tuning/train_tacotron2.yaml
+```
+
+</div></details>
+
+- Average the best 5 train loss models
+- https://zenodo.org/record/5560125
+
+### ljspeech_tts_train_conformer_fastspeech2_raw_phn_tacotron_espeak_ng_english_us_vits_train.loss.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+# Use the above tacotron2 model as the teacher
+./run.sh \
+    --ngpu 1 \
+    --stage 7 \
+    --train_set tr_no_dev_phn \
+    --valid_set dev_phn \
+    --test_sets "tr_no_dev_phn dev_phn eval1_phn" \
+    --cleaner none \
+    --g2p none \
+    --train_config ./conf/tuning/train_tacotron2.yaml \
+    --tts_exp exp/tts_train_tacotron2_raw_phn_none \
+    --inference_args "--use_teacher_forcing true"
+
+# Run fastspeech2 training
+./run.sh \
+    --train_set tr_no_dev_phn \
+    --valid_set dev_phn \
+    --test_sets "dev_phn eval1_phn" \
+    --stage 5 \
+    --g2p none \
+    --cleaner none \
+    --train_config ./conf/tuning/train_conformer_fastspeech2.yaml \
+    --teacher_dumpdir exp/tts_train_tacotron2_raw_phn_none/decode_use_teacher_forcingtrue_train.loss.ave \
+    --tts_stats_dir exp/tts_train_tacotron2_raw_phn_none/decode_use_teacher_forcingtrue_train.loss.ave/stats
+```
+
+</div></details>
+
+- Average the best 5 train loss models
+- https://zenodo.org/record/5560127
+
+
+# FORTH RESULTS
+
+- Initial joint training models
+
+## Environments
+- date: `Fri Sep 10 13:04:49 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a2`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `628b46282537ce532d613d6bafb75e826e8455de`
+  - Commit date: `Wed Sep 8 13:30:50 2021 +0900`
+
+## Pretrained models
+
+### ljspeech_tts_train_joint_conformer_fastspeech2_hifigan_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+- Joint training from scrath
+- 1M iters / Average the last 10 epoch models
+- https://zenodo.org/record/5498487
+
+### ljspeech_tts_finetune_joint_conformer_fastspeech2_hifigan_initilized_discriminator_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+- Joint finetuning with the initialized discriminator
+- 0.5M iters / Average the last 5 epoch models
+- https://zenodo.org/record/5498497
+
+### ljspeech_tts_finetune_joint_conformer_fastspeech2_hifigan_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+- Joint finetuning with pretrained text2mel, vocoder and discriminator
+- 0.5M iters / Average the last 5 epoch models
+- https://zenodo.org/record/5498896
+
+
+# THIRD RESULTS
+
+- Initial VITS model
+
+## Environments
+- date: `Sat Sep  4 19:38:35 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a1`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `dee654041cddf80281048b3e7525c1cdafc377ff`
+  - Commit date: `Thu Sep 2 14:45:48 2021 +0900`
+
+## Pretrained Models
+
+### ljspeech_tts_train_vits_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+./run.sh \
+    --stage 1 \
+    --ngpu 4 \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
+- 1M iters / Average the last 10 epoch models
+- https://zenodo.org/record/5443814
 
 
 # SECOND RESULTS

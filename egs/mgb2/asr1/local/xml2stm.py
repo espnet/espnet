@@ -8,7 +8,6 @@
 
 __author__ = "Yifan Zhang (yzhang@qf.org.qa)"
 
-import codecs
 import sys
 from xml.dom import minidom
 
@@ -66,28 +65,30 @@ def loadXml(xmlFileName, opts):
 
 
 def stm(data):
-    out = codecs.getwriter("utf-8")(sys.stdout)
+    sys.stdout.reconfigure(encoding="utf-8")
     for e in data["turn"]:
-        out.write(
+        sys.stdout.write(
             "{} 1 UNKNOWN {:.02f} {:.02f} ".format(data["id"], e.startTime, e.endTime)
         )
-        out.write(e.text)
-        out.write("\n")
+        sys.stdout.write(e.text)
+        sys.stdout.write("\n")
 
 
 def ctm(data):
     """generate ctm output for test"""
 
-    out = codecs.getwriter("utf-8")(sys.stdout)
+    sys.stdout.reconfigure(encoding="utf-8")
     for e in data["turn"]:
         tokens = e.text.split()
         duration = e.endTime - e.startTime
         interval = duration / len(tokens)
         startTime = e.startTime
         for token in tokens:
-            out.write("{} 1 {:.02f} {:.02f} ".format(data["id"], startTime, interval))
-            out.write(token)
-            out.write("\n")
+            sys.stdout.write(
+                "{} 1 {:.02f} {:.02f} ".format(data["id"], startTime, interval)
+            )
+            sys.stdout.write(token)
+            sys.stdout.write("\n")
 
 
 def main(args):

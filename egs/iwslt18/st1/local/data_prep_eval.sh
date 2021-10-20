@@ -92,7 +92,7 @@ if [ ${no_reference} = false ]; then
         cut -d " " -f 2- ${dst}/${lang}.org | normalize-punctuation.perl -l ${lang} > ${dst}/${lang}.norm
         # NOTE: Only Moses script is applied for the evaluation sets
 
-        # fix reclist (original utterance ids include langauge tags)
+        # fix reclist (original utterance ids include language tags)
         awk '{
             uttid=$1; split(uttid,S,"[.]");
             uttid2=S[1] "." S[3]; print uttid2

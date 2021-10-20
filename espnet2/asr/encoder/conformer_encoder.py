@@ -35,6 +35,7 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import check_short_utt
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
+from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling2
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
@@ -46,7 +47,7 @@ class ConformerEncoder(AbsEncoder):
 
     Args:
         input_size (int): Input dimension.
-        output_size (int): Dimention of attention.
+        output_size (int): Dimension of attention.
         attention_heads (int): The number of heads of multi head attention.
         linear_units (int): The number of units of position-wise feed forward.
         num_blocks (int): The number of decoder blocks.
@@ -142,6 +143,13 @@ class ConformerEncoder(AbsEncoder):
             )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(
+                input_size,
+                output_size,
+                dropout_rate,
+                pos_enc_class(output_size, positional_dropout_rate),
+            )
+        elif input_layer == "conv2d2":
+            self.embed = Conv2dSubsampling2(
                 input_size,
                 output_size,
                 dropout_rate,
@@ -280,6 +288,7 @@ class ConformerEncoder(AbsEncoder):
 
         if (
             isinstance(self.embed, Conv2dSubsampling)
+            or isinstance(self.embed, Conv2dSubsampling2)
             or isinstance(self.embed, Conv2dSubsampling6)
             or isinstance(self.embed, Conv2dSubsampling8)
         ):

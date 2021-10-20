@@ -1,8 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
-from distutils.version import LooseVersion
 
-import torch
 import torch.optim.lr_scheduler as L
 
 
@@ -77,6 +75,10 @@ for s in [
     L.CosineAnnealingLR,
 ]:
     AbsEpochStepScheduler.register(s)
-if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
-    for s in [L.CyclicLR, L.OneCycleLR, L.CosineAnnealingWarmRestarts]:
-        AbsBatchStepScheduler.register(s)
+
+AbsBatchStepScheduler.register(L.CyclicLR)
+for s in [
+    L.OneCycleLR,
+    L.CosineAnnealingWarmRestarts,
+]:
+    AbsBatchStepScheduler.register(s)

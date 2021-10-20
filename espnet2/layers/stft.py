@@ -8,7 +8,13 @@ from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.layers.inversible_interface import InversibleInterface
+
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+
+
+is_torch_1_7_plus = LooseVersion(torch.__version__) >= LooseVersion("1.7")
 
 
 class Stft(torch.nn.Module, InversibleInterface):
@@ -81,8 +87,9 @@ class Stft(torch.nn.Module, InversibleInterface):
             )
         else:
             window = None
-        output = torch.stft(
-            input,
+
+        # use stft_kwargs to flexibly control different PyTorch versions' kwargs
+        stft_kwargs = dict(
             n_fft=self.n_fft,
             win_length=self.win_length,
             hop_length=self.hop_length,
@@ -91,6 +98,9 @@ class Stft(torch.nn.Module, InversibleInterface):
             normalized=self.normalized,
             onesided=self.onesided,
         )
+        if is_torch_1_7_plus:
+            stft_kwargs["return_complex"] = False
+        output = torch.stft(input, **stft_kwargs)
         # output: (Batch, Freq, Frames, 2=real_imag)
         # -> (Batch, Frames, Freq, 2=real_imag)
         output = output.transpose(1, 2)
@@ -143,15 +153,18 @@ class Stft(torch.nn.Module, InversibleInterface):
 
         if self.window is not None:
             window_func = getattr(torch, f"{self.window}_window")
-            window = window_func(
-                self.win_length, dtype=input.dtype, device=input.device
-            )
+            if is_complex(input):
+                datatype = input.real.dtype
+            else:
+                datatype = input.dtype
+            window = window_func(self.win_length, dtype=datatype, device=input.device)
         else:
             window = None
 
-        if isinstance(input, ComplexTensor):
+        if is_complex(input):
             input = torch.stack([input.real, input.imag], dim=-1)
-        assert input.shape[-1] == 2
+        elif input.shape[-1] != 2:
+            raise TypeError("Invalid input type")
         input = input.transpose(1, 2)
 
         wavs = istft(

@@ -62,7 +62,7 @@ To run the experiment do
 
 `cd ../expname`
 
-To specify the BABEL langauges in training refer to them by their language id.
+To specify the BABEL languages in training refer to them by their language id.
 See  conf/lang.conf for the exhaustive list of languages and corresponding
 language ids.
 

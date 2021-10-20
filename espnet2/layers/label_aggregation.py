@@ -52,6 +52,10 @@ class LabelAggregate(torch.nn.Module):
             pad = self.win_length // 2
             max_length = max_length + 2 * pad
             input = torch.nn.functional.pad(input, (0, 0, pad, pad), "constant", 0)
+            input[:, :pad, :] = input[:, pad : (2 * pad), :]
+            input[:, (max_length - pad) : max_length, :] = input[
+                :, (max_length - 2 * pad) : (max_length - pad), :
+            ]
             nframe = (max_length - self.win_length) // self.hop_length + 1
 
         # Step2: framing

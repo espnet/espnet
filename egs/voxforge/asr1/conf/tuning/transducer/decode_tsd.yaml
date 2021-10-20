@@ -3,4 +3,3 @@ batch: 0
 beam-size: 5
 search-type: tsd
 max-sym-exp: 4
-score-norm: False

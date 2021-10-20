@@ -26,10 +26,10 @@ batch_size: 16
 optim: adam
 accum_grad: 2
 grad_clip: 5
-patience: 0
+patience: 3
 max_epoch: 100
 optim_conf:
-    lr: 1.0
+    lr: 0.01
 scheduler: noamlr
 scheduler_conf:
     warmup_steps: 1000
@@ -41,4 +41,4 @@ best_model_criterion:
    - max
 keep_nbest_models: 3
 
-init: chainer
+init: xavier_uniform
