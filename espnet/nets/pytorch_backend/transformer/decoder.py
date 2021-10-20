@@ -50,7 +50,7 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
     Args:
         odim (int): Output diminsion.
         self_attention_layer_type (str): Self-attention layer type.
-        attention_dim (int): Dimention of attention.
+        attention_dim (int): Dimension of attention.
         attention_heads (int): The number of heads of multi head attention.
         conv_wshare (int): The number of kernel of convolution. Only used in
             self_attention_layer_type == "lightconv*" or "dynamiconv*".
@@ -150,7 +150,7 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
         elif selfattention_layer_type == "lightconv2d":
             logging.info(
                 "decoder self-attention layer "
-                "type = lightweight convolution 2-dimentional"
+                "type = lightweight convolution 2-dimensional"
             )
             decoder_selfattn_layer = LightweightConvolution2D
             decoder_selfattn_layer_args = [
@@ -180,7 +180,7 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
             ]
         elif selfattention_layer_type == "dynamicconv2d":
             logging.info(
-                "decoder self-attention layer type = dynamic convolution 2-dimentional"
+                "decoder self-attention layer type = dynamic convolution 2-dimensional"
             )
             decoder_selfattn_layer = DynamicConvolution2D
             decoder_selfattn_layer_args = [

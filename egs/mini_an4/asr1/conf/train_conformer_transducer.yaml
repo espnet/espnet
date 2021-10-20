@@ -8,21 +8,30 @@ criterion: loss
 early-stop-criterion: "validation/main/loss"
 sortagrad: 0
 opt: noam
-transformer-lr: 5.0
-transformer-warmup-steps: 10
+noam-lr: 5.0
+noam-adim: 4
+optimizer-warmup-steps: 10
 epochs: 1
 report-interval-iters: 1
 accum-grad: 1
 patience: 0
 
 # network architecture
+## general
+custom-enc-positional-encoding-type: rel_pos
+custom-enc-self-attn-type: rel_self_attn
+custom-enc-pw-activation-type: swish
 ## encoder related
 etype: custom
 enc-block-arch:
-        - type: transformer
+        - type: conformer
           d_hidden: 4
           d_ff: 4
           heads: 2
+          macaron_style: True
+          use_conv_mod: True
+          conv_mod_kernel: 7
+          dropout-rate: 0.3
 enc-block-repeat: 2
 ## decoder related
 dtype: custom

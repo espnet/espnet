@@ -40,7 +40,7 @@ tdir=$2
 dir=data/local/eval2000
 mkdir -p $dir
 
-find $sdir/english -iname '*.sph' | sort > $dir/sph.flist
+find -L $sdir/english -iname '*.sph' | sort > $dir/sph.flist
 sed -e 's?.*/??' -e 's?.sph??' $dir/sph.flist | paste - $dir/sph.flist \
   > $dir/sph.scp
 

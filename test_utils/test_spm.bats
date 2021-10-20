@@ -17,7 +17,7 @@ teardown() {
     bpemode=unigram
     bpemodel=$tmpdir/test_spm
 
-    utils/spm_train --user_defined_symbols --input=${testfile} --vocab_size=${nbpe} --model_type=${bpemode} \
+    utils/spm_train --input=${testfile} --vocab_size=${nbpe} --model_type=${bpemode} \
           --model_prefix=${bpemodel} --input_sentence_size=100000000 \
           --character_coverage=1.0 --bos_id=-1 --eos_id=-1 \
           --unk_id=0 --user_defined_symbols=[laughter],[noise],[vocalized-noise]

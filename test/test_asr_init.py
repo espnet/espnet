@@ -72,11 +72,11 @@ def get_rnn_args(**kwargs):
 
 def get_rnnt_args(**kwargs):
     train_defaults = dict(
-        etype="vggblstmp",
+        etype="vggblstm",
         elayers=1,
         subsample="1_2_2_1_1",
-        eunits=4,
-        eprojs=4,
+        eunits=2,
+        eprojs=2,
         dtype="lstm",
         dlayers=1,
         dunits=4,
@@ -150,69 +150,73 @@ def pytorch_prepare_inputs(idim, odim, ilens, olens, is_cuda=False):
 
 
 @pytest.mark.parametrize(
-    "model_type, finetune_dic",
+    "main_model_type, pt_model_type, finetune_dic",
     [
         (
+            "rnn",
             "rnn",
             {
                 "enc_init": None,
                 "dec_init": True,
-                "dec_init_mods": "dec.,att.",
+                "dec_init_mods": ["dec.", "att."],
                 "mtlalpha": 0.5,
                 "use_lm": None,
             },
         ),
         (
             "rnnt",
+            "rnn",
+            {
+                "enc_init": True,
+                "enc_init_mods": ["enc."],
+                "dec_init": None,
+                "mtlalpha": 1.0,
+                "use_lm": None,
+            },
+        ),
+        (
+            "rnnt",
+            "lm",
             {
                 "enc_init": None,
                 "dec_init": True,
-                "dec_init_mods": "dec.0.",
+                "dec_init_mods": ["dec.decoder."],
                 "use_lm": True,
             },
         ),
     ],
 )
-def test_pytorch_trainable_and_transferable(model_type, finetune_dic):
+def test_pytorch_trainable_and_transferable(
+    main_model_type, pt_model_type, finetune_dic
+):
     idim, odim, ilens, olens = get_default_scope_inputs()
-
-    if model_type == "rnn":
-        from espnet.nets.pytorch_backend.e2e_asr import E2E
-
-        arg_function = get_rnn_args
-    else:
-        from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
-
-        arg_function = get_rnnt_args
-
-    args = arg_function()
-
-    model = E2E(idim, odim, args)
-
     batch = pytorch_prepare_inputs(idim, odim, ilens, olens)
 
-    loss = model(*batch)
-    loss.backward()
+    if pt_model_type == "lm":
+        pt_args = get_rnnt_args() if main_model_type == "rnnt" else get_rnn_args()
+        pt_model = get_lm(pt_args.dlayers, pt_args.dunits, pt_args.char_list)
+        prefix_tmppath = "_rnnlm"
+    else:
+        if pt_model_type == "rnn":
+            from espnet.nets.pytorch_backend.e2e_asr import E2E
+
+            pt_args = get_rnn_args()
+        else:
+            from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
+
+            pt_args = get_rnnt_args()
+
+        pt_model = E2E(idim, odim, pt_args)
+        prefix_tmppath = ""
+
+        loss = pt_model(*batch)
+        loss.backward()
 
     if not os.path.exists(".pytest_cache"):
         os.makedirs(".pytest_cache")
 
-    tmppath = tempfile.mktemp()
-
-    if finetune_dic["use_lm"] is not None:
-        lm = get_lm(args.dlayers, args.dunits, args.char_list)
-        tmppath += "_rnnlm"
-
-        torch_save(tmppath, lm)
-    else:
-        torch_save(tmppath, model)
-
-    if finetune_dic["enc_init"] is not None:
-        finetune_dic["enc_init"] = tmppath
-    if finetune_dic["dec_init"] is not None:
-        finetune_dic["dec_init"] = tmppath
-
-    finetune_args = arg_function(**finetune_dic)
+    tmppath = tempfile.mktemp() + prefix_tmppath
+    torch_save(tmppath, pt_model)
 
     # create dummy model.json for saved model to go through
     # get_model_conf(...) called in load_trained_modules method.
@@ -220,22 +224,31 @@ def test_pytorch_trainable_and_transferable(model_type, finetune_dic):
     with open(model_conf, "wb") as f:
         f.write(
             json.dumps(
-                (idim, odim, vars(finetune_args)),
+                (idim, odim, vars(pt_args)),
                 indent=4,
                 ensure_ascii=False,
                 sort_keys=True,
             ).encode("utf_8")
         )
 
-    model = load_trained_modules(idim, odim, finetune_args)
+    if finetune_dic["enc_init"] is not None:
+        finetune_dic["enc_init"] = tmppath
+    if finetune_dic["dec_init"] is not None:
+        finetune_dic["dec_init"] = tmppath
 
-    loss = model(*batch)
+    if main_model_type == "rnn":
+        main_args = get_rnn_args(**finetune_dic)
+    else:
+        main_args = get_rnnt_args(**finetune_dic)
+    main_model = load_trained_modules(idim, odim, main_args)
+
+    loss = main_model(*batch)
     loss.backward()
 
-    if model_type == "rnnt":
+    if main_model_type == "rnnt":
         beam_search = BeamSearchTransducer(
-            decoder=model.dec,
-            joint_network=model.joint_network,
+            decoder=main_model.dec,
+            joint_network=main_model.transducer_tasks.joint_network,
             beam_size=1,
             lm=None,
             lm_weight=0.0,
@@ -249,11 +262,11 @@ def test_pytorch_trainable_and_transferable(model_type, finetune_dic):
 
         with torch.no_grad():
             in_data = np.random.randn(10, idim)
-            model.recognize(in_data, beam_search)
+            main_model.recognize(in_data, beam_search)
     else:
         with torch.no_grad():
             in_data = np.random.randn(10, idim)
-            model.recognize(in_data, args, args.char_list)
+            main_model.recognize(in_data, main_args, main_args.char_list)
 
 
 # todo (b-flo): add test for frozen layers

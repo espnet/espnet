@@ -1,0 +1,1 @@
+../../../../egs/mucs21_subtask2/asr1/local/prepare_data.sh

@@ -4,6 +4,7 @@ import argparse
 import logging
 from pathlib import Path
 import sys
+from typing import Any
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -22,6 +23,7 @@ from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import humanfriendly_parse_size_or_none
+from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
@@ -41,11 +43,12 @@ class DiarizeSpeech:
 
     def __init__(
         self,
-        diar_train_config: Union[Path, str],
-        diar_model_file: Union[Path, str] = None,
+        train_config: Union[Path, str] = None,
+        model_file: Union[Path, str] = None,
         segment_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
         show_progressbar: bool = False,
+        num_spk: Optional[int] = None,
         device: str = "cpu",
         dtype: str = "float32",
     ):
@@ -53,7 +56,7 @@ class DiarizeSpeech:
 
         # 1. Build Diar model
         diar_model, diar_train_args = DiarizationTask.build_model_from_file(
-            diar_train_config, diar_model_file, device
+            train_config, model_file, device
         )
         diar_model.to(dtype=getattr(torch, dtype)).eval()
 
@@ -67,8 +70,9 @@ class DiarizeSpeech:
         self.segment_size = segment_size
         self.normalize_segment_scale = normalize_segment_scale
         self.show_progressbar = show_progressbar
-
-        self.num_spk = diar_model.num_spk
+        # not specifying "num_spk" in inference config file
+        # will enable speaker number prediction during inference
+        self.num_spk = num_spk
 
         self.segmenting = segment_size is not None
         if self.segmenting:
@@ -99,7 +103,7 @@ class DiarizeSpeech:
         assert speech.dim() > 1, speech.size()
         batch_size = speech.size(0)
         speech = speech.to(getattr(torch, self.dtype))
-        # lenghts: (B,)
+        # lengths: (B,)
         lengths = speech.new_full(
             [batch_size], dtype=torch.long, fill_value=speech.size(1)
         )
@@ -135,21 +139,105 @@ class DiarizeSpeech:
                 encoder_out, encoder_out_lens = self.diar_model.encode(
                     speech_seg, lengths_seg
                 )
-                spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
-
+                # SA-EEND
+                if self.diar_model.attractor is None:
+                    assert (
+                        self.num_spk is not None
+                    ), 'Argument "num_spk" must be specified'
+                    spk_prediction = self.diar_model.decoder(
+                        encoder_out, encoder_out_lens
+                    )
+                # EEND-EDA
+                else:
+                    # if num_spk is specified, use that number
+                    if self.num_spk is not None:
+                        attractor, att_prob = self.diar_model.attractor(
+                            encoder_out,
+                            encoder_out_lens,
+                            torch.zeros(
+                                encoder_out.size(0),
+                                self.num_spk + 1,
+                                encoder_out.size(2),
+                            ),
+                        )
+                        spk_prediction = torch.bmm(
+                            encoder_out,
+                            attractor[:, : self.num_spk, :].permute(0, 2, 1),
+                        )
+                    # else find the first att_prob[i] < 0
+                    else:
+                        max_num_spk = 15  # upper bound number for estimation
+                        attractor, att_prob = self.diar_model.attractor(
+                            encoder_out,
+                            encoder_out_lens,
+                            torch.zeros(
+                                encoder_out.size(0),
+                                max_num_spk + 1,
+                                encoder_out.size(2),
+                            ),
+                        )
+                        att_prob = torch.squeeze(att_prob)
+                        for pred_num_spk in range(len(att_prob)):
+                            if att_prob[pred_num_spk].item() < 0:
+                                break
+                        spk_prediction = torch.bmm(
+                            encoder_out, attractor[:, :pred_num_spk, :].permute(0, 2, 1)
+                        )
                 # List[torch.Tensor(B, T, num_spks)]
                 diarized_wavs.append(spk_prediction)
-
+            # Determine maximum estimated number of speakers among the segments
+            max_len = max([x.size(2) for x in diarized_wavs])
+            # pad tensors in diarized_wavs with "float('-inf')" to have same size
+            diarized_wavs = [
+                torch.nn.functional.pad(
+                    x, (0, max_len - x.size(2)), "constant", float("-inf")
+                )
+                for x in diarized_wavs
+            ]
             spk_prediction = torch.cat(diarized_wavs, dim=1)
         else:
             # b. Diarization Forward
             encoder_out, encoder_out_lens = self.diar_model.encode(speech, lengths)
-            spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
-
-        assert spk_prediction.size(2) == self.num_spk, (
-            spk_prediction.size(2),
-            self.num_spk,
-        )
+            # SA-EEND
+            if self.diar_model.attractor is None:
+                assert self.num_spk is not None, 'Argument "num_spk" must be specified'
+                spk_prediction = self.diar_model.decoder(encoder_out, encoder_out_lens)
+            # EEND-EDA
+            else:
+                # if num_spk is specified, use that number
+                if self.num_spk is not None:
+                    attractor, att_prob = self.diar_model.attractor(
+                        encoder_out,
+                        encoder_out_lens,
+                        torch.zeros(
+                            encoder_out.size(0), self.num_spk + 1, encoder_out.size(2)
+                        ),
+                    )
+                    spk_prediction = torch.bmm(
+                        encoder_out, attractor[:, : self.num_spk, :].permute(0, 2, 1)
+                    )
+                # else find the first att_prob[i] < 0
+                else:
+                    max_num_spk = 15  # upper bound number for estimation
+                    attractor, att_prob = self.diar_model.attractor(
+                        encoder_out,
+                        encoder_out_lens,
+                        torch.zeros(
+                            encoder_out.size(0), max_num_spk + 1, encoder_out.size(2)
+                        ),
+                    )
+                    att_prob = torch.squeeze(att_prob)
+                    for pred_num_spk in range(len(att_prob)):
+                        if att_prob[pred_num_spk].item() < 0:
+                            break
+                    spk_prediction = torch.bmm(
+                        encoder_out, attractor[:, :pred_num_spk, :].permute(0, 2, 1)
+                    )
+        if self.num_spk is not None:
+            assert spk_prediction.size(2) == self.num_spk, (
+                spk_prediction.size(2),
+                self.num_spk,
+            )
         assert spk_prediction.size(0) == batch_size, (
             spk_prediction.size(0),
             batch_size,
@@ -158,6 +246,36 @@ class DiarizeSpeech:
         spk_prediction = 1 / (1 + np.exp(-spk_prediction))
 
         return spk_prediction
+
+    @staticmethod
+    def from_pretrained(
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
+        """Build DiarizeSpeech instance from the pretrained model.
+
+        Args:
+            model_tag (Optional[str]): Model tag of the pretrained models.
+                Currently, the tags of espnet_model_zoo are supported.
+
+        Returns:
+            DiarizeSpeech: DiarizeSpeech instance.
+
+        """
+        if model_tag is not None:
+            try:
+                from espnet_model_zoo.downloader import ModelDownloader
+
+            except ImportError:
+                logging.error(
+                    "`espnet_model_zoo` is not installed. "
+                    "Please install via `pip install -U espnet_model_zoo`."
+                )
+                raise
+            d = ModelDownloader()
+            kwargs.update(**d.download_and_unpack(model_tag))
+
+        return DiarizeSpeech(**kwargs)
 
 
 def inference(
@@ -171,11 +289,13 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    diar_train_config: str,
-    diar_model_file: str,
+    train_config: Optional[str],
+    model_file: Optional[str],
+    model_tag: Optional[str],
     allow_variable_data_keys: bool,
     segment_size: Optional[float],
     show_progressbar: bool,
+    num_spk: Optional[int],
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -197,13 +317,18 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build separate_speech
-    diarize_speech = DiarizeSpeech(
-        diar_train_config=diar_train_config,
-        diar_model_file=diar_model_file,
+    diarize_speech_kwargs = dict(
+        train_config=train_config,
+        model_file=model_file,
         segment_size=segment_size,
         show_progressbar=show_progressbar,
+        num_spk=num_spk,
         device=device,
         dtype=dtype,
+    )
+    diarize_speech = DiarizeSpeech.from_pretrained(
+        model_tag=model_tag,
+        **diarize_speech_kwargs,
     )
 
     # 3. Build data-iterator
@@ -294,8 +419,22 @@ def get_parser():
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
     group = parser.add_argument_group("The model configuration related")
-    group.add_argument("--diar_train_config", type=str, required=True)
-    group.add_argument("--diar_model_file", type=str, required=True)
+    group.add_argument(
+        "--train_config",
+        type=str,
+        help="Diarization training configuration",
+    )
+    group.add_argument(
+        "--model_file",
+        type=str,
+        help="Diarization model parameter file",
+    )
+    group.add_argument(
+        "--model_tag",
+        type=str,
+        help="Pretrained model tag. If specify this option, train_config and "
+        "model_file will be overwritten",
+    )
 
     group = parser.add_argument_group("Data loading related")
     group.add_argument(
@@ -317,6 +456,12 @@ def get_parser():
         default=False,
         help="Whether to show a progress bar when performing segment-wise speaker "
         "diarization",
+    )
+    group.add_argument(
+        "--num_spk",
+        type=int_or_none,
+        default=None,
+        help="Predetermined number of speakers for inference",
     )
 
     return parser

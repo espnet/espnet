@@ -252,7 +252,7 @@ class E2E(ChainerASRInterface):
         """E2E forward propagation.
 
         Args:
-            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)
+            xs (chainer.Variable): Batch of padded character ids. (B, Tmax)
             ilens (chainer.Variable): Batch of length of each input batch. (B,)
             ys (chainer.Variable): Batch of padded target features. (B, Lmax, odim)
             calculate_attentions (bool): If true, return value is the output of encoder.
@@ -381,7 +381,7 @@ class E2E(ChainerASRInterface):
         """E2E beam search.
 
         Args:
-            h (ndarray): Encoder ouput features (B, T, D) or (T, D).
+            h (ndarray): Encoder output features (B, T, D) or (T, D).
             lpz (ndarray): Log probabilities from CTC.
             recog_args (Namespace): Argment namespace contraining options.
             char_list (List[str]): List of characters.
@@ -506,7 +506,7 @@ class E2E(ChainerASRInterface):
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
-                logging.info("adding <eos> in the last postion in the loop")
+                logging.info("adding <eos> in the last position in the loop")
                 for hyp in hyps:
                     hyp["yseq"].append(self.eos)
 

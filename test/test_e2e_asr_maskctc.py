@@ -84,6 +84,15 @@ def _savefn(*args, **kwargs):
     return
 
 
+maskctc_interctc = {
+    "maskctc_n_iterations": 0,
+    "maskctc_probability_threshold": 0.5,
+    "elayers": 2,
+    "intermediate_ctc_weight": 0.3,
+    "intermediate_ctc_layer": "1",
+}
+
+
 @pytest.mark.parametrize(
     "model_dict",
     [
@@ -91,6 +100,7 @@ def _savefn(*args, **kwargs):
         ({"maskctc_n_iterations": 1, "maskctc_probability_threshold": 0.5}),
         ({"maskctc_n_iterations": 2, "maskctc_probability_threshold": 0.5}),
         ({"maskctc_n_iterations": 0, "maskctc_probability_threshold": 0.5}),
+        maskctc_interctc,
     ],
 )
 def test_transformer_trainable_and_decodable(model_dict):

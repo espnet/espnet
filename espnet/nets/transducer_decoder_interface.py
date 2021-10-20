@@ -13,123 +13,129 @@ import torch
 
 @dataclass
 class Hypothesis:
-    """Default hypothesis definition for beam search."""
+    """Default hypothesis definition for Transducer search algorithms."""
 
     score: float
     yseq: List[int]
     dec_state: Union[
-        Tuple[torch.Tensor, Optional[torch.Tensor]], List[torch.Tensor], torch.Tensor
+        Tuple[torch.Tensor, Optional[torch.Tensor]],
+        List[Optional[torch.Tensor]],
+        torch.Tensor,
     ]
     lm_state: Union[Dict[str, Any], List[Any]] = None
 
 
 @dataclass
-class NSCHypothesis(Hypothesis):
-    """Extended hypothesis definition for NSC beam search."""
+class ExtendedHypothesis(Hypothesis):
+    """Extended hypothesis definition for NSC beam search and mAES."""
 
-    y: List[torch.Tensor] = None
+    dec_out: List[torch.Tensor] = None
     lm_scores: torch.Tensor = None
 
 
 class TransducerDecoderInterface:
-    """Decoder interface for transducer models."""
+    """Decoder interface for Transducer models."""
 
     def init_state(
         self,
         batch_size: int,
-        device: torch.device,
     ) -> Union[
         Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
     ]:
         """Initialize decoder states.
 
         Args:
-            batch_size: Batch size for initial state
-            device: Device for initial state
+            batch_size: Batch size.
 
         Returns:
-            state: Initialized state
+            state: Initial decoder hidden states.
 
         """
-        raise NotImplementedError("init_state method is not implemented")
+        raise NotImplementedError("init_state(...) is not implemented")
 
     def score(
         self,
-        hyp: Union[Hypothesis, NSCHypothesis],
+        hyp: Hypothesis,
         cache: Dict[str, Any],
-    ) -> Union[
-        Tuple[torch.Tensor, Optional[torch.Tensor]],
+    ) -> Tuple[
         torch.Tensor,
-        List[Optional[torch.Tensor]],
+        Union[
+            Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
+        ],
+        torch.Tensor,
     ]:
-        """Forward one hypothesis.
+        """One-step forward hypothesis.
 
         Args:
             hyp: Hypothesis.
-            cache: Pairs of (y, state) for each token sequence (key)
+            cache: Pairs of (dec_out, dec_state) for each token sequence. (key)
 
         Returns:
-            y: Decoder outputs
-            new_state: New decoder state
-            lm_tokens: Token id for LM
+            dec_out: Decoder output sequence.
+            new_state: Decoder hidden states.
+            lm_tokens: Label ID for LM.
 
         """
-        raise NotImplementedError("score method is not implemented")
+        raise NotImplementedError("score(...) is not implemented")
 
     def batch_score(
         self,
-        hyps: Union[List[Hypothesis], List[NSCHypothesis]],
-        batch_states: Union[
+        hyps: Union[List[Hypothesis], List[ExtendedHypothesis]],
+        dec_states: Union[
             Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
         ],
         cache: Dict[str, Any],
-    ) -> Union[
-        Tuple[torch.Tensor, Optional[torch.Tensor]],
+        use_lm: bool,
+    ) -> Tuple[
         torch.Tensor,
-        List[Optional[torch.Tensor]],
+        Union[
+            Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
+        ],
+        torch.Tensor,
     ]:
-        """Forward batch of hypotheses.
+        """One-step forward hypotheses.
 
         Args:
-            hyps: Batch of hypotheses
-            batch_states: Batch of decoder states
-            cache: pairs of (y, state) for each token sequence (key)
+            hyps: Hypotheses.
+            dec_states: Decoder hidden states.
+            cache: Pairs of (dec_out, dec_states) for each label sequence. (key)
+            use_lm: Whether to compute label ID sequences for LM.
 
         Returns:
-            batch_y: Decoder outputs
-            batch_states: Batch of decoder states
-            lm_tokens: Batch of token ids for LM
+            dec_out: Decoder output sequences.
+            dec_states: Decoder hidden states.
+            lm_labels: Label ID sequences for LM.
 
         """
-        raise NotImplementedError("batch_score method is not implemented")
+        raise NotImplementedError("batch_score(...) is not implemented")
 
     def select_state(
         self,
         batch_states: Union[
-            Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
+            Tuple[torch.Tensor, Optional[torch.Tensor]], List[torch.Tensor]
         ],
         idx: int,
     ) -> Union[
         Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
     ]:
-        """Get decoder state from batch for given id.
+        """Get specified ID state from decoder hidden states.
 
         Args:
-            batch_states: Batch of decoder states
-            idx: Index to extract state from batch
+            batch_states: Decoder hidden states.
+            idx: State ID to extract.
 
         Returns:
-            state_idx: Decoder state for given id
+            state_idx: Decoder hidden state for given ID.
 
         """
-        raise NotImplementedError("select_state method is not implemented")
+        raise NotImplementedError("select_state(...) is not implemented")
 
     def create_batch_states(
         self,
-        batch_states: Union[
+        states: Union[
             Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
         ],
-        l_states: List[
+        new_states: List[
             Union[
                 Tuple[torch.Tensor, Optional[torch.Tensor]],
                 List[Optional[torch.Tensor]],
@@ -139,7 +145,7 @@ class TransducerDecoderInterface:
     ) -> Union[
         Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
     ]:
-        """Create batch of decoder states.
+        """Create decoder hidden states.
 
         Args:
             batch_states: Batch of decoder states
@@ -150,4 +156,4 @@ class TransducerDecoderInterface:
             batch_states: Batch of decoder states
 
         """
-        raise NotImplementedError("create_batch_states method is not implemented")
+        raise NotImplementedError("create_batch_states(...) is not implemented")

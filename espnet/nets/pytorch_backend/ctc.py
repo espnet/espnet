@@ -24,6 +24,7 @@ class CTC(torch.nn.Module):
         self.dropout_rate = dropout_rate
         self.loss = None
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
+        self.dropout = torch.nn.Dropout(dropout_rate)
         self.probs = None  # for visualization
 
         # In case of Pytorch >= 1.7.0, CTC will be always builtin
@@ -32,12 +33,6 @@ class CTC(torch.nn.Module):
             if LooseVersion(torch.__version__) < LooseVersion("1.7.0")
             else "builtin"
         )
-
-        # ctc_type = buitin not support Pytorch=1.0.1
-        if self.ctc_type == "builtin" and (
-            LooseVersion(torch.__version__) < LooseVersion("1.1.0")
-        ):
-            self.ctc_type = "cudnnctc"
 
         if ctc_type != self.ctc_type:
             logging.warning(f"CTC was set to {self.ctc_type} due to PyTorch version.")
@@ -81,7 +76,7 @@ class CTC(torch.nn.Module):
         elif self.ctc_type == "gtnctc":
             targets = [t.tolist() for t in th_target]
             log_probs = torch.nn.functional.log_softmax(th_pred, dim=2)
-            return self.ctc_loss(log_probs, targets, 0, "none")
+            return self.ctc_loss(log_probs, targets, th_ilen, 0, "none")
         else:
             raise NotImplementedError
 
@@ -99,7 +94,7 @@ class CTC(torch.nn.Module):
         ys = [y[y != self.ignore_id] for y in ys_pad]  # parse padded ys
 
         # zero padding for hs
-        ys_hat = self.ctc_lo(F.dropout(hs_pad, p=self.dropout_rate))
+        ys_hat = self.ctc_lo(self.dropout(hs_pad))
         if self.ctc_type != "gtnctc":
             ys_hat = ys_hat.transpose(0, 1)
 

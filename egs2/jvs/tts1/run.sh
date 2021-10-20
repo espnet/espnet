@@ -11,7 +11,7 @@ n_shift=300
 win_length=1200
 
 opts=
-if [ "${fs}" -eq 48000 ]; then
+if [ "${fs}" -eq 24000 ]; then
     # To suppress recreation, specify wav format
     opts="--audio_format wav "
 else
@@ -43,6 +43,10 @@ g2p=pyopenjtalk
 # 4. Phoneme + Accent + Pause
 # (e.g. k 1 0 o 1 0 pau k 5 -4 o 5 -4 N 5 -3 n 5 -2 i 5 -2 ch 5 -1 i 5 -1 w 5 0 a 5 0)
 # g2p=pyopenjtalk_accent_with_pause
+
+# 5. Phoneme + Prosody symbols
+# (e.g. ^, k, #, o, _, k, o, [, N, n, i, ch, i, w, a, $)
+# g2p=pyopenjtalk_prosody
 
 ./tts.sh \
     --lang jp \
