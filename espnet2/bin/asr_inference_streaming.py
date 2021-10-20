@@ -1,19 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import logging
-from pathlib import Path
-import sys
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
-
-import numpy as np
-import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
-from typing import List
-
 from espnet.nets.batch_beam_search_online import BatchBeamSearchOnline
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
@@ -38,6 +24,18 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
+import logging
+import numpy as np
+from pathlib import Path
+import sys
+import torch
+from typeguard import check_argument_types
+from typeguard import check_return_type
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Union
 
 
 class Speech2TextStreaming:
