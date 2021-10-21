@@ -31,11 +31,11 @@ CUDA_VERSION = $(shell nvcc --version | grep "Cuda compilation tools" | cut -d" 
 CUDA_VERSION_WITHOUT_DOT = $(strip $(subst .,,$(CUDA_VERSION)))
 PIP_PYTORCH := torch==$(TH_VERSION) -f https://download.pytorch.org/whl/cu$(CUDA_VERSION_WITHOUT_DOT)/torch_stable.html
 ifeq ($(strip $(CUDA_VERSION_WITHOUT_DOT)),80)
-CONDA_PYTORCH := pytorch=$(TH_VERSION) cuda$(CUDA_VERSION_WITHOUT_DOT) -c pytorch
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cuda$(CUDA_VERSION_WITHOUT_DOT) 
 else ifeq ($(strip $(CUDA_VERSION_WITHOUT_DOT)),111)
-CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION) -c pytorch -c conda-forge
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION)  -c conda-forge
 else
-CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION) -c pytorch
+CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION) 
 endif
 
 else
