@@ -9,7 +9,11 @@ train_set="train"
 valid_set="valid"
 test_sets="test valid"
 
-asr_config=conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml
+if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.7.0")' &> /dev/null;  then
+	asr_config=conf/train_asr.yaml
+else
+	asr_config=conf/tuning/train_asr_transformer_adam_specaug.yaml #s3prl is installed when pytorch > 1.7. Hence using default frontend
+fi
 
 ./asr.sh \
     --lang en \
