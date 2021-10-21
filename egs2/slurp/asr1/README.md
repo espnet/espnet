@@ -6,8 +6,9 @@
 - python version: `3.9.5 (default, Jun  4 2021, 12:28:51) [GCC 7.5.0]`
 - espnet version: `espnet 0.10.3a2`
 - pytorch version: `pytorch 1.8.1+cu102`
-- - Git hash: `4e7d2ba3510463ae744d1a6d98f18388ad929a9d`
+- Git hash: `4e7d2ba3510463ae744d1a6d98f18388ad929a9d`
   - Commit date: `Mon Oct 11 12:57:48 2021 -0400`
+- Pretrained Model: https://zenodo.org/record/5590384
 
 ## Using Conformer based encoder and Transformer based decoder with spectral augmentation and predicting transcript along with intent
 - ASR config: [conf/train_asr.yaml](conf/tuning/train_asr_conformer.yaml)
@@ -18,3 +19,51 @@
 |inference_asr_model_valid.acc.ave_10best/test|13078|86.3|
 |inference_asr_model_valid.acc.ave_10best/valid|8690|86.9|
 
+## Trying different pretrained ASR models
+### Hubert
+- ASR config: [conf/tuning/train_asr_hubert_conformer.yaml](conf/tuning/train_asr_hubert_conformer.yaml)
+- token_type: word
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|
+|inference_asr_model_valid.acc.ave_10best/test|13078|83.3|
+|inference_asr_model_valid.acc.ave_10best/valid|8690|84.2|
+
+### Wav2vec2
+- ASR config: [conf/tuning/train_asr_wav2vec2_conformer.yaml](conf/tuning/train_asr_wav2vec2_conformer.yaml)
+- token_type: word
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|
+|inference_asr_model_valid.acc.ave_10best/test|13078|83.3|
+|inference_asr_model_valid.acc.ave_10best/valid|8690|84.2|
+
+### TERA
+- ASR config: [conf/tuning/train_asr_tera_conformer.yaml](conf/tuning/train_asr_tera_conformer.yaml)
+- token_type: word
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|
+|inference_asr_model_valid.acc.ave_10best/test|13078|83.5|
+|inference_asr_model_valid.acc.ave_10best/valid|8690|84.8|
+
+
+### VQ-APC
+- ASR config: [conf/tuning/train_asr_vq_apc_conformer.yaml](conf/tuning/train_asr_vq_apc_conformer.yaml)
+- token_type: word
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|
+|inference_asr_model_valid.acc.ave_10best/test|13078|83.5|
+|inference_asr_model_valid.acc.ave_10best/valid|8690|84.8|
+
+## Trying different pretrained ASR models
+### BERT
+- ASR config: [conf/tuning/train_asr_bert_conformer.yaml](conf/tuning/train_asr_bert_conformer.yaml)
+- token_type: word
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|
+|inference_asr_model_valid.acc.ave_10best/test|13078|85.7|
+
+### MPNET
+- ASR config: [conf/tuning/train_asr_mpnet_conformer.yaml](conf/tuning/train_asr_mpnet_conformer.yaml)
+- token_type: word
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|
+|inference_asr_model_valid.acc.ave_10best/test|13078|82.5|
