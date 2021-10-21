@@ -23,8 +23,8 @@ seed=1          # seed to generate random number
 do_delta=false
 
 preprocess_config=conf/specaug.yaml
-train_config=conf/train.yaml
-decode_config=conf/decode.yaml
+train_config=conf/tuning/train_pytorch_multidecoder_conformer.yaml
+decode_config=conf/tuning/decode_pytorch_multidecoder_conformer_beam10_beam16.yaml
 
 # decoding parameter
 trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
@@ -88,7 +88,7 @@ nlsyms=data/lang_1spm/${train_set}_non_lang_syms_${tgt_case}.txt
 bpemodel=data/lang_1spm/${train_set}_${bpemode}${nbpe}_${tgt_case}
 echo "dictionary: ${dict}"
 
-# NOTE: skip stage 3: LM Preparation
+#NOTE: use run.sh to prepare data by running stages 0-2 before running this script!
 
 if [[ ${tag} == "" ]]; then
     expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}_gpu${ngpu}
