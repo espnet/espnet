@@ -77,6 +77,7 @@ valid_set=       # Name of development set.
 test_sets=       # Names of evaluation sets. Multiple items can be specified.
 diar_speech_fold_length=800 # fold_length for speech data during diar training
                             # Typically, the label also follow the same fold length
+lang=noinfo      # The language type of corpus.
 
 
 help_message=$(cat << EOF
