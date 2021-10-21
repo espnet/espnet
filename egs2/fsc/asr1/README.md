@@ -6,8 +6,9 @@
 - python version: `3.9.5 (default, Jun  4 2021, 12:28:51) [GCC 7.5.0]`
 - espnet version: `espnet 0.10.3a2`
 - pytorch version: `pytorch 1.8.1+cu102`
-- - Git hash: `4e7d2ba3510463ae744d1a6d98f18388ad929a9d`
+- Git hash: `4e7d2ba3510463ae744d1a6d98f18388ad929a9d`
   - Commit date: `Mon Oct 11 12:57:48 2021 -0400`
+- Pretrained Model: https://zenodo.org/record/5590204 
 
 ## Using Transformer based encoder-decoder with Hubert pre encoder and decoding sentence with spectral augmentation and predicting transcript along with intent
 - ASR config: [conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml](conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml)
