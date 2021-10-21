@@ -104,13 +104,7 @@ def prepare_inputs(
     for i, lg in enumerate(olens):
         labels[i, lg - 1 :] = 1
 
-    batch = {
-        "xs": xs,
-        "ilens": ilens,
-        "ys": ys,
-        "labels": labels,
-        "olens": olens,
-    }
+    batch = {"xs": xs, "ilens": ilens, "ys": ys, "labels": labels, "olens": olens}
 
     if spk_embed_dim is not None:
         spembs = torch.from_numpy(np.random.randn(bs, spk_embed_dim)).float().to(device)

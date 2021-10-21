@@ -147,8 +147,7 @@ class Encoder(torch.nn.Module):
             )
         elif isinstance(input_layer, torch.nn.Module):
             self.embed = torch.nn.Sequential(
-                input_layer,
-                pos_enc_class(attention_dim, positional_dropout_rate),
+                input_layer, pos_enc_class(attention_dim, positional_dropout_rate)
             )
         elif input_layer is None:
             self.embed = torch.nn.Sequential(
@@ -172,11 +171,7 @@ class Encoder(torch.nn.Module):
             logging.info("encoder self-attention layer type = self-attention")
             encoder_selfattn_layer = MultiHeadedAttention
             encoder_selfattn_layer_args = [
-                (
-                    attention_heads,
-                    attention_dim,
-                    attention_dropout_rate,
-                )
+                (attention_heads, attention_dim, attention_dropout_rate)
             ] * num_blocks
         elif selfattention_layer_type == "lightconv":
             logging.info("encoder self-attention layer type = lightweight convolution")

@@ -98,10 +98,7 @@ class FairseqHubertEncoder(AbsEncoder):
 
         if hubert_url == "espnet":
             self.hubert_model_path = hubert_dir_path
-            s = torch.load(
-                self.hubert_model_path,
-                map_location=torch.device("cpu"),
-            )
+            s = torch.load(self.hubert_model_path, map_location=torch.device("cpu"))
 
             if all("encoder.encoder" in k for k in s):
                 try:
@@ -114,8 +111,7 @@ class FairseqHubertEncoder(AbsEncoder):
                     raise e
 
             config_file = os.path.join(
-                "/".join(self.hubert_model_path.split("/")[:-1]),
-                "config.yaml",
+                "/".join(self.hubert_model_path.split("/")[:-1]), "config.yaml"
             )
             config_file = Path(config_file)
 
@@ -141,9 +137,7 @@ class FairseqHubertEncoder(AbsEncoder):
                 self.pretrained_cfg,
                 task,
             ) = fairseq.checkpoint_utils.load_model_ensemble_and_task(
-                [self.hubert_model_path],
-                arg_overrides=arg_overrides,
-                strict=False,
+                [self.hubert_model_path], arg_overrides=arg_overrides, strict=False
             )
             model = models[0]
 
@@ -169,9 +163,7 @@ class FairseqHubertEncoder(AbsEncoder):
             self.after_norm = LayerNorm(output_size)
 
         if output_size and output_size != d:
-            self.output_layer = torch.nn.Sequential(
-                torch.nn.Linear(d, output_size),
-            )
+            self.output_layer = torch.nn.Sequential(torch.nn.Linear(d, output_size))
         else:
             self.output_layer = None
 

@@ -241,10 +241,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 )
                 si_snr = -si_snr_loss.detach()
 
-            stats = dict(
-                si_snr=si_snr,
-                loss=loss.detach(),
-            )
+            stats = dict(si_snr=si_snr, loss=loss.detach())
         else:
             if self.loss_type == "ci_sdr":
                 stats = dict(ci_sdr=-loss.detach(), loss=loss.detach())
@@ -677,9 +674,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             losses = torch.stack([pair_loss(p) for p in all_permutations], dim=1)
             loss, perm = torch.min(losses, dim=1)
             perm = torch.index_select(
-                torch.tensor(all_permutations, device=device, dtype=torch.long),
-                0,
-                perm,
+                torch.tensor(all_permutations, device=device, dtype=torch.long), 0, perm
             )
         else:
             loss = torch.tensor(

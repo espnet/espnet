@@ -254,12 +254,7 @@ def test_pytorch_transducer_trainable_and_decodable(train_dic, recog_dic):
 
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason="multi gpu required")
-@pytest.mark.parametrize(
-    "train_dic",
-    [
-        {"report_cer": True, "report_wer": True},
-    ],
-)
+@pytest.mark.parametrize("train_dic", [{"report_cer": True, "report_wer": True}])
 @pytest.mark.execution_timeout(3.2)
 def test_pytorch_multi_gpu_trainable(train_dic):
     idim, odim, ilens, olens = get_default_scope_inputs()
@@ -397,13 +392,7 @@ def test_invalid_aux_transducer_loss_enc_layers():
         E2E(idim, odim, train_args)
 
 
-@pytest.mark.parametrize(
-    "train_dic",
-    [
-        {},
-        {"etype": "vggblstm"},
-    ],
-)
+@pytest.mark.parametrize("train_dic", [{}, {"etype": "vggblstm"}])
 @pytest.mark.parametrize(
     "recog_dic",
     [
@@ -442,16 +431,12 @@ def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
         # AssertionError is originaly raised by torch.
         with pytest.raises(AssertionError):
             model = torch.quantization.quantize_dynamic(
-                model,
-                quantize_dic["mod"],
-                dtype=quantize_dic["dtype"],
+                model, quantize_dic["mod"], dtype=quantize_dic["dtype"]
             )
         pytest.skip("Skip rest of the test after checking AssertionError")
     else:
         model = torch.quantization.quantize_dynamic(
-            model,
-            quantize_dic["mod"],
-            quantize_dic["dtype"],
+            model, quantize_dic["mod"], quantize_dic["dtype"]
         )
 
     beam_search = BeamSearchTransducer(

@@ -183,11 +183,7 @@ def vad_collector(sample_rate, frame_duration_ms, padding_duration_ms, vad, fram
         etime = voiced_frames[-1].timestamp + voiced_frames[-1].duration
         logging.info(
             "find segment from (%.2f - %.2f), length %.2f"
-            % (
-                voiced_frames[0].timestamp,
-                etime,
-                etime - voiced_frames[0].timestamp,
-            )
+            % (voiced_frames[0].timestamp, etime, etime - voiced_frames[0].timestamp)
         )
         time_stamps.append(
             [voiced_frames[0].timestamp, etime, etime - voiced_frames[0].timestamp]

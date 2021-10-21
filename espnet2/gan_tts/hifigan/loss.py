@@ -21,11 +21,7 @@ from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 class GeneratorAdversarialLoss(torch.nn.Module):
     """Generator adversarial loss module."""
 
-    def __init__(
-        self,
-        average_by_discriminators: bool = True,
-        loss_type: str = "mse",
-    ):
+    def __init__(self, average_by_discriminators: bool = True, loss_type: str = "mse"):
         """Initialize GeneratorAversarialLoss module.
 
         Args:
@@ -43,8 +39,7 @@ class GeneratorAdversarialLoss(torch.nn.Module):
             self.criterion = self._hinge_loss
 
     def forward(
-        self,
-        outputs: Union[List[List[torch.Tensor]], List[torch.Tensor], torch.Tensor],
+        self, outputs: Union[List[List[torch.Tensor]], List[torch.Tensor], torch.Tensor]
     ) -> torch.Tensor:
         """Calcualate generator adversarial loss.
 
@@ -81,11 +76,7 @@ class GeneratorAdversarialLoss(torch.nn.Module):
 class DiscriminatorAdversarialLoss(torch.nn.Module):
     """Discriminator adversarial loss module."""
 
-    def __init__(
-        self,
-        average_by_discriminators: bool = True,
-        loss_type: str = "mse",
-    ):
+    def __init__(self, average_by_discriminators: bool = True, loss_type: str = "mse"):
         """Initialize DiscriminatorAversarialLoss module.
 
         Args:
@@ -269,10 +260,7 @@ class MelSpectrogramLoss(torch.nn.Module):
         )
 
     def forward(
-        self,
-        y_hat: torch.Tensor,
-        y: torch.Tensor,
-        spec: Optional[torch.Tensor] = None,
+        self, y_hat: torch.Tensor, y: torch.Tensor, spec: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """Calculate Mel-spectrogram loss.
 

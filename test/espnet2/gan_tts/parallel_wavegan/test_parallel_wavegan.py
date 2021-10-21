@@ -63,10 +63,7 @@ def make_discriminator_args(**kwargs):
         ({"use_weight_norm": False}, {"use_weight_norm": False}),
         ({"aux_context_window": 2}, {}),
         ({"upsample_net": "UpsampleNetwork"}, {}),
-        (
-            {"upsample_params": {"upsample_scales": [4], "freq_axis_kernel_size": 3}},
-            {},
-        ),
+        ({"upsample_params": {"upsample_scales": [4], "freq_axis_kernel_size": 3}}, {}),
         (
             {
                 "upsample_params": {
@@ -150,7 +147,4 @@ def test_parallel_wavegan_compatibility():
         c = torch.randn(5, 80)
         out_pwg = model_pwg.inference(c, z)
         out_espnet2 = model_espnet2.inference(c, z)
-        np.testing.assert_array_equal(
-            out_pwg.cpu().numpy(),
-            out_espnet2.cpu().numpy(),
-        )
+        np.testing.assert_array_equal(out_pwg.cpu().numpy(), out_espnet2.cpu().numpy())

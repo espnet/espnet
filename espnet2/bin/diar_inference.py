@@ -248,10 +248,7 @@ class DiarizeSpeech:
         return spk_prediction
 
     @staticmethod
-    def from_pretrained(
-        model_tag: Optional[str] = None,
-        **kwargs: Optional[Any],
-    ):
+    def from_pretrained(model_tag: Optional[str] = None, **kwargs: Optional[Any]):
         """Build DiarizeSpeech instance from the pretrained model.
 
         Args:
@@ -327,8 +324,7 @@ def inference(
         dtype=dtype,
     )
     diarize_speech = DiarizeSpeech.from_pretrained(
-        model_tag=model_tag,
-        **diarize_speech_kwargs,
+        model_tag=model_tag, **diarize_speech_kwargs
     )
 
     # 3. Build data-iterator
@@ -383,10 +379,7 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode"
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -420,14 +413,10 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--train_config",
-        type=str,
-        help="Diarization training configuration",
+        "--train_config", type=str, help="Diarization training configuration"
     )
     group.add_argument(
-        "--model_file",
-        type=str,
-        help="Diarization model parameter file",
+        "--model_file", type=str, help="Diarization model parameter file"
     )
     group.add_argument(
         "--model_tag",
@@ -438,10 +427,7 @@ def get_parser():
 
     group = parser.add_argument_group("Data loading related")
     group.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
+        "--batch_size", type=int, default=1, help="The batch size for inference"
     )
     group = parser.add_argument_group("Diarize speech related")
     group.add_argument(

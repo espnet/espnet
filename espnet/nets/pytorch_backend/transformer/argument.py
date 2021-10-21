@@ -116,10 +116,7 @@ def add_arguments_transformer_common(group):
         help="use bias term in lightweight/dynamic convolution",
     )
     group.add_argument(
-        "--dropout-rate",
-        default=0.0,
-        type=float,
-        help="Dropout rate for the encoder",
+        "--dropout-rate", default=0.0, type=float, help="Dropout rate for the encoder"
     )
     group.add_argument(
         "--intermediate-ctc-weight",
@@ -142,11 +139,7 @@ def add_arguments_transformer_common(group):
         "in multi-speaker asr mode)",
     )
     group.add_argument(
-        "--eunits",
-        "-u",
-        default=300,
-        type=int,
-        help="Number of encoder hidden units",
+        "--eunits", "-u", default=300, type=int, help="Number of encoder hidden units"
     )
     # Attention
     group.add_argument(
@@ -156,10 +149,7 @@ def add_arguments_transformer_common(group):
         help="Number of attention transformation dimensions",
     )
     group.add_argument(
-        "--aheads",
-        default=4,
-        type=int,
-        help="Number of heads for multi head attention",
+        "--aheads", default=4, type=int, help="Number of heads for multi head attention"
     )
     group.add_argument(
         "--stochastic-depth-rate",
@@ -424,10 +414,7 @@ def add_arguments_md_transformer_common(group):
 
     # Encoder for the Encoding the Searchable Intermediates
     group.add_argument(
-        "--enc-si-layers",
-        default=2,
-        type=int,
-        help="Number of encoder layers for SI",
+        "--enc-si-layers", default=2, type=int, help="Number of encoder layers for SI"
     )
     group.add_argument(
         "--enc-si-input-layer",

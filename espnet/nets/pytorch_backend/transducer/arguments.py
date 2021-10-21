@@ -33,10 +33,7 @@ def add_encoder_general_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         help="Type of encoder network architecture",
     )
     group.add_argument(
-        "--dropout-rate",
-        default=0.0,
-        type=float,
-        help="Dropout rate for the encoder",
+        "--dropout-rate", default=0.0, type=float, help="Dropout rate for the encoder"
     )
 
     return group
@@ -52,11 +49,7 @@ def add_rnn_encoder_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         "in multi-speaker asr mode)",
     )
     group.add_argument(
-        "--eunits",
-        "-u",
-        default=300,
-        type=int,
-        help="Number of encoder hidden units",
+        "--eunits", "-u", default=300, type=int, help="Number of encoder hidden units"
     )
     group.add_argument(
         "--eprojs", default=320, type=int, help="Number of encoder projection units"
@@ -211,10 +204,7 @@ def add_custom_training_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         help="Optimizer warmup steps",
     )
     group.add_argument(
-        "--noam-lr",
-        default=10.0,
-        type=float,
-        help="Initial value of learning rate",
+        "--noam-lr", default=10.0, type=float, help="Initial value of learning rate"
     )
     group.add_argument(
         "--noam-adim",
@@ -256,10 +246,7 @@ def add_transducer_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         help="Weight of main Transducer loss.",
     )
     group.add_argument(
-        "--joint-dim",
-        default=320,
-        type=int,
-        help="Number of dimensions in joint space",
+        "--joint-dim", default=320, type=int, help="Number of dimensions in joint space"
     )
     group.add_argument(
         "--joint-activation-type",
@@ -314,10 +301,7 @@ def add_auxiliary_task_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         help="Whether to compute auxiliary LM loss (label smoothing).",
     )
     group.add_argument(
-        "--lm-loss-weight",
-        default=0.0,
-        type=float,
-        help="Weight of auxiliary LM loss.",
+        "--lm-loss-weight", default=0.0, type=float, help="Weight of auxiliary LM loss."
     )
     group.add_argument(
         "--lm-loss-smoothing-rate",

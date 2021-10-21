@@ -39,7 +39,7 @@ class NoamLR(_LRScheduler, AbsBatchStepScheduler):
         new_lr = self.lr_for_WarmupLR(lr)
         warnings.warn(
             f"NoamLR is deprecated. "
-            f"Use WarmupLR(warmup_steps={warmup_steps}) with Optimizer(lr={new_lr})",
+            f"Use WarmupLR(warmup_steps={warmup_steps}) with Optimizer(lr={new_lr})"
         )
 
         # __init__() must be invoked before setting field

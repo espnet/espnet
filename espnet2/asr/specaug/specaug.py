@@ -35,7 +35,7 @@ class SpecAug(AbsSpecAug):
     ):
         if not apply_time_warp and not apply_time_mask and not apply_freq_mask:
             raise ValueError(
-                "Either one of time_warp, time_mask, or freq_mask should be applied",
+                "Either one of time_warp, time_mask, or freq_mask should be applied"
             )
         super().__init__()
         self.apply_time_warp = apply_time_warp

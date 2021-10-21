@@ -6,12 +6,7 @@ from espnet2.enh.decoder.abs_decoder import AbsDecoder
 class ConvDecoder(AbsDecoder):
     """Transposed Convolutional decoder for speech enhancement and separation"""
 
-    def __init__(
-        self,
-        channel: int,
-        kernel_size: int,
-        stride: int,
-    ):
+    def __init__(self, channel: int, kernel_size: int, stride: int):
         super().__init__()
         self.convtrans1d = torch.nn.ConvTranspose1d(
             channel, 1, kernel_size, bias=False, stride=stride

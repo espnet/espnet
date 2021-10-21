@@ -163,13 +163,7 @@ def world_extract(wav_path, args):
     mcep = pysptk.sp2mc(sp, args.mcep_dim, args.mcep_alpha)
     npow = spc2npow(sp)
 
-    return {
-        "sp": sp,
-        "mcep": mcep,
-        "ap": ap,
-        "f0": f0,
-        "npow": npow,
-    }
+    return {"sp": sp, "mcep": mcep, "ap": ap, "f0": f0, "npow": npow}
 
 
 def get_basename(path):

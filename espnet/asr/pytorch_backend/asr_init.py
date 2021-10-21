@@ -182,11 +182,7 @@ def create_transducer_compatible_state_dict(
             if "nbrnn" in key:
                 layer_name = rnn_key_name + re.search("_l([0-9]+)", key).group(1)
 
-                key = re.sub(
-                    "_l([0-9]+)",
-                    "_l0",
-                    key.replace("nbrnn", layer_name),
-                )
+                key = re.sub("_l([0-9]+)", "_l0", key.replace("nbrnn", layer_name))
 
             if (encoder_units * 2) == value.size(-1):
                 value = value[:, :encoder_units] + value[:, encoder_units:]
@@ -272,9 +268,7 @@ def get_trained_model_state_dict(model_path, new_is_transducer):
 
     if new_is_transducer and "transducer" not in args.model_module:
         return create_transducer_compatible_state_dict(
-            model.state_dict(),
-            args.etype,
-            args.eunits,
+            model.state_dict(), args.etype, args.eunits
         )
 
     return model.state_dict()
@@ -339,6 +333,7 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
 
     return main_model
 
+
 def load_trained_modules_for_multidecoder(idim, odim, args, interface=ASRInterface):
     """Load model encoder or/and decoder modules with ESPNET pre-trained model(s).
 
@@ -363,8 +358,8 @@ def load_trained_modules_for_multidecoder(idim, odim, args, interface=ASRInterfa
         new_state_dict = OrderedDict()
         for key in state_dict.keys():
             key_tok = key.split(".")
-            if key_tok[0] == 'encoder' or key_tok[0] == 'decoder':
-                key_tok[0] = key_tok[0]+"_"+part
+            if key_tok[0] == "encoder" or key_tok[0] == "decoder":
+                key_tok[0] = key_tok[0] + "_" + part
                 new_key = ".".join(key_tok)
                 new_state_dict[new_key] = state_dict[key]
             else:
@@ -404,7 +399,7 @@ def load_trained_modules_for_multidecoder(idim, odim, args, interface=ASRInterfa
                     else:
                         logging.warning(
                             f"modules {modules} in model {model_path} "
-                            f"don't match your training config",
+                            f"don't match your training config"
                         )
             else:
                 logging.warning("model was not found : %s", model_path)

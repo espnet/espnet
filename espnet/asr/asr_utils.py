@@ -189,19 +189,13 @@ else:
                         att_w = self.trim_attention_weight(uttid_list[idx], att_w)
                         plot = self.draw_attention_plot(att_w)
                         logger.add_figure(
-                            "%s_att%d" % (uttid_list[idx], i + 1),
-                            plot.gcf(),
-                            step,
+                            "%s_att%d" % (uttid_list[idx], i + 1), plot.gcf(), step
                         )
                 # han
                 for idx, att_w in enumerate(att_ws[num_encs]):
                     att_w = self.trim_attention_weight(uttid_list[idx], att_w)
                     plot = self.draw_han_plot(att_w)
-                    logger.add_figure(
-                        "%s_han" % (uttid_list[idx]),
-                        plot.gcf(),
-                        step,
-                    )
+                    logger.add_figure("%s_han" % (uttid_list[idx]), plot.gcf(), step)
             else:
                 for idx, att_w in enumerate(att_ws):
                     att_w = self.trim_attention_weight(uttid_list[idx], att_w)
@@ -427,9 +421,7 @@ else:
                         ctc_prob = self.trim_ctc_prob(uttid_list[idx], ctc_prob)
                         plot = self.draw_ctc_plot(ctc_prob)
                         logger.add_figure(
-                            "%s_ctc%d" % (uttid_list[idx], i + 1),
-                            plot.gcf(),
-                            step,
+                            "%s_ctc%d" % (uttid_list[idx], i + 1), plot.gcf(), step
                         )
             else:
                 for idx, ctc_prob in enumerate(ctc_probs):

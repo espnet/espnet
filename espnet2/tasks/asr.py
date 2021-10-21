@@ -71,9 +71,7 @@ from espnet2.utils.types import str_or_none
 frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(
-        default=DefaultFrontend,
-        sliding_window=SlidingWindow,
-        s3prl=S3prlFrontend,
+        default=DefaultFrontend, sliding_window=SlidingWindow, s3prl=S3prlFrontend
     ),
     type_check=AbsFrontend,
     default="default",
@@ -87,20 +85,14 @@ specaug_choices = ClassChoices(
 )
 normalize_choices = ClassChoices(
     "normalize",
-    classes=dict(
-        global_mvn=GlobalMVN,
-        utterance_mvn=UtteranceMVN,
-    ),
+    classes=dict(global_mvn=GlobalMVN, utterance_mvn=UtteranceMVN),
     type_check=AbsNormalize,
     default="utterance_mvn",
     optional=True,
 )
 preencoder_choices = ClassChoices(
     name="preencoder",
-    classes=dict(
-        sinc=LightweightSincConvs,
-        linear=LinearProjection,
-    ),
+    classes=dict(sinc=LightweightSincConvs, linear=LinearProjection),
     type_check=AbsPreEncoder,
     default=None,
     optional=True,
@@ -122,9 +114,7 @@ encoder_choices = ClassChoices(
 )
 postencoder_choices = ClassChoices(
     name="postencoder",
-    classes=dict(
-        hugging_face_transformers=HuggingFaceTransformersPostEncoder,
-    ),
+    classes=dict(hugging_face_transformers=HuggingFaceTransformersPostEncoder),
     type_check=AbsPostEncoder,
     default=None,
     optional=True,

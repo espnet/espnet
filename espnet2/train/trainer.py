@@ -218,8 +218,7 @@ class Trainer:
         if distributed_option.distributed:
             if trainer_options.sharded_ddp:
                 dp_model = fairscale.nn.data_parallel.ShardedDataParallel(
-                    module=model,
-                    sharded_optimizer=optimizers,
+                    module=model, sharded_optimizer=optimizers
                 )
             else:
                 dp_model = torch.nn.parallel.DistributedDataParallel(
@@ -240,8 +239,7 @@ class Trainer:
                 )
         elif distributed_option.ngpu > 1:
             dp_model = torch.nn.parallel.DataParallel(
-                model,
-                device_ids=list(range(distributed_option.ngpu)),
+                model, device_ids=list(range(distributed_option.ngpu))
             )
         else:
             # NOTE(kamo): DataParallel also should work with ngpu=1,
@@ -583,9 +581,7 @@ class Trainer:
 
                 # compute the gradient norm to check if it is normal or not
                 grad_norm = torch.nn.utils.clip_grad_norm_(
-                    model.parameters(),
-                    max_norm=grad_clip,
-                    norm_type=grad_clip_type,
+                    model.parameters(), max_norm=grad_clip, norm_type=grad_clip_type
                 )
                 # PyTorch<=1.4, clip_grad_norm_ returns float value
                 if not isinstance(grad_norm, torch.Tensor):
@@ -643,7 +639,7 @@ class Trainer:
                             if "lr" in pg
                         },
                         train_time=time.perf_counter() - start_time,
-                    ),
+                    )
                 )
                 start_time = time.perf_counter()
 

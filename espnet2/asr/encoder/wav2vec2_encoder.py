@@ -59,8 +59,7 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         self._output_size = output_size
 
         models, _, _ = fairseq.checkpoint_utils.load_model_ensemble_and_task(
-            [self.w2v_model_path],
-            arg_overrides={"data": w2v_dir_path},
+            [self.w2v_model_path], arg_overrides={"data": w2v_dir_path}
         )
         model = models[0]
 
@@ -85,7 +84,7 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         if model.cfg.encoder_embed_dim != output_size:
             # TODO(xkc09): try LSTM
             self.output_layer = torch.nn.Sequential(
-                torch.nn.Linear(model.cfg.encoder_embed_dim, output_size),
+                torch.nn.Linear(model.cfg.encoder_embed_dim, output_size)
             )
         else:
             self.output_layer = None
@@ -121,11 +120,7 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
             logging.info("Start fine-tuning wav2vec parameters!")
 
         with torch.no_grad() if not ft else contextlib.nullcontext():
-            enc_outputs = self.encoders(
-                xs_pad,
-                masks,
-                features_only=True,
-            )
+            enc_outputs = self.encoders(xs_pad, masks, features_only=True)
 
         xs_pad = enc_outputs["x"]  # (B,T,C),
         bs = xs_pad.shape[0]

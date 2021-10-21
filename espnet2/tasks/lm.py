@@ -31,10 +31,7 @@ from espnet2.utils.types import str_or_none
 
 lm_choices = ClassChoices(
     "lm",
-    classes=dict(
-        seq_rnn=SequentialRNNLM,
-        transformer=TransformerLM,
-    ),
+    classes=dict(seq_rnn=SequentialRNNLM, transformer=TransformerLM),
     type_check=AbsLM,
     default="seq_rnn",
 )

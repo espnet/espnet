@@ -300,7 +300,7 @@ class MelGANDiscriminator(torch.nn.Module):
                 kernel_sizes[1],
                 padding=(kernel_sizes[1] - 1) // 2,
                 bias=bias,
-            ),
+            )
         ]
 
     def forward(self, x: torch.Tensor) -> List[torch.Tensor]:

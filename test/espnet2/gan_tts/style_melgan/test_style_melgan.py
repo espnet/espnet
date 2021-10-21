@@ -38,10 +38,7 @@ def make_style_melgan_discriminator_args(**kwargs):
     defaults = dict(
         repeats=2,
         window_sizes=[128, 256],
-        pqmf_params=[
-            [1, None, None, None],
-            [2, 62, 0.26700, 9.0],
-        ],
+        pqmf_params=[[1, None, None, None], [2, 62, 0.26700, 9.0]],
         discriminator_params={
             "out_channels": 1,
             "kernel_sizes": [5, 3],
@@ -66,11 +63,7 @@ def make_style_melgan_discriminator_args(**kwargs):
     "See https://github.com/pytorch/pytorch/issues/42446.",
 )
 @pytest.mark.parametrize(
-    "dict_g, dict_d",
-    [
-        ({}, {}),
-        ({"gated_function": "sigmoid"}, {}),
-    ],
+    "dict_g, dict_d", [({}, {}), ({"gated_function": "sigmoid"}, {})]
 )
 def test_style_melgan_trainable(dict_g, dict_d):
     # setup
@@ -141,7 +134,4 @@ def test_parallel_wavegan_compatibility():
         out_pwg = model_pwg.inference(c)
         torch.manual_seed(1)
         out_espnet2 = model_espnet2.inference(c)
-        np.testing.assert_array_equal(
-            out_pwg.cpu().numpy(),
-            out_espnet2.cpu().numpy(),
-        )
+        np.testing.assert_array_equal(out_pwg.cpu().numpy(), out_espnet2.cpu().numpy())

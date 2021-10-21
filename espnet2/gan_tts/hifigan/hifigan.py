@@ -77,11 +77,7 @@ class HiFiGANGenerator(torch.nn.Module):
         self.num_upsamples = len(upsample_kernel_sizes)
         self.num_blocks = len(resblock_kernel_sizes)
         self.input_conv = torch.nn.Conv1d(
-            in_channels,
-            channels,
-            kernel_size,
-            1,
-            padding=(kernel_size - 1) // 2,
+            in_channels, channels, kernel_size, 1, padding=(kernel_size - 1) // 2
         )
         self.upsamples = torch.nn.ModuleList()
         self.blocks = torch.nn.ModuleList()
@@ -525,7 +521,7 @@ class HiFiGANScaleDiscriminator(torch.nn.Module):
                 stride=1,
                 padding=(kernel_sizes[3] - 1) // 2,
                 bias=bias,
-            ),
+            )
         ]
 
         if use_weight_norm and use_spectral_norm:
@@ -728,8 +724,7 @@ class HiFiGANMultiScaleMultiPeriodDiscriminator(torch.nn.Module):
             follow_official_norm=follow_official_norm,
         )
         self.mpd = HiFiGANMultiPeriodDiscriminator(
-            periods=periods,
-            discriminator_params=period_discriminator_params,
+            periods=periods, discriminator_params=period_discriminator_params
         )
 
     def forward(self, x: torch.Tensor) -> List[List[torch.Tensor]]:

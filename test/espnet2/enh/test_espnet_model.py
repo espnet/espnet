@@ -17,57 +17,28 @@ from espnet2.enh.separator.transformer_separator import TransformerSeparator
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
-stft_encoder = STFTEncoder(
-    n_fft=28,
-    hop_length=16,
-)
+stft_encoder = STFTEncoder(n_fft=28, hop_length=16)
 
 stft_encoder_bultin_complex = STFTEncoder(
-    n_fft=28,
-    hop_length=16,
-    use_builtin_complex=True,
+    n_fft=28, hop_length=16, use_builtin_complex=True
 )
 
-stft_decoder = STFTDecoder(
-    n_fft=28,
-    hop_length=16,
-)
+stft_decoder = STFTDecoder(n_fft=28, hop_length=16)
 
-conv_encoder = ConvEncoder(
-    channel=15,
-    kernel_size=32,
-    stride=16,
-)
+conv_encoder = ConvEncoder(channel=15, kernel_size=32, stride=16)
 
-conv_decoder = ConvDecoder(
-    channel=15,
-    kernel_size=32,
-    stride=16,
-)
+conv_decoder = ConvDecoder(channel=15, kernel_size=32, stride=16)
 
-rnn_separator = RNNSeparator(
-    input_dim=15,
-    layer=1,
-    unit=10,
-)
+rnn_separator = RNNSeparator(input_dim=15, layer=1, unit=10)
 
 dprnn_separator = DPRNNSeparator(input_dim=15, layer=1, unit=10, segment_size=4)
 
 tcn_separator = TCNSeparator(
-    input_dim=15,
-    layer=2,
-    stack=1,
-    bottleneck_dim=10,
-    hidden_dim=10,
-    kernel=3,
+    input_dim=15, layer=2, stack=1, bottleneck_dim=10, hidden_dim=10, kernel=3
 )
 
 transformer_separator = TransformerSeparator(
-    input_dim=15,
-    adim=8,
-    aheads=2,
-    layers=2,
-    linear_units=10,
+    input_dim=15, adim=8, aheads=2, layers=2, linear_units=10
 )
 
 

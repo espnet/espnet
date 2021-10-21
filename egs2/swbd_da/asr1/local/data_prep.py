@@ -73,10 +73,7 @@ for subset in ["train", "valid", "test"]:
                     ):
                         terminals[
                             terminal.attrib["{http://nite.sourceforge.net/}id"]
-                        ] = {
-                            "start": float(start_str),
-                            "end": float(end_str),
-                        }
+                        ] = {"start": float(start_str), "end": float(end_str)}
 
                 dial_act_root = ET.parse(
                     os.path.join(

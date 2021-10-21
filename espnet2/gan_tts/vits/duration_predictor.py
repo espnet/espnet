@@ -56,10 +56,7 @@ class StochasticDurationPredictor(torch.nn.Module):
 
         self.pre = torch.nn.Conv1d(channels, channels, 1)
         self.dds = DilatedDepthSeparableConv(
-            channels,
-            kernel_size,
-            layers=dds_conv_layers,
-            dropout_rate=dropout_rate,
+            channels, kernel_size, layers=dds_conv_layers, dropout_rate=dropout_rate
         )
         self.proj = torch.nn.Conv1d(channels, channels, 1)
 
@@ -67,34 +64,19 @@ class StochasticDurationPredictor(torch.nn.Module):
         self.flows = torch.nn.ModuleList()
         self.flows += [ElementwiseAffineFlow(2)]
         for i in range(flows):
-            self.flows += [
-                ConvFlow(
-                    2,
-                    channels,
-                    kernel_size,
-                    layers=dds_conv_layers,
-                )
-            ]
+            self.flows += [ConvFlow(2, channels, kernel_size, layers=dds_conv_layers)]
             self.flows += [FlipFlow()]
 
         self.post_pre = torch.nn.Conv1d(1, channels, 1)
         self.post_dds = DilatedDepthSeparableConv(
-            channels,
-            kernel_size,
-            layers=dds_conv_layers,
-            dropout_rate=dropout_rate,
+            channels, kernel_size, layers=dds_conv_layers, dropout_rate=dropout_rate
         )
         self.post_proj = torch.nn.Conv1d(channels, channels, 1)
         self.post_flows = torch.nn.ModuleList()
         self.post_flows += [ElementwiseAffineFlow(2)]
         for i in range(flows):
             self.post_flows += [
-                ConvFlow(
-                    2,
-                    channels,
-                    kernel_size,
-                    layers=dds_conv_layers,
-                )
+                ConvFlow(2, channels, kernel_size, layers=dds_conv_layers)
             ]
             self.post_flows += [FlipFlow()]
 
@@ -138,11 +120,7 @@ class StochasticDurationPredictor(torch.nn.Module):
             h_w = self.post_dds(h_w, x_mask)
             h_w = self.post_proj(h_w) * x_mask
             e_q = (
-                torch.randn(
-                    w.size(0),
-                    2,
-                    w.size(2),
-                ).to(device=x.device, dtype=x.dtype)
+                torch.randn(w.size(0), 2, w.size(2)).to(device=x.device, dtype=x.dtype)
                 * x_mask
             )
             z_q = e_q
@@ -177,11 +155,7 @@ class StochasticDurationPredictor(torch.nn.Module):
             flows = list(reversed(self.flows))
             flows = flows[:-2] + [flows[-1]]  # remove a useless vflow
             z = (
-                torch.randn(
-                    x.size(0),
-                    2,
-                    x.size(2),
-                ).to(device=x.device, dtype=x.dtype)
+                torch.randn(x.size(0), 2, x.size(2)).to(device=x.device, dtype=x.dtype)
                 * noise_scale
             )
             for flow in flows:

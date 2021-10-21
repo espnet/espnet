@@ -235,9 +235,7 @@ class GANTrainer(Trainer):
                 if grad_clip > 0.0:
                     # compute the gradient norm to check if it is normal or not
                     grad_norm = torch.nn.utils.clip_grad_norm_(
-                        model.parameters(),
-                        max_norm=grad_clip,
-                        norm_type=grad_clip_type,
+                        model.parameters(), max_norm=grad_clip, norm_type=grad_clip_type
                     )
                     # PyTorch<=1.4, clip_grad_norm_ returns float value
                     if not isinstance(grad_norm, torch.Tensor):
@@ -290,7 +288,7 @@ class GANTrainer(Trainer):
                         f"optim{optim_idx}_lr{i}": pg["lr"]
                         for i, pg in enumerate(optimizers[optim_idx].param_groups)
                         if "lr" in pg
-                    },
+                    }
                 )
                 reporter.register(
                     {f"{turn}_train_time": time.perf_counter() - turn_start_time}

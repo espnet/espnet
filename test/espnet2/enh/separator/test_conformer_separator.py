@@ -177,10 +177,7 @@ def test_conformer_separator_forward_backward_real(
 
 def test_Conformer_separator_invalid_type():
     with pytest.raises(ValueError):
-        ConformerSeparator(
-            input_dim=10,
-            nonlinear="fff",
-        )
+        ConformerSeparator(input_dim=10, nonlinear="fff")
 
 
 def test_Conformer_separator_output():

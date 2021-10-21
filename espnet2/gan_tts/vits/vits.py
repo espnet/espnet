@@ -26,9 +26,7 @@ from espnet2.gan_tts.vits.generator import VITSGenerator
 from espnet2.gan_tts.vits.loss import KLDivergenceLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
 
-AVAILABLE_GENERATERS = {
-    "vits_generator": VITSGenerator,
-}
+AVAILABLE_GENERATERS = {"vits_generator": VITSGenerator}
 AVAILABLE_DISCRIMINATORS = {
     "hifigan_period_discriminator": HiFiGANPeriodDiscriminator,
     "hifigan_scale_discriminator": HiFiGANScaleDiscriminator,
@@ -213,25 +211,15 @@ class VITS(AbsGANTTS):
             #   where idim represents #vocabularies and odim represents
             #   the input acoustic feature dimension.
             generator_params.update(vocabs=idim, aux_channels=odim)
-        self.generator = generator_class(
-            **generator_params,
-        )
+        self.generator = generator_class(**generator_params)
         discriminator_class = AVAILABLE_DISCRIMINATORS[discriminator_type]
-        self.discriminator = discriminator_class(
-            **discriminator_params,
-        )
-        self.generator_adv_loss = GeneratorAdversarialLoss(
-            **generator_adv_loss_params,
-        )
+        self.discriminator = discriminator_class(**discriminator_params)
+        self.generator_adv_loss = GeneratorAdversarialLoss(**generator_adv_loss_params)
         self.discriminator_adv_loss = DiscriminatorAdversarialLoss(
-            **discriminator_adv_loss_params,
+            **discriminator_adv_loss_params
         )
-        self.feat_match_loss = FeatureMatchLoss(
-            **feat_match_loss_params,
-        )
-        self.mel_loss = MelSpectrogramLoss(
-            **mel_loss_params,
-        )
+        self.feat_match_loss = FeatureMatchLoss(**feat_match_loss_params)
+        self.mel_loss = MelSpectrogramLoss(**mel_loss_params)
         self.kl_loss = KLDivergenceLoss()
 
         # coefficients
@@ -564,9 +552,7 @@ class VITS(AbsGANTTS):
         # setup
         text = text[None]
         text_lengths = torch.tensor(
-            [text.size(1)],
-            dtype=torch.long,
-            device=text.device,
+            [text.size(1)], dtype=torch.long, device=text.device
         )
         if sids is not None:
             sids = sids.view(1)
@@ -580,9 +566,7 @@ class VITS(AbsGANTTS):
             assert feats is not None
             feats = feats[None].transpose(1, 2)
             feats_lengths = torch.tensor(
-                [feats.size(2)],
-                dtype=torch.long,
-                device=feats.device,
+                [feats.size(2)], dtype=torch.long, device=feats.device
             )
             wav, att_w, dur = self.generator.inference(
                 text=text,

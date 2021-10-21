@@ -59,8 +59,4 @@ def test_RNNDecoder_beam_search(context_residual, rnn_type, dtype):
 
     enc = torch.randn(10, encoder_output_size).type(dtype)
     with torch.no_grad():
-        beam(
-            x=enc,
-            maxlenratio=0.0,
-            minlenratio=0.0,
-        )
+        beam(x=enc, maxlenratio=0.0, minlenratio=0.0)
