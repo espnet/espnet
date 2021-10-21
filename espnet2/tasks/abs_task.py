@@ -1,3 +1,4 @@
+"""Abstract task module."""
 from abc import ABC
 from abc import abstractmethod
 import argparse
@@ -79,6 +80,7 @@ else:
 
 optim_classes = dict(
     adam=torch.optim.Adam,
+    adamw=torch.optim.AdamW,
     sgd=SGD,
     adadelta=torch.optim.Adadelta,
     adagrad=torch.optim.Adagrad,
@@ -88,8 +90,6 @@ optim_classes = dict(
     rmsprop=torch.optim.RMSprop,
     rprop=torch.optim.Rprop,
 )
-if LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
-    optim_classes["adamw"] = torch.optim.AdamW
 try:
     import torch_optimizer
 
@@ -136,19 +136,12 @@ scheduler_classes = dict(
     multisteplr=torch.optim.lr_scheduler.MultiStepLR,
     exponentiallr=torch.optim.lr_scheduler.ExponentialLR,
     CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
+    noamlr=NoamLR,
+    warmuplr=WarmupLR,
+    cycliclr=torch.optim.lr_scheduler.CyclicLR,
+    onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
+    CosineAnnealingWarmRestarts=torch.optim.lr_scheduler.CosineAnnealingWarmRestarts,
 )
-if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-    scheduler_classes.update(
-        noamlr=NoamLR,
-        warmuplr=WarmupLR,
-    )
-if LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
-    CosineAnnealingWarmRestarts = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
-    scheduler_classes.update(
-        cycliclr=torch.optim.lr_scheduler.CyclicLR,
-        onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
-        CosineAnnealingWarmRestarts=CosineAnnealingWarmRestarts,
-    )
 # To lower keys
 optim_classes = {k.lower(): v for k, v in optim_classes.items()}
 scheduler_classes = {k.lower(): v for k, v in scheduler_classes.items()}
@@ -1155,20 +1148,6 @@ class AbsTask(ABC):
                 )
                 yaml_no_alias_safe_dump(vars(args), f, indent=4, sort_keys=False)
 
-        # 6. Loads pre-trained model
-        for p in args.init_param:
-            logging.info(f"Loading pretrained params from {p}")
-            load_pretrained_model(
-                model=model,
-                init_param=p,
-                ignore_init_mismatch=args.ignore_init_mismatch,
-                # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
-                #   in PyTorch<=1.4
-                map_location=f"cuda:{torch.cuda.current_device()}"
-                if args.ngpu > 0
-                else "cpu",
-            )
-
         if args.dry_run:
             pass
         elif args.collect_stats:
@@ -1219,6 +1198,19 @@ class AbsTask(ABC):
                 write_collected_feats=args.write_collected_feats,
             )
         else:
+            # 6. Loads pre-trained model
+            for p in args.init_param:
+                logging.info(f"Loading pretrained params from {p}")
+                load_pretrained_model(
+                    model=model,
+                    init_param=p,
+                    ignore_init_mismatch=args.ignore_init_mismatch,
+                    # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
+                    #   in PyTorch<=1.4
+                    map_location=f"cuda:{torch.cuda.current_device()}"
+                    if args.ngpu > 0
+                    else "cpu",
+                )
 
             # 7. Build iterator factories
             if args.multiple_iterator:
@@ -1741,32 +1733,16 @@ class AbsTask(ABC):
         else:
             kwargs = {}
 
-        # IterableDataset is supported from pytorch=1.2
-        if LooseVersion(torch.__version__) >= LooseVersion("1.2"):
-            dataset = IterableESPnetDataset(
-                data_path_and_name_and_type,
-                float_dtype=dtype,
-                preprocess=preprocess_fn,
-                key_file=key_file,
-            )
-            if dataset.apply_utt2category:
-                kwargs.update(batch_size=1)
-            else:
-                kwargs.update(batch_size=batch_size)
+        dataset = IterableESPnetDataset(
+            data_path_and_name_and_type,
+            float_dtype=dtype,
+            preprocess=preprocess_fn,
+            key_file=key_file,
+        )
+        if dataset.apply_utt2category:
+            kwargs.update(batch_size=1)
         else:
-            dataset = ESPnetDataset(
-                data_path_and_name_and_type,
-                float_dtype=dtype,
-                preprocess=preprocess_fn,
-            )
-            if key_file is None:
-                key_file = data_path_and_name_and_type[0][0]
-            batch_sampler = UnsortedBatchSampler(
-                batch_size=batch_size,
-                key_file=key_file,
-                drop_last=False,
-            )
-            kwargs.update(batch_sampler=batch_sampler)
+            kwargs.update(batch_size=batch_size)
 
         cls.check_task_requirements(
             dataset, allow_variable_data_keys, train=False, inference=inference
@@ -1783,20 +1759,29 @@ class AbsTask(ABC):
     @classmethod
     def build_model_from_file(
         cls,
-        config_file: Union[Path, str],
+        config_file: Union[Path, str] = None,
         model_file: Union[Path, str] = None,
         device: str = "cpu",
     ) -> Tuple[AbsESPnetModel, argparse.Namespace]:
-        """This method is used for inference or fine-tuning.
+        """Build model from the files.
+
+        This method is used for inference or fine-tuning.
 
         Args:
             config_file: The yaml file saved when training.
             model_file: The model file saved when training.
-            device:
+            device: Device type, "cpu", "cuda", or "cuda:N".
 
         """
         assert check_argument_types()
-        config_file = Path(config_file)
+        if config_file is None:
+            assert model_file is not None, (
+                "The argument 'model_file' must be provided "
+                "if the argument 'config_file' is not specified."
+            )
+            config_file = Path(model_file).parent / "config.yaml"
+        else:
+            config_file = Path(config_file)
 
         with config_file.open("r", encoding="utf-8") as f:
             args = yaml.safe_load(f)

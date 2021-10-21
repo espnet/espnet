@@ -1,3 +1,4 @@
+"""Trainer module."""
 import argparse
 from contextlib import contextmanager
 import dataclasses
@@ -19,6 +20,7 @@ import numpy as np
 import torch
 import torch.nn
 import torch.optim
+from torch.utils.tensorboard import SummaryWriter
 from typeguard import check_argument_types
 import wandb
 
@@ -39,17 +41,8 @@ from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-    from torch.utils.tensorboard import SummaryWriter
-else:
-    from tensorboardX import SummaryWriter
 if torch.distributed.is_available():
-    if LooseVersion(torch.__version__) > LooseVersion("1.0.1"):
-        from torch.distributed import ReduceOp
-    else:
-        from torch.distributed import reduce_op as ReduceOp
-else:
-    ReduceOp = None
+    from torch.distributed import ReduceOp
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast

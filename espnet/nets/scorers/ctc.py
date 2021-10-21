@@ -15,7 +15,7 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
         """Initialize class.
 
         Args:
-            ctc (torch.nn.Module): The CTC implementaiton.
+            ctc (torch.nn.Module): The CTC implementation.
                 For example, :class:`espnet.nets.pytorch_backend.ctc.CTC`
             eos (int): The end-of-sequence id.
 
@@ -129,7 +129,7 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
     def extend_prob(self, x: torch.Tensor):
         """Extend probs for decoding.
 
-        This extention is for streaming decoding
+        This extension is for streaming decoding
         as in Eq (14) in https://arxiv.org/abs/2006.14941
 
         Args:
@@ -142,7 +142,7 @@ class CTCPrefixScorer(BatchPartialScorerInterface):
     def extend_state(self, state):
         """Extend state for decoding.
 
-        This extention is for streaming decoding
+        This extension is for streaming decoding
         as in Eq (14) in https://arxiv.org/abs/2006.14941
 
         Args:

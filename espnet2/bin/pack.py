@@ -26,6 +26,11 @@ class EnhPackedContents(PackedContents):
     yaml_files = ["train_config"]
 
 
+class DiarPackedContents(PackedContents):
+    files = ["model_file"]
+    yaml_files = ["train_config"]
+
+
 def add_arguments(parser: argparse.ArgumentParser, contents: Type[PackedContents]):
     parser.add_argument("--outpath", type=str, required=True)
     for key in contents.yaml_files:
@@ -44,6 +49,7 @@ def get_parser() -> argparse.ArgumentParser:
         ("asr", ASRPackedContents),
         ("tts", TTSPackedContents),
         ("enh", EnhPackedContents),
+        ("diar", DiarPackedContents),
     ]:
         parser_asr = subparsers.add_parser(
             name,

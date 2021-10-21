@@ -1,12 +1,10 @@
-# coding: utf-8
 # Copyright 2021 Gaopeng Xu
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import pytest
+import torch
 
 from espnet.nets.asr_interface import dynamic_import_asr
-
-torch = pytest.importorskip("torch")
 
 
 @pytest.mark.parametrize(

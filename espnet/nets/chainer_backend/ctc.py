@@ -106,7 +106,7 @@ class WarpCTC(chainer.Chain):
         """Core function of the Warp-CTC layer.
 
         Args:
-            hs (iterable of chainer.Variable | N-dimention array):
+            hs (iterable of chainer.Variable | N-dimension array):
                 Input variable from encoder.
             ys (iterable of chainer.Variable | N-dimension array):
                 Input variable of decoder.

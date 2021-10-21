@@ -1,4 +1,4 @@
-from distutils.version import LooseVersion
+"""Warm up learning rate scheduler module."""
 from typing import Union
 
 import torch
@@ -30,9 +30,6 @@ class WarmupLR(_LRScheduler, AbsBatchStepScheduler):
         warmup_steps: Union[int, float] = 25000,
         last_epoch: int = -1,
     ):
-        if LooseVersion(torch.__version__) < LooseVersion("1.1.0"):
-            raise NotImplementedError(f"Require PyTorch>=1.1.0: {torch.__version__}")
-
         assert check_argument_types()
         self.warmup_steps = warmup_steps
 

@@ -4,7 +4,7 @@
 # Copyright 2019 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Unility funcitons for Transformer."""
+"""Unility functions for Transformer."""
 
 import torch
 
