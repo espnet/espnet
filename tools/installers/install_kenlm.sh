@@ -5,6 +5,8 @@ if [ $# != 0 ]; then
     echo "Usage: $0"
     exit 1;
 fi
+# dependencies 
+apt-get install build-essential libboost-all-dev cmake zlib1g-dev libbz2-dev liblzma-dev
 
 rm -rf kenlm
 git clone https://github.com/kpu/kenlm.git
