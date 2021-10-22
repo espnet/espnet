@@ -198,7 +198,6 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         self.look_ahead = look_ahead
         self.init_average = init_average
         self.ctx_pos_enc = ctx_pos_enc
-        self.overlap_subsample = (self.block_size - self.hop_size) // self.subsample
 
     def output_size(self) -> int:
         return self._output_size
@@ -416,7 +415,7 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         if is_final:
             buffer_before_downsampling = None
         else:
-            n_samples = xs_pad.size(1) // self.overlap_subsample - 1
+            n_samples = xs_pad.size(1) // self.subsample - 1
             if n_samples < 2:
                 next_states = {
                     "prev_addin": prev_addin,
@@ -432,19 +431,17 @@ class ContextualBlockConformerEncoder(AbsEncoder):
                     next_states,
                 )
 
-            n_res_samples = (
-                xs_pad.size(1) % self.overlap_subsample + self.overlap_subsample * 2
-            )
+            n_res_samples = xs_pad.size(1) % self.subsample + self.subsample * 2
             buffer_before_downsampling = xs_pad.narrow(
                 1, xs_pad.size(1) - n_res_samples, n_res_samples
             )
-            xs_pad = xs_pad.narrow(1, 0, n_samples * self.overlap_subsample)
+            xs_pad = xs_pad.narrow(1, 0, n_samples * self.subsample)
 
             ilens_buffer = ilens.new_full(
                 [1], dtype=torch.long, fill_value=n_res_samples
             )
             ilens = ilens.new_full(
-                [1], dtype=torch.long, fill_value=n_samples * self.overlap_subsample
+                [1], dtype=torch.long, fill_value=n_samples * self.subsample
             )
 
         if isinstance(self.embed, Conv2dSubsamplingWOPosEnc):
