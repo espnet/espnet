@@ -596,7 +596,7 @@ class E2E(STInterface, torch.nn.Module):
             # TODO (jiatong): skip lm
             stack_scores.append(local_att_scores.squeeze(0))
         return torch.stack(stack_scores, dim=0)
-        
+
     def translate(
         self,
         x,

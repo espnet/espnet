@@ -55,13 +55,15 @@ class E2E(STInterface, torch.nn.Module):
 
         self.eval()
         enc_outputs = []
-        reference_length = 0 
+        reference_length = 0
         for m in self.models:
-            if hasattr(m, "encoder_st"): # for multi-decoder
+            if hasattr(m, "encoder_st"):  # for multi-decoder
                 enc_output = m.encode(x, trans_args, char_list)
                 if enc_output[1].size(1) > reference_length:
                     reference_length = enc_output[1].size(1)
-                enc_outputs.append((enc_output[0].unsqueeze(0), enc_output[1].unsqueeze(0)))
+                enc_outputs.append(
+                    (enc_output[0].unsqueeze(0), enc_output[1].unsqueeze(0))
+                )
             else:
                 enc_output = m.encode(x)
                 if enc_output.size(1) > reference_length:
@@ -94,7 +96,9 @@ class E2E(STInterface, torch.nn.Module):
             local_scores = []
 
             for m in range(len(h)):
-                local_scores.append(self.models[m].decoder_forward_one_step(h[m], i, hyps))
+                local_scores.append(
+                    self.models[m].decoder_forward_one_step(h[m], i, hyps)
+                )
 
             avg_scores = torch.logsumexp(
                 torch.stack(local_scores, dim=0), dim=0
@@ -188,4 +192,3 @@ class E2E(STInterface, torch.nn.Module):
             + str(nbest_hyps[0]["score"] / len(nbest_hyps[0]["yseq"]))
         )
         return nbest_hyps
-

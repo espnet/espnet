@@ -339,6 +339,7 @@ def load_trained_modules(idim, odim, args, interface=ASRInterface):
 
     return main_model
 
+
 def load_trained_modules_for_multidecoder(idim, odim, args, interface=ASRInterface):
     """Load model encoder or/and decoder modules with ESPNET pre-trained model(s).
 
@@ -363,8 +364,8 @@ def load_trained_modules_for_multidecoder(idim, odim, args, interface=ASRInterfa
         new_state_dict = OrderedDict()
         for key in state_dict.keys():
             key_tok = key.split(".")
-            if key_tok[0] == 'encoder' or key_tok[0] == 'decoder':
-                key_tok[0] = key_tok[0]+"_"+part
+            if key_tok[0] == "encoder" or key_tok[0] == "decoder":
+                key_tok[0] = key_tok[0] + "_" + part
                 new_key = ".".join(key_tok)
                 new_state_dict[new_key] = state_dict[key]
             else:

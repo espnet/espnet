@@ -134,7 +134,9 @@ def train(args):
             adim = args.enc_inp_adim
             odim_si = int(valid_json[utts[0]]["output"][1]["shape"][-1])
             logging.info("#input asr dims : " + str(odim_si))
-            model = load_trained_modules_for_multidecoder(idim, odim, args, interface=STInterface)
+            model = load_trained_modules_for_multidecoder(
+                idim, odim, args, interface=STInterface
+            )
         else:
             adim = args.adim
             model = load_trained_modules(idim, odim, args, interface=STInterface)
