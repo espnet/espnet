@@ -23,6 +23,7 @@
 ### Hubert
 - ASR config: [conf/tuning/train_asr_hubert_conformer.yaml](conf/tuning/train_asr_hubert_conformer.yaml)
 - token_type: word
+
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
 |inference_asr_model_valid.acc.ave_10best/test|13078|83.3|
@@ -31,6 +32,7 @@
 ### Wav2vec2
 - ASR config: [conf/tuning/train_asr_wav2vec2_conformer.yaml](conf/tuning/train_asr_wav2vec2_conformer.yaml)
 - token_type: word
+
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
 |inference_asr_model_valid.acc.ave_10best/test|13078|83.3|
@@ -39,6 +41,7 @@
 ### TERA
 - ASR config: [conf/tuning/train_asr_tera_conformer.yaml](conf/tuning/train_asr_tera_conformer.yaml)
 - token_type: word
+
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
 |inference_asr_model_valid.acc.ave_10best/test|13078|83.5|
@@ -48,6 +51,7 @@
 ### VQ-APC
 - ASR config: [conf/tuning/train_asr_vq_apc_conformer.yaml](conf/tuning/train_asr_vq_apc_conformer.yaml)
 - token_type: word
+
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
 |inference_asr_model_valid.acc.ave_10best/test|13078|83.5|
@@ -57,6 +61,7 @@
 ### BERT
 - ASR config: [conf/tuning/train_asr_bert_conformer.yaml](conf/tuning/train_asr_bert_conformer.yaml)
 - token_type: word
+
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
 |inference_asr_model_valid.acc.ave_10best/test|13078|85.7|
@@ -64,6 +69,7 @@
 ### MPNET
 - ASR config: [conf/tuning/train_asr_mpnet_conformer.yaml](conf/tuning/train_asr_mpnet_conformer.yaml)
 - token_type: word
+
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
 |inference_asr_model_valid.acc.ave_10best/test|13078|82.5|
