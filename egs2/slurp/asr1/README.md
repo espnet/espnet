@@ -20,9 +20,11 @@
 |inference_asr_model_valid.acc.ave_10best/valid|8690|86.9|
 
 ## Trying different pretrained ASR models
-### Hubert
-- ASR config: [conf/tuning/train_asr_hubert_conformer.yaml](conf/tuning/train_asr_hubert_conformer.yaml)
+- ASR config: [conf/tuning/train_asr_conformer_s3prl.yaml](conf/tuning/train_asr_conformer_s3prl.yaml)
 - token_type: word
+### Hubert
+- frontend_conf: upstream: hubert_large_ll60k
+- preencoder_conf: input_size: 1024
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
@@ -30,8 +32,8 @@
 |inference_asr_model_valid.acc.ave_10best/valid|8690|84.2|
 
 ### Wav2vec2
-- ASR config: [conf/tuning/train_asr_wav2vec2_conformer.yaml](conf/tuning/train_asr_wav2vec2_conformer.yaml)
-- token_type: word
+- frontend_conf: upstream: wav2vec2_large_ll60k
+- preencoder_conf: input_size: 1024
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
@@ -39,8 +41,8 @@
 |inference_asr_model_valid.acc.ave_10best/valid|8690|84.2|
 
 ### TERA
-- ASR config: [conf/tuning/train_asr_tera_conformer.yaml](conf/tuning/train_asr_tera_conformer.yaml)
-- token_type: word
+- frontend_conf: upstream: tera_960hr
+- preencoder_conf: input_size: 768
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
@@ -49,8 +51,8 @@
 
 
 ### VQ-APC
-- ASR config: [conf/tuning/train_asr_vq_apc_conformer.yaml](conf/tuning/train_asr_vq_apc_conformer.yaml)
-- token_type: word
+- frontend_conf: upstream: vq_apc_960hr
+- preencoder_conf: input_size: 512
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
@@ -58,17 +60,17 @@
 |inference_asr_model_valid.acc.ave_10best/valid|8690|84.8|
 
 ## Trying different pretrained ASR models
-### BERT
-- ASR config: [conf/tuning/train_asr_bert_conformer.yaml](conf/tuning/train_asr_bert_conformer.yaml)
+- ASR config: [conf/tuning/train_asr_conformer_nlu.yaml](conf/tuning/train_asr_conformer_nlu.yaml)
 - token_type: word
+### BERT
+- postencoder_conf: model_name_or_path: "bert-base-uncased"
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
 |inference_asr_model_valid.acc.ave_10best/test|13078|85.7|
 
 ### MPNET
-- ASR config: [conf/tuning/train_asr_mpnet_conformer.yaml](conf/tuning/train_asr_mpnet_conformer.yaml)
-- token_type: word
+- postencoder_conf: model_name_or_path: "sentence-transformers/all-mpnet-base-v2"
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
