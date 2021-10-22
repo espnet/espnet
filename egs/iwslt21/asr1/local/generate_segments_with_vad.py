@@ -98,6 +98,7 @@ def frame_generator(frame_duration_ms, audio, sample_rate):
 
 def vad_collector(sample_rate, frame_duration_ms, padding_duration_ms, vad, frames):
     """Filters out non-voiced audio frames.
+
     Given a webrtcvad.Vad and a source of audio frames, yields only
     the voiced audio.
     Uses a padded, sliding window algorithm over the audio frames.
@@ -108,12 +109,14 @@ def vad_collector(sample_rate, frame_duration_ms, padding_duration_ms, vad, fram
     The window is padded at the front and back to provide a small
     amount of silence or the beginnings/endings of speech around the
     voiced frames.
+
     Arguments:
     sample_rate - The audio sample rate, in Hz.
     frame_duration_ms - The frame duration in milliseconds.
     padding_duration_ms - The amount to pad the window, in milliseconds.
     vad - An instance of webrtcvad.Vad.
     frames - a source of audio frames (sequence or generator).
+
     Returns: A generator that yields PCM audio data.
     """
     num_padding_frames = int(padding_duration_ms / frame_duration_ms)
