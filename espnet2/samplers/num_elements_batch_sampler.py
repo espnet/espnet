@@ -75,7 +75,7 @@ class NumElementsBatchSampler(AbsSampler):
                     if tuple(d[key][1:]) != tuple(d[keys[0]][1:]):
                         raise RuntimeError(
                             "If padding=True, the "
-                            f"feature dimension must be unified: {s}"
+                            f"feature dimension must be unified: {s}",
                         )
                 bins = sum(
                     len(current_batch_keys) * sh[key][0] * d

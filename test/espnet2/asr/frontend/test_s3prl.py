@@ -22,7 +22,11 @@ def test_frontend_output_size():
             break
     assert s3prl_path is not None
 
-    s3prl_upstream = torch.hub.load(s3prl_path, "mel", source="local").to("cpu")
+    s3prl_upstream = torch.hub.load(
+        s3prl_path,
+        "mel",
+        source="local",
+    ).to("cpu")
 
     feature_selection = "last_hidden_state"
     s3prl_featurizer = Featurizer(

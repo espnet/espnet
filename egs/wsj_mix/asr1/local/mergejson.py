@@ -60,7 +60,10 @@ if __name__ == "__main__":
         in_dic = {}
         # if unicode('idim', 'utf-8') in dic:
         if "idim" in dic:
-            in_dic["shape"] = (int(dic["ilen"]), int(dic["idim"]))
+            in_dic["shape"] = (
+                int(dic["ilen"]),
+                int(dic["idim"]),
+            )
         in_dic["name"] = "input1"
         in_dic["feat"] = dic["feat"]
 
@@ -76,7 +79,11 @@ if __name__ == "__main__":
             out_list.append(out_dic)
             out_idx += 1
 
-        new_dic[id] = {"input": [in_dic], "output": out_list, "utt2spk": dic["utt2spk"]}
+        new_dic[id] = {
+            "input": [in_dic],
+            "output": out_list,
+            "utt2spk": dic["utt2spk"],
+        }
 
     # ensure "ensure_ascii=False", which is a bug
     if args.output_json:

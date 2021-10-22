@@ -289,7 +289,13 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
     gen_args = make_vits_generator_args(**gen_dict)
     dis_args = make_vits_discriminator_args(**dis_dict)
     loss_args = make_vits_loss_args(**loss_dict)
-    model = VITS(idim=idim, odim=odim, **gen_args, **dis_args, **loss_args)
+    model = VITS(
+        idim=idim,
+        odim=odim,
+        **gen_args,
+        **dis_args,
+        **loss_args,
+    )
     model.train()
     upsample_factor = model.generator.upsample_factor
     inputs = dict(
@@ -309,19 +315,36 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         model.eval()
 
         # check inference
-        inputs = dict(text=torch.randint(0, idim, (5,)))
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            )
+        )
         model.inference(**inputs)
 
         # check inference with predefined durations
         inputs = dict(
-            text=torch.randint(0, idim, (5,)),
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
             durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
         )
         output_dict = model.inference(**inputs)
         assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
 
         # check inference with teachder forcing
-        inputs = dict(text=torch.randint(0, idim, (5,)), feats=torch.randn(16, odim))
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+            feats=torch.randn(16, odim),
+        )
         output_dict = model.inference(**inputs, use_teacher_forcing=True)
         assert output_dict["wav"].size(0) == inputs["feats"].size(0) * upsample_factor
 
@@ -477,7 +500,13 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
     gen_args["generator_params"]["global_channels"] = global_channels
     dis_args = make_vits_discriminator_args(**dis_dict)
     loss_args = make_vits_loss_args(**loss_dict)
-    model = VITS(idim=idim, odim=odim, **gen_args, **dis_args, **loss_args)
+    model = VITS(
+        idim=idim,
+        odim=odim,
+        **gen_args,
+        **dis_args,
+        **loss_args,
+    )
     model.train()
     upsample_factor = model.generator.upsample_factor
     inputs = dict(
@@ -503,7 +532,13 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
         model.eval()
 
         # check inference
-        inputs = dict(text=torch.randint(0, idim, (5,)))
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+        )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
         if langs > 0:
@@ -514,7 +549,11 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
 
         # check inference with predefined duration
         inputs = dict(
-            text=torch.randint(0, idim, (5,)),
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
             durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
         )
         if spks > 0:
@@ -527,7 +566,14 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
         assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
 
         # check inference with teachder forcing
-        inputs = dict(text=torch.randint(0, idim, (5,)), feats=torch.randn(16, odim))
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+            feats=torch.randn(16, odim),
+        )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
         if langs > 0:
@@ -538,7 +584,10 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
         assert output_dict["wav"].size(0) == inputs["feats"].size(0) * upsample_factor
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU is needed.")
+@pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason="GPU is needed.",
+)
 @pytest.mark.skipif(
     LooseVersion(torch.__version__) < LooseVersion("1.4"),
     reason="Pytorch >= 1.4 is required.",
@@ -680,7 +729,13 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
     gen_args = make_vits_generator_args(**gen_dict)
     dis_args = make_vits_discriminator_args(**dis_dict)
     loss_args = make_vits_loss_args(**loss_dict)
-    model = VITS(idim=idim, odim=odim, **gen_args, **dis_args, **loss_args)
+    model = VITS(
+        idim=idim,
+        odim=odim,
+        **gen_args,
+        **dis_args,
+        **loss_args,
+    )
     model.train()
     upsample_factor = model.generator.upsample_factor
     inputs = dict(
@@ -703,13 +758,23 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
         model.eval()
 
         # check inference
-        inputs = dict(text=torch.randint(0, idim, (5,)))
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            )
+        )
         inputs = {k: v.to(device) for k, v in inputs.items()}
         model.inference(**inputs)
 
         # check inference with predefined duration
         inputs = dict(
-            text=torch.randint(0, idim, (5,)),
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
             durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
         )
         inputs = {k: v.to(device) for k, v in inputs.items()}
@@ -717,13 +782,23 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
         assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
 
         # check inference with teachder forcing
-        inputs = dict(text=torch.randint(0, idim, (5,)), feats=torch.randn(16, odim))
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+            feats=torch.randn(16, odim),
+        )
         inputs = {k: v.to(device) for k, v in inputs.items()}
         output_dict = model.inference(**inputs, use_teacher_forcing=True)
         assert output_dict["wav"].size(0) == inputs["feats"].size(0) * upsample_factor
 
 
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="GPU is needed.")
+@pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason="GPU is needed.",
+)
 @pytest.mark.skipif(
     LooseVersion(torch.__version__) < LooseVersion("1.4"),
     reason="Pytorch >= 1.4 is required.",
@@ -875,7 +950,13 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
     gen_args["generator_params"]["global_channels"] = global_channels
     dis_args = make_vits_discriminator_args(**dis_dict)
     loss_args = make_vits_loss_args(**loss_dict)
-    model = VITS(idim=idim, odim=odim, **gen_args, **dis_args, **loss_args)
+    model = VITS(
+        idim=idim,
+        odim=odim,
+        **gen_args,
+        **dis_args,
+        **loss_args,
+    )
     model.train()
     upsample_factor = model.generator.upsample_factor
     inputs = dict(
@@ -904,7 +985,13 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         model.eval()
 
         # check inference
-        inputs = dict(text=torch.randint(0, idim, (5,)))
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+        )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
         if langs > 0:
@@ -916,7 +1003,11 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
 
         # check inference with predefined duration
         inputs = dict(
-            text=torch.randint(0, idim, (5,)),
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
             durations=torch.tensor([1, 2, 3, 4, 5], dtype=torch.long),
         )
         if spks > 0:
@@ -930,7 +1021,14 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
 
         # check inference with teachder forcing
-        inputs = dict(text=torch.randint(0, idim, (5,)), feats=torch.randn(16, odim))
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+            feats=torch.randn(16, odim),
+        )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
         if langs > 0:

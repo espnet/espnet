@@ -77,5 +77,8 @@ for s in [
     AbsEpochStepScheduler.register(s)
 
 AbsBatchStepScheduler.register(L.CyclicLR)
-for s in [L.OneCycleLR, L.CosineAnnealingWarmRestarts]:
+for s in [
+    L.OneCycleLR,
+    L.CosineAnnealingWarmRestarts,
+]:
     AbsBatchStepScheduler.register(s)

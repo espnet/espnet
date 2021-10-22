@@ -88,17 +88,29 @@ class RNNDecoder(TransducerDecoderInterface, torch.nn.Module):
             : Initial decoder hidden states. ((N, B, D_dec), (N, B, D_dec))
 
         """
-        h_n = torch.zeros(self.dlayers, batch_size, self.dunits, device=self.device)
+        h_n = torch.zeros(
+            self.dlayers,
+            batch_size,
+            self.dunits,
+            device=self.device,
+        )
 
         if self.dtype == "lstm":
-            c_n = torch.zeros(self.dlayers, batch_size, self.dunits, device=self.device)
+            c_n = torch.zeros(
+                self.dlayers,
+                batch_size,
+                self.dunits,
+                device=self.device,
+            )
 
             return (h_n, c_n)
 
         return (h_n, None)
 
     def rnn_forward(
-        self, sequence: torch.Tensor, state: Tuple[torch.Tensor, Optional[torch.Tensor]]
+        self,
+        sequence: torch.Tensor,
+        state: Tuple[torch.Tensor, Optional[torch.Tensor]],
     ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]]]:
         """Encode source label sequences.
 

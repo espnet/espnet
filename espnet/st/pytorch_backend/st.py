@@ -91,7 +91,8 @@ class CustomConverter(ASRCustomConverter):
         )
 
         ys_pad = pad_list(
-            [torch.from_numpy(np.array(y, dtype=np.int64)) for y in ys], self.ignore_id
+            [torch.from_numpy(np.array(y, dtype=np.int64)) for y in ys],
+            self.ignore_id,
         ).to(device)
 
         if self.use_source_text:
@@ -133,9 +134,7 @@ def train(args):
             adim = args.enc_inp_adim
             odim_si = int(valid_json[utts[0]]["output"][1]["shape"][-1])
             logging.info("#input asr dims : " + str(odim_si))
-            model = load_trained_modules_for_multidecoder(
-                idim, odim, args, interface=STInterface
-            )
+            model = load_trained_modules_for_multidecoder(idim, odim, args, interface=STInterface)
         else:
             adim = args.adim
             model = load_trained_modules(idim, odim, args, interface=STInterface)
@@ -208,7 +207,10 @@ def train(args):
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
-            model.parameters(), adim, args.transformer_warmup_steps, args.transformer_lr
+            model.parameters(),
+            adim,
+            args.transformer_warmup_steps,
+            args.transformer_lr,
         )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
@@ -659,7 +661,11 @@ def trans(args):
                 logging.info("(%d/%d) decoding " + name, idx, len(js.keys()))
                 batch = [(name, js[name])]
                 feat = load_inputs_and_targets(batch)[0][0]
-                nbest_hyps = model.translate(feat, args, train_args.char_list)
+                nbest_hyps = model.translate(
+                    feat,
+                    args,
+                    train_args.char_list,
+                )
                 new_js[name] = add_results_to_json(
                     js[name], nbest_hyps, train_args.char_list
                 )
@@ -682,7 +688,11 @@ def trans(args):
                 names = [name for name in names if name]
                 batch = [(name, js[name]) for name in names]
                 feats = load_inputs_and_targets(batch)[0]
-                nbest_hyps = model.translate_batch(feats, args, train_args.char_list)
+                nbest_hyps = model.translate_batch(
+                    feats,
+                    args,
+                    train_args.char_list,
+                )
 
                 for i, nbest_hyp in enumerate(nbest_hyps):
                     name = names[i]
@@ -796,7 +806,10 @@ def md_trans(model, train_args, args):
                     )
                     logging.info("ASR SI SUBNET OUTPUT")
                     new_asr_si_js[name] = add_results_to_json(
-                        js[name], nbest_hyps, train_args.char_list, intermediate=True
+                        js[name],
+                        nbest_hyps,
+                        train_args.char_list,
+                        intermediate=True,
                     )
                 else:
                     feat = load_inputs_and_targets(batch)[0][0]
@@ -809,7 +822,10 @@ def md_trans(model, train_args, args):
                     )
                     logging.info("ASR SI SUBNET OUTPUT")
                     new_asr_si_js[name] = add_results_to_json(
-                        js[name], asr_si_hyps, train_args.char_list, intermediate=True
+                        js[name],
+                        asr_si_hyps,
+                        train_args.char_list,
+                        intermediate=True,
                     )
 
                 logging.info("ST FINAL OUTPUT")

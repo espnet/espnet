@@ -325,13 +325,19 @@ class Phonemizer:
 
         self.phonemize = phonemize
         self.separator = Separator(
-            word=word_separator, syllable=syllable_separator, phone=phone_separator
+            word=word_separator,
+            syllable=syllable_separator,
+            phone=phone_separator,
         )
         self.split_by_single_token = split_by_single_token
         self.phonemize_kwargs = phonemize_kwargs
 
     def __call__(self, text) -> List[str]:
-        tokens = self.phonemize(text, separator=self.separator, **self.phonemize_kwargs)
+        tokens = self.phonemize(
+            text,
+            separator=self.separator,
+            **self.phonemize_kwargs,
+        )
         if not self.split_by_single_token:
             return tokens.split()
         else:

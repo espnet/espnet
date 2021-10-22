@@ -73,16 +73,22 @@ class SincConv(torch.nn.Module):
         """
         assert check_argument_types()
         super().__init__()
-        window_funcs = {"none": self.none_window, "hamming": self.hamming_window}
+        window_funcs = {
+            "none": self.none_window,
+            "hamming": self.hamming_window,
+        }
         if window_func not in window_funcs:
             raise NotImplementedError(
-                f"Window function has to be one of {list(window_funcs.keys())}"
+                f"Window function has to be one of {list(window_funcs.keys())}",
             )
         self.window_func = window_funcs[window_func]
-        scale_choices = {"mel": MelScale, "bark": BarkScale}
+        scale_choices = {
+            "mel": MelScale,
+            "bark": BarkScale,
+        }
         if scale_type not in scale_choices:
             raise NotImplementedError(
-                f"Scale has to be one of {list(scale_choices.keys())}"
+                f"Scale has to be one of {list(scale_choices.keys())}",
             )
         self.scale = scale_choices[scale_type]
         self.in_channels = in_channels

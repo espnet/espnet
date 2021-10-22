@@ -131,7 +131,11 @@ def test_TransformerDecoder_beam_search(
 
     enc = torch.randn(10, encoder_output_size).type(dtype)
     with torch.no_grad():
-        beam(x=enc, maxlenratio=maxlenratio, minlenratio=0.0)
+        beam(
+            x=enc,
+            maxlenratio=maxlenratio,
+            minlenratio=0.0,
+        )
 
 
 @pytest.mark.parametrize("input_layer", ["embed"])
@@ -177,7 +181,11 @@ def test_TransformerDecoder_batch_beam_search(
 
     enc = torch.randn(10, encoder_output_size).type(dtype)
     with torch.no_grad():
-        beam(x=enc, maxlenratio=0.0, minlenratio=0.0)
+        beam(
+            x=enc,
+            maxlenratio=0.0,
+            minlenratio=0.0,
+        )
 
 
 @pytest.mark.parametrize("input_layer", ["embed"])
@@ -245,4 +253,8 @@ def test_TransformerDecoder_batch_beam_search_online(
 
     enc = torch.randn(10, encoder_output_size).type(dtype)
     with torch.no_grad():
-        beam(x=enc, maxlenratio=0.0, minlenratio=0.0)
+        beam(
+            x=enc,
+            maxlenratio=0.0,
+            minlenratio=0.0,
+        )

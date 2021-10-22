@@ -109,7 +109,7 @@ class StyleMelGANGenerator(torch.nn.Module):
                     upsample_factor=upsample_scale,
                     upsample_mode=upsample_mode,
                     gated_function=gated_function,
-                )
+                ),
             ]
             aux_chs = channels
         self.upsample_factor = int(np.prod(upsample_scales) * out_channels)
@@ -148,7 +148,8 @@ class StyleMelGANGenerator(torch.nn.Module):
         """
         if z is None:
             z = torch.randn(c.size(0), self.in_channels, 1).to(
-                device=c.device, dtype=c.dtype
+                device=c.device,
+                dtype=c.dtype,
             )
         x = self.noise_upsample(z)
         for block in self.blocks:

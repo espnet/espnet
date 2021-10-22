@@ -596,9 +596,15 @@ class E2E(STInterface, torch.nn.Module):
             # TODO (jiatong): skip lm
             stack_scores.append(local_att_scores.squeeze(0))
         return torch.stack(stack_scores, dim=0)
-
+        
     def translate(
-        self, x, trans_args, char_list=None, rnnlm=None, asr_target=None, asr_rnnlm=None
+        self,
+        x,
+        trans_args,
+        char_list=None,
+        rnnlm=None,
+        asr_target=None,
+        asr_rnnlm=None,
     ):
         """Translate input speech.
 
@@ -870,7 +876,10 @@ class E2E(STInterface, torch.nn.Module):
                 ys = torch.tensor(hyp["yseq"]).unsqueeze(0)
 
                 local_att_scores, hs_asr = self.decoder_asr.forward_one_step(
-                    ys, ys_mask, enc_output, return_hidden=True
+                    ys,
+                    ys_mask,
+                    enc_output,
+                    return_hidden=True,
                 )[:2]
 
                 if rnnlm:

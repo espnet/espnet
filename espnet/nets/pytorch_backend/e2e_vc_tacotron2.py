@@ -432,7 +432,8 @@ class Tacotron2(TTSInterface, torch.nn.Module):
         )
         if self.use_guided_attn_loss:
             self.attn_loss = GuidedAttentionLoss(
-                sigma=args.guided_attn_loss_sigma, alpha=args.guided_attn_loss_lambda
+                sigma=args.guided_attn_loss_sigma,
+                alpha=args.guided_attn_loss_lambda,
             )
         if self.use_cbhg:
             self.cbhg = CBHG(
@@ -635,7 +636,9 @@ class Tacotron2(TTSInterface, torch.nn.Module):
                 olens_in = olens
             attn_loss = self.attn_loss(att_ws, ilens_in, olens_in)
             loss = loss + attn_loss
-            report_keys += [{"attn_loss": attn_loss.item()}]
+            report_keys += [
+                {"attn_loss": attn_loss.item()},
+            ]
 
         # calculate cbhg loss
         if self.use_cbhg:

@@ -76,7 +76,9 @@ class HubertPretrainModel(AbsESPnetModel):
         self.preencoder = preencoder
         self.encoder = encoder
         self.criterion_att = HubertPretrainLoss(
-            pred_masked_weight, pred_nomask_weight, loss_weights
+            pred_masked_weight,
+            pred_nomask_weight,
+            loss_weights,
         )
         self.pred_masked_weight = pred_masked_weight
         self.pred_nomask_weight = pred_nomask_weight
@@ -121,10 +123,15 @@ class HubertPretrainModel(AbsESPnetModel):
         encoder_out = self.encode(speech, speech_lengths, text, text_lengths)
 
         # 2a. Hubert criterion
-        loss, acc_mask, acc_unmask = self._calc_hubert_loss(encoder_out)
+        loss, acc_mask, acc_unmask = self._calc_hubert_loss(
+            encoder_out,
+        )
 
         stats = dict(
-            loss=loss.detach(), acc_mask=acc_mask, acc_unmask=acc_unmask, acc=acc_mask
+            loss=loss.detach(),
+            acc_mask=acc_mask,
+            acc_unmask=acc_unmask,
+            acc=acc_mask,
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
@@ -205,7 +212,10 @@ class HubertPretrainModel(AbsESPnetModel):
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
 
-    def compute_correct(self, logits):
+    def compute_correct(
+        self,
+        logits,
+    ):
         if logits.numel() == 0:
             return 0, 0
         else:
@@ -217,7 +227,10 @@ class HubertPretrainModel(AbsESPnetModel):
             count = max.numel()
             return corr, count
 
-    def _calc_hubert_loss(self, encoder_out: Dict[str, torch.Tensor]):
+    def _calc_hubert_loss(
+        self,
+        encoder_out: Dict[str, torch.Tensor],
+    ):
 
         # 1. Compute attention loss
         loss_att, logp_m_list, logp_u_list = self.criterion_att(

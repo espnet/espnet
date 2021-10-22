@@ -22,7 +22,14 @@ def test_main():
 @pytest.fixture()
 def config_file(tmp_path: Path):
     # Write default configuration file
-    EnhancementTask.main(cmd=["--dry_run", "true", "--output_dir", str(tmp_path)])
+    EnhancementTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path),
+        ]
+    )
     return tmp_path / "config.yaml"
 
 

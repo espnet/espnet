@@ -14,7 +14,11 @@ import torch
 class LinearProjection(AbsPreEncoder):
     """Linear Projection Preencoder."""
 
-    def __init__(self, input_size: int, output_size: int):
+    def __init__(
+        self,
+        input_size: int,
+        output_size: int,
+    ):
         """Initialize the module."""
         assert check_argument_types()
         super().__init__()

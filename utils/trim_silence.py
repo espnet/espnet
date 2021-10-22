@@ -31,23 +31,47 @@ def get_parser():
         "and make segments file.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--fs", type=int, help="Sampling frequency.")
     parser.add_argument(
-        "--threshold", type=float, default=60, help="Threshold in decibels."
+        "--fs",
+        type=int,
+        help="Sampling frequency.",
     )
     parser.add_argument(
-        "--win_length", type=int, default=1200, help="Analysis window length in point."
+        "--threshold",
+        type=float,
+        default=60,
+        help="Threshold in decibels.",
     )
     parser.add_argument(
-        "--shift_length", type=int, default=300, help="Shift length in point."
+        "--win_length",
+        type=int,
+        default=1200,
+        help="Analysis window length in point.",
     )
     parser.add_argument(
-        "--min_silence", type=float, default=0.01, help="Minimum silence length in sec."
+        "--shift_length",
+        type=int,
+        default=300,
+        help="Shift length in point.",
     )
     parser.add_argument(
-        "--figdir", type=str, default=None, help="Directory to save figures."
+        "--min_silence",
+        type=float,
+        default=0.01,
+        help="Minimum silence length in sec.",
     )
-    parser.add_argument("--verbose", default=0, type=int, help="Verbosity level.")
+    parser.add_argument(
+        "--figdir",
+        type=str,
+        default=None,
+        help="Directory to save figures.",
+    )
+    parser.add_argument(
+        "--verbose",
+        default=0,
+        type=int,
+        help="Verbosity level.",
+    )
     parser.add_argument(
         "--normalize",
         choices=[1, 16, 24, 32],
@@ -56,8 +80,16 @@ def get_parser():
         help="Give the bit depth of the PCM, "
         "then normalizes data to scale in [-1,1].",
     )
-    parser.add_argument("rspecifier", type=str, help="WAV scp file.")
-    parser.add_argument("wspecifier", type=str, help="Segments file.")
+    parser.add_argument(
+        "rspecifier",
+        type=str,
+        help="WAV scp file.",
+    )
+    parser.add_argument(
+        "wspecifier",
+        type=str,
+        help="Segments file.",
+    )
     return parser
 
 

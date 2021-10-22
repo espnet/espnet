@@ -247,7 +247,10 @@ class k2Speech2Text:
         return results
 
     @staticmethod
-    def from_pretrained(model_tag: Optional[str] = None, **kwargs: Optional[Any]):
+    def from_pretrained(
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
         """Build k2Speech2Text instance from the pretrained model.
 
         Args:
@@ -340,7 +343,8 @@ def inference(
         streaming=streaming,
     )
     speech2text = k2Speech2Text.from_pretrained(
-        model_tag=model_tag, **speech2text_kwargs
+        model_tag=model_tag,
+        **speech2text_kwargs,
     )
 
     # 3. Build data-iterator
@@ -398,7 +402,10 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode"
+        "--ngpu",
+        type=int,
+        default=0,
+        help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -426,15 +433,35 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--asr_train_config", type=str, help="ASR training configuration"
+        "--asr_train_config",
+        type=str,
+        help="ASR training configuration",
     )
-    group.add_argument("--asr_model_file", type=str, help="ASR model parameter file")
-    group.add_argument("--lm_train_config", type=str, help="LM training configuration")
-    group.add_argument("--lm_file", type=str, help="LM parameter file")
     group.add_argument(
-        "--word_lm_train_config", type=str, help="Word LM training configuration"
+        "--asr_model_file",
+        type=str,
+        help="ASR model parameter file",
     )
-    group.add_argument("--word_lm_file", type=str, help="Word LM parameter file")
+    group.add_argument(
+        "--lm_train_config",
+        type=str,
+        help="LM training configuration",
+    )
+    group.add_argument(
+        "--lm_file",
+        type=str,
+        help="LM parameter file",
+    )
+    group.add_argument(
+        "--word_lm_train_config",
+        type=str,
+        help="Word LM training configuration",
+    )
+    group.add_argument(
+        "--word_lm_file",
+        type=str,
+        help="Word LM parameter file",
+    )
     group.add_argument(
         "--model_tag",
         type=str,
@@ -444,7 +471,10 @@ def get_parser():
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
-        "--batch_size", type=int, default=1, help="The batch size for inference"
+        "--batch_size",
+        type=int,
+        default=1,
+        help="The batch size for inference",
     )
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
@@ -465,7 +495,10 @@ def get_parser():
         help="Input length ratio to obtain min output length",
     )
     group.add_argument(
-        "--ctc_weight", type=float, default=0.5, help="CTC weight in joint decoding"
+        "--ctc_weight",
+        type=float,
+        default=0.5,
+        help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--streaming", type=str2bool, default=False)

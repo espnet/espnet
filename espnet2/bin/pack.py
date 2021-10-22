@@ -52,7 +52,8 @@ def get_parser() -> argparse.ArgumentParser:
         ("diar", DiarPackedContents),
     ]:
         parser_asr = subparsers.add_parser(
-            name, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            name,
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
         add_arguments(parser_asr, contents)
         parser_asr.set_defaults(contents=contents)
@@ -74,7 +75,12 @@ def main(cmd=None):
     files = {
         y: getattr(args, y) for y in args.contents.files if getattr(args, y) is not None
     }
-    pack(yaml_files=yaml_files, files=files, option=args.option, outpath=args.outpath)
+    pack(
+        yaml_files=yaml_files,
+        files=files,
+        option=args.option,
+        outpath=args.outpath,
+    )
 
 
 if __name__ == "__main__":

@@ -261,7 +261,10 @@ class E2E(ASRInterface, torch.nn.Module):
             encoder_out = self.encoder.enc_out
         else:
             self.enc = encoder_for(
-                args, idim, self.subsample, aux_enc_output_layers=aux_enc_output_layers
+                args,
+                idim,
+                self.subsample,
+                aux_enc_output_layers=aux_enc_output_layers,
             )
             encoder_out = args.eprojs
 
@@ -411,7 +414,12 @@ class E2E(ASRInterface, torch.nn.Module):
 
         # 3. Transducer task and auxiliary tasks computation
         losses = self.transducer_tasks(
-            enc_out, aux_enc_out, dec_out, labels, enc_out_len, aux_enc_out_len
+            enc_out,
+            aux_enc_out,
+            dec_out,
+            labels,
+            enc_out_len,
+            aux_enc_out_len,
         )
 
         if self.training or self.error_calculator is None:
@@ -425,7 +433,12 @@ class E2E(ASRInterface, torch.nn.Module):
         loss_data = float(self.loss)
 
         if not math.isnan(loss_data):
-            self.reporter.report(loss_data, *[float(loss) for loss in losses], cer, wer)
+            self.reporter.report(
+                loss_data,
+                *[float(loss) for loss in losses],
+                cer,
+                wer,
+            )
         else:
             logging.warning("loss (=%f) is not correct", loss_data)
 
