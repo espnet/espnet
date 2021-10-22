@@ -870,7 +870,7 @@ def add_results_to_json(js, nbest_hyps, char_list, intermediate=False):
             if intermediate and len(js["output"]) > 1:
                 out_dic = dict(js["output"][1].items())
             else:
-                # HACK: The scoring of intermediates will produce garbage 
+                # HACK: The scoring of intermediates will produce garbage
                 # if int ground truth is not present during test.
                 out_dic = dict(js["output"][0].items())
         else:
