@@ -47,6 +47,7 @@ def get_parser():
 
 def read_wave(path):
     """Reads a .wav file.
+
     Takes the path, and returns (PCM audio data, sample rate).
     """
     with contextlib.closing(wave.open(path, "rb")) as wf:
@@ -62,6 +63,7 @@ def read_wave(path):
 
 def write_wave(path, audio, sample_rate):
     """Writes a .wav file.
+
     Takes path, PCM audio data, and sample rate.
     """
     with contextlib.closing(wave.open(path, "wb")) as wf:
@@ -82,6 +84,7 @@ class Frame(object):
 
 def frame_generator(frame_duration_ms, audio, sample_rate):
     """Generates audio frames from PCM audio data.
+
     Takes the desired frame duration in milliseconds, the PCM data, and
     the sample rate.
     Yields Frames of the requested duration.
