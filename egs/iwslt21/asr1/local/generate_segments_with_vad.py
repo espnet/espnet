@@ -224,9 +224,9 @@ def main():
 
     num_seg = 0
     num_len = 0.0
-    for wave in wave_lst:
-        wave_name = wave.strip().split()[0]
-        wave_path = wave.strip().split()[args.path_field]
+    for w_i in wave_lst:
+        wave_name = w_i.strip().split()[0]
+        wave_path = w_i.strip().split()[args.path_field]
         wave_data, sample_rate = read_wave(wave_path)
 
         frames = list(frame_generator(args.frame_duration, wave_data, sample_rate))
