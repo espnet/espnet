@@ -12,7 +12,7 @@ log() {
 SECONDS=0
 
 # general configuration
-nj=32
+nj=10
 stage=1
 stop_stage=100
 set=L
@@ -27,17 +27,18 @@ log "$0 $*"
 
 if [ ! -e "${WENETSPEECH}" ]; then
     log "Fill the value of 'WENETSPEECH' of db.sh"
+    log "or download the data set follwing the instruction in https://wenet-e2e.github.io/WenetSpeech/"
     exit 1
 fi
 
 if [ ! -d "${WENETSPEECH}/audio" ] && [ ! -f "${WENETSPEECH}/WenetSpeech.json" ]; then
     echo "Valid WENETSPEECH data not found in ${WENETSPEECH}."
-    echo "Please follow the instruction in https:***"
+    echo "Please follow the instruction in https://wenet-e2e.github.io/WenetSpeech/"
     echo "and re-construct the data."
     exit 1
 fi
 
-train_set=train_"$(echo "${set}" | tr A-Z a-z)"
+train_set=train_"$(echo "${set}" | tr "[:upper:]" "[:lower:]")"
 dev_set=dev
 test_sets="test_net test_meeting"
 

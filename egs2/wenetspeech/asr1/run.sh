@@ -7,7 +7,7 @@ set -o pipefail
 
 set=L    # S for the small set, M for the mediate set, L for the large set
 
-train_set=train_"$(echo "${set}" | tr A-Z a-z)"
+train_set=train_"$(echo "${set}" | tr "[:lower:]" "[:upper:]")"
 valid_set=dev
 test_sets="dev test_meeting test_net"
 
