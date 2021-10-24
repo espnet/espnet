@@ -57,9 +57,7 @@ def output(output_wav_scp, utt_list, seg_path_list, start_time_list, end_time_li
             )
             seg_wav_path = os.path.join(output_dir, utt_id + ".wav")
 
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-
+            os.makedirs(output_dir, exist_ok=True)
             if current_wav_path != previous_wav_path:
                 source_wav = AudioSegment.from_file(current_wav_path)
             previous_wav_path = current_wav_path
