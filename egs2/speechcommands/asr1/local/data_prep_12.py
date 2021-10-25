@@ -172,9 +172,7 @@ for name in ["train", "dev"]:
                     wav_scp_f.write(
                         uttid
                         + " "
-                        + os.path.abspath(
-                            os.path.join(processed_dir, f"{uttid}.wav")
-                        )
+                        + os.path.abspath(os.path.join(processed_dir, f"{uttid}.wav"))
                         + "\n"
                     )
                     utt2spk_f.write(uttid + " " + uttid + "\n")
