@@ -1,9 +1,6 @@
 import os
 from os import path
-import pdb
 import argparse
-
-#data_dir=/mnt/Data/user_vol_2/user_neillu/CHiME3
 
 def create_sym(data_dir, track, wav):
     ori_path = path.join(f'{data_dir}/data/audio/16kHz/isolated',wav)
@@ -21,9 +18,7 @@ def create_sym_list(data_dir, track):
     for root, dirs, files in os.walk(f'{data_dir}/data/annotations'):
         for file in files:
             list_file = path.join(root,file)
-            if ".list" != list_file[-5:]: 
-                continue
-            if track not in list_file: 
+            if ".list" not in list_file or track not in list_file: 
                 continue
             with open(list_file, "r") as lfile:
                 for line in lfile.readlines():
