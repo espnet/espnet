@@ -16,7 +16,7 @@ from espnet.nets.pytorch_backend.conformer.encoder_layer import (
 from espnet.nets.pytorch_backend.nets_utils import get_activation
 
 from espnet.nets.pytorch_backend.transducer.causal_conv1d import CausalConv1d
-from espnet.nets.pytorch_backend.transducer.conv_nd import ConvNd
+from espnet.nets.pytorch_backend.transducer.conv_encoder_layer import ConvEncoderLayer
 from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
     TransformerDecoderLayer,  # noqa: H301
 )
@@ -40,7 +40,10 @@ from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsamplin
 
 
 def check_and_prepare(
-    net_part: str, blocks_arch: List, input_layer_type: str
+    net_part: str,
+    blocks_arch: List,
+    input_layer_type: str,
+    feats_dim: int,
 ) -> Tuple[str, int, float, float, int]:
     """Check consecutive block shapes match and prepare input parameters.
 
@@ -48,6 +51,7 @@ def check_and_prepare(
         net_part: Network part, either 'encoder' or 'decoder'.
         blocks_arch: Block architecture (types and parameters) for network part.
         input_layer_type: Input layer type.
+        feats_dim: Dimension of features.
 
     Return:
         input_layer_type: Input layer type.
@@ -151,16 +155,24 @@ def check_and_prepare(
 
             cmp_io.append((blocks_arch[i]["idim"], blocks_arch[i]["odim"]))
         elif block_type == "conv-nd":
-            if not {"conv_dim", "idim", "odim", "kernel_size"}.issubset(blocks_arch[i]):
+            if not {"conv_dim", "odim", "kernel_size"}.issubset(blocks_arch[i]):
                 raise ValueError(
                     "Block "
                     + str(i + 1)
                     + " in "
                     + net_part
                     + ": N-d convolution block format is: {'type: conv-nd', "
-                    "'conv_dim': int, 'idim': int, 'odim': int, "
-                    "'kernel_size': int, [...]}"
+                    "'conv_dim': int, 'odim': int, 'kernel_size': int, [...]}"
                 )
+
+            if i == 0:
+                input_layer_type = "none"
+
+                blocks_arch[i]["idim"] = feats_dim
+            elif blocks_arch[i - 1]["type"] in ("conv-nd", "causal-conv1d"):
+                blocks_arch[i]["idim"] = blocks_arch[i - 1]["odim"]
+            else:
+                blocks_arch[i]["idim"] = blocks_arch[i - 1]["d_hidden"]
 
             cmp_io.append((blocks_arch[i]["idim"], blocks_arch[i]["odim"]))
         else:
@@ -280,7 +292,9 @@ def build_input_layer(
     else:
         pos_enc_class_subsampling = None
 
-    if input_layer == "linear":
+    if input_layer == "none":
+        return pos_enc_class(odim, pos_dropout_rate), 1
+    elif input_layer == "linear":
         return (
             torch.nn.Sequential(
                 torch.nn.Linear(idim, odim),
@@ -457,14 +471,14 @@ def build_causal_conv1d_block(block_arch: Dict) -> CausalConv1d:
     )
 
 
-def build_convNd_block(block_arch: Dict) -> ConvNd:
-    """Build function for N-d convolution block.
+def build_conv_encoder_block(block_arch: Dict) -> ConvEncoderLayer:
+    """Build function for N-D convolution block for encoder.
 
     Args:
-        block_arch: N-d convolution block parameters.
+        block_arch: N-D convolution block parameters.
 
     Returns:
-        : function to create ConvNd (encoder) block.
+        : function to create ConvEncoderLayer block.
 
     """
     conv_dim = block_arch["conv_dim"]
@@ -483,7 +497,7 @@ def build_convNd_block(block_arch: Dict) -> ConvNd:
     use_relu = block_arch["use-relu"] if "use-relu" in block_arch else False
     dropout_rate = block_arch["dropout-rate"] if "dropout-rate" in block_arch else 0.0
 
-    return lambda: ConvNd(
+    return lambda: ConvEncoderLayer(
         conv_dim,
         idim,
         odim,
@@ -544,7 +558,7 @@ def build_blocks(
         input_dropout_rate,
         input_pos_dropout_rate,
         out_dim,
-    ) = check_and_prepare(net_part, blocks_arch, input_layer_type)
+    ) = check_and_prepare(net_part, blocks_arch, input_layer_type, idim)
 
     pos_enc_class, self_attn_class = get_pos_enc_and_att_class(
         net_part, positional_encoding_type, self_attn_type
@@ -565,7 +579,7 @@ def build_blocks(
         block_type = blocks_arch[i]["type"]
 
         if block_type == "conv-nd":
-            module = build_convNd_block(blocks_arch[i])
+            module = build_conv_encoder_block(blocks_arch[i])
         elif block_type == "transformer":
             module = build_transformer_block(
                 net_part,

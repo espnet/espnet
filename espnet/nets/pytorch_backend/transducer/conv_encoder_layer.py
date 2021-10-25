@@ -1,4 +1,4 @@
-"""N-d Convolution module definition for custom architecture."""
+"""N-d convolution module definition for custom encoder."""
 
 from typing import Tuple
 from typing import Union
@@ -6,7 +6,7 @@ from typing import Union
 import torch
 
 
-class ConvNd(torch.nn.Module):
+class ConvEncoderLayer(torch.nn.Module):
     """N-D convolution module for custom encoder.
 
     Args:
@@ -44,10 +44,12 @@ class ConvNd(torch.nn.Module):
         if 0 <= conv_dim <= 2:
             conv_class = getattr(torch.nn, "Conv" + str(conv_dim) + "d")
         else:
-            raise ValueError("ConvNd only support 1D and 2D convolution.")
+            raise ValueError("ConvEncoderLayer only support 1D and 2D convolution.")
+
+        self.is_2d = conv_dim == 2
 
         self.conv = conv_class(
-            idim,
+            1 if self.is_2d else idim,
             odim,
             kernel_size,
             stride=stride,
@@ -68,28 +70,25 @@ class ConvNd(torch.nn.Module):
         self.batch_norm = batch_norm
 
         if conv_dim == 2:
-            kernel_size_t = kernel_size if type(kernel_size) is int else kernel_size[1]
-            stride_t = stride if type(stride) is int else stride[1]
-            dilation_t = dilation if type(dilation) is int else dilation[1]
+            kernel_size_t = kernel_size if type(kernel_size) is int else kernel_size[0]
+            stride_t = stride if type(stride) is int else stride[0]
+            dilation_t = dilation if type(dilation) is int else dilation[0]
 
-            self._pad = (kernel_size_t - 1) * dilation_t
+            kernel_size_f = kernel_size if type(kernel_size) is int else kernel_size[1]
+            stride_f = stride if type(stride) is int else stride[1]
+            dilation_f = dilation if type(dilation) is int else dilation[1]
+
+            self._pad = dilation_t * (kernel_size_t - 1)
             self.stride = stride_t
 
-            self.out = torch.nn.Linear(
-                odim
-                * (
-                    (kernel_size if type(kernel_size) is int else kernel_size[0] - 1)
-                    * dilation
-                    if type(dilation) is int
-                    else dilation[0]
-                ),
-                odim,
-            )
+            f_odim = ((idim - dilation_f * (kernel_size_f - 1) - 1) // stride_f) + 1
+
+            self.out = torch.nn.Linear((odim * f_odim), odim)
         else:
-            self._pad = (kernel_size - 1) * dilation
+            self._pad = dilation * (kernel_size - 1)
             self.stride = stride
 
-        self.conv_dim = conv_dim
+        self.out_pos = torch.nn.Linear(idim, odim)
 
     def forward(
         self,
@@ -99,7 +98,8 @@ class ConvNd(torch.nn.Module):
         """Forward N-d convolution module object.
 
         Args:
-            sequence: Input sequences. (B, T, D_in)
+            sequence: Input sequences.
+                      (B, T, D_in) or ((B, T, D_in), (
             mask: Mask of input sequences. (B, 1, T)
 
         Returns:
@@ -112,11 +112,15 @@ class ConvNd(torch.nn.Module):
         else:
             sequence, pos_embed = sequence, None
 
-        sequence = sequence.transpose(1, 2)
+        if self.is_2d:
+            sequence = sequence.unsqueeze(1)
+        else:
+            sequence = sequence.transpose(1, 2)
 
-        if self.conv_dim > 1:
-            sequence = sequence.unsqueeze(2)
-            b, c, h, t = sequence.size()
+        if pos_embed is not None and pos_embed.size(1) == (2 * sequence.size(2)) - 1:
+            bidir_pos_embed = True
+        else:
+            bidir_pos_embed = False
 
         sequence = self.conv(sequence)
 
@@ -128,18 +132,19 @@ class ConvNd(torch.nn.Module):
         if self.relu:
             sequence = self.relu_func(sequence)
 
-        if self.conv_dim > 1:
-            sequence = self.out(
-                sequence.transpose(1, 3).contiguous().view(b, t, (h * c))
-            )
-        else:
-            sequence = sequence.transpose(1, 2)
+        sequence = sequence.transpose(1, 2)
+
+        if self.is_2d:
+            b, t, c, f = sequence.size()
+
+            sequence = self.out(sequence.contiguous().view(b, t, (c * f)))
 
         mask = self.create_new_mask(mask)
 
         if pos_embed is not None:
             pos_embed = self.create_new_pos_embed(
-                pos_embed, pos_embed.size(1) == (2 * sequence.size(2)) - 1
+                pos_embed,
+                bidir_pos_embed,
             )
 
             return (sequence, pos_embed), mask
@@ -201,4 +206,4 @@ class ConvNd(torch.nn.Module):
 
             pos_embed = pos_embed[:, :: self.stride, :]
 
-        return pos_embed
+        return self.out_pos(pos_embed)

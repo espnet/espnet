@@ -36,7 +36,7 @@ class CustomEncoder(torch.nn.Module):
         idim: int,
         enc_arch: List,
         input_layer: str = "linear",
-        repeat_block: int = 0,
+        repeat_block: int = 1,
         self_attn_type: str = "selfattn",
         positional_encoding_type: str = "abs_pos",
         positionwise_layer_type: str = "linear",

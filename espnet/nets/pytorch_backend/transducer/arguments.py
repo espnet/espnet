@@ -83,7 +83,7 @@ def add_custom_encoder_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     )
     group.add_argument(
         "--enc-block-repeat",
-        default=0,
+        default=1,
         type=int,
         help="Repeat N times the provided encoder blocks if N > 1",
     )
@@ -91,7 +91,7 @@ def add_custom_encoder_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         "--custom-enc-input-layer",
         type=str,
         default="conv2d",
-        choices=["conv2d", "vgg2l", "linear", "embed"],
+        choices=["conv2d", "vgg2l", "linear", "embed", "none"],
         help="Custom encoder input layer type",
     )
     group.add_argument(
