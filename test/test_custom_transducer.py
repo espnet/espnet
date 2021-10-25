@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import argparse
+from distutils.version import LooseVersion
 import tempfile
 
 import json
@@ -13,6 +14,9 @@ from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
+
+is_torch_1_4_plus = LooseVersion(torch.__version__) >= LooseVersion("1.4.0")
+is_torch_1_5_plus = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 
 
 def make_train_args(**kwargs):
@@ -530,3 +534,124 @@ def test_invalid_block_io():
                 },
             ],
         )
+
+
+@pytest.mark.parametrize(
+    "train_dic",
+    [
+        {},
+        {
+            "enc_block_arch": [
+                {
+                    "type": "conformer",
+                    "d_hidden": 2,
+                    "d_ff": 2,
+                    "heads": 1,
+                    "macaron_style": True,
+                    "use_conv_mod": True,
+                    "conv_mod_kernel": 1,
+                }
+            ],
+            "custom_enc_input_layer": "vgg2l",
+            "custom_enc_self_attn_type": "rel_self_attn",
+            "custom_enc_positional_encoding_type": "rel_pos",
+        },
+        {
+            "enc_block_arch": [
+                {
+                    "type": "tdnn",
+                    "idim": 2,
+                    "odim": 2,
+                    "ctx_size": 2,
+                    "dilation": 1,
+                    "stride": 1,
+                    "dropout-rate": 0.3,
+                    "use-relu": True,
+                    "use-batch-norm": True,
+                },
+                {
+                    "type": "conformer",
+                    "d_hidden": 2,
+                    "d_ff": 2,
+                    "heads": 1,
+                    "macaron_style": False,
+                    "use_conv_mod": False,
+                },
+            ],
+            "custom_enc_input_layer": "linear",
+            "custom_enc_self_attn_type": "rel_self_attn",
+            "custom_enc_positional_encoding_type": "rel_pos",
+        },
+        {
+            "dec_block_arch": [
+                {"type": "causal-conv1d", "idim": 2, "odim": 2, "kernel_size": 3},
+                {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
+            ]
+        },
+    ],
+)
+@pytest.mark.parametrize(
+    "recog_dic",
+    [
+        {},
+        {"beam_size": 2, "search_type": "default"},
+        {"beam_size": 2, "search_type": "alsd"},
+        {"beam_size": 2, "search_type": "tsd"},
+        {"beam_size": 2, "search_type": "nsc"},
+        {"beam_size": 2, "search_type": "maes"},
+    ],
+)
+@pytest.mark.parametrize(
+    "quantize_dic",
+    [
+        {"mod": {torch.nn.Linear}, "dtype": torch.qint8},
+        {"mod": {torch.nn.Linear}, "dtype": torch.float16},
+        {"mod": {torch.nn.LSTM}, "dtype": torch.qint8},
+        {"mod": {torch.nn.LSTM}, "dtype": torch.float16},
+        {"mod": {torch.nn.Linear, torch.nn.LSTM}, "dtype": torch.qint8},
+        {"mod": {torch.nn.Linear, torch.nn.LSTM}, "dtype": torch.float16},
+    ],
+)
+def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
+    train_args = make_train_args(**train_dic)
+    recog_args = make_recog_args(**recog_dic)
+
+    model, feats, feats_len, _, _, _ = prepare(train_args)
+
+    if not is_torch_1_5_plus and (
+        torch.nn.Linear in quantize_dic["mod"]
+        and quantize_dic["dtype"] == torch.float16
+    ):
+        # In recognize(...) from asr.py we raise ValueError however
+        # AssertionError is originaly raised by torch.
+        with pytest.raises(AssertionError):
+            model = torch.quantization.quantize_dynamic(
+                model,
+                quantize_dic["mod"],
+                dtype=quantize_dic["dtype"],
+            )
+        pytest.skip("Skip rest of the test after checking AssertionError")
+    else:
+        model = torch.quantization.quantize_dynamic(
+            model,
+            quantize_dic["mod"],
+            dtype=quantize_dic["dtype"],
+        )
+
+    beam_search = BeamSearchTransducer(
+        decoder=model.decoder,
+        joint_network=model.transducer_tasks.joint_network,
+        beam_size=recog_args.beam_size,
+        lm=recog_args.rnnlm,
+        lm_weight=recog_args.lm_weight,
+        search_type=recog_args.search_type,
+        max_sym_exp=recog_args.max_sym_exp,
+        u_max=recog_args.u_max,
+        nstep=recog_args.nstep,
+        prefix_alpha=recog_args.prefix_alpha,
+        score_norm=recog_args.score_norm_transducer,
+        quantization=True,
+    )
+
+    with torch.no_grad():
+        model.recognize(feats[0, : feats_len[0]].numpy(), beam_search)

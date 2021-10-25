@@ -15,6 +15,68 @@ See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
+# THIRD RESULTS
+
+- Use espeak-ng based G2P
+
+## Environments
+- date: `Fri Oct  8 15:48:44 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a2`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `628b46282537ce532d613d6bafb75e826e8455de`
+  - Commit date: `Wed Sep 8 13:30:50 2021 +0900`
+
+## Pretrained Models
+
+### libritts_tts_train_xvector_vits_raw_phn_tacotron_espeak_ng_english_us_vits_train.total_count.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+# Prep data directory
+./run.sh --stage 1 --stop-stage 1
+
+# Since espeak is super slow, dump phonemized text at first
+for dset in train-clean-460 dev-clean test-clean; do
+    utils/copy_data_dir.sh data/"${dset}"{,_phn}
+    ./pyscripts/utils/convert_text_to_phn.py \
+        --nj 32 \
+        --g2p espeak_ng_english_us_vits \
+        --cleaer tacotron \
+        data/"${dset}"{,_phn}/text
+done
+
+# Run from stage 2
+./run.sh \
+    --train_set train-clean-460_phn \
+    --valid_set dev-clean_phn \
+    --test_sets "dev-clean_phn test-clean_phn" \
+    --srctexts "data/train-clean-460_phn/text" \
+    --g2p none \
+    --cleaner none \
+    --stage 2 \
+    --min_wav_duration 0.38 \
+    --use_xvector true \
+    --ngpu 4 \
+    --fs 22050 \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --win_length null \
+    --dumpdir dump/22k \
+    --expdir exp/22k \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_xvector_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
+- 22.05 kHz / 1M iters / Use x-vector / Average the last 10 epochs
+- https://zenodo.org/record/5560155
+
 
 # SECOND RESULTS
 
