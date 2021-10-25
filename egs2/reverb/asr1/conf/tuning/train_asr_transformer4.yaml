@@ -72,6 +72,6 @@ normalize_conf:
 rir_scp: data/reverb_rir_single/wav.scp
 noise_scp: data/reverb_noise_single/wav.scp
 speech_volume_normalize: 1.
-noise_db_range: 12_17
+noise_db_range: "12_17"
 rir_apply_prob: 1.
 noise_apply_prob: 1.

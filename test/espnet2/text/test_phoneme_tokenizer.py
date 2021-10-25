@@ -49,6 +49,7 @@ try:
     del g2pk
 except ImportError:
     pass
+params.extend(["korean_jaso", "korean_jaso_no_space"])
 
 
 @pytest.fixture(params=params)
@@ -356,26 +357,7 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
         output = ["h", "ˈɑ", "l", "oː", "ʋ", "ˈɪː", "r", "ə", "l", "t", "."]
     elif phoneme_tokenizer.g2p_type == "espeak_ng_hindi":
         input = "नमस्ते दुनिया"
-        output = [
-            "n",
-            "ə",
-            "m",
-            "ˈ",
-            "ʌ",
-            "s",
-            "t",
-            "e",
-            "ː",
-            "d",
-            "ˈ",
-            "ʊ",
-            "n",
-            "ɪ",
-            "j",
-            "ˌ",
-            "a",
-            "ː",
-        ]
+        output = ["n", "ə", "m", "ˈʌ", "s", "t", "eː", "d", "ˈʊ", "n", "ɪ", "j", "ˌaː"]
     elif phoneme_tokenizer.g2p_type == "g2pk":
         input = "안녕하세요 세계입니다."
         output = [
@@ -450,6 +432,56 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
             "ː",
             "l",
             "d",
+            ".",
+        ]
+    elif phoneme_tokenizer.g2p_type == "korean_jaso":
+        input = "나는 학교에 갑니다."
+        output = [
+            "ᄂ",
+            "ᅡ",
+            "ᄂ",
+            "ᅳ",
+            "ᆫ",
+            "<space>",
+            "ᄒ",
+            "ᅡ",
+            "ᆨ",
+            "ᄀ",
+            "ᅭ",
+            "ᄋ",
+            "ᅦ",
+            "<space>",
+            "ᄀ",
+            "ᅡ",
+            "ᆸ",
+            "ᄂ",
+            "ᅵ",
+            "ᄃ",
+            "ᅡ",
+            ".",
+        ]
+    elif phoneme_tokenizer.g2p_type == "korean_jaso_no_space":
+        input = "나는 학교에 갑니다."
+        output = [
+            "ᄂ",
+            "ᅡ",
+            "ᄂ",
+            "ᅳ",
+            "ᆫ",
+            "ᄒ",
+            "ᅡ",
+            "ᆨ",
+            "ᄀ",
+            "ᅭ",
+            "ᄋ",
+            "ᅦ",
+            "ᄀ",
+            "ᅡ",
+            "ᆸ",
+            "ᄂ",
+            "ᅵ",
+            "ᄃ",
+            "ᅡ",
             ".",
         ]
     else:
