@@ -559,10 +559,11 @@ def test_invalid_block_io():
         {
             "enc_block_arch": [
                 {
-                    "type": "tdnn",
+                    "type": "conv-nd",
+                    "conv_dim": 1,
                     "idim": 2,
                     "odim": 2,
-                    "ctx_size": 2,
+                    "kernel_size": 2,
                     "dilation": 1,
                     "stride": 1,
                     "dropout-rate": 0.3,
