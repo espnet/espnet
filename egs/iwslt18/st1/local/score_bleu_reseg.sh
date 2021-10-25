@@ -8,7 +8,7 @@ export LC_ALL=C
 . ./path.sh
 
 nlsyms=""
-bpe=""
+bpe=""  # TODO(hirofumi): remove this
 bpemodel=""
 filter=""
 case=tc

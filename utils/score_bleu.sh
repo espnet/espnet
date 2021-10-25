@@ -8,7 +8,7 @@ export LC_ALL=C
 . ./path.sh
 
 nlsyms=""
-bpe=""
+bpe=""  # TODO(hirofumi): remove this
 bpemodel=""
 filter=""
 case=tc
@@ -43,7 +43,7 @@ perl -pe 's/\([^\)]+\)//g;' ${dir}/ref.trn > ${dir}/ref.rm.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/hyp.trn > ${dir}/hyp.rm.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/src.trn > ${dir}/src.rm.trn
 
-if [ -n "$bpe" ]; then
+if [ ! -z ${bpemodel} ]; then
     if [ ${remove_nonverbal} = true ]; then
         cat ${dir}/ref.rm.trn > ${dir}/ref.wrd.trn
         spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.rm.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
@@ -64,6 +64,7 @@ else
         sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/src.trn > ${dir}/src.wrd.trn
     fi
 fi
+
 
 # detokenize
 detokenizer.perl -l ${tgt_lang} -q < ${dir}/ref.wrd.trn > ${dir}/ref.wrd.trn.detok
