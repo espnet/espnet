@@ -51,13 +51,13 @@ if [ -n "${filter}" ]; then
 fi
 
 # reorder text based on the order of the xml file
-# if [ -z ${text} ]; then
+# if [ ! -n "${text}" ]; then
 #   text=data/${set}.en/text_noseg.${case}
 # fi
 # local/reorder_text.py ${text} ${src}/FILE_ORDER > ${dir}/ref.wrd.trn || exit 1;
 grep "<seg id" ${xml_tgt} | sed -e "s/<[^>]*>//g" | sed 's/^[ \t]*//' | sed -e 's/[ \t]*$//' > ${dir}/ref.wrd.trn
 
-if [ ! -n "${bpemodel}" ]; then
+if [ -n "${bpemodel}" ]; then
     if [ ${remove_nonverbal} = true ]; then
         spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.rm.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
     else
@@ -83,7 +83,7 @@ if [ -n "${nlsyms}" ]; then
 fi
 # NOTE: this must be performed after detokenization so that punctuation marks are not removed
 
-echo "########################################################################################################################" >> ${dir}/result.lc.txt
+echo "########################################################################################################################" >> ${dir}/result.${case}.txt
 echo "sacleBLEU" >> ${dir}/result.${case}.txt
 if [ ${case} = tc ]; then
     ### case-sensitive
@@ -102,7 +102,7 @@ else
     sacrebleu -lc ${dir}/ref.wrd.trn.detok -i ${dir}/hyp.wrd.trn.detok -m bleu chrf ter >> ${dir}/result.${case}.txt
     echo "write a case-insensitive BLEU result in ${dir}/result.${case}.txt"
 fi
-echo "########################################################################################################################" >> ${dir}/result.lc.txt
+echo "########################################################################################################################" >> ${dir}/result.${case}.txt
 cat ${dir}/result.${case}.txt
 
 # TODO(hirofumi): add METEOR, BERTscore here
