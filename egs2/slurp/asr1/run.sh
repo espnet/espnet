@@ -10,7 +10,6 @@ valid_set="devel"
 test_sets="test devel"
 
 asr_config=conf/train_asr.yaml
-inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
     --lang en \
@@ -20,10 +19,10 @@ inference_config=conf/decode_asr.yaml
     --token_type word\
     --feats_type raw\
     --max_wav_duration 30 \
+    --feats_normalize utterance_mvn\
     --inference_nj 8 \
     --inference_asr_model valid.acc.ave_10best.pth\
     --asr_config "${asr_config}" \
-    --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" "$@"

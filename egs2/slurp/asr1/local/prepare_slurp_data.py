@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import subprocess
+import re
 
 idir = sys.argv[1]
 
@@ -30,8 +31,14 @@ for subset in ["train", "devel", "test"]:
 
         for line in meta:
             prompt = json.loads(line.strip())
+            transcript = prompt["sentence"]
+            transcript = transcript.replace("@", " at ")
+            transcript = transcript.replace("#", " hashtag ")
+            transcript = transcript.replace(",", "")
+            transcript = transcript.replace(".", "")
+            transcript = re.sub(" +", " ", transcript)
             words = "{}".format(
-                prompt["intent"] + " " + prompt["sentence_annotation"]
+                prompt["scenario"] + "_" + prompt["action"] + " " + transcript
             ).replace("<unk>", "unknown")
             for recording in prompt["recordings"]:
                 recoid = recording["file"][6:-5]
@@ -45,3 +52,28 @@ for subset in ["train", "devel", "test"]:
                 text.write("{} {}\n".format(uttid, words))
                 utt2spk.write("{} slurp_{}\n".format(uttid, speaker))
                 wavscp.write("{} {}\n".format(uttid, wav))
+        if subset == "train":
+            meta = open(os.path.join(idir, "dataset", "slurp", "train_synthetic.jsonl"))
+            for line in meta:
+                prompt = json.loads(line.strip())
+                transcript = prompt["sentence"]
+                transcript = transcript.replace("@", " at ")
+                transcript = transcript.replace("#", " hashtag ")
+                transcript = transcript.replace(",", "")
+                transcript = transcript.replace(".", "")
+                transcript = re.sub(" +", " ", transcript).lower()
+                words = "{}".format(
+                    prompt["scenario"] + "_" + prompt["action"] + " " + transcript
+                ).replace("<unk>", "unknown")
+                for recording in prompt["recordings"]:
+                    recoid = recording["file"][6:-5]
+                    if recoid in recordid_unique:
+                        print("Already covered")
+                        continue
+                    recordid_unique[recoid] = 1
+                    wav = os.path.join(idir, "audio", "slurp_synth", recording["file"])
+                    speaker = "synthetic"
+                    uttid = "slurp_{}_{}".format(speaker, recoid)
+                    text.write("{} {}\n".format(uttid, words))
+                    utt2spk.write("{} slurp_{}\n".format(uttid, speaker))
+                    wavscp.write("{} {}\n".format(uttid, wav))
