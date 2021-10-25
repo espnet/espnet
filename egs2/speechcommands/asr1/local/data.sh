@@ -31,13 +31,14 @@ test_data_url=http://download.tensorflow.org/data/speech_commands_test_set_v0.02
 test_data_tar=speech_commands_test_set_v0.02.tar.gz
 test_data_tar_size=112563277
 
-log "$0 $*"
-
-. utils/parse_options.sh
 
 . ./db.sh
 . ./path.sh
 . ./cmd.sh
+
+log "$0 $*"
+
+. utils/parse_options.sh
 
 
 if [ $# -ne 0 ]; then
