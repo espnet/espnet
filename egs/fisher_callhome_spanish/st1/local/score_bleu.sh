@@ -8,7 +8,6 @@ export LC_ALL=C
 . ./path.sh
 
 nlsyms=""
-bpe=""  # TODO(hirofumi): remove this
 bpemodel=""
 filter=""
 case=lc
@@ -105,10 +104,12 @@ if [ ${case} = tc ]; then
     echo ${set} > ${dir}/result.tc.txt
     if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
         # 4 references
-        multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok ${dir}/ref1.wrd.trn.detok ${dir}/ref2.wrd.trn.detok ${dir}/ref3.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.tc.txt
+        sacrebleu ${dir}/ref.wrd.trn.detok ${dir}/ref1.wrd.trn.detok ${dir}/ref2.wrd.trn.detok ${dir}/ref3.wrd.trn.detok \
+            -i ${dir}/hyp.wrd.trn.detok -m bleu chrf ter \
+        >> ${dir}/result.tc.txt
     else
         # 1 reference
-        multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.tc.txt
+        sacrebleu ${dir}/ref.wrd.trn.detok -i ${dir}/hyp.wrd.trn.detok -m bleu chrf ter >> ${dir}/result.tc.txt
     fi
     echo "write a case-sensitive BLEU result in ${dir}/result.tc.txt"
     cat ${dir}/result.tc.txt
@@ -127,31 +128,20 @@ fi
 echo ${set} > ${dir}/result.lc.txt
 if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
     # 4 references
-    echo "4-ref BLEU"
-    echo "  multi-bleu-detok.perl" >> ${dir}/result.lc.txt
-    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok.lc.rm  \
-                              ${dir}/ref1.wrd.trn.detok.lc.rm \
-                              ${dir}/ref2.wrd.trn.detok.lc.rm \
-                              ${dir}/ref3.wrd.trn.detok.lc.rm < ${dir}/hyp.wrd.trn.detok.lc.rm >> ${dir}/result.lc.txt
-    echo "############################################################" >> ${dir}/result.lc.txt
-    echo "|||sacleBLEU|||" >> ${dir}/result.lc.txt
-    cat ${dir}/hyp.wrd.trn.detok | sacrebleu -lc ${dir}/ref.wrd.trn.detok \
-                                                 ${dir}/ref1.wrd.trn.detok.lc.rm \
-                                                 ${dir}/ref2.wrd.trn.detok.lc.rm \
-                                                 ${dir}/ref3.wrd.trn.detok.lc.rm \
-                                                 -m bleu chrf ter \
+    echo "4-ref BLEU" >> ${dir}/result.lc.txt
+    echo "########################################################################################################################" >> ${dir}/result.lc.txt
+    echo "sacleBLEU" >> ${dir}/result.lc.txt
+    sacrebleu -lc ${dir}/ref.wrd.trn.detok.lc.rm ${dir}/ref1.wrd.trn.detok.lc.rm ${dir}/ref2.wrd.trn.detok.lc.rm ${dir}/ref3.wrd.trn.detok.lc.rm \
+        -i ${dir}/hyp.wrd.trn.detok.lc.rm -m bleu chrf ter \
         >> ${dir}/result.lc.txt
-    echo "############################################################" >> ${dir}/result.lc.txt
+    echo "########################################################################################################################" >> ${dir}/result.lc.txt
 fi
 # 1 reference
-echo "1-ref BLEU"
-echo "  multi-bleu-detok.perl" >> ${dir}/result.lc.txt
-multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok.lc.rm < ${dir}/hyp.wrd.trn.detok.lc.rm >> ${dir}/result.lc.txt
-echo "############################################################" >> ${dir}/result.lc.txt
-echo "|||sacleBLEU|||" >> ${dir}/result.lc.txt
-cat ${dir}/hyp.wrd.trn.detok | sacrebleu -lc ${dir}/ref.wrd.trn.detok -m bleu chrf ter >> ${dir}/result.lc.txt
-echo "############################################################" >> ${dir}/result.lc.txt
-
+echo "1-ref BLEU" >> ${dir}/result.lc.txt
+echo "########################################################################################################################" >> ${dir}/result.lc.txt
+echo "sacleBLEU" >> ${dir}/result.lc.txt
+sacrebleu -lc ${dir}/ref.wrd.trn.detok.lc.rm -i ${dir}/hyp.wrd.trn.detok.lc.rm -m bleu chrf ter >> ${dir}/result.lc.txt
+echo "########################################################################################################################" >> ${dir}/result.lc.txt
 echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
 cat ${dir}/result.lc.txt
 

@@ -7,7 +7,7 @@
 . ./cmd.sh || exit 1;
 
 # general configuration
-backend=pytorch # chainer or pytorch
+backend=pytorch
 stage=0         # start from -1 if you need to start from data download
 stop_stage=5
 ngpu=1          # number of gpus during training ("0" uses cpu, otherwise use gpu)
@@ -21,8 +21,7 @@ resume=         # Resume the training from snapshot
 seed=1          # seed to generate random number
 
 train_config=conf/train.yaml
-# decode_config=conf/decode.yaml
-decode_config=conf/tuning/decode_pytorch_transformer_tc.yaml
+decode_config=conf/decode.yaml
 
 # decoding parameter
 trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
@@ -58,7 +57,7 @@ bpemode=bpe
 tag="" # tag for managing experiments.
 
 # data size related
-datasize=5m  # 5m/10m/20m
+datasize=10m  # 5m/10m/20m
 
 . utils/parse_options.sh || exit 1;
 
@@ -153,8 +152,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
 
-    rm data/*/segments
-    rm data/*/wav.scp
+    rm data/tr_*/segments data/dt_*/segments data/et_*/segments
+    rm data/tr_*//wav.scp data/dt_*//wav.scp data/et_*//wav.scp
 
     # Divide into source and target languages
     divide_lang.sh tr_wmt20_subset${datasize} "en de"
@@ -204,10 +203,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         echo "make a joint source and target dictionary"
         echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
         offset=$(wc -l < ${dict})
-        cut -f 2- -d' ' data/train_${datasize}.*/text.${tgt_case} | grep -v -e '^\s*$' > data/lang_1spm/input_${src_case}_${tgt_case}.txt
-        spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input_${src_case}_${tgt_case}.txt \
-            --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=1.0
-        spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input_${src_case}_${tgt_case}.txt \
+        cut -f 2- -d' ' data/train_${datasize}.*/text.${tgt_case} | grep -v -e '^\s*$' > data/lang_1spm/input_${datasize}_${src_case}_${tgt_case}.txt
+        spm_train --user_defined_symbols="$(tr "\n" "," < ${nlsyms})" --input=data/lang_1spm/input_${datasize}_${src_case}_${tgt_case}.txt \
+            --vocab_size=${nbpe} --model_type=${bpemode} --model_prefix=${bpemodel} --input_sentence_size=100000000 --character_coverage=0.9995
+        spm_encode --model=${bpemodel}.model --output_format=piece < data/lang_1spm/input_${datasize}_${src_case}_${tgt_case}.txt \
             | tr ' ' '\n' | sort | uniq | awk -v offset=${offset} '{print $0 " " NR+offset}' >> ${dict}
         wc -l ${dict}
     fi
@@ -217,10 +216,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data2json.sh --nj 16 --text data/train_${datasize}.en/text.${tgt_case} --bpecode ${bpemodel}.model --lang "en" \
             data/train_${datasize}.en ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         for x in ${train_dev} ${trans_set}; do
-            feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
+            feat_dir=${dumpdir}/${x}; mkdir -p ${feat_dir}
             set=$(echo ${x} | cut -f 1 -d ".")
             data2json.sh --text data/${set}.en/text.${tgt_case} --bpecode ${bpemodel}.model --lang "en" \
-                data/${set}.en ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}_${datasize}.json
+                data/${set}.en ${dict} > ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}_${datasize}.json
         done
 
         # update json (add source references)
@@ -236,9 +235,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
             data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         for x in ${train_dev} ${trans_set}; do
-            feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
+            feat_dir=${dumpdir}/${x}; mkdir -p ${feat_dir}
             data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
-                data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}_${datasize}.json
+                data/${x} ${dict} > ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}_${datasize}.json
         done
 
         # update json (add source references)
@@ -281,7 +280,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --verbose ${verbose} \
         --resume ${resume} \
         --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
-        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
+        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}_${datasize}.json \
         --n-iter-processes 2
 fi
 
@@ -312,10 +311,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     for x in ${trans_subset}; do
     (
         decode_dir=decode_${x}_$(basename ${decode_config%.*})
-        feat_trans_dir=${dumpdir}/${x}
+        feat_dir=${dumpdir}/${x}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}_${datasize}.json
+        splitjson.py --parts ${nj} ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}_${datasize}.json
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             mt_trans.py \
@@ -323,16 +322,16 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --ngpu ${dec_ngpu} \
             --backend ${backend} \
             --batchsize 0 \
-            --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+            --trans-json ${feat_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
         if [ ${reverse_direction} = true ]; then
-            score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
                 --remove_nonverbal ${remove_nonverbal} \
                 ${expdir}/${decode_dir} "en" ${dict}
         else
-            score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
                 --remove_nonverbal ${remove_nonverbal} \
                 ${expdir}/${decode_dir} "de" ${dict}
         fi
