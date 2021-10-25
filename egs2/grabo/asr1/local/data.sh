@@ -22,14 +22,12 @@ data_url=ftp://ftp.esat.kuleuven.be/psi/speech/vrenkens/grabo.tar.gz
 data_tar=grabo.tar.gz
 data_tar_size=2102543961
 
-
-log "$0 $*"
-
-. utils/parse_options.sh
-
 . ./db.sh
 . ./path.sh
 . ./cmd.sh
+
+log "$0 $*"
+. utils/parse_options.sh
 
 
 if [ $# -ne 0 ]; then
