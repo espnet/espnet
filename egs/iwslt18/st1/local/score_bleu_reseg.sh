@@ -57,7 +57,7 @@ fi
 # local/reorder_text.py ${text} ${src}/FILE_ORDER > ${dir}/ref.wrd.trn || exit 1;
 grep "<seg id" ${xml_tgt} | sed -e "s/<[^>]*>//g" | sed 's/^[ \t]*//' | sed -e 's/[ \t]*$//' > ${dir}/ref.wrd.trn
 
-if [ ! -z ${bpemodel} ]; then
+if [ ! -n "${bpemodel}" ]; then
     if [ ${remove_nonverbal} = true ]; then
         spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.rm.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
     else

@@ -42,7 +42,7 @@ perl -pe 's/\([^\)]+\)//g;' ${dir}/ref.trn > ${dir}/ref.rm.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/hyp.trn > ${dir}/hyp.rm.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/src.trn > ${dir}/src.rm.trn
 
-if [ ! -z ${bpemodel} ]; then
+if [ ! -n "${bpemodel}" ]; then
     if [ ${remove_nonverbal} = true ]; then
         cat ${dir}/ref.rm.trn > ${dir}/ref.wrd.trn
         spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.rm.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
