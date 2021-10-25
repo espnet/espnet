@@ -161,7 +161,7 @@ def check_and_prepare(
                     + str(i + 1)
                     + " in "
                     + net_part
-                    + ": N-d convolution block format is: {'type: conv-nd', "
+                    + ": N-D convolution block format is: {'type: conv-nd', "
                     "'conv_dim': int, 'odim': int, 'kernel_size': int, [...]}"
                 )
 

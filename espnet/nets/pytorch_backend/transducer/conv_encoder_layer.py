@@ -1,4 +1,4 @@
-"""N-d convolution module definition for custom encoder."""
+"""N-D convolution module definition for custom encoder."""
 
 from typing import Tuple
 from typing import Union
@@ -38,7 +38,7 @@ class ConvEncoderLayer(torch.nn.Module):
         relu: bool = True,
         dropout_rate: float = 0.0,
     ):
-        """Construct a N-d convolution module object."""
+        """Construct a ConvEncoderLayer module object."""
         super().__init__()
 
         if 0 <= conv_dim <= 2:
@@ -95,7 +95,7 @@ class ConvEncoderLayer(torch.nn.Module):
         sequence: Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]],
         mask: torch.Tensor,
     ) -> Tuple[Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]], torch.Tensor]:
-        """Forward N-d convolution module object.
+        """Forward ConvEncoderLayer module object.
 
         Args:
             sequence: Input sequences.

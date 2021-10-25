@@ -55,7 +55,7 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - **Transducer** based end-to-end ASR
   - Architecture:
     - RNN-based encoder and decoder.
-    - Custom encoder and decoder supporting Transformer, Conformer (encoder), N-d ConvNet (encoder) and causal Conv1D (decoder) blocks.
+    - Custom encoder and decoder supporting Transformer, Conformer (encoder), N-D ConvNet (encoder) and causal Conv1D (decoder) blocks.
     - VGG2L (RNN/custom encoder) and Conv2D (custom encoder) bottlenecks.
   - Search algorithms:
     - Greedy search constrained to one emission by timestep.
