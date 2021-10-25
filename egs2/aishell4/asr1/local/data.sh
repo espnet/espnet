@@ -59,7 +59,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] ; then
 
-    for room_name in "train_L" "train_M" "train_S" 
+    for room_name in "train_L" "train_M" "train_S" "test"
     do 
 
         wget https://www.openslr.org/resources/111/$room_name.tar.gz -P ${AISHELL4}/  
@@ -268,13 +268,13 @@ fi
 
 if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] ; then 
     
-    aishell1_data=/ocean/projects/cis210027p/berrebbi/espnet/egs2/aishell/asr1/data/train
+    aishell1_data=../../aishell/asr1/data/train
     aishell4_data=data/train_nodev
 
-    u2s=/ocean/projects/cis210027p/berrebbi/espnet/egs2/aishell/asr1/data/train/utt2spk
-    awk 'BEGIN {FS=" "; OFS="\n"}; {print $1" "$1}' $u2s > /ocean/projects/cis210027p/berrebbi/espnet/egs2/aishell/asr1/data/train/utt2spk2
+    u2s=$aishell1_data/utt2spk
+    awk 'BEGIN {FS=" "; OFS="\n"}; {print $1" "$1}' $u2s > $aishell1_data/utt2spk2
 
-    mv /ocean/projects/cis210027p/berrebbi/espnet/egs2/aishell/asr1/data/train/utt2spk2 /ocean/projects/cis210027p/berrebbi/espnet/egs2/aishell/asr1/data/train/utt2spk
+    mv $aishell1_data/utt2spk2 $aishell1_data/utt2spk
     
     utils/combine_data.sh data/combined_aishell_dir/train $aishell1_data $aishell4_data 
 

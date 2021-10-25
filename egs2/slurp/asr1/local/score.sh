@@ -12,13 +12,18 @@
 . parse_options.sh || exit 1;
 
 if [ $# -lt 1 ]; then
-  echo "Usage: local/score.sh <asr-exp-dir>"
+  echo "Usage: local/score.sh <asr-exp-dir> <inference_config>"
   exit 1;
 fi
 
 asr_expdir=$1
 
-python local/score.py ${asr_expdir}
+if [ $# -gt 1 ]; then
+	inference_config=$2
+	python local/score.py ${asr_expdir} ${inference_config}
+else
+	python local/score.py ${asr_expdir}
+fi
 
 exit 0
 
