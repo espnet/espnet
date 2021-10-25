@@ -205,7 +205,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">flags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Configuration flags to pass to the table_fill operation.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Get configuration flags to pass to the table_fill operation.&quot;&quot;&quot;</span>
         <span class="n">flags</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_transition_cost_zero</span><span class="p">)</span>
         <span class="n">flags</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">preamble_transition_cost_zero</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">flags</span>
@@ -222,6 +222,7 @@
         <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Excluded characters: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">excluded_characters</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set all parameters as attribute at init.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -240,6 +241,7 @@
                 <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
 
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Print all attribute as dictionary.&quot;&quot;&quot;</span>
         <span class="n">output</span> <span class="o">=</span> <span class="s2">&quot;CtcSegmentationParameters( &quot;</span>
         <span class="k">for</span> <span class="n">attribute</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">attribute</span><span class="p">]</span>
