@@ -3,6 +3,7 @@
 set -euo pipefail
 
 source tools/activate_python.sh
+PYTHONPATH="${PYTHONPATH:-}:$(pwd)/tools/s3prl"
 python="coverage run --append"
 cwd=$(pwd)
 
