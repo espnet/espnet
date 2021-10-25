@@ -44,7 +44,7 @@ if [ ! -z ${set} ] && [ -f ${dir}/data_ref1.json ]; then
     perl -pe 's/\([^\)]+\)//g;' ${dir}/ref3.trn.org > ${dir}/ref3.trn
 fi
 
-if [ ! -z ${bpemodel} ]; then
+if [ -n "$bpe" ]; then
     cat ${dir}/ref.trn > ${dir}/ref.wrd.trn
     spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
     spm_decode --model=${bpemodel} --input_format=piece < ${dir}/src.trn | sed -e "s/▁/ /g" > ${dir}/src.wrd.trn

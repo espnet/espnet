@@ -14,6 +14,7 @@ filter=""
 case=tc
 set=""
 remove_nonverbal=true
+character_level=false
 
 . utils/parse_options.sh
 
@@ -42,7 +43,7 @@ perl -pe 's/\([^\)]+\)//g;' ${dir}/ref.trn > ${dir}/ref.rm.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/hyp.trn > ${dir}/hyp.rm.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/src.trn > ${dir}/src.rm.trn
 
-if [ ! -z ${bpemodel} ]; then
+if [ -n "$bpe" ]; then
     if [ ${remove_nonverbal} = true ]; then
         cat ${dir}/ref.rm.trn > ${dir}/ref.wrd.trn
         spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.rm.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
@@ -84,6 +85,16 @@ if [ -n "${filter}" ]; then
     sed -i.bak3 -f ${filter} ${dir}/src.wrd.trn.detok
 fi
 # NOTE: this must be performed after detokenization so that punctuation marks are not removed
+
+if [ ${character_level} = true ]; then
+    # for Japanese/Chinese
+    cp ${dir}/ref.wrd.trn.detok ${dir}/ref.wrd.trn.detok.tmp
+    cp ${dir}/hyp.wrd.trn.detok ${dir}/hyp.wrd.trn.detok.tmp
+    cp ${dir}/src.wrd.trn.detok ${dir}/src.wrd.trn.detok.tmp
+    LC_ALL=en_US.UTF-8 sed -e 's/\(.\)/ \1/g' ${dir}/ref.wrd.trn.detok.tmp > ${dir}/ref.wrd.trn.detok
+    LC_ALL=en_US.UTF-8 sed -e 's/\(.\)/ \1/g' ${dir}/hyp.wrd.trn.detok.tmp > ${dir}/hyp.wrd.trn.detok
+    LC_ALL=en_US.UTF-8 sed -e 's/\(.\)/ \1/g' ${dir}/src.wrd.trn.detok.tmp > ${dir}/src.wrd.trn.detok
+fi
 
 if [ -f ${dir}/result.${case}.txt ]; then
     rm ${dir}/result.${case}.txt
