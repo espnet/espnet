@@ -9,9 +9,9 @@ fi
 
 
 if [ ! -e sctk-2.4.10-20151007-1312Z.tar.bz2 ]; then
-    wget -T 10 https://github.com/espnet/kaldi-bin/releases/download/v0.0.2/sctk-2.4.10-20151007-1312Z.tar.bz2 || \
-	wget -T 10 -t 3 ftp://jaguar.ncsl.nist.gov/pub/sctk-2.4.10-20151007-1312Z.tar.bz2|| \
-        wget --no-check-certificate -T 10 http://www.openslr.org/resources/4/sctk-2.4.10-20151007-1312Z.tar.bz2
+    wget -T 100 https://github.com/espnet/kaldi-bin/releases/download/v0.0.2/sctk-2.4.10-20151007-1312Z.tar.bz2 || \
+	wget -T 100 -t 13 ftp://jaguar.ncsl.nist.gov/pub/sctk-2.4.10-20151007-1312Z.tar.bz2|| \
+        wget --no-check-certificate -T 100 http://www.openslr.org/resources/4/sctk-2.4.10-20151007-1312Z.tar.bz2
 fi
 
 if [ ! -e sctk ]; then
