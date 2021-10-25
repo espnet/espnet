@@ -8,7 +8,6 @@ export LC_ALL=C
 . ./path.sh
 
 nlsyms=""
-bpe=""  # TODO(hirofumi): remove this
 bpemodel=""
 filter=""
 case=tc
@@ -104,23 +103,16 @@ fi
 if [ -n "${set}" ]; then
     echo ${set} > ${dir}/result.${case}.txt
 fi
+echo "########################################################################################################################" >> ${dir}/result.lc.txt
+echo "sacleBLEU" >> ${dir}/result.${case}.txt
 if [ ${case} = tc ]; then
-    echo "  multi-bleu-detok.perl" >> ${dir}/result.${case}.txt
-    multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.${case}.txt
-    echo "############################################################" >> ${dir}/result.${case}.txt
-    echo "|||sacleBLEU|||" >> ${dir}/result.${case}.txt
-    cat ${dir}/hyp.wrd.trn.detok | sacrebleu ${dir}/ref.wrd.trn.detok -m bleu chrf ter >> ${dir}/result.${case}.txt
-    echo "############################################################" >> ${dir}/result.${case}.txt
+    sacrebleu ${dir}/ref.wrd.trn.detok -i ${dir}/hyp.wrd.trn.detok -m bleu chrf ter >> ${dir}/result.${case}.txt
     echo "write a case-sensitive BLEU result in ${dir}/result.tc.txt"
 else
-    echo "  multi-bleu-detok.perl" >> ${dir}/result.${case}.txt
-    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.${case}.txt
-    echo "############################################################" >> ${dir}/result.${case}.txt
-    echo "|||sacleBLEU|||" >> ${dir}/result.${case}.txt
-    cat ${dir}/hyp.wrd.trn.detok | sacrebleu -lc ${dir}/ref.wrd.trn.detok -m bleu chrf ter >> ${dir}/result.${case}.txt
-    echo "############################################################" >> ${dir}/result.${case}.txt
+    sacrebleu -lc ${dir}/ref.wrd.trn.detok -i ${dir}/hyp.wrd.trn.detok -m bleu chrf ter >> ${dir}/result.${case}.txt
     echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
 fi
+echo "########################################################################################################################" >> ${dir}/result.lc.txt
 cat ${dir}/result.${case}.txt
 
 # TODO(hirofumi): add METEOR, BERTscore here
