@@ -3,7 +3,6 @@
 set -euo pipefail
 
 source tools/activate_python.sh
-PYTHONPATH="${PYTHONPATH:-}:$(pwd)/tools/s3prl"
 python="coverage run --append"
 cwd=$(pwd)
 
@@ -91,7 +90,12 @@ echo "<blank>" > dummy_token_list
 echo "==== [ESPnet2] Validation configuration files ==="
 if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.6.0")' &> /dev/null;  then
     for f in egs2/*/asr1/conf/train_asr*.yaml; do
-        ${python} -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
+        if [ "$f" == "egs2/fsc/asr1/conf/train_asr.yaml" ]; then
+            if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) < L("1.7.0")' &> /dev/null;  then
+                continue
+            fi
+        fi
+	${python} -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done
     for f in egs2/*/asr1/conf/train_lm*.yaml; do
         ${python} -m espnet2.bin.lm_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
