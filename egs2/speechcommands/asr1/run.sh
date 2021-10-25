@@ -5,11 +5,19 @@ set -e
 set -u
 set -o pipefail
 
+num_commands=12         # 12 or 35
 train_set=train
 valid_set=dev
-test_sets="dev test test_speechbrain"
+if [ ${num_commands} -eq 12 ]; then
+    test_sets="dev test test_speechbrain"
+elif [ ${num_commands} -eq 35 ]; then
+    test_sets='dev test'
+else
+    echo "invalid num_commands: ${num_commands}"
+    exit 1
+fi
 
-asr_tag=conformer_noBatchNorm
+asr_tag=conformer_noBatchNorm_${num_commands}commands
 inference_tag=infer
 
 asr_config=conf/train_asr.yaml
@@ -20,6 +28,7 @@ inference_config=conf/decode_asr.yaml
 speed_perturb_factors="0.9 0.95 1.0 1.05 1.1"
 
 ./asr.sh                                                \
+    --local_data_opts "--num_commands ${num_commands}"  \
     --skip_data_prep false                              \
     --skip_train false                                  \
     --skip_eval false                                   \

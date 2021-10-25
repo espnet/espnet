@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2021 Yifan Peng
+# Copyright 2021 Carnegie Mellon University (Yifan Peng)
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 # Speech Commands Dataset: https://arxiv.org/abs/1804.03209
