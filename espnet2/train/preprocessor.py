@@ -103,8 +103,8 @@ def detect_non_silence(
     framed_w *= scipy.signal.get_window(window, frame_length).astype(framed_w.dtype)
     # power: (C, T)
     power = (framed_w ** 2).mean(axis=-1)
-    # mean_power: (C,)
-    mean_power = power.mean(axis=-1)
+    # mean_power: (C, 1)
+    mean_power = np.mean(power, axis=-1, keepdims=True)
     if np.all(mean_power == 0):
         return np.full(x.shape, fill_value=True, dtype=np.bool)
     # detect_frames: (C, T)
@@ -214,7 +214,7 @@ class CommonPreprocessor(AbsPreprocessor):
         assert check_argument_types()
 
         if self.speech_name in data:
-            if self.train and self.rirs is not None and self.noises is not None:
+            if self.train and (self.rirs is not None or self.noises is not None):
                 speech = data[self.speech_name]
                 nsamples = len(speech)
 
