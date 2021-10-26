@@ -215,6 +215,11 @@
     <span class="n">rmsprop</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">RMSprop</span><span class="p">,</span>
     <span class="n">rprop</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Rprop</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="k">if</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.10.0&quot;</span><span class="p">):</span>
+    <span class="c1"># From 1.10.0, RAdam is officially supported</span>
+    <span class="n">optim_classes</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+        <span class="n">radam</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">RAdam</span><span class="p">,</span>
+    <span class="p">)</span>
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">torch_optimizer</span>
 
@@ -229,10 +234,14 @@
         <span class="c1"># torch_optimizer&lt;=0.0.1a10 doesn&#39;t support</span>
         <span class="c1"># qhadam=torch_optimizer.QHAdam,</span>
         <span class="n">qhm</span><span class="o">=</span><span class="n">torch_optimizer</span><span class="o">.</span><span class="n">QHM</span><span class="p">,</span>
-        <span class="n">radam</span><span class="o">=</span><span class="n">torch_optimizer</span><span class="o">.</span><span class="n">RAdam</span><span class="p">,</span>
         <span class="n">sgdw</span><span class="o">=</span><span class="n">torch_optimizer</span><span class="o">.</span><span class="n">SGDW</span><span class="p">,</span>
         <span class="n">yogi</span><span class="o">=</span><span class="n">torch_optimizer</span><span class="o">.</span><span class="n">Yogi</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="k">if</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch_optimizer</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;0.2.0&quot;</span><span class="p">):</span>
+        <span class="c1"># From 0.2.0, RAdam is dropped</span>
+        <span class="n">optim_classes</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="n">radam</span><span class="o">=</span><span class="n">torch_optimizer</span><span class="o">.</span><span class="n">RAdam</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="k">del</span> <span class="n">torch_optimizer</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="k">pass</span>
