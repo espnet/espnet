@@ -56,10 +56,10 @@ PIP_CHAINER := chainer==$(CHAINER_VERSION)
 all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_install
 
 ifneq ($(strip $(CHAINER_VERSION)),)
-python: activate_python.sh espnet.done pytorch.done chainer.done
+python: activate_python.sh espnet.done pytorch.done chainer.done torchaudio.done fairscale.done torch_optimizer.done
 extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done
 else
-python: activate_python.sh espnet.done pytorch.done
+python: activate_python.sh espnet.done pytorch.done torchaudio.done fairscale.done torch_optimizer.done
 extra: warp-ctc.done warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done
 endif
 
@@ -217,7 +217,21 @@ beamformit.done:
 	./installers/install_beamformit.sh
 	touch beamformit.done
 
-fairseq.done: espnet.done
+torchaudio.done: espnet.done
+	# FIXME(kamo): I haven't figured out the reason of ci-errors: https://github.com/espnet/espnet/runs/4026552600?check_suite_focus=true
+	# thus now disabling conda for torchaudio installation.
+	. ./activate_python.sh && ./installers/install_torchaudio.sh true
+	touch torchaudio.done
+
+torch_optimizer.done: espnet.done
+	. ./activate_python.sh && ./installers/install_torch_optimizer.sh
+	touch torch_optimizer.done
+
+fairscale.done: espnet.done
+	. ./activate_python.sh && ./installers/install_fairscale.sh
+	touch fairscale.done
+
+fairseq.done: torchaudio.done
 	. ./activate_python.sh && ./installers/install_fairseq.sh
 	touch fairseq.done
 
@@ -229,7 +243,7 @@ k2.done: espnet.done
 	. ./activate_python.sh && ./installers/install_k2.sh
 	touch k2.done
 
-transformers.done: espnet.done
+transformers.done: torchaudio.done
 	. ./activate_python.sh && ./installers/install_transformers.sh
 	touch transformers.done
 
