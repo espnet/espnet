@@ -52,15 +52,22 @@ min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
 
 # Tokenization related
-token_type=bpe      # Tokenization type (char or bpe).
-nbpe=30             # The number of BPE vocabulary.
-bpemode=unigram     # Mode of BPE (unigram or bpe).
 oov="<unk>"         # Out of vocabulary symbol.
 blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
-bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
-bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE
-bpe_char_cover=1.0  # character coverage when modeling BPE
+token_joint=false       # whether to use a single bpe system for both source and target languages
+src_token_type=bpe      # Tokenization type (char or bpe) for source languages.
+src_nbpe=30             # The number of BPE vocabulary for source language.
+src_bpemode=unigram     # Mode of BPE for source language (unigram or bpe).
+src_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for source language.
+src_bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE of source language
+src_bpe_char_cover=1.0  # character coverage when modeling BPE for source language
+tgt_token_type=bpe      # Tokenization type (char or bpe) for target language.
+tgt_nbpe=30             # The number of BPE vocabulary for target language.
+tgt_bpemode=unigram     # Mode of BPE (unigram or bpe) for target language.
+tgt_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for target language.
+tgt_bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE for target language.
+tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target language.
 
 # Ngram model related
 use_ngram=false
@@ -82,15 +89,17 @@ num_splits_lm=1   # Number of splitting for lm corpus.
 word_vocab_size=10000 # Size of word vocabulary.
 
 # ST model related
-st_tag=       # Suffix to the result dir for st model training.
-st_exp=       # Specify the directory path for ST experiment.
+st_tag=        # Suffix to the result dir for st model training.
+st_exp=        # Specify the directory path for ST experiment.
                # If this option is specified, st_tag is ignored.
-st_stats_dir= # Specify the directory path for ST statistics.
-st_config=    # Config for st model training.
-st_args=      # Arguments for st model training, e.g., "--max_epoch 10".
+st_stats_dir=  # Specify the directory path for ST statistics.
+st_config=     # Config for st model training.
+st_args=       # Arguments for st model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in st config.
 feats_normalize=global_mvn # Normalizaton layer type.
-num_splits_st=1           # Number of splitting for lm corpus.
+num_splits_st=1            # Number of splitting for lm corpus.
+src_lang=                  # source language abbrev. id (e.g., es)
+tgt_lang=                  # target language abbrev. id (e.g., en)
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
@@ -113,7 +122,8 @@ download_model= # Download a model from Model Zoo and use it for decoding.
 train_set=       # Name of training set.
 valid_set=       # Name of validation set used for monitoring/tuning network training.
 test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
-bpe_train_text=  # Text file path of bpe training set.
+src_bpe_train_text=  # Text file path of bpe training set for source language.
+tgt_bpe_train_text=  # Text file path of bpe training set for target language.
 lm_train_text=   # Text file path of language model training set.
 lm_dev_text=     # Text file path of language model development set.
 lm_test_text=    # Text file path of language model evaluation set.
@@ -161,15 +171,23 @@ Options:
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
 
     # Tokenization related
-    --token_type              # Tokenization type (char or bpe, default="${token_type}").
-    --nbpe                    # The number of BPE vocabulary (default="${nbpe}").
-    --bpemode                 # Mode of BPE (unigram or bpe, default="${bpemode}").
     --oov                     # Out of vocabulary symbol (default="${oov}").
     --blank                   # CTC blank symbol (default="${blank}").
     --sos_eos                 # sos and eos symbole (default="${sos_eos}").
-    --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
-    --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma. (default="${bpe_nlsyms}").
-    --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
+    --token_joint=false       # Whether to use a single bpe system for both source and target languages.
+                              # if set as true, will use tgt_* for processing (default="${token_joint}").
+    --src_token_type=bpe      # Tokenization type (char or bpe) for source languages. (default="${src_token_type}").
+    --src_nbpe=30             # The number of BPE vocabulary for source language. (default="${src_nbpe}").
+    --src_bpemode=unigram     # Mode of BPE for source language (unigram or bpe). (default="${src_bpemode}").
+    --src_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for source language. (default="${src_bpe_input_sentence_size}").
+    --src_bpe_nlsyms=         # Non-linguistic symbols list, separated by a comma, for BPE of source language. (default="${src_bpe_nlsyms}").
+    --src_bpe_char_cover=1.0  # Character coverage when modeling BPE for source language. (default="${src_bpe_char_cover}").
+    --tgt_token_type=bpe      # Tokenization type (char or bpe) for target language. (default="${tgt_token_type}").
+    --tgt_nbpe=30             # The number of BPE vocabulary for target language. (default="${tgt_nbpe}").
+    --tgt_bpemode=unigram     # Mode of BPE (unigram or bpe) for target language. (default="${tgt_bpemode}").
+    --tgt_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for target language. (default="${tgt_bpe_input_sentence_size}").
+    --tgt_bpe_nlsyms=         # Non-linguistic symbols list, separated by a comma, for BPE for target language. (default="${tgt_bpe_nlsyms}").
+    --tgt_bpe_char_cover=1.0  # Character coverage when modeling BPE for target language. (default="${tgt_bpe_char_cover}").
 
     # Language model related
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
@@ -185,16 +203,18 @@ Options:
     --num_splits_lm   # Number of splitting for lm corpus (default="${num_splits_lm}").
 
     # ST model related
-    --st_tag          # Suffix to the result dir for st model training (default="${st_tag}").
-    --st_exp          # Specify the directory path for ST experiment.
+    --st_tag           # Suffix to the result dir for st model training (default="${st_tag}").
+    --st_exp           # Specify the directory path for ST experiment.
                        # If this option is specified, st_tag is ignored (default="${st_exp}").
-    --st_stats_dir    # Specify the directory path for ST statistics (default="${st_stats_dir}").
-    --st_config       # Config for st model training (default="${st_config}").
-    --st_args         # Arguments for st model training (default="${st_args}").
+    --st_stats_dir     # Specify the directory path for ST statistics (default="${st_stats_dir}").
+    --st_config        # Config for st model training (default="${st_config}").
+    --st_args          # Arguments for st model training (default="${st_args}").
                        # e.g., --st_args "--max_epoch 10"
                        # Note that it will overwrite args in st config.
-    --feats_normalize  # Normalizaton layer type (default="${feats_normalize}").
-    --num_splits_st   # Number of splitting for lm corpus  (default="${num_splits_st}").
+    --feats_normalize  # Normalizaton layer type. (default="${feats_normalize}").
+    --num_splits_st    # Number of splitting for lm corpus.  (default="${num_splits_st}").
+    --src_lang=        # source language abbrev. id (e.g., es). (default="${src_lang}")
+    --tgt_lang=        # target language abbrev. id (e.g., en). (default="${tgt_lang}")
 
     # Decoding related
     --inference_tag       # Suffix to the result dir for decoding (default="${inference_tag}").
@@ -211,7 +231,8 @@ Options:
     --valid_set     # Name of validation set used for monitoring/tuning network training (required).
     --test_sets     # Names of test sets.
                     # Multiple items (e.g., both dev and eval sets) can be specified (required).
-    --bpe_train_text # Text file path of bpe training set.
+    --src_bpe_train_text # Text file path of bpe training set for source language.
+    --tgt_bpe_train_text # Text file path of bpe training set for target language
     --lm_train_text  # Text file path of language model training set.
     --lm_dev_text   # Text file path of language model development set (default="${lm_dev_text}").
     --lm_test_text  # Text file path of language model evaluation set (default="${lm_test_text}").
@@ -263,7 +284,14 @@ else
 fi
 
 # Use the same text as ST for bpe training if not specified.
-[ -z "${bpe_train_text}" ] && bpe_train_text="${data_feats}/${train_set}/text"
+if "${token_joint}"; then
+    # if token_joint, the bpe training will use both src_lang and tgt_lang to train a single bpe model
+    # TODO (prepare data as text.${src_lang}_${tgt_lang})
+    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
+else
+    [ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}"
+    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_lang}"
+fi
 # Use the same text as ST for lm training if not specified.
 [ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text"
 # Use the same text as ST for lm training if not specified.
@@ -277,36 +305,70 @@ if [ "${lang}" != noinfo ]; then
 else
     token_listdir=data/token_list
 fi
-bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
-bpeprefix="${bpedir}"/bpe
-bpemodel="${bpeprefix}".model
-bpetoken_list="${bpedir}"/tokens.txt
-chartoken_list="${token_listdir}"/char/tokens.txt
+# The tgt bpedir is set for all cases when using bpe
+tgt_bpedir="${token_listdir}/tgt_bpe_${bpemode}${nbpe}"
+tgt_bpeprefix="${tgt_bpedir}"/bpe
+tgt_bpemodel="${tgt_bpeprefix}".model
+tgt_bpetoken_list="${tgt_bpedir}"/tokens.txt
+tgt_chartoken_list="${token_listdir}"/char/tgt_tokens.txt
+if "${token_joint}"; then
+    # if token_joint, the bpe training will use both src_lang and tgt_lang to train a single bpe model
+    src_bpedir="${tgt_bpedir}"
+    src_bpeprefix="${tgt_bpeprefix}"
+    src_bpemodel="${tgt_bpemodel}"
+    src_bpetoken_list="${tgt_bpetoken_list}"
+    src_chartoken_list="${tgt_chartoken_list}"
+else
+    src_bpedir="${token_listdir}/src_bpe_${bpemode}${nbpe}"
+    src_bpeprefix="${src_bpedir}"/bpe
+    src_bpemodel="${src_bpeprefix}".model
+    src_bpetoken_list="${src_bpedir}"/tokens.txt
+    src_chartoken_list="${token_listdir}"/char/src_tokens.txt
+fi
+
 # NOTE: keep for future development.
 # shellcheck disable=SC2034
-wordtoken_list="${token_listdir}"/word/tokens.txt
-
-if [ "${token_type}" = bpe ]; then
-    token_list="${bpetoken_list}"
-elif [ "${token_type}" = char ]; then
-    token_list="${chartoken_list}"
-    bpemodel=none
-elif [ "${token_type}" = word ]; then
-    token_list="${wordtoken_list}"
-    bpemodel=none
+tgt_wordtoken_list="${token_listdir}"/word/tgt_tokens.txt
+if "${token_joint}"; then
+    src_wordtoken_list="${tgt_wordtoken_list}"
 else
-    log "Error: not supported --token_type '${token_type}'"
+    src_wordtoken_list="${token_listdir}"/word/src_tokens.txt
+fi
+
+# Set token types for src and tgt langs
+if [ "${src_token_type}" = bpe ]; then
+    src_token_list="${src_bpetoken_list}"
+elif [ "${src_token_type}" = char ]; then
+    src_token_list="${src_chartoken_list}"
+    src_bpemodel=none
+elif [ "${src_token_type}" = word ]; then
+    src_token_list="${src_wordtoken_list}"
+    src_bpemodel=none
+else
+    log "Error: not supported --src_token_type '${src_token_type}'"
+    exit 2
+fi
+if [ "${tgt_token_type}" = bpe ]; then
+    tgt_token_list="${tgt_bpetoken_list}"
+elif [ "${tgt_token_type}" = char ]; then
+    tgt_token_list="${tgt_chartoken_list}"
+    tgt_bpemodel=none
+elif [ "${tgt_token_type}" = word ]; then
+    tgt_token_list="${tgt_wordtoken_list}"
+    tgt_bpemodel=none
+else
+    log "Error: not supported --tgt_token_type '${tgt_token_type}'"
     exit 2
 fi
 if ${use_word_lm}; then
     log "Error: Word LM is not supported yet"
     exit 2
 
-    lm_token_list="${wordtoken_list}"
+    lm_token_list="${tgt_wordtoken_list}"
     lm_token_type=word
 else
-    lm_token_list="${token_list}"
-    lm_token_type="${token_type}"
+    lm_token_list="${tgt_token_list}"
+    lm_token_type="${tgt_token_type}"
 fi
 
 
@@ -611,46 +673,50 @@ if ! "${skip_data_prep}"; then
 
 
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-        if [ "${token_type}" = bpe ]; then
-            log "Stage 5: Generate token_list from ${bpe_train_text} using BPE"
+        # First generate tgt lang
+        if [ "${tgt_token_type}" = bpe ]; then
+            log "Stage 5a: Generate token_list from ${tgt_bpe_train_text} using BPE for tgt_lang"
 
-            mkdir -p "${bpedir}"
+            mkdir -p "${tgt_bpedir}"
             # shellcheck disable=SC2002
-            cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
+            cat ${tgt_bpe_train_text} | cut -f 2- -d" "  > "${tgt_bpedir}"/train.txt
 
-            if [ -n "${bpe_nlsyms}" ]; then
-                _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+            if [ -n "${tgt_bpe_nlsyms}" ]; then
+                _opts_spm="--user_defined_symbols=${tgt_bpe_nlsyms}"
             else
                 _opts_spm=""
             fi
 
             spm_train \
-                --input="${bpedir}"/train.txt \
-                --vocab_size="${nbpe}" \
-                --model_type="${bpemode}" \
-                --model_prefix="${bpeprefix}" \
-                --character_coverage=${bpe_char_cover} \
-                --input_sentence_size="${bpe_input_sentence_size}" \
+                --input="${tgt_bpedir}"/train.txt \
+                --vocab_size="${tgt_nbpe}" \
+                --model_type="${tgt_bpemode}" \
+                --model_prefix="${tgt_bpeprefix}" \
+                --character_coverage=${tgt_bpe_char_cover} \
+                --input_sentence_size="${tgt_bpe_input_sentence_size}" \
                 ${_opts_spm}
 
             {
             echo "${blank}"
             echo "${oov}"
             # Remove <unk>, <s>, </s> from the vocabulary
-            <"${bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+            <"${tgt_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
             echo "${sos_eos}"
-            } > "${token_list}"
+            } > "${tgt_token_list}"
 
-        elif [ "${token_type}" = char ] || [ "${token_type}" = word ]; then
-            log "Stage 5: Generate character level token_list from ${lm_train_text}"
+        elif [ "${tgt_token_type}" = char ] || [ "${tgt_token_type}" = word ]; then
+            log "Stage 5a: Generate character level token_list from ${tgt_bpe_train_text}  for tgt_lang"
 
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
+
+            # shellcheck disable=SC2002
+            cat ${tgt_bpe_train_text} | cut -f 2- -d" "  > "${data_feats}"/token_train.txt
 
             # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
             # 0 is reserved for CTC-blank for ST and also used as ignore-index in the other task
             ${python} -m espnet2.bin.tokenize_text  \
-                --token_type "${token_type}" \
-                --input "${data_feats}/lm_train.txt" --output "${token_list}" ${_opts} \
+                --token_type "${tgt_token_type}" \
+                --input "${data_feats}/token_train.txt" --output "${tgt_token_list}" ${_opts} \
                 --field 2- \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
@@ -660,7 +726,7 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${sos_eos}:-1"
 
         else
-            log "Error: not supported --token_type '${token_type}'"
+            log "Error: not supported --token_type '${tgt_token_type}'"
             exit 2
         fi
 
@@ -680,7 +746,70 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${sos_eos}:-1"
         fi
 
+        # Then generate src lang
+        if "${token_joint}"; then
+            log "Stage 5b: Skip separate token construction for src_lang when setting ${token_joint} as true"
+        else
+            if [ "${src_token_type}" = bpe ]; then
+                log "Stage 5a: Generate token_list from ${src_bpe_train_text} using BPE for src_lang"
+
+                mkdir -p "${src_bpedir}"
+                # shellcheck disable=SC2002
+                cat ${src_bpe_train_text} | cut -f 2- -d" "  > "${src_bpedir}"/train.txt
+
+                if [ -n "${src_bpe_nlsyms}" ]; then
+                    _opts_spm="--user_defined_symbols=${src_bpe_nlsyms}"
+                else
+                    _opts_spm=""
+                fi
+
+                spm_train \
+                    --input="${src_bpedir}"/train.txt \
+                    --vocab_size="${src_nbpe}" \
+                    --model_type="${src_bpemode}" \
+                    --model_prefix="${src_bpeprefix}" \
+                    --character_coverage=${src_bpe_char_cover} \
+                    --input_sentence_size="${src_bpe_input_sentence_size}" \
+                    ${_opts_spm}
+
+                {
+                echo "${blank}"
+                echo "${oov}"
+                # Remove <unk>, <s>, </s> from the vocabulary
+                <"${src_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+                echo "${sos_eos}"
+                } > "${src_token_list}"
+
+            elif [ "${src_token_type}" = char ] || [ "${src_token_type}" = word ]; then
+                log "Stage 5a: Generate character level token_list from ${src_bpe_train_text}  for src_lang"
+
+                _opts="--non_linguistic_symbols ${nlsyms_txt}"
+
+                # shellcheck disable=SC2002
+                cat ${src_bpe_train_text} | cut -f 2- -d" "  > "${data_feats}"/token_train.txt
+
+                # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+                # 0 is reserved for CTC-blank for ST and also used as ignore-index in the other task
+                ${python} -m espnet2.bin.tokenize_text  \
+                    --token_type "${src_token_type}" \
+                    --input "${data_feats}/token_train.txt" --output "${src_token_list}" ${_opts} \
+                    --field 2- \
+                    --cleaner "${cleaner}" \
+                    --g2p "${g2p}" \
+                    --write_vocabulary true \
+                    --add_symbol "${blank}:0" \
+                    --add_symbol "${oov}:1" \
+                    --add_symbol "${sos_eos}:-1"
+
+            else
+                log "Error: not supported --token_type '${src_token_type}'"
+                exit 2
+            fi
+
+
+        fi
     fi
+
 else
     log "Skip the stages for data preparation"
 fi
@@ -736,7 +865,7 @@ if ! "${skip_train}"; then
                 ${python} -m espnet2.bin.lm_train \
                     --collect_stats true \
                     --use_preprocessor true \
-                    --bpemodel "${bpemodel}" \
+                    --bpemodel "${tgt_bpemodel}" \
                     --token_type "${lm_token_type}"\
                     --token_list "${lm_token_list}" \
                     --non_linguistic_symbols "${nlsyms_txt}" \
@@ -817,6 +946,7 @@ if ! "${skip_train}"; then
                 jobname="${lm_exp}/train.log"
             fi
 
+            # TODO(jiatong): fix bpe
             # shellcheck disable=SC2086
             ${python} -m espnet2.bin.launch \
                 --cmd "${cuda_cmd} --name ${jobname}" \
@@ -828,7 +958,7 @@ if ! "${skip_train}"; then
                 ${python} -m espnet2.bin.lm_train \
                     --ngpu "${ngpu}" \
                     --use_preprocessor true \
-                    --bpemodel "${bpemodel}" \
+                    --bpemodel "${tgt_bpemodel}" \
                     --token_type "${lm_token_type}"\
                     --token_list "${lm_token_list}" \
                     --non_linguistic_symbols "${nlsyms_txt}" \
@@ -943,6 +1073,7 @@ if ! "${skip_train}"; then
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
         #       but it's used only for deciding the sample ids.
 
+        # TODO(jiatong): fix different bpe model
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.st_train \
@@ -1064,6 +1195,7 @@ if ! "${skip_train}"; then
             jobname="${st_exp}/train.log"
         fi
 
+        # TODO(jiatong): fix bpe
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
