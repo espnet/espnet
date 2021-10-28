@@ -1382,6 +1382,7 @@ fi
 if ! "${skip_upload}"; then
     if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
         log "Stage 15: Upload model to Zenodo: ${packed_model}"
+        log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/

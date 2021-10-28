@@ -1054,6 +1054,7 @@ if [ -z "${download_model}" ]; then
     # Skip pack preparation if using a downloaded model
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Pack model: ${packed_model}"
+        log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         _opts=""
         if [ -e "${tts_stats_dir}/train/feats_stats.npz" ]; then
