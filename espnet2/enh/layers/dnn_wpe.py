@@ -1,11 +1,14 @@
 from typing import Tuple
+from typing import Union
 
-from pytorch_wpe import wpe_one_iteration
 import torch
 from torch_complex.tensor import ComplexTensor
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.enh.layers.complex_utils import to_double
+from espnet2.enh.layers.complex_utils import to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
+from espnet2.enh.layers.wpe import wpe_one_iteration
 
 
 class DNN_WPE(torch.nn.Module):
@@ -63,8 +66,12 @@ class DNN_WPE(torch.nn.Module):
             self.nmask = 1
 
     def forward(
-        self, data: ComplexTensor, ilens: torch.LongTensor
-    ) -> Tuple[ComplexTensor, torch.LongTensor, ComplexTensor]:
+        self, data: Union[torch.Tensor, ComplexTensor], ilens: torch.LongTensor
+    ) -> Tuple[
+        Union[torch.Tensor, ComplexTensor],
+        torch.LongTensor,
+        Union[torch.Tensor, ComplexTensor],
+    ]:
         """DNN_WPE forward function.
 
         Notation:
@@ -110,8 +117,8 @@ class DNN_WPE(torch.nn.Module):
             # NOTE(kamo): Calculate in double precision
             enhanced = [
                 wpe_one_iteration(
-                    data.contiguous().double(),
-                    p.double(),
+                    to_double(data.contiguous()),
+                    to_double(p),
                     taps=self.taps,
                     delay=self.delay,
                     inverse_power=self.inverse_power,
@@ -137,19 +144,19 @@ class DNN_WPE(torch.nn.Module):
         return enhanced, ilens, masks, power
 
     def predict_mask(
-        self, data: ComplexTensor, ilens: torch.LongTensor
+        self, data: Union[torch.Tensor, ComplexTensor], ilens: torch.LongTensor
     ) -> Tuple[torch.Tensor, torch.LongTensor]:
         """Predict mask for WPE dereverberation.
 
         Args:
-            data (ComplexTensor): (B, T, C, F), double precision
+            data (torch.complex64/ComplexTensor): (B, T, C, F), double precision
             ilens (torch.Tensor): (B,)
         Returns:
             masks (torch.Tensor or List[torch.Tensor]): (B, T, C, F)
             ilens (torch.Tensor): (B,)
         """
         if self.use_dnn_mask:
-            masks, ilens = self.mask_est(data.permute(0, 3, 2, 1).float(), ilens)
+            masks, ilens = self.mask_est(to_float(data.permute(0, 3, 2, 1)), ilens)
             # (B, F, C, T) -> (B, T, C, F)
             masks = [m.transpose(-1, -3) for m in masks]
             if self.nmask == 1:

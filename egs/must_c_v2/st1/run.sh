@@ -108,7 +108,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Divide into source and target languages
     for x in train_sp.en-${tgt_lang} dev.en-${tgt_lang} tst-COMMON.en-${tgt_lang} tst-HE.en-${tgt_lang}; do
-        local/divide_lang.sh ${x} ${tgt_lang}
+        divide_lang.sh ${x} "en ${tgt_lang}"
     done
     for lang in ${tgt_lang} en; do
         cp -rf data/dev.en-${tgt_lang}.${lang} data/dev_org.en-${tgt_lang}.${lang}

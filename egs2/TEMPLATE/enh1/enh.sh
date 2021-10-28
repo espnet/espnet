@@ -29,6 +29,7 @@ skip_data_prep=false # Skip data preparation stages
 skip_train=false     # Skip training stages
 skip_eval=false      # Skip inference and evaluation stages
 skip_upload=true     # Skip packing and uploading stages
+skip_upload_hf=true # Skip uploading to hugging face stages.
 ngpu=1           # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1      # The number of nodes
 nj=32            # The number of parallel jobs.
@@ -52,9 +53,9 @@ min_wav_duration=0.1   # Minimum duration in second
 max_wav_duration=20    # Maximum duration in second
 
 # Enhancement model related
-enh_exp=    # Specify the direcotry path for enhancement experiment. If this option is specified, enh_tag is ignored.
+enh_exp=    # Specify the directory path for enhancement experiment. If this option is specified, enh_tag is ignored.
 enh_tag=    # Suffix to the result dir for enhancement model training.
-enh_config= # Config for ehancement model training.
+enh_config= # Config for enhancement model training.
 enh_args=   # Arguments for enhancement model training, e.g., "--max_epoch 10".
             # Note that it will overwrite args in enhancement config.
 spk_num=2   # Number of speakers
@@ -86,6 +87,9 @@ valid_set=       # Name of development set.
 test_sets=       # Names of evaluation sets. Multiple items can be specified.
 enh_speech_fold_length=800 # fold_length for speech data during enhancement training
 lang=noinfo      # The language type of corpus
+
+# Upload model related
+hf_repo=
 
 help_message=$(cat << EOF
 Usage: $0 --train-set <train_set_name> --valid-set <valid_set_name> --test_sets <test_set_names>
@@ -587,7 +591,7 @@ if ! "${skip_eval}"; then
             utils/split_scp.pl "${key_file}" ${split_scps}
 
             # 2. Submit inference jobs
-            log "Ehancement started... log: '${_logdir}/enh_inference.*.log'"
+            log "Enhancement started... log: '${_logdir}/enh_inference.*.log'"
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
                 ${python} -m espnet2.bin.enh_inference \
@@ -595,8 +599,8 @@ if ! "${skip_eval}"; then
                     --fs "${fs}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --enh_train_config "${enh_exp}"/config.yaml \
-                    --enh_model_file "${enh_exp}"/"${inference_model}" \
+                    --train_config "${enh_exp}"/config.yaml \
+                    --model_file "${enh_exp}"/"${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${inference_args}
 
@@ -674,7 +678,7 @@ if ! "${skip_eval}"; then
                 paste $(for j in $(seq ${spk_num}); do echo "${_dir}"/"${protocol}"_spk"${j}" ; done)  |
                 awk 'BEGIN{sum=0}
                     {n=0;score=0;for (i=2; i<=NF; i+=2){n+=1;score+=$i}; sum+=score/n}
-                    END{print sum/NR}' > "${_dir}/result_${protocol,,}.txt"
+                    END{printf ("%.2f\n",sum/NR)}' > "${_dir}/result_${protocol,,}.txt"
             done
         done
         ./scripts/utils/show_enh_score.sh ${enh_exp} > "${enh_exp}/RESULTS.md"
@@ -859,20 +863,19 @@ fi
 
 
 packed_model="${enh_exp}/${enh_exp##*/}_${inference_model%.*}.zip"
+if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 9 ]; then
+    log "Stage 11: Pack model: ${packed_model}"
+
+    ${python} -m espnet2.bin.pack enh \
+        --train_config "${enh_exp}"/config.yaml \
+        --model_file "${enh_exp}"/"${inference_model}" \
+        --option "${enh_exp}"/RESULTS.md \
+        --option "${enh_stats_dir}"/train/feats_stats.npz  \
+        --option "${enh_exp}"/images \
+        --outpath "${packed_model}"
+fi
+
 if ! "${skip_upload}"; then
-    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 9 ]; then
-        log "Stage 11: Pack model: ${packed_model}"
-
-        ${python} -m espnet2.bin.pack enh \
-            --train_config "${enh_exp}"/config.yaml \
-            --model_file "${enh_exp}"/"${inference_model}" \
-            --option "${enh_exp}"/RESULTS.md \
-            --option "${enh_stats_dir}"/train/feats_stats.npz  \
-            --option "${enh_exp}"/images \
-            --outpath "${packed_model}"
-    fi
-
-
     if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         log "Stage 12: Upload model to Zenodo: ${packed_model}"
 
@@ -928,7 +931,59 @@ EOF
             --publish false
     fi
 else
-    log "Skip the uploading stages"
+    log "Skip the uploading stage"
+fi
+
+if ! "${skip_upload_hf}"; then
+    if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
+        [ -z "${hf_repo}" ] && \
+            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        log "Stage 13: Upload model to HuggingFace: ${hf_repo}"
+
+        gitlfs=$(git lfs --version 2> /dev/null || true)
+        [ -z "${gitlfs}" ] && \
+            log "ERROR: You need to install git-lfs first" && \
+            exit 1
+
+        dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+        [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/asr1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # copy files in ${dir_repo}
+        unzip -o ${packed_model} -d ${dir_repo}
+        # Generate description file
+        # shellcheck disable=SC2034
+        hf_task=audio-to-audio
+        # shellcheck disable=SC2034
+        espnet_task=ENH
+        # shellcheck disable=SC2034
+        task_exp=${enh_exp}
+        eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+        this_folder=${PWD}
+        cd ${dir_repo}
+        if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Update model"
+        fi
+        git push
+        cd ${this_folder}
+    fi
+else
+    log "Skip the uploading to HuggingFace stage"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -9,14 +9,17 @@ class JointNetwork(torch.nn.Module):
     """Transducer joint network module.
 
     Args:
-        joint_space_size: Dimension of joint space
-        joint_activation_type: Activation type for joint network
+        joint_output_size: Joint network output dimension
+        encoder_output_size: Encoder output dimension.
+        decoder_output_size: Decoder output dimension.
+        joint_space_size: Dimension of joint space.
+        joint_activation_type: Type of activation for joint network.
 
     """
 
     def __init__(
         self,
-        vocab_size: int,
+        joint_output_size: int,
         encoder_output_size: int,
         decoder_output_size: int,
         joint_space_size: int,
@@ -30,27 +33,41 @@ class JointNetwork(torch.nn.Module):
             decoder_output_size, joint_space_size, bias=False
         )
 
-        self.lin_out = torch.nn.Linear(joint_space_size, vocab_size)
+        self.lin_out = torch.nn.Linear(joint_space_size, joint_output_size)
 
         self.joint_activation = get_activation(joint_activation_type)
 
     def forward(
-        self, h_enc: torch.Tensor, h_dec: torch.Tensor, is_aux: bool = False
+        self,
+        enc_out: torch.Tensor,
+        dec_out: torch.Tensor,
+        is_aux: bool = False,
+        quantization: bool = False,
     ) -> torch.Tensor:
-        """Joint computation of z.
+        """Joint computation of encoder and decoder hidden state sequences.
 
         Args:
-            h_enc: Batch of expanded hidden state (B, T, 1, D_enc)
-            h_dec: Batch of expanded hidden state (B, 1, U, D_dec)
+            enc_out: Expanded encoder output state sequences (B, T, 1, D_enc)
+            dec_out: Expanded decoder output state sequences (B, 1, U, D_dec)
+            is_aux: Whether auxiliary tasks in used.
+            quantization: Whether dynamic quantization is used.
 
         Returns:
-            z: Output (B, T, U, vocab_size)
+            joint_out: Joint output state sequences. (B, T, U, D_out)
 
         """
         if is_aux:
-            z = self.joint_activation(h_enc + self.lin_dec(h_dec))
-        else:
-            z = self.joint_activation(self.lin_enc(h_enc) + self.lin_dec(h_dec))
-        z = self.lin_out(z)
+            joint_out = self.joint_activation(enc_out + self.lin_dec(dec_out))
+        elif quantization:
+            joint_out = self.joint_activation(
+                self.lin_enc(enc_out.unsqueeze(0)) + self.lin_dec(dec_out.unsqueeze(0))
+            )
 
-        return z
+            return self.lin_out(joint_out)[0]
+        else:
+            joint_out = self.joint_activation(
+                self.lin_enc(enc_out) + self.lin_dec(dec_out)
+            )
+        joint_out = self.lin_out(joint_out)
+
+        return joint_out

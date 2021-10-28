@@ -32,6 +32,7 @@ def main():
         for e in elem.getiterator():
             if e.tag == "doc":
                 talk_id = e.get("docid").replace(" ", "")
+                talk_id = talk_id.replace("lecture", "")  # for tst2018
                 trans_dict_all[talk_id] = OrderedDict()
             elif e.tag == "seg":
                 utt_id = int(e.get("id"))
@@ -49,7 +50,7 @@ def main():
         for talk_id, trans_dict in trans_dict_all.items():
             for utt_id, ref in trans_dict.items():
                 f.write(
-                    "%s.%s.talkid%d_%04d %s\n"
+                    "%s.%s.talkid%04d_%04d %s\n"
                     % (_set, lang, int(talk_id), int(utt_id), ref)
                 )
 

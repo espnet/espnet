@@ -11,7 +11,10 @@ from espnet2.tts.fastspeech2 import FastSpeech2
 )
 @pytest.mark.parametrize("encoder_type", ["transformer", "conformer"])
 @pytest.mark.parametrize("decoder_type", ["transformer", "conformer"])
-@pytest.mark.parametrize("use_gst", [True, False])
+@pytest.mark.parametrize(
+    "spks, langs, use_gst",
+    [(-1, -1, False), (5, 2, True)],
+)
 def test_fastspeech2(
     reduction_factor,
     spk_embed_dim,
@@ -19,6 +22,8 @@ def test_fastspeech2(
     encoder_type,
     decoder_type,
     use_gst,
+    spks,
+    langs,
 ):
     model = FastSpeech2(
         idim=10,
@@ -50,6 +55,8 @@ def test_fastspeech2(
         pitch_predictor_dropout=0.5,
         pitch_embed_kernel_size=9,
         pitch_embed_dropout=0.5,
+        spks=spks,
+        langs=langs,
         spk_embed_dim=spk_embed_dim,
         spk_embed_integration_type=spk_embed_integration_type,
         use_gst=use_gst,
@@ -68,8 +75,8 @@ def test_fastspeech2(
     inputs = dict(
         text=torch.randint(1, 10, (2, 2)),
         text_lengths=torch.tensor([2, 1], dtype=torch.long),
-        speech=torch.randn(2, 4 * reduction_factor, 5),
-        speech_lengths=torch.tensor([4, 2], dtype=torch.long) * reduction_factor,
+        feats=torch.randn(2, 4 * reduction_factor, 5),
+        feats_lengths=torch.tensor([4, 2], dtype=torch.long) * reduction_factor,
         durations=torch.tensor([[2, 2, 0], [2, 0, 0]], dtype=torch.long),
         pitch=torch.tensor([[2, 2, 0], [2, 0, 0]], dtype=torch.float).unsqueeze(-1),
         energy=torch.tensor([[2, 2, 0], [2, 0, 0]], dtype=torch.float).unsqueeze(-1),
@@ -80,6 +87,10 @@ def test_fastspeech2(
     )
     if spk_embed_dim is not None:
         inputs.update(spembs=torch.randn(2, spk_embed_dim))
+    if spks > 0:
+        inputs.update(sids=torch.randint(0, spks, (2, 1)))
+    if langs > 0:
+        inputs.update(lids=torch.randint(0, langs, (2, 1)))
     loss, *_ = model(**inputs)
     loss.backward()
 
@@ -90,9 +101,13 @@ def test_fastspeech2(
             text=torch.randint(0, 10, (2,)),
         )
         if use_gst:
-            inputs.update(speech=torch.randn(5, 5))
+            inputs.update(feats=torch.randn(5, 5))
         if spk_embed_dim is not None:
             inputs.update(spembs=torch.randn(spk_embed_dim))
+        if spks > 0:
+            inputs.update(sids=torch.randint(0, spks, (1,)))
+        if langs > 0:
+            inputs.update(lids=torch.randint(0, langs, (1,)))
         model.inference(**inputs)
 
         # teacher forcing

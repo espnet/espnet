@@ -39,11 +39,11 @@ for line in sys.stdin:
         segId = "%s_spk-%04d_seg-%07d:%07d" % (basename, spk, start * 100, end * 100)
         spkId = "%s_spk-%04d" % (basename, spk)
 
-        # only add segments where Matching Error Rate is below the threshhold
+        # only add segments where Matching Error Rate is below the threshold
         if mer_thresh is None or mer <= mer_thresh:
-            print(segments_file, "%s %s %.2f %.2f" % (segId, basename, start, end))
-            print(text_file, "%s %s" % (segId, words))
-            print(utt2spk_file, "%s %s" % (segId, spkId))
+            print("%s %s %.2f %.2f" % (segId, basename, start, end), file=segments_file)
+            print("%s %s" % (segId, words), file=text_file)
+            print("%s %s" % (segId, spkId), file=utt2spk_file)
 
 segments_file.close()
 utt2spk_file.close()

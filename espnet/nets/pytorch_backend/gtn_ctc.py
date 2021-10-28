@@ -38,7 +38,7 @@ class GTNCTCLossFunction(torch.autograd.Function):
         return g_criterion
 
     @staticmethod
-    def forward(ctx, log_probs, targets, blank_idx=0, reduction="none"):
+    def forward(ctx, log_probs, targets, ilens, blank_idx=0, reduction="none"):
         """Forward computation.
 
         :param torch.tensor log_probs: batched log softmax probabilities (B, Tmax, oDim)
@@ -47,15 +47,16 @@ class GTNCTCLossFunction(torch.autograd.Function):
         :return: ctc loss value
         :rtype: torch.Tensor
         """
-        B, T, C = log_probs.shape
+        B, _, C = log_probs.shape
         losses = [None] * B
         scales = [None] * B
         emissions_graphs = [None] * B
 
         def process(b):
             # create emission graph
+            T = ilens[b]
             g_emissions = gtn.linear_graph(T, C, log_probs.requires_grad)
-            cpu_data = log_probs[b].cpu().contiguous()
+            cpu_data = log_probs[b][:T].cpu().contiguous()
             g_emissions.set_weights(cpu_data.data_ptr())
 
             # create criterion graph
@@ -79,7 +80,7 @@ class GTNCTCLossFunction(torch.autograd.Function):
 
         gtn.parallel_for(process, range(B))
 
-        ctx.auxiliary_data = (losses, scales, emissions_graphs, log_probs.shape)
+        ctx.auxiliary_data = (losses, scales, emissions_graphs, log_probs.shape, ilens)
         loss = torch.tensor([losses[b].item() * scales[b] for b in range(B)])
         return torch.mean(loss.cuda() if log_probs.is_cuda else loss)
 
@@ -91,15 +92,16 @@ class GTNCTCLossFunction(torch.autograd.Function):
         :return: cumulative gradient output
         :rtype: (torch.Tensor, None, None, None)
         """
-        losses, scales, emissions_graphs, in_shape = ctx.auxiliary_data
+        losses, scales, emissions_graphs, in_shape, ilens = ctx.auxiliary_data
         B, T, C = in_shape
-        input_grad = torch.empty((B, T, C))
+        input_grad = torch.zeros((B, T, C))
 
         def process(b):
+            T = ilens[b]
             gtn.backward(losses[b], False)
             emissions = emissions_graphs[b]
             grad = emissions.grad().weights_to_numpy()
-            input_grad[b] = torch.from_numpy(grad).view(1, T, C) * scales[b]
+            input_grad[b][:T] = torch.from_numpy(grad).view(1, T, C) * scales[b]
 
         gtn.parallel_for(process, range(B))
 
@@ -110,6 +112,7 @@ class GTNCTCLossFunction(torch.autograd.Function):
         return (
             input_grad,
             None,  # targets
+            None,  # ilens
             None,  # blank_idx
             None,  # reduction
         )

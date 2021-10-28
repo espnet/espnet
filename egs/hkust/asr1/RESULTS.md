@@ -1,3 +1,21 @@
+# conformer (only 20 epochs)
+## Environments
+- date: `Wed Aug  4 15:52:24 EDT 2021`
+- python version: `3.8.5 (default, Sep  4 2020, 07:30:14)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.0`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `1fa7f0da2fcc8656feb5cb4325d562409ad23dbf`
+  - Commit date: `Fri Jun 25 17:24:32 2021 -0400`
+
+## train_nodup_sp_pytorch_train_pytorch_conformer_kernel15
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_decode_lm|5413|56154|80.9|16.0|3.0|2.8|21.9|68.3|
+|decode_train_dev_decode_lm|4000|47147|81.2|15.5|3.3|3.2|22.0|71.4|
+
 # transformer (only 20 epochs)
   - This recipe seems to be over-trained at more than 20 epochs. It may require some tuning to avoid it.
   - Environments (obtained by `$ get_sys_info.sh`)

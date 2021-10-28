@@ -32,6 +32,7 @@ encoder: stft
 encoder_conf:
     n_fft: 512
     hop_length: 128
+    use_builtin_complex: False
 decoder: stft
 decoder_conf:
     n_fft: 512

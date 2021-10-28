@@ -1,5 +1,5 @@
 # minibatch related
-batch-size: 30
+batch-size: 32
 maxlen-in: 800
 maxlen-out: 150
 
@@ -8,11 +8,12 @@ criterion: loss
 early-stop-criterion: "validation/main/loss"
 sortagrad: 0
 opt: noam
-transformer-lr: 10.0
-transformer-warmup-steps: 8000
-epochs: 30
+noam-lr: 2.0
+noam-adim: 256
+optimizer-warmup-steps: 4000
+epochs: 40
 patience: 0
-accum-grad: 4
+accum-grad: 2
 grad-clip: 5.0
 
 # network architecture
@@ -30,16 +31,16 @@ enc-block-arch:
           macaron_style: True
           use_conv_mod: True
           conv_mod_kernel: 15
-          dropout-rate: 0.4
-          pos-dropout-rate: 0.4
-          att-dropout-rate: 0.4
+          dropout-rate: 0.3
+          att-dropout-rate: 0.3
+          pos-dropout-rate: 0.3
 enc-block-repeat: 8
 ## decoder related
 dtype: lstm
 dlayers: 1
-dec-embed-dim: 512
-dunits: 512
-dropout-rate-decoder: 0.2
+dec-embed-dim: 256
+dunits: 256
+dropout-rate-decoder: 0.1
 dropout-rate-embed-decoder: 0.2
 ## joint network related
 joint-dim: 128
