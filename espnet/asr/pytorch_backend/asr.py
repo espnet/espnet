@@ -16,9 +16,9 @@ from chainer import training
 from chainer.training import extensions
 from chainer.training.updater import StandardUpdater
 import numpy as np
-from tensorboardX import SummaryWriter
 import torch
 from torch.nn.parallel import data_parallel
+from torch.utils.tensorboard import SummaryWriter
 
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json

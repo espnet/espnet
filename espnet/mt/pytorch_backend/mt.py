@@ -14,8 +14,8 @@ import os
 from chainer import training
 from chainer.training import extensions
 import numpy as np
-from tensorboardX import SummaryWriter
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import adam_lr_decay

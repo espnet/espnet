@@ -38,7 +38,7 @@ from espnet.scheduler.chainer import ChainerScheduler
 from espnet.scheduler.scheduler import dynamic_import_scheduler
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.training.evaluator import BaseEvaluator
