@@ -54,7 +54,7 @@ python3 <<EOF
 import torch
 from distutils.version import LooseVersion as L
 version = '$TH_VERSION'.split(".")
-next_version = f"{version[0]}.{version[1]}.{int(version[2]) + 1)}"
+next_version = f"{version[0]}.{version[1]}.{int(version[2]) + 1}"
 
 if L(torch.__version__) < L('$TH_VERSION') or L(torch.__version__) >= L(next_version):
     raise RuntimeError(f"Pytorch=$TH_VERSION is expected, but got pytorch={torch.__version__}. This is a bug of installation scripts")
