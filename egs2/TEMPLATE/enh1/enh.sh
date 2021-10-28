@@ -971,7 +971,7 @@ if ! "${skip_upload_hf}"; then
         espnet_task=ENH
         # shellcheck disable=SC2034
         task_exp=${enh_exp}
-        eval "echo \"$(cat ${PWD}/../../TEMPLATE/HF_README.md)\"" > "${dir_repo}"/README.md
+        eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
 
         this_folder=${PWD}
         cd ${dir_repo}
