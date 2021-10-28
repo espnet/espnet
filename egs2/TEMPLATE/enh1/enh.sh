@@ -863,16 +863,19 @@ fi
 
 
 packed_model="${enh_exp}/${enh_exp##*/}_${inference_model%.*}.zip"
-if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 9 ]; then
-    log "Stage 11: Pack model: ${packed_model}"
+if [ -z "${download_model}" ]; then
+    # Skip pack preparation if using a downloaded model
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 11: Pack model: ${packed_model}"
 
-    ${python} -m espnet2.bin.pack enh \
-        --train_config "${enh_exp}"/config.yaml \
-        --model_file "${enh_exp}"/"${inference_model}" \
-        --option "${enh_exp}"/RESULTS.md \
-        --option "${enh_stats_dir}"/train/feats_stats.npz  \
-        --option "${enh_exp}"/images \
-        --outpath "${packed_model}"
+        ${python} -m espnet2.bin.pack enh \
+            --train_config "${enh_exp}"/config.yaml \
+            --model_file "${enh_exp}"/"${inference_model}" \
+            --option "${enh_exp}"/RESULTS.md \
+            --option "${enh_stats_dir}"/train/feats_stats.npz  \
+            --option "${enh_exp}"/images \
+            --outpath "${packed_model}"
+    fi
 fi
 
 if ! "${skip_upload}"; then
