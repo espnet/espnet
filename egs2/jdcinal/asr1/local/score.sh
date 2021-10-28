@@ -2,12 +2,6 @@
 # Copyright 2021  Siddhant Arora
 #           2021  Carnegie Mellon University
 
-# # begin configuration section.
-# cmd=run.pl
-# stage=0
-# data=data/eval2000
-# #end configuration section.
-
 [ -f ./path.sh ] && . ./path.sh
 . parse_options.sh || exit 1;
 
@@ -17,6 +11,7 @@ if [ $# -lt 1 ]; then
 fi
 
 asr_expdir=$1
+#_scoredir modified from the original score.sh in fsc recipe
 _scoredir="${asr_expdir}/decode_asr_asr_model_valid.acc.ave_5best/valid/score_wer/"
 python local/score.py ${asr_expdir}
 sclite \

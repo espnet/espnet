@@ -25,7 +25,7 @@ def get_classification_result(hyp_file, ref_file, hyp_write, ref_write):
         ref_write.write(" ".join(ref_lines[line_count].split(" ")[1:]))
     return 1 - (error / len(hyp_lines))
 
-
+# file path modified from the original score.py in fsc recipe
 exp_root = sys.argv[1]
 valid_hyp_file = open(
     os.path.join(
@@ -58,6 +58,7 @@ result = get_classification_result(
 print("Valid Intent Classification Result")
 print(result)
 
+# file path modified from the original score.py in fsc recipe
 test_hyp_file = open(
     os.path.join(
         exp_root, "decode_asr_asr_model_valid.acc.ave_5best/test/score_wer/hyp.trn"
