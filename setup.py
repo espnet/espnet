@@ -48,7 +48,7 @@ requirements = {
         "ci_sdr",
     ],
     # all: The modules should be optionally installled due to some reason.
-    #      Please consider moveing them to "install" occasionally
+    #      Please consider moving them to "install" occasionally
     "all": [
         # NOTE(kamo): Append modules requiring specific pytorch version or torch>1.3.0
         "torchaudio",
