@@ -26,6 +26,17 @@ espnet2.bin.__init__
     :show-inheritance:
 
 
+.. _espnet2.bin.asr_inference_streaming:
+
+espnet2.bin.asr_inference_streaming
+-----------------------------------
+
+.. automodule:: espnet2.bin.asr_inference_streaming
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.aggregate_stats_dirs:
 
 espnet2.bin.aggregate_stats_dirs

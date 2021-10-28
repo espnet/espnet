@@ -114,6 +114,17 @@ espnet.nets.lm_interface
     :show-inheritance:
 
 
+.. _espnet.nets.batch_beam_search_online:
+
+espnet.nets.batch_beam_search_online
+------------------------------------
+
+.. automodule:: espnet.nets.batch_beam_search_online
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet.nets.mt_interface:
 
 espnet.nets.mt_interface
@@ -1099,6 +1110,17 @@ espnet.nets.pytorch_backend.conformer.argument
 ----------------------------------------------
 
 .. automodule:: espnet.nets.pytorch_backend.conformer.argument
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.nets.pytorch_backend.conformer.contextual_block_encoder_layer:
+
+espnet.nets.pytorch_backend.conformer.contextual_block_encoder_layer
+--------------------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.conformer.contextual_block_encoder_layer
     :members:
     :undoc-members:
     :show-inheritance:

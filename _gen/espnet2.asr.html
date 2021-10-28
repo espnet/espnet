@@ -110,6 +110,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-preencoder-linear">espnet2.asr.preencoder.linear</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-preencoder-sinc">espnet2.asr.preencoder.sinc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-init">espnet2.asr.encoder.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-contextual-block-conformer-encoder">espnet2.asr.encoder.contextual_block_conformer_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-abs-encoder">espnet2.asr.encoder.abs_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-rnn-encoder">espnet2.asr.encoder.rnn_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-hubert-encoder">espnet2.asr.encoder.hubert_encoder</a></li>
@@ -1026,8 +1027,109 @@ an optional average-pooling layer.</p>
 <section id="espnet2-asr-encoder-init">
 <span id="id23"></span><h2>espnet2.asr.encoder.__init__<a class="headerlink" href="#espnet2-asr-encoder-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.__init__"></span></section>
+<section id="espnet2-asr-encoder-contextual-block-conformer-encoder">
+<span id="id24"></span><h2>espnet2.asr.encoder.contextual_block_conformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-contextual-block-conformer-encoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.encoder.contextual_block_conformer_encoder"></span><p>Created on Sat Aug 21 17:27:16 2021.</p>
+<p>&#64;author: Keqi Deng (UCAS)</p>
+<dl class="class">
+<dt id="espnet2.asr.encoder.contextual_block_conformer_encoder.ContextualBlockConformerEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.contextual_block_conformer_encoder.</code><code class="sig-name descname">ContextualBlockConformerEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">output_size: int = 256</em>, <em class="sig-param">attention_heads: int = 4</em>, <em class="sig-param">linear_units: int = 2048</em>, <em class="sig-param">num_blocks: int = 6</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em>, <em class="sig-param">input_layer: Optional[str] = 'conv2d'</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">concat_after: bool = False</em>, <em class="sig-param">positionwise_layer_type: str = 'linear'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 3</em>, <em class="sig-param">macaron_style: bool = False</em>, <em class="sig-param">pos_enc_class=&lt;class 'espnet.nets.pytorch_backend.transformer.embedding.StreamPositionalEncoding'&gt;</em>, <em class="sig-param">selfattention_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">activation_type: str = 'swish'</em>, <em class="sig-param">use_cnn_module: bool = True</em>, <em class="sig-param">cnn_module_kernel: int = 31</em>, <em class="sig-param">padding_idx: int = -1</em>, <em class="sig-param">block_size: int = 40</em>, <em class="sig-param">hop_size: int = 16</em>, <em class="sig-param">look_ahead: int = 16</em>, <em class="sig-param">init_average: bool = True</em>, <em class="sig-param">ctx_pos_enc: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_conformer_encoder.html#ContextualBlockConformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_conformer_encoder.ContextualBlockConformerEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>Contextual Block Conformer encoder module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> – input dim</p></li>
+<li><p><strong>output_size</strong> – dimension of attention</p></li>
+<li><p><strong>attention_heads</strong> – the number of heads of multi head attention</p></li>
+<li><p><strong>linear_units</strong> – the number of units of position-wise feed forward</p></li>
+<li><p><strong>num_blocks</strong> – the number of decoder blocks</p></li>
+<li><p><strong>dropout_rate</strong> – dropout rate</p></li>
+<li><p><strong>attention_dropout_rate</strong> – dropout rate in attention</p></li>
+<li><p><strong>positional_dropout_rate</strong> – dropout rate after adding positional encoding</p></li>
+<li><p><strong>input_layer</strong> – input layer type</p></li>
+<li><p><strong>pos_enc_class</strong> – PositionalEncoding or ScaledPositionalEncoding</p></li>
+<li><p><strong>normalize_before</strong> – whether to use layer_norm before the first block</p></li>
+<li><p><strong>concat_after</strong> – whether to concat attention layer’s input and output
+if True, additional linear will be applied.
+i.e. x -&gt; x + linear(concat(x, att(x)))
+if False, no additional linear will be applied.
+i.e. x -&gt; x + att(x)</p></li>
+<li><p><strong>positionwise_layer_type</strong> – linear of conv1d</p></li>
+<li><p><strong>positionwise_conv_kernel_size</strong> – kernel size of positionwise conv1d layer</p></li>
+<li><p><strong>padding_idx</strong> – padding_idx for input_layer=embed</p></li>
+<li><p><strong>block_size</strong> – block size for contextual block processing</p></li>
+<li><p><strong>hop_Size</strong> – hop size for block processing</p></li>
+<li><p><strong>look_ahead</strong> – look-ahead size for block_processing</p></li>
+<li><p><strong>init_average</strong> – whether to use average as initial context (otherwise max values)</p></li>
+<li><p><strong>ctx_pos_enc</strong> – whether to use positional encoding to the context vectors</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.encoder.contextual_block_conformer_encoder.ContextualBlockConformerEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">is_final=True</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_conformer_encoder.html#ContextualBlockConformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_conformer_encoder.ContextualBlockConformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Embed positions in tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_pad</strong> – input tensor (B, L, D)</p></li>
+<li><p><strong>ilens</strong> – input length (B)</p></li>
+<li><p><strong>prev_states</strong> – Not to be used now.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>position embedded tensor and mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.contextual_block_conformer_encoder.ContextualBlockConformerEncoder.forward_infer">
+<code class="sig-name descname">forward_infer</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">is_final: bool = True</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_conformer_encoder.html#ContextualBlockConformerEncoder.forward_infer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_conformer_encoder.ContextualBlockConformerEncoder.forward_infer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Embed positions in tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_pad</strong> – input tensor (B, L, D)</p></li>
+<li><p><strong>ilens</strong> – input length (B)</p></li>
+<li><p><strong>prev_states</strong> – Not to be used now.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>position embedded tensor and mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.contextual_block_conformer_encoder.ContextualBlockConformerEncoder.forward_train">
+<code class="sig-name descname">forward_train</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_conformer_encoder.html#ContextualBlockConformerEncoder.forward_train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_conformer_encoder.ContextualBlockConformerEncoder.forward_train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Embed positions in tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_pad</strong> – input tensor (B, L, D)</p></li>
+<li><p><strong>ilens</strong> – input length (B)</p></li>
+<li><p><strong>prev_states</strong> – Not to be used now.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>position embedded tensor and mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.contextual_block_conformer_encoder.ContextualBlockConformerEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_conformer_encoder.html#ContextualBlockConformerEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_conformer_encoder.ContextualBlockConformerEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-asr-encoder-abs-encoder">
-<span id="id24"></span><h2>espnet2.asr.encoder.abs_encoder<a class="headerlink" href="#espnet2-asr-encoder-abs-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id25"></span><h2>espnet2.asr.encoder.abs_encoder<a class="headerlink" href="#espnet2-asr-encoder-abs-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.abs_encoder"></span><dl class="class">
 <dt id="espnet2.asr.encoder.abs_encoder.AbsEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.abs_encoder.</code><code class="sig-name descname">AbsEncoder</code><a class="reference internal" href="../_modules/espnet2/asr/encoder/abs_encoder.html#AbsEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="Permalink to this definition">¶</a></dt>
@@ -1056,7 +1158,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-encoder-rnn-encoder">
-<span id="id25"></span><h2>espnet2.asr.encoder.rnn_encoder<a class="headerlink" href="#espnet2-asr-encoder-rnn-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id26"></span><h2>espnet2.asr.encoder.rnn_encoder<a class="headerlink" href="#espnet2-asr-encoder-rnn-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.rnn_encoder"></span><dl class="class">
 <dt id="espnet2.asr.encoder.rnn_encoder.RNNEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.rnn_encoder.</code><code class="sig-name descname">RNNEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">rnn_type: str = 'lstm'</em>, <em class="sig-param">bidirectional: bool = True</em>, <em class="sig-param">use_projection: bool = True</em>, <em class="sig-param">num_layers: int = 4</em>, <em class="sig-param">hidden_size: int = 320</em>, <em class="sig-param">output_size: int = 320</em>, <em class="sig-param">dropout: float = 0.0</em>, <em class="sig-param">subsample: Optional[Sequence[int]] = (2</em>, <em class="sig-param">2</em>, <em class="sig-param">1</em>, <em class="sig-param">1)</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/rnn_encoder.html#RNNEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.rnn_encoder.RNNEncoder" title="Permalink to this definition">¶</a></dt>
@@ -1098,7 +1200,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-encoder-hubert-encoder">
-<span id="id26"></span><h2>espnet2.asr.encoder.hubert_encoder<a class="headerlink" href="#espnet2-asr-encoder-hubert-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id27"></span><h2>espnet2.asr.encoder.hubert_encoder<a class="headerlink" href="#espnet2-asr-encoder-hubert-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.hubert_encoder"></span><p>Encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.encoder.hubert_encoder.FairseqHubertEncoder">
@@ -1221,7 +1323,7 @@ before tuning the whole model (nessasary to prevent overfit).</p></li>
 
 </section>
 <section id="espnet2-asr-encoder-transformer-encoder">
-<span id="id27"></span><h2>espnet2.asr.encoder.transformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-transformer-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id28"></span><h2>espnet2.asr.encoder.transformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-transformer-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.transformer_encoder"></span><p>Encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.encoder.transformer_encoder.TransformerEncoder">
@@ -1280,11 +1382,11 @@ i.e. x -&gt; x + att(x)</p></li>
 
 </section>
 <section id="espnet2-asr-encoder-contextual-block-transformer-encoder">
-<span id="id28"></span><h2>espnet2.asr.encoder.contextual_block_transformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-contextual-block-transformer-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id29"></span><h2>espnet2.asr.encoder.contextual_block_transformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-contextual-block-transformer-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.contextual_block_transformer_encoder"></span><p>Encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.contextual_block_transformer_encoder.</code><code class="sig-name descname">ContextualBlockTransformerEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">output_size: int = 256</em>, <em class="sig-param">attention_heads: int = 4</em>, <em class="sig-param">linear_units: int = 2048</em>, <em class="sig-param">num_blocks: int = 6</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em>, <em class="sig-param">input_layer: Optional[str] = 'conv2d'</em>, <em class="sig-param">pos_enc_class=&lt;class 'espnet.nets.pytorch_backend.transformer.embedding.PositionalEncoding'&gt;</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">concat_after: bool = False</em>, <em class="sig-param">positionwise_layer_type: str = 'linear'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 1</em>, <em class="sig-param">padding_idx: int = -1</em>, <em class="sig-param">block_size: int = 40</em>, <em class="sig-param">hop_size: int = 16</em>, <em class="sig-param">look_ahead: int = 16</em>, <em class="sig-param">init_average: bool = True</em>, <em class="sig-param">ctx_pos_enc: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_transformer_encoder.html#ContextualBlockTransformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.contextual_block_transformer_encoder.</code><code class="sig-name descname">ContextualBlockTransformerEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">output_size: int = 256</em>, <em class="sig-param">attention_heads: int = 4</em>, <em class="sig-param">linear_units: int = 2048</em>, <em class="sig-param">num_blocks: int = 6</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em>, <em class="sig-param">input_layer: Optional[str] = 'conv2d'</em>, <em class="sig-param">pos_enc_class=&lt;class 'espnet.nets.pytorch_backend.transformer.embedding.StreamPositionalEncoding'&gt;</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">concat_after: bool = False</em>, <em class="sig-param">positionwise_layer_type: str = 'linear'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 1</em>, <em class="sig-param">padding_idx: int = -1</em>, <em class="sig-param">block_size: int = 40</em>, <em class="sig-param">hop_size: int = 16</em>, <em class="sig-param">look_ahead: int = 16</em>, <em class="sig-param">init_average: bool = True</em>, <em class="sig-param">ctx_pos_enc: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_transformer_encoder.html#ContextualBlockTransformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
 <p>Contextual Block Transformer encoder module.</p>
 <p>Details in Tsunoo et al. “Transformer ASR with contextual block processing”
@@ -1321,7 +1423,43 @@ i.e. x -&gt; x + att(x)</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_transformer_encoder.html#ContextualBlockTransformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">is_final=True</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_transformer_encoder.html#ContextualBlockTransformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Embed positions in tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_pad</strong> – input tensor (B, L, D)</p></li>
+<li><p><strong>ilens</strong> – input length (B)</p></li>
+<li><p><strong>prev_states</strong> – Not to be used now.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>position embedded tensor and mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder.forward_infer">
+<code class="sig-name descname">forward_infer</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">is_final: bool = True</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_transformer_encoder.html#ContextualBlockTransformerEncoder.forward_infer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder.forward_infer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Embed positions in tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_pad</strong> – input tensor (B, L, D)</p></li>
+<li><p><strong>ilens</strong> – input length (B)</p></li>
+<li><p><strong>prev_states</strong> – Not to be used now.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>position embedded tensor and mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder.forward_train">
+<code class="sig-name descname">forward_train</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_transformer_encoder.html#ContextualBlockTransformerEncoder.forward_train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder.forward_train" title="Permalink to this definition">¶</a></dt>
 <dd><p>Embed positions in tensor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1346,7 +1484,7 @@ i.e. x -&gt; x + att(x)</p></li>
 
 </section>
 <section id="espnet2-asr-encoder-vgg-rnn-encoder">
-<span id="id29"></span><h2>espnet2.asr.encoder.vgg_rnn_encoder<a class="headerlink" href="#espnet2-asr-encoder-vgg-rnn-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id30"></span><h2>espnet2.asr.encoder.vgg_rnn_encoder<a class="headerlink" href="#espnet2-asr-encoder-vgg-rnn-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.vgg_rnn_encoder"></span><dl class="class">
 <dt id="espnet2.asr.encoder.vgg_rnn_encoder.VGGRNNEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.vgg_rnn_encoder.</code><code class="sig-name descname">VGGRNNEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">rnn_type: str = 'lstm'</em>, <em class="sig-param">bidirectional: bool = True</em>, <em class="sig-param">use_projection: bool = True</em>, <em class="sig-param">num_layers: int = 4</em>, <em class="sig-param">hidden_size: int = 320</em>, <em class="sig-param">output_size: int = 320</em>, <em class="sig-param">dropout: float = 0.0</em>, <em class="sig-param">in_channel: int = 1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/vgg_rnn_encoder.html#VGGRNNEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.vgg_rnn_encoder.VGGRNNEncoder" title="Permalink to this definition">¶</a></dt>
@@ -1388,7 +1526,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-encoder-conformer-encoder">
-<span id="id30"></span><h2>espnet2.asr.encoder.conformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-conformer-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id31"></span><h2>espnet2.asr.encoder.conformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-conformer-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.conformer_encoder"></span><p>Conformer encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.encoder.conformer_encoder.ConformerEncoder">
@@ -1461,7 +1599,7 @@ torch.Tensor: Not to be used now.</p>
 
 </section>
 <section id="espnet2-asr-encoder-wav2vec2-encoder">
-<span id="id31"></span><h2>espnet2.asr.encoder.wav2vec2_encoder<a class="headerlink" href="#espnet2-asr-encoder-wav2vec2-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id32"></span><h2>espnet2.asr.encoder.wav2vec2_encoder<a class="headerlink" href="#espnet2-asr-encoder-wav2vec2-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.wav2vec2_encoder"></span><p>Encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.encoder.wav2vec2_encoder.FairSeqWav2Vec2Encoder">

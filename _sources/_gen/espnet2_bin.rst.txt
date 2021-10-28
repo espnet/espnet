@@ -224,6 +224,106 @@ asr_inference.py
                             from the training args (default: None)
       --bpemodel BPEMODEL   The model path of sentencepiece. If not given, refers
                             from the training args (default: None)
+.. _asr_inference_streaming.py:
+
+asr_inference_streaming.py
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: none
+
+    usage: asr_inference_streaming.py [-h] [--config CONFIG]
+                                      [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                                      --output_dir OUTPUT_DIR [--ngpu NGPU]
+                                      [--seed SEED]
+                                      [--dtype {float16,float32,float64}]
+                                      [--num_workers NUM_WORKERS]
+                                      --data_path_and_name_and_type
+                                      DATA_PATH_AND_NAME_AND_TYPE
+                                      [--key_file KEY_FILE]
+                                      [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
+                                      [--sim_chunk_length SIM_CHUNK_LENGTH]
+                                      --asr_train_config ASR_TRAIN_CONFIG
+                                      --asr_model_file ASR_MODEL_FILE
+                                      [--lm_train_config LM_TRAIN_CONFIG]
+                                      [--lm_file LM_FILE]
+                                      [--word_lm_train_config WORD_LM_TRAIN_CONFIG]
+                                      [--word_lm_file WORD_LM_FILE]
+                                      [--batch_size BATCH_SIZE] [--nbest NBEST]
+                                      [--beam_size BEAM_SIZE] [--penalty PENALTY]
+                                      [--maxlenratio MAXLENRATIO]
+                                      [--minlenratio MINLENRATIO]
+                                      [--ctc_weight CTC_WEIGHT]
+                                      [--lm_weight LM_WEIGHT]
+                                      [--disable_repetition_detection DISABLE_REPETITION_DETECTION]
+                                      [--encoded_feat_length_limit ENCODED_FEAT_LENGTH_LIMIT]
+                                      [--decoder_text_length_limit DECODER_TEXT_LENGTH_LIMIT]
+                                      [--token_type {char,bpe,None}]
+                                      [--bpemodel BPEMODEL]
+    
+    ASR Decoding
+    
+    optional arguments:
+      --config CONFIG       Give config file in yaml format (default: None)
+      --log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                            The verbose level of logging (default: INFO)
+      --output_dir OUTPUT_DIR
+      --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
+      --seed SEED           Random seed (default: 0)
+      --dtype {float16,float32,float64}
+                            Data type (default: float32)
+      --num_workers NUM_WORKERS
+                            The number of workers used for DataLoader (default: 1)
+    
+    Input data related:
+      --data_path_and_name_and_type DATA_PATH_AND_NAME_AND_TYPE
+      --key_file KEY_FILE
+      --allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS
+      --sim_chunk_length SIM_CHUNK_LENGTH
+                            The length of one chunk, to which speech will be
+                            divided for evalution of streaming processing.
+                            (default: 0)
+    
+    The model configuration related:
+      --asr_train_config ASR_TRAIN_CONFIG
+      --asr_model_file ASR_MODEL_FILE
+      --lm_train_config LM_TRAIN_CONFIG
+      --lm_file LM_FILE
+      --word_lm_train_config WORD_LM_TRAIN_CONFIG
+      --word_lm_file WORD_LM_FILE
+    
+    Beam-search related:
+      --batch_size BATCH_SIZE
+                            The batch size for inference (default: 1)
+      --nbest NBEST         Output N-best hypotheses (default: 1)
+      --beam_size BEAM_SIZE
+                            Beam size (default: 20)
+      --penalty PENALTY     Insertion penalty (default: 0.0)
+      --maxlenratio MAXLENRATIO
+                            Input length ratio to obtain max output length. If
+                            maxlenratio=0.0 (default), it uses a end-detect
+                            function to automatically find maximum hypothesis
+                            lengths (default: 0.0)
+      --minlenratio MINLENRATIO
+                            Input length ratio to obtain min output length
+                            (default: 0.0)
+      --ctc_weight CTC_WEIGHT
+                            CTC weight in joint decoding (default: 0.5)
+      --lm_weight LM_WEIGHT
+                            RNNLM weight (default: 1.0)
+      --disable_repetition_detection DISABLE_REPETITION_DETECTION
+      --encoded_feat_length_limit ENCODED_FEAT_LENGTH_LIMIT
+                            Limit the lengths of the encoded featureto input to
+                            the decoder. (default: 0)
+      --decoder_text_length_limit DECODER_TEXT_LENGTH_LIMIT
+                            Limit the lengths of the textto input to the decoder.
+                            (default: 0)
+    
+    Text converter related:
+      --token_type {char,bpe,None}
+                            The token type for ASR model. If not given, refers
+                            from the training args (default: None)
+      --bpemodel BPEMODEL   The model path of sentencepiece. If not given, refers
+                            from the training args (default: None)
 .. _asr_train.py:
 
 asr_train.py
@@ -319,7 +419,7 @@ asr_train.py
                         [--normalize_conf NORMALIZE_CONF]
                         [--preencoder {sinc,linear,None}]
                         [--preencoder_conf PREENCODER_CONF]
-                        [--encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain}]
+                        [--encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain}]
                         [--encoder_conf ENCODER_CONF]
                         [--postencoder {hugging_face_transformers,None}]
                         [--postencoder_conf POSTENCODER_CONF]
@@ -687,7 +787,7 @@ asr_train.py
                             The preencoder type (default: None)
       --preencoder_conf PREENCODER_CONF
                             The keyword arguments for preencoder (default: {})
-      --encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain}
+      --encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain}
                             The encoder type (default: rnn)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})

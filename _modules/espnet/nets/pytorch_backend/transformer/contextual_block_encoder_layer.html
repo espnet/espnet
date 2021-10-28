@@ -183,7 +183,27 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">concat_after</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">concat_linear</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">size</span> <span class="o">+</span> <span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ContextualBlockEncoderLayer.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer.ContextualBlockEncoderLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">past_ctx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">next_ctx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">layer_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="ContextualBlockEncoderLayer.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer.ContextualBlockEncoderLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">,</span>
+        <span class="n">past_ctx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">next_ctx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">is_short_segment</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">layer_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate forward propagation.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">or</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_train</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">past_ctx</span><span class="p">,</span> <span class="n">next_ctx</span><span class="p">,</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_infer</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">past_ctx</span><span class="p">,</span> <span class="n">next_ctx</span><span class="p">,</span> <span class="n">is_short_segment</span><span class="p">,</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="n">cache</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="ContextualBlockEncoderLayer.forward_train"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer.ContextualBlockEncoderLayer.forward_train">[docs]</a>    <span class="k">def</span> <span class="nf">forward_train</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">past_ctx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">next_ctx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">layer_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Compute encoded features.</span>
 
 <span class="sd">        Args:</span>
@@ -260,7 +280,101 @@
             <span class="n">next_ctx</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
             <span class="n">next_ctx</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:,</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
 
-        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">next_ctx</span><span class="p">,</span> <span class="n">next_ctx</span><span class="p">,</span> <span class="n">layer_idx</span></div></div>
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">next_ctx</span><span class="p">,</span> <span class="n">next_ctx</span><span class="p">,</span> <span class="n">layer_idx</span></div>
+
+<div class="viewcode-block" id="ContextualBlockEncoderLayer.forward_infer"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer.ContextualBlockEncoderLayer.forward_infer">[docs]</a>    <span class="k">def</span> <span class="nf">forward_infer</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">,</span>
+        <span class="n">past_ctx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">next_ctx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">is_short_segment</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">layer_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute encoded features.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x_input (torch.Tensor): Input tensor (#batch, time, size).</span>
+<span class="sd">            mask (torch.Tensor): Mask tensor for the input (#batch, time).</span>
+<span class="sd">            past_ctx (torch.Tensor): Previous contexutal vector</span>
+<span class="sd">            next_ctx (torch.Tensor): Next contexutal vector</span>
+<span class="sd">            cache (torch.Tensor): Cache tensor of the input (#batch, time - 1, size).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: Output tensor (#batch, time, size).</span>
+<span class="sd">            torch.Tensor: Mask tensor (#batch, time).</span>
+<span class="sd">            cur_ctx (torch.Tensor): Current contexutal vector</span>
+<span class="sd">            next_ctx (torch.Tensor): Next contexutal vector</span>
+<span class="sd">            layer_idx (int): layer index number</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nbatch</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">nblock</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># if layer_idx == 0, next_ctx has to be None</span>
+        <span class="k">if</span> <span class="n">layer_idx</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">next_ctx</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="n">next_ctx</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="n">nbatch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_layer_num</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># reshape ( nbatch, nblock, block_size + 2, dim )</span>
+        <span class="c1">#     -&gt; ( nbatch * nblock, block_size + 2, dim )</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="n">mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="n">residual</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x_q</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">cache</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+            <span class="n">x_q</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span>
+            <span class="n">residual</span> <span class="o">=</span> <span class="n">residual</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">mask</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">concat_after</span><span class="p">:</span>
+            <span class="n">x_concat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_attn</span><span class="p">(</span><span class="n">x_q</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">concat_linear</span><span class="p">(</span><span class="n">x_concat</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">self_attn</span><span class="p">(</span><span class="n">x_q</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">residual</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">residual</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feed_forward</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">cache</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># reshape ( nbatch * nblock, block_size + 2, dim )</span>
+        <span class="c1">#       -&gt; ( nbatch, nblock, block_size + 2, dim )</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">nbatch</span><span class="p">,</span> <span class="n">nblock</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">nbatch</span><span class="p">,</span> <span class="n">nblock</span><span class="p">,</span> <span class="n">mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="n">mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># Propagete context information (the last frame of each block)</span>
+        <span class="c1"># to the first frame</span>
+        <span class="c1"># of the next block</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_short_segment</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">past_ctx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># First block of an utterance</span>
+                <span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">past_ctx</span><span class="p">[:,</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="k">if</span> <span class="n">nblock</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">x</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="n">next_ctx</span><span class="p">[:,</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">next_ctx</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">past_ctx</span><span class="p">,</span> <span class="n">next_ctx</span><span class="p">,</span> <span class="n">is_short_segment</span><span class="p">,</span> <span class="n">layer_idx</span> <span class="o">+</span> <span class="mi">1</span></div></div>
 </pre></div>
 
            </div>

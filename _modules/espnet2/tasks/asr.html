@@ -160,6 +160,9 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.contextual_block_transformer_encoder</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ContextualBlockTransformerEncoder</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.contextual_block_conformer_encoder</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ContextualBlockConformerEncoder</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.vgg_rnn_encoder</span> <span class="kn">import</span> <span class="n">VGGRNNEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.wav2vec2_encoder</span> <span class="kn">import</span> <span class="n">FairSeqWav2Vec2Encoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetASRModel</span>
@@ -236,6 +239,7 @@
         <span class="n">conformer</span><span class="o">=</span><span class="n">ConformerEncoder</span><span class="p">,</span>
         <span class="n">transformer</span><span class="o">=</span><span class="n">TransformerEncoder</span><span class="p">,</span>
         <span class="n">contextual_block_transformer</span><span class="o">=</span><span class="n">ContextualBlockTransformerEncoder</span><span class="p">,</span>
+        <span class="n">contextual_block_conformer</span><span class="o">=</span><span class="n">ContextualBlockConformerEncoder</span><span class="p">,</span>
         <span class="n">vgg_rnn</span><span class="o">=</span><span class="n">VGGRNNEncoder</span><span class="p">,</span>
         <span class="n">rnn</span><span class="o">=</span><span class="n">RNNEncoder</span><span class="p">,</span>
         <span class="n">wav2vec2</span><span class="o">=</span><span class="n">FairSeqWav2Vec2Encoder</span><span class="p">,</span>
