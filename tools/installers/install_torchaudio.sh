@@ -12,7 +12,6 @@ elif [ $# -eq 1 ]; then
 fi
 
 
-torch_version=$(python3 -c "import torch; print(torch.__version__)")
 has_conda=$([[ $(conda list -e -c -f --no-pip pytorch) =~ pytorch ]] && echo true || echo false)
 # Uncomment to use pip
 # has_conda=false
@@ -36,6 +35,7 @@ else:
     print("")
 EOF
 )
+torch_version=$(python3 -c "import torch; print(torch.__version__)")
 
 python_plus(){
     python3 <<EOF
