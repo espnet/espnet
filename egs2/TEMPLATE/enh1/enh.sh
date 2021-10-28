@@ -73,6 +73,7 @@ init_param=
 # Enhancement related
 inference_args="--normalize_output_wav true"
 inference_model=valid.si_snr.ave.pth
+download_model=
 
 # Evaluation related
 scoring_protocol="STOI SDR SAR SIR"
