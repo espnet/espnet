@@ -81,11 +81,11 @@ else
     elif $(pt_plus 1.10.0); then
         if "${has_conda}" && ! "${use_pip}"; then
             if [ -z "${cuda_version}" ]; then
-                conda install -y "torchaudio=0.10.0" "torch=1.10.0" cpuonly -c pytorch -c anaconda
+                conda install -y "torchaudio=0.10.0" "torch=1.10.0" cpuonly -c pytorch
             elif [ "${cuda_version}" = 10.2 ]; then
-                conda install -y "torchaudio=0.10.0" "torch=1.10.0" cudatoolkit=10.2 -c pytorch -c anaconda
+                conda install -y "torchaudio=0.10.0" "torch=1.10.0" cudatoolkit=10.2 -c pytorch
             elif [ "${cuda_version}" = 11.3 ]; then
-                conda install -y "torchaudio=0.10.0" "torch=1.10.0" cudatoolkit=11.3 -c pytorch -c anaconda
+                conda install -y "torchaudio=0.10.0" "torch=1.10.0" cudatoolkit=11.3 -c pytorch
             else
                 echo "[ERROR] cuda=${cuda_version} is not supported"
             fi
