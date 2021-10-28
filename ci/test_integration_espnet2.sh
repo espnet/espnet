@@ -97,9 +97,7 @@ if python3 -c 'import torch as t; from distutils.version import LooseVersion as 
                 continue
             fi
 	    if ! python3 -c "import s3prl" > /dev/null; then
-                echo "Info: installing s3prl and its dependencies:"
-                cd "${cwd}/tools" && make s3prl.done || exit 1
-                cd "${cwd}" || exit 1
+                continue
             fi
         fi
 	${python} -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
