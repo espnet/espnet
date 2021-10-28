@@ -8,7 +8,9 @@
 - pytorch version: `pytorch 1.8.1+cu102`
 - Git hash: `4e7d2ba3510463ae744d1a6d98f18388ad929a9d`
   - Commit date: `Mon Oct 11 12:57:48 2021 -0400`
-- Pretrained Model: https://zenodo.org/record/5590204 
+- Pretrained Model
+  - Zenodo : https://zenodo.org/record/5590204
+  - Hugging Face Hub : https://huggingface.co/espnet/siddhana_fsc_asr_train_asr_hubert_transformer_adam_specaug_raw_en_word_valid.acc.ave_5best 
 
 ## Using Transformer based encoder-decoder with Hubert pre encoder and decoding sentence with spectral augmentation and predicting transcript along with intent
 - ASR config: [conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml](conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml)
