@@ -8,8 +8,6 @@ if [ $# != 0 ]; then
 fi
 
 torch_version=$(python3 -c "import torch; print(torch.__version__)")
-# Uncomment to use pip
-# has_conda=false
 python_36_plus=$(python3 <<EOF
 from distutils.version import LooseVersion as V
 import sys
