@@ -227,7 +227,7 @@ def get_parser() -> argparse.Namespace:
         help="The number of shift points.",
     )
     parser.add_argument(
-        "--n_jobs",
+        "--nj",
         default=16,
         type=int,
         help="Number of parallel jobs.",
@@ -289,7 +289,7 @@ def main():
             "Please check the groundtruth directory."
         )
     logging.info("The number of utterances = %d" % len(gen_files))
-    file_lists = np.array_split(gen_files, args.n_jobs)
+    file_lists = np.array_split(gen_files, args.nj)
     file_lists = [f_list.tolist() for f_list in file_lists]
 
     # multi processing
