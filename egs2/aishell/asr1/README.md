@@ -1,3 +1,44 @@
+# Streaming Conformer + specaug + speed perturbation: feats=raw, n_fft=512, hop_length=128
+## Environments
+- date: `Mon Aug 23 16:31:48 CST 2021`
+- python version: `3.7.9 (default, Aug 31 2020, 12:42:55)  [GCC 7.3.0]`
+- espnet version: `espnet 0.9.9`
+- pytorch version: `pytorch 1.5.0`
+- Git hash: `b94d07028099a80c9c690341981ae7d550b5ca24`
+  - Commit date: `Mon Aug 23 00:47:47 2021 +0800`
+
+## With Transformer LM
+- Model link: (wait for upload)
+- ASR config: [./conf/train_asr_streaming_cpnformer.yaml](./conf/train_asr_streaming_conformer.yaml)
+- LM config: [./conf/tuning/train_lm_transformer.yaml](./conf/tuning/train_lm_transformer.yaml)
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_streaming_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev|14326|205341|94.0|5.8|0.3|0.3|6.3|42.2|
+|decode_asr_streaming_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/test|7176|104765|92.9|6.7|0.5|0.7|7.8|46.2|
+# Streaming Transformer + speed perturbation: feats=raw, n_fft=512, hop_length=128
+## Environments
+- date: `Tue Aug 17 01:20:32 CST 2021`
+- python version: `3.7.9 (default, Aug 31 2020, 12:42:55)  [GCC 7.3.0]`
+- espnet version: `espnet 0.9.9`
+- pytorch version: `pytorch 1.5.0`
+- Git hash: `6f5f848e0a9bfca1b73393779233bde34add3df1`
+  - Commit date: `Mon Aug 16 21:50:08 2021 +0800`
+
+## With Transformer LM
+- Model link: (wait for upload)
+- ASR config: [./conf/train_asr_streaming_transformer.yaml](./conf/train_asr_streaming_transformer.yaml)
+- LM config: [./conf/tuning/train_lm_transformer.yaml](./conf/tuning/train_lm_transformer.yaml)
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_streaming_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev|14326|205341|93.6|6.2|0.1|0.5|6.8|46.8|
+|decode_asr_streaming_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/test|7176|104765|93.0|6.7|0.2|0.8|7.8|50.7|
+
 # Conformer + specaug + speed perturbation: feats=raw, n_fft=512, hop_length=128
 ## Environments
 - date: `Fri Oct 16 11:10:17 JST 2020`

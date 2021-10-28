@@ -20,7 +20,7 @@ use_wordlm=false
 # (train_set will be "${train_set}_sp" if speed_perturb_factors is specified)
 speed_perturb_factors="0.9 1.0 1.1"
 
-./asr.sh                                               \
+./asr_streaming.sh                                               \
     --lang zh                                          \
     --audio_format wav                                 \
     --feats_type raw                                   \

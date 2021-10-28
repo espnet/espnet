@@ -90,6 +90,11 @@ optim_classes = dict(
     rmsprop=torch.optim.RMSprop,
     rprop=torch.optim.Rprop,
 )
+if LooseVersion(torch.__version__) >= LooseVersion("1.10.0"):
+    # From 1.10.0, RAdam is officially supported
+    optim_classes.update(
+        radam=torch.optim.RAdam,
+    )
 try:
     import torch_optimizer
 
@@ -104,10 +109,14 @@ try:
         # torch_optimizer<=0.0.1a10 doesn't support
         # qhadam=torch_optimizer.QHAdam,
         qhm=torch_optimizer.QHM,
-        radam=torch_optimizer.RAdam,
         sgdw=torch_optimizer.SGDW,
         yogi=torch_optimizer.Yogi,
     )
+    if LooseVersion(torch_optimizer.__version__) < LooseVersion("0.2.0"):
+        # From 0.2.0, RAdam is dropped
+        optim_classes.update(
+            radam=torch_optimizer.RAdam,
+        )
     del torch_optimizer
 except ImportError:
     pass
