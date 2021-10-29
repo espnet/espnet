@@ -69,8 +69,9 @@
 <li class="toctree-l2"><a class="reference internal" href="#change-the-configuration-for-training">Change the configuration for training</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#change-the-number-of-parallel-jobs">Change the number of parallel jobs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#multi-gpus-training-and-distributed-training">Multi GPUs training and distributed training</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#use-specified-expereiment-directory-for-evaluation">Use specified expereiment directory for evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#use-specified-experiment-directory-for-evaluation">Use specified experiment directory for evaluation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#evaluation-without-training-using-pretrained-model">Evaluation without training using pretrained model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#packing-and-sharing-your-trained-model">Packing and sharing your trained model</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2_training_option.html">Change the configuration for training</a></li>
@@ -390,8 +391,8 @@ You need to do one of the following two ways to change the training configuratio
 <li><p><a class="reference internal" href="parallelization.html"><span class="doc">Using Job scheduling system</span></a></p></li>
 </ul>
 </section>
-<section id="use-specified-expereiment-directory-for-evaluation">
-<h2>Use specified expereiment directory for evaluation<a class="headerlink" href="#use-specified-expereiment-directory-for-evaluation" title="Permalink to this headline">¶</a></h2>
+<section id="use-specified-experiment-directory-for-evaluation">
+<h2>Use specified experiment directory for evaluation<a class="headerlink" href="#use-specified-experiment-directory-for-evaluation" title="Permalink to this headline">¶</a></h2>
 <p>If you already have trained a model, you may wonder how to give it to run.sh when you’ll evaluate it later.
 By default the directory name is determined according to given options, <code class="docutils literal notranslate"><span class="pre">asr_args</span></code>, <code class="docutils literal notranslate"><span class="pre">lm_args</span></code>, or etc.
 You can overwrite it by <code class="docutils literal notranslate"><span class="pre">--asr_exp</span></code> and <code class="docutils literal notranslate"><span class="pre">--lm_exp</span></code>.</p>
@@ -408,7 +409,31 @@ You can overwrite it by <code class="docutils literal notranslate"><span class="
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./run.sh --download_model &lt;model_name&gt; --skip_train <span class="nb">true</span>
 </pre></div>
 </div>
-<p>You need to fill <code class="docutils literal notranslate"><span class="pre">model_name</span></code> by yourself. See the following link about our pretrain models: https://github.com/espnet/espnet_model_zoo</p>
+<p>You need to fill <code class="docutils literal notranslate"><span class="pre">model_name</span></code> by yourself. You can search for pretrained models on Hugging Face using the tag <a class="reference external" href="https://huggingface.co/models?library=espnet">espnet</a></p>
+<p>(Deprecated: See the following link about our pretrain models: https://github.com/espnet/espnet_model_zoo)</p>
+</section>
+<section id="packing-and-sharing-your-trained-model">
+<h2>Packing and sharing your trained model<a class="headerlink" href="#packing-and-sharing-your-trained-model" title="Permalink to this headline">¶</a></h2>
+<p>ESPnet encourages you to share your results using platforms like <a class="reference external" href="https://huggingface.co/">Hugging Face</a> or <a class="reference external" href="https://zenodo.org/">Zenodo</a> (This last will become deprecated.)</p>
+<p>For sharing your models, the last three stages of each task simplify this process. The model is packed into a zip file and uploaded to the selected platform (one or both).</p>
+<p>For <strong>Hugging Face</strong>, you need to first create a repository (<code class="docutils literal notranslate"><span class="pre">&lt;my_repo&gt;</span> <span class="pre">=</span> <span class="pre">&lt;user_name&gt;/&lt;repo_name&gt;</span></code>).<br />Remember to install <code class="docutils literal notranslate"><span class="pre">git-lfs</span></code> before continuing.
+Then, execute <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> as follows:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For ASR recipe</span>
+./run.sh --stage <span class="m">14</span> --skip-upload-hf <span class="nb">false</span> --hf-repo &lt;my_repo&gt;
+
+<span class="c1"># For TTS recipe</span>
+./run.sh --stage <span class="m">8</span> --skip-upload-hf <span class="nb">false</span> --hf-repo &lt;my_repo&gt;
+</pre></div>
+</div>
+<p>For <strong>Zenodo</strong>, you need to register your account first. Then, execute <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> as follows:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For ASR recipe</span>
+./run.sh --stage <span class="m">14</span> --skip-upload <span class="nb">false</span>
+
+<span class="c1"># For TTS recipe</span>
+./run.sh --stage <span class="m">8</span> --skip-upload <span class="nb">false</span>
+</pre></div>
+</div>
+<p>The packed model can be uploaded to both platforms by setting the previously mentioned flags.</p>
 </section>
 </section>
 
