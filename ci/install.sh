@@ -29,6 +29,8 @@ ${CXX:-g++} -v
 python3 --version
 
 python3 -m pip install https://github.com/kpu/kenlm/archive/master.zip
+# NOTE(kamo): tensorboardx is used for chainer mode only
+python3 -m pip install tensorboardx
 
 if ${USE_CONDA}; then
   conda install -c k2-fsa -c pytorch k2=${K2_VERSION} cpuonly pytorch=${TH_VERSION}

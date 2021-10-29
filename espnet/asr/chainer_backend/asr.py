@@ -43,7 +43,6 @@ import espnet.lm.chainer_backend.lm as lm_chainer
 import matplotlib
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from torch.utils.tensorboard import SummaryWriter
 
 matplotlib.use("Agg")
 
@@ -466,6 +465,11 @@ def train(args):
 
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        try:
+            from tensorboardx import SummaryWriter
+        except Exception:
+            logging.error("Please install tensorboardx")
+            raise
         writer = SummaryWriter(args.tensorboard_dir)
         trainer.extend(
             TensorboardLogger(writer, att_reporter),
