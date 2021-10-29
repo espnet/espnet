@@ -125,6 +125,10 @@ if [[ ${is_exist} == false ]]; then
     echo "No language direction: ${src_lang} to ${tgt_lang}" && exit 1;
 fi
 
+if [ ${src_lang} == ja ] || [ ${src_lang} == zh-CN ]; then
+    nbpe=4000
+fi
+
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     mkdir -p ${cv_datadir} ${covost2_datadir}
@@ -363,6 +367,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
         score_sclite_case.sh --case ${src_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
             ${expdir}/${decode_dir} ${dict}
+        # TODO: support ja and zh-CN
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &

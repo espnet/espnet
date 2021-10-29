@@ -131,6 +131,10 @@ if [[ ${is_exist} == false ]]; then
     echo "No language direction: ${src_lang} to ${tgt_lang}" && exit 1;
 fi
 
+if [ ${src_lang} == ja ] || [ ${src_lang} == zh-CN ]; then
+    nbpe=4000
+fi
+
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     mkdir -p ${cv_datadir} ${covost2_datadir}
@@ -386,7 +390,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
+        character_level=false
+        if [ ${src_lang} == ja ] || [ ${src_lang} == zh-CN ]; then
+            character_level=true
+        fi
+
+        score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model --character_level ${character_level} \
             ${expdir}/${decode_dir} "${tgt_lang}" ${dict}
     ) &
     pids+=($!) # store background pids
