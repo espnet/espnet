@@ -47,6 +47,7 @@ requirements = {
         "torch_complex",
         "pytorch_wpe",
         "ci_sdr",
+        "sacrebleu>=1.5.1",
     ],
     "recipe": [
         "espnet_model_zoo",
