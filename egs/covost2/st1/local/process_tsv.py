@@ -36,7 +36,8 @@ def main():
         df = df[(df["split"] == args.set) | (df["split"] == "train_covost")]
     else:
         df = df[df["split"] == args.set]
-    # NOTE: following get_v2_split() in https://github.com/facebookresearch/covost/blob/master/get_covost_splits.py
+    # NOTE: following get_v2_split() in
+    # https://github.com/facebookresearch/covost/blob/master/get_covost_splits.py
     data = df.to_dict(orient="index").items()
     data = [v for k, v in sorted(data, key=lambda x: x[0])]
 
