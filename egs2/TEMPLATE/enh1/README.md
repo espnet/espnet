@@ -171,9 +171,13 @@ Same as Stage 12 in the ASR task. The decoding results in Stage 11 are scored to
 
 Just the same as other tasks. A new entry for packing speech enhancement models is added in `espnet2/bin/pack.py`.
 
-#### Stage 12: Upload model to Zenodo
+#### Stage 12: Upload model to Zenodo (Deprecated)
 
 Upload the trained speech enhancement/separation model to Zenodo for sharing.
+
+#### Stage 13: Upload model to Hugging Face
+
+Upload the trained speech enhancement/separation model to Hugging Face for sharing. Additonal information at [Docs](https://espnet.github.io/espnet/espnet2_tutorial.html#packing-and-sharing-your-trained-model).
 
 ## Instructions on creating a new recipe
 #### Step 1 Create recipe directory

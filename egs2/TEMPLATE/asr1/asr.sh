@@ -1346,39 +1346,43 @@ fi
 
 
 packed_model="${asr_exp}/${asr_exp##*/}_${inference_asr_model%.*}.zip"
-if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
-    log "Stage 14: Pack model: ${packed_model}"
+if [ -z "${download_model}" ]; then
+    # Skip pack preparation if using a downloaded model
+    if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
+        log "Stage 14: Pack model: ${packed_model}"
 
-    _opts=
-    if "${use_lm}"; then
-        _opts+="--lm_train_config ${lm_exp}/config.yaml "
-        _opts+="--lm_file ${lm_exp}/${inference_lm} "
-        _opts+="--option ${lm_exp}/perplexity_test/ppl "
-        _opts+="--option ${lm_exp}/images "
+        _opts=
+        if "${use_lm}"; then
+            _opts+="--lm_train_config ${lm_exp}/config.yaml "
+            _opts+="--lm_file ${lm_exp}/${inference_lm} "
+            _opts+="--option ${lm_exp}/perplexity_test/ppl "
+            _opts+="--option ${lm_exp}/images "
+        fi
+        if [ "${feats_normalize}" = global_mvn ]; then
+            _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
+        fi
+        if [ "${token_type}" = bpe ]; then
+            _opts+="--option ${bpemodel} "
+        fi
+        if [ "${nlsyms_txt}" != none ]; then
+            _opts+="--option ${nlsyms_txt} "
+        fi
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.pack asr \
+            --asr_train_config "${asr_exp}"/config.yaml \
+            --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
+            ${_opts} \
+            --option "${asr_exp}"/RESULTS.md \
+            --option "${asr_exp}"/RESULTS.md \
+            --option "${asr_exp}"/images \
+            --outpath "${packed_model}"
     fi
-    if [ "${feats_normalize}" = global_mvn ]; then
-        _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
-    fi
-    if [ "${token_type}" = bpe ]; then
-        _opts+="--option ${bpemodel} "
-    fi
-    if [ "${nlsyms_txt}" != none ]; then
-        _opts+="--option ${nlsyms_txt} "
-    fi
-    # shellcheck disable=SC2086
-    ${python} -m espnet2.bin.pack asr \
-        --asr_train_config "${asr_exp}"/config.yaml \
-        --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
-        ${_opts} \
-        --option "${asr_exp}"/RESULTS.md \
-        --option "${asr_exp}"/RESULTS.md \
-        --option "${asr_exp}"/images \
-        --outpath "${packed_model}"
 fi
 
 if ! "${skip_upload}"; then
     if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
         log "Stage 15: Upload model to Zenodo: ${packed_model}"
+        log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/
