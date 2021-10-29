@@ -5,7 +5,7 @@
 - python version: `3.8.11 (default, Aug  3 2021, 15:09:35)  [GCC 7.5.0]`
 - espnet version: `espnet 0.10.2a1`
 - pytorch version: `pytorch 1.9.0`
-
+- Pretrained model: https://huggingface.co/espnet/pengcheng_guo_wenetspeech_asr_train_asr_raw_zh_char
 
 ## asr_train_asr_conformer_raw_zh_char w/o LM
 - ASR config: conf/train_asr.yaml

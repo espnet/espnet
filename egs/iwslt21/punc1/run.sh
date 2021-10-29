@@ -7,7 +7,7 @@
 . ./cmd.sh || exit 1;
 
 # general configuration
-backend=pytorch # chainer or pytorch
+backend=pytorch
 stage=0         # start from -1 if you need to start from data download
 stop_stage=5
 ngpu=1          # number of gpus during training ("0" uses cpu, otherwise use gpu)
@@ -21,8 +21,7 @@ resume=         # Resume the training from snapshot
 seed=1          # seed to generate random number
 
 train_config=conf/train.yaml
-# decode_config=conf/decode.yaml
-decode_config=conf/tuning/decode_pytorch_transformer_tc.yaml
+decode_config=conf/decode.yaml
 
 # decoding parameter
 trans_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
@@ -132,8 +131,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
 
-    rm data/*/segments
-    rm data/*/wav.scp
+    rm data/tr_*/segments data/dt_*/segments data/et_*/segments
+    rm data/tr_*//wav.scp data/dt_*//wav.scp data/et_*//wav.scp
 
     # Divide into source and target languages
     divide_lang.sh tr_wmt20_subset${datasize} "en"
@@ -265,7 +264,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+        score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
             --remove_nonverbal ${remove_nonverbal} \
             ${expdir}/${decode_dir} "en" ${dict}
     ) &

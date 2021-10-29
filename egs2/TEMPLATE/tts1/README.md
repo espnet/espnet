@@ -118,11 +118,15 @@ See also:
 ### 8-9. (Optional) Pack results for upload
 
 Packing stage.
-It packs the trained model files and uploads to [Zenodo](https://zenodo.org/).
+It packs the trained model files and uploads to [Zenodo](https://zenodo.org/) (Zenodo upload will be deprecated).
 If you want to run this stage, you need to register your account in zenodo.
 
 See also:
 - [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
+
+#### Stage 10: Upload model to Hugging Face
+
+Upload the trained model to Hugging Face for sharing. Additonal information at [Docs](https://espnet.github.io/espnet/espnet2_tutorial.html#packing-and-sharing-your-trained-model).
 
 ## How to run
 
@@ -783,7 +787,7 @@ See [use a pretrained model for inference](https://github.com/espnet/espnet_mode
 ### How to get pretrained models?
 
 Use [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo).
-You can find the all of the pretrained model list from [here](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv).
+You can find the all of the pretrained model list from [here](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv) or search for pretrained models at [Hugging Face](https://huggingface.co/models?library=espnet).
 
 If you want to use pretrained models written in `egs2/hogehoge/tts1/README.md`, go to Zenodo URL and copy the URL of download in the below of the page.
 Then, you can use as follows:

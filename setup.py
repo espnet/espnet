@@ -46,6 +46,7 @@ requirements = {
         "torch_complex",
         "pytorch_wpe",
         "ci_sdr",
+        "sacrebleu>=1.5.1",
     ],
     # all: The modules should be optionally installled due to some reason.
     #      Please consider moving them to "install" occasionally

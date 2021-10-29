@@ -2,18 +2,12 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Encoder definition."""
-from typing import Optional
-from typing import Tuple
-
-import torch
-from typeguard import check_argument_types
-
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer import (
     ContextualBlockEncoderLayer,  # noqa: H301
 )
+from espnet.nets.pytorch_backend.transformer.embedding import StreamPositionalEncoding
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
@@ -26,6 +20,10 @@ from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
 )
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 import math
+import torch
+from typeguard import check_argument_types
+from typing import Optional
+from typing import Tuple
 
 
 class ContextualBlockTransformerEncoder(AbsEncoder):
@@ -72,7 +70,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.0,
         input_layer: Optional[str] = "conv2d",
-        pos_enc_class=PositionalEncoding,
+        pos_enc_class=StreamPositionalEncoding,
         normalize_before: bool = True,
         concat_after: bool = False,
         positionwise_layer_type: str = "linear",
@@ -97,14 +95,17 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                 torch.nn.Dropout(dropout_rate),
                 torch.nn.ReLU(),
             )
+            self.subsample = 1
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsamplingWOPosEnc(
                 input_size, output_size, dropout_rate, kernels=[3, 3], strides=[2, 2]
             )
+            self.subsample = 4
         elif input_layer == "conv2d6":
             self.embed = Conv2dSubsamplingWOPosEnc(
                 input_size, output_size, dropout_rate, kernels=[3, 5], strides=[2, 3]
             )
+            self.subsample = 6
         elif input_layer == "conv2d8":
             self.embed = Conv2dSubsamplingWOPosEnc(
                 input_size,
@@ -113,12 +114,15 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
                 kernels=[3, 3, 3],
                 strides=[2, 2, 2],
             )
+            self.subsample = 8
         elif input_layer == "embed":
             self.embed = torch.nn.Sequential(
                 torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
             )
+            self.subsample = 1
         elif input_layer is None:
             self.embed = None
+            self.subsample = 1
         else:
             raise ValueError("unknown input_layer: " + input_layer)
         self.normalize_before = normalize_before
@@ -175,6 +179,27 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         return self._output_size
 
     def forward(
+        self,
+        xs_pad: torch.Tensor,
+        ilens: torch.Tensor,
+        prev_states: torch.Tensor = None,
+        is_final=True,
+    ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+        """Embed positions in tensor.
+
+        Args:
+            xs_pad: input tensor (B, L, D)
+            ilens: input length (B)
+            prev_states: Not to be used now.
+        Returns:
+            position embedded tensor and mask
+        """
+        if self.training or xs_pad.size(0) > 1:
+            return self.forward_train(xs_pad, ilens, prev_states)
+        else:
+            return self.forward_infer(xs_pad, ilens, prev_states, is_final)
+
+    def forward_train(
         self,
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
@@ -325,3 +350,203 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
 
         olens = masks.squeeze(1).sum(1)
         return ys_pad, olens, None
+
+    def forward_infer(
+        self,
+        xs_pad: torch.Tensor,
+        ilens: torch.Tensor,
+        prev_states: torch.Tensor = None,
+        is_final: bool = True,
+    ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+        """Embed positions in tensor.
+
+        Args:
+            xs_pad: input tensor (B, L, D)
+            ilens: input length (B)
+            prev_states: Not to be used now.
+        Returns:
+            position embedded tensor and mask
+        """
+        if prev_states is None:
+            prev_addin = None
+            buffer_before_downsampling = None
+            ilens_buffer = None
+            buffer_after_downsampling = None
+            n_processed_blocks = 0
+            past_encoder_ctx = None
+        else:
+            prev_addin = prev_states["prev_addin"]
+            buffer_before_downsampling = prev_states["buffer_before_downsampling"]
+            ilens_buffer = prev_states["ilens_buffer"]
+            buffer_after_downsampling = prev_states["buffer_after_downsampling"]
+            n_processed_blocks = prev_states["n_processed_blocks"]
+            past_encoder_ctx = prev_states["past_encoder_ctx"]
+        bsize = xs_pad.size(0)
+        assert bsize == 1
+
+        if prev_states is not None:
+            xs_pad = torch.cat([buffer_before_downsampling, xs_pad], dim=1)
+            ilens += ilens_buffer
+
+        if is_final:
+            buffer_before_downsampling = None
+        else:
+            n_samples = xs_pad.size(1) // self.subsample - 1
+            if n_samples < 2:
+                next_states = {
+                    "prev_addin": prev_addin,
+                    "buffer_before_downsampling": xs_pad,
+                    "ilens_buffer": ilens,
+                    "buffer_after_downsampling": buffer_after_downsampling,
+                    "n_processed_blocks": n_processed_blocks,
+                    "past_encoder_ctx": past_encoder_ctx,
+                }
+                return (
+                    xs_pad.new_zeros(bsize, 0, self._output_size),
+                    xs_pad.new_zeros(bsize),
+                    next_states,
+                )
+
+            n_res_samples = xs_pad.size(1) % self.subsample + self.subsample * 2
+            buffer_before_downsampling = xs_pad.narrow(
+                1, xs_pad.size(1) - n_res_samples, n_res_samples
+            )
+            xs_pad = xs_pad.narrow(1, 0, n_samples * self.subsample)
+
+            ilens_buffer = ilens.new_full(
+                [1], dtype=torch.long, fill_value=n_res_samples
+            )
+            ilens = ilens.new_full(
+                [1], dtype=torch.long, fill_value=n_samples * self.subsample
+            )
+
+        if isinstance(self.embed, Conv2dSubsamplingWOPosEnc):
+            xs_pad, _ = self.embed(xs_pad, None)
+        elif self.embed is not None:
+            xs_pad = self.embed(xs_pad)
+
+        # create empty output container
+        if buffer_after_downsampling is not None:
+            xs_pad = torch.cat([buffer_after_downsampling, xs_pad], dim=1)
+
+        total_frame_num = xs_pad.size(1)
+
+        if is_final:
+            past_size = self.block_size - self.hop_size - self.look_ahead
+            block_num = math.ceil(
+                float(total_frame_num - past_size - self.look_ahead)
+                / float(self.hop_size)
+            )
+            buffer_after_downsampling = None
+        else:
+            if total_frame_num <= self.block_size:
+                next_states = {
+                    "prev_addin": prev_addin,
+                    "buffer_before_downsampling": buffer_before_downsampling,
+                    "ilens_buffer": ilens_buffer,
+                    "buffer_after_downsampling": xs_pad,
+                    "n_processed_blocks": n_processed_blocks,
+                    "past_encoder_ctx": past_encoder_ctx,
+                }
+                return (
+                    xs_pad.new_zeros(bsize, 0, self._output_size),
+                    xs_pad.new_zeros(bsize),
+                    next_states,
+                )
+
+            overlap_size = self.block_size - self.hop_size
+            block_num = max(0, xs_pad.size(1) - overlap_size) // self.hop_size
+            res_frame_num = xs_pad.size(1) - self.hop_size * block_num
+            buffer_after_downsampling = xs_pad.narrow(
+                1, xs_pad.size(1) - res_frame_num, res_frame_num
+            )
+            xs_pad = xs_pad.narrow(1, 0, block_num * self.hop_size + overlap_size)
+
+        # block_size could be 0 meaning infinite
+        # apply usual encoder for short sequence
+        assert self.block_size > 0
+        if n_processed_blocks == 0 and total_frame_num <= self.block_size and is_final:
+            xs_chunk = self.pos_enc(xs_pad).unsqueeze(1)
+            xs_pad, _, _, _, _, _ = self.encoders(xs_chunk, None, None, None, True)
+            xs_pad = xs_pad.squeeze(0)
+            if self.normalize_before:
+                xs_pad = self.after_norm(xs_pad)
+            return xs_pad, None, None
+
+        # start block processing
+        xs_chunk = xs_pad.new_zeros(
+            bsize, block_num, self.block_size + 2, xs_pad.size(-1)
+        )
+
+        for i in range(block_num):
+            cur_hop = i * self.hop_size
+            chunk_length = min(self.block_size, total_frame_num - cur_hop)
+            addin = xs_pad.narrow(1, cur_hop, chunk_length)
+            if self.init_average:
+                addin = addin.mean(1, keepdim=True)
+            else:
+                addin = addin.max(1, keepdim=True)
+            if self.ctx_pos_enc:
+                addin = self.pos_enc(addin, i + n_processed_blocks)
+
+            if prev_addin is None:
+                prev_addin = addin
+            xs_chunk[:, i, 0] = prev_addin
+            xs_chunk[:, i, -1] = addin
+
+            chunk = self.pos_enc(
+                xs_pad.narrow(1, cur_hop, chunk_length),
+                cur_hop + self.hop_size * n_processed_blocks,
+            )
+
+            xs_chunk[:, i, 1 : chunk_length + 1] = chunk
+
+            prev_addin = addin
+
+        ys_chunk, _, _, past_encoder_ctx, _, _ = self.encoders(
+            xs_chunk, None, past_encoder_ctx
+        )
+
+        # remove addin
+        ys_chunk = ys_chunk.narrow(2, 1, self.block_size)
+
+        offset = self.block_size - self.look_ahead - self.hop_size
+        if is_final:
+            if n_processed_blocks == 0:
+                y_length = xs_pad.size(1)
+            else:
+                y_length = xs_pad.size(1) - offset
+        else:
+            y_length = block_num * self.hop_size
+            if n_processed_blocks == 0:
+                y_length += offset
+        ys_pad = xs_pad.new_zeros((xs_pad.size(0), y_length, xs_pad.size(2)))
+        if n_processed_blocks == 0:
+            ys_pad[:, 0:offset] = ys_chunk[:, 0, 0:offset]
+        for i in range(block_num):
+            cur_hop = i * self.hop_size
+            if n_processed_blocks == 0:
+                cur_hop += offset
+            if i == block_num - 1 and is_final:
+                chunk_length = min(self.block_size - offset, ys_pad.size(1) - cur_hop)
+            else:
+                chunk_length = self.hop_size
+            ys_pad[:, cur_hop : cur_hop + chunk_length] = ys_chunk[
+                :, i, offset : offset + chunk_length
+            ]
+        if self.normalize_before:
+            ys_pad = self.after_norm(ys_pad)
+
+        if is_final:
+            next_states = None
+        else:
+            next_states = {
+                "prev_addin": prev_addin,
+                "buffer_before_downsampling": buffer_before_downsampling,
+                "ilens_buffer": ilens_buffer,
+                "buffer_after_downsampling": buffer_after_downsampling,
+                "n_processed_blocks": n_processed_blocks + block_num,
+                "past_encoder_ctx": past_encoder_ctx,
+            }
+
+        return ys_pad, None, next_states
