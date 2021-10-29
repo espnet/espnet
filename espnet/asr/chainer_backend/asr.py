@@ -466,7 +466,7 @@ def train(args):
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
         try:
-            from tensorboardx import SummaryWriter
+            from tensorboardX import SummaryWriter
         except Exception:
             logging.error("Please install tensorboardx")
             raise
