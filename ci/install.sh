@@ -14,12 +14,11 @@ ${CXX:-g++} -v
     mkdir -p kaldi/egs/wsj/s5/utils && touch kaldi/egs/wsj/s5/utils/parse_options.sh
     if ${USE_CONDA}; then
         ./setup_anaconda.sh venv espnet ${ESPNET_PYTHON_VERSION}
+        # To install via pip instead of conda
     else
         ./setup_venv.sh "$(command -v python3)" venv
     fi
     . ./activate_python.sh
-    # NOTE(kan-bayashi): Workaround for https://github.com/espnet/espnet/runs/3876865897
-    python3 -m pip install pip==21.2.4
     make TH_VERSION="${TH_VERSION}"
 
     make warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done s3prl.done transformers.done phonemizer.done fairseq.done
