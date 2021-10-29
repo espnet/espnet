@@ -34,11 +34,6 @@ use_valbest_average=true     # if true, the validation `n_average`-best MT model
 metric=bleu                  # loss/acc/bleu
 max_epoch=200
 
-# cascaded-ST related
-asr_model=
-decode_config_asr=
-dict_asr=
-
 # preprocessing related
 src_case=tc
 tgt_case=tc
@@ -105,8 +100,6 @@ else
     train_dev=dev.${src_lang}-${tgt_lang}.${tgt_lang}
     trans_set="dev_org.${src_lang}-${tgt_lang}.${tgt_lang} test.${src_lang}-${tgt_lang}.${tgt_lang}"
 fi
-st_train_set=train_sp.${src_lang}-${tgt_lang}.${tgt_lang}
-
 
 # verify language directions
 is_exist=false
@@ -148,9 +141,9 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
 
     # Download translation
     if [[ ${src_lang} != en ]]; then
-        wget --no-check-certificate https://dl.fbaipublicfiles.com/covost/covost_v2.${src_lang}_${tgt}.tsv.tar.gz \
+        wget --no-check-certificate https://dl.fbaipublicfiles.com/covost/covost_v2.${src_lang}_${tgt_lang}.tsv.tar.gz \
             -P ${covost2_datadir}
-        tar -xzf ${covost2_datadir}/covost_v2.${src_lang}_${tgt}.tsv.tar.gz -C ${covost2_datadir}
+        tar -xzf ${covost2_datadir}/covost_v2.${src_lang}_${tgt_lang}.tsv.tar.gz -C ${covost2_datadir}
     fi
     wget --no-check-certificate https://dl.fbaipublicfiles.com/covost/covost2.zip \
           -P ${covost2_datadir}
@@ -162,10 +155,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
 
-    for part in "validated"; do
-        # use underscore-separated names in data directories.
-        local/data_prep_commonvoice.pl "${cv_datadir}/${src_lang}" ${part} data/"$(echo "${part}.${src_lang}")"
-    done
+    # use underscore-separated names in data directories.
+    local/data_prep_commonvoice.pl "${cv_datadir}/${src_lang}" validated data/validated.${src_lang}
 
     # text preprocessing (tokenization, case, punctuation marks etc.)
     local/data_prep_covost2.sh ${covost2_datadir} ${src_lang} ${tgt_lang} || exit 1;
@@ -346,57 +337,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             ${expdir}/${decode_dir} "${tgt_lang}" ${dict}
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
-    ) &
-    pids+=($!) # store background pids
-    done
-    i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
-    [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
-    echo "Finished"
-fi
-
-dumpdir=../st1/dump    # directory to dump full features
-
-if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-    echo "stage 7: pseudo labeling"
-    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
-        # Average MT models
-        if ${use_valbest_average}; then
-            trans_model=model.val${n_average}.avg.best
-        else
-            trans_model=model.last${n_average}.avg.best
-        fi
-    fi
-
-    if [ ${dec_ngpu} = 1 ]; then
-        nj=1
-    fi
-
-    pids=() # initialize pids
-    for x in ${st_train_set}; do
-    (
-        decode_dir=decode_${x}_$(basename ${decode_config%.*})
-        feat_dir=${dumpdir}/${x}/deltafalse
-
-        # split data
-        splitjson.py --parts ${nj} ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-
-        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
-            mt_trans.py \
-            --config ${decode_config} \
-            --ngpu ${dec_ngpu} \
-            --backend ${backend} \
-            --batchsize 0 \
-            --trans-json ${feat_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
-            --result-label ${expdir}/${decode_dir}/data.JOB.json \
-            --model ${expdir}/results/${trans_model}
-
-        character_level=false
-        if [ ${src_lang} == ja ] || [ ${src_lang} == zh-CN ]; then
-            character_level=true
-        fi
-
-        score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model --character_level ${character_level} \
-            ${expdir}/${decode_dir} "${tgt_lang}" ${dict}
     ) &
     pids+=($!) # store background pids
     done

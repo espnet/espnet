@@ -142,9 +142,9 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
 
     # Download translation
     if [[ ${src_lang} != en ]]; then
-        wget --no-check-certificate https://dl.fbaipublicfiles.com/covost/covost_v2.${src_lang}_${tgt}.tsv.tar.gz \
+        wget --no-check-certificate https://dl.fbaipublicfiles.com/covost/covost_v2.${src_lang}_${tgt_lang}.tsv.tar.gz \
             -P ${covost2_datadir}
-        tar -xzf ${covost2_datadir}/covost_v2.${src_lang}_${tgt}.tsv.tar.gz -C ${covost2_datadir}
+        tar -xzf ${covost2_datadir}/covost_v2.${src_lang}_${tgt_lang}.tsv.tar.gz -C ${covost2_datadir}
     fi
     wget --no-check-certificate https://dl.fbaipublicfiles.com/covost/covost2.zip \
           -P ${covost2_datadir}
@@ -156,10 +156,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
 
-    for part in "validated"; do
-        # use underscore-separated names in data directories.
-        local/data_prep_commonvoice.pl "${cv_datadir}/${src_lang}" ${part} data/"$(echo "${part}.${src_lang}")"
-    done
+    # use underscore-separated names in data directories.
+    local/data_prep_commonvoice.pl "${cv_datadir}/${src_lang}" validated data/validated.${src_lang}
 
     # text preprocessing (tokenization, case, punctuation marks etc.)
     local/data_prep_covost2.sh ${covost2_datadir} ${src_lang} ${tgt_lang} || exit 1;
