@@ -374,8 +374,8 @@
                 <span class="n">corr_unmask</span> <span class="o">+=</span> <span class="n">corr_u</span>
                 <span class="n">count_unmask</span> <span class="o">+=</span> <span class="n">count_u</span>
 
-        <span class="n">acc_att_m</span> <span class="o">=</span> <span class="n">corr_masked</span> <span class="o">/</span> <span class="n">count_masked</span>
-        <span class="n">acc_att_u</span> <span class="o">=</span> <span class="n">corr_unmask</span> <span class="o">/</span> <span class="n">count_unmask</span>
+        <span class="n">acc_att_m</span> <span class="o">=</span> <span class="n">corr_masked</span> <span class="o">/</span> <span class="p">(</span><span class="n">count_masked</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span>
+        <span class="n">acc_att_u</span> <span class="o">=</span> <span class="n">corr_unmask</span> <span class="o">/</span> <span class="p">(</span><span class="n">count_unmask</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc_att_m</span><span class="p">,</span> <span class="n">acc_att_u</span></div>
 </pre></div>
