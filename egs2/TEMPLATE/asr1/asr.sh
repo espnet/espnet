@@ -29,6 +29,7 @@ skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
 skip_upload=true     # Skip packing and uploading stages.
+skip_upload_hf=true  # Skip uploading to hugging face stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
@@ -91,6 +92,9 @@ asr_args=      # Arguments for asr model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in asr config.
 feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_asr=1           # Number of splitting for lm corpus.
+
+# Upload model related
+hf_repo=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
@@ -1342,38 +1346,37 @@ fi
 
 
 packed_model="${asr_exp}/${asr_exp##*/}_${inference_asr_model%.*}.zip"
-if ! "${skip_upload}"; then
-    if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
-        log "Stage 14: Pack model: ${packed_model}"
+if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
+    log "Stage 14: Pack model: ${packed_model}"
 
-        _opts=
-        if "${use_lm}"; then
-            _opts+="--lm_train_config ${lm_exp}/config.yaml "
-            _opts+="--lm_file ${lm_exp}/${inference_lm} "
-            _opts+="--option ${lm_exp}/perplexity_test/ppl "
-            _opts+="--option ${lm_exp}/images "
-        fi
-        if [ "${feats_normalize}" = global_mvn ]; then
-            _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
-        fi
-        if [ "${token_type}" = bpe ]; then
-            _opts+="--option ${bpemodel} "
-        fi
-        if [ "${nlsyms_txt}" != none ]; then
-            _opts+="--option ${nlsyms_txt} "
-        fi
-        # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.pack asr \
-            --asr_train_config "${asr_exp}"/config.yaml \
-            --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
-            ${_opts} \
-            --option "${asr_exp}"/RESULTS.md \
-            --option "${asr_exp}"/RESULTS.md \
-            --option "${asr_exp}"/images \
-            --outpath "${packed_model}"
+    _opts=
+    if "${use_lm}"; then
+        _opts+="--lm_train_config ${lm_exp}/config.yaml "
+        _opts+="--lm_file ${lm_exp}/${inference_lm} "
+        _opts+="--option ${lm_exp}/perplexity_test/ppl "
+        _opts+="--option ${lm_exp}/images "
     fi
+    if [ "${feats_normalize}" = global_mvn ]; then
+        _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
+    fi
+    if [ "${token_type}" = bpe ]; then
+        _opts+="--option ${bpemodel} "
+    fi
+    if [ "${nlsyms_txt}" != none ]; then
+        _opts+="--option ${nlsyms_txt} "
+    fi
+    # shellcheck disable=SC2086
+    ${python} -m espnet2.bin.pack asr \
+        --asr_train_config "${asr_exp}"/config.yaml \
+        --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
+        ${_opts} \
+        --option "${asr_exp}"/RESULTS.md \
+        --option "${asr_exp}"/RESULTS.md \
+        --option "${asr_exp}"/images \
+        --outpath "${packed_model}"
+fi
 
-
+if ! "${skip_upload}"; then
     if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
         log "Stage 15: Upload model to Zenodo: ${packed_model}"
 
@@ -1430,7 +1433,59 @@ EOF
             --publish false
     fi
 else
-    log "Skip the uploading stages"
+    log "Skip the uploading stage"
+fi
+
+if ! "${skip_upload_hf}"; then
+    if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ]; then
+        [ -z "${hf_repo}" ] && \
+            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
+
+        gitlfs=$(git lfs --version 2> /dev/null || true)
+        [ -z "${gitlfs}" ] && \
+            log "ERROR: You need to install git-lfs first" && \
+            exit 1
+
+        dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+        [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/asr1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # copy files in ${dir_repo}
+        unzip -o ${packed_model} -d ${dir_repo}
+        # Generate description file
+        # shellcheck disable=SC2034
+        hf_task=automatic-speech-recognition
+        # shellcheck disable=SC2034
+        espnet_task=ASR
+        # shellcheck disable=SC2034
+        task_exp=${asr_exp}
+        eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+        this_folder=${PWD}
+        cd ${dir_repo}
+        if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Update model"
+        fi
+        git push
+        cd ${this_folder}
+    fi
+else
+    log "Skip the uploading to HuggingFace stage"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
