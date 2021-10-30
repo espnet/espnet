@@ -12,7 +12,7 @@ cwd=$(pwd)
 python3 -m pip uninstall -y chainer
 
 # [ESPnet2] test asr recipe
-cd ./egs2/mini_an4/asr1 || exit 1
+cd ./egs2/mini_an4/asr1
 echo "==== [ESPnet2] ASR ==="
 ./run.sh --stage 1 --stop-stage 1
 feats_types="raw fbank_pitch"
@@ -36,10 +36,10 @@ echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_
     --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
-cd "${cwd}" || exit 1
+cd "${cwd}"
 
 # [ESPnet2] test tts recipe
-cd ./egs2/mini_an4/tts1 || exit 1
+cd ./egs2/mini_an4/tts1
 echo "==== [ESPnet2] TTS ==="
 ./run.sh --ngpu 0 --stage 1 --stop-stage 8 --skip-upload false  --train-args "--max_epoch 1" --python "${python}"
 # Remove generated files in order to reduce the disk usage
@@ -54,11 +54,11 @@ if python3 -c 'import torch as t; from distutils.version import LooseVersion as 
         --ngpu 0 --stop-stage 8 --skip-upload false --train-args "--num_iters_per_epoch 1 --max_epoch 1" --python "${python}"
     rm -rf exp dump data
 fi
-cd "${cwd}" || exit 1
+cd "${cwd}"
 
 # [ESPnet2] test enh recipe
 if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
-    cd ./egs2/mini_an4/enh1 || exit 1
+    cd ./egs2/mini_an4/enh1
     echo "==== [ESPnet2] ENH ==="
     ./run.sh --stage 1 --stop-stage 1 --python "${python}"
     feats_types="raw"
@@ -68,39 +68,30 @@ if python -c 'import torch as t; from distutils.version import LooseVersion as L
     done
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
-    cd "${cwd}" || exit 1
+    cd "${cwd}"
 fi
 
 # [ESPnet2] test ssl1 recipe
-# fairseq only supprot pytorch.version > 1.6.0
-if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.6.0")' &> /dev/null;  then
-    if ! python3 -c "import fairseq" > /dev/null; then
-        echo "Info: installing fairseq and its dependencies:"
-        cd "${cwd}/tools" && make fairseq.done || exit 1
-        cd "${cwd}" || exit 1
-    fi
-    cd ./egs2/mini_an4/ssl1 || exit 1
+if python3 -c "import fairseq" &> /dev/null; then
+    cd ./egs2/mini_an4/ssl1
     echo "==== [ESPnet2] SSL1/HUBERT ==="
     ./run.sh --ngpu 0 --stage 1 --stop-stage 7 --feats-type "raw" --token_type "word" --skip-upload false --pt-args "--max_epoch=1" --pretrain_start_iter 0 --pretrain_stop_iter 1 --python "${python}"
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
-    cd "${cwd}" || exit 1
+    cd "${cwd}"
 fi
 
 # [ESPnet2] Validate configuration files
 echo "<blank>" > dummy_token_list
 echo "==== [ESPnet2] Validation configuration files ==="
-if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.6.0")' &> /dev/null;  then
+if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.8.0")' &> /dev/null;  then
     for f in egs2/*/asr1/conf/train_asr*.yaml; do
         if [ "$f" == "egs2/fsc/asr1/conf/train_asr.yaml" ]; then
-            if python3 -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) < L("1.7.0")' &> /dev/null;  then
-                continue
-            fi
-	    if ! python3 -c "import s3prl" > /dev/null; then
+            if ! python3 -c "import s3prl" > /dev/null; then
                 continue
             fi
         fi
-	${python} -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
+        ${python} -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done
     for f in egs2/*/asr1/conf/train_lm*.yaml; do
         ${python} -m espnet2.bin.lm_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list

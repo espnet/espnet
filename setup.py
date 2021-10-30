@@ -22,12 +22,10 @@ requirements = {
         "ctc-segmentation<1.8,>=1.6.6",
         "wandb",
         "filelock",
-        # DNN related packages are installed by Makefile
-        # 'torch==1.0.1'
+        # The dependencies on chainer are optional now.
         # "chainer==6.0.0",
         # 'cupy==6.0.0',
         "tensorboard>=1.14",  # For pytorch>=1.1.0
-        "tensorboardX>=1.8",  # For pytorch<1.1.0
         # Signal processing related
         "librosa>=0.8.0",
         # Natural language processing related
@@ -44,11 +42,26 @@ requirements = {
         "espnet_tts_frontend",
         # ASR frontend related
         "nara_wpe>=0.0.5",
+        "torch>=1.3.0",
         "torch_complex",
         "pytorch_wpe",
         "ci_sdr",
         "sacrebleu>=1.5.1",
     ],
+    # all: The modules should be optionally installled due to some reason.
+    #      Please consider moving them to "install" occasionally
+    "all": [
+        # NOTE(kamo): Append modules requiring specific pytorch version or torch>1.3.0
+        "torchaudio",
+        "torch_optimizer",
+        "fairscale",
+        "fairseq",
+        "transformers",
+        # FIXME(kamo): espnet_model_zoo can be moved to "install"?
+        "espnet_model_zoo",
+    ],
+    # recipe: The modules actually are not invoked in the main module of espnet,
+    #         but are invoked for the python scripts in each recipe
     "recipe": [
         "espnet_model_zoo",
         "gdown",
@@ -86,49 +99,6 @@ requirements = {
         "sphinx-markdown-tables>=0.0.12",
     ],
 }
-try:
-    # NOTE(kamo): These packages are not listed if installing from the PyPI server
-    import torch
-
-    if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-        requirements["install"].append("torch_optimizer")
-    if LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
-        requirements["install"].append("fairscale")
-
-    if LooseVersion(torch.__version__) >= LooseVersion("1.9.2"):
-        raise NotImplementedError("Not yet supported")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.9.1"):
-        requirements["install"].append("torchaudio==0.9.1")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.9.0"):
-        requirements["install"].append("torchaudio==0.9.0")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.8.1"):
-        requirements["install"].append("torchaudio==0.8.1")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
-        requirements["install"].append("torchaudio==0.8.0")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
-        requirements["install"].append("torchaudio==0.7.2")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
-        requirements["install"].append("torchaudio==0.7.0")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-        # Due to https://github.com/pytorch/pytorch/issues/42213,
-        # use torchaudio.functional.istft instead of torch.functional.istft
-        requirements["install"].append("torchaudio==0.6.0")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
-        requirements["install"].append("torchaudio==0.5.1")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
-        requirements["install"].append("torchaudio==0.5.0")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
-        requirements["install"].append("torchaudio==0.4.0")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.3.1"):
-        requirements["install"].append("torchaudio==0.3.2")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
-        requirements["install"].append("torchaudio==0.3.1")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
-        requirements["install"].append("torchaudio==0.3.0")
-
-    del torch
-except ImportError:
-    pass
 
 install_requires = requirements["install"]
 setup_requires = requirements["setup"]

@@ -33,16 +33,23 @@ EOF
 echo "[INFO] torch_version=${torch_version}"
 
 
-if "$(pt_plus 1.8.0)" && "${python_36_plus}"; then
-
-    rm -rf fairseq
-
-    # FairSeq Commit id when making this PR: `commit 313ff0581561c7725ea9430321d6af2901573dfb`
-    git clone --depth 1 https://github.com/pytorch/fairseq.git
-    python3 -m pip install --editable ./fairseq
-    python3 -m pip install filelock
-
+if ! "${python_36_plus}"; then
+    echo "[ERROR] python<3.6 is not supported"
+    exit 1
 else
-    echo "[WARNING] fairseq requires pytorch>=1.8.0, python>=3.6"
 
+    if $(pt_plus 1.6.0); then
+        pip install fairscale
+    else
+        echo "[WARNING] fairscale requires pytorch>=1.6.0"
+    fi
+
+fi
+
+
+# Check the pytorch version is not changed from the original version
+current_torch_version="$(python3 -c 'import torch; print(torch.__version__)')"
+if [ ${torch_version} != "${current_torch_version}" ]; then
+    echo "[ERROR] The torch version has been changed. Please report to espnet administrators"
+    exit 1
 fi
