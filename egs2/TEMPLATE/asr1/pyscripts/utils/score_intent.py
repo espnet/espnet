@@ -9,6 +9,7 @@ import os
 import re
 import sys
 import pandas as pd
+import argparse
 
 
 def get_classification_result(hyp_file, ref_file):
@@ -24,17 +25,24 @@ def get_classification_result(hyp_file, ref_file):
     return 1 - (error / len(hyp_lines))
 
 
-exp_root = sys.argv[1]
+parser = argparse.ArgumentParser()
+parser.add_argument("--exp_root", required=True, help="Directory to save experiments")
+parser.add_argument(
+    "--valid_folder",
+    default="inference_asr_model_valid.acc.ave_10best/devel/",
+    help="Directory inside exp_root containing inference on valid set",
+)
+parser.add_argument(
+    "--test_folder",
+    default="inference_asr_model_valid.acc.ave_10best/test/",
+    help="Directory inside exp_root containing inference on test set",
+)
 
-if len(sys.argv) == 4:
-    valid_inference_folder = sys.argv[2]
-    test_inference_folder = sys.argv[3]
-elif len(sys.argv) == 3:
-    valid_inference_folder = sys.argv[2]
-    test_inference_folder = sys.argv[2].split("/")[0] + "/test/"
-else:
-    valid_inference_folder = "inference_asr_model_valid.acc.ave_10best/devel/"
-    test_inference_folder = "inference_asr_model_valid.acc.ave_10best/test/"
+args = parser.parse_args()
+
+exp_root = args.exp_root
+valid_inference_folder = args.valid_folder
+test_inference_folder = args.test_folder
 
 valid_hyp_file = open(
     os.path.join(exp_root, valid_inference_folder + "score_wer/hyp.trn")

@@ -25,7 +25,7 @@ else
         test_inference_folder="inference_asr_model_valid.acc.ave_5best/test/"
 fi
 
-python local/score.py ${asr_expdir} ${valid_inference_folder} ${test_inference_folder}
+python local/score.py --exp_root ${asr_expdir} --valid_folder ${valid_inference_folder} --test_folder ${test_inference_folder}
 
 sclite \
             -r "${asr_expdir}/${valid_inference_folder}/score_wer/ref_asr.trn" trn \
