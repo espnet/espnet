@@ -5,49 +5,35 @@ CHAINER_VERSION := 6.0.0
 NO_CUPY :=
 # PyTorch version: 1.3.1, 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, and 1.9.0 are tested.
 TH_VERSION := 1.9.0
-WGET := wget --tries=3
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
-IS_CONDA := 0
-USE_PIP :=
+USE_CONDA := 1
 else
-IS_CONDA :=
-USE_PIP := 0
+USE_CONDA :=
 endif
 
 
-# Set if install binaries on CPU mode e.g. make CPU_ONLY=1
-# If you don't have any GPUs, this value will be set automatically
-ifeq ($(shell which nvcc),) # 'nvcc' not found
-CPU_ONLY := 0
-else
+# Set if install binaries on CPU mode e.g. make CPU_ONLY=0
+# If you don't have nvcc, this value will be set automatically
+ifneq ($(shell command -v nvcc),)
 CPU_ONLY :=
-endif
-
-ifeq ($(strip $(CPU_ONLY)),)
 # Derive CUDA version from nvcc
-CUDA_VERSION = $(shell nvcc --version | grep "Cuda compilation tools" | cut -d" " -f5 | sed s/,//)
-CUDA_VERSION_WITHOUT_DOT = $(strip $(subst .,,$(CUDA_VERSION)))
-PIP_PYTORCH := torch==$(TH_VERSION) -f https://download.pytorch.org/whl/cu$(CUDA_VERSION_WITHOUT_DOT)/torch_stable.html
-ifeq ($(strip $(CUDA_VERSION_WITHOUT_DOT)),80)
-CONDA_PYTORCH := pytorch=$(TH_VERSION) cuda$(CUDA_VERSION_WITHOUT_DOT) -c pytorch
-else ifeq ($(strip $(CUDA_VERSION_WITHOUT_DOT)),111)
-CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION) -c pytorch -c conda-forge
-else
-CONDA_PYTORCH := pytorch=$(TH_VERSION) cudatoolkit=$(CUDA_VERSION) -c pytorch
-endif
-
-else
-CONDA_PYTORCH := pytorch=$(TH_VERSION) cpuonly -c pytorch
-PIP_PYTORCH := torch==$(TH_VERSION) -f https://download.pytorch.org/whl/cpu/torch_stable.html
-NO_CUPY := 0
-endif
+CUDA_VERSION := $(shell nvcc --version | grep "Cuda compilation tools" | cut -d" " -f5 | sed s/,//)
+CUDA_VERSION_WITHOUT_DOT := $(strip $(subst .,,$(CUDA_VERSION)))
 
 ifeq ($(shell expr $(CUDA_VERSION_WITHOUT_DOT) \>= 102), 1)
 # cupy==6.0.0 doesn't support CUDA=10.2 or later
 NO_CUPY := 0
 endif
+
+else
+CPU_ONLY := 0
+CUDA_VERSION :=
+CUDA_VERSION_WITHOUT_DOT :=
+NO_CUPY := 0
+endif
+
 PIP_CHAINER := chainer==$(CHAINER_VERSION)
 
 
@@ -56,10 +42,10 @@ PIP_CHAINER := chainer==$(CHAINER_VERSION)
 all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_install
 
 ifneq ($(strip $(CHAINER_VERSION)),)
-python: activate_python.sh espnet.done pytorch.done chainer.done
+python: activate_python.sh espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
 extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done
 else
-python: activate_python.sh espnet.done pytorch.done
+python: activate_python.sh espnet.done pytorch.done fairscale.done torch_optimizer.done
 extra: warp-ctc.done warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done
 endif
 
@@ -74,17 +60,13 @@ activate_python.sh:
 showenv: activate_python.sh
 ifeq ($(strip $(CPU_ONLY)),)
 	@echo CUDA_VERSION=$(CUDA_VERSION)
-	. ./activate_python.sh && python3 check_pytorch_cuda_compatibility.py $(TH_VERSION) ${CUDA_VERSION} || { echo "Change TH_VERSION or CUDA_VERSION"; exit 1; }
 else
 	@echo Perform on CPU mode: CPU_ONLY=$(CPU_ONLY)
 endif
 	@echo PYTHON=$(shell . ./activate_python.sh && command -v python3)
 	@echo PYTHON_VERSION=$(shell . ./activate_python.sh && python3 --version)
-	@echo IS_CONDA=$(IS_CONDA)
-	@echo USE_PIP=$(USE_PIP)
+	@echo USE_CONDA=$(USE_CONDA)
 	@echo TH_VERSION=$(TH_VERSION)
-	@echo CONDA_PYTORCH=$(CONDA_PYTORCH)
-	@echo PIP_PYTORCH=$(PIP_PYTORCH)
 	@echo CHAINER_VERSION=$(CHAINER_VERSION)
 	@echo PIP_CHAINER=$(PIP_CHAINER)
 	@echo NO_CUPY=$(NO_CUPY)
@@ -106,7 +88,7 @@ sox.done: activate_python.sh
 sndfile.done: activate_python.sh
 	. ./activate_python.sh && { python3 -c "from ctypes.util import find_library as F; assert F('sndfile') is not None" || conda install -y libsndfile=1.0.28 -c conda-forge; }
 	touch sndfile.done
-ifneq ($(strip $(IS_CONDA)),)
+ifneq ($(strip $(USE_CONDA)),)
 conda_packages.done: cmake.done flac.done ffmpeg.done sox.done sndfile.done
 else
 conda_packages.done:
@@ -122,16 +104,13 @@ sph2pipe.done:
 	touch sph2pipe.done
 
 
-ifneq ($(strip $(USE_PIP)),)
 pytorch.done: activate_python.sh
-	. ./activate_python.sh && python3 -m pip install numpy --upgrade  # Workaround for "ImportError: numpy.core.multiarray failed to import"
-	. ./activate_python.sh && python3 -m pip install $(PIP_PYTORCH)
-	touch pytorch.done
+ifeq ($(strip $(USE_CONDA)),)
+	. ./activate_python.sh && ./installers/install_torch.sh "false" "${TH_VERSION}" "${CUDA_VERSION}"
 else
-pytorch.done: activate_python.sh
-	. ./activate_python.sh && conda install -y $(CONDA_PYTORCH)
-	touch pytorch.done
+	. ./activate_python.sh && ./installers/install_torch.sh "true" "${TH_VERSION}" "${CUDA_VERSION}"
 endif
+	touch pytorch.done
 
 # NOTE(kamo): conda_packages is not necessary for installation of espnet, but add it the dependencies just in case.
 espnet.done: pytorch.done conda_packages.done
@@ -216,6 +195,14 @@ py3mmseg.done: espnet.done
 beamformit.done:
 	./installers/install_beamformit.sh
 	touch beamformit.done
+
+torch_optimizer.done: espnet.done
+	. ./activate_python.sh && ./installers/install_torch_optimizer.sh
+	touch torch_optimizer.done
+
+fairscale.done: espnet.done
+	. ./activate_python.sh && ./installers/install_fairscale.sh
+	touch fairscale.done
 
 fairseq.done: espnet.done
 	. ./activate_python.sh && ./installers/install_fairseq.sh

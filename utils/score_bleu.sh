@@ -8,12 +8,12 @@ export LC_ALL=C
 . ./path.sh
 
 nlsyms=""
-bpe=""
 bpemodel=""
 filter=""
 case=tc
 set=""
 remove_nonverbal=true
+character_level=false
 
 . utils/parse_options.sh
 
@@ -42,7 +42,7 @@ perl -pe 's/\([^\)]+\)//g;' ${dir}/ref.trn > ${dir}/ref.rm.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/hyp.trn > ${dir}/hyp.rm.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/src.trn > ${dir}/src.rm.trn
 
-if [ -n "$bpe" ]; then
+if [ -n "${bpemodel}" ]; then
     if [ ${remove_nonverbal} = true ]; then
         cat ${dir}/ref.rm.trn > ${dir}/ref.wrd.trn
         spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.rm.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
@@ -85,6 +85,16 @@ if [ -n "${filter}" ]; then
 fi
 # NOTE: this must be performed after detokenization so that punctuation marks are not removed
 
+if [ ${character_level} = true ]; then
+    # for Japanese/Chinese
+    cp ${dir}/ref.wrd.trn.detok ${dir}/ref.wrd.trn.detok.tmp
+    cp ${dir}/hyp.wrd.trn.detok ${dir}/hyp.wrd.trn.detok.tmp
+    cp ${dir}/src.wrd.trn.detok ${dir}/src.wrd.trn.detok.tmp
+    LC_ALL=en_US.UTF-8 sed -e 's/\(.\)/ \1/g' ${dir}/ref.wrd.trn.detok.tmp > ${dir}/ref.wrd.trn.detok
+    LC_ALL=en_US.UTF-8 sed -e 's/\(.\)/ \1/g' ${dir}/hyp.wrd.trn.detok.tmp > ${dir}/hyp.wrd.trn.detok
+    LC_ALL=en_US.UTF-8 sed -e 's/\(.\)/ \1/g' ${dir}/src.wrd.trn.detok.tmp > ${dir}/src.wrd.trn.detok
+fi
+
 if [ -f ${dir}/result.${case}.txt ]; then
     rm ${dir}/result.${case}.txt
     touch ${dir}/result.${case}.txt
@@ -92,15 +102,16 @@ fi
 if [ -n "${set}" ]; then
     echo ${set} > ${dir}/result.${case}.txt
 fi
+echo "########################################################################################################################" >> ${dir}/result.${case}.txt
+echo "sacleBLEU" >> ${dir}/result.${case}.txt
 if [ ${case} = tc ]; then
-    echo "  multi-bleu-detok.perl" >> ${dir}/result.${case}.txt
-    multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.${case}.txt
+    sacrebleu ${dir}/ref.wrd.trn.detok -i ${dir}/hyp.wrd.trn.detok -m bleu chrf ter >> ${dir}/result.${case}.txt
     echo "write a case-sensitive BLEU result in ${dir}/result.tc.txt"
 else
-    echo "  multi-bleu-detok.perl" >> ${dir}/result.${case}.txt
-    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.${case}.txt
+    sacrebleu -lc ${dir}/ref.wrd.trn.detok -i ${dir}/hyp.wrd.trn.detok -m bleu chrf ter >> ${dir}/result.${case}.txt
     echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
 fi
+echo "########################################################################################################################" >> ${dir}/result.${case}.txt
 cat ${dir}/result.${case}.txt
 
-# TODO(hirofumi): add TER & METEOR metrics here
+# TODO(hirofumi): add METEOR, BERTscore here
