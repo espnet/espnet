@@ -163,7 +163,6 @@
 <span class="kn">from</span> <span class="nn">espnet.scheduler.scheduler</span> <span class="kn">import</span> <span class="n">dynamic_import_scheduler</span>
 
 <span class="kn">from</span> <span class="nn">espnet.utils.training.tensorboard_logger</span> <span class="kn">import</span> <span class="n">TensorboardLogger</span>
-<span class="kn">from</span> <span class="nn">tensorboardX</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
 
 <span class="kn">from</span> <span class="nn">espnet.utils.deterministic_utils</span> <span class="kn">import</span> <span class="n">set_deterministic_chainer</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.training.evaluator</span> <span class="kn">import</span> <span class="n">BaseEvaluator</span>
@@ -581,6 +580,11 @@
 
     <span class="n">set_early_stop</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">is_lm</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">tensorboard_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">tensorboard_dir</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">tensorboardX</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Please install tensorboardx&quot;</span><span class="p">)</span>
+            <span class="k">raise</span>
         <span class="n">writer</span> <span class="o">=</span> <span class="n">SummaryWriter</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">tensorboard_dir</span><span class="p">)</span>
         <span class="n">trainer</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
             <span class="n">TensorboardLogger</span><span class="p">(</span><span class="n">writer</span><span class="p">),</span> <span class="n">trigger</span><span class="o">=</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">report_interval_iters</span><span class="p">,</span> <span class="s2">&quot;iteration&quot;</span><span class="p">)</span>
