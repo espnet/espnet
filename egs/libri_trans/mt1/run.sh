@@ -291,10 +291,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${trans_model}
 
         if [ ${reverse_direction} = true ]; then
-            score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
                 ${expdir}/${decode_dir} "en" ${dict}
         else
-            score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
                 ${expdir}/${decode_dir} "fr" ${dict}
         fi
 
@@ -363,7 +363,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model_dir}" ] &&
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+        score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} "fr" ${dict}
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log

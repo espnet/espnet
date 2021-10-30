@@ -8,7 +8,6 @@ export LC_ALL=C
 . ./path.sh
 
 nlsyms=""
-bpe=""
 bpemodel=""
 filter=""
 case=tc
@@ -52,13 +51,13 @@ if [ -n "${filter}" ]; then
 fi
 
 # reorder text based on the order of the xml file
-# if [ -z ${text} ]; then
+# if [ ! -n "${text}" ]; then
 #   text=data/${set}.en/text_noseg.${case}
 # fi
 # local/reorder_text.py ${text} ${src}/FILE_ORDER > ${dir}/ref.wrd.trn || exit 1;
 grep "<seg id" ${xml_tgt} | sed -e "s/<[^>]*>//g" | sed 's/^[ \t]*//' | sed -e 's/[ \t]*$//' > ${dir}/ref.wrd.trn
 
-if [ ! -z ${bpemodel} ]; then
+if [ -n "${bpemodel}" ]; then
     if [ ${remove_nonverbal} = true ]; then
         spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.rm.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
     else
@@ -84,24 +83,24 @@ if [ -n "${nlsyms}" ]; then
 fi
 # NOTE: this must be performed after detokenization so that punctuation marks are not removed
 
+echo ${set} > ${dir}/result.${case}.txt
+echo "########################################################################################################################" >> ${dir}/result.${case}.txt
+echo "sacleBLEU" >> ${dir}/result.${case}.txt
 if [ ${case} = tc ]; then
     ### case-sensitive
-    echo ${set} > ${dir}/result.tc.txt
     # resegment hypotheses based on WER
     segmentBasedOnMWER.sh ${xml_src} ${xml_tgt} ${dir}/hyp.wrd.trn.detok ${sysid} ${tgt_lang} ${dir}/hyp.wrd.trn.detok.reseg.xml "" 1 || exit 1;
     sed -e "/<[^>]*>/d" ${dir}/hyp.wrd.trn.detok.reseg.xml > ${dir}/hyp.wrd.trn.detok.reseg
-    multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok.reseg > ${dir}/result.tc.txt
-    echo "write a case-sensitive BLEU result in ${dir}/result.tc.txt"
-    cat ${dir}/result.tc.txt
+    sacrebleu ${dir}/ref.wrd.trn.detok -i ${dir}/hyp.wrd.trn.detok.reseg -m bleu chrf ter >> ${dir}/result.${case}.txt
 else
     ### case-insensitive
-    echo ${set} > ${dir}/result.lc.txt
     # resegment hypotheses based on WER
     segmentBasedOnMWER.sh  ${xml_src}  ${xml_tgt} ${dir}/hyp.wrd.trn.detok ${sysid} ${tgt_lang} ${dir}/hyp.wrd.trn.detok.reseg.xml "" 0 || exit 1;
     sed -e "/<[^>]*>/d" ${dir}/hyp.wrd.trn.detok.reseg.xml > ${dir}/hyp.wrd.trn.detok.reseg
-    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok.reseg > ${dir}/result.lc.txt
-    echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
-    cat ${dir}/result.lc.txt
+    sacrebleu -lc ${dir}/ref.wrd.trn.detok -i ${dir}/hyp.wrd.trn.detok.reseg -m bleu chrf ter >> ${dir}/result.${case}.txt
 fi
+echo "write a case-insensitive BLEU result in ${dir}/result.${case}.txt"
+echo "########################################################################################################################" >> ${dir}/result.${case}.txt
+cat ${dir}/result.${case}.txt
 
-# TODO(hirofumi): add TER & METEOR metrics here
+# TODO(hirofumi): add METEOR, BERTscore here

@@ -169,21 +169,22 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 - If you intend to do full experiments including DNN training, then see [Installation](https://espnet.github.io/espnet/installation.html).
 - If you just need the Python module only:
     ```sh
+    # We recommend you installing pytorch before installing espnet following https://pytorch.org/get-started/locally/
     pip install espnet
     # To install latest
     # pip install git+https://github.com/espnet/espnet
+    # To install additional packages
+    # pip install "espnet[all]"
     ```
 
-    You need to install some packages.
+    If you'll use ESPnet1, please install chainer and cupy.
 
     ```sh
-    pip install torch
-    pip install chainer==6.0.0 cupy==6.0.0    # [Option] If you'll use ESPnet1
-    pip install torchaudio                    # [Option] If you'll use enhancement task
-    pip install torch_optimizer               # [Option] If you'll use additional optimizers in ESPnet2
+    pip install chainer==6.0.0 cupy==6.0.0    # [Option]
     ```
 
-    There are some required packages depending on each task other than above. If you meet ImportError, please install them at that time.
+    You might need to install some packages depending on each task. We prepared various installation scripts at [tools/installers](tools/installers).
+
 - (ESPnet2) Once installed, run `wandb login` and set `--use_wandb true` to enable tracking runs using W&B.
 
 ## Usage

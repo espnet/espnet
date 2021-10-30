@@ -284,7 +284,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case tc --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+        score_bleu.sh --case tc --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} pt ${dict}
     ) &
     pids+=($!) # store background pids
