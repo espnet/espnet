@@ -42,7 +42,7 @@ batch_bins: 4000000
 # optimization related
 accum_grad: 4
 grad_clip: 5
-max_epoch: 50
+max_epoch: 1
 val_scheduler_criterion:
     - valid
     - acc
