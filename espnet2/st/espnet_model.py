@@ -51,7 +51,6 @@ class ESPnetSTModel(AbsESPnetModel):
         postencoder: Optional[AbsPostEncoder],
         decoder: AbsDecoder,
         ctc: CTC,
-        rnnt_decoder: None,
         ctc_weight: float = 0.5,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
@@ -64,7 +63,6 @@ class ESPnetSTModel(AbsESPnetModel):
     ):
         assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
-        assert rnnt_decoder is None, "Not implemented"
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
@@ -93,7 +91,6 @@ class ESPnetSTModel(AbsESPnetModel):
             self.ctc = None
         else:
             self.ctc = ctc
-        self.rnnt_decoder = rnnt_decoder
         self.criterion_att = LabelSmoothingLoss(
             size=vocab_size,
             padding_idx=ignore_id,

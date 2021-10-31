@@ -1561,6 +1561,8 @@ EOF
             --use_sandbox false \
             --publish false
     fi
+
+# TODO (jiatong): add HF uploading feature
 else
     log "Skip the uploading stages"
 fi

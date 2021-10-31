@@ -5,8 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-lang=cy # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk
-
 train_set=train_sp.es
 train_dev=train_dev.es
 test_set="fisher_dev.es fisher_dev2.es fisher_test.es callhome_devtest.es callhome_evltest.es"
@@ -19,7 +17,6 @@ nbpe=1000
 
 ./asr.sh \
     --ngpu 4 \
-    --lang "${lang}" \
     --local_data_opts "--stage 0" \
     --use_lm true \
     --lm_config "${lm_config}" \
