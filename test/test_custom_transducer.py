@@ -199,8 +199,7 @@ def prepare(args):
             {
                 "enc_block_arch": [
                     {
-                        "type": "conv-nd",
-                        "conv_dim": 1,
+                        "type": "conv1d",
                         "idim": 2,
                         "odim": 2,
                         "kernel_size": 2,
@@ -227,20 +226,19 @@ def prepare(args):
             {
                 "enc_block_arch": [
                     {
-                        "type": "conv-nd",
-                        "conv_dim": 2,
+                        "type": "conv1d",
                         "idim": 2,
-                        "odim": 2,
-                        "kernel_size": (1, 1),
-                        "dilation": (1, 2),
-                        "stride": (1, 1),
+                        "odim": 4,
+                        "kernel_size": 1,
+                        "dilation": 2,
+                        "stride": 1,
                         "dropout-rate": 0.3,
                         "use-relu": True,
                         "use-batch-norm": True,
                     },
                     {
                         "type": "conformer",
-                        "d_hidden": 2,
+                        "d_hidden": 4,
                         "d_ff": 4,
                         "heads": 1,
                         "macaron_style": False,
@@ -256,8 +254,7 @@ def prepare(args):
             {
                 "enc_block_arch": [
                     {
-                        "type": "conv-nd",
-                        "conv_dim": 1,
+                        "type": "conv1d",
                         "idim": 2,
                         "odim": 2,
                         "kernel_size": 2,
@@ -490,9 +487,6 @@ def test_invalid_block_arguments():
         _, _, _ = build_blocks("decoder", 4, "embed", [{"type": "conformer"}])
 
     with pytest.raises(ValueError):
-        _, _, _ = build_blocks("encoder", 4, "linear", [{"type": "conv-nd"}])
-
-    with pytest.raises(ValueError):
         _, _, _ = build_blocks("decoder", 4, "embed", [{"type": "causal-conv1d"}])
 
     with pytest.raises(ValueError):
@@ -559,8 +553,7 @@ def test_invalid_block_io():
         {
             "enc_block_arch": [
                 {
-                    "type": "conv-nd",
-                    "conv_dim": 1,
+                    "type": "conv1d",
                     "idim": 2,
                     "odim": 2,
                     "kernel_size": 2,
