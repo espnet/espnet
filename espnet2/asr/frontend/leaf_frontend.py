@@ -20,8 +20,6 @@ import leaf_audio_pytorch.frontend as frontend
 class LeafFrontend(AbsFrontend):
 	"""Speech Pretrained Representation frontend structure for ASR."""
 
-	
-
 	def __init__(
 		learn_pooling: bool = True,
 	    learn_filters: bool = True,
@@ -75,19 +73,21 @@ class LeafFrontend(AbsFrontend):
 
     def forward(self, input: torch.Tensor):
     	self.leaf = frontend.Leaf(learn_pooling = self.learn_pooling,
-	    learn_filters = self.learn_filters,
-	    n_filters = self.n_filters,
-	    sample_rate = self.sample_rate,
-	    window_len = self.window_len,
-	    window_stride = self.window_stride,
-	    # compression_fn=None,
-	    compression_fn=self.compression_fn,
-	    preemp = self.preemp,
-	    preemp_init=self.preemp_init,
-	    complex_conv_init=self.complex_conv_init,
-	    pooling_init=self.pooling_init,
-	    # regularizer_fn: Optional[tf.keras.regularizers.Regularizer] = self.None,
-	    mean_var_norm  = self.mean_var_norm,
-	    spec_augment = self.spec_augment,
-	    name='leaf')
+								    learn_filters = self.learn_filters,
+								    n_filters = self.n_filters,
+								    sample_rate = self.sample_rate,
+								    window_len = self.window_len,
+								    window_stride = self.window_stride,
+								    # compression_fn=None,
+								    compression_fn=self.compression_fn,
+								    preemp = self.preemp,
+								    preemp_init=self.preemp_init,
+								    complex_conv_init=self.complex_conv_init,
+								    pooling_init=self.pooling_init,
+								    # regularizer_fn: Optional[tf.keras.regularizers.Regularizer] = self.None,
+								    mean_var_norm  = self.mean_var_norm,
+								    spec_augment = self.spec_augment,
+								    name='leaf')
+
+    	return self.leaf(input).permute(0,2,1)
 
