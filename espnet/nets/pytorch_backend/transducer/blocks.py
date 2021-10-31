@@ -1,6 +1,7 @@
 """Set of methods to create custom architecture."""
 
 from collections import Counter
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Tuple
@@ -15,8 +16,8 @@ from espnet.nets.pytorch_backend.conformer.encoder_layer import (
 
 from espnet.nets.pytorch_backend.nets_utils import get_activation
 
-from espnet.nets.pytorch_backend.transducer.causal_conv1d import CausalConv1d
-from espnet.nets.pytorch_backend.transducer.conv_encoder_layer import ConvEncoderLayer
+from espnet.nets.pytorch_backend.transducer.conv1d_nets import CausalConv1d
+from espnet.nets.pytorch_backend.transducer.conv1d_nets import Conv1d
 from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
     TransformerDecoderLayer,  # noqa: H301
 )
@@ -39,186 +40,173 @@ from espnet.nets.pytorch_backend.transformer.repeat import MultiSequential
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
 
 
-def check_and_prepare(
+def verify_block_arguments(
     net_part: str,
-    blocks_arch: List,
-    input_layer_type: str,
-    feats_dim: int,
-) -> Tuple[str, int, float, float, int]:
-    """Check consecutive block shapes match and prepare input parameters.
+    block: Dict[str, Any],
+    num_block: int,
+) -> Tuple[int, int]:
+    """Verify block arguments are valid.
 
     Args:
         net_part: Network part, either 'encoder' or 'decoder'.
-        blocks_arch: Block architecture (types and parameters) for network part.
-        input_layer_type: Input layer type.
-        feats_dim: Dimension of features.
+        block: Block parameters.
+        num_block: Block ID.
 
     Return:
-        input_layer_type: Input layer type.
-        input_layer_odim: Input layer output dimension.
-        input_dropout_rate: Dropout rate for input layer.
-        input_pos_dropout_rate: Dropout rate for input layer positional encoding.
-        net_out_dim: Network output dimension.
+        block_io: Input and output dimension of the block.
 
     """
-    input_dropout_rate = sorted(
-        Counter(
-            b["dropout-rate"] for b in blocks_arch if "dropout-rate" in b
-        ).most_common(),
-        key=lambda x: x[0],
-        reverse=True,
-    )
+    block_type = block.get("type")
+
+    if block_type is None:
+        raise ValueError(
+            "Block %d in %s doesn't a type assigned.", (num_block, net_part)
+        )
+
+    if block_type == "transformer":
+        arguments = {"d_hidden", "d_ff", "heads"}
+    elif block_type == "conformer":
+        arguments = {
+            "d_hidden",
+            "d_ff",
+            "heads",
+            "macaron_style",
+            "use_conv_mod",
+        }
+
+        if block.get("use_conv_mod", None) is True and "conv_mod_kernel" not in block:
+            raise ValueError(
+                "Block %d: 'use_conv_mod' is True but "
+                " 'conv_mod_kernel' is not specified" % num_block
+            )
+    elif block_type == "causal-conv1d":
+        arguments = {"idim", "odim", "kernel_size"}
+
+        if net_part == "encoder":
+            raise ValueError("Encoder does not support 'causal-conv1d.'")
+
+    elif block_type == "conv1d":
+        arguments = {"idim", "odim", "kernel_size"}
+
+        if net_part == "decoder":
+            raise ValueError("Decoder does not support 'conv1d.'")
+    else:
+        raise NotImplementedError(
+            "Wrong type. Currently supported: "
+            "causal-conv1d, conformer, conv-nd or transformer."
+        )
+
+    if not arguments.issubset(block):
+        raise ValueError(
+            "%s in %s in position %d: Expected block arguments : %s."
+            " See tutorial page for more information."
+            % (block_type, net_part, num_block, arguments)
+        )
+
+    if block_type in ("transformer", "conformer"):
+        block_io = (block["d_hidden"], block["d_hidden"])
+    else:
+        block_io = (block["idim"], block["odim"])
+
+    return block_io
+
+
+def prepare_input_layer(
+    net_part: str,
+    input_layer_type: str,
+    feats_dim: int,
+    blocks: List[Dict[str, Any]],
+    dropout_rate_embed: float,
+) -> Dict[str, Any]:
+    """Prepare input layer arguments.
+
+    Args:
+        net_part: Network part, either 'encoder' or 'decoder'.
+        input_layer_type: Input layer type.
+        feats_dim: Dimension of input features.
+        blocks: Blocks parameters for network part.
+        dropout_rate_embed: Dropout rate of embedding layer (if provided).
+
+    Return:
+        input_block: Input block parameters.
+
+    """
+    input_block = {}
+    first_block_type = blocks[0].get("type", None)
+
+    if first_block_type == "causal-conv1d":
+        input_block["type"] = "c-embed"
+    else:
+        input_block["type"] = input_layer_type
+
+    if net_part == "encoder":
+        input_dropout_rate = sorted(
+            Counter(
+                b["dropout-rate"] for b in blocks if "dropout-rate" in b
+            ).most_common(),
+            key=lambda x: x[0],
+            reverse=True,
+        )
+        input_block["dropout-rate"] = (
+            input_dropout_rate[0][0] if input_dropout_rate else 0.0
+        )
+    else:
+        input_block["dropout-rate"] = dropout_rate_embed
 
     input_pos_dropout_rate = sorted(
         Counter(
-            b["pos-dropout-rate"] for b in blocks_arch if "pos-dropout-rate" in b
+            b["pos-dropout-rate"] for b in blocks if "pos-dropout-rate" in b
         ).most_common(),
         key=lambda x: x[0],
         reverse=True,
     )
 
-    input_dropout_rate = input_dropout_rate[0][0] if input_dropout_rate else 0.0
-    input_pos_dropout_rate = (
+    input_block["pos-dropout-rate"] = (
         input_pos_dropout_rate[0][0] if input_pos_dropout_rate else 0.0
     )
 
-    cmp_io = []
-    has_transformer = False
-    has_conformer = False
-    for i in range(len(blocks_arch)):
-        if "type" in blocks_arch[i]:
-            block_type = blocks_arch[i]["type"]
-        else:
-            raise ValueError("type is not defined in the " + str(i + 1) + "th block.")
+    input_block["idim"] = feats_dim
 
-        if block_type == "transformer":
-            if not {"d_hidden", "d_ff", "heads"}.issubset(blocks_arch[i]):
-                raise ValueError(
-                    "Block "
-                    + str(i + 1)
-                    + "in "
-                    + net_part
-                    + ": Transformer block format is: {'type: transformer', "
-                    "'d_hidden': int, 'd_ff': int, 'heads': int, [...]}"
-                )
+    if first_block_type in ("transformer", "conformer"):
+        input_block["odim"] = blocks[0].get("d_hidden", 0)
+    else:
+        input_block["odim"] = blocks[0].get("idim", 0)
 
-            has_transformer = True
-            cmp_io.append((blocks_arch[i]["d_hidden"], blocks_arch[i]["d_hidden"]))
-        elif block_type == "conformer":
-            if net_part != "encoder":
-                raise ValueError(
-                    "Block " + str(i + 1) + ": conformer type is only for encoder part."
-                )
+    return input_block
 
-            if not {
-                "d_hidden",
-                "d_ff",
-                "heads",
-                "macaron_style",
-                "use_conv_mod",
-            }.issubset(blocks_arch[i]):
-                raise ValueError(
-                    "Block "
-                    + str(i + 1)
-                    + " in "
-                    + net_part
-                    + ": Conformer block format is {'type: conformer', "
-                    "'d_hidden': int, 'd_ff': int, 'heads': int, "
-                    "'macaron_style': bool, 'use_conv_mod': bool, [...]}"
-                )
 
-            if (
-                blocks_arch[i]["use_conv_mod"] is True
-                and "conv_mod_kernel" not in blocks_arch[i]
-            ):
-                raise ValueError(
-                    "Block "
-                    + str(i + 1)
-                    + ": 'use_conv_mod' is True but 'use_conv_kernel' is not specified"
-                )
+def prepare_body_model(
+    net_part: str,
+    blocks: List[Dict[str, Any]],
+) -> Tuple[int]:
+    """Prepare model body blocks.
 
-            has_conformer = True
-            cmp_io.append((blocks_arch[i]["d_hidden"], blocks_arch[i]["d_hidden"]))
-        elif block_type == "causal-conv1d":
-            if not {"idim", "odim", "kernel_size"}.issubset(blocks_arch[i]):
-                raise ValueError(
-                    "Block "
-                    + str(i + 1)
-                    + " in "
-                    + net_part
-                    + ": Causal conv1d block format is: {'type: causal-conv1d', "
-                    "'idim': int, 'odim': int, 'kernel_size': int, [...]}"
-                )
+    Args:
+        net_part: Network part, either 'encoder' or 'decoder'.
+        blocks: Blocks parameters for network part.
 
-            if i == 0:
-                input_layer_type = "c-embed"
+    Return:
+        : Network output dimension.
 
-            cmp_io.append((blocks_arch[i]["idim"], blocks_arch[i]["odim"]))
-        elif block_type == "conv-nd":
-            if not {"conv_dim", "odim", "kernel_size"}.issubset(blocks_arch[i]):
-                raise ValueError(
-                    "Block "
-                    + str(i + 1)
-                    + " in "
-                    + net_part
-                    + ": N-D convolution block format is: {'type: conv-nd', "
-                    "'conv_dim': int, 'odim': int, 'kernel_size': int, [...]}"
-                )
+    """
+    cmp_io = [
+        verify_block_arguments(net_part, b, (i + 1)) for i, b in enumerate(blocks)
+    ]
 
-            if i == 0:
-                input_layer_type = "none"
-
-                blocks_arch[i]["idim"] = feats_dim
-            elif blocks_arch[i - 1]["type"] in ("conv-nd", "causal-conv1d"):
-                blocks_arch[i]["idim"] = blocks_arch[i - 1]["odim"]
-            else:
-                blocks_arch[i]["idim"] = blocks_arch[i - 1]["d_hidden"]
-
-            cmp_io.append((blocks_arch[i]["idim"], blocks_arch[i]["odim"]))
-        else:
-            raise NotImplementedError(
-                "Wrong type for block "
-                + str(i + 1)
-                + " in "
-                + net_part
-                + ". Currently supported: "
-                "conv-nd, causal-conv1d or transformer"
-            )
-
-    if has_transformer and has_conformer:
+    if {"transformer", "conformer"} <= {b["type"] for b in blocks}:
         raise NotImplementedError(
             net_part + ": transformer and conformer blocks "
-            "can't be defined in the same net part."
+            "can't be used together in the same net part."
         )
 
     for i in range(1, len(cmp_io)):
         if cmp_io[(i - 1)][1] != cmp_io[i][0]:
             raise ValueError(
-                "Output/Input mismatch between blocks "
-                + str(i)
-                + " and "
-                + str(i + 1)
-                + " in "
-                + net_part
+                "Output/Input mismatch between blocks %d and %d in %s"
+                % (i, (i + 1), net_part)
             )
 
-    if blocks_arch[0]["type"] in ("conv-nd", "causal-conv1d"):
-        input_layer_odim = blocks_arch[0]["idim"]
-    else:
-        input_layer_odim = blocks_arch[0]["d_hidden"]
-
-    if blocks_arch[-1]["type"] in ("conv-nd", "causal-conv1d"):
-        net_out_dim = blocks_arch[-1]["odim"]
-    else:
-        net_out_dim = blocks_arch[-1]["d_hidden"]
-
-    return (
-        input_layer_type,
-        input_layer_odim,
-        input_dropout_rate,
-        input_pos_dropout_rate,
-        net_out_dim,
-    )
+    return cmp_io[-1][1]
 
 
 def get_pos_enc_and_att_class(
@@ -261,25 +249,15 @@ def get_pos_enc_and_att_class(
 
 
 def build_input_layer(
-    input_layer: str,
-    idim: int,
-    odim: int,
+    block: Dict[str, Any],
     pos_enc_class: torch.nn.Module,
-    dropout_rate_embed: float,
-    dropout_rate: float,
-    pos_dropout_rate: float,
     padding_idx: int,
 ) -> Tuple[Union[Conv2dSubsampling, VGG2L, torch.nn.Sequential], int]:
     """Build input layer.
 
     Args:
-        input_layer: Input layer type.
-        idim: Input dimension.
-        odim: Output dimension.
+        block: Architecture definition of input layer.
         pos_enc_class: Positional encoding class.
-        dropout_rate_embed: Dropout rate for embedding layer.
-        dropout_rate: Dropout rate for input layer.
-        pos_dropout_rate: Dropout rate for positional encoding.
         padding_idx: Padding symbol ID for embedding layer.
 
     Returns:
@@ -287,14 +265,20 @@ def build_input_layer(
         subsampling_factor: Subsampling factor.
 
     """
+    input_type = block["type"]
+
+    idim = block["idim"]
+    odim = block["odim"]
+
+    dropout_rate = block["dropout-rate"]
+    pos_dropout_rate = block["pos-dropout-rate"]
+
     if pos_enc_class.__name__ == "RelPositionalEncoding":
         pos_enc_class_subsampling = pos_enc_class(odim, pos_dropout_rate)
     else:
         pos_enc_class_subsampling = None
 
-    if input_layer == "none":
-        return pos_enc_class(odim, pos_dropout_rate), 1
-    elif input_layer == "linear":
+    if input_type == "linear":
         return (
             torch.nn.Sequential(
                 torch.nn.Linear(idim, odim),
@@ -305,11 +289,11 @@ def build_input_layer(
             ),
             1,
         )
-    elif input_layer == "conv2d":
+    elif input_type == "conv2d":
         return Conv2dSubsampling(idim, odim, dropout_rate, pos_enc_class_subsampling), 4
-    elif input_layer == "vgg2l":
+    elif input_type == "vgg2l":
         return VGG2L(idim, odim, pos_enc_class_subsampling), 4
-    elif input_layer == "embed":
+    elif input_type == "embed":
         return (
             torch.nn.Sequential(
                 torch.nn.Embedding(idim, odim, padding_idx=padding_idx),
@@ -317,26 +301,32 @@ def build_input_layer(
             ),
             1,
         )
-    elif input_layer == "c-embed":
+    elif input_type == "c-embed":
         return (
             torch.nn.Sequential(
                 torch.nn.Embedding(idim, odim, padding_idx=padding_idx),
-                torch.nn.Dropout(dropout_rate_embed),
+                torch.nn.Dropout(dropout_rate),
             ),
             1,
         )
     else:
-        raise NotImplementedError("Support: linear, conv2d, vgg2l and embed")
+        raise NotImplementedError(
+            "Invalid input layer: %s. Supported: linear, conv2d, vgg2l and embed"
+            % input_type
+        )
 
 
 def build_transformer_block(
-    net_part: str, block_arch: Dict, pw_layer_type: str, pw_activation_type: str
+    net_part: str,
+    block: Dict[str, Any],
+    pw_layer_type: str,
+    pw_activation_type: str,
 ) -> Union[EncoderLayer, TransformerDecoderLayer]:
     """Build function for transformer block.
 
     Args:
         net_part: Network part, either 'encoder' or 'decoder'.
-        block_arch: Transformer block parameters.
+        block: Transformer block parameters.
         pw_layer_type: Positionwise layer type.
         pw_activation_type: Positionwise activation type.
 
@@ -344,24 +334,16 @@ def build_transformer_block(
         : Function to create transformer (encoder or decoder) block.
 
     """
-    d_hidden = block_arch["d_hidden"]
-    d_ff = block_arch["d_ff"]
-    heads = block_arch["heads"]
+    d_hidden = block["d_hidden"]
 
-    dropout_rate = block_arch["dropout-rate"] if "dropout-rate" in block_arch else 0.0
-    pos_dropout_rate = (
-        block_arch["pos-dropout-rate"] if "pos-dropout-rate" in block_arch else 0.0
-    )
-    att_dropout_rate = (
-        block_arch["att-dropout-rate"] if "att-dropout-rate" in block_arch else 0.0
-    )
+    dropout_rate = block.get("dropout-rate", 0.0)
+    pos_dropout_rate = block.get("pos-dropout-rate", 0.0)
+    att_dropout_rate = block.get("att-dropout-rate", 0.0)
 
-    if pw_layer_type == "linear":
-        pw_layer = PositionwiseFeedForward
-        pw_activation = get_activation(pw_activation_type)
-        pw_layer_args = (d_hidden, d_ff, pos_dropout_rate, pw_activation)
-    else:
-        raise NotImplementedError("Transformer block only supports linear yet.")
+    if pw_layer_type != "linear":
+        raise NotImplementedError(
+            "Transformer block only supports linear pointwise layer."
+        )
 
     if net_part == "encoder":
         transformer_layer_class = EncoderLayer
@@ -370,14 +352,19 @@ def build_transformer_block(
 
     return lambda: transformer_layer_class(
         d_hidden,
-        MultiHeadedAttention(heads, d_hidden, att_dropout_rate),
-        pw_layer(*pw_layer_args),
+        MultiHeadedAttention(block["heads"], d_hidden, att_dropout_rate),
+        PositionwiseFeedForward(
+            d_hidden,
+            block["d_ff"],
+            pos_dropout_rate,
+            get_activation(pw_activation_type),
+        ),
         dropout_rate,
     )
 
 
 def build_conformer_block(
-    block_arch: Dict,
+    block: Dict[str, Any],
     self_attn_class: str,
     pw_layer_type: str,
     pw_activation_type: str,
@@ -386,7 +373,7 @@ def build_conformer_block(
     """Build function for conformer block.
 
     Args:
-        block_arch: Conformer block parameters.
+        block: Conformer block parameters.
         self_attn_type: Self-attention module type.
         pw_layer_type: Positionwise layer type.
         pw_activation_type: Positionwise activation type.
@@ -396,112 +383,82 @@ def build_conformer_block(
         : Function to create conformer (encoder) block.
 
     """
-    d_hidden = block_arch["d_hidden"]
-    d_ff = block_arch["d_ff"]
-    heads = block_arch["heads"]
-    macaron_style = block_arch["macaron_style"]
-    use_conv_mod = block_arch["use_conv_mod"]
+    d_hidden = block["d_hidden"]
+    d_ff = block["d_ff"]
 
-    dropout_rate = block_arch["dropout-rate"] if "dropout-rate" in block_arch else 0.0
-    pos_dropout_rate = (
-        block_arch["pos-dropout-rate"] if "pos-dropout-rate" in block_arch else 0.0
-    )
-    att_dropout_rate = (
-        block_arch["att-dropout-rate"] if "att-dropout-rate" in block_arch else 0.0
-    )
+    dropout_rate = block.get("dropout-rate", 0.0)
+    pos_dropout_rate = block.get("pos-dropout-rate", 0.0)
+    att_dropout_rate = block.get("att-dropout-rate", 0.0)
 
     if pw_layer_type == "linear":
-        pw_layer = PositionwiseFeedForward
-        pw_activation = get_activation(pw_activation_type)
-        pw_layer_args = (d_hidden, d_ff, pos_dropout_rate, pw_activation)
+        pw_layer = PositionwiseFeedForward(
+            d_hidden,
+            d_ff,
+            pos_dropout_rate,
+            get_activation(pw_activation_type),
+        )
     else:
         raise NotImplementedError("Conformer block only supports linear yet.")
 
-    if use_conv_mod:
-        conv_layer = ConvolutionModule
-        conv_activation = get_activation(conv_mod_activation_type)
-        conv_layers_args = (d_hidden, block_arch["conv_mod_kernel"], conv_activation)
+    macaron_net = (
+        PositionwiseFeedForward(
+            d_hidden,
+            d_ff,
+            pos_dropout_rate,
+            get_activation(pw_activation_type),
+        )
+        if block["macaron_style"]
+        else None
+    )
+
+    conv_mod = (
+        ConvolutionModule(
+            d_hidden,
+            block["conv_mod_kernel"],
+            get_activation(conv_mod_activation_type),
+        )
+        if block["use_conv_mod"]
+        else None
+    )
 
     return lambda: ConformerEncoderLayer(
         d_hidden,
-        self_attn_class(heads, d_hidden, att_dropout_rate),
-        pw_layer(*pw_layer_args),
-        pw_layer(*pw_layer_args) if macaron_style else None,
-        conv_layer(*conv_layers_args) if use_conv_mod else None,
+        self_attn_class(block["heads"], d_hidden, att_dropout_rate),
+        pw_layer,
+        macaron_net,
+        conv_mod,
         dropout_rate,
     )
 
 
-def build_causal_conv1d_block(block_arch: Dict) -> CausalConv1d:
+def build_conv1d_block(block: Dict[str, Any], block_type: str) -> CausalConv1d:
     """Build function for causal conv1d block.
 
     Args:
-        block_arch: Causal conv1D block parameters.
+        block: CausalConv1d or Conv1D block parameters.
 
     Returns:
-        : Function to create causal conv1d (decoder) block.
+        : Function to create conv1d (encoder) or causal conv1d (decoder) block.
 
     """
-    idim = block_arch["idim"]
-    odim = block_arch["odim"]
-    kernel_size = block_arch["kernel_size"]
+    if block_type == "conv1d":
+        conv_class = Conv1d
+    else:
+        conv_class = CausalConv1d
 
-    stride = block_arch["stride"] if "stride" in block_arch else 1
-    dilation = block_arch["dilation"] if "dilation" in block_arch else 1
-    groups = block_arch["groups"] if "groups" in block_arch else 1
-    bias = block_arch["bias"] if "bias" in block_arch else True
+    stride = block.get("stride", 1)
+    dilation = block.get("dilation", 1)
+    groups = block.get("groups", 1)
+    bias = block.get("bias", True)
 
-    use_batch_norm = (
-        block_arch["use-batch-norm"] if "use-batch-norm" in block_arch else False
-    )
-    use_relu = block_arch["use-relu"] if "use-relu" in block_arch else False
-    dropout_rate = block_arch["dropout-rate"] if "dropout-rate" in block_arch else 0.0
+    use_batch_norm = block.get("use-batch-norm", False)
+    use_relu = block.get("use-relu", False)
+    dropout_rate = block.get("dropout-rate", 0.0)
 
-    return lambda: CausalConv1d(
-        idim,
-        odim,
-        kernel_size,
-        stride=stride,
-        dilation=dilation,
-        groups=groups,
-        bias=bias,
-        relu=use_relu,
-        batch_norm=use_batch_norm,
-        dropout_rate=dropout_rate,
-    )
-
-
-def build_conv_encoder_block(block_arch: Dict) -> ConvEncoderLayer:
-    """Build function for N-D convolution block for encoder.
-
-    Args:
-        block_arch: N-D convolution block parameters.
-
-    Returns:
-        : function to create ConvEncoderLayer block.
-
-    """
-    conv_dim = block_arch["conv_dim"]
-    idim = block_arch["idim"]
-    odim = block_arch["odim"]
-    kernel_size = block_arch["kernel_size"]
-
-    stride = block_arch["stride"] if "stride" in block_arch else 1
-    dilation = block_arch["dilation"] if "dilation" in block_arch else 1
-    groups = block_arch["groups"] if "groups" in block_arch else 1
-    bias = block_arch["bias"] if "bias" in block_arch else True
-
-    use_batch_norm = (
-        block_arch["use-batch-norm"] if "use-batch-norm" in block_arch else False
-    )
-    use_relu = block_arch["use-relu"] if "use-relu" in block_arch else False
-    dropout_rate = block_arch["dropout-rate"] if "dropout-rate" in block_arch else 0.0
-
-    return lambda: ConvEncoderLayer(
-        conv_dim,
-        idim,
-        odim,
-        kernel_size,
+    return lambda: conv_class(
+        block["idim"],
+        block["odim"],
+        block["kernel_size"],
         stride=stride,
         dilation=dilation,
         groups=groups,
@@ -516,7 +473,7 @@ def build_blocks(
     net_part: str,
     idim: int,
     input_layer_type: str,
-    blocks_arch: List,
+    blocks: List[Dict[str, Any]],
     repeat_block: int = 0,
     self_attn_type: str = "self_attn",
     positional_encoding_type: str = "abs_pos",
@@ -528,75 +485,69 @@ def build_blocks(
 ) -> Tuple[
     Union[Conv2dSubsampling, VGG2L, torch.nn.Sequential], MultiSequential, int, int
 ]:
-    """Build block for customizable architecture.
+    """Build custom model blocks.
 
     Args:
         net_part: Network part, either 'encoder' or 'decoder'.
         idim: Input dimension.
         input_layer: Input layer type.
-        blocks_arch: Block architecture (types and parameters) for network part.
-        repeat_block: Number of times blocks_arch is repeated.
+        blocks: Blocks parameters for network part.
+        repeat_block: Number of times provided blocks are repeated.
         positional_encoding_type: Positional encoding layer type.
         positionwise_layer_type: Positionwise layer type.
         positionwise_activation_type: Positionwise activation type.
         conv_mod_activation_type: Convolutional module activation type.
-        dropout_rate_embed: Dropout rate for embedding layer.
+        dropout_rate_embed: Dropout rate for encoder/decoder input layer.
         padding_idx: Padding symbol ID for embedding layer.
 
     Returns:
         in_layer: Input layer
-        all_blocks: (Encoder or Decoder) network.
+        all_blocks: Encoder/Decoder network.
         out_dim: Network output dimension.
         conv_subsampling_factor: Subsampling factor in frontend CNN.
 
     """
     fn_modules = []
 
-    (
-        input_layer_type,
-        input_layer_odim,
-        input_dropout_rate,
-        input_pos_dropout_rate,
-        out_dim,
-    ) = check_and_prepare(net_part, blocks_arch, input_layer_type, idim)
-
     pos_enc_class, self_attn_class = get_pos_enc_and_att_class(
         net_part, positional_encoding_type, self_attn_type
     )
 
-    in_layer, conv_subsampling_factor = build_input_layer(
-        input_layer_type,
-        idim,
-        input_layer_odim,
+    input_block = prepare_input_layer(
+        net_part, input_layer_type, idim, blocks, dropout_rate_embed
+    )
+
+    out_dim = prepare_body_model(
+        net_part,
+        blocks,
+    )
+
+    input_layer, conv_subsampling_factor = build_input_layer(
+        input_block,
         pos_enc_class,
-        dropout_rate_embed,
-        input_dropout_rate,
-        input_pos_dropout_rate,
         padding_idx,
     )
 
-    for i in range(len(blocks_arch)):
-        block_type = blocks_arch[i]["type"]
+    for i in range(len(blocks)):
+        block_type = blocks[i]["type"]
 
-        if block_type == "conv-nd":
-            module = build_conv_encoder_block(blocks_arch[i])
-        elif block_type == "transformer":
-            module = build_transformer_block(
-                net_part,
-                blocks_arch[i],
-                positionwise_layer_type,
-                positionwise_activation_type,
-            )
+        if block_type in ("causal-conv1d", "conv1d"):
+            module = build_conv1d_block(blocks[i], block_type)
         elif block_type == "conformer":
             module = build_conformer_block(
-                blocks_arch[i],
+                blocks[i],
                 self_attn_class,
                 positionwise_layer_type,
                 positionwise_activation_type,
                 conv_mod_activation_type,
             )
-        elif block_type == "causal-conv1d":
-            module = build_causal_conv1d_block(blocks_arch[i])
+        elif block_type == "transformer":
+            module = build_transformer_block(
+                net_part,
+                blocks[i],
+                positionwise_layer_type,
+                positionwise_activation_type,
+            )
 
         fn_modules.append(module)
 
@@ -604,7 +555,7 @@ def build_blocks(
         fn_modules = fn_modules * repeat_block
 
     return (
-        in_layer,
+        input_layer,
         MultiSequential(*[fn() for fn in fn_modules]),
         out_dim,
         conv_subsampling_factor,
