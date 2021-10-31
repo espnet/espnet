@@ -243,8 +243,7 @@ class E2E(ASRInterface, torch.nn.Module):
             if args.enc_block_arch is None:
                 raise ValueError(
                     "When specifying custom encoder type, --enc-block-arch"
-                    "should also be specified in training config. See"
-                    "egs/vivos/asr1/conf/transducer/train_*.yaml for more info."
+                    "should be set in training config."
                 )
 
             self.encoder = CustomEncoder(
@@ -272,8 +271,7 @@ class E2E(ASRInterface, torch.nn.Module):
             if args.dec_block_arch is None:
                 raise ValueError(
                     "When specifying custom decoder type, --dec-block-arch"
-                    "should also be specified in training config. See"
-                    "egs/vivos/asr1/conf/transducer/train_*.yaml for more info."
+                    "should be set in training config."
                 )
 
             self.decoder = CustomDecoder(
