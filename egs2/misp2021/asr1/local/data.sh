@@ -13,7 +13,6 @@ SECONDS=0
 
 stage=0
 stop_stage=1
-train_dev=dt05_multi_isolated_1ch_track
 log "$0 $*"
 . utils/parse_options.sh
 
