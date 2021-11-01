@@ -249,13 +249,15 @@ class E2E(ASRInterface, torch.nn.Module):
             self.encoder = CustomEncoder(
                 idim,
                 args.enc_block_arch,
-                input_layer=args.custom_enc_input_layer,
+                args.custom_enc_input_layer,
                 repeat_block=args.enc_block_repeat,
                 self_attn_type=args.custom_enc_self_attn_type,
                 positional_encoding_type=args.custom_enc_positional_encoding_type,
                 positionwise_activation_type=args.custom_enc_pw_activation_type,
                 conv_mod_activation_type=args.custom_enc_conv_mod_activation_type,
                 aux_enc_output_layers=aux_enc_output_layers,
+                input_layer_dropout_rate=args.custom_enc_input_dropout_rate,
+                input_layer_pos_enc_dropout_rate=args.custom_enc_input_pos_enc_dropout_rate,
             )
             encoder_out = self.encoder.enc_out
         else:
@@ -277,10 +279,10 @@ class E2E(ASRInterface, torch.nn.Module):
             self.decoder = CustomDecoder(
                 odim,
                 args.dec_block_arch,
-                input_layer=args.custom_dec_input_layer,
+                args.custom_dec_input_layer,
                 repeat_block=args.dec_block_repeat,
                 positionwise_activation_type=args.custom_dec_pw_activation_type,
-                dropout_rate_embed=args.dropout_rate_embed_decoder,
+                input_layer_dropout_rate=args.dropout_rate_embed_decoder,
                 blank_id=blank_id,
             )
             decoder_out = self.decoder.dunits

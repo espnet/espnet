@@ -112,20 +112,20 @@ def verify_block_arguments(
 
 
 def prepare_input_layer(
-    net_part: str,
     input_layer_type: str,
     feats_dim: int,
     blocks: List[Dict[str, Any]],
-    dropout_rate_embed: float,
+    dropout_rate: float,
+    pos_enc_dropout_rate: float,
 ) -> Dict[str, Any]:
     """Prepare input layer arguments.
 
     Args:
-        net_part: Network part, either 'encoder' or 'decoder'.
         input_layer_type: Input layer type.
         feats_dim: Dimension of input features.
         blocks: Blocks parameters for network part.
-        dropout_rate_embed: Dropout rate of embedding layer (if provided).
+        dropout_rate: Dropout rate for input layer.
+        pos_enc_dropout_rate: Dropout rate for input layer pos. enc.
 
     Return:
         input_block: Input block parameters.
@@ -139,31 +139,8 @@ def prepare_input_layer(
     else:
         input_block["type"] = input_layer_type
 
-    if net_part == "encoder":
-        input_dropout_rate = sorted(
-            Counter(
-                b["dropout-rate"] for b in blocks if "dropout-rate" in b
-            ).most_common(),
-            key=lambda x: x[0],
-            reverse=True,
-        )
-        input_block["dropout-rate"] = (
-            input_dropout_rate[0][0] if input_dropout_rate else 0.0
-        )
-    else:
-        input_block["dropout-rate"] = dropout_rate_embed
-
-    input_pos_dropout_rate = sorted(
-        Counter(
-            b["pos-dropout-rate"] for b in blocks if "pos-dropout-rate" in b
-        ).most_common(),
-        key=lambda x: x[0],
-        reverse=True,
-    )
-
-    input_block["pos-dropout-rate"] = (
-        input_pos_dropout_rate[0][0] if input_pos_dropout_rate else 0.0
-    )
+    input_block["dropout-rate"] = dropout_rate
+    input_block["pos-dropout-rate"] = pos_enc_dropout_rate
 
     input_block["idim"] = feats_dim
 
@@ -258,7 +235,7 @@ def build_input_layer(
     Args:
         block: Architecture definition of input layer.
         pos_enc_class: Positional encoding class.
-        padding_idx: Padding symbol ID for embedding layer.
+        padding_idx: Padding symbol ID for embedding layer (if provided).
 
     Returns:
         : Input layer module.
@@ -480,7 +457,8 @@ def build_blocks(
     positionwise_layer_type: str = "linear",
     positionwise_activation_type: str = "relu",
     conv_mod_activation_type: str = "relu",
-    dropout_rate_embed: float = 0.0,
+    input_layer_dropout_rate: float = 0.0,
+    input_layer_pos_enc_dropout_rate: float = 0.0,
     padding_idx: int = -1,
 ) -> Tuple[
     Union[Conv2dSubsampling, VGG2L, torch.nn.Sequential], MultiSequential, int, int
@@ -497,7 +475,8 @@ def build_blocks(
         positionwise_layer_type: Positionwise layer type.
         positionwise_activation_type: Positionwise activation type.
         conv_mod_activation_type: Convolutional module activation type.
-        dropout_rate_embed: Dropout rate for encoder/decoder input layer.
+        input_layer_dropout_rate: Dropout rate for input layer.
+        input_layer_pos_enc_dropout_rate: Dropout rate for input layer pos. enc.
         padding_idx: Padding symbol ID for embedding layer.
 
     Returns:
@@ -514,13 +493,14 @@ def build_blocks(
     )
 
     input_block = prepare_input_layer(
-        net_part, input_layer_type, idim, blocks, dropout_rate_embed
+        input_layer_type,
+        idim,
+        blocks,
+        input_layer_dropout_rate,
+        input_layer_pos_enc_dropout_rate,
     )
 
-    out_dim = prepare_body_model(
-        net_part,
-        blocks,
-    )
+    out_dim = prepare_body_model(net_part, blocks)
 
     input_layer, conv_subsampling_factor = build_input_layer(
         input_block,

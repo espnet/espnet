@@ -91,8 +91,20 @@ def add_custom_encoder_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         "--custom-enc-input-layer",
         type=str,
         default="conv2d",
-        choices=["conv2d", "vgg2l", "linear", "embed", "none"],
+        choices=["conv2d", "vgg2l", "linear", "embed"],
         help="Custom encoder input layer type",
+    )
+    group.add_argument(
+        "--custom-enc-input-dropout-rate",
+        type=float,
+        default=0.0,
+        help="Dropout rate of custom encoder input layer",
+    )
+    group.add_argument(
+        "--custom-enc-input-pos-enc-dropout-rate",
+        type=float,
+        default=0.0,
+        help="Dropout rate of positional encoding in custom encoder input layer",
     )
     group.add_argument(
         "--custom-enc-positional-encoding-type",
