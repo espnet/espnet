@@ -90,8 +90,8 @@ def get_default_scope_inputs():
     idim = 12
     odim = 5
 
-    ilens = [12, 4]
-    olens = [5, 4]
+    ilens = [15, 11]
+    olens = [13, 9]
 
     return bs, idim, odim, ilens, olens
 
@@ -197,21 +197,29 @@ def prepare(args):
         ),
         (
             {
+                "custom_enc_input_layer": "linear",
+                "custom_enc_positional_encoding_type": "abs_pos",
                 "enc_block_arch": [
                     {
+                        "type": "transformer",
+                        "d_hidden": 32,
+                        "d_ff": 4,
+                        "heads": 1,
+                    },
+                    {
                         "type": "conv1d",
-                        "idim": 2,
-                        "odim": 2,
-                        "kernel_size": 2,
-                        "dilation": 1,
-                        "stride": 1,
+                        "idim": 32,
+                        "odim": 16,
+                        "kernel_size": 3,
+                        "dilation": 2,
+                        "stride": 2,
                         "dropout-rate": 0.3,
                         "use-relu": True,
                         "use-batch-norm": True,
                     },
                     {
                         "type": "transformer",
-                        "d_hidden": 2,
+                        "d_hidden": 16,
                         "d_ff": 4,
                         "heads": 1,
                         "dropout-rate": 0.3,
@@ -227,9 +235,9 @@ def prepare(args):
                 "enc_block_arch": [
                     {
                         "type": "conv1d",
-                        "idim": 2,
-                        "odim": 4,
-                        "kernel_size": 1,
+                        "idim": 8,
+                        "odim": 8,
+                        "kernel_size": 2,
                         "dilation": 2,
                         "stride": 1,
                         "dropout-rate": 0.3,
@@ -238,7 +246,7 @@ def prepare(args):
                     },
                     {
                         "type": "conformer",
-                        "d_hidden": 4,
+                        "d_hidden": 8,
                         "d_ff": 4,
                         "heads": 1,
                         "macaron_style": False,
@@ -268,8 +276,16 @@ def prepare(args):
         (
             {
                 "dec_block_arch": [
-                    {"type": "causal-conv1d", "idim": 2, "odim": 2, "kernel_size": 3},
-                    {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
+                    {
+                        "type": "causal-conv1d",
+                        "idim": 8,
+                        "odim": 8,
+                        "kernel_size": 3,
+                        "dropout-rate": 0.3,
+                        "use-relu": True,
+                        "use-batch-norm": True,
+                    },
+                    {"type": "transformer", "d_hidden": 8, "d_ff": 4, "heads": 1},
                 ]
             },
             {},
@@ -487,7 +503,10 @@ def test_invalid_block_arguments():
         _, _, _ = build_blocks("decoder", 4, "embed", [{"type": "conformer"}])
 
     with pytest.raises(ValueError):
-        _, _, _ = build_blocks("decoder", 4, "embed", [{"type": "causal-conv1d"}])
+        _, _, _ = build_blocks("encoder", 4, "embed", [{"type": "causal-conv1d"}])
+
+    with pytest.raises(ValueError):
+        _, _, _ = build_blocks("decoder", 4, "embed", [{"type": "conv1d"}])
 
     with pytest.raises(ValueError):
         _, _, _ = build_blocks(
@@ -564,7 +583,7 @@ def test_invalid_block_io():
                     "use-batch-norm": True,
                 },
                 {
-                    "type": "conformer",
+                    "type": "transformer",
                     "d_hidden": 2,
                     "d_ff": 2,
                     "heads": 1,
@@ -573,12 +592,10 @@ def test_invalid_block_io():
                 },
             ],
             "custom_enc_input_layer": "linear",
-            "custom_enc_self_attn_type": "rel_self_attn",
-            "custom_enc_positional_encoding_type": "rel_pos",
         },
         {
             "dec_block_arch": [
-                {"type": "causal-conv1d", "idim": 2, "odim": 2, "kernel_size": 3},
+                {"type": "causal-conv1d", "idim": 2, "odim": 2, "kernel_size": 1},
                 {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
             ]
         },

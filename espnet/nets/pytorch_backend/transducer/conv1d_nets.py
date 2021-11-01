@@ -75,11 +75,14 @@ class Conv1d(torch.nn.Module):
 
         Args:
             sequence: Input sequences.
-                      (B, T, D_in) or ((B, T, D_in), (
+                      (B, T, D_in)
+                        or (B, T, D_in),  (B, 2 * (T - 1), D_att)
             mask: Mask of input sequences. (B, 1, T)
 
         Returns:
-            sequence: Output sequences. (B, sub(T), D_out)
+            sequence: Output sequences.
+                      (B, sub(T), D_out)
+                        or (B, sub(T), D_out),  (B, 2 * (sub(T) - 1), D_att)
             mask: Mask of output sequences. (B, 1, sub(T))
 
         """
@@ -89,12 +92,6 @@ class Conv1d(torch.nn.Module):
             sequence, pos_embed = sequence, None
 
         sequence = sequence.transpose(1, 2)
-
-        if pos_embed is not None and pos_embed.size(1) == (2 * sequence.size(2)) - 1:
-            bidir_pos_embed = True
-        else:
-            bidir_pos_embed = False
-
         sequence = self.conv(sequence)
 
         if self.batch_norm:
@@ -110,10 +107,7 @@ class Conv1d(torch.nn.Module):
         mask = self.create_new_mask(mask)
 
         if pos_embed is not None:
-            pos_embed = self.create_new_pos_embed(
-                pos_embed,
-                bidir_pos_embed,
-            )
+            pos_embed = self.create_new_pos_embed(pos_embed)
 
             return (sequence, pos_embed), mask
 
@@ -139,40 +133,30 @@ class Conv1d(torch.nn.Module):
 
         return mask
 
-    def create_new_pos_embed(
-        self, pos_embed: torch.Tensor, is_bidir: bool
-    ) -> torch.Tensor:
+    def create_new_pos_embed(self, pos_embed: torch.Tensor) -> torch.Tensor:
         """Create new positional embedding vector.
 
         Args:
             pos_embed: Input sequences positional embedding.
-                       (B, T, D_att) or (B, 2 * (T - 1), D_att)
+                       (B, 2 * (T - 1), D_att)
             is_bidir: Whether positional embedding is bidirectional.
 
         Return:
             pos_embed: Output sequences positional embedding.
-                       (B, sub(T), D_att) or (B, 2 * (sub(T) - 1), D_att)
+                       (B, 2 * (sub(T) - 1), D_att)
 
         """
-        if is_bidir:
-            pos_embed_positive = pos_embed[:, : pos_embed.size(1) // 2 + 1, :]
-            pos_embed_negative = pos_embed[:, pos_embed.size(1) // 2 :, :]
+        pos_embed_positive = pos_embed[:, : pos_embed.size(1) // 2 + 1, :]
+        pos_embed_negative = pos_embed[:, pos_embed.size(1) // 2 :, :]
 
-            if self.padding != 0:
-                pos_embed_positive = pos_embed_positive[:, : -self.padding, :]
-                pos_embed_negative = pos_embed_negative[:, : -self.padding, :]
+        if self.padding != 0:
+            pos_embed_positive = pos_embed_positive[:, : -self.padding, :]
+            pos_embed_negative = pos_embed_negative[:, : -self.padding, :]
 
-            pos_embed_positive = pos_embed_positive[:, :: self.stride, :]
-            pos_embed_negative = pos_embed_negative[:, :: self.stride, :]
+        pos_embed_positive = pos_embed_positive[:, :: self.stride, :]
+        pos_embed_negative = pos_embed_negative[:, :: self.stride, :]
 
-            pos_embed = torch.cat(
-                [pos_embed_positive, pos_embed_negative[:, 1:, :]], dim=1
-            )
-        else:
-            if self.padding != 0:
-                pos_embed = pos_embed[:, : -self.padding, :]
-
-            pos_embed = pos_embed[:, :: self.stride, :]
+        pos_embed = torch.cat([pos_embed_positive, pos_embed_negative[:, 1:, :]], dim=1)
 
         return self.out_pos(pos_embed)
 
