@@ -257,7 +257,9 @@ class E2E(ASRInterface, torch.nn.Module):
                 conv_mod_activation_type=args.custom_enc_conv_mod_activation_type,
                 aux_enc_output_layers=aux_enc_output_layers,
                 input_layer_dropout_rate=args.custom_enc_input_dropout_rate,
-                input_layer_pos_enc_dropout_rate=args.custom_enc_input_pos_enc_dropout_rate,
+                input_layer_pos_enc_dropout_rate=(
+                    args.custom_enc_input_pos_enc_dropout_rate
+                ),
             )
             encoder_out = self.encoder.enc_out
         else:
