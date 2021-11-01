@@ -216,7 +216,7 @@ class E2E(E2ETransformer):
 
         self.eval()
         h = self.encode(x).unsqueeze(0)
-        
+
         input_len = h.squeeze(0)
         logging.info("input lengths: " + str(input_len.size(0)))
 
