@@ -492,11 +492,7 @@ if ! "${skip_data_prep}"; then
                     utils/filter_scp.pl "${data_feats}/${dset}/wav.scp"  \
                     >"${dumpdir}/xvector/${dset}/xvector.scp"
             fi
-
         done
-
-        # shellcheck disable=SC2002
-        cat ${srctexts} | awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
     fi
 
 
@@ -506,6 +502,9 @@ if ! "${skip_data_prep}"; then
 
         # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
         # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+
+        # shellcheck disable=SC2002
+        cat ${srctexts} | awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
 
         ${python} -m espnet2.bin.tokenize_text \
               --token_type "${token_type}" -f 2- \
