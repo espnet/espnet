@@ -221,24 +221,21 @@ Here, the *custom* architecture is a unique feature of the Transducer model in E
         # e.g: Conv-Transformer encoder
         etype: custom
         enc-block-arch:
-                - type: conv-nd
-                  conv_dim : 2
+                - type: conv1d
                   idim: 80
                   odim: 32
                   kernel_size: [3, 7]
                   stride: [1, 2]
-                - type: conv-nd
-                  conv_dim : 2
+                - type: conv1d
                   idim: 32
                   odim: 32
-                  kernel_size: [3, 5]
-                  stride: [2, 2]
-                - type: conv-nd
-                  conv_dim : 1
+                  kernel_size: 3
+                  stride: 2
+                - type: conv1d
                   idim: 32
                   odim: 384
-                  kernel_size: [3, 7]
-                  stride: [1, 2]
+                  kernel_size: 3
+                  stride: 1
                 - type: transformer
                   d_hidden: 384
                   d_ff: 1536
@@ -246,9 +243,8 @@ Here, the *custom* architecture is a unique feature of the Transducer model in E
 
 2) Different block types are allowed for the custom encoder (`tdnn`, `conformer` or `transformer`) and the custom decoder (`causal-conv1d` or `transformer`). Each one has a set of mandatory and optional parameters :
 
-        # N-d convolution block
-        - type: conv-nd
-          conv_dim: [Dimension of the convolution (int)]
+        # 1D convolution block
+        - type: conv1d
           idim: [Input dimension. (int)]
           odim: [Output dimension. (int)]
           kernel_size: [Size of the context window. (int or tuple)]
