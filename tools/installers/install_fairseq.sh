@@ -39,7 +39,7 @@ if "$(pt_plus 1.8.0)" && "${python_36_plus}"; then
 
     # FairSeq Commit id when making this PR: `commit 313ff0581561c7725ea9430321d6af2901573dfb`
     git clone --depth 1 https://github.com/pytorch/fairseq.git
-    python3 -m pip install --editable ./fairseq
+    python3 -m pip install --no-deps --editable ./fairseq
     python3 -m pip install filelock
 
 else
