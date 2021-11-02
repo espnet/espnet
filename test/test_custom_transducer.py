@@ -76,6 +76,7 @@ def make_recog_args(**kwargs):
         max_sym_exp=2,
         u_max=5,
         prefix_alpha=2,
+        softmax_temperature=1.0,
         score_norm_transducer=True,
         rnnlm=None,
         lm_weight=0.1,
@@ -312,6 +313,8 @@ def prepare(args):
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_wordlm()}),
         ({}, {"beam_size": 2, "search_type": "maes", "nstep": 4, "rnnlm": get_lm()}),
         ({}, {"beam_size": 2, "search_type": "maes", "rnnlm": get_wordlm()}),
+        ({}, {"beam_size": 2, "softmax_temperature": 2.0, "rnnlm": get_wordlm()}),
+        ({}, {"beam_size": 2, "search_type": "nsc", "softmax_temperature": 5.0}),
     ],
 )
 def test_custom_transducer_trainable_and_decodable(train_dic, recog_dic):
@@ -339,6 +342,7 @@ def test_custom_transducer_trainable_and_decodable(train_dic, recog_dic):
         nstep=recog_args.nstep,
         prefix_alpha=recog_args.prefix_alpha,
         score_norm=recog_args.score_norm_transducer,
+        softmax_temperature=recog_args.softmax_temperature,
     )
 
     with torch.no_grad():
@@ -353,6 +357,7 @@ def test_calculate_plot_attention():
     train_args = make_train_args(report_cer=True)
     model, feats, feats_len, labels, data, uttid_list = prepare(train_args)
 
+    model.attention_plot_class
     attn_dict = model.calculate_all_attentions(feats[0:1], feats_len[0:1], labels[0:1])
 
     plot.plot_multi_head_attention(data, uttid_list, attn_dict, "/tmp/espnet-test")
@@ -666,3 +671,20 @@ def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
 
     with torch.no_grad():
         model.recognize(feats[0, : feats_len[0]].numpy(), beam_search)
+
+
+@pytest.mark.parametrize(
+    "train_dic, subsample",
+    [
+        ({}, 4),
+        ({"custom_enc_input_layer": "vgg2l"}, 4),
+        ({"custom_enc_input_layer": "linear"}, 1),
+    ],
+)
+def test_subsampling(train_dic, subsample):
+    train_args = make_train_args(**train_dic)
+    recog_args = make_recog_args()
+
+    model, feats, feats_len, _, _, _ = prepare(train_args)
+
+    assert model.get_total_subsampling_factor() == subsample
