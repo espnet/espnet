@@ -5,7 +5,6 @@
 # transform misp data to kaldi format
 
 set -e -o pipefail
-set -x
 
 # configs
 nj=1

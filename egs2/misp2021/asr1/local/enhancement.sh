@@ -5,7 +5,6 @@
 # use nara-wpe and BeamformIt to enhance multichannel data
 
 set -e -o pipefail
-set -x
 
 # configs
 stage=0
@@ -15,7 +14,7 @@ cmd=run.pl
 
 . ./path.sh || exit 1;
 
-pip show -f nara_wpe || pip install nara_wpe
+pip show -f nara_wpe >/dev/null || pip install nara_wpe
 
 if [ -z $BEAMFORMIT ] ; then
   export BEAMFORMIT=$KALDI_ROOT/tools/BeamformIt
