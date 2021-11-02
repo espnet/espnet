@@ -55,15 +55,15 @@ def wpe_worker(
                     data = np.float32(data) / 32768
                 signal_list.append(data)
             print("wait to process {} : {}".format(wav_idx, wav_list[0]))
-            try:
-                y = np.stack(signal_list, axis=0)
-            except:
-                mlen = len(signal_list[0])
-                for i in range(1, len(signal_list)):
-                    mlen = min(mlen, len(signal_list[i]))
+            min_len = len(signal_list[0])
+            max_len = len(signal_list[0])
+            for i in range(1, len(signal_list)):
+                min_len = min(min_len, len(signal_list[i]))
+                max_len = max(max_len, len(signal_list[i]))
+            if min_len != max_len:
                 for i in range(len(signal_list)):
-                    signal_list[i] = signal_list[i][:mlen]
-                y = np.stack(signal_list, axis=0)
+                    signal_list[i] = signal_list[i][:min_len]
+            y = np.stack(signal_list, axis=0)
             Y = stft(y, **stft_options).transpose(2, 0, 1)
             Z = wpe(Y, iterations=iterations, statistics_mode="full").transpose(1, 2, 0)
             z = istft(Z, size=stft_options["size"], shift=stft_options["shift"])

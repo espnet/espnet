@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2018 USTC (Authors: Zhaoxu Nian, Hang Chen, Yen-Ju, Lu)
+# Copyright 2018 USTC (Authors: Zhaoxu Nian, Hang Chen, Yen-Ju Lu)
 # Apache 2.0
 
 # use nara-wpe and BeamformIt to enhance multichannel data
