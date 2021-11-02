@@ -110,7 +110,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # divide into source and target languages
     for x in train_${annotation_id}_sp dev_${annotation_id} test_${annotation_id}; do
-        local/divide_lang.sh ${x}
+        divide_lang.sh ${x} "${src_lang} ${tgt_lang}"
     done
 
     # compute global CMVN
@@ -257,7 +257,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+        score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} ${tgt_lang} ${dict}
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log

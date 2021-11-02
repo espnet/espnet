@@ -222,8 +222,7 @@ Note that you need to setup your environment correctly to use distributed traini
 - [Distributed training](./espnet2_distributed.md)
 - [Using Job scheduling system](./parallelization.md)
 
-
-## Use specified expereiment directory for evaluation
+## Use specified experiment directory for evaluation
 
 If you already have trained a model, you may wonder how to give it to run.sh when you'll evaluate it later.
 By default the directory name is determined according to given options, `asr_args`, `lm_args`, or etc.
@@ -244,4 +243,36 @@ You can overwrite it by `--asr_exp` and `--lm_exp`.
 ./run.sh --download_model <model_name> --skip_train true
 ```
 
-You need to fill `model_name` by yourself. See the following link about our pretrain models: https://github.com/espnet/espnet_model_zoo
+You need to fill `model_name` by yourself. You can search for pretrained models on Hugging Face using the tag [espnet](https://huggingface.co/models?library=espnet)
+
+(Deprecated: See the following link about our pretrain models: https://github.com/espnet/espnet_model_zoo)
+
+## Packing and sharing your trained model
+
+ESPnet encourages you to share your results using platforms like [Hugging Face](https://huggingface.co/) or [Zenodo](https://zenodo.org/) (This last will become deprecated.)
+
+For sharing your models, the last three stages of each task simplify this process. The model is packed into a zip file and uploaded to the selected platform (one or both).
+
+For **Hugging Face**, you need to first create a repository (`<my_repo> = <user_name>/<repo_name>`).  
+Remember to install `git-lfs ` before continuing.
+Then, execute `run.sh` as follows:
+
+```sh
+# For ASR recipe
+./run.sh --stage 14 --skip-upload-hf false --hf-repo <my_repo>
+
+# For TTS recipe
+./run.sh --stage 8 --skip-upload-hf false --hf-repo <my_repo>
+```
+
+For **Zenodo**, you need to register your account first. Then, execute `run.sh` as follows:
+
+```sh
+# For ASR recipe
+./run.sh --stage 14 --skip-upload false
+
+# For TTS recipe
+./run.sh --stage 8 --skip-upload false
+```
+
+The packed model can be uploaded to both platforms by setting the previously mentioned flags.
