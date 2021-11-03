@@ -492,7 +492,6 @@ def test_subsampling(train_dic, subsample):
     idim, odim, ilens, olens = get_default_scope_inputs()
 
     train_args = get_default_train_args(**train_dic)
-    recog_args = get_default_recog_args()
 
     model = E2E(idim, odim, train_args)
 

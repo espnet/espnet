@@ -683,7 +683,6 @@ def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
 )
 def test_subsampling(train_dic, subsample):
     train_args = make_train_args(**train_dic)
-    recog_args = make_recog_args()
 
     model, feats, feats_len, _, _, _ = prepare(train_args)
 
