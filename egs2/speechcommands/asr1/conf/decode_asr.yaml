@@ -1,0 +1,4 @@
+lm_weight: 0.0
+ctc_weight: 0.0
+beam_size: 1
+maxlenratio: -1
