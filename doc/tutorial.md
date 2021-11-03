@@ -243,7 +243,7 @@ Here, the *custom* architecture is a unique feature of the Transducer model in E
 
 2) Different block types are allowed for the custom encoder (`tdnn`, `conformer` or `transformer`) and the custom decoder (`causal-conv1d` or `transformer`). Each one has a set of mandatory and optional parameters :
 
-        # 1D convolution block
+        # 1D convolution (TDNN) block
         - type: conv1d
           idim: [Input dimension. (int)]
           odim: [Output dimension. (int)]

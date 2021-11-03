@@ -139,7 +139,6 @@ class Conv1d(torch.nn.Module):
         Args:
             pos_embed: Input sequences positional embedding.
                        (B, 2 * (T - 1), D_att)
-            is_bidir: Whether positional embedding is bidirectional.
 
         Return:
             pos_embed: Output sequences positional embedding.
