@@ -20,8 +20,10 @@ requirements = {
         "pillow>=6.1.0",
         "editdistance==0.5.2",
         "ctc-segmentation<1.8,>=1.6.6",
-        # temporal fix of the wandb issue pointed out at https://github.com/espnet/espnet/issues/3708
-        # which requires the upgrade of the protobuf version but it causes additional issue by Chainer.
+        # A temporal fix of the wandb issue pointed out at 
+        # https://github.com/espnet/espnet/issues/3708.
+        # Using the latest wandb requires the upgrade of the protobuf 
+        # version but it causes additional conflict by Chainer.
         "wandb<=0.12.2",
         "filelock",
         # The dependencies on chainer are optional now.
