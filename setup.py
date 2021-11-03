@@ -20,7 +20,7 @@ requirements = {
         "pillow>=6.1.0",
         "editdistance==0.5.2",
         "ctc-segmentation<1.8,>=1.6.6",
-        "wandb",
+        "wandb<=0.12.2",
         "filelock",
         # The dependencies on chainer are optional now.
         # "chainer==6.0.0",
