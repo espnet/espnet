@@ -1,3 +1,2 @@
 fs: 8000
-segment_size: 20
-# num_spk: 2 # The number of speakers will be estimated if "num_spk" is "None"
+#num_spk: 2 # The number of speakers will be estimated if "num_spk" is "None"
