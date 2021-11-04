@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2021  Siddhant Arora
+# Copyright 2021  Karthik Ganesan 
 #           2021  Carnegie Mellon University
 # Apache 2.0
 
