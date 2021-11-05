@@ -98,8 +98,10 @@ class S3prlFrontend(AbsFrontend):
     def _tile_representations(self, feature):
         """Tile up the representations by `tile_factor`.
 
-        Input - sequence of representations, shape: (batch_size, seq_len, feature_dim)
-        Output - sequence of tiled representations, shape: (batch_size, seq_len * factor, feature_dim)
+        Input - sequence of representations
+                shape: (batch_size, seq_len, feature_dim)
+        Output - sequence of tiled representations
+                 shape: (batch_size, seq_len * factor, feature_dim)
         """
         assert (
             len(feature.shape) == 3
