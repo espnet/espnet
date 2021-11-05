@@ -27,6 +27,7 @@ module_list = [
     ("gtn", None, "installers/install_gtn.sh"),
     ("s3prl", None, "installers/install_s3prl.sh"),
     ("transformers", None, "installers/install_transformers.sh"),
+    ("k2", None, "installers/install_k2.sh"),
 ]
 
 executable_list = [

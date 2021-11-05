@@ -12,6 +12,9 @@ from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 
 
+pytest.importorskip("k2")
+
+
 def test_get_parser():
     assert isinstance(get_parser(), ArgumentParser)
 
