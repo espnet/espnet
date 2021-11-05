@@ -23,7 +23,7 @@ def base_s3prl_setup(args):
     args.upstream_ckpt = getattr(args, "upstream_ckpt", None)
     args.init_ckpt = getattr(args, "init_ckpt", None)
     args.verbose = getattr(args, "verbose", False)
-
+    args.tile_factor = getattr(args, "tile_factor", 1)
     return args
 
 
@@ -95,6 +95,21 @@ class S3prlFrontend(AbsFrontend):
 
         return s3prl_upstream, s3prl_featurizer
 
+    def _tile_representations(self, feature):
+        """
+        Tile up the representations by `tile_factor`.
+        Input - sequence of representations, shape: (batch_size, seq_len, feature_dim)
+        Output - sequence of tiled representations, shape: (batch_size, seq_len * factor, feature_dim)
+        """
+        assert (
+            len(feature.shape) == 3
+        ), "Input argument `feature` has invalid shape: {}".format(feature.shape)
+        tiled_feature = feature.repeat(1, 1, self.args.tile_factor)
+        tiled_feature = tiled_feature.reshape(
+            feature.size(0), feature.size(1) * self.args.tile_factor, feature.size(2)
+        )
+        return tiled_feature
+
     def output_size(self) -> int:
         return self.output_dim
 
@@ -106,6 +121,9 @@ class S3prlFrontend(AbsFrontend):
         with torch.no_grad():
             feats = self.upstream(wavs)
         feats = self.featurizer(wavs, feats)
+        
+        if self.args.tile_factor != 1:
+            feats = self._tile_representations(feats)
 
         input_feats = pad_list(feats, 0.0)
         feats_lens = torch.tensor([f.shape[0] for f in feats], dtype=torch.long)
