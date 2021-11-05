@@ -121,7 +121,7 @@ class S3prlFrontend(AbsFrontend):
         with torch.no_grad():
             feats = self.upstream(wavs)
         feats = self.featurizer(wavs, feats)
-        
+
         if self.args.tile_factor != 1:
             feats = self._tile_representations(feats)
 
