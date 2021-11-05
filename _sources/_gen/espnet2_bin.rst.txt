@@ -394,7 +394,7 @@ asr_train.py
                         [--max_cache_size MAX_CACHE_SIZE]
                         [--max_cache_fd MAX_CACHE_FD]
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
-                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
+                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
                         [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
@@ -743,7 +743,7 @@ asr_train.py
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
     Optimizer related:
-      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
+      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
@@ -934,7 +934,7 @@ diar_train.py
                          [--max_cache_size MAX_CACHE_SIZE]
                          [--max_cache_fd MAX_CACHE_FD]
                          [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
-                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
+                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                          [--optim_conf OPTIM_CONF]
                          [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                          [--scheduler_conf SCHEDULER_CONF] [--num_spk NUM_SPK]
@@ -1253,7 +1253,7 @@ diar_train.py
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
     Optimizer related:
-      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
+      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
@@ -1478,7 +1478,7 @@ enh_train.py
                         [--max_cache_size MAX_CACHE_SIZE]
                         [--max_cache_fd MAX_CACHE_FD]
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
-                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
+                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
                         [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
@@ -1790,7 +1790,7 @@ enh_train.py
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
     Optimizer related:
-      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
+      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
@@ -1895,11 +1895,11 @@ gan_tts_train.py
                             [--max_cache_size MAX_CACHE_SIZE]
                             [--max_cache_fd MAX_CACHE_FD]
                             [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
-                            [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
+                            [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                             [--optim_conf OPTIM_CONF]
                             [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                             [--scheduler_conf SCHEDULER_CONF]
-                            [--optim2 {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
+                            [--optim2 {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                             [--optim2_conf OPTIM2_CONF]
                             [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                             [--scheduler2_conf SCHEDULER2_CONF]
@@ -2234,7 +2234,7 @@ gan_tts_train.py
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
     Optimizer related:
-      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
+      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
@@ -2242,7 +2242,7 @@ gan_tts_train.py
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
-      --optim2 {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
+      --optim2 {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                             The optimizer type (default: adadelta)
       --optim2_conf OPTIM2_CONF
                             The keyword arguments for optimizer (default: {})
@@ -2365,7 +2365,7 @@ hubert_train.py
                            [--max_cache_size MAX_CACHE_SIZE]
                            [--max_cache_fd MAX_CACHE_FD]
                            [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
-                           [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
+                           [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                            [--optim_conf OPTIM_CONF]
                            [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                            [--scheduler_conf SCHEDULER_CONF]
@@ -2723,7 +2723,7 @@ hubert_train.py
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
     Optimizer related:
-      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
+      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
@@ -2770,99 +2770,6 @@ hubert_train.py
                             The encoder type (default: hubert_pretrain)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})
-.. _k2_asr_inference.py:
-
-k2_asr_inference.py
-~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: none
-
-    usage: k2_asr_inference.py [-h] [--config CONFIG]
-                               [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                               --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
-                               [--dtype {float16,float32,float64}]
-                               [--num_workers NUM_WORKERS]
-                               --data_path_and_name_and_type
-                               DATA_PATH_AND_NAME_AND_TYPE [--key_file KEY_FILE]
-                               [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
-                               [--asr_train_config ASR_TRAIN_CONFIG]
-                               [--asr_model_file ASR_MODEL_FILE]
-                               [--lm_train_config LM_TRAIN_CONFIG]
-                               [--lm_file LM_FILE]
-                               [--word_lm_train_config WORD_LM_TRAIN_CONFIG]
-                               [--word_lm_file WORD_LM_FILE]
-                               [--model_tag MODEL_TAG] [--batch_size BATCH_SIZE]
-                               [--nbest NBEST] [--beam_size BEAM_SIZE]
-                               [--penalty PENALTY] [--maxlenratio MAXLENRATIO]
-                               [--minlenratio MINLENRATIO]
-                               [--ctc_weight CTC_WEIGHT] [--lm_weight LM_WEIGHT]
-                               [--streaming STREAMING]
-                               [--token_type {char,bpe,None}]
-                               [--bpemodel BPEMODEL]
-    
-    ASR Decoding
-    
-    optional arguments:
-      --config CONFIG       Give config file in yaml format (default: None)
-      --log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
-                            The verbose level of logging (default: INFO)
-      --output_dir OUTPUT_DIR
-      --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
-      --seed SEED           Random seed (default: 0)
-      --dtype {float16,float32,float64}
-                            Data type (default: float32)
-      --num_workers NUM_WORKERS
-                            The number of workers used for DataLoader (default: 1)
-    
-    Input data related:
-      --data_path_and_name_and_type DATA_PATH_AND_NAME_AND_TYPE
-      --key_file KEY_FILE
-      --allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS
-    
-    The model configuration related:
-      --asr_train_config ASR_TRAIN_CONFIG
-                            ASR training configuration (default: None)
-      --asr_model_file ASR_MODEL_FILE
-                            ASR model parameter file (default: None)
-      --lm_train_config LM_TRAIN_CONFIG
-                            LM training configuration (default: None)
-      --lm_file LM_FILE     LM parameter file (default: None)
-      --word_lm_train_config WORD_LM_TRAIN_CONFIG
-                            Word LM training configuration (default: None)
-      --word_lm_file WORD_LM_FILE
-                            Word LM parameter file (default: None)
-      --model_tag MODEL_TAG
-                            Pretrained model tag. If specify this option,
-                            *_train_config and *_file will be overwritten
-                            (default: None)
-    
-    Beam-search related:
-      --batch_size BATCH_SIZE
-                            The batch size for inference (default: 1)
-      --nbest NBEST         Output N-best hypotheses (default: 1)
-      --beam_size BEAM_SIZE
-                            Beam size (default: 20)
-      --penalty PENALTY     Insertion penalty (default: 0.0)
-      --maxlenratio MAXLENRATIO
-                            Input length ratio to obtain max output length. If
-                            maxlenratio=0.0 (default), it uses a end-detect
-                            function to automatically find maximum hypothesis
-                            lengths (default: 0.0)
-      --minlenratio MINLENRATIO
-                            Input length ratio to obtain min output length
-                            (default: 0.0)
-      --ctc_weight CTC_WEIGHT
-                            CTC weight in joint decoding (default: 0.5)
-      --lm_weight LM_WEIGHT
-                            RNNLM weight (default: 1.0)
-      --streaming STREAMING
-    
-    Text converter related:
-      --token_type {char,bpe,None}
-                            The token type for ASR model. If not given, refers
-                            from the training args (default: None)
-      --bpemodel BPEMODEL   The model path of sentencepiece. If not given, refers
-                            from the training args (default: None)
 .. _launch.py:
 
 launch.py
@@ -3030,7 +2937,7 @@ lm_train.py
                        [--max_cache_size MAX_CACHE_SIZE]
                        [--max_cache_fd MAX_CACHE_FD]
                        [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
-                       [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
+                       [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                        [--optim_conf OPTIM_CONF]
                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                        [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
@@ -3349,7 +3256,7 @@ lm_train.py
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
     Optimizer related:
-      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
+      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
@@ -3648,7 +3555,7 @@ tts_train.py
                         [--max_cache_size MAX_CACHE_SIZE]
                         [--max_cache_fd MAX_CACHE_FD]
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
-                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
+                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
                         [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
@@ -3979,7 +3886,7 @@ tts_train.py
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
     Optimizer related:
-      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
+      --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
