@@ -18,7 +18,6 @@ from chainer.training.updater import StandardUpdater
 import numpy as np
 import torch
 from torch.nn.parallel import data_parallel
-from torch.utils.tensorboard import SummaryWriter
 
 from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import add_results_to_json
@@ -55,10 +54,6 @@ from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
-
-import matplotlib
-
-matplotlib.use("Agg")
 
 
 def _recursive_to(xs, device):
@@ -956,6 +951,8 @@ def train(args):
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        from torch.utils.tensorboard import SummaryWriter
+
         trainer.extend(
             TensorboardLogger(
                 SummaryWriter(args.tensorboard_dir),
@@ -1398,6 +1395,9 @@ def enhance(args):
 
             # Plot spectrogram
             if args.image_dir is not None and num_images < args.num_images:
+                import matplotlib
+
+                matplotlib.use("Agg")
                 import matplotlib.pyplot as plt
 
                 num_images += 1
