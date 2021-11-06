@@ -84,6 +84,9 @@ if __name__ == "__main__":
                 "{}_{}".format(gold_example["scenario"], gold_example["action"]),
                 "{}_{}".format(pred_example["scenario"], pred_example["action"]),
             )
+
+            # Filtering below has been added to original code
+            # because of way in which punctuation handled in data preparation
             for k in gold_example["entities"]:
                 k["filler"] = k["filler"].replace(" '", "'")
             span_f1(gold_example["entities"], pred_example["entities"])
