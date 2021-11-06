@@ -1,5 +1,7 @@
 # slurp-evaluation
 
+All code in this folder has been adapted from SLURP official repo (https://github.com/pswietojanski/slurp/tree/master/scripts/evaluation)
+
 This package provides the code to use the SLU metrics proposed in *SLURP: A Spoken Language Understanding Resource Package* by Bastianelli, Vanzo, Swietojanski, and Rieser (EMNLP2020).
 
 To install all the dependencies, simply run:
