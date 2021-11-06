@@ -12,6 +12,7 @@
 ## Using Conformer based encoder and Transformer based decoder with spectral augmentation and predicting transcript along with intent
 - ASR config: [conf/train_asr.yaml](conf/tuning/train_asr_conformer.yaml)
 - token_type: word
+- Entity classification code borrowed from SLURP [1] official repo - https://github.com/pswietojanski/slurp/tree/master/scripts/evaluation
 
 |dataset|Snt|Entity Classification (F1 Score)|
 |---|---|---|
@@ -25,3 +26,14 @@
 |inference_asr_model_valid.acc.ave_10best/test|13078|84.4|
 |inference_asr_model_valid.acc.ave_10best/valid|8690|85.4|
 
+
+## Citation
+
+```
+@inproceedings{slurp,
+    author = {Emanuele Bastianelli and Andrea Vanzo and Pawel Swietojanski and Verena Rieser},
+    title={{SLURP: A Spoken Language Understanding Resource Package}},
+    booktitle={{Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP)}},
+    year={2020}
+}
+```
