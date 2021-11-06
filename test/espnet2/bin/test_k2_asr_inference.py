@@ -5,18 +5,22 @@ import string
 import numpy as np
 import pytest
 
-from espnet2.bin.k2_asr_inference import get_parser
-from espnet2.bin.k2_asr_inference import k2Speech2Text
-from espnet2.bin.k2_asr_inference import main
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 
 
+pytest.importorskip("k2")
+
+
 def test_get_parser():
+    from espnet2.bin.k2_asr_inference import get_parser
+
     assert isinstance(get_parser(), ArgumentParser)
 
 
 def test_main():
+    from espnet2.bin.k2_asr_inference import main
+
     with pytest.raises(SystemExit):
         main()
 
@@ -89,6 +93,8 @@ def asr_config_file_streaming(tmp_path: Path, token_list):
 
 @pytest.mark.execution_timeout(5)
 def test_k2Speech2Text(asr_config_file, lm_config_file):
+    from espnet2.bin.k2_asr_inference import k2Speech2Text
+
     k2speech2text = k2Speech2Text(
         asr_train_config=asr_config_file, lm_train_config=lm_config_file, beam_size=1
     )
