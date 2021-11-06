@@ -39,8 +39,6 @@ python3 -m pip uninstall -y typing
 # install espnet
 python3 -m pip install -e ".[test]"
 python3 -m pip install -e ".[doc]"
-# Import matplotlib to create cache: https://github.com/espnet/espnet/runs/4124160901?check_suite_focus=true#step:8:1651
-python3 -c "import matplotlib"
 
 # log
 python3 -m pip freeze
