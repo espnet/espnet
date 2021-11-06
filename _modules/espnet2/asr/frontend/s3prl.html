@@ -148,7 +148,7 @@
     <span class="n">args</span><span class="o">.</span><span class="n">upstream_ckpt</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;upstream_ckpt&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">args</span><span class="o">.</span><span class="n">init_ckpt</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;init_ckpt&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="n">args</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;verbose&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-
+    <span class="n">args</span><span class="o">.</span><span class="n">tile_factor</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;tile_factor&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">args</span></div>
 
 
@@ -220,6 +220,23 @@
 
         <span class="k">return</span> <span class="n">s3prl_upstream</span><span class="p">,</span> <span class="n">s3prl_featurizer</span>
 
+    <span class="k">def</span> <span class="nf">_tile_representations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Tile up the representations by `tile_factor`.</span>
+
+<span class="sd">        Input - sequence of representations</span>
+<span class="sd">                shape: (batch_size, seq_len, feature_dim)</span>
+<span class="sd">        Output - sequence of tiled representations</span>
+<span class="sd">                 shape: (batch_size, seq_len * factor, feature_dim)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="p">),</span> <span class="s2">&quot;Input argument `feature` has invalid shape: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">tiled_feature</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">tile_factor</span><span class="p">)</span>
+        <span class="n">tiled_feature</span> <span class="o">=</span> <span class="n">tiled_feature</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">feature</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">feature</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">tile_factor</span><span class="p">,</span> <span class="n">feature</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">tiled_feature</span>
+
 <div class="viewcode-block" id="S3prlFrontend.output_size"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.frontend.s3prl.S3prlFrontend.output_size">[docs]</a>    <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span></div>
 
@@ -231,6 +248,9 @@
         <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
             <span class="n">feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">upstream</span><span class="p">(</span><span class="n">wavs</span><span class="p">)</span>
         <span class="n">feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">featurizer</span><span class="p">(</span><span class="n">wavs</span><span class="p">,</span> <span class="n">feats</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">tile_factor</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tile_representations</span><span class="p">(</span><span class="n">feats</span><span class="p">)</span>
 
         <span class="n">input_feats</span> <span class="o">=</span> <span class="n">pad_list</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
         <span class="n">feats_lens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">f</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">feats</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
