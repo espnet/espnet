@@ -13,6 +13,9 @@
 - ASR config: [conf/train_asr.yaml](conf/tuning/train_asr_conformer.yaml)
 - token_type: word
 - Entity classification code borrowed from SLURP [1] official repo - https://github.com/pswietojanski/slurp/tree/master/scripts/evaluation
+- Pretrained Model
+  - Zenodo : https://zenodo.org/record/5651224
+  - Hugging Face : https://huggingface.co/espnet/siddhana_slurp_entity_asr_train_asr_conformer_raw_en_word_valid.acc.ave_10best
 
 |dataset|Snt|Entity Classification (F1 Score)|
 |---|---|---|
