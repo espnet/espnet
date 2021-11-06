@@ -7,7 +7,8 @@ DISTANCE_OPTIONS = {"word", "char"}
 
 class Distance:
     """
-    An abstract class representing a distance metric. Every distance is normalized to be defined in [0, 1].
+    An abstract class representing a distance metric.\
+            Every distance is normalized to be defined in [0, 1].
     """
 
     def __call__(
@@ -59,7 +60,8 @@ class WordDistance(Distance):
 
 class CharDistance(Distance):
     """
-    The Character-level distance, implemented through the normalised Levenshtein distance.
+    The Character-level distance, implemented through\
+            the normalised Levenshtein distance.
     """
 
     def __call__(

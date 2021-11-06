@@ -64,7 +64,8 @@ def release2prediction(example: Dict[str, Any], load_gold: bool = False):
     """
     Convert the SLURP release format into prediction format.
 
-    :param example: the example in release format (as they come with the dataset release)
+    :param example: the example in release format\
+            (as they come with the dataset release)
     :param load_gold: When evaluating gold hypotheses upper bound
     :return: a list of examples in prediction format: List[Dict[str, Union[str, List]]]
     """
@@ -104,9 +105,11 @@ def format_results(
     Format results in tabular format.
     :param results: the dictionary output by the get_metric() method
     :param label: the title of the table to print
-    :param full: is true, prints the results of all the labels. Otherwise prints just the average among them
+    :param full: is true, prints the results of all the labels.\
+            Otherwise prints just the average among them
     :param errors: if true, prints TPs, FPs and FNs
-    :param table_layout: the table layout. Available: all those from `tabulate`, `csv` and `tsv`.
+    :param table_layout: the table layout.\
+            Available: all those from `tabulate`, `csv` and `tsv`.
     :return: the formatted table as string
     """
     if errors:

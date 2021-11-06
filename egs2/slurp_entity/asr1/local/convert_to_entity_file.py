@@ -10,7 +10,6 @@ def generate_entity_file(line_arr, output_file="result_test.json"):
         scenario = line.strip().split("\t")[0].split("_")[0]
         action = "_".join(line.strip().split("\t")[0].split()[0].split("_")[1:])
         entity_names_arr = line.strip().split("▁SEP")[1:-1]
-        print(entity_names_arr)
         ent_final_arr = []
         for entity in entity_names_arr:
             if len(entity.split("▁FILL")) != 2:
@@ -22,7 +21,6 @@ def generate_entity_file(line_arr, output_file="result_test.json"):
             dict1["type"] = ent_type
             dict1["filler"] = ent_val
             ent_final_arr.append(dict1)
-        print(ent_final_arr)
         file_name = line.strip().split("\t")[1].split("_")[-1].replace(")", "")
         file_name = "audio-" + file_name + ".flac"
         write_dict = {}

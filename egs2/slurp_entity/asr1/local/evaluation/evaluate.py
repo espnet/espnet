@@ -30,7 +30,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--load-gold",
         action="store_true",
-        help="When evaluating against gold transcriptions (gold_*_predictions.jsonl), this flag must be true.",
+        help="When evaluating against gold transcriptions\
+                (gold_*_predictions.jsonl), this flag must be true.",
     )
     parser.add_argument(
         "--average",

@@ -11,8 +11,10 @@ class ErrorMetric:
     """
     An abstract class representing a metric which accumulates TPs, FPs, and FNs.
 
-    :param average: This determines the type of averaging performed on the data: 'micro' (calculate metrics globally by
-    counting the total true positives, false negatives and false positives), 'macro' (calculate metrics for each label,
+    :param average: This determines the type of averaging performed\
+            on the data: 'micro' (calculate metrics globally by
+    counting the total true positives, false negatives and false positives)\
+            , 'macro' (calculate metrics for each label,
     and find their unweighted mean).
     """
 
@@ -35,8 +37,10 @@ class ErrorMetric:
         """
         Computes the metrics starting from TPs, FPs, and FNs.
 
-        :return: A Dict per label containing a tuple for precision, recall and f1-measure. Additionally, an ``overall``
-        key is included, which provides the precision, recall and f1-measure for all spans (depending on the averaging
+        :return: A Dict per label containing a tuple for\
+                precision, recall and f1-measure. Additionally, an ``overall``
+        key is included, which provides the precision, recall and f1-measure\
+                for all spans (depending on the averaging
         modality.).
 
         """
@@ -112,7 +116,8 @@ class ErrorMetric:
 
         :param metric: The metric to be returned.
         :param average: The average to be applied at label level.
-        :param distance: When distance-based F1 is chosen, it specifies which distance is being applied.
+        :param distance: When distance-based F1 is chosen,\
+                it specifies which distance is being applied.
         :return: The `Metric` object as specified by params.
 
         """
@@ -129,7 +134,8 @@ class ErrorMetric:
 
 class FMeasure(ErrorMetric):
     """
-    Compute precision, recall, F-measure for each class of a general multi-class problem.
+    Compute precision, recall, F-measure for each class\
+            of a general multi-class problem.
     """
 
     def __call__(self, gold: str, prediction: str) -> None:
@@ -147,7 +153,8 @@ class FMeasure(ErrorMetric):
 
 class SpanFMeasure(ErrorMetric):
     """
-    Compute precision, recall, F-measure for each class of a span-based multi-class problem.
+    Compute precision, recall, F-measure for each class\
+            of a span-based multi-class problem.
     """
 
     def __call__(
@@ -156,8 +163,10 @@ class SpanFMeasure(ErrorMetric):
         """
         This method accumulates TPs, FPs, and FNs for each span label.
 
-        :param gold: A list of gold entities, each defined by a dictionary with `type` and `filler` keys.
-        :param prediction: A list of gold entities, each defined by a dictionary with `type` and `filler` keys.
+        :param gold: A list of gold entities, each defined by a dictionary\
+                with `type` and `filler` keys.
+        :param prediction: A list of gold entities, each defined by a\
+                dictionary with `type` and `filler` keys.
         """
         gold = copy(gold)
         for entity in prediction:
@@ -173,14 +182,17 @@ class SpanFMeasure(ErrorMetric):
 
 class SLUF1(ErrorMetric):
     """
-    The SLUF1 metric mediates between the WordF1 and CharF1, computed as the sum of the confusion matrices.
-    For more information, please see `SLURP: A Spoken Language Understanding Resource Package` by Bastianelli, Vanzo,
+    The SLUF1 metric mediates between the WordF1 and CharF1,\
+            computed as the sum of the confusion matrices.
+    For more information, please see `SLURP: A Spoken Language Understanding\
+            Resource Package` by Bastianelli, Vanzo,
     Swietojanski, and Rieser.
     """
 
     def __call__(self, results: Dict[str, Tuple[float, ...]]) -> None:
         """
-        This method accumulates TPs, FPs, and FNs given the results dictionary output by another metric.
+        This method accumulates TPs, FPs, and FNs given the results dictionary\
+                output by another metric.
 
         :param results: The dictionary output by another metric.
         """
@@ -193,16 +205,23 @@ class SLUF1(ErrorMetric):
 
 class SpanDistanceFMeasure(ErrorMetric):
     """
-    This metric is a generalisation of the `SpanFMeasure`, particularly suitable for measuring entity prediction scores
-    in SLU tasks. A distance function is used to smooth the negative contribution of wrong transcription. In particular,
-    for every label match, the lexical distance between gold and predicted fillers contributes to FPs and FNs count.
-    For more information, please see `SLURP: A Spoken Language Understanding Resource Package` by Bastianelli, Vanzo,
+    This metric is a generalisation of the `SpanFMeasure`,\
+            particularly suitable for measuring entity prediction scores
+    in SLU tasks. A distance function is used to smooth the negative\
+            contribution of wrong transcription. In particular,
+    for every label match, the lexical distance between gold and predicted\
+            fillers contributes to FPs and FNs count.
+    For more information, please see `SLURP: A Spoken Language Understanding\
+            Resource Package` by Bastianelli, Vanzo,
     Swietojanski, and Rieser.
 
-    :param average: This determines the type of averaging performed on the data: 'micro' (calculate metrics globally
-    by counting the total true positives, false negatives and false positives), 'macro' (calculate metrics for each
+    :param average: This determines the type of averaging performed\
+            on the data: 'micro' (calculate metrics globally
+    by counting the total true positives, false negatives and false positives),\
+            'macro' (calculate metrics for each
     label, and find their unweighted mean).
-    :param distance: The distance function being applied. `word` applies WER, whereas `char` applies the Levenshtein
+    :param distance: The distance function being applied.\
+            `word` applies WER, whereas `char` applies the Levenshtein
     distance.
     """
 
@@ -214,11 +233,14 @@ class SpanDistanceFMeasure(ErrorMetric):
         self, gold: List[Dict[str, str]], prediction: List[Dict[str, str]]
     ) -> None:
         """
-        This method accumulates TPs, FPs, and FNs for each span label, taking into account the distance function being
+        This method accumulates TPs, FPs, and FNs for each span label,\
+                taking into account the distance function being
         applied.
 
-        :param gold: A list of gold entities, each defined by a dictionary with `type` and `filler` keys.
-        :param prediction: A list of gold entities, each defined by a dictionary with `type` and `filler` keys.
+        :param gold: A list of gold entities, each defined by a dictionary\
+                with `type` and `filler` keys.
+        :param prediction: A list of gold entities, each defined\
+                by a dictionary with `type` and `filler` keys.
         """
         gold_labels, gold_fillers = split_spans(gold)
         predicted_labels, predicted_fillers = split_spans(prediction)
@@ -246,13 +268,16 @@ class SpanDistanceFMeasure(ErrorMetric):
         gold_spans: List[str],
     ) -> Tuple[int, float]:
         """
-        This method returns a tuple: the first element is the index of the gold entity having the lowest distance with
+        This method returns a tuple: the first element is the index of the\
+                gold entity having the lowest distance with
         the predicted one, the second element is the corresponding distance.
 
         :param target_label: The label of the target predicted entity.
         :param target_span: The span of the target predicted entity.
-        :param gold_labels: A list of label of the gold entities. It is aligned with `gold_spans`.
-        :param gold_spans: A list of span of the gold entities. It is aligned with `gold_labels`.
+        :param gold_labels: A list of label of the gold entities.\
+                It is aligned with `gold_spans`.
+        :param gold_spans: A list of span of the gold entities.\
+                It is aligned with `gold_labels`.
         :return: A tuple with index and distance of the best gold candidate.
         """
         index = 0
@@ -270,7 +295,8 @@ def compute_metrics(
     true_positives: float, false_positives: float, false_negatives: float
 ) -> Tuple[float, float, float]:
     """
-    This static method computes precision, recall and f-measure out of TPs, FPs, and FNs.
+    This static method computes precision, recall and f-measure out of\
+            TPs, FPs, and FNs.
 
     :param true_positives: The number of true positives.
     :param false_positives: The number of false positives.
@@ -294,7 +320,8 @@ def compute_metrics(
 
 def split_spans(entities: List[Dict[str, str]]) -> Tuple[List[str], List[str]]:
     """
-    Split a list dictionary representing the entities into two aligned lists, containing labels and fillers,
+    Split a list dictionary representing the entities into two aligned lists,\
+            containing labels and fillers,
     respectively.
 
     :param entities: The list of entities as dictionaries.
