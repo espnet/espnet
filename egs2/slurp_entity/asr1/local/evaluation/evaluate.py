@@ -89,6 +89,7 @@ if __name__ == "__main__":
             # because of way in which punctuation handled in data preparation
             for k in gold_example["entities"]:
                 k["filler"] = k["filler"].replace(" '", "'")
+            
             span_f1(gold_example["entities"], pred_example["entities"])
             for distance, metric in distance_metrics.items():
                 metric(gold_example["entities"], pred_example["entities"])
