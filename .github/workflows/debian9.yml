@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  linter_and_test:
+  test_debian9:
     runs-on: ubuntu-latest
     container:
       image: debian:9
