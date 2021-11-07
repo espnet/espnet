@@ -39,12 +39,7 @@ from espnet.utils.training.train_utils import set_early_stop
 import espnet.lm.chainer_backend.extlm as extlm_chainer
 import espnet.lm.chainer_backend.lm as lm_chainer
 
-# numpy related
-import matplotlib
-
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
-
-matplotlib.use("Agg")
 
 
 def train(args):

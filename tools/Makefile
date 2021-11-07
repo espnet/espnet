@@ -114,7 +114,7 @@ endif
 
 # NOTE(kamo): conda_packages is not necessary for installation of espnet, but add it the dependencies just in case.
 espnet.done: pytorch.done conda_packages.done
-	. ./activate_python.sh && python3 -m pip install -e "..[recipe]"  # Install editable mode by default
+	. ./activate_python.sh && python3 -m pip install -e "..[train, recipe]"  # Install editable mode by default
 	touch espnet.done
 
 chainer.done: espnet.done
