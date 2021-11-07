@@ -20,22 +20,23 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}
-      - uses: actions/setup-python@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+        sudo apt-get install -qq -y libsndfile1-dev
         python3 -m pip install --upgrade pip
     - name: Install espnet with the least requirement
       env:
         TH_VERSION: ${{ matrix.pytorch-version }}
       run: |
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
+        python3 -m pip install "chainer==6.0.0"
         python3 -m pip install -e .
     - name: Import all modules (Try1)
       run: |
