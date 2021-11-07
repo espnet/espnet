@@ -19,10 +19,8 @@ import warnings
 import humanfriendly
 import numpy as np
 import torch
-from torch.utils.tensorboard import SummaryWriter
 from typeguard import check_argument_types
 from typeguard import check_return_type
-import wandb
 
 
 Num = Union[float, int, complex, torch.Tensor, np.ndarray]
@@ -228,7 +226,7 @@ class SubReporter:
                 message += f"{key2}={v:.3e}"
         return message
 
-    def tensorboard_add_scalar(self, summary_writer: SummaryWriter, start: int = None):
+    def tensorboard_add_scalar(self, summary_writer, start: int = None):
         if start is None:
             start = 0
         if start < 0:
@@ -242,6 +240,8 @@ class SubReporter:
             summary_writer.add_scalar(key2, v, self.total_count)
 
     def wandb_log(self, start: int = None):
+        import wandb
+
         if start is None:
             start = 0
         if start < 0:
@@ -544,7 +544,7 @@ class Reporter:
 
         return plt
 
-    def tensorboard_add_scalar(self, summary_writer: SummaryWriter, epoch: int = None):
+    def tensorboard_add_scalar(self, summary_writer, epoch: int = None):
         if epoch is None:
             epoch = self.get_epoch()
 
@@ -559,6 +559,8 @@ class Reporter:
                 )
 
     def wandb_log(self, epoch: int = None):
+        import wandb
+
         if epoch is None:
             epoch = self.get_epoch()
 

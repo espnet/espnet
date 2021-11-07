@@ -14,7 +14,6 @@ import math
 import os
 import sys
 
-import editdistance
 import numpy as np
 import six
 import torch
@@ -285,6 +284,8 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         """
+        import editdistance
+
         # 0. Frontend
         if self.frontend is not None:
             hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)

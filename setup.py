@@ -16,49 +16,33 @@ requirements = {
         "typeguard>=2.7.0",
         "humanfriendly",
         "scipy>=1.4.1",
-        "matplotlib==3.1.0",
-        "pillow>=6.1.0",
-        "editdistance==0.5.2",
-        "ctc-segmentation<1.8,>=1.6.6",
-        "wandb",
         "filelock",
-        # The dependencies on chainer are optional now.
-        # "chainer==6.0.0",
-        # 'cupy==6.0.0',
-        "tensorboard>=1.14",  # For pytorch>=1.1.0
-        # Signal processing related
         "librosa>=0.8.0",
-        # Natural language processing related
-        "sentencepiece",
-        "nltk>=3.4.5",
         "jamo==0.4.1",  # For kss
-        # File IO related
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
         "h5py>=2.10.0",
         "kaldiio>=2.17.0",
-        # TTS related
-        "pyworld>=0.2.10",
-        "espnet_tts_frontend",
-        # ASR frontend related
-        "nara_wpe>=0.0.5",
         "torch>=1.3.0",
         "torch_complex",
-        "pytorch_wpe",
+        "nltk>=3.4.5",
+        # ASR
+        "sentencepiece",
+        "ctc-segmentation<1.8,>=1.6.6",
+        # TTS
+        "pyworld>=0.2.10",
+        "espnet_tts_frontend",
+        # ENH
         "ci_sdr",
-        "sacrebleu>=1.5.1",
+        "pytorch_wpe",
     ],
-    # all: The modules should be optionally installled due to some reason.
-    #      Please consider moving them to "install" occasionally
-    "all": [
-        # NOTE(kamo): Append modules requiring specific pytorch version or torch>1.3.0
-        "torchaudio",
-        "torch_optimizer",
-        "fairscale",
-        "fairseq",
-        "transformers",
-        # FIXME(kamo): espnet_model_zoo can be moved to "install"?
-        "espnet_model_zoo",
+    # train: The modules invoked when training only.
+    "train": [
+        "matplotlib==3.1.0",
+        "pillow>=6.1.0",
+        "editdistance==0.5.2",
+        "wandb",
+        "tensorboard>=1.14",
     ],
     # recipe: The modules actually are not invoked in the main module of espnet,
     #         but are invoked for the python scripts in each recipe
@@ -74,6 +58,20 @@ requirements = {
         "pystoi>=0.2.2",
         "mir-eval>=0.6",
         "fastdtw",
+        "nara_wpe>=0.0.5",
+        "sacrebleu>=1.5.1",
+    ],
+    # all: The modules should be optionally installled due to some reason.
+    #      Please consider moving them to "install" occasionally
+    # NOTE(kamo): The modules in "train" and "recipe" are appended into "all"
+    "all": [
+        # NOTE(kamo): Append modules requiring specific pytorch version or torch>1.3.0
+        "torchaudio",
+        "torch_optimizer",
+        "fairscale",
+        "fairseq",
+        "transformers",
+        "gtn",
     ],
     "setup": ["numpy", "pytest-runner"],
     "test": [
@@ -99,6 +97,8 @@ requirements = {
         "sphinx-markdown-tables>=0.0.12",
     ],
 }
+requirements["all"].extend(requirements["train"] + requirements["recipe"])
+requirements["test"].extend(requirements["train"])
 
 install_requires = requirements["install"]
 setup_requires = requirements["setup"]
