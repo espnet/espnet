@@ -145,9 +145,7 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn</span>
 <span class="kn">import</span> <span class="nn">torch.optim</span>
-<span class="kn">from</span> <span class="nn">torch.utils.tensorboard</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
-<span class="kn">import</span> <span class="nn">wandb</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.iterators.abs_iter_factory</span> <span class="kn">import</span> <span class="n">AbsIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.main_funcs.average_nbest_models</span> <span class="kn">import</span> <span class="n">average_nbest_models</span>
@@ -376,6 +374,8 @@
         <span class="k">if</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">use_tensorboard</span> <span class="ow">and</span> <span class="p">(</span>
             <span class="ow">not</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span> <span class="ow">or</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">dist_rank</span> <span class="o">==</span> <span class="mi">0</span>
         <span class="p">):</span>
+            <span class="kn">from</span> <span class="nn">torch.utils.tensorboard</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
+
             <span class="n">summary_writer</span> <span class="o">=</span> <span class="n">SummaryWriter</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;tensorboard&quot;</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">summary_writer</span> <span class="o">=</span> <span class="kc">None</span>
@@ -506,6 +506,8 @@
                     <span class="ow">and</span> <span class="n">iepoch</span> <span class="o">%</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">wandb_model_log_interval</span> <span class="o">==</span> <span class="mi">0</span>
                 <span class="p">)</span>
                 <span class="k">if</span> <span class="n">log_model</span> <span class="ow">and</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">use_wandb</span><span class="p">:</span>
+                    <span class="kn">import</span> <span class="nn">wandb</span>
+
                     <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Logging Model on this epoch :::::&quot;</span><span class="p">)</span>
                     <span class="n">artifact</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">Artifact</span><span class="p">(</span>
                         <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;model_</span><span class="si">{</span><span class="n">wandb</span><span class="o">.</span><span class="n">run</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
@@ -575,7 +577,7 @@
         <span class="n">schedulers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">AbsScheduler</span><span class="p">]],</span>
         <span class="n">scaler</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GradScaler</span><span class="p">],</span>
         <span class="n">reporter</span><span class="p">:</span> <span class="n">SubReporter</span><span class="p">,</span>
-        <span class="n">summary_writer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SummaryWriter</span><span class="p">],</span>
+        <span class="n">summary_writer</span><span class="p">,</span>
         <span class="n">options</span><span class="p">:</span> <span class="n">TrainerOptions</span><span class="p">,</span>
         <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -844,7 +846,7 @@
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
         <span class="n">output_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">],</span>
-        <span class="n">summary_writer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SummaryWriter</span><span class="p">],</span>
+        <span class="n">summary_writer</span><span class="p">,</span>
         <span class="n">iterator</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]],</span>
         <span class="n">reporter</span><span class="p">:</span> <span class="n">SubReporter</span><span class="p">,</span>
         <span class="n">options</span><span class="p">:</span> <span class="n">TrainerOptions</span><span class="p">,</span>
@@ -912,6 +914,8 @@
                         <span class="p">)</span>
 
                     <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">use_wandb</span><span class="p">:</span>
+                        <span class="kn">import</span> <span class="nn">wandb</span>
+
                         <span class="n">wandb</span><span class="o">.</span><span class="n">log</span><span class="p">({</span><span class="sa">f</span><span class="s2">&quot;attention plot/</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">id_</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">wandb</span><span class="o">.</span><span class="n">Image</span><span class="p">(</span><span class="n">fig</span><span class="p">)})</span>
             <span class="n">reporter</span><span class="o">.</span><span class="n">next</span><span class="p">()</span></div></div>
 </pre></div>

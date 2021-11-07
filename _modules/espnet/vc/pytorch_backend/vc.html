@@ -167,12 +167,7 @@
 
 <span class="kn">from</span> <span class="nn">espnet.utils.training.iterators</span> <span class="kn">import</span> <span class="n">ShufflingEnabler</span>
 
-<span class="kn">import</span> <span class="nn">matplotlib</span>
-
 <span class="kn">from</span> <span class="nn">espnet.utils.training.tensorboard_logger</span> <span class="kn">import</span> <span class="n">TensorboardLogger</span>
-<span class="kn">from</span> <span class="nn">torch.utils.tensorboard</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
-
-<span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="CustomEvaluator"><a class="viewcode-back" href="../../../../_gen/espnet.vc.html#espnet.vc.pytorch_backend.vc.CustomEvaluator">[docs]</a><span class="k">class</span> <span class="nc">CustomEvaluator</span><span class="p">(</span><span class="n">BaseEvaluator</span><span class="p">):</span>
@@ -671,6 +666,8 @@
 
     <span class="n">set_early_stop</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">tensorboard_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">tensorboard_dir</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">torch.utils.tensorboard</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
+
         <span class="n">writer</span> <span class="o">=</span> <span class="n">SummaryWriter</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">tensorboard_dir</span><span class="p">)</span>
         <span class="n">trainer</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">TensorboardLogger</span><span class="p">(</span><span class="n">writer</span><span class="p">,</span> <span class="n">att_reporter</span><span class="p">),</span> <span class="n">trigger</span><span class="o">=</span><span class="n">report_interval</span><span class="p">)</span>
 
@@ -733,6 +730,9 @@
 
     <span class="c1"># define function for plot prob and att_ws</span>
     <span class="k">def</span> <span class="nf">_plot_and_save</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">figname</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">matplotlib</span>
+
+        <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
         <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
         <span class="n">shape</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span>

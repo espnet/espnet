@@ -144,7 +144,6 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
-<span class="kn">from</span> <span class="nn">torch.utils.tensorboard</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.abs_scheduler</span> <span class="kn">import</span> <span class="n">AbsBatchStepScheduler</span>
@@ -218,7 +217,7 @@
         <span class="n">schedulers</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">AbsScheduler</span><span class="p">]],</span>
         <span class="n">scaler</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">GradScaler</span><span class="p">],</span>
         <span class="n">reporter</span><span class="p">:</span> <span class="n">SubReporter</span><span class="p">,</span>
-        <span class="n">summary_writer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SummaryWriter</span><span class="p">],</span>
+        <span class="n">summary_writer</span><span class="p">,</span>
         <span class="n">options</span><span class="p">:</span> <span class="n">GANTrainerOptions</span><span class="p">,</span>
         <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>

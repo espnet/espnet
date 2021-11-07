@@ -137,7 +137,6 @@
 
 <span class="kn">import</span> <span class="nn">chainer</span>
 <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">reporter</span>
-<span class="kn">import</span> <span class="nn">editdistance</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 
@@ -618,6 +617,8 @@
 <span class="sd">        :return: loss value</span>
 <span class="sd">        :rtype: torch.Tensor</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">editdistance</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">replace_sos</span><span class="p">:</span>
             <span class="n">tgt_lang_ids</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span>
             <span class="n">ys_pad</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>  <span class="c1"># remove target language ID in the beginning</span>

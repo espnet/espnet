@@ -123,10 +123,7 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet.transform.wpe</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">nara_wpe.wpe</span> <span class="kn">import</span> <span class="n">wpe</span>
-
-
-<div class="viewcode-block" id="WPE"><a class="viewcode-back" href="../../../_gen/espnet.transform.html#espnet.transform.wpe.WPE">[docs]</a><span class="k">class</span> <span class="nc">WPE</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="WPE"><a class="viewcode-back" href="../../../_gen/espnet.transform.html#espnet.transform.wpe.WPE">[docs]</a><span></span><span class="k">class</span> <span class="nc">WPE</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">taps</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">delay</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">psd_context</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">statistics_mode</span><span class="o">=</span><span class="s2">&quot;full&quot;</span>
     <span class="p">):</span>
@@ -158,6 +155,8 @@
 <span class="sd">        :rtype: np.ndarray</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">nara_wpe.wpe</span> <span class="kn">import</span> <span class="n">wpe</span>
+
         <span class="c1"># nara_wpe.wpe: (F, C, T)</span>
         <span class="n">xs</span> <span class="o">=</span> <span class="n">wpe</span><span class="p">(</span>
             <span class="n">xs</span><span class="o">.</span><span class="n">transpose</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span>

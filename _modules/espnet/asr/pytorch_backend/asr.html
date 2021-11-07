@@ -143,7 +143,6 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch.nn.parallel</span> <span class="kn">import</span> <span class="n">data_parallel</span>
-<span class="kn">from</span> <span class="nn">torch.utils.tensorboard</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
 
 <span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">adadelta_eps_decay</span>
 <span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">add_results_to_json</span>
@@ -180,10 +179,6 @@
 <span class="kn">from</span> <span class="nn">espnet.utils.training.tensorboard_logger</span> <span class="kn">import</span> <span class="n">TensorboardLogger</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.training.train_utils</span> <span class="kn">import</span> <span class="n">check_early_stop</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.training.train_utils</span> <span class="kn">import</span> <span class="n">set_early_stop</span>
-
-<span class="kn">import</span> <span class="nn">matplotlib</span>
-
-<span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_recursive_to</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
@@ -1081,6 +1076,8 @@
     <span class="n">set_early_stop</span><span class="p">(</span><span class="n">trainer</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">tensorboard_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">tensorboard_dir</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">torch.utils.tensorboard</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
+
         <span class="n">trainer</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
             <span class="n">TensorboardLogger</span><span class="p">(</span>
                 <span class="n">SummaryWriter</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">tensorboard_dir</span><span class="p">),</span>
@@ -1523,6 +1520,9 @@
 
             <span class="c1"># Plot spectrogram</span>
             <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">image_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">num_images</span> <span class="o">&lt;</span> <span class="n">args</span><span class="o">.</span><span class="n">num_images</span><span class="p">:</span>
+                <span class="kn">import</span> <span class="nn">matplotlib</span>
+
+                <span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">&quot;Agg&quot;</span><span class="p">)</span>
                 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
                 <span class="n">num_images</span> <span class="o">+=</span> <span class="mi">1</span>

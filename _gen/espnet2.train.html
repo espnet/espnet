@@ -527,7 +527,7 @@ the real Rank is set as (nGPU * NodeID) + LOCAL_RANK in torch.distributed.</p>
 
 <dl class="method">
 <dt id="espnet2.train.reporter.Reporter.tensorboard_add_scalar">
-<code class="sig-name descname">tensorboard_add_scalar</code><span class="sig-paren">(</span><em class="sig-param">summary_writer: torch.utils.tensorboard.writer.SummaryWriter</em>, <em class="sig-param">epoch: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.tensorboard_add_scalar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.tensorboard_add_scalar" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">tensorboard_add_scalar</code><span class="sig-paren">(</span><em class="sig-param">summary_writer</em>, <em class="sig-param">epoch: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#Reporter.tensorboard_add_scalar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.Reporter.tensorboard_add_scalar" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -587,7 +587,7 @@ the real Rank is set as (nGPU * NodeID) + LOCAL_RANK in torch.distributed.</p>
 
 <dl class="method">
 <dt id="espnet2.train.reporter.SubReporter.tensorboard_add_scalar">
-<code class="sig-name descname">tensorboard_add_scalar</code><span class="sig-paren">(</span><em class="sig-param">summary_writer: torch.utils.tensorboard.writer.SummaryWriter</em>, <em class="sig-param">start: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#SubReporter.tensorboard_add_scalar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.SubReporter.tensorboard_add_scalar" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">tensorboard_add_scalar</code><span class="sig-paren">(</span><em class="sig-param">summary_writer</em>, <em class="sig-param">start: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/reporter.html#SubReporter.tensorboard_add_scalar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.reporter.SubReporter.tensorboard_add_scalar" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -659,7 +659,7 @@ and override the methods if necessary - at least “train_one_epoch()”</p>
 
 <dl class="method">
 <dt id="espnet2.train.trainer.Trainer.plot_attention">
-<em class="property">classmethod </em><code class="sig-name descname">plot_attention</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, output_dir: Optional[pathlib.Path], summary_writer: Optional[torch.utils.tensorboard.writer.SummaryWriter], iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]], reporter: espnet2.train.reporter.SubReporter, options: espnet2.train.trainer.TrainerOptions</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/train/trainer.html#Trainer.plot_attention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.Trainer.plot_attention" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">plot_attention</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, output_dir: Optional[pathlib.Path], summary_writer, iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]], reporter: espnet2.train.reporter.SubReporter, options: espnet2.train.trainer.TrainerOptions</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/train/trainer.html#Trainer.plot_attention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.Trainer.plot_attention" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -675,7 +675,7 @@ and override the methods if necessary - at least “train_one_epoch()”</p>
 
 <dl class="method">
 <dt id="espnet2.train.trainer.Trainer.train_one_epoch">
-<em class="property">classmethod </em><code class="sig-name descname">train_one_epoch</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]], optimizers: Sequence[torch.optim.optimizer.Optimizer], schedulers: Sequence[Optional[espnet2.schedulers.abs_scheduler.AbsScheduler]], scaler: Optional[torch.cuda.amp.grad_scaler.GradScaler], reporter: espnet2.train.reporter.SubReporter, summary_writer: Optional[torch.utils.tensorboard.writer.SummaryWriter], options: espnet2.train.trainer.TrainerOptions, distributed_option: espnet2.train.distributed_utils.DistributedOption</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../_modules/espnet2/train/trainer.html#Trainer.train_one_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.Trainer.train_one_epoch" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">train_one_epoch</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]], optimizers: Sequence[torch.optim.optimizer.Optimizer], schedulers: Sequence[Optional[espnet2.schedulers.abs_scheduler.AbsScheduler]], scaler: Optional[torch.cuda.amp.grad_scaler.GradScaler], reporter: espnet2.train.reporter.SubReporter, summary_writer, options: espnet2.train.trainer.TrainerOptions, distributed_option: espnet2.train.distributed_utils.DistributedOption</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../_modules/espnet2/train/trainer.html#Trainer.train_one_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.trainer.Trainer.train_one_epoch" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -845,7 +845,7 @@ espnet.train.abs_gan_espnet_model.AbsGANESPnetModel.</p>
 
 <dl class="method">
 <dt id="espnet2.train.gan_trainer.GANTrainer.train_one_epoch">
-<em class="property">classmethod </em><code class="sig-name descname">train_one_epoch</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]], optimizers: Sequence[torch.optim.optimizer.Optimizer], schedulers: Sequence[Optional[espnet2.schedulers.abs_scheduler.AbsScheduler]], scaler: Optional[torch.cuda.amp.grad_scaler.GradScaler], reporter: espnet2.train.reporter.SubReporter, summary_writer: Optional[torch.utils.tensorboard.writer.SummaryWriter], options: espnet2.train.gan_trainer.GANTrainerOptions, distributed_option: espnet2.train.distributed_utils.DistributedOption</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../_modules/espnet2/train/gan_trainer.html#GANTrainer.train_one_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.gan_trainer.GANTrainer.train_one_epoch" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">train_one_epoch</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]], optimizers: Sequence[torch.optim.optimizer.Optimizer], schedulers: Sequence[Optional[espnet2.schedulers.abs_scheduler.AbsScheduler]], scaler: Optional[torch.cuda.amp.grad_scaler.GradScaler], reporter: espnet2.train.reporter.SubReporter, summary_writer, options: espnet2.train.gan_trainer.GANTrainerOptions, distributed_option: espnet2.train.distributed_utils.DistributedOption</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../_modules/espnet2/train/gan_trainer.html#GANTrainer.train_one_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.gan_trainer.GANTrainer.train_one_epoch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Train one epoch.</p>
 </dd></dl>
 

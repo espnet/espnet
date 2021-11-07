@@ -139,7 +139,6 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 
-<span class="kn">import</span> <span class="nn">editdistance</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -410,6 +409,8 @@
 <span class="sd">        :return: accuracy in attention decoder</span>
 <span class="sd">        :rtype: float</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">editdistance</span>
+
         <span class="c1"># 0. Frontend</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span><span class="p">(</span><span class="n">to_torch_tensor</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">),</span> <span class="n">ilens</span><span class="p">)</span>
