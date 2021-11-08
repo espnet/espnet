@@ -409,7 +409,7 @@ class Trainer:
 
                 # Generated n-best averaged model
                 if trainer_options.nbest_averaging_interval > 0 and \
-                    iepoch % trainer_options.nbest_averaging_interval == 0:
+                        iepoch % trainer_options.nbest_averaging_interval == 0:
                     average_nbest_models(
                         reporter=reporter,
                         output_dir=output_dir,
@@ -444,15 +444,15 @@ class Trainer:
             logging.info(
                 f"The training was finished at {trainer_options.max_epoch} epochs "
             )
-        
+
         # Generated n-best averaged model
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
             average_nbest_models(
-                            reporter=reporter,
-                            output_dir=output_dir,
-                            best_model_criterion=trainer_options.best_model_criterion,
-                            nbest=keep_nbest_models,
-                        )
+                reporter=reporter,
+                output_dir=output_dir,
+                best_model_criterion=trainer_options.best_model_criterion,
+                nbest=keep_nbest_models,
+            )
 
     @classmethod
     def train_one_epoch(

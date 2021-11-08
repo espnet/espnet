@@ -505,7 +505,7 @@ class AbsTask(ABC):
             "--nbest_averaging_interval",
             type=int,
             default=0,
-            help="The interval between epochs to apply model averaging and save nbest models",
+            help="The epoch interval to apply model averaging and save nbest models",
         )
         group.add_argument(
             "--grad_clip",
