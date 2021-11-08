@@ -145,6 +145,8 @@
 
 
 ## CTC decoding with nbest rescoring from decoder and LM (using k2)
+With configure file:
+egs2/librispeech/asr1/conf/decode_asr_transformer_with_k2.yaml
 
 ### WER
 Test with a single Tesla V100 gpu and batch_size==2

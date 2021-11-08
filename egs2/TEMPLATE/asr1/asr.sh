@@ -100,7 +100,7 @@ hf_repo=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
-is_ctc_decoding=true
+k2_ctc_decoding=true
 use_nbest_rescoring=true # use transformer-decoder
                          # and transformer language model for nbest rescoring
 num_paths=1000 # The 3rd argument of k2.random_paths.
@@ -425,7 +425,7 @@ if [ -z "${inference_tag}" ]; then
 
     if "${use_k2}"; then
       inference_tag+="_use_k2"
-      inference_tag+="_is_ctc_decoding_${is_ctc_decoding}"
+      inference_tag+="_k2_ctc_decoding_${k2_ctc_decoding}"
       inference_tag+="_use_nbest_rescoring_${use_nbest_rescoring}"
     fi
 fi
@@ -1186,7 +1186,7 @@ if ! "${skip_eval}"; then
           _nj=1
           asr_inference_tool="espnet2.bin.asr_inference_k2"
 
-          _opts+="--is_ctc_decoding ${is_ctc_decoding} "
+          _opts+="--is_ctc_decoding ${k2_ctc_decoding} "
           _opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
           _opts+="--num_paths ${num_paths} "
           _opts+="--nll_batch_size ${nll_batch_size} "
@@ -1243,7 +1243,7 @@ if ! "${skip_eval}"; then
                 if [ -f "${_logdir}/output.1/1best_recog/${f}" ]; then
                   for i in $(seq "${_nj}"); do
                       cat "${_logdir}/output.${i}/1best_recog/${f}"
-                  done | LC_ALL=C sort -k1 >"${_dir}/${f}"
+                  done | sort -k1 >"${_dir}/${f}"
                 fi
             done
         done
