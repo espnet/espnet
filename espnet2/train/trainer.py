@@ -20,9 +20,7 @@ import numpy as np
 import torch
 import torch.nn
 import torch.optim
-from torch.utils.tensorboard import SummaryWriter
 from typeguard import check_argument_types
-import wandb
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
@@ -251,6 +249,8 @@ class Trainer:
         if trainer_options.use_tensorboard and (
             not distributed_option.distributed or distributed_option.dist_rank == 0
         ):
+            from torch.utils.tensorboard import SummaryWriter
+
             summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
         else:
             summary_writer = None
@@ -381,6 +381,8 @@ class Trainer:
                     and iepoch % trainer_options.wandb_model_log_interval == 0
                 )
                 if log_model and trainer_options.use_wandb:
+                    import wandb
+
                     logging.info("Logging Model on this epoch :::::")
                     artifact = wandb.Artifact(
                         name=f"model_{wandb.run.id}",
@@ -450,7 +452,7 @@ class Trainer:
         schedulers: Sequence[Optional[AbsScheduler]],
         scaler: Optional[GradScaler],
         reporter: SubReporter,
-        summary_writer: Optional[SummaryWriter],
+        summary_writer,
         options: TrainerOptions,
         distributed_option: DistributedOption,
     ) -> bool:
@@ -719,7 +721,7 @@ class Trainer:
         cls,
         model: torch.nn.Module,
         output_dir: Optional[Path],
-        summary_writer: Optional[SummaryWriter],
+        summary_writer,
         iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         reporter: SubReporter,
         options: TrainerOptions,
@@ -787,5 +789,7 @@ class Trainer:
                         )
 
                     if options.use_wandb:
+                        import wandb
+
                         wandb.log({f"attention plot/{k}_{id_}": wandb.Image(fig)})
             reporter.next()

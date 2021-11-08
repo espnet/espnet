@@ -16,7 +16,6 @@ from chainer.training import extensions
 from itertools import zip_longest as zip_longest
 import numpy as np
 import torch
-from torch.utils.tensorboard import SummaryWriter
 
 from espnet.asr.asr_mix_utils import add_results_to_json
 from espnet.asr.asr_utils import adadelta_eps_decay
@@ -45,10 +44,6 @@ from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
-
-import matplotlib
-
-matplotlib.use("Agg")
 
 
 class CustomConverter(object):
@@ -520,6 +515,8 @@ def train(args):
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        from torch.utils.tensorboard import SummaryWriter
+
         trainer.extend(
             TensorboardLogger(SummaryWriter(args.tensorboard_dir), att_reporter),
             trigger=(args.report_interval_iters, "iteration"),

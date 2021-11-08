@@ -21,7 +21,7 @@ ${CXX:-g++} -v
     . ./activate_python.sh
     make TH_VERSION="${TH_VERSION}"
 
-    make warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done s3prl.done transformers.done phonemizer.done fairseq.done
+    make warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done s3prl.done transformers.done phonemizer.done fairseq.done k2.done
     rm -rf kaldi
 )
 . tools/activate_python.sh
@@ -30,12 +30,6 @@ python3 --version
 python3 -m pip install https://github.com/kpu/kenlm/archive/master.zip
 # NOTE(kamo): tensorboardx is used for chainer mode only
 python3 -m pip install tensorboardx
-
-if ${USE_CONDA}; then
-  conda install -c k2-fsa -c pytorch k2=${K2_VERSION} cpuonly pytorch=${TH_VERSION}
-else
-  python3 -m pip install k2==${K2_VERSION}.torch${TH_VERSION} -f https://k2-fsa.org/nightly/
-fi
 
 
 # NOTE(kan-bayashi): Fix the error in black installation.
@@ -58,5 +52,5 @@ version = '$TH_VERSION'.split(".")
 next_version = f"{version[0]}.{version[1]}.{int(version[2]) + 1}"
 
 if L(torch.__version__) < L('$TH_VERSION') or L(torch.__version__) >= L(next_version):
-    raise RuntimeError(f"Pytorch=$TH_VERSION is expected, but got pytorch={torch.__version__}. This is a bug  installation scripts")
+    raise RuntimeError(f"Pytorch=$TH_VERSION is expected, but got pytorch={torch.__version__}. This is a bug in installation scripts")
 EOF

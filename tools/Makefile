@@ -3,8 +3,8 @@
 CHAINER_VERSION := 6.0.0
 # Disable cupy installation
 NO_CUPY :=
-# PyTorch version: 1.3.1, 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, and 1.9.0 are tested.
-TH_VERSION := 1.9.0
+# PyTorch version: 1.3.1, 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1 and 1.10.0 are tested.
+TH_VERSION := 1.10.0
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -114,7 +114,7 @@ endif
 
 # NOTE(kamo): conda_packages is not necessary for installation of espnet, but add it the dependencies just in case.
 espnet.done: pytorch.done conda_packages.done
-	. ./activate_python.sh && python3 -m pip install -e "..[recipe]"  # Install editable mode by default
+	. ./activate_python.sh && python3 -m pip install -e "..[train, recipe]"  # Install editable mode by default
 	touch espnet.done
 
 chainer.done: espnet.done

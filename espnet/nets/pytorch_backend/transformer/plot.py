@@ -3,7 +3,6 @@
 
 import logging
 
-import matplotlib.pyplot as plt
 import numpy
 import os
 
@@ -11,7 +10,10 @@ from espnet.asr import asr_utils
 
 
 def _plot_and_save_attention(att_w, filename, xtokens=None, ytokens=None):
-    # dynamically import matplotlib due to not found error
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
     d = os.path.dirname(filename)
@@ -43,6 +45,11 @@ def _plot_and_save_attention(att_w, filename, xtokens=None, ytokens=None):
 
 
 def savefig(plot, filename):
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
     plot.savefig(filename)
     plt.clf()
 
@@ -139,6 +146,11 @@ class PlotAttentionReport(asr_utils.PlotAttentionReport):
 
     def log_attentions(self, logger, step):
         def log_fig(plot, filename):
+            import matplotlib
+
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+
             logger.add_figure(os.path.basename(filename), plot, step)
             plt.clf()
 
