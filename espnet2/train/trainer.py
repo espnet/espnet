@@ -79,6 +79,7 @@ class TrainerOptions:
     sharded_ddp: bool
     patience: Optional[int]
     keep_nbest_models: Union[int, List[int]]
+    nbest_averaging_interval: int
     early_stopping_criterion: Sequence[str]
     best_model_criterion: Sequence[Sequence[str]]
     val_scheduler_criterion: Sequence[str]
@@ -171,12 +172,12 @@ class Trainer:
         assert len(optimizers) == len(schedulers), (len(optimizers), len(schedulers))
 
         if isinstance(trainer_options.keep_nbest_models, int):
-            keep_nbest_models = trainer_options.keep_nbest_models
+            keep_nbest_models = [trainer_options.keep_nbest_models]
         else:
             if len(trainer_options.keep_nbest_models) == 0:
                 logging.warning("No keep_nbest_models is given. Change to [1]")
                 trainer_options.keep_nbest_models = [1]
-            keep_nbest_models = max(trainer_options.keep_nbest_models)
+            keep_nbest_models = trainer_options.keep_nbest_models
 
         output_dir = Path(trainer_options.output_dir)
         reporter = Reporter()
@@ -296,7 +297,6 @@ class Trainer:
                     options=trainer_options,
                     distributed_option=distributed_option,
                 )
-
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 # att_plot doesn't support distributed
                 if plot_attention_iter_factory is not None:
@@ -401,11 +401,22 @@ class Trainer:
                 # Get the union set of the n-best among multiple criterion
                 nbests = set().union(
                     *[
-                        set(reporter.sort_epochs(ph, k, m)[:keep_nbest_models])
+                        set(reporter.sort_epochs(ph, k, m)[: max(keep_nbest_models)])
                         for ph, k, m in trainer_options.best_model_criterion
                         if reporter.has(ph, k)
                     ]
                 )
+
+                # Generated n-best averaged model
+                if trainer_options.nbest_averaging_interval > 0 and \
+                    iepoch % trainer_options.nbest_averaging_interval == 0:
+                    average_nbest_models(
+                        reporter=reporter,
+                        output_dir=output_dir,
+                        best_model_criterion=trainer_options.best_model_criterion,
+                        nbest=keep_nbest_models,
+                    )
+
                 for e in range(1, iepoch):
                     p = output_dir / f"{e}epoch.pth"
                     if p.exists() and e not in nbests:
@@ -433,15 +444,15 @@ class Trainer:
             logging.info(
                 f"The training was finished at {trainer_options.max_epoch} epochs "
             )
-
+        
+        # Generated n-best averaged model
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
-            # Generated n-best averaged model
             average_nbest_models(
-                reporter=reporter,
-                output_dir=output_dir,
-                best_model_criterion=trainer_options.best_model_criterion,
-                nbest=keep_nbest_models,
-            )
+                            reporter=reporter,
+                            output_dir=output_dir,
+                            best_model_criterion=trainer_options.best_model_criterion,
+                            nbest=keep_nbest_models,
+                        )
 
     @classmethod
     def train_one_epoch(
@@ -662,7 +673,6 @@ class Trainer:
             if distributed:
                 iterator_stop.fill_(1)
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
-
         return all_steps_are_invalid
 
     @classmethod

@@ -502,6 +502,12 @@ class AbsTask(ABC):
             help="Remove previous snapshots excluding the n-best scored epochs",
         )
         group.add_argument(
+            "--nbest_averaging_interval",
+            type=int,
+            default=0,
+            help="The interval between epochs to apply model averaging and save nbest models",
+        )
+        group.add_argument(
             "--grad_clip",
             type=float,
             default=5.0,
