@@ -30,7 +30,11 @@ def remove_repeated_and_leq(tokens: List[int], blank_id: int = 0):
 
 
 def _intersect_device(
-    a_fsas: k2.Fsa, b_fsas: k2.Fsa, b_to_a_map: torch.Tensor, sorted_match_a: bool
+    a_fsas: k2.Fsa,
+    b_fsas: k2.Fsa,
+    b_to_a_map: torch.Tensor,
+    sorted_match_a: bool,
+    batch_size: int = 500,
 ):
     """Wrap k2.intersect_device
 
@@ -39,9 +43,9 @@ def _intersect_device(
     CUDA OOM error.
     The arguments and return value of this function are the same as
     k2.intersect_device.
+
+    NOTE: You can decrease batch_size in case of CUDA out of memory error.
     """
-    # NOTE: You can decrease batch_size in case of CUDA out of memory error.
-    batch_size = 500
     num_fsas = b_fsas.shape[0]
     if num_fsas <= batch_size:
         return k2.intersect_device(
@@ -74,6 +78,7 @@ def compute_am_scores_and_lm_scores(
     word_fsas_with_epsilon_loops: k2.Fsa,
     path_to_seq_map: torch.Tensor,
     device: str = "cuda",
+    batch_size: int = 500,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Compute AM and LM scores of n-best lists (represented as word_fsas).
 
@@ -88,6 +93,9 @@ def compute_am_scores_and_lm_scores(
         A 1-D torch.Tensor with dtype torch.int32. path_to_seq_map[i] indicates
         which sequence the i-th Fsa in word_fsas_with_epsilon_loops belongs to.
         path_to_seq_map.numel() == word_fsas_with_epsilon_loops.arcs.dim0().
+      batch_size:
+        Batchify the n-best list when intersecting with inverted_lats.
+        You could tune this to avoid GPU OOM issue or increase the GPU usage.
     Returns:
       Return a tuple of (1-D torch.Tensor, 1-D torch.Tensor) containing
       the AM and LM scores of each path.
@@ -116,6 +124,7 @@ def compute_am_scores_and_lm_scores(
         word_fsas_with_epsilon_loops,
         b_to_a_map=path_to_seq_map,
         sorted_match_a=True,
+        batch_size=batch_size,
     )
 
     am_path_lats = k2.top_sort(k2.connect(am_path_lats))
@@ -148,7 +157,12 @@ def compute_am_scores_and_lm_scores(
     return am_scores, lm_scores
 
 
-def nbest_am_lm_scores(lats: k2.Fsa, num_paths: int, device: str = "cuda"):
+def nbest_am_lm_scores(
+    lats: k2.Fsa,
+    num_paths: int,
+    device: str = "cuda",
+    batch_size: int = 500,
+):
     """Compute am scores with word_seqs
 
     Compatible with both ctc_decoding or TLG decoding.
@@ -178,7 +192,7 @@ def nbest_am_lm_scores(lats: k2.Fsa, num_paths: int, device: str = "cuda"):
     word_fsas_with_epsilon_loops = k2.add_epsilon_self_loops(word_fsas)
 
     am_scores, lm_scores = compute_am_scores_and_lm_scores(
-        lats, word_fsas_with_epsilon_loops, path_to_seq_map, device
+        lats, word_fsas_with_epsilon_loops, path_to_seq_map, device, batch_size
     )
 
     token_seqs = k2.index(lats.labels.contiguous(), paths)

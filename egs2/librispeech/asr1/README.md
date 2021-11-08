@@ -144,7 +144,7 @@
 |decode_asr_asr_model_valid.acc.ave/test_other|2939|65101|93.7|4.5|1.8|0.9|7.2|49.0|
 
 
-## With transformer LM decode with k2 + ctc + nbest rescoring
+## CTC decoding with nbest rescoring from decoder and LM (using k2)
 
 ### WER
 Test with a single Tesla V100 gpu and batch_size==2

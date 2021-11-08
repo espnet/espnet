@@ -160,6 +160,8 @@ class k2Speech2Text:
         streaming: bool = False,
         search_beam_size: int = 20,
         output_beam_size: int = 20,
+        min_active_states: int = 30,
+        max_active_states: int = 10000,
         blank_bias: float = 0.0,
         lattice_weight: float = 1.0,
         is_ctc_decoding: bool = True,
@@ -170,6 +172,7 @@ class k2Speech2Text:
         decoder_weight: float = 0.5,
         nnlm_weight: float = 1.0,
         num_paths: int = 1000,
+        nbest_batch_size: int = 500,
         nll_batch_size: int = 100,
     ):
         assert check_argument_types()
@@ -192,6 +195,8 @@ class k2Speech2Text:
         self.is_ctc_decoding = is_ctc_decoding
         self.use_fgram_rescoring = use_fgram_rescoring
         self.use_nbest_rescoring = use_nbest_rescoring
+
+        assert self.is_ctc_decoding, "Currently, only ctc_decoding graph is supported."
         if self.is_ctc_decoding:
             self.decode_graph = k2.arc_sort(
                 build_ctc_topo(list(range(len(token_list))))
@@ -224,12 +229,15 @@ class k2Speech2Text:
         self.dtype = dtype
         self.search_beam_size = search_beam_size
         self.output_beam_size = output_beam_size
+        self.min_active_states = min_active_states
+        self.max_active_states = max_active_states
         self.blank_bias = blank_bias
         self.lattice_weight = lattice_weight
         self.am_weight = am_weight
         self.decoder_weight = decoder_weight
         self.nnlm_weight = nnlm_weight
         self.num_paths = num_paths
+        self.nbest_batch_size = nbest_batch_size
         self.nll_batch_size = nll_batch_size
 
     @torch.no_grad()
@@ -275,19 +283,46 @@ class k2Speech2Text:
 
         supervision_segments = supervision_segments.to(torch.int32)
 
+        # An introduction to DenseFsaVec:
+        # https://k2-fsa.github.io/k2/core_concepts/index.html#dense-fsa-vector
+        # It could be viewed as a fsa-type lopg_encoder_output,
+        # whose weight on the arcs are initialized with logp_encoder_output.
+        # The goal of converting tensor-type to fsa-type is using
+        # fsa related functions in k2. e.g. k2.intersect_dense_pruned below
         dense_fsa_vec = k2.DenseFsaVec(logp_encoder_output, supervision_segments)
 
+        # The term "intersect" is similar to "compose" in k2.
+        # The differences is are:
+        # for "compose" functions, the composition involves
+        # mathcing output label of a.fsa and input label of b.fsa
+        # while for "intersect" functions, the composition involves
+        # matching input label of a.fsa and input label of b.fsa
+        # Actually, in compose functions, b.fsa is inverted and then
+        # a.fsa and inv_b.fsa are intersected together.
+        # For difference between compose and interset:
+        # https://github.com/k2-fsa/k2/blob/master/k2/python/k2/fsa_algo.py#L308
+        # For definition of k2.intersect_dense_pruned:
+        # https://github.com/k2-fsa/k2/blob/master/k2/python/k2/autograd.py#L648
         lattices = k2.intersect_dense_pruned(
             self.decode_graph,
             dense_fsa_vec,
             self.search_beam_size,
             self.output_beam_size,
-            30,
-            10000,
+            self.min_active_states,
+            self.max_active_states,
         )
 
+        # lattices.scores is the sum of decode_graph.scores(a.k.a. lm weight) and
+        # dense_fsa_vec.scores(a.k.a. am weight) on related arcs.
+        # For ctc decoding graph, lattices.scores only store am weight
+        # since the decoder_graph only define the ctc topology and
+        # has no lm weight on its arcs.
+        # While for 3-gram decoding, whose graph is converted from language models,
+        # lattice.scores contains both am weights and lm weights
+        #
         # It maybe useful to tune lattice.scores
         # The valid range of lattice_weight is [0, inf)
+        # The lattice_weight will affect the search of k2.random_paths
         lattices.scores *= self.lattice_weight
 
         results = []
@@ -299,7 +334,9 @@ class k2Speech2Text:
                 new2old,
                 path_to_seq_map,
                 seq_to_path_splits,
-            ) = nbest_am_lm_scores(lattices, self.num_paths, self.device)
+            ) = nbest_am_lm_scores(
+                lattices, self.num_paths, self.device, self.nbest_batch_size
+            )
 
             ys_pad_lens = torch.tensor([len(hyp) for hyp in token_ids]).to(self.device)
             max_token_length = max(ys_pad_lens)
@@ -461,6 +498,7 @@ def inference(
     is_ctc_decoding: bool,
     use_nbest_rescoring: bool,
     num_paths: int,
+    nbest_batch_size: int,
     nll_batch_size: int,
     k2_config: Optional[str],
 ):
@@ -505,6 +543,7 @@ def inference(
         is_ctc_decoding=is_ctc_decoding,
         use_nbest_rescoring=use_nbest_rescoring,
         num_paths=num_paths,
+        nbest_batch_size=nbest_batch_size,
         nll_batch_size=nll_batch_size,
     )
 
@@ -703,6 +742,12 @@ def get_parser():
         type=int,
         default=1000,
         help="The third argument for k2.random_paths",
+    )
+    group.add_argument(
+        "--nbest_batch_size",
+        type=int,
+        default=500,
+        help="batchify nbest list when computing am/lm scores to avoid OOM",
     )
     group.add_argument(
         "--nll_batch_size",
