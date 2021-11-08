@@ -408,8 +408,10 @@ class Trainer:
                 )
 
                 # Generated n-best averaged model
-                if trainer_options.nbest_averaging_interval > 0 and \
-                        iepoch % trainer_options.nbest_averaging_interval == 0:
+                if (
+                    trainer_options.nbest_averaging_interval > 0
+                    and iepoch % trainer_options.nbest_averaging_interval == 0
+                ):
                     average_nbest_models(
                         reporter=reporter,
                         output_dir=output_dir,
