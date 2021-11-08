@@ -8,7 +8,9 @@
 - pytorch version: `pytorch 1.8.1+cu102`
 - Git hash: `4e7d2ba3510463ae744d1a6d98f18388ad929a9d`
   - Commit date: `Mon Oct 11 12:57:48 2021 -0400`
-- Pretrained Model: https://zenodo.org/record/5590384
+- Pretrained Model
+  - Zenodo : https://zenodo.org/record/5590384
+  - Hugging Face : https://huggingface.co/espnet/siddhana_slurp_new_asr_train_asr_conformer_raw_en_word_valid.acc.ave_10best
 
 ## Using Conformer based encoder and Transformer based decoder with spectral augmentation and predicting transcript along with intent
 - ASR config: [conf/train_asr.yaml](conf/tuning/train_asr_conformer.yaml)

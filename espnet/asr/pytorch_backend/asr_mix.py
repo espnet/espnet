@@ -15,8 +15,8 @@ from chainer import training
 from chainer.training import extensions
 from itertools import zip_longest as zip_longest
 import numpy as np
-from tensorboardX import SummaryWriter
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from espnet.asr.asr_mix_utils import add_results_to_json
 from espnet.asr.asr_utils import adadelta_eps_decay

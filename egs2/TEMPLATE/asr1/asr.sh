@@ -1346,39 +1346,43 @@ fi
 
 
 packed_model="${asr_exp}/${asr_exp##*/}_${inference_asr_model%.*}.zip"
-if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
-    log "Stage 14: Pack model: ${packed_model}"
+if [ -z "${download_model}" ]; then
+    # Skip pack preparation if using a downloaded model
+    if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
+        log "Stage 14: Pack model: ${packed_model}"
 
-    _opts=
-    if "${use_lm}"; then
-        _opts+="--lm_train_config ${lm_exp}/config.yaml "
-        _opts+="--lm_file ${lm_exp}/${inference_lm} "
-        _opts+="--option ${lm_exp}/perplexity_test/ppl "
-        _opts+="--option ${lm_exp}/images "
+        _opts=
+        if "${use_lm}"; then
+            _opts+="--lm_train_config ${lm_exp}/config.yaml "
+            _opts+="--lm_file ${lm_exp}/${inference_lm} "
+            _opts+="--option ${lm_exp}/perplexity_test/ppl "
+            _opts+="--option ${lm_exp}/images "
+        fi
+        if [ "${feats_normalize}" = global_mvn ]; then
+            _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
+        fi
+        if [ "${token_type}" = bpe ]; then
+            _opts+="--option ${bpemodel} "
+        fi
+        if [ "${nlsyms_txt}" != none ]; then
+            _opts+="--option ${nlsyms_txt} "
+        fi
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.pack asr \
+            --asr_train_config "${asr_exp}"/config.yaml \
+            --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
+            ${_opts} \
+            --option "${asr_exp}"/RESULTS.md \
+            --option "${asr_exp}"/RESULTS.md \
+            --option "${asr_exp}"/images \
+            --outpath "${packed_model}"
     fi
-    if [ "${feats_normalize}" = global_mvn ]; then
-        _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
-    fi
-    if [ "${token_type}" = bpe ]; then
-        _opts+="--option ${bpemodel} "
-    fi
-    if [ "${nlsyms_txt}" != none ]; then
-        _opts+="--option ${nlsyms_txt} "
-    fi
-    # shellcheck disable=SC2086
-    ${python} -m espnet2.bin.pack asr \
-        --asr_train_config "${asr_exp}"/config.yaml \
-        --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
-        ${_opts} \
-        --option "${asr_exp}"/RESULTS.md \
-        --option "${asr_exp}"/RESULTS.md \
-        --option "${asr_exp}"/images \
-        --outpath "${packed_model}"
 fi
 
 if ! "${skip_upload}"; then
     if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
         log "Stage 15: Upload model to Zenodo: ${packed_model}"
+        log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/
@@ -1467,64 +1471,22 @@ if ! "${skip_upload_hf}"; then
         # copy files in ${dir_repo}
         unzip -o ${packed_model} -d ${dir_repo}
         # Generate description file
-        cat << EOF > "${dir_repo}"/README.md
----
-tags:
-- espnet
-- audio
-- automatic-speech-recognition
-language: ${lang}
-datasets:
-- ${_corpus}
-license: cc-by-4.0
----
+        # shellcheck disable=SC2034
+        hf_task=automatic-speech-recognition
+        # shellcheck disable=SC2034
+        espnet_task=ASR
+        # shellcheck disable=SC2034
+        task_exp=${asr_exp}
+        eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
 
-## ESPnet2 ASR model 
-
-### \`${hf_repo}\`
-
-This model was trained by ${_creator_name} using ${_task} recipe in [espnet](https://github.com/espnet/espnet/).
-
-### Demo: How to use in ESPnet2
-
-\`\`\`bash
-cd espnet
-${_checkout}
-pip install -e .
-cd $(pwd | rev | cut -d/ -f1-3 | rev)
-./run.sh --skip_data_prep false --skip_train true --download_model ${hf_repo}
-\`\`\`
-
-$(cat "${asr_exp}"/RESULTS.md)
-
-## ASR config
-
-<details><summary>expand</summary>
-
-\`\`\`
-$(cat "${asr_exp}"/config.yaml)
-\`\`\`
-
-</details>
-
-## LM config
-
-<details><summary>expand</summary>
-
-\`\`\`
-$(if ${use_lm}; then cat "${lm_exp}"/config.yaml; else echo NONE; fi)
-\`\`\`
-
-</details>
-EOF
-    this_folder=${PWD}
-    cd ${dir_repo}
-    if [ -n "$(git status --porcelain)" ]; then
-        git add .
-        git commit -m "Update model"
-    fi
-    git push
-    cd ${this_folder}
+        this_folder=${PWD}
+        cd ${dir_repo}
+        if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Update model"
+        fi
+        git push
+        cd ${this_folder}
     fi
 else
     log "Skip the uploading to HuggingFace stage"
