@@ -24,7 +24,7 @@ use_word_lm=false
     --nlsyms_txt data/nlsyms.txt           \
     --ngpu 3                               \
     --token_type char                      \
-    --feats_type fbank_pitch               \
+    --feats_type raw                       \
     --use_lm ${use_lm}                     \
     --asr_config "${asr_config}"           \
     --inference_config "${inference_config}" \

@@ -13,10 +13,10 @@
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_lm_lm_train_lm_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev_far|14180|195306|39.0|40.0|21.0|3.9|64.9|91.1|
+|decode_asr_lm_lm_train_lm_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev_far|18985|254320|38.5|40.2|21.3|3.8|65.3|92.0|
 
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_lm_lm_train_lm_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev_far|14180|14180|8.9|91.1|0.0|0.0|91.1|91.1|
+|decode_asr_lm_lm_train_lm_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev_far|18985|18985|8.0|92.0|0.0|0.0|92.0|92.0|

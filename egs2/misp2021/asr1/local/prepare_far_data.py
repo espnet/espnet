@@ -19,7 +19,10 @@ def text2lines(textpath, lines_content=None):
         with codecs.open(textpath, "r", encoding="utf8") as handle:
             lines_content = handle.readlines()
         processed_lines = list(
-            map(lambda x: x[:-1] if x[-1] in ["\n"] else x, lines_content)
+            map(lambda x: x[:-1] if x[-1] in ["\n", "\r"] else x, lines_content)
+        )
+        processed_lines = list(
+            map(lambda x: x[:-1] if x[-1] in ["\n", "\r"] else x, processed_lines)
         )
         return processed_lines
     else:

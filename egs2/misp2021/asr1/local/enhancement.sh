@@ -11,6 +11,7 @@ stage=0
 nj=6
 cmd=run.pl
 
+. utils/parse_options.sh
 
 . ./path.sh || exit 1;
 
