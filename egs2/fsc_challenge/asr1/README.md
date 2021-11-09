@@ -2,24 +2,25 @@
 # RESULTS
 
 ## Environments
-- date: `Mon Oct 11 13:11:36 2021 -0400`
-- python version: `3.9.5 (default, Jun  4 2021, 12:28:51) [GCC 7.5.0]`
-- espnet version: `espnet 0.10.3a2`
-- pytorch version: `pytorch 1.8.1+cu102`
-- Git hash: `4e7d2ba3510463ae744d1a6d98f18388ad929a9d`
-  - Commit date: `Mon Nov 8 16:28:44 2021 -0500`
+- date: `Sun Oct  3 22:25:25 EDT 2021`
+- python version: `3.8.11 (default, Aug  3 2021, 15:09:35)  [GCC 7.5.0]`
+- espnet version: `espnet 0.10.3a3`
+- pytorch version: `pytorch 1.9.0+cu102`
+- Git hash: `a1a55e1eef2a74d2b8580d8071ce5229e7fa654c`
+  - Commit date: `Mon Nov 8 23:56:06 2021 -0500`
 - Pretrained Model
+  - Zenodo: https://zenodo.org/deposit/5656007
 
-## Using Transformer based encoder-decoder with Hubert pre encoder and decoding sentence with spectral augmentation and predicting transcript along with intent
-- ASR config: [conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml](conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml)
+## Using Transformer based encoder-decoder with finetuned Hubert pre encoder and decoding sentence with spectral augmentation and predicting transcript along with intent
+- ASR config: [conf/tuning/train_asr.yaml](conf/tuning/train_asr_hubert_transformer_adam_specaug_finetune.yaml)
 - token_type: word
 - keep_nbest_models: 5
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
-|inference_asr_model_valid.acc.ave_5best/spk_test|3366|98.5|
-|inference_asr_model_valid.acc.ave_5best/utt_test|3970|86.4|
-|inference_asr_model_valid.acc.ave_5best/valid|2624|98.8|
+|inference_asr_model_valid.acc.ave_5best/spk_test|3366|97.5|
+|inference_asr_model_valid.acc.ave_5best/utt_test|3970|78.5|
+|inference_asr_model_valid.acc.ave_5best/valid|2624|98.4|
 
 ###ASR results
 
@@ -27,8 +28,8 @@
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|inference_asr_model_valid.acc.ave_5best/spk_test|3366|14806|99.1|0.5|0.4|0.4|1.3|3.1|
-|inference_asr_model_valid.acc.ave_5best/utt_test|3970|17199|91.0|6.5|2.5|5.3|14.4|49.3|
-|inference_asr_model_valid.acc.ave_5best/valid|2624|11295|99.3|0.4|0.2|0.2|0.9|2.1|
+|inference_asr_model_valid.acc.ave_5best/spk_test|3349|14588|98.7|0.9|0.4|0.6|1.9|4.7|
+|inference_asr_model_valid.acc.ave_5best/utt_test|4201|18330|87.1|10.6|2.3|3.8|16.7|44.6|
+|inference_asr_model_valid.acc.ave_5best/valid|2597|1185|98.9|0.6|0.5|0.3|1.3|2.9 |
 
 
