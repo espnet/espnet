@@ -36,7 +36,7 @@ jobs:
         TH_VERSION: ${{ matrix.pytorch-version }}
       run: |
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
-        python3 -m pip install "chainer==6.0.0"
+        ./tools/installers/install_chainer.sh CPU
         python3 -m pip install -e .
     - name: Import all modules (Try1)
       run: |
