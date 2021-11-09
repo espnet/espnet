@@ -28,6 +28,10 @@ from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
+from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
+from espnet2.enh.loss.criterions.si_snr import SISNRLoss
+from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
+from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -67,6 +71,20 @@ decoder_choices = ClassChoices(
     default="stft",
 )
 
+loss_wrapper_choices = ClassChoices(
+    name="loss_wrapper",
+    classes=dict(pit=PITSolver),
+    type_check=AbsLossWrapper,
+    default="pit",
+)
+
+criterion_choices = ClassChoices(
+    name='criterion',
+    classes=dict(si_snr=SISNRLoss),
+    type_check=AbsEnhLoss,
+    default="si_snr",
+)
+
 MAX_REFERENCE_NUM = 100
 
 
@@ -81,6 +99,10 @@ class EnhancementTask(AbsTask):
         separator_choices,
         # --decoder and --decoder_conf
         decoder_choices,
+        # --loss_wrapper and --loss_wrapper_conf
+        loss_wrapper_choices,
+        # --criterion and --criterion_conf
+        criterion_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -180,10 +202,12 @@ class EnhancementTask(AbsTask):
             encoder.output_dim, **args.separator_conf
         )
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
+        criterion = criterion_choices.get_class(args.criterion)(**args.criterion_conf)
+        loss_wrapper = loss_wrapper_choices.get_class(args.loss_wrapper)(criterion=criterion, **args.loss_wrapper_conf)
 
         # 1. Build model
         model = ESPnetEnhancementModel(
-            encoder=encoder, separator=separator, decoder=decoder, **args.model_conf
+            encoder=encoder, separator=separator, decoder=decoder, loss_wrapper=loss_wrapper, **args.model_conf
         )
 
         # FIXME(kamo): Should be done in model?

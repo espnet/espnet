@@ -2,7 +2,7 @@ optim: adam
 init: xavier_uniform
 max_epoch: 150
 batch_type: folded
-batch_size: 4 # batch_size 16 can be trained on 4 RTX 2080ti
+batch_size: 1 # batch_size 16 can be trained on 4 RTX 2080ti
 iterator_type: chunk
 chunk_length: 32000
 num_workers: 4
@@ -27,8 +27,8 @@ scheduler_conf:
     mode: min
     factor: 0.7
     patience: 1
-model_conf:
-    loss_type: si_snr
+model_conf: {}
+
 encoder: conv
 encoder_conf:
     channel: 64
@@ -50,4 +50,17 @@ separator_conf:
     segment_size: 250
     dropout: 0.1
     nonlinear: relu
+
+criterion: si_snr
+criterion_conf: {}
+
+loss_wrapper: pit
+loss_wrapper_conf: {}
+
+
+
+
+
+  
+    
 
