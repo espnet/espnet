@@ -9,6 +9,7 @@
 - Git hash: `4e7d2ba3510463ae744d1a6d98f18388ad929a9d`
   - Commit date: `Mon Nov 8 16:28:44 2021 -0500`
 - Pretrained Model
+  - Zenodo: https://zenodo.org/record/5655832
 
 ## Using Transformer based encoder-decoder with Hubert pre encoder and decoding sentence with spectral augmentation and predicting transcript along with intent
 - ASR config: [conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml](conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml)
