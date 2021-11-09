@@ -3,7 +3,7 @@ if [ -n "${BASH_VERSION:-}" ]; then
     # shellcheck disable=SC2046
     TOOL_DIR="$( cd $( dirname ${BASH_SOURCE[0]} ) >/dev/null 2>&1 && pwd )"
 elif [ -n "${ZSH_VERSION:-}" ]; then
-    # shellcheck disable=SC2046
+    # shellcheck disable=SC2046,SC2296
     TOOL_DIR="$( cd $( dirname ${(%):-%N} ) >/dev/null 2>&1 && pwd )"
 else
     # If POSIX sh, there are no ways to get the script path if it is sourced,
