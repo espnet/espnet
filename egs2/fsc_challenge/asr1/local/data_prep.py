@@ -33,7 +33,9 @@ for x in dir_dict:
         text_f.truncate()
         wav_scp_f.truncate()
         utt2spk_f.truncate()
-        transcript_df = pd.read_csv(os.path.join(fsc_root, "data/challenge_splits", dir_dict[x]))
+        transcript_df = pd.read_csv(
+            os.path.join(fsc_root, "data/challenge_splits", dir_dict[x])
+        )
         # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
             words = (
@@ -43,7 +45,11 @@ for x in dir_dict:
                 + "_"
                 + row[7].replace(" ", "_")
                 + " "
-                + row[4].encode("ascii", "ignore").decode().lower().translate(str.maketrans('', '', string.punctuation))
+                + row[4]
+                .encode("ascii", "ignore")
+                .decode()
+                .lower()
+                .translate(str.maketrans("", "", string.punctuation))
             )
             print(words)
             path_arr = row[2].split("/")
