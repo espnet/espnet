@@ -30,6 +30,7 @@ from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.tasks.abs_task import AbsTask
@@ -80,7 +81,7 @@ loss_wrapper_choices = ClassChoices(
 
 criterion_choices = ClassChoices(
     name='criterion',
-    classes=dict(si_snr=SISNRLoss),
+    classes=dict(si_snr=SISNRLoss, mse=FrequencyDomainMSE),
     type_check=AbsEnhLoss,
     default="si_snr",
 )

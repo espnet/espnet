@@ -25,9 +25,6 @@ scheduler_conf:
     mode: min
     factor: 0.7
     patience: 1
-model_conf:
-    loss_type: mask_mse
-    mask_type: psm
 encoder: stft
 encoder_conf:
     n_fft: 256
@@ -44,3 +41,9 @@ separator_conf:
     layer: 3
     unit: 896
     dropout: 0.5
+criterion: mse
+criterion_conf:
+    compute_on_mask: False
+
+loss_wrapper: pit
+loss_wrapper_conf: {}

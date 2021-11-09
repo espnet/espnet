@@ -17,7 +17,7 @@ from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
-from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
+from espnet2.enh.loss.criterions.time_domain import SISNRLoss, TimeDomainLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
@@ -119,8 +119,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         feature_pre, flens, others = self.separator(feature_mix, flens)
         speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
 
-        if isinstance(self.loss_wrapper.criterion, TimeDomainLoss):
+
+        if isinstance(self.loss_wrapper.criterion, SISNRLoss):
             loss, stats, others = self.loss_wrapper(speech_ref, speech_pre)
+        elif isinstance(self.loss_wrapper.criterion, FrequencyDomainLoss):
+            spectrum_ref = [self.encoder(sr, speech_lengths)[0] for sr in speech_ref]
+            spectrum_pre = feature_pre
+            loss, stats, others = self.loss_wrapper(spectrum_ref, spectrum_pre)
+
+
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)

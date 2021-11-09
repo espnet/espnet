@@ -1,12 +1,17 @@
 
 from abc import ABC
+from distutils.version import LooseVersion
 from typing import Tuple, Dict
 from functools import reduce
 
 import torch
 
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
+from espnet2.enh.layers.complex_utils import is_complex
 
+
+is_torch_1_3_plus = LooseVersion(torch.__version__) >= LooseVersion("1.3.0")
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
@@ -82,3 +87,36 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
     def __init__(self, compute_on_mask=False):
         super().__init__()
         self.compute_on_mask = compute_on_mask
+    
+    @property
+    def name(self) -> str:
+        return 'mse'
+
+    def forward(self, ref, inf) -> torch.Tensor:
+        """time-frequency MSE loss.
+
+        Args:
+            ref: (Batch, T, F) or (Batch, T, C, F)
+            inf: (Batch, T, F) or (Batch, T, C, F)
+        Returns:
+            loss: (Batch,)
+        """
+        assert ref.shape == inf.shape, (ref.shape, inf.shape)
+        if not is_torch_1_3_plus:
+            # in case of binary masks
+            ref = ref.type(inf.dtype)
+        diff = ref - inf
+        if is_complex(diff):
+            mseloss = diff.real ** 2 + diff.imag ** 2
+        else:
+            mseloss = diff ** 2
+        if ref.dim() == 3:
+            mseloss = mseloss.mean(dim=[1, 2])
+        elif ref.dim() == 4:
+            mseloss = mseloss.mean(dim=[1, 2, 3])
+        else:
+            raise ValueError(
+                "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
+            )
+
+        return mseloss

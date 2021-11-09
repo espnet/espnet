@@ -9,8 +9,6 @@ from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 
 class AbsLossWrapper(torch.nn.Module,ABC):
     
-    criterion: AbsEnhLoss = None
-
     @abstractmethod
     def forward(
         self,
