@@ -30,7 +30,8 @@ python3 --version
 python3 -m pip install https://github.com/kpu/kenlm/archive/master.zip
 # NOTE(kamo): tensorboardx is used for chainer mode only
 python3 -m pip install tensorboardx
-
+# NOTE(kamo): Create matplotlib.cache to reduce runtime for test phase
+python3 -c "import matplotlib.pyplot"
 
 # NOTE(kan-bayashi): Fix the error in black installation.
 #   See: https://github.com/psf/black/issues/1707
