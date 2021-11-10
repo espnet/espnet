@@ -357,6 +357,7 @@ asr_train.py
                         [--early_stopping_criterion EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION]
                         [--best_model_criterion BEST_MODEL_CRITERION [BEST_MODEL_CRITERION ...]]
                         [--keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]]
+                        [--nbest_averaging_interval NBEST_AVERAGING_INTERVAL]
                         [--grad_clip GRAD_CLIP] [--grad_clip_type GRAD_CLIP_TYPE]
                         [--grad_noise GRAD_NOISE] [--accum_grad ACCUM_GRAD]
                         [--no_forward_run NO_FORWARD_RUN] [--resume RESUME]
@@ -513,6 +514,8 @@ asr_train.py
                             The criterion used for judging of the best model. Give a pair referring the phase, "train" or "valid",the criterion name, and the mode, "min" or "max", e.g. "acc,max". (default: [('train', 'loss', 'min'), ('valid', 'loss', 'min'), ('train', 'acc', 'max'), ('valid', 'acc', 'max')])
       --keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]
                             Remove previous snapshots excluding the n-best scored epochs (default: [10])
+      --nbest_averaging_interval NBEST_AVERAGING_INTERVAL
+                            The epoch interval to apply model averaging and save nbest models (default: 0)
       --grad_clip GRAD_CLIP
                             Gradient norm threshold to clip (default: 5.0)
       --grad_clip_type GRAD_CLIP_TYPE
@@ -897,6 +900,7 @@ diar_train.py
                          [--early_stopping_criterion EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION]
                          [--best_model_criterion BEST_MODEL_CRITERION [BEST_MODEL_CRITERION ...]]
                          [--keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]]
+                         [--nbest_averaging_interval NBEST_AVERAGING_INTERVAL]
                          [--grad_clip GRAD_CLIP] [--grad_clip_type GRAD_CLIP_TYPE]
                          [--grad_noise GRAD_NOISE] [--accum_grad ACCUM_GRAD]
                          [--no_forward_run NO_FORWARD_RUN] [--resume RESUME]
@@ -1023,6 +1027,8 @@ diar_train.py
                             The criterion used for judging of the best model. Give a pair referring the phase, "train" or "valid",the criterion name, and the mode, "min" or "max", e.g. "acc,max". (default: [('train', 'loss', 'min'), ('valid', 'loss', 'min'), ('train', 'acc', 'max'), ('valid', 'acc', 'max')])
       --keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]
                             Remove previous snapshots excluding the n-best scored epochs (default: [10])
+      --nbest_averaging_interval NBEST_AVERAGING_INTERVAL
+                            The epoch interval to apply model averaging and save nbest models (default: 0)
       --grad_clip GRAD_CLIP
                             Gradient norm threshold to clip (default: 5.0)
       --grad_clip_type GRAD_CLIP_TYPE
@@ -1441,6 +1447,7 @@ enh_train.py
                         [--early_stopping_criterion EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION]
                         [--best_model_criterion BEST_MODEL_CRITERION [BEST_MODEL_CRITERION ...]]
                         [--keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]]
+                        [--nbest_averaging_interval NBEST_AVERAGING_INTERVAL]
                         [--grad_clip GRAD_CLIP] [--grad_clip_type GRAD_CLIP_TYPE]
                         [--grad_noise GRAD_NOISE] [--accum_grad ACCUM_GRAD]
                         [--no_forward_run NO_FORWARD_RUN] [--resume RESUME]
@@ -1560,6 +1567,8 @@ enh_train.py
                             The criterion used for judging of the best model. Give a pair referring the phase, "train" or "valid",the criterion name, and the mode, "min" or "max", e.g. "acc,max". (default: [('train', 'loss', 'min'), ('valid', 'loss', 'min'), ('train', 'acc', 'max'), ('valid', 'acc', 'max')])
       --keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]
                             Remove previous snapshots excluding the n-best scored epochs (default: [10])
+      --nbest_averaging_interval NBEST_AVERAGING_INTERVAL
+                            The epoch interval to apply model averaging and save nbest models (default: 0)
       --grad_clip GRAD_CLIP
                             Gradient norm threshold to clip (default: 5.0)
       --grad_clip_type GRAD_CLIP_TYPE
@@ -1856,6 +1865,7 @@ gan_tts_train.py
                             [--early_stopping_criterion EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION]
                             [--best_model_criterion BEST_MODEL_CRITERION [BEST_MODEL_CRITERION ...]]
                             [--keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]]
+                            [--nbest_averaging_interval NBEST_AVERAGING_INTERVAL]
                             [--grad_clip GRAD_CLIP]
                             [--grad_clip_type GRAD_CLIP_TYPE]
                             [--grad_noise GRAD_NOISE] [--accum_grad ACCUM_GRAD]
@@ -2004,6 +2014,8 @@ gan_tts_train.py
                             The criterion used for judging of the best model. Give a pair referring the phase, "train" or "valid",the criterion name, and the mode, "min" or "max", e.g. "acc,max". (default: [('train', 'loss', 'min'), ('valid', 'loss', 'min'), ('train', 'acc', 'max'), ('valid', 'acc', 'max')])
       --keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]
                             Remove previous snapshots excluding the n-best scored epochs (default: [10])
+      --nbest_averaging_interval NBEST_AVERAGING_INTERVAL
+                            The epoch interval to apply model averaging and save nbest models (default: 0)
       --grad_clip GRAD_CLIP
                             Gradient norm threshold to clip (default: 5.0)
       --grad_clip_type GRAD_CLIP_TYPE
@@ -2327,6 +2339,7 @@ hubert_train.py
                            [--early_stopping_criterion EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION]
                            [--best_model_criterion BEST_MODEL_CRITERION [BEST_MODEL_CRITERION ...]]
                            [--keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]]
+                           [--nbest_averaging_interval NBEST_AVERAGING_INTERVAL]
                            [--grad_clip GRAD_CLIP]
                            [--grad_clip_type GRAD_CLIP_TYPE]
                            [--grad_noise GRAD_NOISE] [--accum_grad ACCUM_GRAD]
@@ -2493,6 +2506,8 @@ hubert_train.py
                             The criterion used for judging of the best model. Give a pair referring the phase, "train" or "valid",the criterion name, and the mode, "min" or "max", e.g. "acc,max". (default: [('train', 'loss', 'min'), ('valid', 'loss', 'min'), ('train', 'acc', 'max'), ('valid', 'acc', 'max')])
       --keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]
                             Remove previous snapshots excluding the n-best scored epochs (default: [10])
+      --nbest_averaging_interval NBEST_AVERAGING_INTERVAL
+                            The epoch interval to apply model averaging and save nbest models (default: 0)
       --grad_clip GRAD_CLIP
                             Gradient norm threshold to clip (default: 5.0)
       --grad_clip_type GRAD_CLIP_TYPE
@@ -2901,6 +2916,7 @@ lm_train.py
                        [--early_stopping_criterion EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION]
                        [--best_model_criterion BEST_MODEL_CRITERION [BEST_MODEL_CRITERION ...]]
                        [--keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]]
+                       [--nbest_averaging_interval NBEST_AVERAGING_INTERVAL]
                        [--grad_clip GRAD_CLIP] [--grad_clip_type GRAD_CLIP_TYPE]
                        [--grad_noise GRAD_NOISE] [--accum_grad ACCUM_GRAD]
                        [--no_forward_run NO_FORWARD_RUN] [--resume RESUME]
@@ -3026,6 +3042,8 @@ lm_train.py
                             The criterion used for judging of the best model. Give a pair referring the phase, "train" or "valid",the criterion name, and the mode, "min" or "max", e.g. "acc,max". (default: [('train', 'loss', 'min'), ('valid', 'loss', 'min'), ('train', 'acc', 'max'), ('valid', 'acc', 'max')])
       --keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]
                             Remove previous snapshots excluding the n-best scored epochs (default: [10])
+      --nbest_averaging_interval NBEST_AVERAGING_INTERVAL
+                            The epoch interval to apply model averaging and save nbest models (default: 0)
       --grad_clip GRAD_CLIP
                             Gradient norm threshold to clip (default: 5.0)
       --grad_clip_type GRAD_CLIP_TYPE
@@ -3518,6 +3536,7 @@ tts_train.py
                         [--early_stopping_criterion EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION]
                         [--best_model_criterion BEST_MODEL_CRITERION [BEST_MODEL_CRITERION ...]]
                         [--keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]]
+                        [--nbest_averaging_interval NBEST_AVERAGING_INTERVAL]
                         [--grad_clip GRAD_CLIP] [--grad_clip_type GRAD_CLIP_TYPE]
                         [--grad_noise GRAD_NOISE] [--accum_grad ACCUM_GRAD]
                         [--no_forward_run NO_FORWARD_RUN] [--resume RESUME]
@@ -3656,6 +3675,8 @@ tts_train.py
                             The criterion used for judging of the best model. Give a pair referring the phase, "train" or "valid",the criterion name, and the mode, "min" or "max", e.g. "acc,max". (default: [('train', 'loss', 'min'), ('valid', 'loss', 'min'), ('train', 'acc', 'max'), ('valid', 'acc', 'max')])
       --keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]
                             Remove previous snapshots excluding the n-best scored epochs (default: [10])
+      --nbest_averaging_interval NBEST_AVERAGING_INTERVAL
+                            The epoch interval to apply model averaging and save nbest models (default: 0)
       --grad_clip GRAD_CLIP
                             Gradient norm threshold to clip (default: 5.0)
       --grad_clip_type GRAD_CLIP_TYPE
