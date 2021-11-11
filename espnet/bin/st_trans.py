@@ -12,8 +12,8 @@ import random
 import sys
 
 import configargparse
-import numpy as np
 from espnet.utils.cli_utils import strtobool
+import numpy as np
 
 
 # NOTE: you need this func to generate our sphinx doc

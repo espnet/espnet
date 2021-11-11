@@ -18,6 +18,7 @@ from espnet.asr.asr_utils import adadelta_eps_decay
 from espnet.asr.asr_utils import adam_lr_decay
 from espnet.asr.asr_utils import add_results_to_json
 from espnet.asr.asr_utils import CompareValueTrigger
+from espnet.asr.asr_utils import get_model_conf
 from espnet.asr.asr_utils import restore_snapshot
 from espnet.asr.asr_utils import snapshot_object
 from espnet.asr.asr_utils import torch_load
@@ -29,6 +30,7 @@ from espnet.asr.pytorch_backend.asr_init import load_trained_modules_for_multide
 
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.nets.pytorch_backend.e2e_st_ensemble import E2E as EnsembleE2E
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.st_interface import STInterface
 from espnet.utils.dataset import ChainerDataLoader
 from espnet.utils.dataset import TransformDataset

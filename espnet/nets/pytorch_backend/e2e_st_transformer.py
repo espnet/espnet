@@ -220,10 +220,12 @@ class E2E(STInterface, torch.nn.Module):
             torch.nn.init.normal_(p, mean=0, std=0.02)
 
     def init_like_bert_enc(self):
+        """Init like bert."""
         for n, p in self.encoder.named_parameters():
             self._init_like_bert(n, p)
 
     def init_like_bert_dec(self):
+        """Init like bert."""
         for n, p in self.decoder.named_parameters():
             self._init_like_bert(n, p)
 
@@ -427,6 +429,7 @@ class E2E(STInterface, torch.nn.Module):
         return enc_output.squeeze(0)
 
     def decoder_forward_one_step(self, h, i, hyps):
+        """Decode one step."""
         ys = h.new_zeros((len(hyps), i + 1), dtype=torch.int64)
         for j, hyp in enumerate(hyps):
             ys[j, :] = torch.tensor(hyp["yseq"])

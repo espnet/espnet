@@ -315,7 +315,8 @@ def add_arguments_md_transformer_common(group):
         "--transformer-attn-dropout-rate",
         default=None,
         type=float,
-        help="Dropout in transformer attention for Enc Inp. use --dropout-rate if None is set",
+        help="Dropout in transformer attention for Enc Inp. \
+                use --dropout-rate if None is set",
     )
     # Decoder for the Output
     group.add_argument(
@@ -345,7 +346,8 @@ def add_arguments_md_transformer_common(group):
             "dynamicconv2d",
             "light-dynamicconv2d",
         ],
-        help="transformer decoder self-attention layer type. use --transformer-decoder-selfattn-layer-type if None is set",
+        help="transformer decoder self-attention layer type. use \
+                --transformer-decoder-selfattn-layer-type if None is set",
     )
     group.add_argument(
         "--dec-out-aheads",
@@ -369,7 +371,8 @@ def add_arguments_md_transformer_common(group):
         "--dec-out-transformer-attn-dropout-rate",
         default=None,
         type=float,
-        help="Dropout in transformer attention for Enc SI. use --transformer-attn-dropout-rate if None is set",
+        help="Dropout in transformer attention for Enc SI. use \
+                --transformer-attn-dropout-rate if None is set",
     )
 
     # Decoder for the Searchable Intermediates
@@ -419,7 +422,8 @@ def add_arguments_md_transformer_common(group):
         "--dec-si-transformer-attn-dropout-rate",
         default=None,
         type=float,
-        help="Dropout in transformer attention for Enc SI. use --dec-out-transformer-attn-dropout-rate if None is set",
+        help="Dropout in transformer attention for Enc SI. use \
+                --dec-out-transformer-attn-dropout-rate if None is set",
     )
 
     # Encoder for the Encoding the Searchable Intermediates
@@ -463,7 +467,8 @@ def add_arguments_md_transformer_common(group):
         "--enc-si-transformer-attn-dropout-rate",
         default=None,
         type=float,
-        help="Dropout in transformer attention for Enc SI. use --enc-inp-transformer-attn-dropout-rate if None is set",
+        help="Dropout in transformer attention for Enc SI. use \
+                --enc-inp-transformer-attn-dropout-rate if None is set",
     )
     group.add_argument(
         "--enc-si-transformer-selfattn-layer-type",

@@ -8,22 +8,21 @@ from distutils.util import strtobool
 import logging
 import math
 import numpy
+import sys
 
 import torch
 
+from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
 from espnet.nets.e2e_mt_common import ErrorCalculator as MTErrorCalculator
 from espnet.nets.pytorch_backend.ctc import CTC
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
-from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
-from espnet.nets.ctc_prefix_score import CTCPrefixScore
-from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.e2e_st import Reporter
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.argument import (
     add_arguments_md_transformer_common,  # noqa: H301
@@ -57,9 +56,9 @@ class E2E(STInterface, torch.nn.Module):
         group = parser.add_argument_group("transformer model setting")
         group = add_arguments_md_transformer_common(group)
         # in order to reuse most of the arguments
-        # we call encoder as the one in the input side (in this case speech encoder)
-        # we call decoder as the one in the output side (in this case translation decoder)
-        # we call the intermediate decoder as the one in the output side (in this case translation decoder)
+        # we call encoder as the one in the input side (ie speech encoder)
+        # we call decoder as the one in the output side (ie translation decoder)
+        # we call the intermediate decoder as the input side (ie asr decoder)
 
         # initialization related
         group.add_argument(
@@ -106,7 +105,8 @@ class E2E(STInterface, torch.nn.Module):
         # transformer_attn_dropout_rate == enc_inp_transformer_attn_dropout_rate
         # dlayers == dec_out_layers
         # dunits == dec_out_units
-        # transformer_decoder_selfattn_layer_type == dec_si_transformer_selfattn_layer_type
+        # transformer_decoder_selfattn_layer_type == \
+        #   dec_si_transformer_selfattn_layer_type
         # enc_inp_input_layer = transformer_input_layer,
         if args.enc_inp_dropout_rate is None:
             args.enc_inp_dropout_rate = args.dropout_rate
@@ -324,6 +324,7 @@ class E2E(STInterface, torch.nn.Module):
             torch.nn.init.normal_(p, mean=0, std=0.02)
 
     def init_like_bert_enc(self):
+        """Initialize like bert."""
         # ASR encoder
         for n, p in self.encoder_asr.named_parameters():
             self._init_like_bert(n, p)
@@ -332,6 +333,7 @@ class E2E(STInterface, torch.nn.Module):
             self._init_like_bert(n, p)
 
     def init_like_bert_dec(self):
+        """Initialize like bert."""
         # ASR decoder
         # for n, p in self.decoder_asr.named_parameters():
         #     self._init_like_bert(n, p)
@@ -540,21 +542,16 @@ class E2E(STInterface, torch.nn.Module):
         return enc_output.squeeze(0)
 
     def encode_st(self, x):
+        """Encode ASR decoder intermediates."""
         self.eval()
         x = x.unsqueeze(0)
         enc_output, _ = self.encoder_st(x, None)
         return enc_output.squeeze(0)
 
     def encode(self, x, trans_args, char_list=None):
+        """ASR encoder then ASR decoder then ST encoder."""
         # interface for ensemble
         x = torch.as_tensor(x)
-
-        # preprate sos
-        if getattr(trans_args, "tgt_lang", False):
-            if self.replace_sos:
-                y = char_list.index(trans_args.tgt_lang)
-        else:
-            y = self.sos
 
         if trans_args.eval_st_subnet:
             asr_output, speech_enc = self.recognize(
@@ -575,6 +572,7 @@ class E2E(STInterface, torch.nn.Module):
         return st_enc_output, speech_enc
 
     def decoder_forward_one_step(self, h, i, hyps):
+        """Decode single step."""
         enc_output = h[0]
         speech_enc = h[1]
         stack_scores = []
@@ -593,7 +591,7 @@ class E2E(STInterface, torch.nn.Module):
                     ys, ys_mask, enc_output
                 )[0]
 
-            # TODO (jiatong): skip lm
+            # TODO(jiatong): skip lm
             stack_scores.append(local_att_scores.squeeze(0))
         return torch.stack(stack_scores, dim=0)
 
@@ -803,7 +801,6 @@ class E2E(STInterface, torch.nn.Module):
         :return: N-best decoding results
         :rtype: list
         """
-
         if recog_args.eval_st_subnet:
             enc_output, enc_mask = self.encode_asr(x, mask=True)
             # 2. Run ASR decoder and get last but one hidden representation
