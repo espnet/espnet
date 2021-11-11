@@ -185,6 +185,10 @@ s3prl.done: espnet.done
 k2.done: espnet.done
 	. ./activate_python.sh && ./installers/install_k2.sh
 	touch k2.done
+	
+gtn.done: espnet.done
+	. ./activate_python.sh && ./installers/install_gtn.sh
+	touch gtn.done
 
 transformers.done: espnet.done
 	. ./activate_python.sh && ./installers/install_transformers.sh
