@@ -48,7 +48,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "stage2: Preparing data for yoloxochitl_mixtec"
+    log "stage2: Preparing data for Puebla Nahuatl"
     ### Task dependent. You have to make data the following preparation part by yourself.
     for x in train dev "test"; do
         python local/data_prep.py -w $wavdir -t data/${x} -m ${annotation_type} -i local/Pueble-Nahuatl-Manifest/speaker_wav_mapping_nahuatl_${x}.csv -a ${annotation_dir}

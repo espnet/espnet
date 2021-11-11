@@ -1,8 +1,3 @@
-# If a Python interpreter is specified, then creates a virtualenv from it
-# If empty string is given, chainer is not installed. Note that ESPnet doesn't support any versions except for chainer=6.0.0
-CHAINER_VERSION := 6.0.0
-# Disable cupy installation
-NO_CUPY :=
 # PyTorch version: 1.3.1, 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1 and 1.10.0 are tested.
 TH_VERSION := 1.10.0
 
@@ -22,19 +17,11 @@ CPU_ONLY :=
 CUDA_VERSION := $(shell nvcc --version | grep "Cuda compilation tools" | cut -d" " -f5 | sed s/,//)
 CUDA_VERSION_WITHOUT_DOT := $(strip $(subst .,,$(CUDA_VERSION)))
 
-ifeq ($(shell expr $(CUDA_VERSION_WITHOUT_DOT) \>= 102), 1)
-# cupy==6.0.0 doesn't support CUDA=10.2 or later
-NO_CUPY := 0
-endif
-
 else
 CPU_ONLY := 0
 CUDA_VERSION :=
 CUDA_VERSION_WITHOUT_DOT :=
-NO_CUPY := 0
 endif
-
-PIP_CHAINER := chainer==$(CHAINER_VERSION)
 
 
 .PHONY: all clean
@@ -67,9 +54,6 @@ endif
 	@echo PYTHON_VERSION=$(shell . ./activate_python.sh && python3 --version)
 	@echo USE_CONDA=$(USE_CONDA)
 	@echo TH_VERSION=$(TH_VERSION)
-	@echo CHAINER_VERSION=$(CHAINER_VERSION)
-	@echo PIP_CHAINER=$(PIP_CHAINER)
-	@echo NO_CUPY=$(NO_CUPY)
 
 #########################################
 
@@ -118,21 +102,7 @@ espnet.done: pytorch.done conda_packages.done
 	touch espnet.done
 
 chainer.done: espnet.done
-ifneq ($(strip $(NO_CUPY)),)
-	. ./activate_python.sh && python3 -m pip install $(PIP_CHAINER)
-else
-	# Precompiled cupy==6.0.0 for python>=3.8 is not provided
-	. ./activate_python.sh && \
-		if python3 -c "import sys; from distutils.version import LooseVersion as L; assert L(sys.version) < L('3.8')" 2>&1 /dev/null; then \
-			python3 -m pip install $(PIP_CHAINER) cupy-cuda$(CUDA_VERSION_WITHOUT_DOT)==$(CHAINER_VERSION); \
-		else \
-			python3 -m pip install $(PIP_CHAINER) cupy==$(CHAINER_VERSION); \
-		fi
-endif
-	# chainer=6.0.0 depends on typing<=3.6.6, but this causes the following error when installing some modules. e.g. fairseq
-	# AttributeError: type object 'Callable' has no attribute '_abc_registry'
-	# "typing" modules is not required for python>=3.6, so uninstall here
-	. ./activate_python.sh && python3 -m pip uninstall -y typing
+	. ./activate_python.sh && ./installers/install_chainer.sh "${CUDA_VERSION}"
 	touch chainer.done
 
 # NOTE(kamo): Add conda_packages.done if cmake is used
@@ -215,6 +185,10 @@ s3prl.done: espnet.done
 k2.done: espnet.done
 	. ./activate_python.sh && ./installers/install_k2.sh
 	touch k2.done
+	
+gtn.done: espnet.done
+	. ./activate_python.sh && ./installers/install_gtn.sh
+	touch gtn.done
 
 transformers.done: espnet.done
 	. ./activate_python.sh && ./installers/install_transformers.sh
