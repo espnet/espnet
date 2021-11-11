@@ -5420,6 +5420,72 @@ Tensor: Binary cross entropy loss value.</p>
 </section>
 <section id="espnet-nets-pytorch-backend-gtn-ctc">
 <span id="id32"></span><h2>espnet.nets.pytorch_backend.gtn_ctc<a class="headerlink" href="#espnet-nets-pytorch-backend-gtn-ctc" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.nets.pytorch_backend.gtn_ctc"></span><p>GTN CTC implementation.</p>
+<dl class="class">
+<dt id="espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.gtn_ctc.</code><code class="sig-name descname">GTNCTCLossFunction</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/gtn_ctc.html#GTNCTCLossFunction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
+<p>GTN CTC module.</p>
+<dl class="method">
+<dt id="espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction.backward">
+<em class="property">static </em><code class="sig-name descname">backward</code><span class="sig-paren">(</span><em class="sig-param">ctx</em>, <em class="sig-param">grad_output</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/gtn_ctc.html#GTNCTCLossFunction.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction.backward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Backward computation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>grad_output</strong> (<em>torch.tensor</em>) – backward passed gradient value</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>cumulative gradient output</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>(torch.Tensor, None, None, None)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction.create_ctc_graph">
+<em class="property">static </em><code class="sig-name descname">create_ctc_graph</code><span class="sig-paren">(</span><em class="sig-param">target</em>, <em class="sig-param">blank_idx</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/gtn_ctc.html#GTNCTCLossFunction.create_ctc_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction.create_ctc_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build gtn graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>list</em>) – single target sequence</p></li>
+<li><p><strong>blank_idx</strong> (<em>int</em>) – index of blank token</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>gtn graph of target sequence</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>gtn.Graph</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction.forward">
+<em class="property">static </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">ctx</em>, <em class="sig-param">log_probs</em>, <em class="sig-param">targets</em>, <em class="sig-param">ilens</em>, <em class="sig-param">blank_idx=0</em>, <em class="sig-param">reduction='none'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/gtn_ctc.html#GTNCTCLossFunction.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward computation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>log_probs</strong> (<em>torch.tensor</em>) – batched log softmax probabilities (B, Tmax, oDim)</p></li>
+<li><p><strong>targets</strong> (<em>list</em>) – batched target sequences, list of lists</p></li>
+<li><p><strong>blank_idx</strong> (<em>int</em>) – index of blank token</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>ctc loss value</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="espnet-nets-pytorch-backend-e2e-vc-tacotron2">
 <span id="id33"></span><h2>espnet.nets.pytorch_backend.e2e_vc_tacotron2<a class="headerlink" href="#espnet-nets-pytorch-backend-e2e-vc-tacotron2" title="Permalink to this headline">¶</a></h2>

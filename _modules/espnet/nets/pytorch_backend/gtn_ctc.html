@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>espnet.nets.pytorch_backend.gtn_ctc &mdash; ESPnet 0.10.5a1 documentation</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> ESPnet
+          </a>
+              <div class="version">
+                0.10.5a1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>espnet.nets.pytorch_backend.gtn_ctc</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for espnet.nets.pytorch_backend.gtn_ctc</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;GTN CTC implementation.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">gtn</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+
+<div class="viewcode-block" id="GTNCTCLossFunction"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction">[docs]</a><span class="k">class</span> <span class="nc">GTNCTCLossFunction</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;GTN CTC module.&quot;&quot;&quot;</span>
+
+    <span class="c1"># Copied from FB&#39;s GTN example implementation:</span>
+    <span class="c1"># https://github.com/facebookresearch/gtn_applications/blob/master/utils.py#L251</span>
+
+<div class="viewcode-block" id="GTNCTCLossFunction.create_ctc_graph"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction.create_ctc_graph">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">create_ctc_graph</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">blank_idx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build gtn graph.</span>
+
+<span class="sd">        :param list target: single target sequence</span>
+<span class="sd">        :param int blank_idx: index of blank token</span>
+<span class="sd">        :return: gtn graph of target sequence</span>
+<span class="sd">        :rtype: gtn.Graph</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">g_criterion</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">Graph</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+        <span class="n">S</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">L</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">S</span><span class="p">):</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">s</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+            <span class="n">g_criterion</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">s</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">s</span> <span class="o">==</span> <span class="n">S</span> <span class="o">-</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">s</span> <span class="o">==</span> <span class="n">S</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">if</span> <span class="n">s</span> <span class="o">%</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">blank_idx</span>
+            <span class="n">g_criterion</span><span class="o">.</span><span class="n">add_arc</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">s</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">g_criterion</span><span class="o">.</span><span class="n">add_arc</span><span class="p">(</span><span class="n">s</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">s</span> <span class="o">%</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">s</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">label</span> <span class="o">!=</span> <span class="n">target</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]:</span>
+                <span class="n">g_criterion</span><span class="o">.</span><span class="n">add_arc</span><span class="p">(</span><span class="n">s</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+        <span class="n">g_criterion</span><span class="o">.</span><span class="n">arc_sort</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">g_criterion</span></div>
+
+<div class="viewcode-block" id="GTNCTCLossFunction.forward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction.forward">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">log_probs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">blank_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Forward computation.</span>
+
+<span class="sd">        :param torch.tensor log_probs: batched log softmax probabilities (B, Tmax, oDim)</span>
+<span class="sd">        :param list targets: batched target sequences, list of lists</span>
+<span class="sd">        :param int blank_idx: index of blank token</span>
+<span class="sd">        :return: ctc loss value</span>
+<span class="sd">        :rtype: torch.Tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">B</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">C</span> <span class="o">=</span> <span class="n">log_probs</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">losses</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span>
+        <span class="n">scales</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span>
+        <span class="n">emissions_graphs</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">B</span>
+
+        <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+            <span class="c1"># create emission graph</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="n">ilens</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+            <span class="n">g_emissions</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">linear_graph</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">log_probs</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">)</span>
+            <span class="n">cpu_data</span> <span class="o">=</span> <span class="n">log_probs</span><span class="p">[</span><span class="n">b</span><span class="p">][:</span><span class="n">T</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+            <span class="n">g_emissions</span><span class="o">.</span><span class="n">set_weights</span><span class="p">(</span><span class="n">cpu_data</span><span class="o">.</span><span class="n">data_ptr</span><span class="p">())</span>
+
+            <span class="c1"># create criterion graph</span>
+            <span class="n">g_criterion</span> <span class="o">=</span> <span class="n">GTNCTCLossFunction</span><span class="o">.</span><span class="n">create_ctc_graph</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">blank_idx</span><span class="p">)</span>
+            <span class="c1"># compose the graphs</span>
+            <span class="n">g_loss</span> <span class="o">=</span> <span class="n">gtn</span><span class="o">.</span><span class="n">negate</span><span class="p">(</span>
+                <span class="n">gtn</span><span class="o">.</span><span class="n">forward_score</span><span class="p">(</span><span class="n">gtn</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">g_emissions</span><span class="p">,</span> <span class="n">g_criterion</span><span class="p">))</span>
+            <span class="p">)</span>
+
+            <span class="n">scale</span> <span class="o">=</span> <span class="mf">1.0</span>
+            <span class="k">if</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s2">&quot;mean&quot;</span><span class="p">:</span>
+                <span class="n">L</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">b</span><span class="p">])</span>
+                <span class="n">scale</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">L</span> <span class="k">if</span> <span class="n">L</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">scale</span>
+            <span class="k">elif</span> <span class="n">reduction</span> <span class="o">!=</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;invalid value for reduction &#39;&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">reduction</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Save for backward:</span>
+            <span class="n">losses</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">g_loss</span>
+            <span class="n">scales</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">scale</span>
+            <span class="n">emissions_graphs</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">g_emissions</span>
+
+        <span class="n">gtn</span><span class="o">.</span><span class="n">parallel_for</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="n">B</span><span class="p">))</span>
+
+        <span class="n">ctx</span><span class="o">.</span><span class="n">auxiliary_data</span> <span class="o">=</span> <span class="p">(</span><span class="n">losses</span><span class="p">,</span> <span class="n">scales</span><span class="p">,</span> <span class="n">emissions_graphs</span><span class="p">,</span> <span class="n">log_probs</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">losses</span><span class="p">[</span><span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">*</span> <span class="n">scales</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">B</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">cuda</span><span class="p">()</span> <span class="k">if</span> <span class="n">log_probs</span><span class="o">.</span><span class="n">is_cuda</span> <span class="k">else</span> <span class="n">loss</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GTNCTCLossFunction.backward"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.gtn_ctc.GTNCTCLossFunction.backward">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">grad_output</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Backward computation.</span>
+
+<span class="sd">        :param torch.tensor grad_output: backward passed gradient value</span>
+<span class="sd">        :return: cumulative gradient output</span>
+<span class="sd">        :rtype: (torch.Tensor, None, None, None)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">losses</span><span class="p">,</span> <span class="n">scales</span><span class="p">,</span> <span class="n">emissions_graphs</span><span class="p">,</span> <span class="n">in_shape</span><span class="p">,</span> <span class="n">ilens</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">auxiliary_data</span>
+        <span class="n">B</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">C</span> <span class="o">=</span> <span class="n">in_shape</span>
+        <span class="n">input_grad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">C</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">process</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+            <span class="n">T</span> <span class="o">=</span> <span class="n">ilens</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+            <span class="n">gtn</span><span class="o">.</span><span class="n">backward</span><span class="p">(</span><span class="n">losses</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="n">emissions</span> <span class="o">=</span> <span class="n">emissions_graphs</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+            <span class="n">grad</span> <span class="o">=</span> <span class="n">emissions</span><span class="o">.</span><span class="n">grad</span><span class="p">()</span><span class="o">.</span><span class="n">weights_to_numpy</span><span class="p">()</span>
+            <span class="n">input_grad</span><span class="p">[</span><span class="n">b</span><span class="p">][:</span><span class="n">T</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">grad</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span> <span class="o">*</span> <span class="n">scales</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+
+        <span class="n">gtn</span><span class="o">.</span><span class="n">parallel_for</span><span class="p">(</span><span class="n">process</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="n">B</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">grad_output</span><span class="o">.</span><span class="n">is_cuda</span><span class="p">:</span>
+            <span class="n">input_grad</span> <span class="o">=</span> <span class="n">input_grad</span><span class="o">.</span><span class="n">cuda</span><span class="p">()</span>
+        <span class="n">input_grad</span> <span class="o">*=</span> <span class="n">grad_output</span> <span class="o">/</span> <span class="n">B</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">input_grad</span><span class="p">,</span>
+            <span class="kc">None</span><span class="p">,</span>  <span class="c1"># targets</span>
+            <span class="kc">None</span><span class="p">,</span>  <span class="c1"># ilens</span>
+            <span class="kc">None</span><span class="p">,</span>  <span class="c1"># blank_idx</span>
+            <span class="kc">None</span><span class="p">,</span>  <span class="c1"># reduction</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

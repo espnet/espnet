@@ -166,6 +166,11 @@
             <span class="k">if</span> <span class="n">ignore_nan_grad</span><span class="p">:</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;ignore_nan_grad option is not supported for warp_ctc&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span> <span class="o">=</span> <span class="n">warp_ctc</span><span class="o">.</span><span class="n">CTCLoss</span><span class="p">(</span><span class="n">size_average</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reduce</span><span class="o">=</span><span class="n">reduce</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;gtnctc&quot;</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.gtn_ctc</span> <span class="kn">import</span> <span class="n">GTNCTCLossFunction</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span> <span class="o">=</span> <span class="n">GTNCTCLossFunction</span><span class="o">.</span><span class="n">apply</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s1">&#39;ctc_type must be &quot;builtin&quot; or &quot;warpctc&quot;: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span><span class="si">}</span><span class="s1">&#39;</span>
@@ -241,6 +246,11 @@
                 <span class="c1"># but builtin return as tensor w/o shape (scalar).</span>
                 <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
             <span class="k">return</span> <span class="n">loss</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;gtnctc&quot;</span><span class="p">:</span>
+            <span class="n">log_probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">th_pred</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span><span class="p">(</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">th_target</span><span class="p">,</span> <span class="n">th_ilen</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">)</span>
+
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
 
@@ -255,11 +265,15 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># hs_pad: (B, L, NProj) -&gt; ys_hat: (B, L, Nvocab)</span>
         <span class="n">ys_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_lo</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">))</span>
-        <span class="c1"># ys_hat: (B, L, D) -&gt; (L, B, D)</span>
-        <span class="n">ys_hat</span> <span class="o">=</span> <span class="n">ys_hat</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
-        <span class="c1"># (B, L) -&gt; (BxL,)</span>
-        <span class="n">ys_true</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">ys_pad</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">l</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ys_lens</span><span class="p">)])</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;gtnctc&quot;</span><span class="p">:</span>
+            <span class="c1"># gtn expects list form for ys</span>
+            <span class="n">ys_true</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="n">y</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys_pad</span><span class="p">]</span>  <span class="c1"># parse padded ys</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># ys_hat: (B, L, D) -&gt; (L, B, D)</span>
+            <span class="n">ys_hat</span> <span class="o">=</span> <span class="n">ys_hat</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># (B, L) -&gt; (BxL,)</span>
+            <span class="n">ys_true</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">ys_pad</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">l</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ys_lens</span><span class="p">)])</span>
 
         <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_fn</span><span class="p">(</span><span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_true</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys_lens</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
             <span class="n">device</span><span class="o">=</span><span class="n">hs_pad</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">hs_pad</span><span class="o">.</span><span class="n">dtype</span>
