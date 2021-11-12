@@ -37,4 +37,3 @@ teardown() {
     python $utils/score_intent.py --exp_root ${tmpdir} --valid_folder ${valid_inference_folder} --test_folder ${test_inference_folder} > $tmpdir/output.txt
     diff $tmpdir/result.txt $tmpdir/output.txt
 }
-
