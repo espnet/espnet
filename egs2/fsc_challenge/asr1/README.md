@@ -9,7 +9,8 @@
 - Git hash: `a1a55e1eef2a74d2b8580d8071ce5229e7fa654c`
   - Commit date: `Mon Nov 8 23:56:06 2021 -0500`
 - Pretrained Model
-  - Zenodo: https://zenodo.org/deposit/5656007
+  - Zenodo: https://zenodo.org/record/5656007
+  - Hugging Face Hub: https://huggingface.co/espnet/siddhana_fsc_challenge_asr_train_asr_hubert_transformer_adam_specaug_raw_en_word_valid.acc.ave_5best
 
 ## Using Transformer based encoder-decoder with finetuned Hubert pre encoder and decoding sentence with spectral augmentation and predicting transcript along with intent
 - ASR config: [conf/tuning/train_asr.yaml](conf/tuning/train_asr_hubert_transformer_adam_specaug_finetune.yaml)
