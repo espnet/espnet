@@ -6,7 +6,7 @@
   - Splits: https://github.com/maseEval/mase/tree/main/slu_splits/fluent_speech_commands/challenge_splits
     - Unseen Speaker Test Set: Test generalisation to new speaker, Similar distribution of speaker diversity in train and test set
       - Additional constraints to increase ASR confusion in test set
-    - Unseen Utterance Test Set: Test generalisation to new utterances Similar distribution of transcript length in train and test set
+    - Unseen Utterance Test Set: Test generalisation to new utterances, Similar distribution of transcript length in train and test set
       - Additional constraints to reduce n-gram overlap with training set
   - Paper: http://arxiv.org/abs/2106.15065
 
