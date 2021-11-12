@@ -63,8 +63,8 @@ def _intersect_device(
     for start, end in splits:
         indexes = torch.arange(start, end).to(b_to_a_map)
 
-        fsas = k2.index(b_fsas, indexes)
-        b_to_a = k2.index(b_to_a_map, indexes)
+        fsas = k2.index_fsa(b_fsas, indexes)
+        b_to_a = k2.index_select(b_to_a_map, indexes)
         path_lats = k2.intersect_device(
             a_fsas, fsas, b_to_a_map=b_to_a, sorted_match_a=sorted_match_a
         )
@@ -168,25 +168,26 @@ def nbest_am_lm_scores(
     Compatible with both ctc_decoding or TLG decoding.
     """
     paths = k2.random_paths(lats, num_paths=num_paths, use_double_scores=True)
-    if hasattr(lats.aux_labels, "contiguous"):
-        word_seqs = k2.index(lats.aux_labels.contiguous(), paths)
+    if isinstance(lats.aux_labels, torch.Tensor):
+        word_seqs = k2.ragged.index(lats.aux_labels.contiguous(), paths)
     else:
         # '_k2.RaggedInt' object has no attribute 'contiguous'
-        word_seqs = k2.index(lats.aux_labels, paths)
+        word_seqs = lats.aux_labels.index(paths)
+        word_seqs = word_seqs.remove_axis(word_seqs.num_axes - 2)
 
     # With ctc_decoding, word_seqs stores token_ids.
     # With TLG decoding, word_seqs stores word_ids.
-    word_seqs = k2.ragged.remove_values_leq(word_seqs, 0)
-    unique_word_seqs, num_repeats, new2old = k2.ragged.unique_sequences(
-        word_seqs, need_num_repeats=True, need_new2old_indexes=True
+    word_seqs = word_seqs.remove_values_leq(0)
+    unique_word_seqs, num_repeats, new2old = word_seqs.unique(
+        need_num_repeats=True, need_new2old_indexes=True
     )
 
-    seq_to_path_shape = k2.ragged.get_layer(unique_word_seqs.shape(), 0)
+    seq_to_path_shape = unique_word_seqs.shape.get_layer(0)
     path_to_seq_map = seq_to_path_shape.row_ids(1)
     # used to split final computed tot_scores
     seq_to_path_splits = seq_to_path_shape.row_splits(1)
 
-    unique_word_seqs = k2.ragged.remove_axis(unique_word_seqs, 0)
+    unique_word_seqs = unique_word_seqs.remove_axis(0)
     word_fsas = k2.linear_fsa(unique_word_seqs)
 
     word_fsas_with_epsilon_loops = k2.add_epsilon_self_loops(word_fsas)
@@ -195,10 +196,11 @@ def nbest_am_lm_scores(
         lats, word_fsas_with_epsilon_loops, path_to_seq_map, device, batch_size
     )
 
-    token_seqs = k2.index(lats.labels.contiguous(), paths)
-    token_seqs = k2.ragged.remove_axis(token_seqs, 0)
-    token_ids, _ = k2.ragged.index(token_seqs, new2old, axis=0)
-    token_ids = k2.ragged.to_list(token_ids)
+    token_seqs = k2.ragged.index(lats.labels.contiguous(), paths)
+    token_seqs = token_seqs.remove_axis(0)
+
+    token_ids, _ = token_seqs.index(new2old, axis=0)
+    token_ids = token_ids.tolist()
     # Now remove repeated tokens and 0s and -1s.
     token_ids = [remove_repeated_and_leq(tokens) for tokens in token_ids]
     return am_scores, lm_scores, token_ids, new2old, path_to_seq_map, seq_to_path_splits
