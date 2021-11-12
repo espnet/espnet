@@ -10,6 +10,7 @@
   - Commit date: `Mon Nov 8 16:28:44 2021 -0500`
 - Pretrained Model
   - Zenodo: https://zenodo.org/record/5655832
+  - Hugging Face Hub: https://huggingface.co/espnet/siddhana_fsc_unseen_asr_train_asr_hubert_transformer_adam_specaug_finetune_raw_en_word_valid.acc.ave_5best
 
 ## Using Transformer based encoder-decoder with Hubert pre encoder and decoding sentence with spectral augmentation and predicting transcript along with intent
 - ASR config: [conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml](conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml)
