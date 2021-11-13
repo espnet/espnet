@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Please update if too old. See https://k2-fsa.org/nightly/, https://anaconda.org/k2-fsa/k2/files
-pip_k2_version="1.10.dev20211109"
+pip_k2_version="1.10.dev20211112"
 conda_k2_version="1.10.dev20211103"  # Empty indicates latest version
 
 if [ $# -gt 2 ]; then
@@ -78,28 +78,68 @@ if ! "${python_36_plus}"; then
     exit 1
 fi
 
-if ! "$(pytorch_plus 1.6.0)"; then
-    echo "[WARNING] Using pip to install k2"
-    use_conda=false
-fi
-
-
 # Check pytorch version.
 # Please exit without error code for CI.
 if "${use_conda}"; then
-    if [ "${conda_k2_version}" = "1.6.dev20211103" ]; then
-        if ! "$(pytorch_plus 1.5.1)"; then
+    if [ "${conda_k2_version}" = "1.10.dev202111033" ]; then
+        if "$(pytorch_plus 1.10.1)"; then
+            echo "[WARNING] k2=${conda_k2_version} doesn't provide conda package for pytorch=${torch_version}. Skip k2-installation"
+            exit
+        elif ! "$(pytorch_plus 1.5.0)"; then
+            echo "[WARNING] k2=${conda_k2_version} doesn't provide conda package for pytorch=${torch_version}. Skip k2-installation"
+            exit
+        fi
+        if "$(pytorch_plus 1.10.0)"; then
+            if [ -n "${cuda_version}" ] && [ "${cuda_version}" != "10.2" ] && [ "${cuda_version}" != "11.0" ] && [ "${cuda_version}" != "11.1" ] && [ "${cuda_version}" != "11.3" ]; then
+                echo "[WARNING] k2=${conda_k2_version} for pytorch=${torch_version} provides conda package for CUDA10.2, 11.0, and 11.3 only. Skip k2-installation"
+                exit
+            fi
+        elif ! "$(pytorch_plus 1.6.0)"; then
+            if [ -n "${cuda_version}" ]; then
+                echo "[WARNING] k2=${conda_k2_version} for pytorch=${torch_version} doesn't provides conda package for CUDA. Skip k2-installation"
+                exit
+            fi
+        else
+            if [ -n "${cuda_version}" ] && [ "${cuda_version}" != "10.2" ] && [ "${cuda_version}" != "11.0" ] && [ "${cuda_version}" != "11.1" ]; then
+                echo "[WARNING] k2=${conda_k2_version} for pytorch=${torch_version} provides conda package for CUDA10.2, 11.0, and 11.1 only. Skip k2-installation"
+                exit
+            fi
+        fi
+    elif [ "${conda_k2_version}" = "1.6.dev20210824" ]; then
+        if "$(pytorch_plus 1.9.1)"; then
+            echo "[WARNING] k2=${conda_k2_version} doesn't provide conda package for pytorch=${torch_version}. Skip k2-installation"
+            exit
+        elif ! "$(pytorch_plus 1.8.1)"; then
             echo "[WARNING] k2=${conda_k2_version} doesn't provide conda package for pytorch=${torch_version}. Skip k2-installation"
             exit
         fi
         if [ -n "${cuda_version}" ] && [ "${cuda_version}" != "10.2" ] && [ "${cuda_version}" != "11.0" ] && [ "${cuda_version}" != "11.1" ]; then
-            echo "[WARNING] k2=${conda_k2_version} provides conda package for CUDA10.2, 11.0, 11.1 only. Skip k2-installation"
+            echo "[WARNING] k2=${conda_k2_version} provides conda package for CUDA10.2, 11.0, and 11.1 only. Skip k2-installation"
             exit
         fi
     fi
 else
-    if [ "${pip_k2_version}" = "1.10.dev20211109" ]; then
-        if ! "$(pytorch_plus 1.4.0)"; then
+    if [ "${pip_k2_version}" = "1.10.dev20211112" ]; then
+        if "$(pytorch_plus 1.10.1)"; then
+            echo "[WARNING] k2=${pip_k2_version} for pip doesn't provide pytorch=${torch_version} binary. Skip k2-installation"
+            exit
+        elif ! "$(pytorch_plus 1.4.0)"; then
+            echo "[WARNING] k2=${pip_k2_version} for pip doesn't provide pytorch=${torch_version} binary. Skip k2-installation"
+            exit
+        fi
+        if [ -n "${cuda_version}" ] && [ "${torch_version}" != "1.7.1" ]; then
+            echo "[WARNING] k2=${pip_k2_version}+cuda for pip provides pytorch=1.7.1 binary only. Skip k2-installation"
+            exit
+        fi
+        if [ -n "${cuda_version}" ] && [ "${cuda_version}" != "10.1" ] && [ "${cuda_version}" != "10.2" ] && [ "${cuda_version}" != "11.0" ]; then
+            echo "[WARNING] k2=${pip_k2_version} for pip provides CUDA10.1, 10.2, and 11.0 binary only. Skip k2-installation"
+            exit
+        fi
+    elif [ "${pip_k2_version}" = "1.6.dev20210907" ]; then
+        if "$(pytorch_plus 1.9.1)"; then
+            echo "[WARNING] k2=${pip_k2_version} for pip doesn't provide pytorch=${torch_version} binary. Skip k2-installation"
+            exit
+        elif ! "$(pytorch_plus 1.3.1)"; then
             echo "[WARNING] k2=${pip_k2_version} for pip  doesn't provide pytorch=${torch_version} binary. Skip k2-installation"
             exit
         fi
@@ -108,7 +148,7 @@ else
             exit
         fi
         if [ -n "${cuda_version}" ] && [ "${cuda_version}" != "10.1" ] && [ "${cuda_version}" != "10.2" ] && [ "${cuda_version}" != "11.0" ]; then
-            echo "[WARNING] k2=${pip_k2_version} for pip provides CUDA10.1, 10.2, 11.0 binary only. Skip k2-installation"
+            echo "[WARNING] k2=${pip_k2_version} for pip provides CUDA10.1, 10.2, and 11.0 binary only. Skip k2-installation"
             exit
         fi
     fi
