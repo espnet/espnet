@@ -12,7 +12,6 @@ from typing import Tuple
 from typing import Union
 
 import k2
-import k2.ragged as k2r
 import numpy as np
 import torch
 from typeguard import check_argument_types
@@ -103,25 +102,23 @@ def get_texts(best_paths: k2.Fsa) -> List[List[int]]:
     """
     # remove any 0's or -1's (there should be no 0's left but may be -1's.)
 
-    if isinstance(best_paths.aux_labels, k2.RaggedInt):
-        aux_labels = k2r.remove_values_leq(best_paths.aux_labels, 0)
-        aux_shape = k2r.compose_ragged_shapes(
-            best_paths.arcs.shape(), aux_labels.shape()
-        )
+    if isinstance(best_paths.aux_labels, k2.RaggedTensor):
+        aux_labels = best_paths.aux_labels.remove_values_leq(0)
+        aux_shape = best_paths.arcs.shape().compose(aux_labels.shape())
 
         # remove the states and arcs axes.
-        aux_shape = k2r.remove_axis(aux_shape, 1)
-        aux_shape = k2r.remove_axis(aux_shape, 1)
-        aux_labels = k2.RaggedInt(aux_shape, aux_labels.values())
+        aux_shape = aux_shape.remove_axis(1)
+        aux_shape = aux_shape.remove_axis(1)
+        aux_labels = k2.RaggedTensor(aux_shape, aux_labels.values())
     else:
         # remove axis corresponding to states.
-        aux_shape = k2r.remove_axis(best_paths.arcs.shape(), 1)
-        aux_labels = k2.RaggedInt(aux_shape, best_paths.aux_labels)
+        aux_shape = best_paths.arcs.shape().remove_axis(1)
+        aux_labels = k2.RaggedTensor(aux_shape, best_paths.aux_labels)
         # remove 0's and -1's.
-        aux_labels = k2r.remove_values_leq(aux_labels, 0)
+        aux_labels = aux_labels.remove_values_leq(0)
 
-    assert aux_labels.num_axes() == 2
-    return k2r.to_list(aux_labels)
+    assert aux_labels.num_axes == 2
+    return aux_labels.tolist()
 
 
 class k2Speech2Text:
@@ -412,13 +409,10 @@ class k2Speech2Text:
 
             assert len(hyps) == len(split_size)
         else:
-            # TODO(Liyong Guo): use GPU version of get_tot_scores
-            best_paths = k2.shortest_path(lattices.to("cpu"), use_double_scores=True)
-            scores = (
-                best_paths.to("cpu")
-                .get_tot_scores(use_double_scores=True, log_semiring=False)
-                .tolist()
-            )
+            best_paths = k2.shortest_path(lattices, use_double_scores=True)
+            scores = best_paths.get_tot_scores(
+                use_double_scores=True, log_semiring=False
+            ).tolist()
             hyps = get_texts(best_paths)
 
         assert len(scores) == len(hyps)

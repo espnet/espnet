@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # Please update if too old. See https://k2-fsa.org/nightly/, https://anaconda.org/k2-fsa/k2/files
-pip_k2_version="1.6.dev20210907"
-conda_k2_version="1.6.dev20210824"  # Empty indicates latest version
+pip_k2_version="1.10.dev20211109"
+conda_k2_version="1.10.dev20211103"  # Empty indicates latest version
 
 if [ $# -gt 2 ]; then
     echo "Usage: $0 [use-conda|true or false] [<k2-version>]"
@@ -87,11 +87,8 @@ fi
 # Check pytorch version.
 # Please exit without error code for CI.
 if "${use_conda}"; then
-    if [ "${conda_k2_version}" = "1.6.dev20210824" ]; then
-        if "$(pytorch_plus 1.9.1)"; then
-            echo "[WARNING] k2=${conda_k2_version} doesn't provide conda package for pytorch=${torch_version}. Skip k2-installation"
-            exit
-        elif ! "$(pytorch_plus 1.8.1)"; then
+    if [ "${conda_k2_version}" = "1.6.dev20211103" ]; then
+        if ! "$(pytorch_plus 1.5.1)"; then
             echo "[WARNING] k2=${conda_k2_version} doesn't provide conda package for pytorch=${torch_version}. Skip k2-installation"
             exit
         fi
@@ -101,11 +98,8 @@ if "${use_conda}"; then
         fi
     fi
 else
-    if [ "${pip_k2_version}" = "1.6.dev20210907" ]; then
-        if "$(pytorch_plus 1.9.1)"; then
-            echo "[WARNING] k2=${pip_k2_version} for pip doesn't provide pytorch=${torch_version} binary. Skip k2-installation"
-            exit
-        elif ! "$(pytorch_plus 1.3.1)"; then
+    if [ "${pip_k2_version}" = "1.10.dev20211109" ]; then
+        if ! "$(pytorch_plus 1.4.0)"; then
             echo "[WARNING] k2=${pip_k2_version} for pip  doesn't provide pytorch=${torch_version} binary. Skip k2-installation"
             exit
         fi
