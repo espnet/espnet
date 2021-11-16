@@ -85,9 +85,9 @@ if [ -n "${cuda_version}" ]; then
         echo "[INFO] Skip cupy installation"
     else
         if $(python_plus 3.8); then
-            python3 -m pip install "cupy"
+            python3 -m pip install "cupy==${chainer_version}"
         else
-            python3 -m pip install "cupy-cuda${cuda_version_without_dot}"
+            python3 -m pip install "cupy-cuda${cuda_version_without_dot}==${chainer_version}"
         fi
     fi
 fi
