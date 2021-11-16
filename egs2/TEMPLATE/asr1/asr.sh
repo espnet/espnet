@@ -90,6 +90,8 @@ asr_stats_dir= # Specify the directory path for ASR statistics.
 asr_config=    # Config for asr model training.
 asr_args=      # Arguments for asr model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in asr config.
+pretrained_model=              # Pretrained model to load
+ignore_init_mismatch=false      # Ignore initial mismatch
 feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_asr=1           # Number of splitting for lm corpus.
 
@@ -197,6 +199,8 @@ Options:
     --asr_args         # Arguments for asr model training (default="${asr_args}").
                        # e.g., --asr_args "--max_epoch 10"
                        # Note that it will overwrite args in asr config.
+    --pretrained_model=          # Pretrained model to load (default="${pretrained_model}").
+    --ignore_init_mismatch=      # Ignore mismatch parameter init with pretrained model (default="${ignore_init_mismatch}").
     --feats_normalize  # Normalizaton layer type (default="${feats_normalize}").
     --num_splits_asr   # Number of splitting for lm corpus  (default="${num_splits_asr}").
 
@@ -1089,6 +1093,8 @@ if ! "${skip_train}"; then
                 --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
                 --valid_shape_file "${asr_stats_dir}/valid/text_shape.${token_type}" \
                 --resume true \
+                --init_param ${pretrained_model} \
+                --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${_fold_length}" \
                 --fold_length "${asr_text_fold_length}" \
                 --output_dir "${asr_exp}" \
@@ -1346,39 +1352,43 @@ fi
 
 
 packed_model="${asr_exp}/${asr_exp##*/}_${inference_asr_model%.*}.zip"
-if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
-    log "Stage 14: Pack model: ${packed_model}"
+if [ -z "${download_model}" ]; then
+    # Skip pack preparation if using a downloaded model
+    if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
+        log "Stage 14: Pack model: ${packed_model}"
 
-    _opts=
-    if "${use_lm}"; then
-        _opts+="--lm_train_config ${lm_exp}/config.yaml "
-        _opts+="--lm_file ${lm_exp}/${inference_lm} "
-        _opts+="--option ${lm_exp}/perplexity_test/ppl "
-        _opts+="--option ${lm_exp}/images "
+        _opts=
+        if "${use_lm}"; then
+            _opts+="--lm_train_config ${lm_exp}/config.yaml "
+            _opts+="--lm_file ${lm_exp}/${inference_lm} "
+            _opts+="--option ${lm_exp}/perplexity_test/ppl "
+            _opts+="--option ${lm_exp}/images "
+        fi
+        if [ "${feats_normalize}" = global_mvn ]; then
+            _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
+        fi
+        if [ "${token_type}" = bpe ]; then
+            _opts+="--option ${bpemodel} "
+        fi
+        if [ "${nlsyms_txt}" != none ]; then
+            _opts+="--option ${nlsyms_txt} "
+        fi
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.pack asr \
+            --asr_train_config "${asr_exp}"/config.yaml \
+            --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
+            ${_opts} \
+            --option "${asr_exp}"/RESULTS.md \
+            --option "${asr_exp}"/RESULTS.md \
+            --option "${asr_exp}"/images \
+            --outpath "${packed_model}"
     fi
-    if [ "${feats_normalize}" = global_mvn ]; then
-        _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
-    fi
-    if [ "${token_type}" = bpe ]; then
-        _opts+="--option ${bpemodel} "
-    fi
-    if [ "${nlsyms_txt}" != none ]; then
-        _opts+="--option ${nlsyms_txt} "
-    fi
-    # shellcheck disable=SC2086
-    ${python} -m espnet2.bin.pack asr \
-        --asr_train_config "${asr_exp}"/config.yaml \
-        --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
-        ${_opts} \
-        --option "${asr_exp}"/RESULTS.md \
-        --option "${asr_exp}"/RESULTS.md \
-        --option "${asr_exp}"/images \
-        --outpath "${packed_model}"
 fi
 
 if ! "${skip_upload}"; then
     if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
         log "Stage 15: Upload model to Zenodo: ${packed_model}"
+        log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/

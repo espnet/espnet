@@ -249,7 +249,7 @@ class HubertPretrainModel(AbsESPnetModel):
                 corr_unmask += corr_u
                 count_unmask += count_u
 
-        acc_att_m = corr_masked / count_masked
-        acc_att_u = corr_unmask / count_unmask
+        acc_att_m = corr_masked / (count_masked + 1e-10)
+        acc_att_u = corr_unmask / (count_unmask + 1e-10)
 
         return loss_att, acc_att_m, acc_att_u

@@ -4,7 +4,6 @@ from typing import List
 from typing import Tuple
 from typing import Union
 
-import editdistance
 import torch
 
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
@@ -133,6 +132,8 @@ class ErrorCalculator(object):
             : Average sentence-level CER score.
 
         """
+        import editdistance
+
         distances, lens = [], []
 
         for i, hyp in enumerate(hyps):
@@ -155,6 +156,8 @@ class ErrorCalculator(object):
             : Average sentence-level WER score.
 
         """
+        import editdistance
+
         distances, lens = [], []
 
         for i, hyp in enumerate(hyps):

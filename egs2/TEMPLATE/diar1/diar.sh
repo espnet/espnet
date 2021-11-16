@@ -555,21 +555,25 @@ fi
 
 
 packed_model="${diar_exp}/${diar_exp##*/}_${inference_model%.*}.zip"
-if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-    log "Stage 8: Pack model: ${packed_model}"
+if [ -z "${download_model}" ]; then
+    # Skip pack preparation if using a downloaded model
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 8: Pack model: ${packed_model}"
 
-    ${python} -m espnet2.bin.pack diar \
-        --train_config "${diar_exp}"/config.yaml \
-        --model_file "${diar_exp}"/"${inference_model}" \
-        --option "${diar_exp}"/RESULTS.md \
-        --option "${diar_stats_dir}"/train/feats_stats.npz  \
-        --option "${diar_exp}"/images \
-        --outpath "${packed_model}"
+        ${python} -m espnet2.bin.pack diar \
+            --train_config "${diar_exp}"/config.yaml \
+            --model_file "${diar_exp}"/"${inference_model}" \
+            --option "${diar_exp}"/RESULTS.md \
+            --option "${diar_stats_dir}"/train/feats_stats.npz  \
+            --option "${diar_exp}"/images \
+            --outpath "${packed_model}"
+    fi
 fi
 
 if ! "${skip_upload}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         log "Stage 9: Upload model to Zenodo: ${packed_model}"
+        log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/
