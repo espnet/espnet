@@ -72,6 +72,11 @@
 <li class="toctree-l2"><a class="reference internal" href="#use-specified-experiment-directory-for-evaluation">Use specified experiment directory for evaluation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#evaluation-without-training-using-pretrained-model">Evaluation without training using pretrained model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#packing-and-sharing-your-trained-model">Packing and sharing your trained model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#usage-of-self-supervised-learning-representations-as-feature">Usage of Self-Supervised Learning Representations as feature</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#prerequisite">Prerequisite</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#usage">Usage</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2_training_option.html">Change the configuration for training</a></li>
@@ -198,6 +203,7 @@
 <li><p>You don’t need to create the feature file before training, but just input wave data directly.</p></li>
 <li><p>We support both raw wave input and extracted features.</p></li>
 <li><p>The preprocessing for text, tokenization to characters, or sentencepieces, can be also applied during training.</p></li>
+<li><p>Support <strong>self-supervised learning representations</strong> from s3prl</p></li>
 </ul>
 </li>
 <li><p>Discarding the JSON format describing the training corpus.</p>
@@ -434,6 +440,43 @@ Then, execute <code class="docutils literal notranslate"><span class="pre">run.s
 </pre></div>
 </div>
 <p>The packed model can be uploaded to both platforms by setting the previously mentioned flags.</p>
+</section>
+<section id="usage-of-self-supervised-learning-representations-as-feature">
+<h2>Usage of Self-Supervised Learning Representations as feature<a class="headerlink" href="#usage-of-self-supervised-learning-representations-as-feature" title="Permalink to this headline">¶</a></h2>
+<p>ESPnet supports self-supervised learning representations (SSLR) to replace traditional spectrum features. In some cases, SSLRs can boost the performance.</p>
+<p>To use SSLRs in your task, you need to make several modifications.</p>
+<section id="prerequisite">
+<h3>Prerequisite<a class="headerlink" href="#prerequisite" title="Permalink to this headline">¶</a></h3>
+<ol class="simple">
+<li><p>Install <a class="reference external" href="https://github.com/s3prl/s3prl">S3PRL</a> by <code class="docutils literal notranslate"><span class="pre">tools/installers/install_s3prl.sh</span></code>.</p></li>
+<li><p>If HuBERT / Wav2Vec is needed, <a class="reference external" href="https://github.com/pytorch/fairseq">fairseq</a> should be installed by <code class="docutils literal notranslate"><span class="pre">tools/installers/install_fairseq.sh</span></code>.</p></li>
+</ol>
+</section>
+<section id="usage">
+<h3>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h3>
+<ol>
+<li><p>To reduce the time used in <code class="docutils literal notranslate"><span class="pre">collect_stats</span></code> step, please specify <code class="docutils literal notranslate"><span class="pre">--feats_normalize</span> <span class="pre">uttmvn</span></code> in <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> and pass it as arguments to <code class="docutils literal notranslate"><span class="pre">asr.sh</span></code> or other task-specific scripts. (Recommended)</p></li>
+<li><p>In the configuration file, specify the <code class="docutils literal notranslate"><span class="pre">frontend</span></code> and <code class="docutils literal notranslate"><span class="pre">preencoder</span></code>. Taking <code class="docutils literal notranslate"><span class="pre">HuBERT</span></code> as an example:
+The <code class="docutils literal notranslate"><span class="pre">upsteam</span></code> name can be whatever supported in S3PRL. <code class="docutils literal notranslate"><span class="pre">multilayer-feature=True</span></code> means the final representation is a weighted-sum of all layers’ hidden states from SSLR model.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">frontend</span><span class="p">:</span> <span class="n">s3prl</span>
+<span class="n">frontend_conf</span><span class="p">:</span>
+   <span class="n">frontend_conf</span><span class="p">:</span>
+      <span class="n">upstream</span><span class="p">:</span> <span class="n">hubert_large_ll60k</span>  <span class="c1"># Note: If the upstream is changed, please change the input_size in the preencoder.</span>
+   <span class="n">download_dir</span><span class="p">:</span> <span class="o">./</span><span class="n">hub</span>
+   <span class="n">multilayer_feature</span><span class="p">:</span> <span class="kc">True</span>
+</pre></div>
+</div>
+<p>Here the <code class="docutils literal notranslate"><span class="pre">preencoder</span></code> is to reduce the input dimension to the encoder, to reduce the memory cost. The <code class="docutils literal notranslate"><span class="pre">input_size</span></code> depends on the upstream model, while the <code class="docutils literal notranslate"><span class="pre">output_size</span></code> can be set to any values.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">preencoder</span><span class="p">:</span> <span class="n">linear</span>
+<span class="n">preencoder_conf</span><span class="p">:</span>
+   <span class="n">input_size</span><span class="p">:</span> <span class="mi">1024</span>  <span class="c1"># Note: If the upstream is changed, please change this value accordingly.</span>
+   <span class="n">output_size</span><span class="p">:</span> <span class="mi">80</span>
+</pre></div>
+</div>
+</li>
+<li><p>Because the shift sizes of different <code class="docutils literal notranslate"><span class="pre">upstream</span></code> models are different, e.g. <code class="docutils literal notranslate"><span class="pre">HuBERT</span></code> and <code class="docutils literal notranslate"><span class="pre">Wav2Vec2.0</span></code> have <code class="docutils literal notranslate"><span class="pre">20ms</span></code> frameshift. Sometimes, the downsampling rate (<code class="docutils literal notranslate"><span class="pre">input_layer</span></code>) in the <code class="docutils literal notranslate"><span class="pre">encoder</span></code> configuration need to be changed. For example, using <code class="docutils literal notranslate"><span class="pre">input_layer:</span> <span class="pre">conv2d2</span></code> will results in a total frameshift of <code class="docutils literal notranslate"><span class="pre">40ms</span></code>, which is enough for some tasks.</p></li>
+</ol>
+</section>
 </section>
 </section>
 
