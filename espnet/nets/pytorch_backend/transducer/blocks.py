@@ -74,7 +74,7 @@ def verify_block_arguments(
         }
 
         if net_part == "decoder":
-            raise ValueError("Encoder does not support 'conformer'.")
+            raise ValueError("Decoder does not support 'conformer'.")
 
         if block.get("use_conv_mod", None) is True and "conv_mod_kernel" not in block:
             raise ValueError(
