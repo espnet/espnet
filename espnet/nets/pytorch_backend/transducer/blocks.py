@@ -73,6 +73,9 @@ def verify_block_arguments(
             "use_conv_mod",
         }
 
+        if net_part == "decoder":
+            raise ValueError("Encoder does not support 'conformer'.")
+
         if block.get("use_conv_mod", None) is True and "conv_mod_kernel" not in block:
             raise ValueError(
                 "Block %d: 'use_conv_mod' is True but "
@@ -82,7 +85,7 @@ def verify_block_arguments(
         arguments = {"idim", "odim", "kernel_size"}
 
         if net_part == "encoder":
-            raise ValueError("Encoder does not support 'causal-conv1d.'")
+            raise ValueError("Encoder does not support 'causal-conv1d'.")
 
     elif block_type == "conv1d":
         arguments = {"idim", "odim", "kernel_size"}
