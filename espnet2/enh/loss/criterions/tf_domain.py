@@ -84,9 +84,10 @@ class FrequencyDomainLoss(AbsEnhLoss, ABC):
 
 
 class FrequencyDomainMSE(FrequencyDomainLoss):
-    def __init__(self, compute_on_mask=False):
+    def __init__(self, compute_on_mask=False, mask_type="IBM"):
         super().__init__()
         self.compute_on_mask = compute_on_mask
+        self.mask_type = mask_type
     
     @property
     def name(self) -> str:

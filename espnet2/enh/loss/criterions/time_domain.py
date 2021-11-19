@@ -16,8 +16,10 @@ EPS = torch.finfo(torch.get_default_dtype()).eps
 
 class SISNRLoss(TimeDomainLoss):
 
-    def __init__(self):
+    def __init__(self, eps=EPS):
         super().__init__()
+        self.eps = float(eps)
+        print(self.eps)
         
     @property
     def name(self) -> str:
@@ -44,15 +46,15 @@ class SISNRLoss(TimeDomainLoss):
         s_estimate = zero_mean_estimate  # [B, T]
         # s_target = <s', s>s / ||s||^2
         pair_wise_dot = torch.sum(s_estimate * s_target, dim=1, keepdim=True)  # [B, 1]
-        s_target_energy = torch.sum(s_target ** 2, dim=1, keepdim=True) + EPS  # [B, 1]
+        s_target_energy = torch.sum(s_target ** 2, dim=1, keepdim=True) + self.eps  # [B, 1]
         pair_wise_proj = pair_wise_dot * s_target / s_target_energy  # [B, T]
         # e_noise = s' - s_target
         e_noise = s_estimate - pair_wise_proj  # [B, T]
 
         # SI-SNR = 10 * log_10(||s_target||^2 / ||e_noise||^2)
         pair_wise_si_snr = torch.sum(pair_wise_proj ** 2, dim=1) / (
-            torch.sum(e_noise ** 2, dim=1) + EPS
+            torch.sum(e_noise ** 2, dim=1) + self.eps
         )
-        pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + EPS)  # [B]
+        pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + self.eps)  # [B]
 
         return -1 * pair_wise_si_snr

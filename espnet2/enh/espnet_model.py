@@ -2,7 +2,7 @@
 from distutils.version import LooseVersion
 from functools import reduce
 from itertools import permutations
-from typing import Dict
+from typing import Dict, List
 from typing import Optional
 from typing import Tuple
 
@@ -36,7 +36,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         encoder: AbsEncoder,
         separator: AbsSeparator,
         decoder: AbsDecoder,
-        loss_wrapper: AbsLossWrapper,
+        loss_wrappers: List[AbsLossWrapper],    
         mask_type: Optional[str] = None,
     ):
         assert check_argument_types()
@@ -46,7 +46,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.encoder = encoder
         self.separator = separator
         self.decoder = decoder
-        self.loss_wrapper = loss_wrapper
+        self.loss_wrappers = loss_wrappers
         self.num_spk = separator.num_spk
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
 
@@ -120,14 +120,18 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
 
 
-        if isinstance(self.loss_wrapper.criterion, SISNRLoss):
-            loss, stats, others = self.loss_wrapper(speech_ref, speech_pre)
-        elif isinstance(self.loss_wrapper.criterion, FrequencyDomainLoss):
-            spectrum_ref = [self.encoder(sr, speech_lengths)[0] for sr in speech_ref]
-            spectrum_pre = feature_pre
-            loss, stats, others = self.loss_wrapper(spectrum_ref, spectrum_pre)
-
-
+        loss = .0
+        stats = dict()
+        for loss_wrapper in self.loss_wrappers:
+            if isinstance(loss_wrapper.criterion, TimeDomainLoss):
+                l, s, others = loss_wrapper(speech_ref, speech_pre)
+            elif isinstance(loss_wrapper.criterion, FrequencyDomainLoss):
+                spectrum_ref = [self.encoder(sr, speech_lengths)[0] for sr in speech_ref]
+                spectrum_pre = feature_pre
+                l, s, others = loss_wrapper(spectrum_ref, spectrum_pre)
+            loss += l * loss_wrapper.weight
+            stats.update(s)
+        stats['loss'] = loss.detach()
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)

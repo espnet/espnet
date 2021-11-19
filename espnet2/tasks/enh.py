@@ -73,17 +73,17 @@ decoder_choices = ClassChoices(
 )
 
 loss_wrapper_choices = ClassChoices(
-    name="loss_wrapper",
+    name="loss_wrappers",
     classes=dict(pit=PITSolver),
     type_check=AbsLossWrapper,
-    default="pit",
+    default=None,
 )
 
 criterion_choices = ClassChoices(
-    name='criterion',
+    name='criterions',
     classes=dict(si_snr=SISNRLoss, mse=FrequencyDomainMSE),
     type_check=AbsEnhLoss,
-    default="si_snr",
+    default=None,
 )
 
 MAX_REFERENCE_NUM = 100
@@ -203,12 +203,18 @@ class EnhancementTask(AbsTask):
             encoder.output_dim, **args.separator_conf
         )
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
-        criterion = criterion_choices.get_class(args.criterion)(**args.criterion_conf)
-        loss_wrapper = loss_wrapper_choices.get_class(args.loss_wrapper)(criterion=criterion, **args.loss_wrapper_conf)
+        assert len(args.criterions) == len(args.loss_wrappers)
+
+
+        loss_wrappers = []
+        for i in range(len(args.criterions)):
+            criterion = criterion_choices.get_class(args.criterions[i])(**args.criterions_conf[i])
+            loss_wrapper = loss_wrapper_choices.get_class(args.loss_wrappers[i])(criterion=criterion, **args.loss_wrappers_conf[i])
+            loss_wrappers.append(loss_wrapper)
 
         # 1. Build model
         model = ESPnetEnhancementModel(
-            encoder=encoder, separator=separator, decoder=decoder, loss_wrapper=loss_wrapper, **args.model_conf
+            encoder=encoder, separator=separator, decoder=decoder, loss_wrappers=loss_wrappers, **args.model_conf
         )
 
         # FIXME(kamo): Should be done in model?

@@ -25,6 +25,33 @@ scheduler_conf:
     mode: min
     factor: 0.7
     patience: 1
+
+# A list for criterion names
+criterions: 
+    - mse # The first criterion
+    - si_snr # The second criterion
+
+criterions_conf:
+    # The configration dict for the first criterion
+    - compute_on_mask: False
+      mask_type: IBM
+    # The configration dict for the second criterion
+    - eps: 1e-6
+
+# A list for loss wrapper names, the list should 
+# have the same length with `criterions`
+loss_wrappers: 
+    - pit
+    - pit
+# A list of configration dictionaries for `loss_wrappers` 
+# The overlall loss in the multi-task learning will be:
+# loss = weight_1 * loss_1 + ... + weight_N * loss_N
+# The default `weight` is 1.0
+loss_wrappers_conf: 
+    - weight: 1.0
+      # more_options: xxx
+    - weight: 2.0
+
 encoder: stft
 encoder_conf:
     n_fft: 256
@@ -41,9 +68,5 @@ separator_conf:
     layer: 3
     unit: 896
     dropout: 0.5
-criterion: mse
-criterion_conf:
-    compute_on_mask: False
 
-loss_wrapper: pit
-loss_wrapper_conf: {}
+

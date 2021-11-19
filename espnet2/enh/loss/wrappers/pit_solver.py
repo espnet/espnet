@@ -6,9 +6,10 @@ from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 
 class PITSolver(AbsLossWrapper):
-    def __init__(self, criterion:AbsEnhLoss):
+    def __init__(self, criterion:AbsEnhLoss, weight=1.0):
         super().__init__()
         self.criterion = criterion
+        self.weight = weight
     
     def forward(self, ref, inf, perm=None):
         """
