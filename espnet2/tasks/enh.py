@@ -31,6 +31,7 @@ from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.tasks.abs_task import AbsTask
@@ -81,7 +82,7 @@ loss_wrapper_choices = ClassChoices(
 
 criterion_choices = ClassChoices(
     name='criterions',
-    classes=dict(si_snr=SISNRLoss, mse=FrequencyDomainMSE),
+    classes=dict(si_snr=SISNRLoss, mse=FrequencyDomainMSE, l1=FrequencyDomainL1),
     type_check=AbsEnhLoss,
     default=None,
 )
@@ -100,10 +101,6 @@ class EnhancementTask(AbsTask):
         separator_choices,
         # --decoder and --decoder_conf
         decoder_choices,
-        # --loss_wrapper and --loss_wrapper_conf
-        loss_wrapper_choices,
-        # --criterion and --criterion_conf
-        criterion_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -138,6 +135,14 @@ class EnhancementTask(AbsTask):
             default=get_default_kwargs(ESPnetEnhancementModel),
             help="The keyword arguments for model class.",
         )
+
+        group.add_argument(
+            "--criterions",
+            action=NestedDictAction,
+            default=None,
+            help="The criterions binded with the loss wrappers.",
+        )
+        
 
         group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
@@ -203,13 +208,12 @@ class EnhancementTask(AbsTask):
             encoder.output_dim, **args.separator_conf
         )
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
-        assert len(args.criterions) == len(args.loss_wrappers)
 
 
         loss_wrappers = []
-        for i in range(len(args.criterions)):
-            criterion = criterion_choices.get_class(args.criterions[i])(**args.criterions_conf[i])
-            loss_wrapper = loss_wrapper_choices.get_class(args.loss_wrappers[i])(criterion=criterion, **args.loss_wrappers_conf[i])
+        for ctr in args.criterions:
+            criterion = criterion_choices.get_class(ctr['name'])(**ctr['conf'])
+            loss_wrapper = loss_wrapper_choices.get_class(ctr['wrapper'])(criterion=criterion, **ctr['wrapper_conf'])
             loss_wrappers.append(loss_wrapper)
 
         # 1. Build model

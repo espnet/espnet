@@ -123,12 +123,22 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         loss = .0
         stats = dict()
         for loss_wrapper in self.loss_wrappers:
-            if isinstance(loss_wrapper.criterion, TimeDomainLoss):
-                l, s, others = loss_wrapper(speech_ref, speech_pre)
-            elif isinstance(loss_wrapper.criterion, FrequencyDomainLoss):
-                spectrum_ref = [self.encoder(sr, speech_lengths)[0] for sr in speech_ref]
-                spectrum_pre = feature_pre
-                l, s, others = loss_wrapper(spectrum_ref, spectrum_pre)
+            criterion = loss_wrapper.criterion
+            if isinstance(criterion, TimeDomainLoss):
+                l, s, o = loss_wrapper(speech_ref, speech_pre)
+            elif isinstance(criterion, FrequencyDomainLoss):
+                if criterion.compute_on_mask:
+                    tf_ref = criterion.create_mask_label(feature_mix, 
+                        [self.encoder(sr, speech_lengths)[0] for sr in speech_ref]
+                    )
+                    tf_pre = [
+                        others["mask_spk{}".format(spk + 1)] for spk in range(self.num_spk)
+                    ]
+                else:
+                    tf_ref = [self.encoder(sr, speech_lengths)[0] for sr in speech_ref]
+                    tf_pre = feature_pre
+                
+                l, s, o = loss_wrapper(tf_ref, tf_pre)
             loss += l * loss_wrapper.weight
             stats.update(s)
         stats['loss'] = loss.detach()

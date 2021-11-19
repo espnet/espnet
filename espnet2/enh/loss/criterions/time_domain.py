@@ -23,7 +23,7 @@ class SISNRLoss(TimeDomainLoss):
         
     @property
     def name(self) -> str:
-        return 'si_snr'
+        return 'si_snr_loss'
 
     def forward(
         self,
