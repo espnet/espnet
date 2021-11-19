@@ -31,25 +31,35 @@ scheduler_conf:
 # loss = weight_1 * loss_1 + ... + weight_N * loss_N
 # The default `weight` for each sub-loss is 1.0
 criterions: 
-  - name: mse # The first criterion
+  # The first criterion
+  - name: mse 
     conf:
       compute_on_mask: True
       mask_type: PSM
+    # the wrapper for the current criterion
+    # PIT is widely used in the speech separation task
     wrapper: pit
     wrapper_conf:
         weight: 1.0
-  - name: l1 # The second criterion
+  # The second criterion
+  - name: l1 
     conf:
       compute_on_mask: False
     wrapper: pit
     wrapper_conf:
         weight: 1.0
-  - name: si_snr # The third criterion
+        # whether the permutation is computed independently
+        # If false, it will use the permutation order from 
+        # the pervious criterion
+        independent_perm: False  
+  # The third criterion
+  - name: si_snr 
     conf:
       eps: 1.0e-7
     wrapper: pit
     wrapper_conf:
       weight: 5.0
+      independent_perm: False
 
 
 

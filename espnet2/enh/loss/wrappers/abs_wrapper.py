@@ -19,5 +19,6 @@ class AbsLossWrapper(torch.nn.Module,ABC):
         self,
         ref: List,
         inf: List,
+        others: Dict,
     ) -> Tuple[torch.Tensor, Dict, Dict]:
         raise NotImplementedError

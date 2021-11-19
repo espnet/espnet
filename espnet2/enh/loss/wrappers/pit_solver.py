@@ -5,13 +5,16 @@ import torch
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 
+
 class PITSolver(AbsLossWrapper):
-    def __init__(self, criterion:AbsEnhLoss, weight=1.0):
+    def __init__(self, criterion:AbsEnhLoss, weight=1.0, independent_perm=True):
         super().__init__()
         self.criterion = criterion
         self.weight = weight
+        self.independent_perm = independent_perm
+
     
-    def forward(self, ref, inf, perm=None):
+    def forward(self, ref, inf, others={}):
         """
         Args:
             ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk
@@ -22,6 +25,7 @@ class PITSolver(AbsLossWrapper):
             stats: dict, for collecting training status
             others: dict, in this PIT solver, permutation order will be returned 
         """
+        perm = others['perm'] if 'perm' in others else None
 
         assert len(ref) == len(inf), (len(ref), len(inf))
         num_spk = len(ref)
@@ -31,7 +35,8 @@ class PITSolver(AbsLossWrapper):
                 [self.criterion(ref[s], inf[t]) for s, t in enumerate(permutation)]
             ) / len(permutation)
 
-        if perm is None:
+        if self.independent_perm or perm is None:
+            # computate permuatation independently
             device = ref[0].device
             all_permutations = list(permutations(range(num_spk)))
             losses = torch.stack([pair_loss(p) for p in all_permutations], dim=1)
