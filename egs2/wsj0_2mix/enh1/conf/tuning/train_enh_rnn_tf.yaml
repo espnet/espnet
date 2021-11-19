@@ -26,31 +26,33 @@ scheduler_conf:
     factor: 0.7
     patience: 1
 
-# A list for criterion names
-criterions: 
-    - mse # The first criterion
-    - si_snr # The second criterion
-
-criterions_conf:
-    # The configration dict for the first criterion
-    - compute_on_mask: False
-      mask_type: IBM
-    # The configration dict for the second criterion
-    - eps: 1e-6
-
-# A list for loss wrapper names, the list should 
-# have the same length with `criterions`
-loss_wrappers: 
-    - pit
-    - pit
-# A list of configration dictionaries for `loss_wrappers` 
+# A list for criterions
 # The overlall loss in the multi-task learning will be:
 # loss = weight_1 * loss_1 + ... + weight_N * loss_N
-# The default `weight` is 1.0
-loss_wrappers_conf: 
-    - weight: 1.0
-      # more_options: xxx
-    - weight: 2.0
+# The default `weight` for each sub-loss is 1.0
+criterions: 
+  - name: mse # The first criterion
+    conf:
+      compute_on_mask: True
+      mask_type: PSM
+    wrapper: pit
+    wrapper_conf:
+        weight: 1.0
+  - name: l1 # The second criterion
+    conf:
+      compute_on_mask: False
+    wrapper: pit
+    wrapper_conf:
+        weight: 1.0
+  - name: si_snr # The third criterion
+    conf:
+      eps: 1.0e-7
+    wrapper: pit
+    wrapper_conf:
+      weight: 5.0
+
+
+
 
 encoder: stft
 encoder_conf:
