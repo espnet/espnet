@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import datetime
 import logging
 from pathlib import Path
 import sys
@@ -11,16 +12,18 @@ from typing import Tuple
 from typing import Union
 
 import k2
-import k2.ragged as k2r
 import numpy as np
 import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 from typing import List
+import yaml
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.fst.lm_rescore import nbest_am_lm_scores
 from espnet2.tasks.asr import ASRTask
+from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
@@ -29,6 +32,23 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
+
+
+def indices_to_split_size(indices, total_elements: int = None):
+    """convert indices to split_size
+
+    During decoding, the api torch.tensor_split should be used.
+    However, torch.tensor_split is only available with pytorch >= 1.8.0.
+    So torch.split is used to pass ci with pytorch < 1.8.0.
+    This fuction is used to prepare input for torch.split.
+    """
+    if indices[0] != 0:
+        indices = [0] + indices
+
+    split_size = [indices[i] - indices[i - 1] for i in range(1, len(indices))]
+    if total_elements is not None and sum(split_size) != total_elements:
+        split_size.append(total_elements - sum(split_size))
+    return split_size
 
 
 # copied from:
@@ -82,25 +102,23 @@ def get_texts(best_paths: k2.Fsa) -> List[List[int]]:
     """
     # remove any 0's or -1's (there should be no 0's left but may be -1's.)
 
-    if isinstance(best_paths.aux_labels, k2.RaggedInt):
-        aux_labels = k2r.remove_values_leq(best_paths.aux_labels, 0)
-        aux_shape = k2r.compose_ragged_shapes(
-            best_paths.arcs.shape(), aux_labels.shape()
-        )
+    if isinstance(best_paths.aux_labels, k2.RaggedTensor):
+        aux_labels = best_paths.aux_labels.remove_values_leq(0)
+        aux_shape = best_paths.arcs.shape().compose(aux_labels.shape())
 
         # remove the states and arcs axes.
-        aux_shape = k2r.remove_axis(aux_shape, 1)
-        aux_shape = k2r.remove_axis(aux_shape, 1)
-        aux_labels = k2.RaggedInt(aux_shape, aux_labels.values())
+        aux_shape = aux_shape.remove_axis(1)
+        aux_shape = aux_shape.remove_axis(1)
+        aux_labels = k2.RaggedTensor(aux_shape, aux_labels.values())
     else:
         # remove axis corresponding to states.
-        aux_shape = k2r.remove_axis(best_paths.arcs.shape(), 1)
-        aux_labels = k2.RaggedInt(aux_shape, best_paths.aux_labels)
+        aux_shape = best_paths.arcs.shape().remove_axis(1)
+        aux_labels = k2.RaggedTensor(aux_shape, best_paths.aux_labels)
         # remove 0's and -1's.
-        aux_labels = k2r.remove_values_leq(aux_labels, 0)
+        aux_labels = aux_labels.remove_values_leq(0)
 
-    assert aux_labels.num_axes() == 2
-    return k2r.to_list(aux_labels)
+    assert aux_labels.num_axes == 2
+    return aux_labels.tolist()
 
 
 class k2Speech2Text:
@@ -137,7 +155,22 @@ class k2Speech2Text:
         penalty: float = 0.0,
         nbest: int = 1,
         streaming: bool = False,
-        output_beam_size: int = 8,
+        search_beam_size: int = 20,
+        output_beam_size: int = 20,
+        min_active_states: int = 30,
+        max_active_states: int = 10000,
+        blank_bias: float = 0.0,
+        lattice_weight: float = 1.0,
+        is_ctc_decoding: bool = True,
+        lang_dir: Optional[str] = None,
+        use_fgram_rescoring: bool = False,
+        use_nbest_rescoring: bool = False,
+        am_weight: float = 1.0,
+        decoder_weight: float = 0.5,
+        nnlm_weight: float = 1.0,
+        num_paths: int = 1000,
+        nbest_batch_size: int = 500,
+        nll_batch_size: int = 100,
     ):
         assert check_argument_types()
 
@@ -148,10 +181,25 @@ class k2Speech2Text:
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         token_list = asr_model.token_list
-        self.decode_graph = k2.arc_sort(
-            build_ctc_topo(list(range(len(token_list))))
-        ).to(device)
 
+        # 2. Build Language model
+        if lm_train_config is not None:
+            lm, lm_train_args = LMTask.build_model_from_file(
+                lm_train_config, lm_file, device
+            )
+            self.lm = lm
+
+        self.is_ctc_decoding = is_ctc_decoding
+        self.use_fgram_rescoring = use_fgram_rescoring
+        self.use_nbest_rescoring = use_nbest_rescoring
+
+        assert self.is_ctc_decoding, "Currently, only ctc_decoding graph is supported."
+        if self.is_ctc_decoding:
+            self.decode_graph = k2.arc_sort(
+                build_ctc_topo(list(range(len(token_list))))
+            )
+
+        self.decode_graph = self.decode_graph.to(device)
         if token_type is None:
             token_type = asr_train_args.token_type
         if bpemodel is None:
@@ -176,7 +224,18 @@ class k2Speech2Text:
         self.tokenizer = tokenizer
         self.device = device
         self.dtype = dtype
+        self.search_beam_size = search_beam_size
         self.output_beam_size = output_beam_size
+        self.min_active_states = min_active_states
+        self.max_active_states = max_active_states
+        self.blank_bias = blank_bias
+        self.lattice_weight = lattice_weight
+        self.am_weight = am_weight
+        self.decoder_weight = decoder_weight
+        self.nnlm_weight = nnlm_weight
+        self.num_paths = num_paths
+        self.nbest_batch_size = nbest_batch_size
+        self.nll_batch_size = nll_batch_size
 
     @torch.no_grad()
     def __call__(
@@ -209,6 +268,10 @@ class k2Speech2Text:
             self.asr_model.ctc.ctc_lo(enc), dim=2
         )
 
+        # It maybe useful to tune blank_bias.
+        # The valid range of blank_bias is [-inf, 0]
+        logp_encoder_output[:, :, 0] += self.blank_bias
+
         batch_size = encoder_out_lens.size(0)
         sequence_idx = torch.arange(0, batch_size).unsqueeze(0).t().to(torch.int32)
         start_frame = torch.zeros([batch_size], dtype=torch.int32).unsqueeze(0).t()
@@ -217,30 +280,151 @@ class k2Speech2Text:
 
         supervision_segments = supervision_segments.to(torch.int32)
 
+        # An introduction to DenseFsaVec:
+        # https://k2-fsa.github.io/k2/core_concepts/index.html#dense-fsa-vector
+        # It could be viewed as a fsa-type lopg_encoder_output,
+        # whose weight on the arcs are initialized with logp_encoder_output.
+        # The goal of converting tensor-type to fsa-type is using
+        # fsa related functions in k2. e.g. k2.intersect_dense_pruned below
         dense_fsa_vec = k2.DenseFsaVec(logp_encoder_output, supervision_segments)
 
+        # The term "intersect" is similar to "compose" in k2.
+        # The differences is are:
+        # for "compose" functions, the composition involves
+        # mathcing output label of a.fsa and input label of b.fsa
+        # while for "intersect" functions, the composition involves
+        # matching input label of a.fsa and input label of b.fsa
+        # Actually, in compose functions, b.fsa is inverted and then
+        # a.fsa and inv_b.fsa are intersected together.
+        # For difference between compose and interset:
+        # https://github.com/k2-fsa/k2/blob/master/k2/python/k2/fsa_algo.py#L308
+        # For definition of k2.intersect_dense_pruned:
+        # https://github.com/k2-fsa/k2/blob/master/k2/python/k2/autograd.py#L648
         lattices = k2.intersect_dense_pruned(
-            self.decode_graph, dense_fsa_vec, 20.0, self.output_beam_size, 30, 10000
+            self.decode_graph,
+            dense_fsa_vec,
+            self.search_beam_size,
+            self.output_beam_size,
+            self.min_active_states,
+            self.max_active_states,
         )
 
-        best_paths = k2.shortest_path(lattices, use_double_scores=True)
-        scores = best_paths.get_tot_scores(
-            use_double_scores=True, log_semiring=False
-        ).tolist()
-
-        hyps = get_texts(best_paths)
-        assert len(scores) == len(hyps)
+        # lattices.scores is the sum of decode_graph.scores(a.k.a. lm weight) and
+        # dense_fsa_vec.scores(a.k.a. am weight) on related arcs.
+        # For ctc decoding graph, lattices.scores only store am weight
+        # since the decoder_graph only define the ctc topology and
+        # has no lm weight on its arcs.
+        # While for 3-gram decoding, whose graph is converted from language models,
+        # lattice.scores contains both am weights and lm weights
+        #
+        # It maybe useful to tune lattice.scores
+        # The valid range of lattice_weight is [0, inf)
+        # The lattice_weight will affect the search of k2.random_paths
+        lattices.scores *= self.lattice_weight
 
         results = []
+        if self.use_nbest_rescoring:
+            (
+                am_scores,
+                lm_scores,
+                token_ids,
+                new2old,
+                path_to_seq_map,
+                seq_to_path_splits,
+            ) = nbest_am_lm_scores(
+                lattices, self.num_paths, self.device, self.nbest_batch_size
+            )
+
+            ys_pad_lens = torch.tensor([len(hyp) for hyp in token_ids]).to(self.device)
+            max_token_length = max(ys_pad_lens)
+            ys_pad_list = []
+            for hyp in token_ids:
+                ys_pad_list.append(
+                    torch.cat(
+                        [
+                            torch.tensor(hyp, dtype=torch.long),
+                            torch.tensor(
+                                [self.asr_model.ignore_id]
+                                * (max_token_length.item() - len(hyp)),
+                                dtype=torch.long,
+                            ),
+                        ]
+                    )
+                )
+
+            ys_pad = (
+                torch.stack(ys_pad_list).to(torch.long).to(self.device)
+            )  # [batch, max_token_length]
+
+            encoder_out = enc.index_select(0, path_to_seq_map.to(torch.long)).to(
+                self.device
+            )  # [batch, T, dim]
+            encoder_out_lens = encoder_out_lens.index_select(
+                0, path_to_seq_map.to(torch.long)
+            ).to(
+                self.device
+            )  # [batch]
+
+            decoder_scores = -self.asr_model.batchify_nll(
+                encoder_out, encoder_out_lens, ys_pad, ys_pad_lens, self.nll_batch_size
+            )
+
+            # padded_value for nnlm is 0
+            ys_pad[ys_pad == self.asr_model.ignore_id] = 0
+            nnlm_nll, x_lengths = self.lm.batchify_nll(
+                ys_pad, ys_pad_lens, self.nll_batch_size
+            )
+            nnlm_scores = -nnlm_nll.sum(dim=1)
+
+            batch_tot_scores = (
+                self.am_weight * am_scores
+                + self.decoder_weight * decoder_scores
+                + self.nnlm_weight * nnlm_scores
+            )
+            split_size = indices_to_split_size(
+                seq_to_path_splits.tolist(), total_elements=batch_tot_scores.size(0)
+            )
+            batch_tot_scores = torch.split(
+                batch_tot_scores,
+                split_size,
+            )
+
+            hyps = []
+            scores = []
+            processed_seqs = 0
+            for tot_scores in batch_tot_scores:
+                if tot_scores.nelement() == 0:
+                    # the last element by torch.tensor_split may be empty
+                    # e.g.
+                    # torch.tensor_split(torch.tensor([1,2,3,4]), torch.tensor([2,4]))
+                    # (tensor([1, 2]), tensor([3, 4]), tensor([], dtype=torch.int64))
+                    break
+                best_seq_idx = processed_seqs + torch.argmax(tot_scores)
+
+                assert best_seq_idx < len(token_ids)
+                best_token_seqs = token_ids[best_seq_idx]
+                processed_seqs += tot_scores.nelement()
+                hyps.append(best_token_seqs)
+                scores.append(tot_scores.max().item())
+
+            assert len(hyps) == len(split_size)
+        else:
+            best_paths = k2.shortest_path(lattices, use_double_scores=True)
+            scores = best_paths.get_tot_scores(
+                use_double_scores=True, log_semiring=False
+            ).tolist()
+            hyps = get_texts(best_paths)
+
+        assert len(scores) == len(hyps)
 
         for token_int, score in zip(hyps, scores):
-            # Change integer-ids to tokens
-            token = self.converter.ids2tokens(token_int)
+            # For decoding methods nbest_rescoring and ctc_decoding
+            # hyps stores token_index, which is lattice.labels.
 
-            if self.tokenizer is not None:
-                text = self.tokenizer.tokens2text(token)
-            else:
-                text = None
+            # convert token_id to text with self.tokenizer
+            token = self.converter.ids2tokens(token_int)
+            assert self.tokenizer is not None
+            text = self.tokenizer.tokens2text(token)
             results.append((text, token, token_int, score))
 
         assert check_return_type(results)
@@ -305,7 +489,14 @@ def inference(
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
     streaming: bool,
+    is_ctc_decoding: bool,
+    use_nbest_rescoring: bool,
+    num_paths: int,
+    nbest_batch_size: int,
+    nll_batch_size: int,
+    k2_config: Optional[str],
 ):
+    assert is_ctc_decoding, "Currently, only ctc_decoding graph is supported."
     assert check_argument_types()
     if ngpu > 1:
         raise NotImplementedError("only single GPU decoding is supported")
@@ -322,6 +513,8 @@ def inference(
 
     # 1. Set random-seed
     set_all_random_seed(seed)
+    with open(k2_config) as k2_config_file:
+        dict_k2_config = yaml.safe_load(k2_config_file)
 
     # 2. Build speech2text
     speech2text_kwargs = dict(
@@ -341,7 +534,14 @@ def inference(
         penalty=penalty,
         nbest=nbest,
         streaming=streaming,
+        is_ctc_decoding=is_ctc_decoding,
+        use_nbest_rescoring=use_nbest_rescoring,
+        num_paths=num_paths,
+        nbest_batch_size=nbest_batch_size,
+        nll_batch_size=nll_batch_size,
     )
+
+    speech2text_kwargs = dict(**speech2text_kwargs, **dict_k2_config)
     speech2text = k2Speech2Text.from_pretrained(
         model_tag=model_tag,
         **speech2text_kwargs,
@@ -361,6 +561,7 @@ def inference(
     )
 
     with DatadirWriter(output_dir) as writer:
+        start_decoding_time = datetime.datetime.now()
         for batch_idx, (keys, batch) in enumerate(loader):
             if batch_idx % 10 == 0:
                 logging.info(f"Processing {batch_idx} batch")
@@ -382,6 +583,10 @@ def inference(
 
                 if text is not None:
                     best_writer["text"][key] = text
+
+        end_decoding_time = datetime.datetime.now()
+        decoding_duration = end_decoding_time - start_decoding_time
+        logging.info(f"Decoding duration is {decoding_duration.seconds} seconds")
 
 
 def get_parser():
@@ -519,6 +724,32 @@ def get_parser():
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
     )
+    group.add_argument(
+        "--is_ctc_decoding",
+        type=str2bool,
+        default=True,
+        help="Use ctc topology as decoding graph",
+    )
+    group.add_argument("--use_nbest_rescoring", type=str2bool, default=False)
+    group.add_argument(
+        "--num_paths",
+        type=int,
+        default=1000,
+        help="The third argument for k2.random_paths",
+    )
+    group.add_argument(
+        "--nbest_batch_size",
+        type=int,
+        default=500,
+        help="batchify nbest list when computing am/lm scores to avoid OOM",
+    )
+    group.add_argument(
+        "--nll_batch_size",
+        type=int,
+        default=100,
+        help="batch_size when computing nll during nbest rescoring",
+    )
+    group.add_argument("--k2_config", type=str, help="Config file for decoding with k2")
 
     return parser
 
