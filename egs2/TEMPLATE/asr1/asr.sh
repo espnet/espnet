@@ -100,6 +100,7 @@ hf_repo=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
+use_streaming=false # Whether to use streaming decoding
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -1199,7 +1200,11 @@ if ! "${skip_eval}"; then
               asr_inference_tool="espnet2.bin.k2_asr_inference"
             else
               _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-              asr_inference_tool="espnet2.bin.asr_inference"
+              if "${use_streaming}"; then
+                  asr_inference_tool="espnet2.bin.asr_inference_streaming"
+              else
+                  asr_inference_tool="espnet2.bin.asr_inference"
+              fi
             fi
 
             for n in $(seq "${_nj}"); do
