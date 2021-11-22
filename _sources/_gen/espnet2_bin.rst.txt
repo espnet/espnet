@@ -224,6 +224,118 @@ asr_inference.py
                             from the training args (default: None)
       --bpemodel BPEMODEL   The model path of sentencepiece. If not given, refers
                             from the training args (default: None)
+.. _asr_inference_k2.py:
+
+asr_inference_k2.py
+~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: none
+
+    usage: asr_inference_k2.py [-h] [--config CONFIG]
+                               [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                               --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
+                               [--dtype {float16,float32,float64}]
+                               [--num_workers NUM_WORKERS]
+                               --data_path_and_name_and_type
+                               DATA_PATH_AND_NAME_AND_TYPE [--key_file KEY_FILE]
+                               [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
+                               [--asr_train_config ASR_TRAIN_CONFIG]
+                               [--asr_model_file ASR_MODEL_FILE]
+                               [--lm_train_config LM_TRAIN_CONFIG]
+                               [--lm_file LM_FILE]
+                               [--word_lm_train_config WORD_LM_TRAIN_CONFIG]
+                               [--word_lm_file WORD_LM_FILE]
+                               [--model_tag MODEL_TAG] [--batch_size BATCH_SIZE]
+                               [--nbest NBEST] [--beam_size BEAM_SIZE]
+                               [--penalty PENALTY] [--maxlenratio MAXLENRATIO]
+                               [--minlenratio MINLENRATIO]
+                               [--ctc_weight CTC_WEIGHT] [--lm_weight LM_WEIGHT]
+                               [--streaming STREAMING]
+                               [--token_type {char,bpe,None}]
+                               [--bpemodel BPEMODEL]
+                               [--is_ctc_decoding IS_CTC_DECODING]
+                               [--use_nbest_rescoring USE_NBEST_RESCORING]
+                               [--num_paths NUM_PATHS]
+                               [--nbest_batch_size NBEST_BATCH_SIZE]
+                               [--nll_batch_size NLL_BATCH_SIZE]
+                               [--k2_config K2_CONFIG]
+    
+    ASR Decoding
+    
+    optional arguments:
+      --config CONFIG       Give config file in yaml format (default: None)
+      --log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                            The verbose level of logging (default: INFO)
+      --output_dir OUTPUT_DIR
+      --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
+      --seed SEED           Random seed (default: 0)
+      --dtype {float16,float32,float64}
+                            Data type (default: float32)
+      --num_workers NUM_WORKERS
+                            The number of workers used for DataLoader (default: 1)
+    
+    Input data related:
+      --data_path_and_name_and_type DATA_PATH_AND_NAME_AND_TYPE
+      --key_file KEY_FILE
+      --allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS
+    
+    The model configuration related:
+      --asr_train_config ASR_TRAIN_CONFIG
+                            ASR training configuration (default: None)
+      --asr_model_file ASR_MODEL_FILE
+                            ASR model parameter file (default: None)
+      --lm_train_config LM_TRAIN_CONFIG
+                            LM training configuration (default: None)
+      --lm_file LM_FILE     LM parameter file (default: None)
+      --word_lm_train_config WORD_LM_TRAIN_CONFIG
+                            Word LM training configuration (default: None)
+      --word_lm_file WORD_LM_FILE
+                            Word LM parameter file (default: None)
+      --model_tag MODEL_TAG
+                            Pretrained model tag. If specify this option,
+                            *_train_config and *_file will be overwritten
+                            (default: None)
+    
+    Beam-search related:
+      --batch_size BATCH_SIZE
+                            The batch size for inference (default: 1)
+      --nbest NBEST         Output N-best hypotheses (default: 1)
+      --beam_size BEAM_SIZE
+                            Beam size (default: 20)
+      --penalty PENALTY     Insertion penalty (default: 0.0)
+      --maxlenratio MAXLENRATIO
+                            Input length ratio to obtain max output length. If
+                            maxlenratio=0.0 (default), it uses a end-detect
+                            function to automatically find maximum hypothesis
+                            lengths (default: 0.0)
+      --minlenratio MINLENRATIO
+                            Input length ratio to obtain min output length
+                            (default: 0.0)
+      --ctc_weight CTC_WEIGHT
+                            CTC weight in joint decoding (default: 0.5)
+      --lm_weight LM_WEIGHT
+                            RNNLM weight (default: 1.0)
+      --streaming STREAMING
+    
+    Text converter related:
+      --token_type {char,bpe,None}
+                            The token type for ASR model. If not given, refers
+                            from the training args (default: None)
+      --bpemodel BPEMODEL   The model path of sentencepiece. If not given, refers
+                            from the training args (default: None)
+      --is_ctc_decoding IS_CTC_DECODING
+                            Use ctc topology as decoding graph (default: True)
+      --use_nbest_rescoring USE_NBEST_RESCORING
+      --num_paths NUM_PATHS
+                            The third argument for k2.random_paths (default: 1000)
+      --nbest_batch_size NBEST_BATCH_SIZE
+                            batchify nbest list when computing am/lm scores to
+                            avoid OOM (default: 500)
+      --nll_batch_size NLL_BATCH_SIZE
+                            batch_size when computing nll during nbest rescoring
+                            (default: 100)
+      --k2_config K2_CONFIG
+                            Config file for decoding with k2 (default: None)
 .. _asr_inference_streaming.py:
 
 asr_inference_streaming.py
