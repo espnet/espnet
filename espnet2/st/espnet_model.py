@@ -51,7 +51,9 @@ class ESPnetSTModel(AbsESPnetModel):
         postencoder: Optional[AbsPostEncoder],
         decoder: AbsDecoder,
         ctc: CTC,
-        ctc_weight: float = 0.5,
+        asr_weight: float = 0.0,
+        mt_weight: float = 0.0,
+        mtlalpha: float = 0.0,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
         length_normalized_loss: bool = False,
@@ -62,7 +64,9 @@ class ESPnetSTModel(AbsESPnetModel):
         extract_feats_in_collect_stats: bool = True,
     ):
         assert check_argument_types()
-        assert 0.0 <= ctc_weight <= 1.0, ctc_weight
+        assert 0.0 <= asr_weight < 1.0, "asr_weight should be [0.0, 1.0)"
+        assert 0.0 <= mt_weight < 1.0, "mt_weight should be [0.0, 1.0)"
+        assert 0.0 <= mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
@@ -70,7 +74,9 @@ class ESPnetSTModel(AbsESPnetModel):
         self.eos = vocab_size - 1
         self.vocab_size = vocab_size
         self.ignore_id = ignore_id
-        self.ctc_weight = ctc_weight
+        self.asr_weight = asr_weight
+        self.mt_weight = mt_weight
+        self.mtlalpha = mtlalpha
         self.token_list = token_list.copy()
 
         self.frontend = frontend
@@ -79,24 +85,23 @@ class ESPnetSTModel(AbsESPnetModel):
         self.preencoder = preencoder
         self.postencoder = postencoder
         self.encoder = encoder
-        # we set self.decoder = None in the CTC mode since
-        # self.decoder parameters were never used and PyTorch complained
-        # and threw an Exception in the multi-GPU experiment.
-        # thanks Jeff Farris for pointing out the issue.
-        if ctc_weight == 1.0:
-            self.decoder = None
-        else:
-            self.decoder = decoder
-        if ctc_weight == 0.0:
-            self.ctc = None
-        else:
-            self.ctc = ctc
-        self.criterion_att = LabelSmoothingLoss(
-            size=vocab_size,
-            padding_idx=ignore_id,
-            smoothing=lsm_weight,
-            normalize_length=length_normalized_loss,
-        )
+        self.decoder = decoder
+
+        if self.asr_weight > 0:
+            if self.mtlalpha > 0.0:
+                self.ctc = ctc
+            if self.mtlalpha < 1.0:
+                self.criterion_att = LabelSmoothingLoss(
+                    size=vocab_size,
+                    padding_idx=ignore_id,
+                    smoothing=lsm_weight,
+                    normalize_length=length_normalized_loss,
+                )
+
+        # submodule for MT task
+        if self.mt_weight > 0:
+            # TODO (jiatong): to add separate MT encoder-decoder structure
+            raise NotImplementedError("the separate MT encoder-decoder structure is not implemented")
 
         if report_cer or report_wer:
             self.error_calculator = ErrorCalculator(
@@ -313,11 +318,3 @@ class ESPnetSTModel(AbsESPnetModel):
             cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc
 
-    def _calc_rnnt_loss(
-        self,
-        encoder_out: torch.Tensor,
-        encoder_out_lens: torch.Tensor,
-        ys_pad: torch.Tensor,
-        ys_pad_lens: torch.Tensor,
-    ):
-        raise NotImplementedError
