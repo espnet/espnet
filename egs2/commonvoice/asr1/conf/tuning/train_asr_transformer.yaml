@@ -48,4 +48,4 @@ best_model_criterion:
    - max
 keep_nbest_models: 10
 
-init: chainer
+init: xavier_uniform
