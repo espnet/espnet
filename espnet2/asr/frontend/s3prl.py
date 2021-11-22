@@ -56,6 +56,7 @@ class S3prlFrontend(AbsFrontend):
             self.upstream.model.encoder.layerdrop = 0.0
         self.pretrained_params = copy.deepcopy(self.upstream.state_dict())
         self.output_dim = self.featurizer.output_dim
+        self.frontend_type="s3prl"
 
     def _get_upstream(self, frontend_conf):
         """Get S3PRL upstream model."""
@@ -83,6 +84,8 @@ class S3prlFrontend(AbsFrontend):
 
         from s3prl.upstream.interfaces import Featurizer
 
+        self.hop_length = s3prl_upstream.get_downsample_rates("key")
+
         if self.multilayer_feature is None:
             feature_selection = "last_hidden_state"
         else:
@@ -96,21 +99,23 @@ class S3prlFrontend(AbsFrontend):
         return s3prl_upstream, s3prl_featurizer
 
     def _tile_representations(self, feature):
-        """Tile up the representations by `tile_factor`.
+        def _tile_representations(self, feature):
+            """Tile up the representations by `tile_factor`.
 
-        Input - sequence of representations
-                shape: (batch_size, seq_len, feature_dim)
-        Output - sequence of tiled representations
-                 shape: (batch_size, seq_len * factor, feature_dim)
-        """
-        assert (
-            len(feature.shape) == 3
-        ), "Input argument `feature` has invalid shape: {}".format(feature.shape)
-        tiled_feature = feature.repeat(1, 1, self.args.tile_factor)
-        tiled_feature = tiled_feature.reshape(
-            feature.size(0), feature.size(1) * self.args.tile_factor, feature.size(2)
-        )
-        return tiled_feature
+            Input - sequence of representations
+                    shape: (batch_size, seq_len, feature_dim)
+            Output - sequence of tiled representations
+                     shape: (batch_size, seq_len * factor, feature_dim)
+            """
+            assert (
+                    len(feature.shape) == 3
+            ), "Input argument `feature` has invalid shape: {}".format(feature.shape)
+            tiled_feature = feature.repeat(1, 1, self.args.tile_factor)
+            tiled_feature = tiled_feature.reshape(
+                feature.size(0), feature.size(1) * self.args.tile_factor, feature.size(2)
+            )
+            return tiled_feature
+
 
     def output_size(self) -> int:
         return self.output_dim
