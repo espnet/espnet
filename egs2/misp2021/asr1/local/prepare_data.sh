@@ -13,21 +13,23 @@ nj=1
 . ./path.sh || exit 1
 . ./utils/parse_options.sh || exit 1
 
+
 if [ $# != 4 ]; then
-  echo "Usage: $0 <corpus-data-dir> <enhancement-dir> <data-set> <dict-dir> <store-dir>"
-  echo " $0 /path/misp /path/wpe train data/local/dict data/train_far"
+  echo "Usage: $0 <corpus-data-dir> <enhancement-data-dir> <data-set> <store-dir>"
+  echo " $0 /path/misp /path/misp_WPE train  data/train_far"
   exit 1;
 fi
 
 data_root=$1
-wav_root=$2
+enhancement_root=$2
 data_type=$3
 store_dir=$4
 
 # wav.scp segments text utt2spk
 echo "prepare wav.scp segments text utt2spk"
-python local/prepare_far_data.py -nj $nj $data_root $wav_root $data_type $store_dir
+python local/prepare_far_data.py -nj $nj $enhancement_root/audio $data_root/video $data_root/transcription $data_type $store_dir
 cat $store_dir/temp/wav.scp | sort -k 1 | uniq > $store_dir/wav.scp
+cat $store_dir/temp/mp4.scp | sort -k 1 | uniq > $store_dir/mp4.scp
 cat $store_dir/temp/segments | sort -k 1 | uniq > $store_dir/segments
 cat $store_dir/temp/utt2spk | sort -k 1 | uniq > $store_dir/utt2spk
 cat $store_dir/temp/text_sentence | sort -k 1 | uniq > $store_dir/text
