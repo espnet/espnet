@@ -4,7 +4,7 @@
 
 1. Copying a template directory
     ```bash
-    % task=asr1  # enh1, tts1, mt1, st1
+    % task=asr1  # enh1, tts1, mt1, st1, vc1
     % egs2/TEMPLATE/${task}/setup.sh egs2/foo/${task}
     ```
     
@@ -140,7 +140,7 @@ ESPnet2 doesn't prepare different recipes for each corpus unlike ESPnet1, but we
 
 1. Create directory in egs/
     ```bash
-    % task=asr1  # enh1, tts1, mt1, st1
+    % task=asr1  # enh1, tts1, mt1, st1, vc1
     % egs2/TEMPLATE/${task}/setup.sh egs2/foo/${task}
     ```
    
