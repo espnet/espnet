@@ -267,7 +267,7 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         activation_dropout_rate: float = 0.0,
         hubert_dict: str = "./dict.txt",
         label_rate: int = 100,
-        checkpoint_activations: bool = false,
+        checkpoint_activations: bool = False,
         sample_rate: int = 16000,
         use_amp: bool = False,
         **kwargs,
