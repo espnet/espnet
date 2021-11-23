@@ -478,7 +478,10 @@
         <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.optimizer</span> <span class="kn">import</span> <span class="n">get_std_opt</span>
 
         <span class="n">optimizer</span> <span class="o">=</span> <span class="n">get_std_opt</span><span class="p">(</span>
-            <span class="n">model</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">transformer_warmup_steps</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">transformer_lr</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">adim</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">transformer_warmup_steps</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">transformer_lr</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">opt</span> <span class="o">==</span> <span class="s2">&quot;lamb&quot;</span><span class="p">:</span>
         <span class="kn">from</span> <span class="nn">pytorch_lamb</span> <span class="kn">import</span> <span class="n">Lamb</span>
