@@ -57,6 +57,9 @@ endif
 
 #########################################
 
+bc.done: activate_python.sh
+	. ./activate_python.sh && { command -v bc || conda install -y bc -c conda-forge; }
+	touch bc.done
 cmake.done: activate_python.sh
 	. ./activate_python.sh && { command -v cmake || conda install -y cmake; }
 	touch cmake.done
@@ -73,7 +76,7 @@ sndfile.done: activate_python.sh
 	. ./activate_python.sh && { python3 -c "from ctypes.util import find_library as F; assert F('sndfile') is not None" || conda install -y libsndfile=1.0.28 -c conda-forge; }
 	touch sndfile.done
 ifneq ($(strip $(USE_CONDA)),)
-conda_packages.done: cmake.done flac.done ffmpeg.done sox.done sndfile.done
+conda_packages.done: bc.done cmake.done flac.done ffmpeg.done sox.done sndfile.done
 else
 conda_packages.done:
 endif
