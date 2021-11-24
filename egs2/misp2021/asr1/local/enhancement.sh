@@ -25,7 +25,7 @@ export PATH=${PATH}:$BEAMFORMIT
 
 if [ $# != 2 ]; then
  echo "Usage: $0 <corpus-data-dir> <enhancement-dir>"
- echo " $0 /path/misp /path/wpe"
+ echo " $0 /path/misp2021 /path/wpe_output"
  exit 1;
 fi
 

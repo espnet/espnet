@@ -4,7 +4,6 @@ import os
 import glob
 import codecs
 import argparse
-import pdb
 
 
 def find_wav(data_root, scp_dir, scp_name="wpe", wav_type="Far", n_split=1):

@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-# _*_ coding: UTF-8 _*_
+# -- coding: UTF-8 
 import os
 import glob
 import codecs
 import argparse
 from multiprocessing import Pool
+import sys
 
 
 def text2lines(textpath, lines_content=None):
@@ -52,7 +53,7 @@ class TextGrid(object):
         new_xmax = xend - xstart + self.xmin
         new_xmin = self.xmin
         new_tiers = []
-
+ 
         for tier in self.tiers:
             new_tiers.append(tier.cutoff(xstart=xstart, xend=xend))
         return TextGrid(file_type=self.file_type, object_class=self.object_class, xmin=new_xmin, xmax=new_xmax,
@@ -109,7 +110,7 @@ class Interval(object):
 
 # io
 def read_textgrid_from_file(filepath):
-    with codecs.open(filepath, 'r', encoding='utf8') as handle:
+    with codecs.open(filepath, 'r', encoding='utf-8') as handle:
         lines = handle.readlines()
     if lines[-1] == '\r\n':
         lines = lines[:-1]
@@ -193,36 +194,38 @@ def read_interval_from_lines(interval_lines):
 
 
 # wav.scp <recording-id> <extended-filename>
-def prepare_wav_scp(data_root, store_dir, wav_root=None, set_type='train'):
-    split_rooms = text2lines(textpath=os.path.join(data_root, 'train_dev_test.txt'), lines_content=None)
-    room_map = {}
-    for line in split_rooms:
-        data_type, rooms = line.split(' ')
-        room_map[data_type] = rooms.split(',')
-    wav_postfix = 'Far.wav'
+def prepare_wav_scp(data_root, store_dir, set_type='train'):
     id_postfix = 'Far'
-    import pdb
-    pdb.set_trace()
+    wav_postfix = '_Far.wav'
     all_wav_lines = []
-    for room in room_map[set_type]:
-        if wav_root:
-            wav_list = sorted(glob.glob(os.path.join(wav_root, room, '*', '*', '*_' + wav_postfix)))
-        else:
-            wav_list = sorted(glob.glob(os.path.join(data_root, room, '*', '*', '*_' + wav_postfix)))
-        for wav_path in wav_list:
-            id_prefix = os.path.split(wav_path)[-1].split('_')[:4]
-            all_wav_lines.append('{}_{} {}'.format('_'.join(id_prefix), id_postfix, wav_path))
+    wav_path_list = glob.glob(os.path.join(data_root, set_type, '*', '*{}'.format(wav_postfix)))
+    for wav_path in wav_path_list:
+        id_prefix = os.path.split(wav_path)[-1].split('_')[:4]
+        record_id = '_'.join(id_prefix) + "_" + id_postfix
+        all_wav_lines.append('{} {}'.format(record_id, wav_path))
     if not os.path.exists('{}/temp'.format(store_dir)):
         os.makedirs('{}/temp'.format(store_dir))
     text2lines(textpath='{}/temp/wav.scp'.format(store_dir), lines_content=all_wav_lines)
-    return
+    return None
 
+def prepare_mp4_scp(data_root, store_dir, set_type='train'):
+    id_postfix = 'Far'
+    mp4_postfix = '_Far.mp4'
+    all_mp4_lines = []
+    mp4_path_list = glob.glob(os.path.join(data_root, set_type, '*', '*{}'.format(mp4_postfix)))
+    for mp4_path in mp4_path_list:
+        id_prefix = os.path.split(mp4_path)[-1].split('_')[:4]
+        record_id = '_'.join(id_prefix) + "_" + id_postfix
+        all_mp4_lines.append('{} {}'.format(record_id, mp4_path))
+    if not os.path.exists('{}/temp'.format(store_dir)):
+        os.makedirs('{}/temp'.format(store_dir))
+    text2lines(textpath='{}/temp/mp4.scp'.format(store_dir), lines_content=all_mp4_lines)
+    return None
 
 # segments <utterance-id> <recording-id> <segment-begin> <segment-end>
 # text <utterance-id> <words>
 # utt2spk <utterance-id> <speaker-id>
-def prepare_segments_text_utt2spk_worker(store_dir, tg_root=None, wav_root=None, processing_id=None,
-                                         processing_num=None):
+def prepare_segments_text_utt2spk_worker(transcription_dir, set_type, store_dir, processing_id=None, processing_num=None):
     segments_lines = []
     text_sentence_lines = []
     utt2spk_lines = []
@@ -243,14 +246,12 @@ def prepare_segments_text_utt2spk_worker(store_dir, tg_root=None, wav_root=None,
                 processing_token = False
         if processing_token:
             wav_id, wav_path = wav_lines[wav_idx].split(' ')
-            tg_dir = os.path.split(wav_path)[0]
-            if wav_root:
-                tg_dir = tg_dir.replace(wav_root, tg_root)
             room, speakers, config, index = wav_id.split('_')[:4]
             speaker_list = [speakers[i: i+3] for i in range(1, len(speakers), 3)]
             for speaker in speaker_list:
                 tg = read_textgrid_from_file(filepath=os.path.join(
-                    tg_dir, '{}_{}_{}_{}_Near_{}.TextGrid'.format(room, speakers, config, index, speaker)))
+                    transcription_dir, set_type, '{}_{}_{}_{}_Near_{}.TextGrid'.format(
+                        room, speakers, config, index, speaker)))
                 target_tier = False
                 for tier in tg.tiers:
                     if tier.name == tier_name:
@@ -265,8 +266,8 @@ def prepare_segments_text_utt2spk_worker(store_dir, tg_root=None, wav_root=None,
                             interval.xmax
                         end_stamp = round(end_stamp, 2)
                         utterance_id = 'S{}_{}_{}_{}_{}_'.format(speaker, room, speakers, config, index) + \
-                                       '{0:06d}'.format(round(int(start_stamp*100), 0)) + '-' + \
-                                       '{0:06d}'.format(round(int(end_stamp*100), 0))
+                                       '{0:06d}'.format(int(round(start_stamp*100, 0))) + '-' + \
+                                       '{0:06d}'.format(int(round(end_stamp*100, 0)))
                         text = interval.text
                         for punctuation in punctuation_list:
                             text = text.replace(punctuation, '')
@@ -277,13 +278,13 @@ def prepare_segments_text_utt2spk_worker(store_dir, tg_root=None, wav_root=None,
     return [segments_lines, text_sentence_lines, utt2spk_lines]
 
 
-def prepare_segments_text_utt2spk_manager(store_dir, tg_root=None, wav_root=None, processing_num=1):
+def prepare_segments_text_utt2spk_manager(transcription_dir, set_type, store_dir, processing_num=1):
     if processing_num > 1:
         pool = Pool(processes=processing_num)
         all_result = []
         for i in range(processing_num):
             part_result = pool.apply_async(prepare_segments_text_utt2spk_worker, kwds={
-                'store_dir': store_dir, 'tg_root': tg_root, 'wav_root': wav_root, 'processing_id': i,
+                'transcription_dir': transcription_dir, 'set_type': set_type, 'store_dir': store_dir, 'processing_id': i, 
                 'processing_num': processing_num})
             all_result.append(part_result)
         pool.close()
@@ -296,7 +297,7 @@ def prepare_segments_text_utt2spk_manager(store_dir, tg_root=None, wav_root=None
             utt2spk_lines += part_utt2spk_lines
     else:
         segments_lines, text_sentence_lines, utt2spk_lines = prepare_segments_text_utt2spk_worker(
-            store_dir=store_dir, tg_root=tg_root, wav_root=wav_root)
+            transcription_dir=transcription_dir, set_type=set_type, store_dir=store_dir)
 
     text2lines(textpath='{}/temp/segments'.format(store_dir), lines_content=segments_lines)
     text2lines(textpath='{}/temp/text_sentence'.format(store_dir), lines_content=text_sentence_lines)
@@ -306,10 +307,9 @@ def prepare_segments_text_utt2spk_manager(store_dir, tg_root=None, wav_root=None
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('')
-    parser.add_argument('data_root', type=str, default='/yrfs1/intern/hangchen2/experiment/EASE',
-                        help='root directory of dataset')
-    parser.add_argument('enhancement_root', type=str, default='/yrfs1/intern/hangchen2/experiment/EASE',
-                        help='root directory of enhanced wav')
+    parser.add_argument('wav_dir', type=str, default='', help='directory of wav')
+    parser.add_argument('mp4_dir', type=str, default='', help='directory of mp4')
+    parser.add_argument('transcription_dir', type=str, default='', help='directory of transcription')
     parser.add_argument('set_type', type=str, default='train', help='set type')
     parser.add_argument('store_dir', type=str, default='data/train_far', help='set types')
     parser.add_argument('-o', '--only_wav', type=bool, default=False, help='only prepare wav.scp')
@@ -317,11 +317,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print('Preparing wav.scp in {} for {} set'.format(args.store_dir, args.set_type))
-    prepare_wav_scp(data_root=args.data_root, wav_root=args.enhancement_root, store_dir=args.store_dir,
-                    set_type=args.set_type)
+    prepare_wav_scp(data_root=args.wav_dir, store_dir=args.store_dir, set_type=args.set_type)
+    print('Preparing mp4.scp in {} for {} set'.format(args.store_dir, args.set_type))
+    prepare_mp4_scp(data_root=args.mp4_dir, store_dir=args.store_dir, set_type=args.set_type)
     if not args.only_wav:
         print('Preparing segments,text_sentence,utt2spk in {} for {} set'.format(args.store_dir, args.set_type))
-        prepare_segments_text_utt2spk_manager(store_dir=args.store_dir, tg_root=args.data_root,
-                                              wav_root=args.enhancement_root, processing_num=args.nj)
+        prepare_segments_text_utt2spk_manager(
+            transcription_dir=args.transcription_dir, set_type=args.set_type, store_dir=args.store_dir, processing_num=args.nj)
 
           

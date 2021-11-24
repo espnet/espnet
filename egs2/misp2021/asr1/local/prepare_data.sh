@@ -16,7 +16,7 @@ nj=1
 
 if [ $# != 4 ]; then
   echo "Usage: $0 <corpus-data-dir> <enhancement-data-dir> <data-set> <store-dir>"
-  echo " $0 /path/misp /path/misp_WPE train  data/train_far"
+  echo " $0 /path/misp /path/misp_WPE train data/train_far"
   exit 1;
 fi
 
