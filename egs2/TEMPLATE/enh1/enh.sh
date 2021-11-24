@@ -418,27 +418,27 @@ if ! "${skip_train}"; then
         log "Enhancement collect-stats started... log: '${_logdir}/stats.*.log'"
 
         # prepare train and valid data parameters
-        _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,sound "
-        _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,sound "
+        _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,${_type} "
+        _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,${_type} "
         for spk in $(seq "${spk_num}"); do
-            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},sound "
-            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},sound "
+            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
+            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
         done
 
         if $use_dereverb_ref; then
             # references for dereverberation
             _train_data_param+=$(for n in $(seq $dereverb_ref_num); do echo -n \
-                "--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb${n}.scp,dereverb_ref${n},sound "; done)
+                "--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb${n}.scp,dereverb_ref${n},${_type} "; done)
             _valid_data_param+=$(for n in $(seq $dereverb_ref_num); do echo -n \
-                "--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb${n}.scp,dereverb_ref${n},sound "; done)
+                "--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb${n}.scp,dereverb_ref${n},${_type} "; done)
         fi
 
         if $use_noise_ref; then
             # references for denoising
             _train_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
-                "--train_data_path_and_name_and_type ${_enh_train_dir}/noise${n}.scp,noise_ref${n},sound "; done)
+                "--train_data_path_and_name_and_type ${_enh_train_dir}/noise${n}.scp,noise_ref${n},${_type} "; done)
             _valid_data_param+=$(for n in $(seq $noise_type_num); do echo -n \
-                "--valid_data_path_and_name_and_type ${_enh_valid_dir}/noise${n}.scp,noise_ref${n},sound "; done)
+                "--valid_data_path_and_name_and_type ${_enh_valid_dir}/noise${n}.scp,noise_ref${n},${_type} "; done)
         fi
 
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
@@ -482,19 +482,24 @@ if ! "${skip_train}"; then
 
         _scp=wav.scp
         # "sound" supports "wav", "flac", etc.
-        _type=sound
+        if [[ "${audio_format}" == *ark* ]]; then
+            _type=kaldi_ark
+        else
+            # "sound" supports "wav", "flac", etc.
+            _type=sound
+        fi
         _fold_length="$((enh_speech_fold_length * 100))"
 
         # prepare train and valid data parameters
-        _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,sound "
+        _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,${_type} "
         _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_mix_shape "
-        _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,sound "
+        _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,${_type} "
         _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
         _fold_length_param="--fold_length ${_fold_length} "
         for spk in $(seq "${spk_num}"); do
-            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},sound "
+            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
             _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
-            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},sound "
+            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
             _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/speech_ref${spk}_shape "
             _fold_length_param+="--fold_length ${_fold_length} "
         done
@@ -502,9 +507,9 @@ if ! "${skip_train}"; then
         if $use_dereverb_ref; then
             # references for dereverberation
             for n in $(seq "${dereverb_ref_num}"); do
-                _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb${n}.scp,dereverb_ref${n},sound "
+                _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb${n}.scp,dereverb_ref${n},${_type} "
                 _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/dereverb_ref${n}_shape "
-                _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb${n}.scp,dereverb_ref${n},sound "
+                _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb${n}.scp,dereverb_ref${n},${_type} "
                 _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/dereverb_ref${n}_shape "
                 _fold_length_param+="--fold_length ${_fold_length} "
             done
@@ -513,9 +518,9 @@ if ! "${skip_train}"; then
         if $use_noise_ref; then
             # references for denoising
             for n in $(seq "${noise_type_num}"); do
-                _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/noise${n}.scp,noise_ref${n},sound "
+                _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/noise${n}.scp,noise_ref${n},${_type} "
                 _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/noise_ref${n}_shape "
-                _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/noise${n}.scp,noise_ref${n},sound "
+                _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/noise${n}.scp,noise_ref${n},${_type} "
                 _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/noise_ref${n}_shape "
                 _fold_length_param+="--fold_length ${_fold_length} "
             done
@@ -579,7 +584,12 @@ if ! "${skip_eval}"; then
             mkdir -p "${_logdir}"
 
             _scp=wav.scp
-            _type=sound
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            else
+                # "sound" supports "wav", "flac", etc.
+                _type=sound
+            fi
 
             # 1. Split the key file
             key_file=${_data}/${_scp}
@@ -733,6 +743,13 @@ if "${score_with_asr}"; then
                     "${_ddir}/wav_ori.scp" "${_ddir}" \
                     "${_ddir}/formated/logs/" "${_ddir}/formated/"
 
+                if [[ "${audio_format}" == *ark* ]]; then
+                    _type=kaldi_ark
+                else
+                    # "sound" supports "wav", "flac", etc.
+                    _type=sound
+                fi
+
                 # 1. Split the key file
                 key_file=${_ddir}/wav.scp
                 _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
@@ -749,7 +766,7 @@ if "${score_with_asr}"; then
                 ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
                     python3 -m espnet2.bin.asr_inference \
                         --ngpu "${_ngpu}" \
-                        --data_path_and_name_and_type "${_ddir}/wav.scp,speech,sound" \
+                        --data_path_and_name_and_type "${_ddir}/wav.scp,speech,${_type}" \
                         --key_file "${_logdir}"/keys.JOB.scp \
                         --asr_train_config "${asr_exp}"/config.yaml \
                         --asr_model_file "${asr_exp}"/"${decode_asr_model}" \

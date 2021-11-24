@@ -21,7 +21,7 @@ ${CXX:-g++} -v
     . ./activate_python.sh
     make TH_VERSION="${TH_VERSION}"
 
-    make warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done s3prl.done transformers.done phonemizer.done fairseq.done k2.done
+    make warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq pyopenjtalk.done py3mmseg.done s3prl.done transformers.done phonemizer.done fairseq.done k2.done gtn.done
     rm -rf kaldi
 )
 . tools/activate_python.sh
@@ -30,7 +30,8 @@ python3 --version
 python3 -m pip install https://github.com/kpu/kenlm/archive/master.zip
 # NOTE(kamo): tensorboardx is used for chainer mode only
 python3 -m pip install tensorboardx
-
+# NOTE(kamo): Create matplotlib.cache to reduce runtime for test phase
+python3 -c "import matplotlib.pyplot"
 
 # NOTE(kan-bayashi): Fix the error in black installation.
 #   See: https://github.com/psf/black/issues/1707
