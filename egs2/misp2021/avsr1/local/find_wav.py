@@ -10,7 +10,7 @@ def find_wav(data_root, scp_dir, scp_name="wpe", wav_type="Far", n_split=1):
     type2group_num = {"Far": 6, "Middle": 2}
     wav_dir = os.path.join(data_root, wav_type.lower())
     all_wav_paths = glob.glob(os.path.join(wav_dir, "*.wav"))
-    
+
     sorted_wav_paths = sorted(all_wav_paths)
     lines = ["" for _ in range(n_split)]
     for wav_idx in range(len(sorted_wav_paths) // type2group_num[wav_type]):
