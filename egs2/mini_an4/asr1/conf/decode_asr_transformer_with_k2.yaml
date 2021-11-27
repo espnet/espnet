@@ -1,0 +1,7 @@
+search_beam_size: 20
+output_beam_size: 20
+blank_bias: -0.0
+lattice_weight: 1.0
+am_weight: 1.0
+decoder_weight: 0.5
+nnlm_weight: 1.0
