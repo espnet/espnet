@@ -1,0 +1,10 @@
+{
+    "backbone_type": "shufflenet",
+    "relu_type": "prelu",
+    "tcn_dropout": 0.2,
+    "tcn_dwpw": false,
+    "tcn_kernel_size": [3],
+    "tcn_num_layers": 4,
+    "tcn_width_mult": 2,
+    "width_mult": 1.0
+}
