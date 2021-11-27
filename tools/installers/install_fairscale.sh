@@ -38,10 +38,10 @@ if ! "${python_36_plus}"; then
     exit 1
 else
 
-    if $(pt_plus 1.7.0); then
+    if $(pt_plus 1.8.1); then
         pip install fairscale
     else
-        echo "[WARNING] fairscale requires pytorch>=1.6.0"
+        echo "[WARNING] fairscale requires pytorch>=1.8.1"
     fi
 
 fi
