@@ -90,6 +90,8 @@ asr_stats_dir= # Specify the directory path for ASR statistics.
 asr_config=    # Config for asr model training.
 asr_args=      # Arguments for asr model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in asr config.
+pretrained_model=              # Pretrained model to load
+ignore_init_mismatch=false      # Ignore initial mismatch
 feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_asr=1           # Number of splitting for lm corpus.
 
@@ -98,6 +100,14 @@ hf_repo=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
+k2_ctc_decoding=true
+use_nbest_rescoring=true # use transformer-decoder
+                         # and transformer language model for nbest rescoring
+num_paths=1000 # The 3rd argument of k2.random_paths.
+nll_batch_size=100 # Affect GPU memory usage when computing nll
+                   # during nbest rescoring
+k2_config=./conf/decode_asr_transformer_with_k2.yaml
+
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -197,6 +207,8 @@ Options:
     --asr_args         # Arguments for asr model training (default="${asr_args}").
                        # e.g., --asr_args "--max_epoch 10"
                        # Note that it will overwrite args in asr config.
+    --pretrained_model=          # Pretrained model to load (default="${pretrained_model}").
+    --ignore_init_mismatch=      # Ignore mismatch parameter init with pretrained model (default="${ignore_init_mismatch}").
     --feats_normalize  # Normalizaton layer type (default="${feats_normalize}").
     --num_splits_asr   # Number of splitting for lm corpus  (default="${num_splits_asr}").
 
@@ -413,6 +425,8 @@ if [ -z "${inference_tag}" ]; then
 
     if "${use_k2}"; then
       inference_tag+="_use_k2"
+      inference_tag+="_k2_ctc_decoding_${k2_ctc_decoding}"
+      inference_tag+="_use_nbest_rescoring_${use_nbest_rescoring}"
     fi
 fi
 
@@ -1089,6 +1103,8 @@ if ! "${skip_train}"; then
                 --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
                 --valid_shape_file "${asr_stats_dir}/valid/text_shape.${token_type}" \
                 --resume true \
+                --init_param ${pretrained_model} \
+                --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${_fold_length}" \
                 --fold_length "${asr_text_fold_length}" \
                 --output_dir "${asr_exp}" \
@@ -1165,6 +1181,20 @@ if ! "${skip_eval}"; then
         log "Generate '${asr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
         mkdir -p "${asr_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${asr_exp}/${inference_tag}/run.sh"; chmod +x "${asr_exp}/${inference_tag}/run.sh"
 
+        if "${use_k2}"; then
+          # Now only _nj=1 is verified if using k2
+          _nj=1
+          asr_inference_tool="espnet2.bin.asr_inference_k2"
+
+          _opts+="--is_ctc_decoding ${k2_ctc_decoding} "
+          _opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
+          _opts+="--num_paths ${num_paths} "
+          _opts+="--nll_batch_size ${nll_batch_size} "
+          _opts+="--k2_config ${k2_config} "
+        else
+          _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+          asr_inference_tool="espnet2.bin.asr_inference"
+        fi
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
             _dir="${asr_exp}/${inference_tag}/${dset}"
@@ -1187,14 +1217,6 @@ if ! "${skip_eval}"; then
             # 1. Split the key file
             key_file=${_data}/${_scp}
             split_scps=""
-            if "${use_k2}"; then
-              # Now only _nj=1 is verified
-              _nj=1
-              asr_inference_tool="espnet2.bin.k2_asr_inference"
-            else
-              _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-              asr_inference_tool="espnet2.bin.asr_inference"
-            fi
 
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
@@ -1218,9 +1240,11 @@ if ! "${skip_eval}"; then
 
             # 3. Concatenates the output files from each jobs
             for f in token token_int score text; do
-                for i in $(seq "${_nj}"); do
-                    cat "${_logdir}/output.${i}/1best_recog/${f}"
-                done | LC_ALL=C sort -k1 >"${_dir}/${f}"
+                if [ -f "${_logdir}/output.1/1best_recog/${f}" ]; then
+                  for i in $(seq "${_nj}"); do
+                      cat "${_logdir}/output.${i}/1best_recog/${f}"
+                  done | sort -k1 >"${_dir}/${f}"
+                fi
             done
         done
     fi

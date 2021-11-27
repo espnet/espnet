@@ -267,6 +267,91 @@ class ESPnetASRModel(AbsESPnetModel):
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
 
+    def nll(
+        self,
+        encoder_out: torch.Tensor,
+        encoder_out_lens: torch.Tensor,
+        ys_pad: torch.Tensor,
+        ys_pad_lens: torch.Tensor,
+    ) -> torch.Tensor:
+        """Compute negative log likelihood(nll) from transformer-decoder
+
+        Normally, this function is called in batchify_nll.
+
+        Args:
+            encoder_out: (Batch, Length, Dim)
+            encoder_out_lens: (Batch,)
+            ys_pad: (Batch, Length)
+            ys_pad_lens: (Batch,)
+        """
+        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
+        ys_in_lens = ys_pad_lens + 1
+
+        # 1. Forward decoder
+        decoder_out, _ = self.decoder(
+            encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
+        )  # [batch, seqlen, dim]
+        batch_size = decoder_out.size(0)
+        decoder_num_class = decoder_out.size(2)
+        # nll: negative log-likelihood
+        nll = torch.nn.functional.cross_entropy(
+            decoder_out.view(-1, decoder_num_class),
+            ys_out_pad.view(-1),
+            ignore_index=self.ignore_id,
+            reduction="none",
+        )
+        nll = nll.view(batch_size, -1)
+        nll = nll.sum(dim=1)
+        assert nll.size(0) == batch_size
+        return nll
+
+    def batchify_nll(
+        self,
+        encoder_out: torch.Tensor,
+        encoder_out_lens: torch.Tensor,
+        ys_pad: torch.Tensor,
+        ys_pad_lens: torch.Tensor,
+        batch_size: int = 100,
+    ):
+        """Compute negative log likelihood(nll) from transformer-decoder
+
+        To avoid OOM, this fuction seperate the input into batches.
+        Then call nll for each batch and combine and return results.
+        Args:
+            encoder_out: (Batch, Length, Dim)
+            encoder_out_lens: (Batch,)
+            ys_pad: (Batch, Length)
+            ys_pad_lens: (Batch,)
+            batch_size: int, samples each batch contain when computing nll,
+                        you may change this to avoid OOM or increase
+                        GPU memory usage
+        """
+        total_num = encoder_out.size(0)
+        if total_num <= batch_size:
+            nll = self.nll(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
+        else:
+            nll = []
+            start_idx = 0
+            while True:
+                end_idx = min(start_idx + batch_size, total_num)
+                batch_encoder_out = encoder_out[start_idx:end_idx, :, :]
+                batch_encoder_out_lens = encoder_out_lens[start_idx:end_idx]
+                batch_ys_pad = ys_pad[start_idx:end_idx, :]
+                batch_ys_pad_lens = ys_pad_lens[start_idx:end_idx]
+                batch_nll = self.nll(
+                    batch_encoder_out,
+                    batch_encoder_out_lens,
+                    batch_ys_pad,
+                    batch_ys_pad_lens,
+                )
+                nll.append(batch_nll)
+                start_idx = end_idx
+                if start_idx == total_num:
+                    break
+            nll = torch.cat(nll)
+        assert nll.size(0) == total_num
+        return nll
+
     def _calc_att_loss(
         self,
         encoder_out: torch.Tensor,
