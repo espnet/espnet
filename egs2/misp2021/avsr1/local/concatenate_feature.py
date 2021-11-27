@@ -12,12 +12,15 @@ def scp2array_dic(
     scp_path, array_dic=None, ark_path=None, compression_method=None, append=False
 ):
     """
-    read array_dic from ark indexed by scp or write array_dic to ark while create scp to index
+    read array_dic from ark indexed by scp or
+    write array_dic to ark while create scp to index
     :param scp_path: filepath of scp
     :param array_dic: dic of array
     :param ark_path: filepath of ark, default is scppath.replace('.scp', '.ark')
-    :param compression_method: compression method, default=None, kAutomaticMethod=1, kSpeechFeature=2, kTwoByteAuto=3,
-                               kTwoByteSignedInteger=4, kOneByteAuto=5, kOneByteUnsignedInteger=6, kOneByteZeroOne=7
+    :param compression_method: compression method, default=None,
+                kAutomaticMethod=1, kSpeechFeature=2,
+                kTwoByteAuto=3,kTwoByteSignedInteger=4, kOneByteAuto=5,
+                kOneByteUnsignedInteger=6, kOneByteZeroOne=7
     :param append: if True, append, else write
     :return: dic of numpy array for read while None for write
     """

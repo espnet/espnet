@@ -48,7 +48,11 @@ def generate_extractor_shell(video_dir, nj, python_path="", used_gpus=[0, 1, 2, 
             )
             if not os.path.exists(embedding_npz_path):
                 extractor_shells[i % nj].append(
-                    "CUDA_VISIBLE_DEVICES={} {}python extractor/main.py --extract-feats --config-path extractor/configs/lrw_resnet18_mstcn.json --model-path extractor/models/lrw_resnet18_mstcn.pth.tar --mouth-patch-path {} --mouth-embedding-out-path {}".format(
+                    "CUDA_VISIBLE_DEVICES={} {}python extractor/main.py \
+                        --extract-feats \
+                        --config-path extractor/configs/lrw_resnet18_mstcn.json \
+                        --model-path extractor/models/lrw_resnet18_mstcn.pth.tar \
+                        --mouth-patch-path {} --mouth-embedding-out-path {}".format(
                         process2gpu[(i % nj)],
                         python_path,
                         roi_npz_path,
