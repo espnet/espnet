@@ -48,4 +48,5 @@ best_model_criterion:
    - max
 keep_nbest_models: 10
 
-init: chainer
+init: xavier_uniform # Our empirical studies shows that this initialization
+                     # is very important to low-resource ASR training
