@@ -21,7 +21,7 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
-mkdir ${FISHER_CALLHOME_SPANISH}
+mkdir -p ${FISHER_CALLHOME_SPANISH}
 if [ -z "${FISHER_CALLHOME_SPANISH}" ]; then
     log "Fill the value of 'FISHER_CALLHOME_SPANISH' of db.sh"
     exit 1
@@ -47,8 +47,7 @@ trans_set="fisher_dev.en fisher_dev2.en fisher_test.en callhome_devtest.en callh
 #     - LDC96T17   # (for callhome transcripts)
 
 sfisher_speech=${FISHER_CALLHOME_SPANISH}/LDC2010S01
-sfisher_transcript=${FISHER_CALLHOME_SPANISH}/LDC2010T04
-sfisher_transcripts=/export/corpora/LDC/LDC2010T04
+sfisher_transcripts=${FISHER_CALLHOME_SPANISH}/LDC2010T04
 split=local/splits/split_fisher
 callhome_speech=${FISHER_CALLHOME_SPANISH}/LDC96S35
 callhome_transcripts=${FISHER_CALLHOME_SPANISH}/LDC96T17
@@ -56,7 +55,7 @@ split_callhome=local/splits/split_callhome
 
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    log "Make sure you have fisher_callhome_spanish at ${sfisher_speech}, ${sfisher_transcript}, \
+    log "Make sure you have fisher_callhome_spanish at ${sfisher_speech}, ${sfisher_transcripts}, \
              ${callhome_speech}, ${callhome_transcripts}"
     log "stage 0: Data Preparation"
     local/fsp_data_prep.sh ${sfisher_speech} ${sfisher_transcripts}
@@ -73,4 +72,18 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # concatenate multiple utterances
     local/normalize_trans.sh ${sfisher_transcripts} ${callhome_transcripts}
+fi
+
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    log "stage 2: Combine train and dev set"
+    utils/combine_data.sh \
+        --extra-files "text.lc.en text.lc.es text.lc.rm.en text.lc.rm.es text.tc.en text.tc.es" \
+        data/train \
+        data/fisher_train data/callhome_train/ 
+
+    utils/combine_data.sh \
+        --extra-files "text.lc.en text.lc.es text.lc.rm.en text.lc.rm.es text.tc.en text.tc.es" \
+        data/dev \
+        data/fisher_dev data/fisher_dev2  data/callhome_devtest 
+    
 fi

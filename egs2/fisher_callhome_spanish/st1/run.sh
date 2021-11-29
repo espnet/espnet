@@ -8,27 +8,37 @@ set -o pipefail
 src_lang=es
 tgt_lang=en
 
-train_set=train_sp
-train_dev=train_dev
+train_set=train
+train_dev=dev
 test_set="fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest"
 
-asr_config=conf/train_asr.conf
-inference_config=conf/decode_asr.yaml
+st_config=conf/train_st.conf
+inference_config=conf/decode_st.yaml
 
 src_nbpe=500
 tgt_nbpe=500
 
-./asr.sh \
+src_case=lc.rm
+tgt_case=lc.rm
+
+./st.sh \
     --local_data_opts "--stage 0" \
+    --stage 3 \
+    --stop_stage 4 \
+    --audio_format "flac.ark" \
     --use_lm false \
     --token_joint false \
+    --src_lang ${src_lang} \
+    --tgt_lang ${tgt_lang} \
     --src_token_type bpe \
     --src_nbpe $src_nbpe \
     --tgt_token_type bpe \
     --tgt_nbpe $tgt_nbpe \
+    --src_case ${src_case} \
+    --tgt_case ${tgt_case} \
     --feats_type raw \
     --speed_perturb_factors "0.9 1.0 1.1" \
-    --asr_config "${asr_config}" \
+    --st_config "${st_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
