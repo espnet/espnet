@@ -38,7 +38,12 @@ if "$(pt_plus 1.8.0)" && "${python_36_plus}"; then
     rm -rf fairseq
 
     # FairSeq Commit id when making this PR: `commit 313ff0581561c7725ea9430321d6af2901573dfb`
-    git clone --depth 1 https://github.com/pytorch/fairseq.git
+    # git clone --depth 1 https://github.com/pytorch/fairseq.git
+    # TODO(jiatong): to fix after the issue #4035 is fixed in fairseq
+    git clone https://github.com/pytorch/fairseq.git
+    cd fairseq
+    git checkout -b sync_commit 313ff0581561c7725ea9430321d6af2901573dfb
+    cd ..
     python3 -m pip install --editable ./fairseq
     python3 -m pip install filelock
 

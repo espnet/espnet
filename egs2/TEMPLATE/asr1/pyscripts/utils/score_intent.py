@@ -37,6 +37,11 @@ parser.add_argument(
     default="inference_asr_model_valid.acc.ave_10best/test/",
     help="Directory inside exp_root containing inference on test set",
 )
+parser.add_argument(
+    "--utterance_test_folder",
+    default=None,
+    help="Directory inside exp_root containing inference on utterance test set",
+)
 
 args = parser.parse_args()
 
@@ -65,3 +70,15 @@ test_ref_file = open(
 result = get_classification_result(test_hyp_file, test_ref_file)
 print("Test Intent Classification Result")
 print(result)
+
+if args.utterance_test_folder is not None:
+    utt_test_inference_folder = args.utterance_test_folder
+    utt_test_hyp_file = open(
+        os.path.join(exp_root, utt_test_inference_folder + "score_wer/hyp.trn")
+    )
+    utt_test_ref_file = open(
+        os.path.join(exp_root, utt_test_inference_folder + "score_wer/ref.trn")
+    )
+    result = get_classification_result(utt_test_hyp_file, utt_test_ref_file)
+    print("Unseen Utterance Test Intent Classification Result")
+    print(result)

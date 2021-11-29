@@ -22,7 +22,7 @@ use-masking: True
 bce-pos-weight: 5.0
 use-batch-norm: True
 use-scaled-pos-enc: True
-encoder-normalize-before: False
+encoder-normalize-before: True
 decoder-normalize-before: False
 encoder-concat-after: False
 decoder-concat-after: False

@@ -466,7 +466,7 @@ class BeamSearchTransducer:
             B_enc_out = []
             for hyp in B:
                 u = len(hyp.yseq) - 1
-                t = i - u + 1
+                t = i - u
 
                 if t > (t_max - 1):
                     continue
