@@ -8,6 +8,7 @@ set -o pipefail
 fs=16000      # sampling frequency
 n_fft=1024    # number of fft points
 n_shift=256   # number of shift points
+win_length=null
 
 train_config=conf/train.yaml
 inference_config=conf/decode.yaml
@@ -24,8 +25,11 @@ trg_test_sets="${trgspk}_eval"
 
 local_data_opts="${srcspk} ${trgspk}"
 
+# g2p=g2p_en # Include word separator
+g2p=g2p_en_no_space # Include no word separator
+
 ./vc.sh \
-    --ngpu 4 \
+    --ngpu 1 \
     --lang en \
     --feats_type raw \
     --audio_format wav \
@@ -34,9 +38,9 @@ local_data_opts="${srcspk} ${trgspk}"
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
     --win_length "${win_length}" \
-    --use_xvector true \
+    --use_xvector false \
     --token_type phn \
-    --cleaner "${cleaner}" \
+    --cleaner tacotron \
     --g2p "${g2p}" \
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
@@ -46,5 +50,5 @@ local_data_opts="${srcspk} ${trgspk}"
     --trg_train_set "${trg_train_set}" \
     --trg_valid_set "${trg_valid_set}" \
     --trg_test_sets "${trg_test_sets}" \
-    --srctexts "data/${train_set}/text" \
-    ${opts} "$@"
+    --srctexts "data/${src_train_set}/text" \
+    "$@"
