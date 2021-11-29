@@ -24,7 +24,7 @@ available_spks=(
 )
 
 # check arguments
-if [ $# != 1 ]; then
+if [ $# != 2 ]; then
     echo "Usage: $0 <srcspk> <trgspk>"
     echo "Available speakers: ${available_spks[*]}"
     exit 2
