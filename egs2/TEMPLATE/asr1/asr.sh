@@ -100,9 +100,6 @@ hf_repo=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
-<<<<<<< HEAD
-use_streaming=false # Whether to use streaming decoding
-=======
 k2_ctc_decoding=true
 use_nbest_rescoring=true # use transformer-decoder
                          # and transformer language model for nbest rescoring
@@ -111,7 +108,8 @@ nll_batch_size=100 # Affect GPU memory usage when computing nll
                    # during nbest rescoring
 k2_config=./conf/decode_asr_transformer_with_k2.yaml
 
->>>>>>> tmp
+use_streaming=false # Whether to use streaming decoding
+
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -1197,7 +1195,11 @@ if ! "${skip_eval}"; then
           _opts+="--k2_config ${k2_config} "
         else
           _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-          asr_inference_tool="espnet2.bin.asr_inference"
+          if "${use_streaming}"; then
+              asr_inference_tool="espnet2.bin.asr_inference_streaming"
+          else
+              asr_inference_tool="espnet2.bin.asr_inference"
+          fi
         fi
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
@@ -1221,21 +1223,6 @@ if ! "${skip_eval}"; then
             # 1. Split the key file
             key_file=${_data}/${_scp}
             split_scps=""
-<<<<<<< HEAD
-            if "${use_k2}"; then
-              # Now only _nj=1 is verified
-              _nj=1
-              asr_inference_tool="espnet2.bin.k2_asr_inference"
-            else
-              _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-              if "${use_streaming}"; then
-                  asr_inference_tool="espnet2.bin.asr_inference_streaming"
-              else
-                  asr_inference_tool="espnet2.bin.asr_inference"
-              fi
-            fi
-=======
->>>>>>> tmp
 
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
