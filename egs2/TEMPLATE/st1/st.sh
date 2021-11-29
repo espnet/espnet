@@ -56,12 +56,14 @@ oov="<unk>"         # Out of vocabulary symbol.
 blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
 token_joint=false       # whether to use a single bpe system for both source and target languages
+src_case=lc.rm
 src_token_type=bpe      # Tokenization type (char or bpe) for source languages.
 src_nbpe=30             # The number of BPE vocabulary for source language.
 src_bpemode=unigram     # Mode of BPE for source language (unigram or bpe).
 src_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for source language.
 src_bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE of source language
 src_bpe_char_cover=1.0  # character coverage when modeling BPE for source language
+tgt_case=tc
 tgt_token_type=bpe      # Tokenization type (char or bpe) for target language.
 tgt_nbpe=30             # The number of BPE vocabulary for target language.
 tgt_bpemode=unigram     # Mode of BPE (unigram or bpe) for target language.
@@ -98,8 +100,8 @@ st_args=       # Arguments for st model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in st config.
 feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_st=1            # Number of splitting for lm corpus.
-src_lang=                  # source language abbrev. id (e.g., es)
-tgt_lang=                  # target language abbrev. id (e.g., en)
+src_lang=es                # source language abbrev. id (e.g., es)
+tgt_lang=en                # target language abbrev. id (e.g., en)
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
@@ -283,21 +285,23 @@ else
     exit 2
 fi
 
+# Extra files for translation process
+utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for bpe training if not specified.
 if "${token_joint}"; then
     # if token_joint, the bpe training will use both src_lang and tgt_lang to train a single bpe model
     # TODO (prepare data as text.${src_lang}_${tgt_lang})
     [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
 else
-    [ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}"
-    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_lang}"
+    [ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
+    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
 fi
 # Use the same text as ST for lm training if not specified.
-[ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text"
+[ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for lm training if not specified.
-[ -z "${lm_dev_text}" ] && lm_dev_text="${data_feats}/${valid_set}/text"
+[ -z "${lm_dev_text}" ] && lm_dev_text="${data_feats}/${valid_set}/text.${tgt_case}.${tgt_lang}"
 # Use the text of the 1st evaldir if lm_test is not specified
-[ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${test_sets%% *}/text"
+[ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${test_sets%% *}/text.${tgt_case}.${tgt_lang}"
 
 # Check tokenization type
 if [ "${lang}" != noinfo ]; then
@@ -306,7 +310,7 @@ else
     token_listdir=data/token_list
 fi
 # The tgt bpedir is set for all cases when using bpe
-tgt_bpedir="${token_listdir}/tgt_bpe_${bpemode}${nbpe}"
+tgt_bpedir="${token_listdir}/tgt_bpe_${tgt_bpemode}${tgt_nbpe}"
 tgt_bpeprefix="${tgt_bpedir}"/bpe
 tgt_bpemodel="${tgt_bpeprefix}".model
 tgt_bpetoken_list="${tgt_bpedir}"/tokens.txt
@@ -319,7 +323,7 @@ if "${token_joint}"; then
     src_bpetoken_list="${tgt_bpetoken_list}"
     src_chartoken_list="${tgt_chartoken_list}"
 else
-    src_bpedir="${token_listdir}/src_bpe_${bpemode}${nbpe}"
+    src_bpedir="${token_listdir}/src_bpe_${tgt_bpemode}${tgt_nbpe}"
     src_bpeprefix="${src_bpedir}"/bpe
     src_bpemodel="${src_bpeprefix}".model
     src_bpetoken_list="${src_bpedir}"/tokens.txt
@@ -380,12 +384,12 @@ if [ -z "${st_tag}" ]; then
         st_tag="train_${feats_type}"
     fi
     if [ "${lang}" != noinfo ]; then
-        st_tag+="_${lang}_${token_type}"
+        st_tag+="_${lang}_${tgt_token_type}_${tgt_case}"
     else
-        st_tag+="_${token_type}"
+        st_tag+="_${tgt_token_type}_${tgt_case}"
     fi
-    if [ "${token_type}" = bpe ]; then
-        st_tag+="${nbpe}"
+    if [ "${tgt_token_type}" = bpe ]; then
+        st_tag+="${tgt_nbpe}"
     fi
     # Add overwritten arg's info
     if [ -n "${st_args}" ]; then
@@ -407,7 +411,7 @@ if [ -z "${lm_tag}" ]; then
         lm_tag+="_${lm_token_type}"
     fi
     if [ "${lm_token_type}" = bpe ]; then
-        lm_tag+="${nbpe}"
+        lm_tag+="${tgt_nbpe}"
     fi
     # Add overwritten arg's info
     if [ -n "${lm_args}" ]; then
@@ -418,12 +422,12 @@ fi
 # The directory used for collect-stats mode
 if [ -z "${st_stats_dir}" ]; then
     if [ "${lang}" != noinfo ]; then
-        st_stats_dir="${expdir}/st_stats_${feats_type}_${lang}_${token_type}"
+        st_stats_dir="${expdir}/st_stats_${feats_type}_${lang}_${tgt_token_type}"
     else
-        st_stats_dir="${expdir}/st_stats_${feats_type}_${token_type}"
+        st_stats_dir="${expdir}/st_stats_${feats_type}_${tgt_token_type}"
     fi
-    if [ "${token_type}" = bpe ]; then
-        st_stats_dir+="${nbpe}"
+    if [ "${tgt_token_type}" = bpe ]; then
+        st_stats_dir+="${tgt_nbpe}"
     fi
     if [ -n "${speed_perturb_factors}" ]; then
         st_stats_dir+="_sp"
@@ -436,7 +440,7 @@ if [ -z "${lm_stats_dir}" ]; then
         lm_stats_dir="${expdir}/lm_stats_${lm_token_type}"
     fi
     if [ "${lm_token_type}" = bpe ]; then
-        lm_stats_dir+="${nbpe}"
+        lm_stats_dir+="${tgt_nbpe}"
     fi
 fi
 # The directory used for training commands
@@ -488,14 +492,15 @@ if ! "${skip_data_prep}"; then
            log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
            for factor in ${speed_perturb_factors}; do
                if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
-                   scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
+                   scripts/utils/perturb_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" \
+                        "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
                    _dirs+="data/${train_set}_sp${factor} "
                else
                    # If speed factor is 1, same as the original
                    _dirs+="data/${train_set} "
                fi
            done
-           utils/combine_data.sh "data/${train_set}_sp" ${_dirs}
+           utils/combine_data.sh --extra_files "${utt_extra_files}" "data/${train_set}_sp" ${_dirs}
         else
            log "Skip stage 2: Speed perturbation"
         fi
@@ -524,6 +529,10 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+                # TODO(jiatong): copy data dir does not hold for some files, probably create our own?
+                for extra_file in ${utt_extra_files}; do
+                    cp data/"${dset}"/${extra_file} "${data_feats}${_suf}/${dset}"
+                done 
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
                 _opts=
                 if [ -e data/"${dset}"/segments ]; then
@@ -553,11 +562,15 @@ if ! "${skip_data_prep}"; then
                 fi
                 # 1. Copy datadir
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+                # TODO(jiatong): copy data dir does not hold for some files, probably create our own?
+                for extra_file in ${utt_extra_files}; do
+                    cp data/"${dset}"/${extra_file} "${data_feats}${_suf}/${dset}"
+                done
 
                 # 2. Feature extract
                 _nj=$(min "${nj}" "$(<"${data_feats}${_suf}/${dset}/utt2spk" wc -l)")
                 steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}${_suf}/${dset}"
-                utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
+                utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}${_suf}/${dset}"
 
                 # 3. Derive the the frame length and feature dimension
                 scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
@@ -589,6 +602,10 @@ if ! "${skip_data_prep}"; then
                 # Generate dummy wav.scp to avoid error by copy_data_dir.sh
                 <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+                # TODO(jiatong): copy data dir does not hold for some files, probably create our own?
+                for extra_file in ${utt_extra_files}; do
+                    cp data/"${dset}"/${extra_file} "${data_feats}${_suf}/${dset}"
+                done
 
                 # Derive the the frame length and feature dimension
                 _nj=$(min "${nj}" "$(<"${data_feats}${_suf}/${dset}/utt2spk" wc -l)")
@@ -617,7 +634,10 @@ if ! "${skip_data_prep}"; then
             # Copy data dir
             utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
-
+            # TODO(jiatong): copy data dir does not hold for some files, probably create our own?
+            for extra_file in ${utt_extra_files}; do
+                cp data/"${dset}"/org/${extra_file} "${data_feats}/${dset}"
+            done
             # Remove short utterances
             _feats_type="$(<${data_feats}/${dset}/feats_type)"
             if [ "${_feats_type}" = raw ]; then
@@ -664,7 +684,7 @@ if ! "${skip_data_prep}"; then
                 awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
 
             # fix_data_dir.sh leaves only utts which exist in all files
-            utils/fix_data_dir.sh "${data_feats}/${dset}"
+            utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
         done
 
         # shellcheck disable=SC2002
@@ -731,7 +751,7 @@ if ! "${skip_data_prep}"; then
         fi
 
         # Create word-list for word-LM training
-        if ${use_word_lm} && [ "${token_type}" != word ]; then
+        if ${use_word_lm} && [ "${tgt_token_type}" != word ]; then
             log "Generate word level token_list from ${data_feats}/lm_train.txt"
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type word \
@@ -1353,122 +1373,6 @@ if ! "${skip_eval}"; then
         done
     fi
 
-
-    if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
-        log "Stage 13: Scoring"
-        if [ "${token_type}" = phn ]; then
-            log "Error: Not implemented for token_type=phn"
-            exit 1
-        fi
-
-        for dset in ${test_sets}; do
-            _data="${data_feats}/${dset}"
-            _dir="${st_exp}/${inference_tag}/${dset}"
-
-            for _type in cer wer ter; do
-                [ "${_type}" = ter ] && [ ! -f "${bpemodel}" ] && continue
-
-                _scoredir="${_dir}/score_${_type}"
-                mkdir -p "${_scoredir}"
-
-                if [ "${_type}" = wer ]; then
-                    # Tokenize text to word level
-                    paste \
-                        <(<"${_data}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type word \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  --cleaner "${cleaner}" \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/ref.trn"
-
-                    # NOTE(kamo): Don't use cleaner for hyp
-                    paste \
-                        <(<"${_dir}/text"  \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type word \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/hyp.trn"
-
-
-                elif [ "${_type}" = cer ]; then
-                    # Tokenize text to char level
-                    paste \
-                        <(<"${_data}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type char \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  --cleaner "${cleaner}" \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/ref.trn"
-
-                    # NOTE(kamo): Don't use cleaner for hyp
-                    paste \
-                        <(<"${_dir}/text"  \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type char \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/hyp.trn"
-
-                elif [ "${_type}" = ter ]; then
-                    # Tokenize text using BPE
-                    paste \
-                        <(<"${_data}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type bpe \
-                                  --bpemodel "${bpemodel}" \
-                                  --cleaner "${cleaner}" \
-                                ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/ref.trn"
-
-                    # NOTE(kamo): Don't use cleaner for hyp
-                    paste \
-                        <(<"${_dir}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type bpe \
-                                  --bpemodel "${bpemodel}" \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/hyp.trn"
-
-                fi
-
-                sclite \
-		    ${score_opts} \
-                    -r "${_scoredir}/ref.trn" trn \
-                    -h "${_scoredir}/hyp.trn" trn \
-                    -i rm -o all stdout > "${_scoredir}/result.txt"
-
-                log "Write ${_type} result in ${_scoredir}/result.txt"
-                grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
-            done
-        done
-
-        [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${st_exp}"
-
-        # Show results in Markdown syntax
-        scripts/utils/show_st_result.sh "${st_exp}" > "${st_exp}"/RESULTS.md
-        cat "${st_exp}"/RESULTS.md
-
-    fi
-else
     log "Skip the evaluation stages"
 fi
 

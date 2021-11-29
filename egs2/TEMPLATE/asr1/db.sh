@@ -108,6 +108,16 @@ MUCS_SUBTASK2=downloads
 GAMAYUN=downloads
 IWSLT21LR=downloads/iwslt21
 
+if [[ "$(hostname -d)" == lti.cs.cmu.edu ]]; then
+    FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
+
+fi
+
+
+if [[ "$(hostname -d)" == eth ]]; then
+    FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
+fi
+
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AISHELL=
