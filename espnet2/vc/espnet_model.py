@@ -28,8 +28,8 @@ else:
         yield
 
 
-class ESPnetTTSModel(AbsESPnetModel):
-    """ESPnet model for text-to-speech task."""
+class ESPnetVCModel(AbsESPnetModel):
+    """ESPnet model for voice conversion task."""
 
     def __init__(
         self,
@@ -41,7 +41,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         energy_normalize: Optional[AbsNormalize and InversibleInterface],
         tts: AbsTTS,
     ):
-        """Initialize ESPnetTTSModel module."""
+        """Initialize ESPnetVCModel module."""
         assert check_argument_types()
         super().__init__()
         self.feats_extract = feats_extract
