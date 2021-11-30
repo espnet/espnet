@@ -114,7 +114,6 @@ class S3prlFrontend(AbsFrontend):
         )
         return tiled_feature
 
-
     def output_size(self) -> int:
         return self.output_dim
 
