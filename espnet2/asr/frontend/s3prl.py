@@ -56,7 +56,7 @@ class S3prlFrontend(AbsFrontend):
             self.upstream.model.encoder.layerdrop = 0.0
         self.pretrained_params = copy.deepcopy(self.upstream.state_dict())
         self.output_dim = self.featurizer.output_dim
-        self.frontend_type="s3prl"
+        self.frontend_type = "s3prl"
         self.hop_length = self.upstream.get_downsample_rates("key")
 
     def _get_upstream(self, frontend_conf):
