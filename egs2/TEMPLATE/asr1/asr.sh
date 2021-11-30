@@ -108,6 +108,8 @@ nll_batch_size=100 # Affect GPU memory usage when computing nll
                    # during nbest rescoring
 k2_config=./conf/decode_asr_transformer_with_k2.yaml
 
+use_streaming=false # Whether to use streaming decoding
+
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -1193,7 +1195,11 @@ if ! "${skip_eval}"; then
           _opts+="--k2_config ${k2_config} "
         else
           _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-          asr_inference_tool="espnet2.bin.asr_inference"
+          if "${use_streaming}"; then
+              asr_inference_tool="espnet2.bin.asr_inference_streaming"
+          else
+              asr_inference_tool="espnet2.bin.asr_inference"
+          fi
         fi
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
