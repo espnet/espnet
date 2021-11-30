@@ -100,22 +100,21 @@ class S3prlFrontend(AbsFrontend):
         return s3prl_upstream, s3prl_featurizer
 
     def _tile_representations(self, feature):
-        def _tile_representations(self, feature):
-            """Tile up the representations by `tile_factor`.
+        """Tile up the representations by `tile_factor`.
 
-            Input - sequence of representations
-                    shape: (batch_size, seq_len, feature_dim)
-            Output - sequence of tiled representations
-                     shape: (batch_size, seq_len * factor, feature_dim)
-            """
-            assert (
-                    len(feature.shape) == 3
-            ), "Input argument `feature` has invalid shape: {}".format(feature.shape)
-            tiled_feature = feature.repeat(1, 1, self.args.tile_factor)
-            tiled_feature = tiled_feature.reshape(
-                feature.size(0), feature.size(1) * self.args.tile_factor, feature.size(2)
-            )
-            return tiled_feature
+        Input - sequence of representations
+                shape: (batch_size, seq_len, feature_dim)
+        Output - sequence of tiled representations
+                 shape: (batch_size, seq_len * factor, feature_dim)
+        """
+        assert (
+                len(feature.shape) == 3
+        ), "Input argument `feature` has invalid shape: {}".format(feature.shape)
+        tiled_feature = feature.repeat(1, 1, self.args.tile_factor)
+        tiled_feature = tiled_feature.reshape(
+            feature.size(0), feature.size(1) * self.args.tile_factor, feature.size(2)
+        )
+        return tiled_feature
 
 
     def output_size(self) -> int:
