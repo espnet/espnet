@@ -67,7 +67,7 @@ class FusedFrontends(AbsFrontend):
             self.feats.append([input_feats, feats_lens])
 
 
-        if self.align_method == "linear_projection":   # for now, this is the only method provided for the fusion, others will be added in the next weeks
+        if self.align_method == "linear_projection":   # TODO (Dan): to add other align methods
 
             # first step : projections
             self.feats_proj = []
