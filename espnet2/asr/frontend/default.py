@@ -38,6 +38,7 @@ class DefaultFrontend(AbsFrontend):
         htk: bool = False,
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
         apply_stft: bool = True,
+        frontend_type="default"
     ):
         assert check_argument_types()
         super().__init__()
@@ -76,7 +77,7 @@ class DefaultFrontend(AbsFrontend):
             htk=htk,
         )
         self.n_mels = n_mels
-        self.frontend_type = "default"
+        self.frontend_type = frontend_type
 
     def output_size(self) -> int:
         return self.n_mels
