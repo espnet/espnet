@@ -1,22 +1,8 @@
-import copy
-from typing import Optional
 from typing import Tuple
-from typing import Union
-from argparse import Namespace
-import logging
-import os
-import humanfriendly
 import numpy as np
 import torch
-from torch_complex.tensor import ComplexTensor
 from typeguard import check_argument_types
-from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.layers.log_mel import LogMel
-from espnet2.layers.stft import Stft
-from espnet2.utils.get_default_kwargs import get_default_kwargs
-from espnet.nets.pytorch_backend.nets_utils import pad_list
-
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 
@@ -25,66 +11,55 @@ class FusedFrontends(AbsFrontend):
 
     def __init__(
             self,
-            n_mels: int = 80,
             frontends = None ,
             align_method = "linear_projection",
             proj_dim = 100,
-            fs="16k"
+            fs=16000
     ):
 
         assert check_argument_types()
         super().__init__()
+        self.align_method = align_method  # fusing method : linear_projection only for now
+        self.proj_dim = proj_dim  # dimension of the projection performed on each frontends' feature before the fusion
+        self.frontends = []   # list of the frontends to combine
 
-        self.n_mels = n_mels
-        self.align_method = align_method
-        self.proj_dim = proj_dim
-
-        self.frontends = []
         for i,frontend in enumerate(frontends) :
-            print(i)
             frontend_type = frontend["frontend_type"]
             if frontend_type == "default":
-                n_mels, fs, n_fft, win_length, hop_length = n_mels, fs, frontend["n_fft"], frontend["win_length"], frontend["hop_length"]
-               # window, center , normalized , onesided = frontend["window"], frontend["center"], frontend["normalized"], frontend["onesided"]
-                self.frontends.append(DefaultFrontend(n_mels=n_mels, n_fft=n_fft, fs=fs, win_length=win_length, hop_length=hop_length))
+                n_mels, fs, n_fft, win_length, hop_length = frontend.get("n_mels", 80), fs, frontend.get("n_fft", 512), frontend.get("win_length"), frontend.get("hop_length", 128)
+                window, center , normalized , onesided = frontend.get("window", "hann"), frontend.get("center", True), frontend.get("normalized", False), frontend.get("onesided", True)
+                fmin, fmax, htk, apply_stft = frontend.get("fmin", None) , frontend.get("fmax", None) , frontend.get("htk", False) , frontend.get("apply_stft", True)
+
+                self.frontends.append(DefaultFrontend(n_mels=n_mels, n_fft=n_fft, fs=fs, win_length=win_length, hop_length=hop_length, window=window, \
+                                                      center=center, normalized=normalized, onesided=onesided, \
+                                                      fmin=fmin, fmax=fmax, htk=htk, apply_stft=apply_stft))
             elif frontend_type == "s3prl":
-                frontend_conf = frontend["frontend_conf"]
-                download_dir = frontend["download_dir"]
-                multilayer_feature = frontend["multilayer_feature"]
+                frontend_conf, download_dir, multilayer_feature = frontend.get("frontend_conf"), frontend.get("download_dir"), frontend.get("multilayer_feature")
                 self.frontends.append(S3prlFrontend(fs=fs, frontend_conf=frontend_conf, download_dir=download_dir, multilayer_feature=multilayer_feature))
+
             else :
-                raise NotImplementedError
+                raise NotImplementedError   # we only have those two categories of frontends for now
 
         self.frontends = torch.nn.ModuleList(self.frontends)
 
         self.gcd = np.gcd.reduce([frontend.hop_length for frontend in self.frontends])
         self.factors = [frontend.hop_length // self.gcd for frontend in self.frontends]
 
-        print("ok gcd", self.gcd)
-
         if self.align_method == "linear_projection":
             self.projection_layers = [torch.nn.Linear(in_features=frontend.output_size(),
                                                           out_features=self.factors[i] * self.proj_dim, device="cuda") for i,frontend in enumerate(self.frontends)]
+            self.projection_layers = torch.nn.ModuleList(self.projection_layers)
 
-        print("ok align")
-
-
-    def output_size_default(self) -> int:
-        return self.n_mels
-
-    def output_size_s3prl(self) -> int:
-        return self.output_dim_s3prl
 
     def output_size(self) -> int:
-        return sum([f.output_size() for f in self.frontends])
-
-
+        return len(self.frontends) * self.proj_dim
 
 
     def forward(
             self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
 
+        # step 0 : get all frontends features
         self.feats = []
         for frontend in self.frontends :
             with torch.no_grad():
@@ -92,7 +67,7 @@ class FusedFrontends(AbsFrontend):
             self.feats.append([input_feats, feats_lens])
 
 
-        if self.align_method == "linear_projection":
+        if self.align_method == "linear_projection":   # for now, this is the only method provided for the fusion, others will be added in the next weeks
 
             # first step : projections
             self.feats_proj = []
@@ -112,14 +87,10 @@ class FusedFrontends(AbsFrontend):
             m = min([x.shape[1] for x in self.feats_reshaped])
             self.feats_final = [x[:, :m, :] for x in self.feats_reshaped]
 
-
             input_feats = torch.cat(self.feats_final, dim=-1)  # change the input size of the preencoder in conf file : proj_dim * n_frontends
             feats_lens = torch.ones_like(self.feats[0][1]) * (m)
-
 
         else:
             raise NotImplementedError
 
         return input_feats, feats_lens
-
-
