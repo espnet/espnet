@@ -85,8 +85,6 @@ class S3prlFrontend(AbsFrontend):
 
         from s3prl.upstream.interfaces import Featurizer
 
-        self.hop_length = s3prl_upstream.get_downsample_rates("key")
-
         if self.multilayer_feature is None:
             feature_selection = "last_hidden_state"
         else:
@@ -108,7 +106,7 @@ class S3prlFrontend(AbsFrontend):
                  shape: (batch_size, seq_len * factor, feature_dim)
         """
         assert (
-                len(feature.shape) == 3
+            len(feature.shape) == 3
         ), "Input argument `feature` has invalid shape: {}".format(feature.shape)
         tiled_feature = feature.repeat(1, 1, self.args.tile_factor)
         tiled_feature = tiled_feature.reshape(
