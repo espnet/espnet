@@ -78,7 +78,7 @@ done
 - 22.05 kHz / 1M iters / Use speaker ID (one-hot) / Averaged the last 5 epochs
 - https://zenodo.org/record/5560132
 
-### vctk_tts_train_full_band_multi_spk_vits_raw_phn_tacotron_espeak_ng_english_us_vits_train.total_count.ave
+### vctk_tts_train_xvector_vits_raw_phn_tacotron_espeak_ng_english_us_vits_train.total_count.ave
 
 <details><summary>Command</summary><div>
 
