@@ -33,7 +33,7 @@ fi
 targets=""
 
 # Copy
-for f in README.md conf; do
+for f in README.md conf local; do
     target="${dir}"/../../TEMPLATE/vc1/"${f}"
     cp -r "${target}" "${dir}"
     targets+="${dir}/${target} "

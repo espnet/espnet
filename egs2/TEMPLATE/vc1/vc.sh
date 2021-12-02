@@ -295,7 +295,6 @@ if [ -z "${inference_tag}" ]; then
     inference_tag+="_$(echo "${inference_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 fi
 
-# TODO
 # The directory used for collect-stats mode
 if [ -z "${vc_stats_dir}" ]; then
     vc_stats_dir="${expdir}/vc_stats_${feats_type}"
@@ -479,6 +478,16 @@ if ! "${skip_train}"; then
                 _opts+="--feats_extract_conf fmax=${fmax} "
                 _opts+="--feats_extract_conf n_mels=${n_mels} "
             fi
+            _opts+="--input_feats_extract ${feats_extract} "
+            _opts+="--input_feats_extract_conf n_fft=${n_fft} "
+            _opts+="--input_feats_extract_conf hop_length=${n_shift} "
+            _opts+="--input_feats_extract_conf win_length=${win_length} "
+            if [ "${feats_extract}" = fbank ]; then
+                _opts+="--input_feats_extract_conf fs=${fs} "
+                _opts+="--input_feats_extract_conf fmin=${fmin} "
+                _opts+="--input_feats_extract_conf fmax=${fmax} "
+                _opts+="--input_feats_extract_conf n_mels=${n_mels} "
+            fi
 
             # Add extra configs for additional inputs
             # NOTE(kan-bayashi): We always pass this options but not used in default
@@ -591,6 +600,79 @@ if ! "${skip_train}"; then
 
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         log "Stage 6: VC Training"
+
+        _opts=
+        if [ -n "${train_config}" ]; then
+            # To generate the config file: e.g.
+            #   % python3 -m espnet2.bin.tts_train --print_config --optim adam
+            _opts+="--config ${train_config} "
+        fi
+
+        _scp=wav.scp
+        # "sound" supports "wav", "flac", etc.
+        _type=sound
+        _fold_length="$((speech_fold_length * n_shift))"
+        _opts+="--feats_extract ${feats_extract} "
+        _opts+="--feats_extract_conf n_fft=${n_fft} "
+        _opts+="--feats_extract_conf hop_length=${n_shift} "
+        _opts+="--feats_extract_conf win_length=${win_length} "
+        if [ "${feats_extract}" = fbank ]; then
+            _opts+="--feats_extract_conf fs=${fs} "
+            _opts+="--feats_extract_conf fmin=${fmin} "
+            _opts+="--feats_extract_conf fmax=${fmax} "
+            _opts+="--feats_extract_conf n_mels=${n_mels} "
+        fi
+
+        # TODO
+        _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
+        _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
+        _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
+        _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
+    
+        # TODO
+        _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
+        _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},speech,${_type} "
+        _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${token_type} "
+        _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
+        
+        # TODO this and below
+        # If there are dumped files of additional inputs, we use it to reduce computational cost
+        # NOTE (kan-bayashi): Use dumped files of the target features as well?
+
+        log "Generate '${vc_exp}/run.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${vc_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${vc_exp}/run.sh"; chmod +x "${vc_exp}/run.sh"
+
+        # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
+
+        log "VC training started... log: '${vc_exp}/train.log'"
+        if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
+            # SGE can't include "/" in a job name
+            jobname="$(basename ${vc_exp})"
+        else
+            jobname="${vc_exp}/train.log"
+        fi
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.launch \
+            --cmd "${cuda_cmd} --name ${jobname}" \
+            --log "${vc_exp}"/train.log \
+            --ngpu "${ngpu}" \
+            --num_nodes "${num_nodes}" \
+            --init_file_prefix "${vc_exp}"/.dist_init_ \
+            --multiprocessing_distributed true -- \
+            ${python} -m "espnet2.bin.${vc_task}_train" \
+                --use_preprocessor true \
+                --token_type "${token_type}" \
+                --token_list "${token_list}" \
+                --non_linguistic_symbols "${nlsyms_txt}" \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --normalize "${feats_normalize}" \
+                --resume true \
+                --fold_length "${text_fold_length}" \
+                --fold_length "${_fold_length}" \
+                --output_dir "${vc_exp}" \
+                ${_opts} ${train_args}
+
     fi
 fi
 
@@ -598,130 +680,6 @@ fi
 
 if ! "${skip_eval}"; then
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-        if [ -z ${norm_name} ]; then
-            echo "Please specify --norm_name ."
-            exit 1
-        fi
-        src_feat_tr_dir=${dumpdir}/${src_train_set}_${norm_name}; mkdir -p ${src_feat_tr_dir}
-        src_feat_dt_dir=${dumpdir}/${src_valid_set}_${norm_name}; mkdir -p ${src_feat_dt_dir}
-        src_feat_ev_dir=${dumpdir}/${src_test_sets}_${norm_name}; mkdir -p ${src_feat_ev_dir}
-        trg_feat_tr_dir=${dumpdir}/${trg_train_set}_${norm_name}; mkdir -p ${trg_feat_tr_dir}
-        trg_feat_dt_dir=${dumpdir}/${trg_valid_set}_${norm_name}; mkdir -p ${trg_feat_dt_dir}
-        trg_feat_ev_dir=${dumpdir}/${trg_test_sets}_${norm_name}; mkdir -p ${trg_feat_ev_dir}
-        pair_tr_dir=${dumpdir}/${pair_train_set}_${norm_name}; mkdir -p ${pair_tr_dir}
-        pair_dt_dir=${dumpdir}/${pair_valid_set}_${norm_name}; mkdir -p ${pair_dt_dir}
-        pair_ev_dir=${dumpdir}/${pair_test_set}_${norm_name}; mkdir -p ${pair_ev_dir}
-        if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then # TODO delete after integrating stats & dump
-            echo "stage 1: Feature Generation"
-
-            # dump features
-            dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-                data/${src_train_set}/feats.scp ${src_cmvn} exp/dump_feats/${src_train_set}_${norm_name} ${src_feat_tr_dir}
-            dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-                data/${src_valid_set}/feats.scp ${src_cmvn} exp/dump_feats/${src_valid_set}_${norm_name} ${src_feat_dt_dir}
-            dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-                data/${src_test_sets}/feats.scp ${src_cmvn} exp/dump_feats/${src_test_sets}_${norm_name} ${src_feat_ev_dir}
-            dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-                data/${trg_train_set}/feats.scp ${trg_cmvn} exp/dump_feats/${trg_train_set}_${norm_name} ${trg_feat_tr_dir}
-            dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-                data/${trg_valid_set}/feats.scp ${trg_cmvn} exp/dump_feats/${trg_valid_set}_${norm_name} ${trg_feat_dt_dir}
-            dump.sh --cmd "$train_cmd" --nj ${nj} --do_delta false \
-                data/${trg_test_sets}/feats.scp ${trg_cmvn} exp/dump_feats/${trg_test_sets}_${norm_name} ${trg_feat_ev_dir}
-        fi
-
-        if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-            echo "stage 2: Dictionary and Json Data Preparation"
-
-            # make dummy dict
-            dict="data/dummy_dict/X.txt"
-            mkdir -p ${dict%/*}
-            echo "<unk> 1" > ${dict}
-
-            # make json labels
-            data2json.sh --feat ${src_feat_tr_dir}/feats.scp \
-                data/${src_train_set} ${dict} > ${src_feat_tr_dir}/data.json
-            data2json.sh --feat ${src_feat_dt_dir}/feats.scp \
-                data/${src_valid_set} ${dict} > ${src_feat_dt_dir}/data.json
-            data2json.sh --feat ${src_feat_ev_dir}/feats.scp \
-                data/${src_test_sets} ${dict} > ${src_feat_ev_dir}/data.json
-            data2json.sh --feat ${trg_feat_tr_dir}/feats.scp \
-                data/${trg_train_set} ${dict} > ${trg_feat_tr_dir}/data.json
-            data2json.sh --feat ${trg_feat_dt_dir}/feats.scp \
-                data/${trg_valid_set} ${dict} > ${trg_feat_dt_dir}/data.json
-            data2json.sh --feat ${trg_feat_ev_dir}/feats.scp \
-                data/${trg_test_sets} ${dict} > ${trg_feat_ev_dir}/data.json
-        fi
-
-        if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-            echo "stage 3: Pair Json Data Preparation"
-
-            # make pair json
-            if [ ${num_train_utts} -ge 0 ]; then
-                make_pair_json.py \
-                    --src-json ${src_feat_tr_dir}/data.json \
-                    --trg-json ${trg_feat_tr_dir}/data.json \
-                    -O ${pair_tr_dir}/data_n${num_train_utts}.json \
-                    --num_utts ${num_train_utts}
-            else
-                make_pair_json.py \
-                    --src-json ${src_feat_tr_dir}/data.json \
-                    --trg-json ${trg_feat_tr_dir}/data.json \
-                    -O ${pair_tr_dir}/data.json
-            fi
-            make_pair_json.py \
-                --src-json ${src_feat_dt_dir}/data.json \
-                --trg-json ${trg_feat_dt_dir}/data.json \
-                -O ${pair_dt_dir}/data.json
-            make_pair_json.py \
-                --src-json ${src_feat_ev_dir}/data.json \
-                --trg-json ${trg_feat_ev_dir}/data.json \
-                -O ${pair_ev_dir}/data.json
-        fi
-
-        if [[ -z ${train_config} ]]; then
-            echo "Please specify --train_config."
-            exit 1
-        fi
-
-        # If pretrained model specified, add pretrained model info in config
-        if [ -n "${pretrained_model}" ]; then
-            pretrained_model_path=$(find ${db_root}/${pretrained_model} -name "snapshot*" | head -n 1)
-            train_config="$(change_yaml.py \
-                -a enc-init="${pretrained_model_path}" \
-                -a dec-init="${pretrained_model_path}" \
-                -o "conf/$(basename "${train_config}" .yaml).${tag}.yaml" "${train_config}")"
-        fi
-        if [ -z ${tag} ]; then
-            expname=${srcspk}_${trgspk}_${backend}_$(basename ${train_config%.*})
-        else
-            expname=${srcspk}_${trgspk}_${backend}_${tag}
-        fi
-        expdir=exp/${expname}
-        if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-            echo "stage 4: VC model training"
-
-            mkdir -p ${expdir}
-            if [ ${num_train_utts} -ge 0 ]; then
-                tr_json=${pair_tr_dir}/data_n${num_train_utts}.json
-            else
-                tr_json=${pair_tr_dir}/data.json
-            fi
-            dt_json=${pair_dt_dir}/data.json
-
-            ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
-                vc_train.py \
-                --backend ${backend} \
-                --ngpu ${ngpu} \
-                --minibatches ${N} \
-                --outdir ${expdir}/results \
-                --tensorboard-dir tensorboard/${expname} \
-                --verbose ${verbose} \
-                --seed ${seed} \
-                --resume ${resume} \
-                --train-json ${tr_json} \
-                --valid-json ${dt_json} \
-                --config ${train_config}
-        fi
 
         if [ -z "${inference_model}" ]; then
             inference_model="$(find "${expdir}" -name "snapshot*" -print0 | xargs -0 ls -t 2>/dev/null | head -n 1)"
