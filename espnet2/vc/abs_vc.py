@@ -17,10 +17,10 @@ class AbsVC(torch.nn.Module, ABC):
     @abstractmethod
     def forward(
         self,
-        text: torch.Tensor,
-        text_lengths: torch.Tensor,
-        feats: torch.Tensor,
-        feats_lengths: torch.Tensor,
+        xs: torch.Tensor,
+        ilens: torch.Tensor,
+        ys: torch.Tensor,
+        olens: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate outputs and return the loss tensor."""
@@ -29,7 +29,7 @@ class AbsVC(torch.nn.Module, ABC):
     @abstractmethod
     def inference(
         self,
-        text: torch.Tensor,
+        x: torch.Tensor,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Return predicted output as a dict."""

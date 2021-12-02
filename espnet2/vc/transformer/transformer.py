@@ -79,6 +79,7 @@ class Transformer(AbsVC):
         encoder_concat_after: bool = False,
         decoder_concat_after: bool = False,
         reduction_factor: int = 1,
+        encoder_reduction_factor: int = 1,
         # extra embedding related
         spks: Optional[int] = None,
         langs: Optional[int] = None,
@@ -150,7 +151,8 @@ class Transformer(AbsVC):
                 and output in decoder.
             positionwise_layer_type (str): Position-wise operation type.
             positionwise_conv_kernel_size (int): Kernel size in position wise conv 1d.
-            reduction_factor (int): Reduction factor.
+            reduction_factor (int): Reduction factor (for decoder).
+            encoder_reduction_factor (int): Reduction factor (for encoder).
             spks (Optional[int]): Number of speakers. If set to > 1, assume that the
                 sids will be provided as the input and use sid embedding layer.
             langs (Optional[int]): Number of languages. If set to > 1, assume that the
@@ -218,8 +220,8 @@ class Transformer(AbsVC):
         self.odim = odim
         self.eos = idim - 1
         self.reduction_factor = reduction_factor
+        self.encoder_reduction_factor = encoder_reduction_factor
         self.use_gst = use_gst
-        self.use_guided_attn_loss = use_guided_attn_loss
         self.use_scaled_pos_enc = use_scaled_pos_enc
         self.loss_type = loss_type
         self.use_guided_attn_loss = use_guided_attn_loss
@@ -247,7 +249,7 @@ class Transformer(AbsVC):
             # encoder prenet
             encoder_input_layer = torch.nn.Sequential(
                 EncoderPrenet(
-                    idim=idim,
+                    idim=idim * encoder_reduction_factor,
                     embed_dim=embed_dim,
                     elayers=0,
                     econv_layers=eprenet_conv_layers,
@@ -256,13 +258,12 @@ class Transformer(AbsVC):
                     use_batch_norm=use_batch_norm,
                     dropout_rate=eprenet_dropout_rate,
                     padding_idx=self.padding_idx,
+                    input_layer="linear",
                 ),
                 torch.nn.Linear(eprenet_conv_chans, adim),
             )
         else:
-            encoder_input_layer = torch.nn.Embedding(
-                num_embeddings=idim, embedding_dim=adim, padding_idx=self.padding_idx
-            )
+            encoder_input_layer = torch.nn.Linear(idim * encoder_reduction_factor, adim)
         self.encoder = Encoder(
             idim=idim,
             attention_dim=adim,
@@ -397,10 +398,10 @@ class Transformer(AbsVC):
 
     def forward(
         self,
-        text: torch.Tensor,
-        text_lengths: torch.Tensor,
-        feats: torch.Tensor,
-        feats_lengths: torch.Tensor,
+        xs: torch.Tensor,
+        ilens: torch.Tensor,
+        ys: torch.Tensor,
+        olens: torch.Tensor,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -409,10 +410,10 @@ class Transformer(AbsVC):
         """Calculate forward propagation.
 
         Args:
-            text (LongTensor): Batch of padded character ids (B, Tmax).
-            text_lengths (LongTensor): Batch of lengths of each input batch (B,).
-            feats (Tensor): Batch of padded target features (B, Lmax, odim).
-            feats_lengths (LongTensor): Batch of the lengths of each target (B,).
+            xs (Tensor): Batch of padded acoustic features (B, Tmax, idim).
+            ilens (LongTensor): Batch of lengths of each input batch (B,).
+            ys (Tensor): Batch of padded target features (B, Lmax, odim).
+            olens (LongTensor): Batch of the lengths of each target (B,).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -424,27 +425,35 @@ class Transformer(AbsVC):
             Tensor: Weight value if not joint training else model outputs.
 
         """
-        text = text[:, : text_lengths.max()]  # for data-parallel
-        feats = feats[:, : feats_lengths.max()]  # for data-parallel
-        batch_size = text.size(0)
-
-        # Add eos at the last of sequence
-        xs = F.pad(text, [0, 1], "constant", self.padding_idx)
-        for i, l in enumerate(text_lengths):
-            xs[i, l] = self.eos
-        ilens = text_lengths + 1
-
-        ys = feats
-        olens = feats_lengths
+        xs = xs[:, : ilens.max()]  # for data-parallel
+        ys = ys[:, : olens.max()]  # for data-parallel
+        batch_size = xs.size(0)
 
         # make labels for stop prediction
         labels = make_pad_mask(olens - 1).to(ys.device, ys.dtype)
         labels = F.pad(labels, [0, 1], "constant", 1.0)
 
+        # thin out input frames for reduction factor
+        # (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
+        if self.encoder_reduction_factor > 1:
+            B, Lmax, idim = xs.shape
+            if Lmax % self.encoder_reduction_factor != 0:
+                xs = xs[:, : -(Lmax % self.encoder_reduction_factor), :]
+            xs_ds = xs.contiguous().view(
+                B,
+                int(Lmax / self.encoder_reduction_factor),
+                idim * self.encoder_reduction_factor,
+            )
+            ilens_ds = ilens.new(
+                [ilen // self.encoder_reduction_factor for ilen in ilens]
+            )
+        else:
+            xs_ds, ilens_ds = xs, ilens
+
         # calculate transformer outputs
         after_outs, before_outs, logits = self._forward(
-            xs=xs,
-            ilens=ilens,
+            xs_ds=xs_ds,
+            ilens_ds=ilens_ds,
             ys=ys,
             olens=olens,
             spembs=spembs,
@@ -501,8 +510,8 @@ class Transformer(AbsVC):
                     ]
                     if idx + 1 == self.num_layers_applied_guided_attn:
                         break
-                att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_text, T_text)
-                enc_attn_loss = self.attn_criterion(att_ws, ilens, ilens)
+                att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_in, T_in)
+                enc_attn_loss = self.attn_criterion(att_ws, ilens_ds, ilens_ds)
                 loss = loss + enc_attn_loss
                 stats.update(enc_attn_loss=enc_attn_loss.item())
             # calculate for decoder
@@ -518,7 +527,7 @@ class Transformer(AbsVC):
                     ]
                     if idx + 1 == self.num_layers_applied_guided_attn:
                         break
-                att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_feats, T_feats)
+                att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_out, T_out)
                 dec_attn_loss = self.attn_criterion(att_ws, olens_in, olens_in)
                 loss = loss + dec_attn_loss
                 stats.update(dec_attn_loss=dec_attn_loss.item())
@@ -535,8 +544,8 @@ class Transformer(AbsVC):
                     ]
                     if idx + 1 == self.num_layers_applied_guided_attn:
                         break
-                att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_feats, T_text)
-                enc_dec_attn_loss = self.attn_criterion(att_ws, ilens, olens_in)
+                att_ws = torch.cat(att_ws, dim=1)  # (B, H*L, T_out, T_in)
+                enc_dec_attn_loss = self.attn_criterion(att_ws, ilens_ds, olens_in)
                 loss = loss + enc_dec_attn_loss
                 stats.update(enc_dec_attn_loss=enc_dec_attn_loss.item())
 
@@ -558,8 +567,8 @@ class Transformer(AbsVC):
 
     def _forward(
         self,
-        xs: torch.Tensor,
-        ilens: torch.Tensor,
+        xs_ds: torch.Tensor,
+        ilens_ds: torch.Tensor,
         ys: torch.Tensor,
         olens: torch.Tensor,
         spembs: torch.Tensor,
@@ -567,8 +576,8 @@ class Transformer(AbsVC):
         lids: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # forward encoder
-        x_masks = self._source_mask(ilens)
-        hs, h_masks = self.encoder(xs, x_masks)
+        x_masks = self._source_mask(ilens_ds)
+        hs, h_masks = self.encoder(xs_ds, x_masks)
 
         # integrate with GST
         if self.use_gst:
@@ -618,7 +627,7 @@ class Transformer(AbsVC):
 
     def inference(
         self,
-        text: torch.Tensor,
+        x: torch.Tensor,
         feats: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
@@ -626,12 +635,11 @@ class Transformer(AbsVC):
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
-        use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
         Args:
-            text (LongTensor): Input sequence of characters (T_text,).
+            x (Tensor): Input sequence of acoustic features (T, idim).
             feats (Optional[Tensor]): Feature sequence to extract style embedding
                 (T_feats', idim).
             spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).
@@ -640,7 +648,6 @@ class Transformer(AbsVC):
             threshold (float): Threshold in inference.
             minlenratio (float): Minimum length ratio in inference.
             maxlenratio (float): Maximum length ratio in inference.
-            use_teacher_forcing (bool): Whether to use teacher forcing.
 
         Returns:
             Dict[str, Tensor]: Output dict including the following items:
@@ -649,43 +656,25 @@ class Transformer(AbsVC):
                 * att_w (Tensor): Source attn weight (#layers, #heads, T_feats, T_text).
 
         """
-        x = text
         y = feats
         spemb = spembs
 
-        # add eos at the last of sequence
-        x = F.pad(x, [0, 1], "constant", self.eos)
-
-        # inference with teacher forcing
-        if use_teacher_forcing:
-            assert feats is not None, "feats must be provided with teacher forcing."
-
-            # get teacher forcing outputs
-            xs, ys = x.unsqueeze(0), y.unsqueeze(0)
-            spembs = None if spemb is None else spemb.unsqueeze(0)
-            ilens = x.new_tensor([xs.size(1)]).long()
-            olens = y.new_tensor([ys.size(1)]).long()
-            outs, *_ = self._forward(
-                xs=xs,
-                ilens=ilens,
-                ys=ys,
-                olens=olens,
-                spembs=spembs,
-                sids=sids,
-                lids=lids,
+        # thin out input frames for reduction factor
+        # (B, Lmax, idim) ->  (B, Lmax // r, idim * r)
+        if self.encoder_reduction_factor > 1:
+            Lmax, idim = x.shape
+            if Lmax % self.encoder_reduction_factor != 0:
+                x = x[: -(Lmax % self.encoder_reduction_factor), :]
+            x_ds = x.contiguous().view(
+                int(Lmax / self.encoder_reduction_factor),
+                idim * self.encoder_reduction_factor,
             )
-
-            # get attention weights
-            att_ws = []
-            for i in range(len(self.decoder.decoders)):
-                att_ws += [self.decoder.decoders[i].src_attn.attn]
-            att_ws = torch.stack(att_ws, dim=1)  # (B, L, H, T_feats, T_text)
-
-            return dict(feat_gen=outs[0], att_w=att_ws[0])
+        else:
+            x_ds = x
 
         # forward encoder
-        xs = x.unsqueeze(0)
-        hs, _ = self.encoder(xs, None)
+        x_ds = x_ds.unsqueeze(0)
+        hs, _ = self.encoder(x_ds, None)
 
         # integrate GST
         if self.use_gst:

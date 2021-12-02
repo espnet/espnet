@@ -23,18 +23,19 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.vc.espnet_model import ESPnetVCModel
-from espnet2.tts.espnet_model import ESPnetTTSModel
 from espnet2.text.phoneme_tokenizer import g2p_choices
+from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
-from espnet2.train.class_choices import ClassChoices
+from espnet2.vc.abs_vc import AbsVC
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
+from espnet2.vc.transformer import Transformer
 from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
@@ -45,6 +46,16 @@ from espnet2.utils.types import str_or_none
 
 feats_extractor_choices = ClassChoices(
     "feats_extract",
+    classes=dict(
+        fbank=LogMelFbank,
+        spectrogram=LogSpectrogram,
+        linear_spectrogram=LinearSpectrogram,
+    ),
+    type_check=AbsFeatsExtract,
+    default="fbank",
+)
+input_feats_extractor_choices = ClassChoices(
+    "input_feats_extract",
     classes=dict(
         fbank=LogMelFbank,
         spectrogram=LogSpectrogram,
@@ -74,6 +85,13 @@ normalize_choices = ClassChoices(
     default="global_mvn",
     optional=True,
 )
+input_normalize_choices = ClassChoices(
+    "input_normalize",
+    classes=dict(global_mvn=GlobalMVN),
+    type_check=AbsNormalize,
+    default="global_mvn",
+    optional=True,
+)
 pitch_normalize_choices = ClassChoices(
     "pitch_normalize",
     classes=dict(global_mvn=GlobalMVN),
@@ -90,7 +108,11 @@ energy_normalize_choices = ClassChoices(
 )
 vc_choices = ClassChoices(
     "vc",
-    # TODO
+    classes=dict(
+        transformer=Transformer,
+    ),
+    type_check=AbsVC,
+    default="transformer",
 )
 
 
@@ -100,10 +122,14 @@ class VCTask(AbsTask):
 
     # Add variable objects configurations
     class_choices_list = [
-        # --feats_extractor and --feats_extractor_conf
+        # --feats_extractor and --feats_extract_conf
         feats_extractor_choices,
+        # --input_feats_extractor and --input_feats_extract_conf
+        input_feats_extractor_choices,
         # --normalize and --normalize_conf
         normalize_choices,
+        # --input_normalize and --input_normalize_conf
+        input_normalize_choices,
         # --vc and --vc_conf
         vc_choices,
         # --pitch_extract and --pitch_extract_conf
@@ -128,7 +154,6 @@ class VCTask(AbsTask):
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default("required")
-        required += ["token_list"]
 
         group.add_argument(
             "--token_list",
@@ -137,10 +162,16 @@ class VCTask(AbsTask):
             help="A text mapping int-id to token",
         )
         group.add_argument(
+            "--idim",
+            type=int_or_none,
+            default=None,
+            help="The number of dimensions in each input feature",
+        )
+        group.add_argument(
             "--odim",
             type=int_or_none,
             default=None,
-            help="The number of dimension of output feature",
+            help="The number of dimensions in each output feature",
         )
         group.add_argument(
             "--model_conf",
@@ -252,15 +283,125 @@ class VCTask(AbsTask):
     
     @classmethod
     def build_model(cls, args: argparse.Namespace) -> ESPnetVCModel:
-        pass
-        # TODO
+        assert check_argument_types()
+        if args.token_list is not None:
+            if isinstance(args.token_list, str):
+                with open(args.token_list, encoding="utf-8") as f:
+                    token_list = [line.rstrip() for line in f]
+
+                # "args" is saved as it is in a yaml file by BaseTask.main().
+                # Overwriting token_list to keep it as "portable".
+                args.token_list = token_list.copy()
+            elif isinstance(args.token_list, (tuple, list)):
+                token_list = args.token_list.copy()
+            else:
+                raise RuntimeError("token_list must be str or dict")
+
+            vocab_size = len(token_list)
+            logging.info(f"Vocabulary size: {vocab_size }")
+
+        # 1. feats_extract
+        if args.odim is None:
+            # Extract features in the model
+            feats_extract_class = feats_extractor_choices.get_class(args.feats_extract)
+            feats_extract = feats_extract_class(**args.feats_extract_conf)
+            odim = feats_extract.output_size()
+        else:
+            # Give features from data-loader
+            args.feats_extract = None
+            args.feats_extract_conf = None
+            feats_extract = None
+            odim = args.odim
+        if args.idim is None:
+            # Extract features in the model
+            input_feats_extract_class = input_feats_extractor_choices.get_class(args.input_feats_extract)
+            input_feats_extract = input_feats_extract_class(**args.input_feats_extract_conf)
+            idim = input_feats_extract.output_size()
+        else:
+            # Give features from data-loader
+            args.input_feats_extract = None
+            args.input_feats_extract_conf = None
+            input_feats_extract = None
+            idim = args.idim
+
+        # 2. Normalization layer
+        if args.normalize is not None:
+            normalize_class = normalize_choices.get_class(args.normalize)
+            normalize = normalize_class(**args.normalize_conf)
+        else:
+            normalize = None
+        if args.input_normalize is not None:
+            input_normalize_class = input_normalize_choices.get_class(args.input_normalize)
+            input_normalize = input_normalize_class(**args.input_normalize_conf)
+        else:
+            input_normalize = None
+
+        # 3. VC
+        vc_class = vc_choices.get_class(args.vc)
+        vc = vc_class(idim=idim, odim=odim, **args.vc_conf)
+
+        # 4. Extra components
+        pitch_extract = None
+        energy_extract = None
+        pitch_normalize = None
+        energy_normalize = None
+        if getattr(args, "pitch_extract", None) is not None:
+            pitch_extract_class = pitch_extractor_choices.get_class(args.pitch_extract)
+            if args.pitch_extract_conf.get("reduction_factor", None) is not None:
+                assert args.pitch_extract_conf.get(
+                    "reduction_factor", None
+                ) == args.vc_conf.get("reduction_factor", 1)
+            else:
+                args.pitch_extract_conf["reduction_factor"] = args.vc_conf.get(
+                    "reduction_factor", 1
+                )
+            pitch_extract = pitch_extract_class(**args.pitch_extract_conf)
+        if getattr(args, "energy_extract", None) is not None:
+            if args.energy_extract_conf.get("reduction_factor", None) is not None:
+                assert args.energy_extract_conf.get(
+                    "reduction_factor", None
+                ) == args.vc_conf.get("reduction_factor", 1)
+            else:
+                args.energy_extract_conf["reduction_factor"] = args.vc_conf.get(
+                    "reduction_factor", 1
+                )
+            energy_extract_class = energy_extractor_choices.get_class(
+                args.energy_extract
+            )
+            energy_extract = energy_extract_class(**args.energy_extract_conf)
+        if getattr(args, "pitch_normalize", None) is not None:
+            pitch_normalize_class = pitch_normalize_choices.get_class(
+                args.pitch_normalize
+            )
+            pitch_normalize = pitch_normalize_class(**args.pitch_normalize_conf)
+        if getattr(args, "energy_normalize", None) is not None:
+            energy_normalize_class = energy_normalize_choices.get_class(
+                args.energy_normalize
+            )
+            energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
+        
+        # 5. Build model
+        model = ESPnetVCModel(
+            feats_extract=feats_extract,
+            input_feats_extract=input_feats_extract,
+            pitch_extract=pitch_extract,
+            energy_extract=energy_extract,
+            normalize=normalize,
+            input_normalize=input_normalize,
+            pitch_normalize=pitch_normalize,
+            energy_normalize=energy_normalize,
+            vc=vc,
+            **args.model_conf,
+        )
+        assert check_return_type(model)
+        return model
 
     @classmethod
     def build_vocoder_from_file(
         cls,
         vocoder_config_file: Union[Path, str] = None,
         vocoder_file: Union[Path, str] = None,
-        model: Optional[ESPnetTTSModel] = None,
+        model: Optional[ESPnetVCModel] = None,
         device: str = "cpu",
     ):
         # Build vocoder
