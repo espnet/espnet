@@ -108,6 +108,8 @@ nll_batch_size=100 # Affect GPU memory usage when computing nll
                    # during nbest rescoring
 k2_config=./conf/decode_asr_transformer_with_k2.yaml
 
+use_streaming=false # Whether to use streaming decoding
+
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -221,6 +223,7 @@ Options:
     --inference_lm        # Language model path for decoding (default="${inference_lm}").
     --inference_asr_model # ASR model path for decoding (default="${inference_asr_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
+    --use_streaming       # Whether to use streaming decoding (default="${use_streaming}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -1193,7 +1196,11 @@ if ! "${skip_eval}"; then
           _opts+="--k2_config ${k2_config} "
         else
           _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-          asr_inference_tool="espnet2.bin.asr_inference"
+          if "${use_streaming}"; then
+              asr_inference_tool="espnet2.bin.asr_inference_streaming"
+          else
+              asr_inference_tool="espnet2.bin.asr_inference"
+          fi
         fi
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
