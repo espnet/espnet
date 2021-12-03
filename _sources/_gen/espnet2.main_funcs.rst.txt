@@ -4,17 +4,6 @@ espnet2.main_funcs package
 
 
 
-.. _espnet2.main_funcs.collect_stats:
-
-espnet2.main_funcs.collect_stats
---------------------------------
-
-.. automodule:: espnet2.main_funcs.collect_stats
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.main_funcs.__init__:
 
 espnet2.main_funcs.__init__
@@ -26,12 +15,12 @@ espnet2.main_funcs.__init__
     :show-inheritance:
 
 
-.. _espnet2.main_funcs.calculate_all_attentions:
+.. _espnet2.main_funcs.collect_stats:
 
-espnet2.main_funcs.calculate_all_attentions
--------------------------------------------
+espnet2.main_funcs.collect_stats
+--------------------------------
 
-.. automodule:: espnet2.main_funcs.calculate_all_attentions
+.. automodule:: espnet2.main_funcs.collect_stats
     :members:
     :undoc-members:
     :show-inheritance:
@@ -43,6 +32,17 @@ espnet2.main_funcs.pack_funcs
 -----------------------------
 
 .. automodule:: espnet2.main_funcs.pack_funcs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.main_funcs.calculate_all_attentions:
+
+espnet2.main_funcs.calculate_all_attentions
+-------------------------------------------
+
+.. automodule:: espnet2.main_funcs.calculate_all_attentions
     :members:
     :undoc-members:
     :show-inheritance:
