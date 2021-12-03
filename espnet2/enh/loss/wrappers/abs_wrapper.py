@@ -4,8 +4,6 @@ from typing import List, Tuple, Dict
 
 import torch
 
-from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
-
 
 class AbsLossWrapper(torch.nn.Module, ABC):
 

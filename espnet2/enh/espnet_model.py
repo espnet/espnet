@@ -1,23 +1,18 @@
 """Enhancement model module."""
 from distutils.version import LooseVersion
-from functools import reduce
-from itertools import permutations
 from typing import Dict, List
 from typing import Optional
 from typing import Tuple
 
-import ci_sdr
 import torch
 from typeguard import check_argument_types
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
-from espnet2.enh.encoder.conv_encoder import ConvEncoder
-from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
-from espnet2.enh.loss.criterions.time_domain import SISNRLoss, TimeDomainLoss
+from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
@@ -37,6 +32,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         separator: AbsSeparator,
         decoder: AbsDecoder,
         loss_wrappers: List[AbsLossWrapper],
+        stft_consistency: bool = False,
+        loss_type: str = "mask_mse",
         mask_type: Optional[str] = None,
     ):
         assert check_argument_types()
@@ -50,10 +47,18 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.num_spk = separator.num_spk
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
 
-        # get mask type for TF-domain models (only used when loss_type="mask_*") (deprecated)
+        # get mask type for TF-domain models
+        # (only used when loss_type="mask_*") (deprecated, keep for compatibility)
         self.mask_type = mask_type.upper() if mask_type else None
 
-        # for multi-channel signal (deprecated)
+        # get loss type for model training (deprecated, keep for compatibility)
+        self.loss_type = loss_type
+
+        # whether to compute the TF-domain loss
+        # while enforcing STFT consistency (deprecated, keep for compatibility)
+        self.stft_consistency = stft_consistency
+
+        # for multi-channel signal (deprecated, keep for compatibility)
         self.ref_channel = getattr(self.separator, "ref_channel", -1)
 
     def forward(

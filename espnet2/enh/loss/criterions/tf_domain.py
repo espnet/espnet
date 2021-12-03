@@ -1,7 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
 from distutils.version import LooseVersion
-from typing import Tuple, Dict
 from functools import reduce
 
 import torch
