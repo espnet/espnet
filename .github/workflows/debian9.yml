@@ -9,14 +9,13 @@ on:
       - master
 
 jobs:
-  linter_and_test:
+  test_debian9:
     runs-on: ubuntu-latest
     container:
       image: debian:9
       env:
         ESPNET_PYTHON_VERSION: 3.7
-        TH_VERSION: 1.9.0
-        K2_VERSION: 1.3.dev20210806
+        TH_VERSION: 1.10.0
         CHAINER_VERSION: 6.0.0
         USE_CONDA: true
         CC: gcc-6

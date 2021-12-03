@@ -9,7 +9,6 @@ import logging
 import math
 import os
 
-import editdistance
 import nltk
 
 import chainer
@@ -403,6 +402,8 @@ class E2E(STInterface, torch.nn.Module):
         :return: word error rate from attetion decoder prediction
         :rtype: float
         """
+        import editdistance
+
         loss_att, loss_ctc = 0.0, 0.0
         acc = None
         cer, wer = None, None

@@ -27,7 +27,6 @@ import torch.optim
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 from typeguard import check_return_type
-import wandb
 import yaml
 
 from espnet import __version__
@@ -71,6 +70,11 @@ from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_int
 from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
+
+try:
+    import wandb
+except Exception:
+    wandb = None
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
     from torch.multiprocessing.spawn import ProcessContext
@@ -496,6 +500,12 @@ class AbsTask(ABC):
             nargs="+",
             default=[10],
             help="Remove previous snapshots excluding the n-best scored epochs",
+        )
+        group.add_argument(
+            "--nbest_averaging_interval",
+            type=int,
+            default=0,
+            help="The epoch interval to apply model averaging and save nbest models",
         )
         group.add_argument(
             "--grad_clip",
@@ -1250,6 +1260,9 @@ class AbsTask(ABC):
 
             # 8. Start training
             if args.use_wandb:
+                if wandb is None:
+                    raise RuntimeError("Please install wandb")
+
                 try:
                     wandb.login()
                 except wandb.errors.UsageError:

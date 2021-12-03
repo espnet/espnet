@@ -29,7 +29,7 @@ cwd=`pwd`
 if [ ! -e ${db}/${lang} ]; then
     mkdir -p ${db}
     cd ${db}
-    wget http://www.caito.de/data/Training/stt_tts/${lang}.tgz
+    wget http://data.solak.de/data/Training/stt_tts/${lang}.tgz
     tar xvf ${lang}.tgz
     rm ${lang}.tgz
     cd $cwd

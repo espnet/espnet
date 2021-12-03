@@ -10,7 +10,6 @@ import json
 import logging
 import sys
 
-import editdistance
 from itertools import groupby
 import numpy as np
 import six
@@ -160,6 +159,8 @@ class ErrorCalculator(object):
         :return: average sentence-level CER score
         :rtype float
         """
+        import editdistance
+
         cers, char_ref_lens = [], []
         for i, y in enumerate(ys_hat):
             y_hat = [x[0] for x in groupby(y)]
@@ -217,6 +218,8 @@ class ErrorCalculator(object):
         :return: average sentence-level CER score
         :rtype float
         """
+        import editdistance
+
         char_eds, char_ref_lens = [], []
         for i, seq_hat_text in enumerate(seqs_hat):
             seq_true_text = seqs_true[i]
@@ -234,6 +237,8 @@ class ErrorCalculator(object):
         :return: average sentence-level WER score
         :rtype float
         """
+        import editdistance
+
         word_eds, word_ref_lens = [], []
         for i, seq_hat_text in enumerate(seqs_hat):
             seq_true_text = seqs_true[i]
