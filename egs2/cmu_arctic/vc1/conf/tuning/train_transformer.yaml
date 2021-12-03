@@ -1,14 +1,14 @@
-# This configuration is for ESPnet2 to train Transformer-TTS. Compared to the
+# This configuration is for ESPnet2 to train Transformer-VC. Compared to the
 # original paper, this configuration additionally use the guided attention
 # loss to accelerate the learning of the diagonal attention. It requires
 # 4 GPUs with 32 GB memory and it will finish within 1 day to finish the
 # training on Tesla V100.
 
 ##########################################################
-#                  TTS MODEL SETTING                     #
+#                  VC MODEL SETTING                      #
 ##########################################################
-tts: transformer           # model architecture
-tts_conf:                  # keyword arguments for the selected model
+vc: transformer           # model architecture
+vc_conf:                  # keyword arguments for the selected model
     embed_dim: 0           # embedding dimension in encoder prenet
     eprenet_conv_layers: 0 # number of conv layers in encoder prenet
                            # if set to 0, no encoder prenet will be used
@@ -72,7 +72,7 @@ max_epoch: 200              # number of epochs
 grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 2               # gradient accumulation
-batch_bins: 9000000         # batch bins (for feats_type=raw, *= n_shift / n_mels)
+batch_bins: 3750000         # batch bins (for feats_type=raw, *= n_shift / n_mels)
 batch_type: numel           # how to make batch
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches

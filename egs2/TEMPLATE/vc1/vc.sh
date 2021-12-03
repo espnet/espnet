@@ -41,12 +41,6 @@ gpu_inference=false  # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands.
-# TODO
-backend=pytorch
-verbose=1    # verbose option (if set > 0, get more log)
-N=0          # number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
-seed=1       # random seed number
-resume=""    # the snapshot path to resume (if set empty, no effect)
 
 # Data preparation related
 local_data_opts="" # Options to be passed to local/data.sh.
@@ -104,6 +98,8 @@ vocoder_file=none  # Vocoder parameter file, If set to none, Griffin-Lim will be
 download_model=""  # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
+srcspk=""            # src speaker
+trgspk=""            # trg speaker
 src_train_set=""     # Name of src training set.
 src_valid_set=""     # Name of src validation set used for monitoring/tuning network training.
 src_test_sets=""     # Names of src test sets. Multiple items (e.g., both dev and eval sets) can be specified.
@@ -119,20 +115,9 @@ lang=noinfo      # The language type of corpus.
 text_fold_length=150   # fold_length for text data.
 speech_fold_length=800 # fold_length for speech data.
 
-# TODO
-# decoding related
-outdir=                     # In case not evaluation not executed together with decoding & synthesis stage
+# Upload model related
+hf_repo=
 
-# TODO
-# pretrained model related
-pretrained_model=           # available pretrained models: m_ailabs.judy.vtn_tts_pt
-
- # TODO
-# dataset configuration
-srcspk=clb                  # available speakers: "slt" "clb" "bdl" "rms"
-trgspk=slt
-
-# TODO
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>" --srctexts "<srctexts>"
 
@@ -206,9 +191,15 @@ Options:
     --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 
     # [Task dependent] Set the datadir name created by local/data.sh.
-    --src_train_set          # Name of training set (required).
-    --src_valid_set          # Name of validation set used for monitoring/tuning network training (required).
-    --src_test_sets          # Names of test sets (required).
+    --srcspk             # src speaker (required).
+    --trgspk             # trg speaker (required).
+    --src_train_set      # Name of src training set (required).
+    --src_valid_set      # Name of src validation set used for monitoring/tuning network training (required).
+    --src_test_sets      # Names of src test sets (required).
+                         # Note that multiple items (e.g., both dev and eval sets) can be specified.
+    --trg_train_set      # Name of trg training set (required).
+    --trg_valid_set      # Name of trg validation set used for monitoring/tuning network training (required).
+    --trg_test_sets      # Names of trg test sets (required).
                          # Note that multiple items (e.g., both dev and eval sets) can be specified.
     --srctexts           # Texts to create token list (required).
                          # Note that multiple items can be specified.
@@ -263,7 +254,6 @@ if [ -e data/token_list ] && [ ! -e "${dumpdir}/token_list" ]; then
     cp -a "data/token_list" "${dumpdir}/token_list"
 fi
 
-# TODO
 # Set tag for naming of model directory
 if [ -z "${tag}" ]; then
     if [ -n "${train_config}" ]; then
@@ -316,11 +306,6 @@ fi
 
 
 # ========================== Main stages start from here. ==========================
-
-pair=${srcspk}_${trgspk}
-pair_train_set=${pair}_train
-pair_valid_set=${pair}_dev
-pair_test_set=${pair}_eval
 
 if ! "${skip_data_prep}"; then
     if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -599,7 +584,39 @@ if ! "${skip_train}"; then
     fi
 
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-        log "Stage 6: VC Training"
+        log "Stage 6: Combine Source and Target Datasets"
+
+        ${python} -m espnet2.vc.combine_src_trg \
+              --srcspk "${srcspk}" --trgspk "${trgspk}" \
+              --src_dir "${data_feats}/${src_train_set}" \
+              --trg_dir "${data_feats}/${trg_train_set}"
+
+        ${python} -m espnet2.vc.combine_src_trg \
+              --srcspk "${srcspk}" --trgspk "${trgspk}" \
+              --src_dir "${data_feats}/${src_valid_set}" \
+              --trg_dir "${data_feats}/${trg_valid_set}"
+
+        for i in "${!src_test_sets[@]}"; do
+            ${python} -m espnet2.vc.combine_src_trg \
+                --srcspk "${srcspk}" --trgspk "${trgspk}" \
+                --src_dir "${data_feats}/${src_test_sets[i]}" \
+                --trg_dir "${data_feats}/${trg_test_sets[i]}"
+        done
+
+        ${python} -m espnet2.vc.combine_src_trg \
+              --srcspk "${srcspk}" --trgspk "${trgspk}" \
+              --src_dir "${vc_stats_dir}/src_train" \
+              --trg_dir "${vc_stats_dir}/trg_train"
+        
+        ${python} -m espnet2.vc.combine_src_trg \
+              --srcspk "${srcspk}" --trgspk "${trgspk}" \
+              --src_dir "${vc_stats_dir}/src_valid" \
+              --trg_dir "${vc_stats_dir}/trg_valid"
+
+    fi
+
+    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+        log "Stage 7: VC Training"
 
         _opts=
         if [ -n "${train_config}" ]; then
@@ -623,21 +640,20 @@ if ! "${skip_train}"; then
             _opts+="--feats_extract_conf n_mels=${n_mels} "
         fi
 
-        # TODO
-        _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
-        _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
-        _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
-        _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
+        _opts+="--train_data_path_and_name_and_type ${data_feats}/${src_train_set}/${_scp},in_speech,${_type} "
+        _opts+="--train_data_path_and_name_and_type ${data_feats}/${trg_train_set}/${_scp},out_speech,${_type} "
+        _opts+="--train_shape_file ${vc_stats_dir}/src_train/speech_shape "
+        _opts+="--train_shape_file ${vc_stats_dir}/trg_train/speech_shape "
     
-        # TODO
-        _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
-        _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},speech,${_type} "
-        _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${token_type} "
-        _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
+        _opts+="--valid_data_path_and_name_and_type ${data_feats}/${src_valid_set}/${_scp},in_speech,${_type} "
+        _opts+="--valid_data_path_and_name_and_type ${data_feats}/${trg_valid_set}/${_scp},out_speech,${_type} "
+        _opts+="--valid_shape_file ${vc_stats_dir}/src_valid/speech_shape "
+        _opts+="--valid_shape_file ${vc_stats_dir}/trg_valid/speech_shape "
         
-        # TODO this and below
-        # If there are dumped files of additional inputs, we use it to reduce computational cost
-        # NOTE (kan-bayashi): Use dumped files of the target features as well?
+        if [ "${feats_normalize}" = "global_mvn" ]; then
+            _opts+="--normalize_conf stats_file=${vc_stats_dir}/trg_train/feats_stats.npz "
+            _opts+="--input_normalize_conf stats_file=${vc_stats_dir}/src_train/feats_stats.npz "
+        fi
 
         log "Generate '${vc_exp}/run.sh'. You can resume the process from stage 6 using this script"
         mkdir -p "${vc_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${vc_exp}/run.sh"; chmod +x "${vc_exp}/run.sh"
@@ -674,99 +690,64 @@ if ! "${skip_train}"; then
                 ${_opts} ${train_args}
 
     fi
+else
+    log "Skip training stages"
 fi
 
-# [WIP]
+
+if [ -n "${download_model}" ]; then
+    log "Use ${download_model} for decoding and evaluation"
+    vc_exp="${expdir}/${download_model}"
+    mkdir -p "${vc_exp}"
+
+    # If the model already exists, you can skip downloading
+    espnet_model_zoo_download --unpack true "${download_model}" > "${vc_exp}/config.txt"
+
+    # Get the path of each file
+    _model_file=$(<"${vc_exp}/config.txt" sed -e "s/.*'model_file': '\([^']*\)'.*$/\1/")
+    _train_config=$(<"${vc_exp}/config.txt" sed -e "s/.*'train_config': '\([^']*\)'.*$/\1/")
+
+    # Create symbolic links
+    ln -sf "${_model_file}" "${vc_exp}"
+    ln -sf "${_train_config}" "${vc_exp}"
+    inference_model=$(basename "${_model_file}")
+
+fi
+
 
 if ! "${skip_eval}"; then
-    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 8: Decoding: training_dir=${vc_exp}"
 
-        if [ -z "${inference_model}" ]; then
-            inference_model="$(find "${expdir}" -name "snapshot*" -print0 | xargs -0 ls -t 2>/dev/null | head -n 1)"
-            inference_model=$(basename ${inference_model})
-        fi
-        outdir=${expdir}/outputs_${inference_model}_$(basename ${inference_config%.*})
-        if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-            echo "stage 5: Decoding and synthesis"
-
-            echo "Decoding..."
-            pids=() # initialize pids
-            for name in ${pair_valid_set} ${pair_test_set}; do
-            (
-                [ ! -e ${outdir}/${name} ] && mkdir -p ${outdir}/${name}
-                cp ${dumpdir}/${name}_${norm_name}/data.json ${outdir}/${name}
-                splitjson.py --parts ${nj} ${outdir}/${name}/data.json
-                # decode in parallel
-                ${train_cmd} JOB=1:${nj} ${outdir}/${name}/log/decode.JOB.log \
-                    vc_decode.py \
-                        --backend ${backend} \
-                        --ngpu 0 \
-                        --verbose ${verbose} \
-                        --out ${outdir}/${name}/feats.JOB \
-                        --json ${outdir}/${name}/split${nj}utt/data.JOB.json \
-                        --model ${expdir}/results/${inference_model} \
-                        --config ${inference_config}
-                # concatenate scp files
-                for n in $(seq ${nj}); do
-                    cat "${outdir}/${name}/feats.$n.scp" || exit 1;
-                done > ${outdir}/${name}/feats.scp
-            ) &
-            pids+=($!) # store background pids
-            done
-            i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
-            [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
-
-            echo "Synthesis..."
-
-            pids=() # initialize pids
-            for name in ${pair_valid_set} ${pair_test_set}; do
-            (
-                [ ! -e ${outdir}_denorm/${name} ] && mkdir -p ${outdir}_denorm/${name}
-
-                # Normalization
-                # If not using pretrained models statistics, use statistics of target speaker
-                if [ -n "${pretrained_model}" ]; then
-                    trg_cmvn="$(find "${db_root}/${pretrained_model}" -name "cmvn.ark" -print0 | xargs -0 ls -t | head -n 1)"
-                else
-                    trg_cmvn=data/${trg_train_set}/cmvn.ark
-                fi
-                apply-cmvn --norm-vars=true --reverse=true ${trg_cmvn} \
-                    scp:${outdir}/${name}/feats.scp \
-                    ark,scp:${outdir}_denorm/${name}/feats.ark,${outdir}_denorm/${name}/feats.scp
-
-                # GL
-                if [ ${voc} = "GL" ]; then
-                    echo "Using Griffin-Lim phase recovery."
-                    convert_fbank.sh --nj ${nj} --cmd "${train_cmd}" \
-                        --fs ${fs} \
-                        --fmax "${fmax}" \
-                        --fmin "${fmin}" \
-                        --n_fft ${n_fft} \
-                        --n_shift ${n_shift} \
-                        --win_length "${win_length}" \
-                        --n_mels ${n_mels} \
-                        --iters ${griffin_lim_iters} \
-                        ${outdir}_denorm/${name} \
-                        ${outdir}_denorm/${name}/log \
-                        ${outdir}_denorm/${name}/wav
-                fi
-            ) &
-            pids+=($!) # store background pids
-            done
-            i=0; for pid in "${pids[@]}"; do wait ${pid} || ((i++)); done
-            [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+        if ${gpu_inference}; then
+            _cmd="${cuda_cmd}"
+            _ngpu=1
+        else
+            _cmd="${decode_cmd}"
+            _ngpu=0
         fi
 
-
-        if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-            echo "stage 6: Objective Evaluation"
-
-            for name in ${pair_valid_set} ${pair_test_set}; do
-                local/ob_eval/evaluate.sh --nj ${nj} \
-                    --db_root ${db_root} \
-                    --vocoder ${voc} \
-                    ${outdir} ${name}
-            done
+        _opts=
+        if [ -n "${inference_config}" ]; then
+            _opts+="--config ${inference_config} "
         fi
+
+        _scp=wav.scp
+        if [[ "${audio_format}" == *ark* ]]; then
+            _type=kaldi_ark
+        else
+            # "sound" supports "wav", "flac", etc.
+            _type=sound
+        fi
+
+        log "Generate '${vc_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
+        mkdir -p "${vc_exp}/${inference_tag}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${tts_exp}/${inference_tag}/run.sh"; chmod +x "${vc_exp}/${inference_tag}/run.sh"
+
+        # [WIP]
     fi
+else
+    log "Skip the evaluation stages"
 fi
+
+
+# [WIP]

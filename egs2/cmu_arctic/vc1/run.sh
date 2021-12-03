@@ -13,6 +13,7 @@ win_length=null
 train_config=conf/train.yaml
 inference_config=conf/decode.yaml
 
+# available speakers: "slt" "clb" "bdl" "rms"
 srcspk=clb
 trgspk=slt
 
@@ -44,6 +45,8 @@ g2p=g2p_en_no_space # Include no word separator
     --g2p "${g2p}" \
     --train_config "${train_config}" \
     --inference_config "${inference_config}" \
+    --srcspk "${srcspk}" \
+    --trgspk "${trgspk}" \
     --src_train_set "${src_train_set}" \
     --src_valid_set "${src_valid_set}" \
     --src_test_sets "${src_test_sets}" \

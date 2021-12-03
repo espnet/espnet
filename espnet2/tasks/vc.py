@@ -264,10 +264,10 @@ class VCTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("speech")
+            retval = ("in_speech", "out_speech")
         else:
             # Inference mode
-            retval = ("speech",)
+            retval = ("in_speech",)
         return retval
 
     @classmethod
@@ -278,7 +278,7 @@ class VCTask(AbsTask):
             retval = ("text", "spembs", "durations", "pitch", "energy", "sids", "lids")
         else:
             # Inference mode
-            retval = ("text", "spembs", "speech", "durations", "sids", "lids")
+            retval = ("text", "spembs", "out_speech", "durations", "sids", "lids")
         return retval
     
     @classmethod
