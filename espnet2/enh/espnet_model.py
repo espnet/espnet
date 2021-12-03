@@ -97,6 +97,24 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         else:
             noise_ref = None
 
+        # dereverberated (noisy) signal
+        # (optional, only used for frontend models with WPE)
+        if "dereverb_ref1" in kwargs:
+            # noise signal (optional, required when using
+            # frontend models with beamformering)
+            dereverb_speech_ref = [
+                kwargs["dereverb_ref{}".format(n + 1)]
+                for n in range(self.num_spk)
+                if "dereverb_ref{}".format(n + 1) in kwargs
+            ]
+            assert len(dereverb_speech_ref) in (1, self.num_spk), len(
+                dereverb_speech_ref
+            )
+            # (Batch, N, samples) or (Batch, N, samples, channels)
+            dereverb_speech_ref = torch.stack(dereverb_speech_ref, dim=1)
+        else:
+            dereverb_speech_ref = None
+
         batch_size = speech_mix.shape[0]
         speech_lengths = (
             speech_mix_lengths
@@ -153,6 +171,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 l, s, o = loss_wrapper(tf_ref, tf_pre, o)
             loss += l * loss_wrapper.weight
             stats.update(s)
+
         stats["loss"] = loss.detach()
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
