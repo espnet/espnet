@@ -117,7 +117,12 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # model forward
         feature_mix, flens = self.encoder(speech_mix, speech_lengths)
         feature_pre, flens, others = self.separator(feature_mix, flens)
-        speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
+        if feature_pre is not None:
+            speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
+        else:
+            # some models (e.g. neural beamformer trained with mask loss)
+            # do not predict time-domain signal in the training stage
+            speech_pre = None
 
 
         loss = .0

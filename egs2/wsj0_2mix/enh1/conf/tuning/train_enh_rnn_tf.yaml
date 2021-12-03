@@ -40,18 +40,18 @@ criterions:
     # PIT is widely used in the speech separation task
     wrapper: pit
     wrapper_conf:
-        weight: 1.0
+      weight: 1.0
   # The second criterion
   - name: l1 
     conf:
       compute_on_mask: False
     wrapper: pit
     wrapper_conf:
-        weight: 1.0
-        # whether the permutation is computed independently
-        # If false, it will use the permutation order from 
-        # the pervious criterion
-        independent_perm: False  
+      weight: 1.0
+      # whether the permutation is computed independently
+      # If false, it will use the permutation order from 
+      # the pervious criterion (if it exists)
+      independent_perm: False  
   # The third criterion
   - name: si_snr 
     conf:
