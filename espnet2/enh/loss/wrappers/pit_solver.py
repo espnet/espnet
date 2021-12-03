@@ -7,25 +7,24 @@ from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 
 
 class PITSolver(AbsLossWrapper):
-    def __init__(self, criterion:AbsEnhLoss, weight=1.0, independent_perm=True):
+    def __init__(self, criterion: AbsEnhLoss, weight=1.0, independent_perm=True):
         super().__init__()
         self.criterion = criterion
         self.weight = weight
         self.independent_perm = independent_perm
 
-    
     def forward(self, ref, inf, others={}):
         """
         Args:
             ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk
             inf (List[torch.Tensor]): [(batch, ...), ...]
-        
+
         Returns:
             loss: (torch.Tensor): minimum loss with the best permutation
             stats: dict, for collecting training status
-            others: dict, in this PIT solver, permutation order will be returned 
+            others: dict, in this PIT solver, permutation order will be returned
         """
-        perm = others['perm'] if 'perm' in others else None
+        perm = others["perm"] if "perm" in others else None
 
         assert len(ref) == len(inf), (len(ref), len(inf))
         num_spk = len(ref)
@@ -60,11 +59,10 @@ class PITSolver(AbsLossWrapper):
                     for batch, p in enumerate(perm)
                 ]
             )
-        
+
         loss = loss.mean()
 
         stats = dict()
         stats[self.criterion.name] = loss.detach()
 
-        return loss.mean(), stats, {'perm': perm}
-
+        return loss.mean(), stats, {"perm": perm}

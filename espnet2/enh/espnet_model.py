@@ -36,7 +36,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         encoder: AbsEncoder,
         separator: AbsSeparator,
         decoder: AbsDecoder,
-        loss_wrappers: List[AbsLossWrapper],    
+        loss_wrappers: List[AbsLossWrapper],
         mask_type: Optional[str] = None,
     ):
         assert check_argument_types()
@@ -50,11 +50,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.num_spk = separator.num_spk
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
 
-        # get mask type for TF-domain models (only used when loss_type="mask_*")
+        # get mask type for TF-domain models (only used when loss_type="mask_*") (deprecated)
         self.mask_type = mask_type.upper() if mask_type else None
-        # whether to compute the TF-domain loss while enforcing STFT consistency
 
-        # for multi-channel signal
+        # for multi-channel signal (deprecated)
         self.ref_channel = getattr(self.separator, "ref_channel", -1)
 
     def forward(
@@ -93,7 +92,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         else:
             noise_ref = None
 
-
         batch_size = speech_mix.shape[0]
         speech_lengths = (
             speech_mix_lengths
@@ -124,8 +122,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             # do not predict time-domain signal in the training stage
             speech_pre = None
 
-
-        loss = .0
+        loss = 0.0
         stats = dict()
         o = {}
         for loss_wrapper in self.loss_wrappers:
@@ -136,25 +133,26 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             elif isinstance(criterion, FrequencyDomainLoss):
                 # for the time-frequency domain criterions
                 if criterion.compute_on_mask:
-                    tf_ref = criterion.create_mask_label(feature_mix, 
-                        [self.encoder(sr, speech_lengths)[0] for sr in speech_ref]
+                    tf_ref = criterion.create_mask_label(
+                        feature_mix,
+                        [self.encoder(sr, speech_lengths)[0] for sr in speech_ref],
                     )
                     tf_pre = [
-                        others["mask_spk{}".format(spk + 1)] for spk in range(self.num_spk)
+                        others["mask_spk{}".format(spk + 1)]
+                        for spk in range(self.num_spk)
                     ]
                 else:
                     tf_ref = [self.encoder(sr, speech_lengths)[0] for sr in speech_ref]
                     tf_pre = feature_pre
-                
+
                 l, s, o = loss_wrapper(tf_ref, tf_pre, o)
             loss += l * loss_wrapper.weight
             stats.update(s)
-        stats['loss'] = loss.detach()
+        stats["loss"] = loss.detach()
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
-
 
     def collect_feats(
         self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, **kwargs

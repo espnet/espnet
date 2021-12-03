@@ -10,31 +10,29 @@ class TimeDomainLoss(AbsEnhLoss, ABC):
     pass
 
 
-
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
 class SISNRLoss(TimeDomainLoss):
-
     def __init__(self, eps=EPS):
         super().__init__()
         self.eps = float(eps)
         print(self.eps)
-        
+
     @property
     def name(self) -> str:
-        return 'si_snr_loss'
+        return "si_snr_loss"
 
     def forward(
         self,
         ref: torch.Tensor,
         inf: torch.Tensor,
     ) -> torch.Tensor:
-    # the return tensor should be shape of (batch,)
+        # the return tensor should be shape of (batch,)
         assert ref.size() == inf.size()
         B, T = ref.size()
 
-         # Step 1. Zero-mean norm
+        # Step 1. Zero-mean norm
         mean_target = torch.sum(ref, dim=1, keepdim=True) / T
         mean_estimate = torch.sum(inf, dim=1, keepdim=True) / T
         zero_mean_target = ref - mean_target
@@ -46,7 +44,9 @@ class SISNRLoss(TimeDomainLoss):
         s_estimate = zero_mean_estimate  # [B, T]
         # s_target = <s', s>s / ||s||^2
         pair_wise_dot = torch.sum(s_estimate * s_target, dim=1, keepdim=True)  # [B, 1]
-        s_target_energy = torch.sum(s_target ** 2, dim=1, keepdim=True) + self.eps  # [B, 1]
+        s_target_energy = (
+            torch.sum(s_target ** 2, dim=1, keepdim=True) + self.eps
+        )  # [B, 1]
         pair_wise_proj = pair_wise_dot * s_target / s_target_energy  # [B, T]
         # e_noise = s' - s_target
         e_noise = s_estimate - pair_wise_proj  # [B, T]

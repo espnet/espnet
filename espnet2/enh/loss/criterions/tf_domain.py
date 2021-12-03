@@ -1,4 +1,3 @@
-
 from abc import ABC
 from abc import abstractmethod
 from distutils.version import LooseVersion
@@ -55,9 +54,7 @@ def _create_mask_label(mix_spec, ref_spec, mask_type="IAM"):
             phase_r = r / (abs(r) + EPS)
             phase_mix = mix_spec / (abs(mix_spec) + EPS)
             # cos(a - b) = cos(a)*cos(b) + sin(a)*sin(b)
-            cos_theta = (
-                phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
-            )
+            cos_theta = phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
             mask = (abs(r) / (abs(mix_spec) + EPS)) * cos_theta
             mask = (
                 mask.clamp(min=0, max=1)
@@ -69,15 +66,12 @@ def _create_mask_label(mix_spec, ref_spec, mask_type="IAM"):
             phase_r = r / (abs(r) + EPS)
             phase_mix = mix_spec / (abs(mix_spec) + EPS)
             # cos(a - b) = cos(a)*cos(b) + sin(a)*sin(b)
-            cos_theta = (
-                phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
-            )
+            cos_theta = phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
             mask = (abs(r).pow(2) / (abs(mix_spec).pow(2) + EPS)) * cos_theta
             mask = mask.clamp(min=-1, max=1)
         assert mask is not None, f"mask type {mask_type} not supported"
         mask_label.append(mask)
     return mask_label
-
 
 
 class FrequencyDomainLoss(AbsEnhLoss, ABC):
@@ -94,9 +88,10 @@ class FrequencyDomainLoss(AbsEnhLoss, ABC):
     def mask_type() -> str:
         pass
 
-
     def create_mask_label(self, mix_spec, ref_spec):
-        return _create_mask_label(mix_spec=mix_spec, ref_spec=ref_spec, mask_type=self.mask_type)
+        return _create_mask_label(
+            mix_spec=mix_spec, ref_spec=ref_spec, mask_type=self.mask_type
+        )
 
 
 class FrequencyDomainMSE(FrequencyDomainLoss):
@@ -104,7 +99,7 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
         super().__init__()
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type
-    
+
     @property
     def compute_on_mask(self) -> bool:
         return self._compute_on_mask
@@ -112,13 +107,13 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
     @property
     def mask_type(self) -> str:
         return self._mask_type
-    
+
     @property
     def name(self) -> str:
         if self.compute_on_mask:
-            return f'MSE_on_{self.mask_type}'
+            return f"MSE_on_{self.mask_type}"
         else:
-            return 'MSE_on_Spec'
+            return "MSE_on_Spec"
 
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency MSE loss.
@@ -146,7 +141,6 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
             raise ValueError(
                 "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
             )
-
         return mseloss
 
 
@@ -155,7 +149,7 @@ class FrequencyDomainL1(FrequencyDomainLoss):
         super().__init__()
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type
-    
+
     @property
     def compute_on_mask(self) -> bool:
         return self._compute_on_mask
@@ -163,14 +157,14 @@ class FrequencyDomainL1(FrequencyDomainLoss):
     @property
     def mask_type(self) -> str:
         return self._mask_type
-    
+
     @property
     def name(self) -> str:
         if self.compute_on_mask:
-            return f'L1_on_{self.mask_type}'
+            return f"L1_on_{self.mask_type}"
         else:
-            return 'L1_on_Spec'
-    
+            return "L1_on_Spec"
+
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency L1 loss.
 

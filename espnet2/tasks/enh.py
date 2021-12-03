@@ -34,6 +34,7 @@ from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
+from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -75,13 +76,13 @@ decoder_choices = ClassChoices(
 
 loss_wrapper_choices = ClassChoices(
     name="loss_wrappers",
-    classes=dict(pit=PITSolver),
+    classes=dict(pit=PITSolver, fixed_order=FixedOrderSolver),
     type_check=AbsLossWrapper,
     default=None,
 )
 
 criterion_choices = ClassChoices(
-    name='criterions',
+    name="criterions",
     classes=dict(si_snr=SISNRLoss, mse=FrequencyDomainMSE, l1=FrequencyDomainL1),
     type_check=AbsEnhLoss,
     default=None,
@@ -142,7 +143,6 @@ class EnhancementTask(AbsTask):
             default=None,
             help="The criterions binded with the loss wrappers.",
         )
-        
 
         group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
@@ -209,16 +209,21 @@ class EnhancementTask(AbsTask):
         )
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
 
-
         loss_wrappers = []
         for ctr in args.criterions:
-            criterion = criterion_choices.get_class(ctr['name'])(**ctr['conf'])
-            loss_wrapper = loss_wrapper_choices.get_class(ctr['wrapper'])(criterion=criterion, **ctr['wrapper_conf'])
+            criterion = criterion_choices.get_class(ctr["name"])(**ctr["conf"])
+            loss_wrapper = loss_wrapper_choices.get_class(ctr["wrapper"])(
+                criterion=criterion, **ctr["wrapper_conf"]
+            )
             loss_wrappers.append(loss_wrapper)
 
         # 1. Build model
         model = ESPnetEnhancementModel(
-            encoder=encoder, separator=separator, decoder=decoder, loss_wrappers=loss_wrappers, **args.model_conf
+            encoder=encoder,
+            separator=separator,
+            decoder=decoder,
+            loss_wrappers=loss_wrappers,
+            **args.model_conf
         )
 
         # FIXME(kamo): Should be done in model?

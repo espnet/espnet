@@ -7,8 +7,8 @@ import torch
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 
 
-class AbsLossWrapper(torch.nn.Module,ABC):
-    
+class AbsLossWrapper(torch.nn.Module, ABC):
+
     # The weight for the current loss in the multi-task learning.
     # The overall training target will be combined as:
     # loss = weight_1 * loss_1 + ... + weight_N * loss_N
