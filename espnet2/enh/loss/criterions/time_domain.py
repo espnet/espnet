@@ -16,7 +16,6 @@ class SISNRLoss(TimeDomainLoss):
     def __init__(self, eps=EPS):
         super().__init__()
         self.eps = float(eps)
-        print(self.eps)
 
     @property
     def name(self) -> str:
