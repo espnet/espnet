@@ -16,12 +16,12 @@ vc_conf:                  # keyword arguments for the selected model
     eprenet_conv_chans: 0  # number of channels of conv layers in encoder prenet
     dprenet_layers: 2      # number of layers in decoder prenet
     dprenet_units: 256     # number of units in decoder prenet
-    adim: 512              # attention dimension
-    aheads: 8              # number of attention heads
+    adim: 384              # attention dimension
+    aheads: 4              # number of attention heads
     elayers: 6             # number of encoder layers
-    eunits: 1024           # number of encoder ff units
+    eunits: 1536           # number of encoder ff units
     dlayers: 6             # number of decoder layers
-    dunits: 1024           # number of decoder ff units
+    dunits: 1536           # number of decoder ff units
     positionwise_layer_type: conv1d  # type of position-wise layer
     positionwise_conv_kernel_size: 1 # kernel size of position wise conv layer
     postnet_layers: 5                # number of layers of postnset
@@ -58,7 +58,7 @@ vc_conf:                  # keyword arguments for the selected model
 ##########################################################
 optim: adam             # optimizer type
 optim_conf:             # keyword arguments for selected optimizer
-    lr: 1.0             # learning rate
+    lr: 0.1             # learning rate
 scheduler: noamlr       # scheduler type
 scheduler_conf:         # keyword arguments for selected scheduler
     model_size: 512     # model size, a.k.a., attention dimenstion
