@@ -11,7 +11,8 @@ class FixedOrderSolver(AbsLossWrapper):
         self.weight = weight
 
     def forward(self, ref, inf, others={}):
-        """
+        """An naive fixed-order solver
+
         Args:
             ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk
             inf (List[torch.Tensor]): [(batch, ...), ...]
@@ -19,7 +20,7 @@ class FixedOrderSolver(AbsLossWrapper):
         Returns:
             loss: (torch.Tensor): minimum loss with the best permutation
             stats: dict, for collecting training status
-            others: dict, in this PIT solver, permutation order will be returned
+            others: reserved
         """
         assert len(ref) == len(inf), (len(ref), len(inf))
         num_spk = len(ref)

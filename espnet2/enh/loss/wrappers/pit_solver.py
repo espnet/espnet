@@ -14,7 +14,8 @@ class PITSolver(AbsLossWrapper):
         self.independent_perm = independent_perm
 
     def forward(self, ref, inf, others={}):
-        """
+        """Permutation invariant training solver.
+
         Args:
             ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk
             inf (List[torch.Tensor]): [(batch, ...), ...]

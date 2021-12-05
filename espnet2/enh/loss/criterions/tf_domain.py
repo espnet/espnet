@@ -5,8 +5,8 @@ from functools import reduce
 
 import torch
 
-from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.layers.complex_utils import is_complex
+from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 
 
 is_torch_1_3_plus = LooseVersion(torch.__version__) >= LooseVersion("1.3.0")
