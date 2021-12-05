@@ -140,7 +140,14 @@ class EnhancementTask(AbsTask):
         group.add_argument(
             "--criterions",
             action=NestedDictAction,
-            default=None,
+            default=[
+                {
+                    "name": "si_snr",
+                    "conf": {},
+                    "wrapper": "fixed_order",
+                    "wrapper_conf": {},
+                },
+            ],
             help="The criterions binded with the loss wrappers.",
         )
 

@@ -17,6 +17,9 @@ from tqdm import trange
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
+from espnet2.enh.loss.criterions.time_domain import SISNRLoss
+from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.fileio.sound_scp import SoundScpWriter
 from espnet2.tasks.enh import EnhancementTask
 from espnet2.torch_utils.device_funcs import to_device
@@ -242,16 +245,13 @@ class SeparateSpeech:
         Returns:
             perm (torch.Tensor): permutation for enh_wavs (Batch, num_spk)
         """
-        loss_func = {
-            "si_snr": self.enh_model.si_snr_loss,
-            "mse": lambda enh, ref: torch.mean((enh - ref).pow(2), dim=1),
-            "corr": lambda enh, ref: (
-                (enh * ref).sum(dim=1)
-                / (enh.pow(2).sum(dim=1) * ref.pow(2).sum(dim=1) + EPS)
-            ).clamp(min=EPS, max=1 - EPS),
-        }[criterion]
 
-        _, perm = self.enh_model._permutation_loss(ref_wavs, enh_wavs, loss_func)
+        criterion_class = {"si_snr": SISNRLoss, "mse": FrequencyDomainMSE}[criterion]
+
+        pit_solver = PITSolver(criterion=criterion_class())
+
+        _, _, others = pit_solver(ref_wavs, enh_wavs)
+        perm = others["perm"]
         return perm
 
     @staticmethod
