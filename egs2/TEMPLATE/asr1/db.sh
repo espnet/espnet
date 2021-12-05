@@ -85,6 +85,7 @@ BABEL_402=
 BABEL_403=
 BABEL_404=
 PUEBLA_NAHUATL=
+TEDLIUM2=downloads
 TEDLIUM3=downloads
 VCTK=downloads
 VIVOS=downloads
@@ -193,6 +194,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     BABEL_403=/export/babel/data/403-dholuo/IARPA-babel403b-v1.0b-build/BABEL_OP3_403
     BABEL_404=/export/corpora/LDC/LDC2016S12/IARPA_BABEL_OP3_404
     PUEBLA_NAHUATL=
+    TEDLIUM2=downloads
     TEDLIUM3=downloads
     VCTK=downloads
     VIVOS=
