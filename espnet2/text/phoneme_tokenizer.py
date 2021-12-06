@@ -160,7 +160,7 @@ def pyopenjtalk_g2p_prosody(text: str, drop_unvoiced_vowels: bool = True) -> Lis
 
         a2_next = _numeric_feature_by_regex(r"\+(\d+)\+", labels[n + 1])
         # accent phrase border
-        if a3 == 1 and a2_next == 1:
+        if a3 == 1 and a2_next == 1 and p3 in "aeiouAEIOUNcl":
             phones.append("#")
         # pitch falling
         elif a1 == 0 and a2_next == a2 + 1 and a2 != f1:
