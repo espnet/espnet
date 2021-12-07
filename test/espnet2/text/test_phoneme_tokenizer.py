@@ -313,7 +313,7 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
         ]
     elif phoneme_tokenizer.g2p_type == "espeak_ng_arabic":
         input = u"السلام عليكم"
-        output = ["ʔ", "a", "s", "s", "a", "l", "aː", "m", "ʕ", "l", "ˈiː", "k", "m"]
+        output = ["ʔ", "a", "s", "s", "a", "l", "ˈaː", "m", "ʕ", "l", "ˈiː", "k", "m"]
     elif phoneme_tokenizer.g2p_type == "espeak_ng_german":
         input = "Das hört sich gut an."
         output = [
