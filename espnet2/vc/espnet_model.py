@@ -98,13 +98,17 @@ class ESPnetVCModel(AbsESPnetModel):
         with autocast(False):
             # Extract output features
             if self.feats_extract is not None:
-                feats, feats_lengths = self.feats_extract(out_speech, out_speech_lengths)
+                feats, feats_lengths = self.feats_extract(
+                    out_speech, out_speech_lengths
+                )
             else:
                 # Use precalculated feats (feats_type != raw case)
                 feats, feats_lengths = out_speech, out_speech_lengths
             # Extract input features
             if self.input_feats_extract is not None:
-                in_feats, in_feats_lengths = self.input_feats_extract(in_speech, in_speech_lengths)
+                in_feats, in_feats_lengths = self.input_feats_extract(
+                    in_speech, in_speech_lengths
+                )
             else:
                 # Use precalculated feats (feats_type != raw case)
                 in_feats, in_feats_lengths = in_speech, in_speech_lengths
@@ -131,7 +135,9 @@ class ESPnetVCModel(AbsESPnetModel):
             if self.normalize is not None:
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
             if self.input_normalize is not None:
-                in_feats, in_feats_lengths = self.input_normalize(in_feats, in_feats_lengths)
+                in_feats, in_feats_lengths = self.input_normalize(
+                    in_feats, in_feats_lengths
+                )
             if self.pitch_normalize is not None:
                 pitch, pitch_lengths = self.pitch_normalize(pitch, pitch_lengths)
             if self.energy_normalize is not None:
@@ -208,7 +214,9 @@ class ESPnetVCModel(AbsESPnetModel):
             feats, feats_lengths = out_speech, out_speech_lengths
         # input feature extraction
         if self.input_feats_extract is not None:
-            in_feats, in_feats_lengths = self.input_feats_extract(in_speech, in_speech_lengths)
+            in_feats, in_feats_lengths = self.input_feats_extract(
+                in_speech, in_speech_lengths
+            )
         else:
             # Use precalculated feats (feats_type != raw case)
             in_feats, in_feats_lengths = in_speech, in_speech_lengths

@@ -280,7 +280,7 @@ class VCTask(AbsTask):
             # Inference mode
             retval = ("text", "spembs", "out_speech", "durations", "sids", "lids")
         return retval
-    
+
     @classmethod
     def build_model(cls, args: argparse.Namespace) -> ESPnetVCModel:
         assert check_argument_types()
@@ -314,8 +314,12 @@ class VCTask(AbsTask):
             odim = args.odim
         if args.idim is None:
             # Extract features in the model
-            input_feats_extract_class = input_feats_extractor_choices.get_class(args.input_feats_extract)
-            input_feats_extract = input_feats_extract_class(**args.input_feats_extract_conf)
+            input_feats_extract_class = input_feats_extractor_choices.get_class(
+                args.input_feats_extract
+            )
+            input_feats_extract = input_feats_extract_class(
+                **args.input_feats_extract_conf
+            )
             idim = input_feats_extract.output_size()
         else:
             # Give features from data-loader
@@ -331,7 +335,9 @@ class VCTask(AbsTask):
         else:
             normalize = None
         if args.input_normalize is not None:
-            input_normalize_class = input_normalize_choices.get_class(args.input_normalize)
+            input_normalize_class = input_normalize_choices.get_class(
+                args.input_normalize
+            )
             input_normalize = input_normalize_class(**args.input_normalize_conf)
         else:
             input_normalize = None
@@ -379,7 +385,7 @@ class VCTask(AbsTask):
                 args.energy_normalize
             )
             energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
-        
+
         # 5. Build model
         model = ESPnetVCModel(
             feats_extract=feats_extract,
