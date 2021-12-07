@@ -286,7 +286,7 @@
 
         <span class="n">a2_next</span> <span class="o">=</span> <span class="n">_numeric_feature_by_regex</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\+(\d+)\+&quot;</span><span class="p">,</span> <span class="n">labels</span><span class="p">[</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
         <span class="c1"># accent phrase border</span>
-        <span class="k">if</span> <span class="n">a3</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">a2_next</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">a3</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">a2_next</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">p3</span> <span class="ow">in</span> <span class="s2">&quot;aeiouAEIOUNcl&quot;</span><span class="p">:</span>
             <span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="p">)</span>
         <span class="c1"># pitch falling</span>
         <span class="k">elif</span> <span class="n">a1</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">a2_next</span> <span class="o">==</span> <span class="n">a2</span> <span class="o">+</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">a2</span> <span class="o">!=</span> <span class="n">f1</span><span class="p">:</span>
