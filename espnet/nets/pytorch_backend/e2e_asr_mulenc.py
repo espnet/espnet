@@ -12,7 +12,6 @@ import os
 
 import chainer
 from chainer import reporter
-import editdistance
 import numpy as np
 import torch
 
@@ -493,6 +492,8 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor
         """
+        import editdistance
+
         if self.replace_sos:
             tgt_lang_ids = ys_pad[:, 0:1]
             ys_pad = ys_pad[:, 1:]  # remove target language ID in the beginning

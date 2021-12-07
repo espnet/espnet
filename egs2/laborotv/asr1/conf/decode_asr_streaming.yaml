@@ -1,0 +1,10 @@
+lm_weight: 0.3
+beam_size: 20
+penalty: 0.0
+maxlenratio: 0.0
+minlenratio: 0.0
+ctc_weight: 0.3
+sim_chunk_length: 512
+disable_repetition_detection: true
+decoder_text_length_limit: 0
+encoded_feat_length_limit: 0

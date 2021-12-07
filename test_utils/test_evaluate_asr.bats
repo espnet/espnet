@@ -13,7 +13,7 @@ sf.write("${tmpdir}/data/dummy.wav", np.zeros(16000 * 2,), 16000, "PCM_16")
 EOF
 }
 
-@test "evalaute_asr" {
+@test "evaluate_asr" {
     cd egs2/mini_an4/asr1
     model_tag="kamo-naoyuki/mini_an4_asr_train_raw_bpe_valid.acc.best"
     scripts/utils/evaluate_asr.sh \

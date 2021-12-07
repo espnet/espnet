@@ -132,7 +132,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Divide into source and target languages
     for x in ${train_set_prefix} dev test dev2010 tst2010 tst2013 tst2014 tst2015 tst2018 tst2019; do
-        divide_lang.sh ${x} "en" "de"
+        divide_lang.sh ${x} "en de"
     done
 
     for lang in en de; do
@@ -283,7 +283,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+        score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} "de" ${dict}
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
