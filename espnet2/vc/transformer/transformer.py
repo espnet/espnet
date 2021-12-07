@@ -635,6 +635,7 @@ class Transformer(AbsVC):
         threshold: float = 0.5,
         minlenratio: float = 0.0,
         maxlenratio: float = 10.0,
+        use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
@@ -648,6 +649,7 @@ class Transformer(AbsVC):
             threshold (float): Threshold in inference.
             minlenratio (float): Minimum length ratio in inference.
             maxlenratio (float): Maximum length ratio in inference.
+            use_teacher_forcing (bool): Whether to use teacher forcing.
 
         Returns:
             Dict[str, Tensor]: Output dict including the following items:
