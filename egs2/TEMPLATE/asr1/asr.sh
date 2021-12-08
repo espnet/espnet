@@ -223,6 +223,7 @@ Options:
     --inference_lm        # Language model path for decoding (default="${inference_lm}").
     --inference_asr_model # ASR model path for decoding (default="${inference_asr_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
+    --use_streaming       # Whether to use streaming decoding (default="${use_streaming}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
