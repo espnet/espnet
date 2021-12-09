@@ -57,6 +57,7 @@ class E2E(E2ETransformer):
 
         self.encoder = Encoder(
             idim=idim,
+            odim=odim,
             attention_dim=args.adim,
             attention_heads=args.aheads,
             linear_units=args.eunits,
@@ -74,5 +75,6 @@ class E2E(E2ETransformer):
             cnn_module_kernel=args.cnn_module_kernel,
             stochastic_depth_rate=args.stochastic_depth_rate,
             intermediate_layers=self.intermediate_ctc_layers,
+            ctc_softmax=self.ctc.softmax if args.self_conditioning else None,
         )
         self.reset_parameters(args)

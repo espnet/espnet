@@ -84,6 +84,7 @@ class Encoder(torch.nn.Module):
     def __init__(
         self,
         idim,
+        odim,
         attention_dim=256,
         attention_heads=4,
         conv_wshare=4,
@@ -104,6 +105,7 @@ class Encoder(torch.nn.Module):
         padding_idx=-1,
         stochastic_depth_rate=0.0,
         intermediate_layers=None,
+        ctc_softmax=None,
     ):
         """Construct an Encoder object."""
         super(Encoder, self).__init__()
@@ -256,6 +258,10 @@ class Encoder(torch.nn.Module):
             self.after_norm = LayerNorm(attention_dim)
 
         self.intermediate_layers = intermediate_layers
+        self.use_conditioning = True if ctc_softmax is not None else False
+        if self.use_conditioning:
+            self.ctc_softmax = ctc_softmax
+            self.conditioning_layer = torch.nn.Linear(odim, attention_dim)
 
     def get_positionwise_layer(
         self,
@@ -325,6 +331,10 @@ class Encoder(torch.nn.Module):
                     if self.normalize_before:
                         encoder_output = self.after_norm(encoder_output)
                     intermediate_outputs.append(encoder_output)
+
+                    if self.use_conditioning:
+                        intermediate_result = self.ctc_softmax(encoder_output)
+                        xs = xs + self.conditioning_layer(intermediate_result)
 
         if self.normalize_before:
             xs = self.after_norm(xs)
