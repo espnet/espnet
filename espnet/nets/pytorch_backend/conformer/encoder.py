@@ -71,7 +71,6 @@ class Encoder(torch.nn.Module):
     def __init__(
         self,
         idim,
-        odim,
         attention_dim=256,
         attention_heads=4,
         linear_units=2048,
@@ -95,6 +94,7 @@ class Encoder(torch.nn.Module):
         stochastic_depth_rate=0.0,
         intermediate_layers=None,
         ctc_softmax=None,
+        odim=None,
     ):
         """Construct an Encoder object."""
         super(Encoder, self).__init__()
