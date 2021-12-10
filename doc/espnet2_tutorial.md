@@ -308,7 +308,7 @@ To use SSLRs in your task, you need to make several modifications.
       output_size: 80
    ```
 3. Because the shift sizes of different `upstream` models are different, e.g. `HuBERT` and `Wav2Vec2.0` have `20ms` frameshift. Sometimes, the downsampling rate (`input_layer`) in the `encoder` configuration need to be changed. For example, using `input_layer: conv2d2` will results in a total frameshift of `40ms`, which is enough for some tasks.
-4. To achieve online decoding, please employ blockwise Transformer/Conformer encoder in the configuration file. Taking "blockwise Transformer" as an example:
+4. To achieve online decoding, please employ blockwise Transformer/Conformer encoder in the configuration file. Taking `blockwise Transformer` as an example:
    ```
    encoder: contextual_block_transformer
    ```
