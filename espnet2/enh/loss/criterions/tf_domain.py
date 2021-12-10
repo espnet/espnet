@@ -9,7 +9,6 @@ from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 
 
-is_torch_1_3_plus = LooseVersion(torch.__version__) >= LooseVersion("1.3.0")
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
@@ -19,11 +18,11 @@ def _create_mask_label(mix_spec, ref_spec, mask_type="IAM"):
     """Create mask label.
 
     Args:
-        mix_spec: ComplexTensor(B, T, F)
-        ref_spec: List[ComplexTensor(B, T, F), ...]
+        mix_spec: ComplexTensor(B, T, [C,] F)
+        ref_spec: List[ComplexTensor(B, T, [C,] F), ...]
         mask_type: str
     Returns:
-        labels: List[Tensor(B, T, F), ...] or List[ComplexTensor(B, T, F), ...]
+        labels: List[Tensor(B, T, [C,] F), ...] or List[ComplexTensor(B, T, F), ...]
     """
 
     # Must be upper case
@@ -124,9 +123,7 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
             loss: (Batch,)
         """
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
-        if not is_torch_1_3_plus:
-            # in case of binary masks
-            ref = ref.type(inf.dtype)
+
         diff = ref - inf
         if is_complex(diff):
             mseloss = diff.real ** 2 + diff.imag ** 2
@@ -174,9 +171,7 @@ class FrequencyDomainL1(FrequencyDomainLoss):
             loss: (Batch,)
         """
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
-        if not is_torch_1_3_plus:
-            # in case of binary masks
-            ref = ref.type(inf.dtype)
+
         if is_complex(inf):
             l1loss = abs(ref - inf + EPS)
         else:

@@ -1,5 +1,6 @@
 from abc import ABC
 
+import ci_sdr
 import torch
 
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
@@ -12,6 +13,66 @@ class TimeDomainLoss(AbsEnhLoss, ABC):
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
+class CISDRLoss(TimeDomainLoss):
+    """CI-SDR loss
+
+    Reference:
+        Convolutive Transfer Function Invariant SDR Training
+        Criteria for Multi-Channel Reverberant Speech Separation;
+        C. Boeddeker et al., 2021;
+        https://arxiv.org/abs/2011.15003
+    Args:
+        ref: (Batch, samples)
+        inf: (Batch, samples)
+        filter_length (int): a time-invariant filter that allows
+                                slight distortion via filtering
+    Returns:
+        loss: (Batch,)
+    """
+    def __init__(self, filter_length=512):
+        super().__init__()
+        self.filter_length = filter_length
+    
+
+    @property
+    def name(self) -> str:
+        return "ci_sdr_loss"
+    
+    
+    def forward(
+        self,
+        ref: torch.Tensor,
+        inf: torch.Tensor,
+    ) -> torch.Tensor:
+
+        assert ref.shape == inf.shape, (ref.shape, inf.shape)
+
+        return ci_sdr.pt.ci_sdr_loss(inf, ref, compute_permutation=False, filter_length=self.filter_length)
+
+class SNRLoss(TimeDomainLoss):
+    def __init__(self, eps=EPS):
+        super().__init__()
+        self.eps = float(eps)
+
+    @property
+    def name(self) -> str:
+        return "snr_loss"
+
+
+    def forward(
+        self,
+        ref: torch.Tensor,
+        inf: torch.Tensor,
+    ) -> torch.Tensor:
+    # the return tensor should be shape of (batch,)
+
+        noise = inf - ref
+
+        snr = 20 * (
+            torch.log10(torch.norm(ref, p=2, dim=1).clamp(min=self.eps))
+            - torch.log10(torch.norm(noise, p=2, dim=1).clamp(min=self.eps))
+        )
+        return -snr
 class SISNRLoss(TimeDomainLoss):
     def __init__(self, eps=EPS):
         super().__init__()
