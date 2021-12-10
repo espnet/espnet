@@ -187,12 +187,12 @@ def test_forward_with_beamformer_net(
         # builtin complex support is only available in PyTorch 1.8+
         return
 
-    ch = 2
+    ch = 3
     inputs = random_speech[..., :ch].float()
     ilens = torch.LongTensor([16, 12])
     speech_refs = [torch.randn(2, 16, ch).float() for spk in range(num_spk)]
-    # noise_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
-    # dereverb_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
+    noise_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
+    dereverb_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
     encoder = STFTEncoder(
         n_fft=8, hop_length=2, use_builtin_complex=use_builtin_complex
     )
@@ -234,5 +234,7 @@ def test_forward_with_beamformer_net(
         "speech_mix": inputs,
         "speech_mix_lengths": ilens,
         **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(num_spk)},
+        "noise_ref1": noise_ref1,
+        "dereverb_ref1": dereverb_ref1,
     }
     loss, stats, weight = enh_model(**kwargs)

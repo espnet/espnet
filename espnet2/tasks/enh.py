@@ -85,7 +85,13 @@ loss_wrapper_choices = ClassChoices(
 
 criterion_choices = ClassChoices(
     name="criterions",
-    classes=dict(snr=SNRLoss, ci_sdr=CISDRLoss, si_snr=SISNRLoss, mse=FrequencyDomainMSE, l1=FrequencyDomainL1),
+    classes=dict(
+        snr=SNRLoss,
+        ci_sdr=CISDRLoss,
+        si_snr=SISNRLoss,
+        mse=FrequencyDomainMSE,
+        l1=FrequencyDomainL1,
+    ),
     type_check=AbsEnhLoss,
     default=None,
 )

@@ -29,16 +29,15 @@ class CISDRLoss(TimeDomainLoss):
     Returns:
         loss: (Batch,)
     """
+
     def __init__(self, filter_length=512):
         super().__init__()
         self.filter_length = filter_length
-    
 
     @property
     def name(self) -> str:
         return "ci_sdr_loss"
-    
-    
+
     def forward(
         self,
         ref: torch.Tensor,
@@ -47,7 +46,10 @@ class CISDRLoss(TimeDomainLoss):
 
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
 
-        return ci_sdr.pt.ci_sdr_loss(inf, ref, compute_permutation=False, filter_length=self.filter_length)
+        return ci_sdr.pt.ci_sdr_loss(
+            inf, ref, compute_permutation=False, filter_length=self.filter_length
+        )
+
 
 class SNRLoss(TimeDomainLoss):
     def __init__(self, eps=EPS):
@@ -58,13 +60,12 @@ class SNRLoss(TimeDomainLoss):
     def name(self) -> str:
         return "snr_loss"
 
-
     def forward(
         self,
         ref: torch.Tensor,
         inf: torch.Tensor,
     ) -> torch.Tensor:
-    # the return tensor should be shape of (batch,)
+        # the return tensor should be shape of (batch,)
 
         noise = inf - ref
 
@@ -73,6 +74,8 @@ class SNRLoss(TimeDomainLoss):
             - torch.log10(torch.norm(noise, p=2, dim=1).clamp(min=self.eps))
         )
         return -snr
+
+
 class SISNRLoss(TimeDomainLoss):
     def __init__(self, eps=EPS):
         super().__init__()

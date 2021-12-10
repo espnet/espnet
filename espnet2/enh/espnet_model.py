@@ -18,7 +18,6 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
 
-is_torch_1_3_plus = LooseVersion(torch.__version__) >= LooseVersion("1.3.0")
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
@@ -131,7 +130,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         )
 
         # for data-parallel
-        speech_ref = speech_ref[:, :, : speech_lengths.max()]
+        speech_ref = speech_ref[..., : speech_lengths.max()]
         speech_ref = speech_ref.unbind(dim=1)
 
         speech_mix = speech_mix[:, : speech_lengths.max()]
@@ -152,11 +151,16 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         for loss_wrapper in self.loss_wrappers:
             criterion = loss_wrapper.criterion
             if isinstance(criterion, TimeDomainLoss):
+                if speech_ref[0].dim() == 3:
+                    # For multi-channel reference,
+                    # only select one channel as the reference
+                    speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
                 # for the time domain criterions
                 l, s, o = loss_wrapper(speech_ref, speech_pre, o)
             elif isinstance(criterion, FrequencyDomainLoss):
                 # for the time-frequency domain criterions
                 if criterion.compute_on_mask:
+                    # compute on mask
                     tf_ref = criterion.create_mask_label(
                         feature_mix,
                         [self.encoder(sr, speech_lengths)[0] for sr in speech_ref],
@@ -166,6 +170,11 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                         for spk in range(self.num_spk)
                     ]
                 else:
+                    # compute on spectrum
+                    if speech_ref[0].dim() == 3:
+                        # For multi-channel reference,
+                        # only select one channel as the reference
+                        speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
                     tf_ref = [self.encoder(sr, speech_lengths)[0] for sr in speech_ref]
                     tf_pre = feature_pre
 
