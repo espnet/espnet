@@ -312,4 +312,4 @@ To use SSLRs in your task, you need to make several modifications.
    ```
    encoder: contextual_block_transformer
    ```
-   During decoding, please please specify `--use_streaming true` and pass it as arguments to `asr.sh` to select streaming inference.
+   During decoding, please specify `--use_streaming true` and pass it as arguments to `asr.sh` to select streaming inference.
