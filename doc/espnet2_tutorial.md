@@ -308,8 +308,35 @@ To use SSLRs in your task, you need to make several modifications.
       output_size: 80
    ```
 3. Because the shift sizes of different `upstream` models are different, e.g. `HuBERT` and `Wav2Vec2.0` have `20ms` frameshift. Sometimes, the downsampling rate (`input_layer`) in the `encoder` configuration need to be changed. For example, using `input_layer: conv2d2` will results in a total frameshift of `40ms`, which is enough for some tasks.
-4. To achieve online decoding, please employ blockwise Transformer/Conformer encoder in the configuration file. Taking `blockwise Transformer` as an example:
-   ```
-   encoder: contextual_block_transformer
-   ```
-   During decoding, please specify `--use_streaming true` and pass it as arguments to `asr.sh` to select streaming inference.
+
+## Online Decoding
+ESPnet supports blcokwise online Transformer/Conformer with blockwise synchronous beam search.
+
+To achieve online decoding, you need to make several modifications.
+
+### Training
+
+To achieve online decoding, please employ blockwise Transformer/Conformer encoder in the configuration file. Taking `blockwise Transformer` as an example:
+The `encoder` name can be `contextual_block_transformer` or `contextual_block_conformer`. `block_size`, `hop_size`, and `look_ahead` are block size, hop size, look-ahead size for block processing respectively. `init_average=true` means to use average as initial context. `ctx_pos_enc=true` means to use positional encoding to the context vectors. For more details, please refer to the paper.
+
+```sh
+encoder: contextual_block_transformer
+block_size: 40
+hop_size: 16
+look_ahead: 16
+init_average: true
+ctx_pos_enc: true
+```
+
+For more details, please refer to the [paper](https://arxiv.org/pdf/2006.14941.pdf).
+   
+### Decoding
+
+During decoding, please specify `--use_streaming true` in `run.sh` and pass it as arguments to `asr.sh` to select streaming inference.
+
+```sh
+./run.sh --use_streaming true
+```
+### FAQ
+1. Issue about `'NoneType' object has no attribute 'max'` during training: please avoid the `valid_batch_size` to be 1, check more details [here](https://github.com/espnet/espnet/issues/3853).
+2. I successfully trained the model, but encountered the above issue during decoding: you may forget to specify `--use_streaming true` to select streaming inference.
