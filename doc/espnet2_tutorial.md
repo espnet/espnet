@@ -317,7 +317,7 @@ To achieve online decoding, you need to make several modifications.
 ### Training
 
 To achieve online decoding, please employ blockwise Transformer/Conformer encoder in the configuration file. Taking `blockwise Transformer` as an example:
-The `encoder` name can be `contextual_block_transformer` or `contextual_block_conformer`. `block_size`, `hop_size`, and `look_ahead` are block size, hop size, look-ahead size for block processing respectively. `init_average=true` means to use average as initial context. `ctx_pos_enc=true` means to use positional encoding to the context vectors. For more details, please refer to the paper.
+The `encoder` name can be `contextual_block_transformer` or `contextual_block_conformer`. `block_size`, `hop_size`, and `look_ahead` are block size, hop size, look-ahead size for block processing respectively. `init_average=true` means to use average as initial context. `ctx_pos_enc=true` means to use positional encoding for the context vectors. 
 
 ```sh
 encoder: contextual_block_transformer
