@@ -310,7 +310,7 @@ To use SSLRs in your task, you need to make several modifications.
 3. Because the shift sizes of different `upstream` models are different, e.g. `HuBERT` and `Wav2Vec2.0` have `20ms` frameshift. Sometimes, the downsampling rate (`input_layer`) in the `encoder` configuration need to be changed. For example, using `input_layer: conv2d2` will results in a total frameshift of `40ms`, which is enough for some tasks.
 
 ## Online Decoding
-ESPnet supports blcokwise online Transformer/Conformer with blockwise synchronous beam search.
+ESPnet supports blockwise online Transformer/Conformer with blockwise synchronous beam search.
 
 To achieve online decoding, you need to make several modifications.
 
