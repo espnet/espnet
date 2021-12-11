@@ -338,5 +338,5 @@ During decoding, please specify `--use_streaming true` in `run.sh` and pass it a
 ./run.sh --use_streaming true
 ```
 ### FAQ
-1. Issue about `'NoneType' object has no attribute 'max'` during training: please avoid the `valid_batch_size` to be 1, check more details [here](https://github.com/espnet/espnet/issues/3853).
-2. I successfully trained the model, but encountered the above issue during decoding: you may forget to specify `--use_streaming true` to select streaming inference.
+1. Issue about `'NoneType' object has no attribute 'max'` during training: Please avoid the `valid_batch_size` to be 1, check more details [here](https://github.com/espnet/espnet/issues/3853).
+2. I successfully trained the model, but encountered the above issue during decoding: You may forget to specify `--use_streaming true` to select streaming inference.
