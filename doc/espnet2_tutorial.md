@@ -309,34 +309,33 @@ To use SSLRs in your task, you need to make several modifications.
    ```
 3. Because the shift sizes of different `upstream` models are different, e.g. `HuBERT` and `Wav2Vec2.0` have `20ms` frameshift. Sometimes, the downsampling rate (`input_layer`) in the `encoder` configuration need to be changed. For example, using `input_layer: conv2d2` will results in a total frameshift of `40ms`, which is enough for some tasks.
 
-## Online Decoding
-ESPnet supports blockwise online Transformer/Conformer with blockwise synchronous beam search.
+## Streaming ASR
+ESPnet supports streaming Transformer/Conformer ASR with blockwise synchronous beam search.
 
-To achieve online decoding, you need to make several modifications.
+For more details, please refer to the [paper](https://arxiv.org/pdf/2006.14941.pdf).
 
 ### Training
 
-To achieve online decoding, please employ blockwise Transformer/Conformer encoder in the configuration file. Taking `blockwise Transformer` as an example:
-The `encoder` name can be `contextual_block_transformer` or `contextual_block_conformer`. `block_size`, `hop_size`, and `look_ahead` are block size, hop size, look-ahead size for block processing respectively. `init_average=true` means to use average as initial context. `ctx_pos_enc=true` means to use positional encoding for the context vectors. 
+To achieve streaming ASR, please employ blockwise Transformer/Conformer encoder in the configuration file. Taking `blockwise Transformer` as an example:
+The `encoder` name can be `contextual_block_transformer` or `contextual_block_conformer`. 
 
 ```sh
 encoder: contextual_block_transformer
-block_size: 40
-hop_size: 16
-look_ahead: 16
-init_average: true
-ctx_pos_enc: true
+block_size: 40         # block size for block processing
+hop_size: 16           # hop size for block processing
+look_ahead: 16         # look-ahead size for block processing
+init_average: true     # whether to use average input as initial context 
+ctx_pos_enc: true      # whether to use positional encoding for the context vectors 
 ```
-
-For more details, please refer to the [paper](https://arxiv.org/pdf/2006.14941.pdf).
    
 ### Decoding
 
-During decoding, please specify `--use_streaming true` in `run.sh` and pass it as arguments to `asr.sh` to select streaming inference.
+To enable online decoding, the argument `--use_streaming true` should be added to `run.sh`.
 
 ```sh
-./run.sh --use_streaming true
+./run.sh --stage 12 --use_streaming true
 ```
+
 ### FAQ
-1. Issue about `'NoneType' object has no attribute 'max'` during training: Please avoid the `valid_batch_size` to be 1, check more details [here](https://github.com/espnet/espnet/issues/3853).
-2. I successfully trained the model, but encountered the above issue during decoding: You may forget to specify `--use_streaming true` to select streaming inference.
+1. Issue about `'NoneType' object has no attribute 'max'` during training: please avoid the `valid_batch_size` to be 1, check more details [here](https://github.com/espnet/espnet/issues/3853).
+2. I successfully trained the model, but encountered the above issue during decoding: you may forget to specify `--use_streaming true` to select streaming inference.
