@@ -321,11 +321,12 @@ The `encoder` name can be `contextual_block_transformer` or `contextual_block_co
 
 ```sh
 encoder: contextual_block_transformer
-block_size: 40         # block size for block processing
-hop_size: 16           # hop size for block processing
-look_ahead: 16         # look-ahead size for block processing
-init_average: true     # whether to use average input as initial context 
-ctx_pos_enc: true      # whether to use positional encoding for the context vectors 
+encoder_conf:
+    block_size: 40         # block size for block processing
+    hop_size: 16           # hop size for block processing
+    look_ahead: 16         # look-ahead size for block processing
+    init_average: true     # whether to use average input as initial context 
+    ctx_pos_enc: true      # whether to use positional encoding for the context vectors 
 ```
    
 ### Decoding
