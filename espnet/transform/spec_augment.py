@@ -3,8 +3,6 @@
 import random
 
 import numpy
-from PIL import Image
-from PIL.Image import BICUBIC
 
 from espnet.transform.functional import FuncTrans
 
@@ -20,6 +18,9 @@ def time_warp(x, max_time_warp=80, inplace=False, mode="PIL"):
         (slow, differentiable)
     :returns numpy.ndarray: time warped spectrogram (time, freq)
     """
+    from PIL import Image
+    from PIL.Image import BICUBIC
+
     window = max_time_warp
     if mode == "PIL":
         t = x.shape[0]

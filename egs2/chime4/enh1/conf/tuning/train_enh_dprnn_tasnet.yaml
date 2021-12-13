@@ -26,8 +26,7 @@ scheduler: steplr
 scheduler_conf:
     step_size: 2
     gamma: 0.98
-model_conf:
-    loss_type: si_snr
+
 encoder: conv
 encoder_conf:
     channel: 64
@@ -49,3 +48,14 @@ separator_conf:
     segment_size: 250
     dropout: 0.1
     nonlinear: relu
+
+criterions: 
+  # The first criterion
+  - name: si_snr 
+    conf:
+      eps: 1.0e-7
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0

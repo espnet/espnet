@@ -8,7 +8,7 @@ This is a template of TTS recipe for ESPnet2.
   * [Table of Contents](#table-of-contents)
   * [Recipe flow](#recipe-flow)
     * [1\. Data preparation](#1-data-preparation)
-    * [2\. Wav dump / Embedding preapartion](#2-wav-dump--embedding-preparation)
+    * [2\. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
     * [3\. Removal of long / short data](#3-removal-of-long--short-data)
     * [4\. Token list generation](#4-token-list-generation)
     * [5\. TTS statistics collection](#5-tts-statistics-collection)
@@ -23,6 +23,7 @@ This is a template of TTS recipe for ESPnet2.
     * [Multi language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
     * [VITS training](#vits-training)
     * [Joint text2wav training](#joint-text2wav-training)
+    * [Evaluation](#evaluation)
   * [Supported text frontend](#supported-text-frontend)
   * [Supported text cleaner](#supported-text-cleaner)
   * [Supported Models](#supported-models)
@@ -70,7 +71,7 @@ Additionally, we support X-vector extraction in this stage as you can use in ESP
 If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract mfcc features, vad decision, and X-vector.
 This processing requires the compiled kaldi, please be careful.
 
-Also, speaker ID embedding and language ID embedding preparation will be performed in this stage if you sepecify `--use_sid true` and `--use_lid true` otpions.
+Also, speaker ID embedding and language ID embedding preparation will be performed in this stage if you specify `--use_sid true` and `--use_lid true` options.
 Note that this processing assume that `utt2spk` or `utt2lang` are correctly created in stage 1, please be careful.
 
 ### 3. Removal of long / short data
@@ -117,11 +118,15 @@ See also:
 ### 8-9. (Optional) Pack results for upload
 
 Packing stage.
-It packs the trained model files and uploads to [Zenodo](https://zenodo.org/).
+It packs the trained model files and uploads to [Zenodo](https://zenodo.org/) (Zenodo upload will be deprecated).
 If you want to run this stage, you need to register your account in zenodo.
 
 See also:
 - [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
+
+#### Stage 10: Upload model to Hugging Face
+
+Upload the trained model to Hugging Face for sharing. Additional information at [Docs](https://espnet.github.io/espnet/espnet2_tutorial.html#packing-and-sharing-your-trained-model).
 
 ## How to run
 
@@ -542,6 +547,79 @@ You can find the example configs in:
 - [`egs2/ljspeech/tts1/conf/tuning/train_joint_conformer_fastspeech2_hifigan.yaml`: Joint training of conformer fastspeech2 + hifigan](../../ljspeech/tts1/conf/tuning/train_joint_conformer_fastspeech2_hifigan.yaml).
 - [`egs2/ljspeech/tts1/conf/tuning/finetune_joint_conformer_fastspeech2_hifigan.yaml`: Joint fine-tuning of conformer fastspeech2 + hifigan](../../ljspeech/tts1/conf/tuning/finetune_joint_conformer_fastspeech2_hifigan.yaml).
 
+### Evaluation
+
+We provide three objective evaluation metrics:
+
+- Mel-cepstral distortion (MCD)
+- Log-F0 root mean square error (log-F0 RMSE)
+- Character error rate (CER)
+
+MCD and log-F0 RMSE reflect speaker, prosody, and phonetic content similarities, and CER can reflect the intelligibility.
+For MCD and log-F0 RMSE, we apply dynamic time-warping (DTW) to match the length difference between ground-truth speech and generated speech.
+
+Here we show the example command to calculate objective metrics:
+
+```sh
+cd egs2/<recipe_name>/tts1
+. ./path.sh
+
+# Evaluate MCD
+./pyscripts/utils/evaluate_mcd.py \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    dump/raw/eval1/wav.scp
+
+# Evaluate log-F0 RMSE
+./pyscripts/utils/evaluate_f0.py \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    dump/raw/eval1/wav.scp
+
+# If you want to calculate more precisely, limit the F0 range
+./pyscripts/utils/evaluate_f0.py \
+    --f0min xxx \
+    --f0max yyy \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    dump/raw/eval1/wav.scp
+
+# Evaluate CER
+./scripts/utils/evaluate_asr.sh \
+    --model_tag <asr_model_tag> \
+    --nj 1 \
+    --inference_args "--beam_size 10 --ctc_weight 0.4 --lm_weight 0.0" \
+    --gt_text "dump/raw/eval1/text" \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    exp/<model_dir_name>/<decode_dir_name>/asr_results
+
+# Since ASR model does not use punctuation, it is better to remove punctuations if it contains
+./utils/remove_punctuation.pl < dump/raw/eval1/text > dump/raw/eval1/text.no_punc
+./scripts/utils/evaluate_asr.sh \
+    --model_tag <asr_model_tag> \
+    --nj 1 \
+    --inference_args "--beam_size 10 --ctc_weight 0.4 --lm_weight 0.0" \
+    --gt_text "dump/raw/eval1/text.no_punc" \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    exp/<model_dir_name>/<decode_dir_name>/asr_results
+
+# Some ASR models assume the existence of silence at the beginning and the end of audio
+# Then, you can perform silence padding with sox to get more reasonable ASR results
+awk < "exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp" \
+    '{print $1 " sox " $2 " -t wav - pad 0.25 0.25 |"}' \
+    > exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav_pad.scp
+./scripts/utils/evaluate_asr.sh \
+    --model_tag <asr_model_tag> \
+    --nj 1 \
+    --inference_args "--beam_size 10 --ctc_weight 0.4 --lm_weight 0.0" \
+    --gt_text "dump/raw/eval1/text.no_punc" \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav_pad.scp \
+    exp/<model_dir_name>/<decode_dir_name>/asr_results
+
+```
+
+While these objective metrics can estimate the quality of synthesized speech, it is still difficult to fully determine human perceptual quality from these values, especially with high-fidelity generated speech.
+Therefore, we recommend performing the subjective evaluation if you want to check perceptual quality in detail.
+
+You can refer [this page](https://github.com/kan-bayashi/webMUSHRA/blob/master/HOW_TO_SETUP.md) to launch web-based subjective evaluation system with [webMUSHRA](https://github.com/audiolabs/webMUSHRA).
+
 ## Supported text frontend
 
 You can change via `--g2p` option in `tts.sh`.
@@ -597,10 +675,14 @@ You can change via `--g2p` option in `tts.sh`.
     - e.g. `Hei maailma.` -> `[h, ˈei, m, ˈaː, ɪ, l, m, a, .]`
     - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_hungarian`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `"Helló Világ.` -> `[h, ˈɛ, l, l, oː, v, ˈi, l, aː, ɡ, .]`
+    - e.g. `Helló Világ.` -> `[h, ˈɛ, l, l, oː, v, ˈi, l, aː, ɡ, .]`
     - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_dutch`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
-    - e.g. `"Hallo Wereld.` -> `[h, ˈɑ, l, oː, ʋ, ˈɪː, r, ə, l, t, .]`
+    - e.g. `Hallo Wereld.` -> `[h, ˈɑ, l, oː, ʋ, ˈɪː, r, ə, l, t, .]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `espeak_ng_english_us_vits`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - VITS official implementation-like processing (https://github.com/jaywalnut310/vits)
+    - e.g. `Hello World.` -> `[h, ə, l, ˈ, o, ʊ, , <space>, w, ˈ, ɜ, ː, l, d, .]`
     - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `g2pk`: [Kyubyong/g2pK](https://github.com/Kyubyong/g2pK)
     - e.g. `안녕하세요 세계입니다.` -> `[ᄋ, ᅡ, ᆫ, ᄂ, ᅧ, ᆼ, ᄒ, ᅡ, ᄉ, ᅦ, ᄋ, ᅭ,  , ᄉ, ᅦ, ᄀ, ᅨ, ᄋ, ᅵ, ᆷ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
@@ -637,7 +719,7 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 
 You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tuning`](../../ljspeech/tts1/conf/tuning).
 
-### Multi speaker model extention
+### Multi speaker model extension
 
 You can use / combine the following embedding to build multi-speaker model:
 - [X-Vector](https://ieeexplore.ieee.org/abstract/document/8461375)
@@ -671,7 +753,7 @@ See [how to make/port new recipe](https://github.com/espnet/espnet/tree/master/e
 
 Add a new module in [`espnet2/text/phoneme_tokenizer.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py) and add it to `g2p_choices` in [`espnet2/text/phoneme_tokenizer.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py).
 
-We have the warpper module of [bootphon/phonemizer](https://github.com/bootphon/phonemizer).
+We have the wrapper module of [bootphon/phonemizer](https://github.com/bootphon/phonemizer).
 You can find the module [`espnet2/text/phoneme_tokenizer.py`](https://github.com/kan-bayashi/espnet/blob/7cc12c6a25924892b281c2c1513de52365a1be0b/espnet2/text/phoneme_tokenizer.py#L110).
 If the g2p you wanted is implemented in [bootphon/phonemizer](https://github.com/bootphon/phonemizer), we can easily add it [like this](https://github.com/kan-bayashi/espnet/blob/7cc12c6a25924892b281c2c1513de52365a1be0b/espnet2/text/phoneme_tokenizer.py#L172-L173) (Note that you need to update the choice as I mentioned the above).
 
@@ -705,7 +787,7 @@ See [use a pretrained model for inference](https://github.com/espnet/espnet_mode
 ### How to get pretrained models?
 
 Use [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo).
-You can find the all of the pretrained model list from [here](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv).
+You can find the all of the pretrained model list from [here](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv) or search for pretrained models at [Hugging Face](https://huggingface.co/models?library=espnet).
 
 If you want to use pretrained models written in `egs2/hogehoge/tts1/README.md`, go to Zenodo URL and copy the URL of download in the below of the page.
 Then, you can use as follows:
@@ -846,12 +928,12 @@ Please check the following items carefully:
 - Add the pose symbol in text if the speech contains the silence.
 - If the dataset is small, please consider the use of adaptation with pretrained model.
 - If the dataset is small, please consider the use of large reduction factor, which helps the attention learning.
-- Check the attention plot during the training. Loss value is not so meaningfull in TTS.
+- Check the attention plot during the training. Loss value is not so meaningful in TTS.
 
 ### Why the outputs contains metallic noise when combining neural vocoder?
 
 This will be happened especially when the neural vocoders did not use noise as the input (e.g., MelGAN, HiFiGAN), which are less robust to the mismatch of acoustic features.
-The metallic sound can reduce by performing vocder [finetuning with text2mel GTA outputs](#how-to-train-vocoder-with-text2mel-gta-outputs) or [joint training / finetuning of text2mel and vocoder](#joint-text2wav-training).
+The metallic sound can reduce by performing vocoder [finetuning with text2mel GTA outputs](#how-to-train-vocoder-with-text2mel-gta-outputs) or [joint training / finetuning of text2mel and vocoder](#joint-text2wav-training).
 
 ### How is the duration for FastSpeech2 generated?
 

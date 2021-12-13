@@ -50,6 +50,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
         utils/validate_data_dir.sh --no-feats data/${x} || exit 1
     done
+    local/run_spm.sh
+    mv data data_old
+    mv data_bpe_500 data
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

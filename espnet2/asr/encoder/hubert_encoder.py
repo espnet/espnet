@@ -267,6 +267,7 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         activation_dropout_rate: float = 0.0,
         hubert_dict: str = "./dict.txt",
         label_rate: int = 100,
+        checkpoint_activations: bool = False,
         sample_rate: int = 16000,
         use_amp: bool = False,
         **kwargs,
@@ -296,6 +297,7 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
             "dropout": dropout_rate,
             "attention_dropout": attention_dropout_rate,
             "label_rate": label_rate,
+            "checkpoint_activations": checkpoint_activations,
         }
         cfg_overides = {**cfg_overides, **kwargs}
         self.cfg = HubertConfig()
