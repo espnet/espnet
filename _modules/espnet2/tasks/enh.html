@@ -146,6 +146,15 @@
 <span class="kn">from</span> <span class="nn">espnet2.enh.encoder.null_encoder</span> <span class="kn">import</span> <span class="n">NullEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.encoder.stft_encoder</span> <span class="kn">import</span> <span class="n">STFTEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetEnhancementModel</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.abs_loss</span> <span class="kn">import</span> <span class="n">AbsEnhLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainL1</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainMSE</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">CISDRLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SISNRLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SNRLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.abs_wrapper</span> <span class="kn">import</span> <span class="n">AbsLossWrapper</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.fixed_order</span> <span class="kn">import</span> <span class="n">FixedOrderSolver</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.pit_solver</span> <span class="kn">import</span> <span class="n">PITSolver</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.abs_separator</span> <span class="kn">import</span> <span class="n">AbsSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.asteroid_models</span> <span class="kn">import</span> <span class="n">AsteroidModel_Converter</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.conformer_separator</span> <span class="kn">import</span> <span class="n">ConformerSeparator</span>
@@ -191,6 +200,26 @@
     <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">stft</span><span class="o">=</span><span class="n">STFTDecoder</span><span class="p">,</span> <span class="n">conv</span><span class="o">=</span><span class="n">ConvDecoder</span><span class="p">,</span> <span class="n">same</span><span class="o">=</span><span class="n">NullDecoder</span><span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsDecoder</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;stft&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">loss_wrapper_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;loss_wrappers&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">pit</span><span class="o">=</span><span class="n">PITSolver</span><span class="p">,</span> <span class="n">fixed_order</span><span class="o">=</span><span class="n">FixedOrderSolver</span><span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsLossWrapper</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">criterion_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;criterions&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">snr</span><span class="o">=</span><span class="n">SNRLoss</span><span class="p">,</span>
+        <span class="n">ci_sdr</span><span class="o">=</span><span class="n">CISDRLoss</span><span class="p">,</span>
+        <span class="n">si_snr</span><span class="o">=</span><span class="n">SISNRLoss</span><span class="p">,</span>
+        <span class="n">mse</span><span class="o">=</span><span class="n">FrequencyDomainMSE</span><span class="p">,</span>
+        <span class="n">l1</span><span class="o">=</span><span class="n">FrequencyDomainL1</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsEnhLoss</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">MAX_REFERENCE_NUM</span> <span class="o">=</span> <span class="mi">100</span>
@@ -240,6 +269,20 @@
             <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="n">get_default_kwargs</span><span class="p">(</span><span class="n">ESPnetEnhancementModel</span><span class="p">),</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for model class.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--criterions&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;si_snr&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;conf&quot;</span><span class="p">:</span> <span class="p">{},</span>
+                    <span class="s2">&quot;wrapper&quot;</span><span class="p">:</span> <span class="s2">&quot;fixed_order&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;wrapper_conf&quot;</span><span class="p">:</span> <span class="p">{},</span>
+                <span class="p">},</span>
+            <span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The criterions binded with the loss wrappers.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Preprocess related&quot;</span><span class="p">)</span>
@@ -307,9 +350,21 @@
         <span class="p">)</span>
         <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">decoder</span><span class="p">)(</span><span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">)</span>
 
+        <span class="n">loss_wrappers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ctr</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">criterions</span><span class="p">:</span>
+            <span class="n">criterion</span> <span class="o">=</span> <span class="n">criterion_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])(</span><span class="o">**</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;conf&quot;</span><span class="p">])</span>
+            <span class="n">loss_wrapper</span> <span class="o">=</span> <span class="n">loss_wrapper_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;wrapper&quot;</span><span class="p">])(</span>
+                <span class="n">criterion</span><span class="o">=</span><span class="n">criterion</span><span class="p">,</span> <span class="o">**</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;wrapper_conf&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">loss_wrappers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_wrapper</span><span class="p">)</span>
+
         <span class="c1"># 1. Build model</span>
         <span class="n">model</span> <span class="o">=</span> <span class="n">ESPnetEnhancementModel</span><span class="p">(</span>
-            <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="n">separator</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span>
+            <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span>
+            <span class="n">separator</span><span class="o">=</span><span class="n">separator</span><span class="p">,</span>
+            <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
+            <span class="n">loss_wrappers</span><span class="o">=</span><span class="n">loss_wrappers</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span>
         <span class="p">)</span>
 
         <span class="c1"># FIXME(kamo): Should be done in model?</span>

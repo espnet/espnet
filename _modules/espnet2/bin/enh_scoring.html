@@ -138,10 +138,13 @@
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_utils</span> <span class="kn">import</span> <span class="n">get_commandline_args</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetEnhancementModel</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SISNRLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.datadir_writer</span> <span class="kn">import</span> <span class="n">DatadirWriter</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.sound_scp</span> <span class="kn">import</span> <span class="n">SoundScpReader</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils</span> <span class="kn">import</span> <span class="n">config_argparse</span>
+
+
+<span class="n">si_snr_loss</span> <span class="o">=</span> <span class="n">SISNRLoss</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="scoring"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.enh_scoring.scoring">[docs]</a><span class="k">def</span> <span class="nf">scoring</span><span class="p">(</span>
@@ -203,7 +206,7 @@
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">):</span>
                 <span class="n">stoi_score</span> <span class="o">=</span> <span class="n">stoi</span><span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">inf</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">perm</span><span class="p">[</span><span class="n">i</span><span class="p">])],</span> <span class="n">fs_sig</span><span class="o">=</span><span class="n">sample_rate</span><span class="p">)</span>
                 <span class="n">si_snr_score</span> <span class="o">=</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span>
-                    <span class="n">ESPnetEnhancementModel</span><span class="o">.</span><span class="n">si_snr_loss</span><span class="p">(</span>
+                    <span class="n">si_snr_loss</span><span class="p">(</span>
                         <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]),</span>
                         <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">inf</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">perm</span><span class="p">[</span><span class="n">i</span><span class="p">])][</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]),</span>
                     <span class="p">)</span>

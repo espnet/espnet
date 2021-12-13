@@ -37,6 +37,105 @@ espnet2.enh.abs_enh
     :show-inheritance:
 
 
+.. _espnet2.enh.loss.__init__:
+
+espnet2.enh.loss.__init__
+-------------------------
+
+.. automodule:: espnet2.enh.loss.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.loss.criterions.__init__:
+
+espnet2.enh.loss.criterions.__init__
+------------------------------------
+
+.. automodule:: espnet2.enh.loss.criterions.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.loss.criterions.tf_domain:
+
+espnet2.enh.loss.criterions.tf_domain
+-------------------------------------
+
+.. automodule:: espnet2.enh.loss.criterions.tf_domain
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.loss.criterions.time_domain:
+
+espnet2.enh.loss.criterions.time_domain
+---------------------------------------
+
+.. automodule:: espnet2.enh.loss.criterions.time_domain
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.loss.criterions.abs_loss:
+
+espnet2.enh.loss.criterions.abs_loss
+------------------------------------
+
+.. automodule:: espnet2.enh.loss.criterions.abs_loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.loss.wrappers.__init__:
+
+espnet2.enh.loss.wrappers.__init__
+----------------------------------
+
+.. automodule:: espnet2.enh.loss.wrappers.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.loss.wrappers.fixed_order:
+
+espnet2.enh.loss.wrappers.fixed_order
+-------------------------------------
+
+.. automodule:: espnet2.enh.loss.wrappers.fixed_order
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.loss.wrappers.abs_wrapper:
+
+espnet2.enh.loss.wrappers.abs_wrapper
+-------------------------------------
+
+.. automodule:: espnet2.enh.loss.wrappers.abs_wrapper
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.loss.wrappers.pit_solver:
+
+espnet2.enh.loss.wrappers.pit_solver
+------------------------------------
+
+.. automodule:: espnet2.enh.loss.wrappers.pit_solver
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.layers.__init__:
 
 espnet2.enh.layers.__init__

@@ -143,6 +143,9 @@
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_utils</span> <span class="kn">import</span> <span class="n">get_commandline_args</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainMSE</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SISNRLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.pit_solver</span> <span class="kn">import</span> <span class="n">PITSolver</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.sound_scp</span> <span class="kn">import</span> <span class="n">SoundScpWriter</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.enh</span> <span class="kn">import</span> <span class="n">EnhancementTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">to_device</span>
@@ -368,16 +371,13 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            perm (torch.Tensor): permutation for enh_wavs (Batch, num_spk)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">loss_func</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;si_snr&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">si_snr_loss</span><span class="p">,</span>
-            <span class="s2">&quot;mse&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">enh</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">enh</span> <span class="o">-</span> <span class="n">ref</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
-            <span class="s2">&quot;corr&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">enh</span><span class="p">,</span> <span class="n">ref</span><span class="p">:</span> <span class="p">(</span>
-                <span class="p">(</span><span class="n">enh</span> <span class="o">*</span> <span class="n">ref</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-                <span class="o">/</span> <span class="p">(</span><span class="n">enh</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">ref</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="n">EPS</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="n">EPS</span><span class="p">),</span>
-        <span class="p">}[</span><span class="n">criterion</span><span class="p">]</span>
 
-        <span class="n">_</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">_permutation_loss</span><span class="p">(</span><span class="n">ref_wavs</span><span class="p">,</span> <span class="n">enh_wavs</span><span class="p">,</span> <span class="n">loss_func</span><span class="p">)</span>
+        <span class="n">criterion_class</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;si_snr&quot;</span><span class="p">:</span> <span class="n">SISNRLoss</span><span class="p">,</span> <span class="s2">&quot;mse&quot;</span><span class="p">:</span> <span class="n">FrequencyDomainMSE</span><span class="p">}[</span><span class="n">criterion</span><span class="p">]</span>
+
+        <span class="n">pit_solver</span> <span class="o">=</span> <span class="n">PITSolver</span><span class="p">(</span><span class="n">criterion</span><span class="o">=</span><span class="n">criterion_class</span><span class="p">())</span>
+
+        <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">others</span> <span class="o">=</span> <span class="n">pit_solver</span><span class="p">(</span><span class="n">ref_wavs</span><span class="p">,</span> <span class="n">enh_wavs</span><span class="p">)</span>
+        <span class="n">perm</span> <span class="o">=</span> <span class="n">others</span><span class="p">[</span><span class="s2">&quot;perm&quot;</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">perm</span></div>
 
 <div class="viewcode-block" id="SeparateSpeech.from_pretrained"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.enh_inference.SeparateSpeech.from_pretrained">[docs]</a>    <span class="nd">@staticmethod</span>

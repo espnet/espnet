@@ -1602,7 +1602,7 @@ enh_train.py
                         [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
-                        [--model_conf MODEL_CONF]
+                        [--model_conf MODEL_CONF] [--criterions CRITERIONS]
                         [--use_preprocessor USE_PREPROCESSOR]
                         [--encoder {stft,conv,same}] [--encoder_conf ENCODER_CONF]
                         [--separator {rnn,tcn,dprnn,transformer,conformer,wpe_beamformer,asteroid}]
@@ -1926,6 +1926,8 @@ enh_train.py
                             The initialization method (default: None)
       --model_conf MODEL_CONF
                             The keyword arguments for model class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None})
+      --criterions CRITERIONS
+                            The criterions binded with the loss wrappers. (default: [{'name': 'si_snr', 'conf': {}, 'wrapper': 'fixed_order', 'wrapper_conf': {}}])
     
       Preprocess related
     

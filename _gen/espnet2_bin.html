@@ -1727,7 +1727,7 @@ Input data related:
                     [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                     [--scheduler_conf SCHEDULER_CONF]
                     [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
-                    [--model_conf MODEL_CONF]
+                    [--model_conf MODEL_CONF] [--criterions CRITERIONS]
                     [--use_preprocessor USE_PREPROCESSOR]
                     [--encoder {stft,conv,same}] [--encoder_conf ENCODER_CONF]
                     [--separator {rnn,tcn,dprnn,transformer,conformer,wpe_beamformer,asteroid}]
@@ -2051,6 +2051,8 @@ Optimizer related:
                         The initialization method (default: None)
   --model_conf MODEL_CONF
                         The keyword arguments for model class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None})
+  --criterions CRITERIONS
+                        The criterions binded with the loss wrappers. (default: [{&#39;name&#39;: &#39;si_snr&#39;, &#39;conf&#39;: {}, &#39;wrapper&#39;: &#39;fixed_order&#39;, &#39;wrapper_conf&#39;: {}}])
 
   Preprocess related
 
