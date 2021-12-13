@@ -7,7 +7,7 @@
 . ./cmd.sh || exit 1;
 
 # general configuration
-backend=pytorch # chainer or pytorch
+backend=pytorch
 stage=0         # start from -1 if you need to start from data download
 stop_stage=100
 ngpu=1          # number of gpus during training ("0" uses cpu, otherwise use gpu)
@@ -224,7 +224,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${trans_model}
 
         score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-            ${expdir}/${decode_dir} pt ${dict}
+            ${expdir}/${decode_dir} "pt" ${dict}
     ) &
     pids+=($!) # store background pids
     done
@@ -284,7 +284,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+        score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} "pt" ${dict}
     ) &
     pids+=($!) # store background pids

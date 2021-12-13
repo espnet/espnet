@@ -1,4 +1,4 @@
-"""Transformer decoder layer definition for custom transducer model."""
+"""Transformer decoder layer definition for custom Transducer model."""
 
 from typing import Optional
 
@@ -12,7 +12,7 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 
 
 class TransformerDecoderLayer(torch.nn.Module):
-    """Transformer decoder layer module for custom transducer model.
+    """Transformer decoder layer module for custom Transducer model.
 
     Args:
         hdim: Hidden dimension.

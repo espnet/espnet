@@ -15,6 +15,166 @@ See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
+
+# FORTH RESULTS
+
+- Use espeak-ng based G2P
+
+## Environments
+- date: `Fri Oct  8 15:48:44 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a2`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `628b46282537ce532d613d6bafb75e826e8455de`
+  - Commit date: `Wed Sep 8 13:30:50 2021 +0900`
+
+## Pretrained Models
+
+### vctk_tts_train_multi_spk_vits_raw_phn_tacotron_espeak_ng_english_us_vits_train.total_count.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+# Prep data directory
+./run.sh --stage 1 --stop-stage 1
+
+# Since espeak is super slow, dump phonemized text at first
+for dset in tr_no_dev dev eval1; do
+    utils/copy_data_dir.sh data/"${dset}"{,_phn}
+    ./pyscripts/utils/convert_text_to_phn.py \
+        --nj 32 \
+        --g2p espeak_ng_english_us_vits \
+        --cleaer tacotron \
+        data/"${dset}"{,_phn}/text
+done
+
+# Run from stage 2
+./run.sh \
+    --train_set tr_no_dev_phn \
+    --valid_set dev_phn \
+    --test_sets "dev_phn eval1_phn" \
+    --srctexts "data/tr_no_dev_phn/text" \
+    --g2p none \
+    --cleaner none \
+    --stage 2 \
+    --use_sid true \
+    --min_wav_duration 0.38 \
+    --ngpu 4 \
+    --fs 22050 \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --dumpdir dump/22k \
+    --expdir exp/22k \
+    --win_length null \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_multi_spk_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
+- 22.05 kHz / 1M iters / Use speaker ID (one-hot) / Averaged the last 5 epochs
+- https://zenodo.org/record/5560132
+
+### vctk_tts_train_xvector_vits_raw_phn_tacotron_espeak_ng_english_us_vits_train.total_count.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+# Prep data directory
+./run.sh --stage 1 --stop-stage 1
+
+# Since espeak is super slow, dump phonemized text at first
+for dset in tr_no_dev dev eval1; do
+    utils/copy_data_dir.sh data/"${dset}"{,_phn}
+    ./pyscripts/utils/convert_text_to_phn.py \
+        --nj 32 \
+        --g2p espeak_ng_english_us_vits \
+        --cleaer tacotron \
+        data/"${dset}"{,_phn}/text
+done
+
+# Run from stage 2
+./run.sh \
+    --train_set tr_no_dev_phn \
+    --valid_set dev_phn \
+    --test_sets "dev_phn eval1_phn" \
+    --srctexts "data/tr_no_dev_phn/text" \
+    --g2p none \
+    --cleaner none \
+    --stage 2 \
+    --use_xvector true \
+    --min_wav_duration 0.38 \
+    --ngpu 4 \
+    --fs 22050 \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --dumpdir dump/22k \
+    --expdir exp/22k \
+    --win_length null \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_xvector_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
+- 22.05 kHz / 1M iters / Use X-vector / Averaged the last 5 epochs
+- https://zenodo.org/record/5560146
+
+### vctk_tts_train_full_band_multi_spk_vits_raw_phn_tacotron_espeak_ng_english_us_vits_train.total_count.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+# Prep data directory
+./run.sh --stage 1 --stop-stage 1
+
+# Since espeak is super slow, dump phonemized text at first
+for dset in tr_no_dev dev eval1; do
+    utils/copy_data_dir.sh data/"${dset}"{,_phn}
+    ./pyscripts/utils/convert_text_to_phn.py \
+        --nj 32 \
+        --g2p espeak_ng_english_us_vits \
+        --cleaer tacotron \
+        data/"${dset}"{,_phn}/text
+done
+
+# Run from stage 2
+./run.sh \
+    --train_set tr_no_dev_phn \
+    --valid_set dev_phn \
+    --test_sets "dev_phn eval1_phn" \
+    --srctexts "data/tr_no_dev_phn/text" \
+    --g2p none \
+    --cleaner none \
+    --stage 2 \
+    --use_sid true \
+    --min_wav_duration 0.38 \
+    --ngpu 4 \
+    --fs 44100 \
+    --n_fft 2048 \
+    --n_shift 512 \
+    --dumpdir dump/44k \
+    --expdir exp/44k \
+    --win_length null \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_full_band_multi_spk_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
+- 44.1 kHz / 1M iters / Use speaker ID (one-hot) / Averaged the last 5 epochs
+- https://zenodo.org/record/5560148
+
+
 # THIRD RESULTS
 
 - Initial VITS models
@@ -30,8 +190,60 @@ See the following pages before asking the question:
 ## Pretrained Models
 
 ### vctk_tts_train_multi_spk_vits_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
-- 22.05 kHz / 1M iters / Use speaker ID (one-hot)
+
+<details><summary>Command</summary><div>
+
+```sh
+./run.sh \
+    --stage 1 \
+    --use_sid true \
+    --min_wav_duration 0.38 \
+    --ngpu 4 \
+    --fs 22050 \
+    --n_fft 1024 \
+    --n_shift 256 \
+    --dumpdir dump/22k \
+    --expdir exp/22k \
+    --win_length null \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_multi_spk_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
+- 22.05 kHz / 1M iters / Use speaker ID (one-hot) / Averaged the last 10 epochs
 - https://zenodo.org/record/5500759
+
+### vctk_tts_train_full_band_multi_spk_vits_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+
+<details><summary>Command</summary><div>
+
+```sh
+./run.sh \
+    --stage 1 \
+    --use_sid true \
+    --min_wav_duration 0.38 \
+    --ngpu 4 \
+    --fs 44100 \
+    --n_fft 2048 \
+    --n_shift 512 \
+    --dumpdir dump/44k \
+    --expdir exp/44k \
+    --win_length null \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/train_full_band_multi_spk_vits.yaml \
+    --inference_model train.total_count.ave.pth
+```
+
+</div></details>
+
+- 44.1 kHz / 1M iters / Use speaker ID (one-hot) / Averaged the last 10 epochs
+- https://zenodo.org/record/5521431
 
 
 # SECOND RESULTS

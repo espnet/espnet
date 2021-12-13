@@ -7,7 +7,7 @@
 . ./cmd.sh || exit 1;
 
 # general configuration
-backend=pytorch # chainer or pytorch
+backend=pytorch
 stage=0         # start from -1 if you need to start from data download
 stop_stage=5
 ngpu=1          # number of gpus during training ("0" uses cpu, otherwise use gpu)
@@ -50,9 +50,9 @@ tgt_case=tc
 remove_nonverbal=true  # remove non-verbal labels such as "( Applaus )"
 # NOTE: IWSLT community accepts this setting and therefore we use this by default
 
-# iwslt segmentation related
-max_interval=200
-max_duration=1500
+# segmentation related
+max_interval=100
+max_duration=2000
 
 # bpemode (unigram or bpe)
 nbpe=16000
@@ -170,22 +170,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-      utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt21/st1/dump/${train_set}/delta${do_delta}/storage \
-          ${feat_tr_dir}/storage
-    fi
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-      utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt21/st1/dump/${train_dev}/delta${do_delta}/storage \
-          ${feat_dt_dir}/storage
-    fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
     for x in ${train_dev} ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_trans_dir}
+        feat_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${x} ${feat_trans_dir}
+            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${x} ${feat_dir}
     done
 
     # concatenate short segments
@@ -209,9 +199,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             data/${output_dir} exp/make_fbank/${output_dir} ${fbankdir}
         utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${output_dir}
 
-        feat_trans_dir=${dumpdir}/${output_dir}/delta${do_delta}; mkdir -p ${feat_trans_dir}
+        feat_dir=${dumpdir}/${output_dir}/delta${do_delta}; mkdir -p ${feat_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${output_dir}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${output_dir} ${feat_trans_dir}
+            data/${output_dir}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${output_dir} ${feat_dir}
     done
 fi
 
@@ -243,13 +233,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     for x in ${train_dev} ${trans_set} ${iwslt_test_set}; do
         if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
-            feat_trans_dir=${dumpdir}/${x}_merge${max_interval}_duration${max_duration}/delta${do_delta}
-            local/data2json.sh --feat ${feat_trans_dir}/feats.scp --no_text true \
-                data/${x}_merge${max_interval}_duration${max_duration} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+            feat_dir=${dumpdir}/${x}_merge${max_interval}_duration${max_duration}/delta${do_delta}
+            local/data2json.sh --feat ${feat_dir}/feats.scp --no_text true \
+                data/${x}_merge${max_interval}_duration${max_duration} ${dict} > ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         else
-            feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
-            data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
-                data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+            feat_dir=${dumpdir}/${x}/delta${do_delta}
+            data2json.sh --feat ${feat_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
+                data/${x} ${dict} > ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         fi
     done
 
@@ -265,9 +255,9 @@ fi
 # NOTE: skip stage 3: LM Preparation
 
 if [ -z ${tag} ]; then
-    expname=${train_set}_${src_case}_${tgt_case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
+    expname=${train_set}_${tgt_case}_${backend}_$(basename ${train_config%.*})_${bpemode}${nbpe}
 else
-    expname=${train_set}_${src_case}_${tgt_case}_${backend}_${tag}
+    expname=${train_set}_${tgt_case}_${backend}_${tag}
 fi
 expdir=exp/${expname}
 mkdir -p ${expdir}
@@ -294,7 +284,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
         --enc-init ${asr_model} \
         --dec-init ${mt_model} \
-        --n-iter-processes 2
+        --n-iter-processes 3
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -328,10 +318,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             x=${x}_merge${max_interval}_duration${max_duration}
         fi
         decode_dir=decode_${x}_$(basename ${decode_config%.*})
-        feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
+        feat_dir=${dumpdir}/${x}/delta${do_delta}
 
         # split data
-        splitjson.py --parts ${nj} ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
+        splitjson.py --parts ${nj} ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
 
         ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
             st_trans.py \
@@ -339,17 +329,17 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --ngpu ${dec_ngpu} \
             --backend ${backend} \
             --batchsize 0 \
-            --trans-json ${feat_trans_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+            --trans-json ${feat_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
         if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
             set=$(echo ${x} | cut -f 1 -d "." | cut -f 3 -d "_")
-            local/score_bleu_reseg.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            local/score_bleu_reseg.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
                 --remove_nonverbal ${remove_nonverbal} \
                 ${expdir}/${decode_dir} ${dict} ${iwslt_test_data_dir} ${set}
         else
-            score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
                 --remove_nonverbal ${remove_nonverbal} \
                 ${expdir}/${decode_dir} "de" ${dict}
         fi

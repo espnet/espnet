@@ -83,7 +83,7 @@ def add_custom_encoder_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     )
     group.add_argument(
         "--enc-block-repeat",
-        default=0,
+        default=1,
         type=int,
         help="Repeat N times the provided encoder blocks if N > 1",
     )
@@ -93,6 +93,18 @@ def add_custom_encoder_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         default="conv2d",
         choices=["conv2d", "vgg2l", "linear", "embed"],
         help="Custom encoder input layer type",
+    )
+    group.add_argument(
+        "--custom-enc-input-dropout-rate",
+        type=float,
+        default=0.0,
+        help="Dropout rate of custom encoder input layer",
+    )
+    group.add_argument(
+        "--custom-enc-input-pos-enc-dropout-rate",
+        type=float,
+        default=0.0,
+        help="Dropout rate of positional encoding in custom encoder input layer",
     )
     group.add_argument(
         "--custom-enc-positional-encoding-type",
@@ -248,12 +260,12 @@ def add_custom_training_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
 
 
 def add_transducer_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
-    """Define general arguments for transducer model."""
+    """Define general arguments for Transducer model."""
     group.add_argument(
         "--transducer-weight",
         default=1.0,
         type=float,
-        help="Weight of transducer loss when auxiliary task is used.",
+        help="Weight of main Transducer loss.",
     )
     group.add_argument(
         "--joint-dim",
@@ -273,7 +285,13 @@ def add_transducer_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         type=strtobool,
         nargs="?",
         default=True,
-        help="Normalize transducer scores by length",
+        help="Normalize Transducer scores by length",
+    )
+    group.add_argument(
+        "--fastemit-lambda",
+        default=0.0,
+        type=float,
+        help="Regularization parameter for FastEmit (https://arxiv.org/abs/2010.11148)",
     )
 
     return group
@@ -290,7 +308,7 @@ def add_auxiliary_task_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     )
     group.add_argument(
         "--ctc-loss-weight",
-        default=0.0,
+        default=0.5,
         type=float,
         help="Weight of auxiliary CTC loss.",
     )
@@ -309,7 +327,7 @@ def add_auxiliary_task_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     )
     group.add_argument(
         "--lm-loss-weight",
-        default=0.0,
+        default=0.5,
         type=float,
         help="Weight of auxiliary LM loss.",
     )
@@ -324,14 +342,13 @@ def add_auxiliary_task_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         type=strtobool,
         nargs="?",
         default=False,
-        help="Whether to compute auxiliary transducer loss with "
-        "intermediate encoder layers.",
+        help="Whether to compute auxiliary Transducer loss.",
     )
     group.add_argument(
         "--aux-transducer-loss-weight",
-        default=0.0,
+        default=0.2,
         type=float,
-        help="Weight of auxiliary transducer loss.",
+        help="Weight of auxiliary Transducer loss.",
     )
     group.add_argument(
         "--aux-transducer-loss-enc-output-layers",
@@ -344,13 +361,13 @@ def add_auxiliary_task_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
         "--aux-transducer-loss-mlp-dim",
         default=320,
         type=int,
-        help="Multi-layer perceptron hidden dimension for auxiliary transducer loss.",
+        help="Multilayer perceptron hidden dimension for auxiliary Transducer loss.",
     )
     group.add_argument(
         "--aux-transducer-loss-mlp-dropout-rate",
         default=0.0,
         type=float,
-        help="Multi-layer perceptron dropout rate for auxiliary transducer loss.",
+        help="Multilayer perceptron dropout rate for auxiliary Transducer loss.",
     )
     group.add_argument(
         "--use-symm-kl-div-loss",
@@ -361,7 +378,7 @@ def add_auxiliary_task_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     )
     group.add_argument(
         "--symm-kl-div-loss-weight",
-        default=0.0,
+        default=0.2,
         type=float,
         help="Weight of symmetric KL divergence loss.",
     )

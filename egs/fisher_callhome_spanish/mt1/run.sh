@@ -7,7 +7,7 @@
 . ./cmd.sh || exit 1;
 
 # general configuration
-backend=pytorch # chainer or pytorch
+backend=pytorch
 stage=0         # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=1          # number of gpus during training ("0" uses cpu, otherwise use gpu)
@@ -177,7 +177,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ ${reverse_direction} = true ]; then
         for x in ${train_set} ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
-            data2json.sh --nj 16 --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang es \
+            data2json.sh --nj 16 --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "es" \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         done
 
@@ -195,14 +195,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         done
 
-        # update json (add source references)
-        for x in ${train_set} ${train_dev} ${trans_set}; do
-            feat_dir=${dumpdir}/${x}
-            data_dir=data/$(echo ${x} | cut -f 1 -d ".").es
-            update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
-                ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
-        done
-
         # Fisher has 4 references per utterance
         for x in fisher_dev.en fisher_dev2.en fisher_test.en; do
             feat_trans_dir=${dumpdir}/${x}
@@ -210,6 +202,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 data2json.sh --text data/${x}/text.${tgt_case}.${no} --bpecode ${bpemodel}.model --lang "en" \
                     data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}_${no}.${src_case}_${tgt_case}.json
             done
+        done
+
+        # update json (add source references)
+        for x in ${train_set} ${train_dev} ${trans_set}; do
+            feat_dir=${dumpdir}/${x}
+            data_dir=data/$(echo ${x} | cut -f 1 -d ".").es
+            update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
+                ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
         done
     fi
 fi
@@ -279,7 +279,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         feat_trans_dir=${dumpdir}/${x}
 
         # reset log for RTF calculation
-        if [ -d ${expdir}/${decode_dir}/log/decode.1.log ]; then
+        if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
             rm ${expdir}/${decode_dir}/log/decode.*.log
         fi
 
@@ -304,10 +304,10 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         fi
 
         if [ ${reverse_direction} = true ]; then
-            score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
                 ${expdir}/${decode_dir} "es" ${dict}
         else
-            local/score_bleu.sh --case ${tgt_case} --set ${x} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            local/score_bleu.sh --case ${tgt_case} --set ${x} --bpemodel ${bpemodel}.model \
                 ${expdir}/${decode_dir} ${dict}
         fi
 
@@ -332,7 +332,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model_dir}" ] &&
     fi
 
     for x in ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model_dir} | rev | cut -f 2 -d "/" | rev); mkdir -p ${feat_trans_dir}
+        feat_trans_dir=${expdir}/$(echo ${asr_model_dir} | rev | cut -f 1 -d "/" | rev)/${x}; mkdir -p ${feat_trans_dir}
         rtask=$(echo ${x} | cut -f -1 -d ".").es
         data_dir=data/${rtask}
 
@@ -350,7 +350,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model_dir}" ] &&
 
     # Fisher has 4 references per utterance
     for x in fisher_dev.en fisher_dev2.en fisher_test.en; do
-        feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model_dir} | rev | cut -f 2 -d "/" | rev); mkdir -p ${feat_trans_dir}
+        feat_trans_dir=${expdir}/$(echo ${asr_model_dir} | rev | cut -f 1 -d "/" | rev)/${x}; mkdir -p ${feat_trans_dir}
         for no in 1 2 3; do
             data2json.sh --text data/${x}/text.${tgt_case}.${no} --bpecode ${bpemodel}.model --lang "en" \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}_${no}.${src_case}_${tgt_case}.json
@@ -365,7 +365,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model_dir}" ] &&
     for x in ${trans_set}; do
     (
         decode_dir=decode_${x}_$(basename ${decode_config%.*})_pipeline
-        feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model_dir} | rev | cut -f 2 -d "/" | rev)
+        feat_trans_dir=${expdir}/$(echo ${asr_model_dir} | rev | cut -f 1 -d "/" | rev)/${x}
 
         # reset log for RTF calculation
         if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
@@ -392,7 +392,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model_dir}" ] &&
             done
         fi
 
-        local/score_bleu.sh --case ${tgt_case} --set ${x} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+        local/score_bleu.sh --case ${tgt_case} --set ${x} --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} ${dict}
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log

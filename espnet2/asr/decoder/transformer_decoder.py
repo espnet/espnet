@@ -125,7 +125,9 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         tgt_mask = tgt_mask & m
 
         memory = hs_pad
-        memory_mask = (~make_pad_mask(hlens))[:, None, :].to(memory.device)
+        memory_mask = (~make_pad_mask(hlens, maxlen=memory.size(1)))[:, None, :].to(
+            memory.device
+        )
 
         x = self.embed(tgt)
         x, tgt_mask, memory, memory_mask = self.decoders(

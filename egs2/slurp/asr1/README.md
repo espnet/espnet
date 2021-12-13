@@ -2,30 +2,78 @@
 # RESULTS
 
 ## Environments
-- date: `Thu Aug 19 15:38:58 2021 -0400`
-- python version: `3.6.13 (default, Jun  4 2021, 14:25:59)  [GCC 7.5.0]`
-- espnet version: `espnet 0.9.10`
-- pytorch version: `pytorch 1.4.0+cu100`
-- Git hash: `8e0115299723fb111b67365474ae02fad5939693`
-  - Commit date: `Thu Aug 19 15:38:58 2021 -0400` 
+- date: `Mon Oct 11 13:11:36 2021 -0400`
+- python version: `3.9.5 (default, Jun  4 2021, 12:28:51) [GCC 7.5.0]`
+- espnet version: `espnet 0.10.3a2`
+- pytorch version: `pytorch 1.8.1+cu102`
+- Git hash: `4e7d2ba3510463ae744d1a6d98f18388ad929a9d`
+  - Commit date: `Mon Oct 11 12:57:48 2021 -0400`
+- Pretrained Model
+  - Zenodo : https://zenodo.org/record/5590384
+  - Hugging Face : https://huggingface.co/espnet/siddhana_slurp_new_asr_train_asr_conformer_raw_en_word_valid.acc.ave_10best
 
-## Using Transformer based encoder-decoder and decoding sentence with spectral augmentation
-- ASR config: [conf/tuning/train_asr_transfomer_adam_specaug.yaml](conf/tuning/train_asr_transfomer_adam_specaug.yaml)
+## Using Conformer based encoder and Transformer based decoder with spectral augmentation and predicting transcript along with intent
+- ASR config: [conf/train_asr.yaml](conf/tuning/train_asr_conformer.yaml)
 - token_type: word
-- keep_nbest_models: 10
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
-|decode_asr_asr_model_valid.acc.ave_10best/test|13078|31.6|
-|decode_asr_asr_model_valid.acc.ave_10best/devel|8690|31.4|
+|inference_asr_model_valid.acc.ave_10best/test|13078|86.3|
+|inference_asr_model_valid.acc.ave_10best/valid|8690|86.9|
 
-
-## Using Transformer based encoder-decoder and decoding sentence with spectral augmentation and predicting transcript along with intent
-- ASR config: [conf/tuning/train_asr_transfomer_adam_specaug.yaml](conf/tuning/train_asr_transfomer_adam_specaug.yaml)
+## Trying different pretrained ASR models
+- ASR config: [conf/tuning/train_asr_conformer_s3prl.yaml](conf/tuning/train_asr_conformer_s3prl.yaml)
 - token_type: word
-- keep_nbest_models: 10
+### Hubert
+- frontend_conf: upstream: hubert_large_ll60k
+- preencoder_conf: input_size: 1024
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
-|decode_asr_asr_model_valid.acc.ave_10best/test|13078|38.0|
-|decode_asr_asr_model_valid.acc.ave_10best/devel|8690|38.0|
+|inference_asr_model_valid.acc.ave_10best/test|13078|83.3|
+|inference_asr_model_valid.acc.ave_10best/valid|8690|84.2|
+
+### Wav2vec2
+- frontend_conf: upstream: wav2vec2_large_ll60k
+- preencoder_conf: input_size: 1024
+
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|
+|inference_asr_model_valid.acc.ave_10best/test|13078|83.3|
+|inference_asr_model_valid.acc.ave_10best/valid|8690|84.2|
+
+### TERA
+- frontend_conf: upstream: tera_960hr
+- preencoder_conf: input_size: 768
+
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|
+|inference_asr_model_valid.acc.ave_10best/test|13078|83.5|
+|inference_asr_model_valid.acc.ave_10best/valid|8690|84.8|
+
+
+### VQ-APC
+- frontend_conf: upstream: vq_apc_960hr
+- preencoder_conf: input_size: 512
+
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|
+|inference_asr_model_valid.acc.ave_10best/test|13078|83.5|
+|inference_asr_model_valid.acc.ave_10best/valid|8690|84.8|
+
+## Trying different pretrained ASR models
+- ASR config: [conf/tuning/train_asr_conformer_nlu.yaml](conf/tuning/train_asr_conformer_nlu.yaml)
+- token_type: word
+### BERT
+- postencoder_conf: model_name_or_path: "bert-base-uncased"
+
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|
+|inference_asr_model_valid.acc.ave_10best/test|13078|85.7|
+
+### MPNET
+- postencoder_conf: model_name_or_path: "sentence-transformers/all-mpnet-base-v2"
+
+|dataset|Snt|Intent Classification (%)|
+|---|---|---|
+|inference_asr_model_valid.acc.ave_10best/test|13078|82.5|

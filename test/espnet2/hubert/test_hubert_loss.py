@@ -6,6 +6,8 @@ from espnet2.asr.encoder.hubert_encoder import (
     FairseqHubertPretrainEncoder,  # noqa: H301
 )
 
+pytest.importorskip("fairseq")
+
 
 @pytest.fixture
 def hubert_args():
@@ -32,7 +34,6 @@ def hubert_args():
     return encoder.encoder, enc_outputs
 
 
-@pytest.importorskip("fairseq")
 def test_hubert_loss_forward_backward(hubert_args):
     hloss = HubertPretrainLoss()
     hloss(*hubert_args)

@@ -27,6 +27,8 @@ class CustomEncoder(torch.nn.Module):
         positionwise_activation_type: Positionwise activation type.
         conv_mod_activation_type: Convolutional module activation type.
         aux_enc_output_layers: Layer IDs for auxiliary encoder output sequences.
+        input_layer_dropout_rate: Dropout rate for input layer.
+        input_layer_pos_enc_dropout_rate: Dropout rate for input layer pos. enc.
         padding_idx: Padding symbol ID for embedding layer.
 
     """
@@ -36,13 +38,15 @@ class CustomEncoder(torch.nn.Module):
         idim: int,
         enc_arch: List,
         input_layer: str = "linear",
-        repeat_block: int = 0,
+        repeat_block: int = 1,
         self_attn_type: str = "selfattn",
         positional_encoding_type: str = "abs_pos",
         positionwise_layer_type: str = "linear",
         positionwise_activation_type: str = "relu",
         conv_mod_activation_type: str = "relu",
         aux_enc_output_layers: List = [],
+        input_layer_dropout_rate: float = 0.0,
+        input_layer_pos_enc_dropout_rate: float = 0.0,
         padding_idx: int = -1,
     ):
         """Construct an CustomEncoder object."""
@@ -64,6 +68,8 @@ class CustomEncoder(torch.nn.Module):
             positionwise_layer_type=positionwise_layer_type,
             positionwise_activation_type=positionwise_activation_type,
             conv_mod_activation_type=conv_mod_activation_type,
+            input_layer_dropout_rate=input_layer_dropout_rate,
+            input_layer_pos_enc_dropout_rate=input_layer_pos_enc_dropout_rate,
             padding_idx=padding_idx,
         )
 

@@ -59,7 +59,7 @@ from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import CommonPreprocessor
+from espnet2.train.preprocessor import MutliTokenizerCommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -142,6 +142,32 @@ decoder_choices = ClassChoices(
     type_check=AbsDecoder,
     default="rnn",
 )
+extra_asr_decoder_choices = ClassChoices(
+    "extra_asr_decoder",
+    classes=dict(
+        transformer=TransformerDecoder,
+        lightweight_conv=LightweightConvolutionTransformerDecoder,
+        lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
+        dynamic_conv=DynamicConvolutionTransformerDecoder,
+        dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
+        rnn=RNNDecoder,
+    ),
+    type_check=AbsDecoder,
+    default="rnn",
+)
+extra_mt_decoder_choices = ClassChoices(
+    "extra_mt_decoder",
+    classes=dict(
+        transformer=TransformerDecoder,
+        lightweight_conv=LightweightConvolutionTransformerDecoder,
+        lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
+        dynamic_conv=DynamicConvolutionTransformerDecoder,
+        dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
+        rnn=RNNDecoder,
+    ),
+    type_check=AbsDecoder,
+    default="rnn",
+)
 
 
 class STTask(AbsTask):
@@ -164,6 +190,10 @@ class STTask(AbsTask):
         postencoder_choices,
         # --decoder and --decoder_conf
         decoder_choices,
+        # --extra_asr_decoder and --extra_asr_decoder_conf
+        extra_asr_decoder_choices,
+        # --extra_mt_decoder and --extra_mt_decoder_conf
+        extra_mt_decoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -176,13 +206,19 @@ class STTask(AbsTask):
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default("required")
-        required += ["token_list"]
+        required += ["src_token_list", "token_list"]
 
         group.add_argument(
             "--token_list",
             type=str_or_none,
             default=None,
-            help="A text mapping int-id to token",
+            help="A text mapping int-id to token (for target language)",
+        )
+        group.add_argument(
+            "--src_token_list",
+            type=str_or_none,
+            default=None,
+            help="A text mapping int-id to token (for source language)",
         )
         group.add_argument(
             "--init",
@@ -231,13 +267,26 @@ class STTask(AbsTask):
             type=str,
             default="bpe",
             choices=["bpe", "char", "word", "phn"],
-            help="The text will be tokenized " "in the specified level token",
+            help="The target text will be tokenized " "in the specified level token",
+        )
+        group.add_argument(
+            "--src_token_type",
+            type=str,
+            default="bpe",
+            choices=["bpe", "char", "word", "phn"],
+            help="The source text will be tokenized " "in the specified level token",
         )
         group.add_argument(
             "--bpemodel",
             type=str_or_none,
             default=None,
-            help="The model file of sentencepiece",
+            help="The model file of sentencepiece (for target language)",
+        )
+        group.add_argument(
+            "--src_bpemodel",
+            type=str_or_none,
+            default=None,
+            help="The model file of sentencepiece (for source language)",
         )
         parser.add_argument(
             "--non_linguistic_symbols",
@@ -317,11 +366,11 @@ class STTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
-            retval = CommonPreprocessor(
+            retval = MutliTokenizerCommonPreprocessor(
                 train=train,
-                token_type=args.token_type,
-                token_list=args.token_list,
-                bpemodel=args.bpemodel,
+                token_type=[args.token_type, args.src_token_type],
+                token_list=[args.token_list, args.src_token_list],
+                bpemodel=[args.bpemodel, args.src_bpemodel],
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
@@ -338,8 +387,10 @@ class STTask(AbsTask):
                 if hasattr(args, "noise_db_range")
                 else "13_15",
                 speech_volume_normalize=args.speech_volume_normalize
-                if hasattr(args, "rir_scp")
+                if hasattr(args, "speech_volume_normalize")
                 else None,
+                speech_name="speech",
+                text_name=["text", "src_text"]
             )
         else:
             retval = None
@@ -361,7 +412,10 @@ class STTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ()
+        if not inference:
+            retval = ("src_text",)
+        else:
+            retval = ()
         assert check_return_type(retval)
         return retval
 
@@ -380,6 +434,23 @@ class STTask(AbsTask):
             raise RuntimeError("token_list must be str or list")
         vocab_size = len(token_list)
         logging.info(f"Vocabulary size: {vocab_size }")
+
+        if args.src_token_list is not None:
+            if isinstance(args.src_token_list, str):
+                with open(args.src_token_list, encoding="utf-8") as f:
+                    src_token_list = [line.rstrip() for line in f]
+
+                # Overwriting src_token_list to keep it as "portable".
+                args.src_token_list = list(src_token_list)
+            elif isinstance(args.src_token_list, (tuple, list)):
+                src_token_list = list(args.src_token_list)
+            else:
+                raise RuntimeError("token_list must be str or list")
+            src_vocab_size = len(src_token_list)
+            logging.info(f"Source vocabulary size: {src_vocab_size }")
+        else:
+            src_token_list, src_vocab_size = None, None
+
 
         # 1. frontend
         if args.input_size is None:
@@ -443,16 +514,37 @@ class STTask(AbsTask):
         )
 
         # 6. CTC
-        ctc = CTC(
-            odim=vocab_size, encoder_output_sizse=encoder_output_size, **args.ctc_conf
-        )
+        if src_token_list is not None:
+            ctc = CTC(
+                odim=src_vocab_size, encoder_output_sizse=encoder_output_size, **args.ctc_conf
+            )
+        else:
+            ctc = None
 
-        # 7. RNN-T Decoder (Not implemented)
-        rnnt_decoder = None
+        # 7. ASR extra decoder
+        if getattr(args, "extra_asr_decoder", None) is not None and src_token_list is not None:
+            extra_asr_decoder_class = extra_asr_decoder_choices.get_class(args.extra_asr_decoder)
+            extra_asr_decoder = extra_asr_decoder_class(
+                vocab_size=src_vocab_size,
+                encoder_output_size=encoder_output_size, **args.extra_asr_decoder_conf
+            )
+        else:
+            extra_asr_decoder = None
+        
+        # 8. MT extra decoder
+        if getattr(args, "extra_mt_decoder", None) is not None:
+            extra_mt_decoder_class = extra_mt_decoder_choices.get_class(args.extra_mt_decoder)
+            extra_mt_decoder = extra_mt_decoder_class(
+                vocab_size=vocab_size,
+                encoder_output_size=encoder_output_size, **args.extra_mt_decoder_conf
+            )
+        else:
+            extra_asr_decoder = None
 
         # 8. Build model
         model = ESPnetSTModel(
             vocab_size=vocab_size,
+            src_vocab_size=src_vocab_size,
             frontend=frontend,
             specaug=specaug,
             normalize=normalize,
@@ -461,8 +553,10 @@ class STTask(AbsTask):
             postencoder=postencoder,
             decoder=decoder,
             ctc=ctc,
-            rnnt_decoder=rnnt_decoder,
+            extra_asr_decoder=extra_asr_decoder,
+            extra_mt_decoder=extra_mt_decoder,
             token_list=token_list,
+            src_token_list=src_token_list,
             **args.model_conf,
         )
 
