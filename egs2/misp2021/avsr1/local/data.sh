@@ -34,9 +34,18 @@ if [ ! -e "${MISP2021}" ]; then
     exit 1
 fi
 
-if [[ ! -f extractor/models/lrw_resnet18_mstcn.pth.tar ]]; then
-    log "You need to download lrw_resnet18_mstcn.pth.tar from https://bit.ly/3glF4k5 or https://bit.ly/3513Ror (key: um1q) and put the pretrained model to extractor/models/"
+if [[ ! -f local/lrw_resnet18_mstcn.pth.tar ]]; then
+    log "You need to download lrw_resnet18_mstcn.pth.tar from https://bit.ly/3glF4k5 or https://bit.ly/3513Ror (key: um1q) and put the pretrained model to local/"
+    exit 1
 fi
+
+if [ ! -d extractor ]; then
+    git clone https://github.com/mispchallenge/misp2021_baseline.git
+    mv misp2021_baseline/task2_avsr_nn_hmm/extractor/ extractor/
+    rm -rf misp2021_baseline
+    ln -s $PWD/local/lrw_resnet18_mstcn.pth.tar extractor/models/lrw_resnet18_mstcn.pth.tar
+fi
+
 
 enhancement_dir=data/misp2021_far_WPE
 data_roi=$MISP2021/roi

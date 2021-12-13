@@ -15,16 +15,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_lm_lm_train_lm_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev_far|18899|253057|39.4|41.4|19.2|4.4|65.0|92.0|
 |decode_asr_lm_lm_train_lm_zh_char_valid.loss.ave_asr_model_valid.acc.ave/test_far|14949|312412|20.0|30.2|49.8|0.5|80.6|93.4|
-
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_asr_lm_lm_train_lm_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev_far|18899|18899|8.0|92.0|0.0|0.0|92.0|92.0|
-|decode_asr_lm_lm_train_lm_zh_char_valid.loss.ave_asr_model_valid.acc.ave/test_far|14949|128344|1.1|10.6|88.4|0.0|98.9|93.4|
-
-
-### TER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|

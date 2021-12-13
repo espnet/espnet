@@ -1,9 +1,0 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-.idea/
-*.pyc
-*.tar
-datasets/outputs
-.DS_Store
