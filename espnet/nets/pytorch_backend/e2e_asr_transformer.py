@@ -105,7 +105,6 @@ class E2E(ASRInterface, torch.nn.Module):
 
         self.encoder = Encoder(
             idim=idim,
-            odim=odim,
             selfattention_layer_type=args.transformer_encoder_selfattn_layer_type,
             attention_dim=args.adim,
             attention_heads=args.aheads,
@@ -121,6 +120,7 @@ class E2E(ASRInterface, torch.nn.Module):
             stochastic_depth_rate=args.stochastic_depth_rate,
             intermediate_layers=self.intermediate_ctc_layers,
             ctc_softmax=self.ctc.softmax if args.self_conditioning else None,
+            conditioning_layer_dim=odim,
         )
         if args.mtlalpha < 1:
             self.decoder = Decoder(
