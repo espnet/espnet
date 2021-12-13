@@ -211,7 +211,7 @@ class CommonPreprocessor(AbsPreprocessor):
     
     def _speech_process(
         self, data: Dict[str, Union[str, np.ndarray]]
-    ) -> Dict[str, np.ndarray]:
+    ) -> Dict[str, Union[str, np.ndarray]]:
         assert check_argument_types()
         if self.speech_name in data:
             if self.train and (self.rirs is not None or self.noises is not None):
@@ -410,23 +410,35 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         space_symbol: str = "<space>",
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
         delimiter: str = None,
+        rir_scp: str = None,
+        rir_apply_prob: float = 1.0,
+        noise_scp: str = None,
+        noise_apply_prob: float = 1.0,
+        noise_db_range: str = "3_10",
+        speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: List[str] = ["text"],
     ):
         # TODO(jiatong): sync with Kamo and Jing on interface for preprocessor
         super().__init__(
-            train, 
-            token_type[0],
-            token_list[0],
-            bpemodel[0],
-            text_cleaner,
-            g2p_type,
-            unk_symbol,
-            space_symbol,
-            non_linguistic_symbols,
-            delimiter,
-            speech_name,
-            text_name[0])
+            train=train, 
+            token_type=token_type[0],
+            token_list=token_list[0],
+            bpemodel=bpemodel[0],
+            text_cleaner=text_cleaner,
+            g2p_type=g2p_type,
+            unk_symbol=unk_symbol,
+            space_symbol=space_symbol,
+            non_linguistic_symbols=non_linguistic_symbols,
+            delimiter=delimiter,
+            speech_name=speech_name,
+            text_name=text_name[0],
+            rir_scp=rir_scp,
+            rir_apply_prob=rir_apply_prob,
+            noise_scp=noise_scp,
+            noise_apply_prob=noise_apply_prob,
+            noise_db_range=noise_db_range,
+            speech_volume_normalize=speech_volume_normalize)
         
         assert len(token_type) == len(token_list) == len(bpemodel) == len(text_name), \
             "token_type, token_list, bpemodel, or processing text_name mismatched"
