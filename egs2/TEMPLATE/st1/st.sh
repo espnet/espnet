@@ -489,18 +489,23 @@ if ! "${skip_data_prep}"; then
 
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         if [ -n "${speed_perturb_factors}" ]; then
-           log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
-           for factor in ${speed_perturb_factors}; do
-               if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
-                   scripts/utils/perturb_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" \
-                        "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
-                   _dirs+="data/${train_set}_sp${factor} "
-               else
-                   # If speed factor is 1, same as the original
-                   _dirs+="data/${train_set} "
-               fi
-           done
-           utils/combine_data.sh --extra_files "${utt_extra_files}" "data/${train_set}_sp" ${_dirs}
+            log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
+            for factor in ${speed_perturb_factors}; do
+                if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+                    scripts/utils/perturb_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" \
+                         "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
+                    _dirs+="data/${train_set}_sp${factor} "
+                else
+                    # If speed factor is 1, same as the original
+                    _dirs+="data/${train_set} "
+                fi
+            done
+            utils/combine_data.sh --extra_files "${utt_extra_files}" "data/${train_set}_sp" ${_dirs}
+           
+            for extra_file in ${utt_extra_files}; do
+                python pyscripts/utils/remove_duplicate_keys.py data/"${dset}"/${extra_file} > data/"${dset}"/${extra_file}.tmp 
+                mv data/"${dset}"/${extra_file}.tmp data/"${dset}"/${extra_file}
+            done 
         else
            log "Skip stage 2: Speed perturbation"
         fi
@@ -630,13 +635,12 @@ if ! "${skip_data_prep}"; then
 
         # NOTE(kamo): Not applying to test_sets to keep original data
         for dset in "${train_set}" "${valid_set}"; do
-
             # Copy data dir
             utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
             # TODO(jiatong): copy data dir does not hold for some files, probably create our own?
             for extra_file in ${utt_extra_files}; do
-                cp data/"${dset}"/org/${extra_file} "${data_feats}/${dset}"
+                cp "${data_feats}/org/${dset}/${extra_file}" "${data_feats}/${dset}"
             done
             # Remove short utterances
             _feats_type="$(<${data_feats}/${dset}/feats_type)"
@@ -685,12 +689,15 @@ if ! "${skip_data_prep}"; then
 
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
+            for extra_file in ${utt_extra_files}; do
+                python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${extra_file} > ${data_feats}/${dset}/${extra_file}.tmp 
+                mv ${data_feats}/${dset}/${extra_file}.tmp ${data_feats}/${dset}/${extra_file}
+            done 
         done
 
         # shellcheck disable=SC2002
         cat ${lm_train_text} | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
     fi
-
 
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         # First generate tgt lang
@@ -771,7 +778,7 @@ if ! "${skip_data_prep}"; then
             log "Stage 5b: Skip separate token construction for src_lang when setting ${token_joint} as true"
         else
             if [ "${src_token_type}" = bpe ]; then
-                log "Stage 5a: Generate token_list from ${src_bpe_train_text} using BPE for src_lang"
+                log "Stage 5b: Generate token_list from ${src_bpe_train_text} using BPE for src_lang"
 
                 mkdir -p "${src_bpedir}"
                 # shellcheck disable=SC2002
@@ -801,7 +808,7 @@ if ! "${skip_data_prep}"; then
                 } > "${src_token_list}"
 
             elif [ "${src_token_type}" = char ] || [ "${src_token_type}" = word ]; then
-                log "Stage 5a: Generate character level token_list from ${src_bpe_train_text}  for src_lang"
+                log "Stage 5b: Generate character level token_list from ${src_bpe_train_text}  for src_lang"
 
                 _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
@@ -1099,16 +1106,21 @@ if ! "${skip_train}"; then
             ${python} -m espnet2.bin.st_train \
                 --collect_stats true \
                 --use_preprocessor true \
-                --bpemodel "${bpemodel}" \
-                --token_type "${token_type}" \
-                --token_list "${token_list}" \
+                --bpemodel "${tgt_bpemodel}" \
+                --src_bpemodel "${src_bpemodel}" \
+                --token_type "${tgt_token_type}" \
+                --src_token_type "${src_token_type}" \
+                --token_list "${tgt_token_list}" \
+                --src_token_list "${src_token_list}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
                 --train_data_path_and_name_and_type "${_st_train_dir}/${_scp},speech,${_type}" \
-                --train_data_path_and_name_and_type "${_st_train_dir}/text,text,text" \
+                --train_data_path_and_name_and_type "${_st_train_dir}/text.${tgt_case}.${tgt_lang},text,text" \
+                --train_data_path_and_name_and_type "${_st_train_dir}/text.${src_case}.${src_lang},src_text,text" \
                 --valid_data_path_and_name_and_type "${_st_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_st_valid_dir}/text,text,text" \
+                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
+                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -1124,12 +1136,20 @@ if ! "${skip_train}"; then
 
         # Append the num-tokens at the last dimensions. This is used for batch-bins count
         <"${st_stats_dir}/train/text_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${st_stats_dir}/train/text_shape.${token_type}"
+            awk -v N="$(<${tgt_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${st_stats_dir}/train/text_shape.${tgt_token_type}"
+
+        <"${st_stats_dir}/train/src_text_shape" \
+            awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${st_stats_dir}/train/src_text_shape.${src_token_type}"
 
         <"${st_stats_dir}/valid/text_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${st_stats_dir}/valid/text_shape.${token_type}"
+            awk -v N="$(<${tgt_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${st_stats_dir}/valid/text_shape.${tgt_token_type}"
+
+        <"${st_stats_dir}/valid/src_text_shape" \
+            awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${st_stats_dir}/valid/src_text_shape.${src_token_type}"
     fi
 
 
@@ -1180,9 +1200,11 @@ if ! "${skip_train}"; then
                 ${python} -m espnet2.bin.split_scps \
                   --scps \
                       "${_st_train_dir}/${_scp}" \
-                      "${_st_train_dir}/text" \
+                      "${_st_train_dir}/text.${tgt_case}.${tgt_lang}" \
+                      "${_st_train_dir}/text.${src_case}.${src_lang}" \
                       "${st_stats_dir}/train/speech_shape" \
-                      "${st_stats_dir}/train/text_shape.${token_type}" \
+                      "${st_stats_dir}/train/text_shape.${tgt_token_type}" \
+                      "${st_stats_dir}/train/src_text_shape.${src_token_type}" \
                   --num_splits "${num_splits_st}" \
                   --output_dir "${_split_dir}"
                 touch "${_split_dir}/.done"
@@ -1191,16 +1213,19 @@ if ! "${skip_train}"; then
             fi
 
             _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
             _opts+="--train_shape_file ${_split_dir}/speech_shape "
-            _opts+="--train_shape_file ${_split_dir}/text_shape.${token_type} "
+            _opts+="--train_shape_file ${_split_dir}/text_shape.${tgt_token_type} "
+            _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
             _opts+="--multiple_iterator true "
-
         else
             _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/${_scp},speech,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text,text,text "
+            _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${tgt_case}.${tgt_lang},text,text "
+            _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${src_case}.${src_lang},src_text,text "
             _opts+="--train_shape_file ${st_stats_dir}/train/speech_shape "
-            _opts+="--train_shape_file ${st_stats_dir}/train/text_shape.${token_type} "
+            _opts+="--train_shape_file ${st_stats_dir}/train/text_shape.${tgt_token_type} "
+            _opts+="--train_shape_file ${st_stats_dir}/train/src_text_shape.${src_token_type} "
         fi
 
         log "Generate '${st_exp}/run.sh'. You can resume the process from stage 11 using this script"
@@ -1226,18 +1251,24 @@ if ! "${skip_train}"; then
             --multiprocessing_distributed true -- \
             ${python} -m espnet2.bin.st_train \
                 --use_preprocessor true \
-                --bpemodel "${bpemodel}" \
-                --token_type "${token_type}" \
-                --token_list "${token_list}" \
+                --bpemodel "${tgt_bpemodel}" \
+                --token_type "${tgt_token_type}" \
+                --token_list "${tgt_token_list}" \
+                --src_bpemodel "${src_bpemodel}" \
+                --src_token_type "${src_token_type}" \
+                --src_token_list "${src_token_list}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
                 --valid_data_path_and_name_and_type "${_st_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_st_valid_dir}/text,text,text" \
+                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
+                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
                 --valid_shape_file "${st_stats_dir}/valid/speech_shape" \
-                --valid_shape_file "${st_stats_dir}/valid/text_shape.${token_type}" \
+                --valid_shape_file "${st_stats_dir}/valid/text_shape.${tgt_token_type}" \
+                --valid_shape_file "${st_stats_dir}/valid/src_text_shape.${src_token_type}" \
                 --resume true \
                 --fold_length "${_fold_length}" \
+                --fold_length "${st_text_fold_length}" \
                 --fold_length "${st_text_fold_length}" \
                 --output_dir "${st_exp}" \
                 ${_opts} ${st_args}
