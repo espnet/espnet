@@ -390,7 +390,7 @@ class STTask(AbsTask):
                 if hasattr(args, "speech_volume_normalize")
                 else None,
                 speech_name="speech",
-                text_name=["text", "src_text"]
+                text_name=["text", "src_text"],
             )
         else:
             retval = None
@@ -450,7 +450,6 @@ class STTask(AbsTask):
             logging.info(f"Source vocabulary size: {src_vocab_size }")
         else:
             src_token_list, src_vocab_size = None, None
-
 
         # 1. frontend
         if args.input_size is None:
@@ -516,27 +515,38 @@ class STTask(AbsTask):
         # 6. CTC
         if src_token_list is not None:
             ctc = CTC(
-                odim=src_vocab_size, encoder_output_sizse=encoder_output_size, **args.ctc_conf
+                odim=src_vocab_size,
+                encoder_output_sizse=encoder_output_size,
+                **args.ctc_conf,
             )
         else:
             ctc = None
 
         # 7. ASR extra decoder
-        if getattr(args, "extra_asr_decoder", None) is not None and src_token_list is not None:
-            extra_asr_decoder_class = extra_asr_decoder_choices.get_class(args.extra_asr_decoder)
+        if (
+            getattr(args, "extra_asr_decoder", None) is not None
+            and src_token_list is not None
+        ):
+            extra_asr_decoder_class = extra_asr_decoder_choices.get_class(
+                args.extra_asr_decoder
+            )
             extra_asr_decoder = extra_asr_decoder_class(
                 vocab_size=src_vocab_size,
-                encoder_output_size=encoder_output_size, **args.extra_asr_decoder_conf
+                encoder_output_size=encoder_output_size,
+                **args.extra_asr_decoder_conf,
             )
         else:
             extra_asr_decoder = None
-        
+
         # 8. MT extra decoder
         if getattr(args, "extra_mt_decoder", None) is not None:
-            extra_mt_decoder_class = extra_mt_decoder_choices.get_class(args.extra_mt_decoder)
+            extra_mt_decoder_class = extra_mt_decoder_choices.get_class(
+                args.extra_mt_decoder
+            )
             extra_mt_decoder = extra_mt_decoder_class(
                 vocab_size=vocab_size,
-                encoder_output_size=encoder_output_size, **args.extra_mt_decoder_conf
+                encoder_output_size=encoder_output_size,
+                **args.extra_mt_decoder_conf,
             )
         else:
             extra_asr_decoder = None
