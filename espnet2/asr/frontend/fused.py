@@ -1,10 +1,10 @@
-from typing import Tuple
-import numpy as np
-import torch
-from typeguard import check_argument_types
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
+import numpy as np
+import torch
+from typeguard import check_argument_types
+from typing import Tuple
 
 
 class FusedFrontends(AbsFrontend):
@@ -17,7 +17,7 @@ class FusedFrontends(AbsFrontend):
         self.align_method = (
             align_method  # fusing method : linear_projection only for now
         )
-        self.proj_dim = proj_dim  # dimension of the projection performed on each frontends' feature before the fusion
+        self.proj_dim = proj_dim  # dim of the projection done on each frontend
         self.frontends = []  # list of the frontends to combine
 
         for i, frontend in enumerate(frontends):
@@ -76,7 +76,7 @@ class FusedFrontends(AbsFrontend):
                 )
 
             else:
-                raise NotImplementedError  # we only have those two categories of frontends for now
+                raise NotImplementedError  # frontends are only default or s3prl
 
         self.frontends = torch.nn.ModuleList(self.frontends)
 
@@ -134,7 +134,7 @@ class FusedFrontends(AbsFrontend):
 
             input_feats = torch.cat(
                 self.feats_final, dim=-1
-            )  # change the input size of the preencoder in conf file : proj_dim * n_frontends
+            )  # change the input size of the preencoder : proj_dim * n_frontends
             feats_lens = torch.ones_like(self.feats[0][1]) * (m)
 
         else:

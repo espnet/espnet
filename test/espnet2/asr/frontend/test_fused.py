@@ -1,18 +1,13 @@
-import pytest
-from distutils.version import LooseVersion
-import os
-
 import torch
-
-from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.fused import FusedFrontends
 
 
 list_frontends = [DefaultFrontend(fs="16k"), DefaultFrontend(fs="16k")]
 
 
 def test_frontend_init():
-    frontend = FusedFrontend(
+    frontend = FusedFrontends(
         fs="16k",
         align_method="linear_projection",
         proj_dim=100,
@@ -24,7 +19,7 @@ def test_frontend_init():
 
 
 def test_frontend_output_size():
-    frontend = FusedFrontend(
+    frontend = FusedFrontends(
         fs="16k",
         align_method="linear_projection",
         proj_dim=100,
@@ -34,7 +29,7 @@ def test_frontend_output_size():
 
 
 def test_frontend_backward():
-    frontend = FusedFrontend(
+    frontend = FusedFrontends(
         fs="16k",
         align_method="linear_projection",
         proj_dim=100,
