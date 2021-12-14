@@ -20,14 +20,22 @@ decoder_conf:
     dropout_rate: 0.1
 
 #frontend related 
+frontend: fused
+frontend_conf: 
+  frontends:
+    - frontend_type: s3prl
+      frontend_conf:
+        upstream: hubert_large_ll60k
+      download_dir: ./hub
+      multilayer_feature: True
 
-frontend: default_s3prl
-frontend_conf:
-  frontend_conf_s3prl:
-      upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder  
-  download_dir: ./hub
-  multilayer_feature: True
+    - frontend_type: default
+      n_fft: 512
+      win_length: 400
+      hop_length: 160
+
   align_method: linear_projection
+  proj_dim: 100     
     
 
 preencoder: linear
