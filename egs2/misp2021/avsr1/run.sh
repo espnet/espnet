@@ -6,9 +6,9 @@ set -u
 set -o pipefail
 
 
-train_set=train_far 
-valid_set=dev_far
-test_sets=dev_far
+train_set=train_far_av
+valid_set=dev_far_av
+test_sets=dev_far_av
 
 asr_config=conf/tuning/train_asr_conformer.yaml
 lm_config=conf/train_lm.yaml
@@ -20,11 +20,12 @@ use_word_lm=false
 
 ./asr.sh                                   \
     --lang zh \
+    --stage 1 \
     --audio_format wav                     \
     --nlsyms_txt data/nlsyms.txt           \
     --ngpu 3                               \
     --token_type char                      \
-    --feats_type raw                       \
+    --feats_type extracted                 \
     --use_lm ${use_lm}                     \
     --asr_config "${asr_config}"           \
     --inference_config "${inference_config}" \

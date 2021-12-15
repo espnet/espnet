@@ -10,13 +10,14 @@
 
 ## asr_train_asr_conformer_fbank_pitch_zh_char
 ### CER
-
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_lm_lm_train_lm_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev_far|18985|254320|38.5|40.2|21.3|3.8|65.3|92.0|
+|decode_asr_lm_lm_train_lm_zh_char_valid.loss.ave_asr_model_valid.acc.ave/test_far|14949|312412|20.7|29.9|49.4|0.5|79.8|93.6|
 
-### WER
-
+## asr_train_asr_conformer_raw_zh_char
+### CER
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_lm_lm_train_lm_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev_far|18985|18985|8.0|92.0|0.0|0.0|92.0|92.0|
+|decode_asr_lm_lm_train_lm_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev_far|19015|254944|42.6|38.5|18.9|4.1|61.5|91.2|
+|decode_asr_lm_lm_train_lm_zh_char_valid.loss.ave_asr_model_valid.acc.ave/test_hire_far|14949|312412|23.1|29.1|47.8|0.5|77.5|93.1|
