@@ -1,7 +1,6 @@
-import torch
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
-
+import torch
 
 list_frontends = [DefaultFrontend(fs="16k"), DefaultFrontend(fs="16k")]
 
