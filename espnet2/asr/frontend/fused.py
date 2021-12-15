@@ -110,7 +110,7 @@ class FusedFrontends(AbsFrontend):
 
         if (
             self.align_method == "linear_projection"
-        ):  # TODO (Dan): to add other align methods
+        ):  # TODO(Dan): to add other align methods
 
             # first step : projections
             self.feats_proj = []
