@@ -298,6 +298,7 @@
             <span class="nb">sorted</span><span class="p">(</span>
                 <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">k_best_exp</span> <span class="o">-</span> <span class="n">gamma</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">hyp_i</span><span class="p">),</span>
                 <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">)[:</span> <span class="n">beam_size</span> <span class="o">+</span> <span class="n">beta</span><span class="p">]</span>
         <span class="p">)</span>
 
