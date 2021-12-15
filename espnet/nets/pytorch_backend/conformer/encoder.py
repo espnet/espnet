@@ -93,6 +93,8 @@ class Encoder(torch.nn.Module):
         padding_idx=-1,
         stochastic_depth_rate=0.0,
         intermediate_layers=None,
+        ctc_softmax=None,
+        conditioning_layer_dim=None,
     ):
         """Construct an Encoder object."""
         super(Encoder, self).__init__()
@@ -228,6 +230,12 @@ class Encoder(torch.nn.Module):
             self.after_norm = LayerNorm(attention_dim)
 
         self.intermediate_layers = intermediate_layers
+        self.use_conditioning = True if ctc_softmax is not None else False
+        if self.use_conditioning:
+            self.ctc_softmax = ctc_softmax
+            self.conditioning_layer = torch.nn.Linear(
+                conditioning_layer_dim, attention_dim
+            )
 
     def forward(self, xs, masks):
         """Encode input sequence.
@@ -261,9 +269,21 @@ class Encoder(torch.nn.Module):
                     encoder_output = xs
                     if isinstance(encoder_output, tuple):
                         encoder_output = encoder_output[0]
-                        if self.normalize_before:
-                            encoder_output = self.after_norm(encoder_output)
+
+                    if self.normalize_before:
+                        encoder_output = self.after_norm(encoder_output)
+
                     intermediate_outputs.append(encoder_output)
+
+                    if self.use_conditioning:
+                        intermediate_result = self.ctc_softmax(encoder_output)
+
+                        if isinstance(xs, tuple):
+                            x, pos_emb = xs[0], xs[1]
+                            x = x + self.conditioning_layer(intermediate_result)
+                            xs = (x, pos_emb)
+                        else:
+                            xs = xs + self.conditioning_layer(intermediate_result)
 
         if isinstance(xs, tuple):
             xs = xs[0]
