@@ -198,6 +198,8 @@ minlenratio: 0.3
 
 ### Transducer
 
+***Important: If you encounter any issue related to Transducer loss, please open an issue in [our fork of warp-transducer](https://github.com/b-flo/warp-transducer).***
+
 ESPnet supports models trained with Transducer loss, aka Transducer models. To train such model, the following should be set in the training config:
 
 ```
@@ -389,8 +391,6 @@ Except for the default algorithm, the described parameters are used to control t
 - FastEmit regularization [[Yu et al., 2021]](https://arxiv.org/pdf/2010.11148) is available through `--fastemit-lambda` training parameter (default = 0.0).
 - RNN-decoder pre-initialization using an LM is supported. Note that regular decoder keys are expected. The LM state dict keys (`predictor.*`) will be renamed according to AM state dict keys (`dec.*`).
 - Transformer-decoder pre-initialization using a Transformer LM is not supported yet.
-
-Important: If you encounter any issue related to FastEmit or Transducer loss, please refer to [our fork of warp-transducer](https://github.com/b-flo/warp-transducer).
 
 ### Changing the training configuration
 
