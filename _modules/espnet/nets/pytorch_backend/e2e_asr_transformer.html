@@ -212,6 +212,16 @@
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">transformer_attn_dropout_rate</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">args</span><span class="o">.</span><span class="n">transformer_attn_dropout_rate</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">adim</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span>  <span class="c1"># used for CTC (equal to d_model)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mtlalpha</span>
+
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="n">CTC</span><span class="p">(</span>
+                <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">,</span> <span class="n">ctc_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">ctc_type</span><span class="p">,</span> <span class="n">reduce</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="kc">None</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_weight</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">intermediate_ctc_weight</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_layers</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">intermediate_ctc_layer</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
@@ -235,6 +245,8 @@
             <span class="n">attention_dropout_rate</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">transformer_attn_dropout_rate</span><span class="p">,</span>
             <span class="n">stochastic_depth_rate</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">stochastic_depth_rate</span><span class="p">,</span>
             <span class="n">intermediate_layers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_layers</span><span class="p">,</span>
+            <span class="n">ctc_softmax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">softmax</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">self_conditioning</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">conditioning_layer_dim</span><span class="o">=</span><span class="n">odim</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">Decoder</span><span class="p">(</span>
@@ -270,15 +282,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">reporter</span> <span class="o">=</span> <span class="n">Reporter</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_parameters</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">adim</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span>  <span class="c1"># used for CTC (equal to d_model)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mtlalpha</span>
-
-        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="n">CTC</span><span class="p">(</span>
-                <span class="n">odim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">adim</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">,</span> <span class="n">ctc_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">ctc_type</span><span class="p">,</span> <span class="n">reduce</span><span class="o">=</span><span class="kc">True</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">report_cer</span> <span class="ow">or</span> <span class="n">args</span><span class="o">.</span><span class="n">report_wer</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="n">ErrorCalculator</span><span class="p">(</span>

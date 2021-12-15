@@ -200,6 +200,8 @@
             <span class="n">cnn_module_kernel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cnn_module_kernel</span><span class="p">,</span>
             <span class="n">stochastic_depth_rate</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">stochastic_depth_rate</span><span class="p">,</span>
             <span class="n">intermediate_layers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_layers</span><span class="p">,</span>
+            <span class="n">ctc_softmax</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">softmax</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">self_conditioning</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">conditioning_layer_dim</span><span class="o">=</span><span class="n">odim</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_parameters</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
 </pre></div>

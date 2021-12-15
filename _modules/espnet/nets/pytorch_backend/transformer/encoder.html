@@ -230,6 +230,8 @@
         <span class="n">padding_idx</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">stochastic_depth_rate</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
         <span class="n">intermediate_layers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">ctc_softmax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">conditioning_layer_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Construct an Encoder object.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">Encoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -382,6 +384,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="n">attention_dim</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_layers</span> <span class="o">=</span> <span class="n">intermediate_layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_conditioning</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">ctc_softmax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_conditioning</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctc_softmax</span> <span class="o">=</span> <span class="n">ctc_softmax</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">conditioning_layer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
+                <span class="n">conditioning_layer_dim</span><span class="p">,</span> <span class="n">attention_dim</span>
+            <span class="p">)</span>
 
 <div class="viewcode-block" id="Encoder.get_positionwise_layer"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.encoder.Encoder.get_positionwise_layer">[docs]</a>    <span class="k">def</span> <span class="nf">get_positionwise_layer</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -451,6 +459,10 @@
                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
                         <span class="n">encoder_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">encoder_output</span><span class="p">)</span>
                     <span class="n">intermediate_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">encoder_output</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_conditioning</span><span class="p">:</span>
+                        <span class="n">intermediate_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_softmax</span><span class="p">(</span><span class="n">encoder_output</span><span class="p">)</span>
+                        <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">conditioning_layer</span><span class="p">(</span><span class="n">intermediate_result</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
             <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>

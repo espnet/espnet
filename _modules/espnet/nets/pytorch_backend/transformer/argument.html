@@ -259,6 +259,12 @@
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Position of intermediate CTC layer. </span><span class="si">{int}</span><span class="s2"> or </span><span class="si">{int}</span><span class="s2">,</span><span class="si">{int}</span><span class="s2">,...,</span><span class="si">{int}</span><span class="s2">&quot;</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--self-conditioning&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">strtobool</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;use self-conditioning at intermediate CTC layers&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="c1"># Encoder</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--elayers&quot;</span><span class="p">,</span>
