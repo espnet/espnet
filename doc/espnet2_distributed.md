@@ -27,6 +27,15 @@ You can disable distributed mode and switch to threading based data parallel as 
 
 If you meet some errors with distributed mode, please try single gpu mode or multi-GPUs with `--multiprocessing_distributed false` before reporting the issue.
 
+### To enable sharded training
+We supports sharded training provided by [fairscale](https://github.com/facebookresearch/fairscale)
+
+```bash
+% python -m espnet2.bin.asr_train --ngpu 4 --multiprocessing_distributed true --sharded_ddp true
+```
+
+Note that the other features of fairscale are not supported now.
+
 ### 2Host and 2GPUs for each host with multiprocessing distributed mode
 Note that multiprocessing distributed mode assumes the same number of GPUs for each node.
 

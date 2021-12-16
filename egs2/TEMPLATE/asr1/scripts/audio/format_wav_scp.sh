@@ -122,7 +122,7 @@ else
         ${opts} \
         --fs "${fs}" \
         --audio-format "${audio_format}" \
-        "${logdir}/wav.JOB.scp" ${outdir}/format.JOB""
+        "${logdir}/wav.JOB.scp" "${outdir}/format.JOB"
 fi
 
 # Workaround for the NFS problem

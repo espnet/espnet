@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -76,7 +76,7 @@ for set in train val dev5; do
         cp ${dst}/${lang}.norm ${dst}/${lang}.norm.tc
 
         # remove punctuation
-        local/remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
+        remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
 
         # tokenization
         tokenizer.perl -l ${lang} -q < ${dst}/${lang}.norm.tc > ${dst}/${lang}.norm.tc.tok
@@ -110,7 +110,7 @@ for set in train val dev5; do
         mv ${feat}.tmp ${feat}
     fi
 
-    # Copy stuff intoc its final locations [this has been moved from the format_data script]
+    # Copy stuff into its final locations [this has been moved from the format_data script]
     mkdir -p data/${set}
     for f in spk2utt utt2spk; do
         cp ${dst}/${f} data/${set}/${f}

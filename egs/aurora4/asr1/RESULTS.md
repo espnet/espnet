@@ -1,3 +1,25 @@
+# Conformer result(use_valbest_average=True, n_average = 10, epoch = 100)
+
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: https://drive.google.com/file/d/1zAExzym8ZZ-Po5WITCGHtFuh0z-MT_OF/view?usp=sharing
+    - training config file: `conf/tuning/train_pytorch_conformer_kernel15.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - cmvn file: `data/train_mix_sp/cmvn.ark`
+    - e2e file: `exp/train_mix_sp_pytorch_train_pytorch_conformer_kernel15_specaug/results/model.val10.avg.best`
+    - e2e JSON file: `exp/train_mix_sp_pytorch_train_pytorch_conformer_kernel15_specaug/results/model.json`
+    - lm file: `exp/train_rnnlm_pytorch_lm_word65000/rnnlm.model.best`
+    - lm JSON file: `exp/train_rnnlm_pytorch_lm_word65000/model.json`
+```
+decode_dev_0330_decode_lm_word65000_valbest10/result.wrd_A.txt:|  SPKR     |  # Snt    # Wrd   |  Corr        Sub       Del       Ins       Err     S.Err   |
+decode_dev_0330_decode_lm_word65000_valbest10/result.wrd_A.txt:|  Sum/Avg  |   330      5467   |  96.1        3.5       0.3       0.4       4.3      37.9   |
+decode_dev_0330_decode_lm_word65000_valbest10/result.wrd_B.txt:|  SPKR     |  # Snt     # Wrd   |  Corr       Sub       Del       Ins       Err     S.Err   |
+decode_dev_0330_decode_lm_word65000_valbest10/result.wrd_B.txt:|  Sum/Avg  |  1980      32802   |  94.5       4.8       0.7       0.4       6.0      46.7   |
+decode_dev_0330_decode_lm_word65000_valbest10/result.wrd_C.txt:|  SPKR     |  # Snt    # Wrd   |  Corr        Sub       Del       Ins       Err     S.Err   |
+decode_dev_0330_decode_lm_word65000_valbest10/result.wrd_C.txt:|  Sum/Avg  |   330      5467   |  95.1        4.5       0.4       0.5       5.4      43.6   |
+decode_dev_0330_decode_lm_word65000_valbest10/result.wrd_D.txt:|  SPKR     |  # Snt     # Wrd   |  Corr       Sub       Del       Ins       Err     S.Err   |
+decode_dev_0330_decode_lm_word65000_valbest10/result.wrd_D.txt:|  Sum/Avg  |  1980      32802   |  91.5      7.5       1.0       0.8      9.3      54.7   |
+```
+
 # Transformer result(default transformer with n_average = 10, epoch = 100)
   
   - Environments (obtained by `$ get_sys_info.sh`)

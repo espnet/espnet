@@ -1,14 +1,93 @@
+# Conformer-Transducer with auxiliary task (CTC weight = 0.5)
+
+## Environments
+- Same as RNN-Transducer (see below)
+
+## Config files
+- preprocess config: `conf/specaug.yaml`
+- train config: `conf/tuning/transducer/train_conformer-rnn_transducer_aux_ngpu4.yaml`
+- lm config: `-` (LM was not used)
+- decode config: `conf/tuning/transducer/decode_default.yaml`
+- ngpu: `4`
+
+## Results (CER)
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_decode_default|14326|205341|95.8|4.0|0.2|0.1|4.3|33.6|
+|decode_test_decode_default|7176|104765|95.3|4.4|0.2|0.1|4.8|36.3|
+
+
+# Conformer-Transducer
+
+## Environments
+- Same as RNN-Transducer (see below)
+
+## Config files
+- preprocess config: `conf/specaug.yaml`
+- train config: `conf/tuning/transducer/train_conformer-rnn_transducer.yaml`
+- lm config: `-` (LM was not used)
+- decode config: `conf/tuning/transducer/decode_default.yaml`
+
+## Results (CER)
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_decode_default|14326|205341|95.6|4.2|0.2|0.1|4.5|34.0|
+|decode_test_decode_default|7176|104765|95.0|4.7|0.3|0.1|5.0|37.1|
+
+
+# RNN-Transducer with auxiliary task (CTC weight = 0.1)
+
+## Environments
+- Same as RNN-Transducer (see below)
+
+## Config files
+- preprocess config: `conf/specaug.yaml`
+- train config: `conf/tuning/transducer/train_transducer_aux.yaml`
+- lm config: `-` (LM was not used)
+- decode config: `conf/tuning/transducer/decode_default.yaml`
+
+## Results (CER)
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_decode_default|14326|205341|93.9|5.8|0.3|0.1|6.3|41.9|
+|decode_test_decode_default|7176|104765|93.2|6.5|0.4|0.1|6.9|44.5|
+
+
+# RNN-Transducer
+
+## Environments
+- date: `Thu May 20 05:29:03 UTC 2021`
+- python version: `3.7.4 (default, Aug 13 2019, 20:35:49)  [GCC 7.3.0]`
+- espnet version: `espnet 0.9.8`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.6.0`
+- Git hash: `95b3008cdcc2247e781a048bc999243dc7f45fe7`
+  - Commit date: `Sat Mar 6 00:48:29 2021 +0000`
+
+## Config files
+- preprocess config: `conf/specaug.yaml`
+- train config: `conf/tuning/transducer/train_transducer.yaml`
+- lm config: `-` (LM was not used)
+- decode config: `conf/tuning/transducer/decode_default.yaml`
+
+## Results (CER)
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_dev_decode_default|14326|205341|93.8|5.9|0.3|0.1|6.3|42.0|
+|decode_test_decode_default|7176|104765|92.9|6.7|0.3|0.1|7.2|45.9|
+
+
 # Conformer (kernel size = 15) + SpecAugment + LM weight = 0.0 result
 
 - training config file: `conf/tuning/train_pytorch_conformer_kernel15.yaml`
 - preprocess config file: `conf/specaug.yaml`
 - decoding config file: `conf/decode.yaml`, set `lm-weight = 0.0`
-- model link: https://drive.google.com/file/d/15_aEje6i0-LVUHm_ntA345ADx8HILAx9/view
+- model link: https://drive.google.com/file/d/1pOhwj6JFqVyt5quW7BKWfJ3vfPFRoxpQ/view?usp=sharing
 ```
 exp/train_sp_pytorch_train_pytorch_conformer_kernel15_specaug/decode_dev_decode_lm0.0/result.txt
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
 |   Sum/Avg  |  14326      205341   |   95.4        4.5        0.1        0.1        4.6       36.0   |
-exp/train_sp_pytorch_train_pytorch_conformer_Kernel15_specaug/decode_test_decode_lm0.0/result.txt
+exp/train_sp_pytorch_train_pytorch_conformer_kernel15_specaug/decode_test_decode_lm0.0/result.txt
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub         Del        Ins        Err      S.Err   |
 |   Sum/Avg  |   7176      104765   |   95.0        4.9         0.1        0.1        5.1       38.6   |
 ```
@@ -18,7 +97,6 @@ exp/train_sp_pytorch_train_pytorch_conformer_Kernel15_specaug/decode_test_decode
 - training config file: `conf/tuning/train_pytorch_conformer_kernel31.yaml`
 - preprocess config file: `conf/specaug.yaml`
 - decoding config file: `conf/decode.yaml`, set `lm-weight = 0.0`
-- model link: https://drive.google.com/file/d/15_aEje6i0-LVUHm_ntA345ADx8HILAx9/view
 ```
 exp/train_sp_pytorch_train_pytorch_conformer_kernel31_specaug/decode_dev_decode_lm0.0/result.txt
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |
@@ -32,7 +110,6 @@ exp/train_sp_pytorch_train_pytorch_conformer_kernel31_specaug/decode_test_decode
 
 - training config file: `conf/tuning/train_pytorch_conformer_kernel31.yaml`
 - decoding config file: `conf/decode.yaml`
-- model link: https://drive.google.com/file/d/15_aEje6i0-LVUHm_ntA345ADx8HILAx9/view
 ```
 exp/train_sp_pytorch_train_pytorch_conformer_kernel31/decode_dev_decode/result.txt
 |   SPKR     |   # Snt      # Wrd   |   Corr        Sub        Del        Ins        Err      S.Err   |

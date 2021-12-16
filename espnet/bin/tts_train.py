@@ -14,6 +14,7 @@ import sys
 import configargparse
 import numpy as np
 
+from espnet import __version__
 from espnet.nets.tts_interface import TTSInterface
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
@@ -301,6 +302,9 @@ def main(cmd_args):
     assert issubclass(model_class, TTSInterface)
     model_class.add_arguments(parser)
     args = parser.parse_args(cmd_args)
+
+    # add version info in args
+    args.version = __version__
 
     # logging info
     if args.verbose > 0:

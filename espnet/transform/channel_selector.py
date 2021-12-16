@@ -2,7 +2,7 @@ import numpy
 
 
 class ChannelSelector(object):
-    """Select 1ch from multi-channel signal """
+    """Select 1ch from multi-channel signal"""
 
     def __init__(self, train_channel="random", eval_channel=0, axis=1):
         self.train_channel = train_channel

@@ -1,4 +1,6 @@
-# The secnod results
+- [Lightweight Sinc Convolutions](./README_LightweightSincConvs.md)
+
+# The second results
 ## Environments
 - date: `Mon Feb 17 18:11:26 JST 2020`
 - python version: `3.7.5 (default, Oct 25 2019, 15:51:11)  [GCC 7.3.0]`
@@ -125,4 +127,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_dt_itdecode_asr_asr_model_valid.acc.best|1082|79133|90.1|5.5|4.4|2.5|12.4|97.6|
 |decode_et_itdecode_asr_asr_model_valid.acc.best|1055|77966|90.1|5.6|4.3|2.4|12.3|97.2|
-

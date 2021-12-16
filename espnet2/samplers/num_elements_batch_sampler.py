@@ -57,14 +57,7 @@ class NumElementsBatchSampler(AbsSampler):
         keys = sorted(first_utt2shape, key=lambda k: first_utt2shape[k][0])
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
-
         if padding:
-            for d, s in zip(utt2shapes, shape_files):
-                # shape: (Length, dim1, dim2, ...)
-                if not all(tuple(d[k][1:]) == tuple(d[keys[0]][1:]) for k in keys):
-                    raise RuntimeError(
-                        "If padding=True, the feature dimension must be unified: {s}",
-                    )
             # If padding case, the feat-dim must be same over whole corpus,
             # therefore the first sample is referred
             feat_dims = [np.prod(d[keys[0]][1:]) for d in utt2shapes]
@@ -72,37 +65,35 @@ class NumElementsBatchSampler(AbsSampler):
             feat_dims = None
 
         # Decide batch-sizes
-        start = 0
         batch_sizes = []
-        bs = 1
-        while True:
+        current_batch_keys = []
+        for key in keys:
+            current_batch_keys.append(key)
             # shape: (Length, dim1, dim2, ...)
             if padding:
-                max_lengths = [
-                    max(d[keys[i]][0] for i in range(start, start + bs))
-                    for d in utt2shapes
-                ]
-                bins = sum(bs * lg * d for lg, d in zip(max_lengths, feat_dims))
+                for d, s in zip(utt2shapes, shape_files):
+                    if tuple(d[key][1:]) != tuple(d[keys[0]][1:]):
+                        raise RuntimeError(
+                            "If padding=True, the "
+                            f"feature dimension must be unified: {s}",
+                        )
+                bins = sum(
+                    len(current_batch_keys) * sh[key][0] * d
+                    for sh, d in zip(utt2shapes, feat_dims)
+                )
             else:
                 bins = sum(
-                    np.prod(d[keys[i]])
-                    for i in range(start, start + bs)
-                    for d in utt2shapes
+                    np.prod(d[k]) for k in current_batch_keys for d in utt2shapes
                 )
 
-            if bins > batch_bins and bs >= min_batch_size:
-                batch_sizes.append(bs)
-                start += bs
-                bs = 1
-            else:
-                bs += 1
-            if start >= len(keys):
-                break
-
-            if start + bs > len(keys):
-                if not self.drop_last or len(batch_sizes) == 0:
-                    batch_sizes.append(len(keys) - start)
-                break
+            if bins > batch_bins and len(current_batch_keys) >= min_batch_size:
+                batch_sizes.append(len(current_batch_keys))
+                current_batch_keys = []
+        else:
+            if len(current_batch_keys) != 0 and (
+                not self.drop_last or len(batch_sizes) == 0
+            ):
+                batch_sizes.append(len(current_batch_keys))
 
         if len(batch_sizes) == 0:
             # Maybe we can't reach here
@@ -120,21 +111,29 @@ class NumElementsBatchSampler(AbsSampler):
 
         # Set mini-batch
         self.batch_list = []
-        start = 0
-        for bs in batch_sizes:
-            assert len(keys) >= start + bs, "Bug"
-            minibatch_keys = keys[start : start + bs]
-            start += bs
-            if sort_in_batch == "descending":
-                minibatch_keys.reverse()
-            elif sort_in_batch == "ascending":
-                # Key are already sorted in ascending
-                pass
-            else:
-                raise ValueError(
-                    f"sort_in_batch must be ascending or descending: {sort_in_batch}"
-                )
-            self.batch_list.append(tuple(minibatch_keys))
+        iter_bs = iter(batch_sizes)
+        bs = next(iter_bs)
+        minibatch_keys = []
+        for key in keys:
+            minibatch_keys.append(key)
+            if len(minibatch_keys) == bs:
+                if sort_in_batch == "descending":
+                    minibatch_keys.reverse()
+                elif sort_in_batch == "ascending":
+                    # Key are already sorted in ascending
+                    pass
+                else:
+                    raise ValueError(
+                        "sort_in_batch must be ascending"
+                        f" or descending: {sort_in_batch}"
+                    )
+
+                self.batch_list.append(tuple(minibatch_keys))
+                minibatch_keys = []
+                try:
+                    bs = next(iter_bs)
+                except StopIteration:
+                    break
 
         if sort_batch == "ascending":
             pass

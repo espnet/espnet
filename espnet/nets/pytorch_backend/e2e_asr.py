@@ -11,7 +11,6 @@ import os
 
 import chainer
 from chainer import reporter
-import editdistance
 import numpy as np
 import six
 import torch
@@ -95,6 +94,13 @@ class E2E(ASRInterface, torch.nn.Module):
         group = parser.add_argument_group("E2E decoder setting")
         group = add_arguments_rnn_decoder_common(group)
         return parser
+
+    def get_total_subsampling_factor(self):
+        """Get total subsampling factor."""
+        if isinstance(self.enc, torch.nn.ModuleList):
+            return self.enc[0].conv_subsampling_factor * int(np.prod(self.subsample))
+        else:
+            return self.enc.conv_subsampling_factor * int(np.prod(self.subsample))
 
     def __init__(self, idim, odim, args):
         """Construct an E2E object.
@@ -211,6 +217,8 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor
         """
+        import editdistance
+
         # 0. Frontend
         if self.frontend is not None:
             hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)

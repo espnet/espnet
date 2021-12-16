@@ -54,7 +54,7 @@ while(<CSV>) {
   }
   print TEXT "$uttId"," ","$text","\n";
   print GNDR "$uttId"," ","$gender","\n";
-  print WAV "$uttId"," ffmpeg -i $db_base/clips/$filepath -f wav -ar 16000 -ab 16 - |\n";
+  print WAV "$uttId"," ffmpeg -i $db_base/clips/$filepath -f wav -ar 16000 -ab 16 -ac 1 - |\n";
   print SPKR "$uttId"," $spkr","\n";
 }
 close(SPKR) || die;
@@ -68,6 +68,6 @@ if (system(
   die "Error creating spk2utt file in directory $out_dir";
 }
 system("env LC_COLLATE=C utils/fix_data_dir.sh $out_dir");
-if (system("env LC_COLLATE=C utils/validate_data_dir.sh --no-feats $out_dir") != 0) {
+if (system("env LC_COLLATE=C utils/validate_data_dir.sh --non-print --no-feats $out_dir") != 0) {
   die "Error validating directory $out_dir";
 }

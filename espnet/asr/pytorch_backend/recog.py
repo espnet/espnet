@@ -1,5 +1,6 @@
 """V2 backend for `asr_recog.py` using py:class:`espnet.nets.beam_search.BeamSearch`."""
 
+from distutils.version import LooseVersion
 import json
 import logging
 
@@ -42,8 +43,38 @@ def recog_v2(args):
     set_deterministic_pytorch(args)
     model, train_args = load_trained_model(args.model)
     assert isinstance(model, ASRInterface)
-    model.eval()
 
+    if args.quantize_config is not None:
+        q_config = set([getattr(torch.nn, q) for q in args.quantize_config])
+    else:
+        q_config = {torch.nn.Linear}
+
+    if args.quantize_asr_model:
+        logging.info("Use quantized asr model for decoding")
+
+        # See https://github.com/espnet/espnet/pull/3616 for more information.
+        if (
+            torch.__version__ < LooseVersion("1.4.0")
+            and "lstm" in train_args.etype
+            and torch.nn.LSTM in q_config
+        ):
+            raise ValueError(
+                "Quantized LSTM in ESPnet is only supported with torch 1.4+."
+            )
+
+        if args.quantize_dtype == "float16" and torch.__version__ < LooseVersion(
+            "1.5.0"
+        ):
+            raise ValueError(
+                "float16 dtype for dynamic quantization is not supported with torch "
+                "version < 1.5.0. Switching to qint8 dtype instead."
+            )
+
+        dtype = getattr(torch, args.quantize_dtype)
+
+        model = torch.quantization.quantize_dynamic(model, q_config, dtype=dtype)
+
+    model.eval()
     load_inputs_and_targets = LoadInputsAndTargets(
         mode="asr",
         load_output=False,
@@ -61,6 +92,10 @@ def recog_v2(args):
         lm_class = dynamic_import_lm(lm_model_module, lm_args.backend)
         lm = lm_class(len(train_args.char_list), lm_args)
         torch_load(args.rnnlm, lm)
+        if args.quantize_lm_model:
+            logging.info("Use quantized lm model")
+            dtype = getattr(torch, args.quantize_dtype)
+            lm = torch.quantization.quantize_dynamic(lm, q_config, dtype=dtype)
         lm.eval()
     else:
         lm = None

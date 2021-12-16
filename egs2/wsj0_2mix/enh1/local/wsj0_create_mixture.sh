@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright  2018  Johns Hopkins University (Author: Xuankai Chang)
 #            2020  Shanghai Jiao Tong University (Authors: Wangyou Zhang)
@@ -32,7 +32,6 @@ if ! which matlab >/dev/null 2>&1; then
     exit 1
 fi
 
-rootdir=$PWD
 echo "Downloading WSJ0_mixture scripts."
 
 url=http://www.merl.com/demos/deep-clustering/create-speaker-mixtures.zip
@@ -58,15 +57,13 @@ echo "Creating Mixtures."
 matlab_cmd="matlab -nojvm -nodesktop -nodisplay -nosplash -r create_wav_2speakers"
 
 mixfile=${dir}/mix_matlab.sh
-echo "#!/bin/bash" > $mixfile
+echo "#!/usr/bin/env bash" > $mixfile
+echo "cd ${dir}" >> $mixfile
 echo $matlab_cmd >> $mixfile
 chmod +x $mixfile
 
 # Run Matlab
 # (This may take ~6 hours to generate both min and max versions
 #  on Intel(R) Xeon(R) CPU E5-2620 v4 @ 2.10GHz)
-cd ${dir}
 echo "Log is in ${dir}/mix.log"
 $train_cmd ${dir}/mix.log $mixfile
-
-cd ${rootdir}

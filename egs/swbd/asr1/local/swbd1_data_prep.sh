@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Switchboard-1 training data preparation customized for Edinburgh
 # Author:  Arnab Ghoshal (Jan 2013)
@@ -46,7 +46,7 @@ sph2pipe=sph2pipe
   echo  "SWBD dictionary file does not exist" &&  exit 1;
 
 # find sph audio files
-find $SWBD_DIR -iname '*.sph' | sort > $dir/sph.flist
+find -L $SWBD_DIR -iname '*.sph' | sort > $dir/sph.flist
 
 n=`cat $dir/sph.flist | wc -l`
 [ $n -ne 2435 ] && [ $n -ne 2438 ] && \

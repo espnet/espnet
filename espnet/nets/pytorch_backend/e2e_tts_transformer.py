@@ -45,8 +45,8 @@ class GuidedMultiHeadAttentionLoss(GuidedAttentionLoss):
         Args:
             att_ws (Tensor):
                 Batch of multi head attention weights (B, H, T_max_out, T_max_in).
-            ilens (LongTensor): Batch of input lenghts (B,).
-            olens (LongTensor): Batch of output lenghts (B,).
+            ilens (LongTensor): Batch of input lengths (B,).
+            olens (LongTensor): Batch of output lengths (B,).
 
         Returns:
             Tensor: Guided attention loss value.
@@ -77,11 +77,14 @@ else:
     class TTSPlot(PlotAttentionReport):
         """Attention plot module for TTS-Transformer."""
 
-        def plotfn(self, data, attn_dict, outdir, suffix="png", savefn=None):
+        def plotfn(
+            self, data_dict, uttid_list, attn_dict, outdir, suffix="png", savefn=None
+        ):
             """Plot multi head attentions.
 
             Args:
-                data (dict): Utts info from json file.
+                data_dict (dict): Utts info from json file.
+                uttid_list (list): List of utt_id.
                 attn_dict (dict): Multi head attention dict.
                     Values should be numpy.ndarray (H, L, T)
                 outdir (str): Directory name to save figures.
@@ -95,8 +98,8 @@ else:
             )
 
             for name, att_ws in attn_dict.items():
-                for idx, att_w in enumerate(att_ws):
-                    filename = "%s/%s.%s.%s" % (outdir, data[idx][0], name, suffix)
+                for utt_id, att_w in zip(uttid_list, att_ws):
+                    filename = "%s/%s.%s.%s" % (outdir, utt_id, name, suffix)
                     if "fbank" in name:
                         fig = plt.Figure()
                         ax = fig.subplots(1, 1)
@@ -746,13 +749,18 @@ class Transformer(TTSInterface, torch.nn.Module):
 
         # modifiy mod part of groundtruth
         if self.reduction_factor > 1:
+            assert olens.ge(
+                self.reduction_factor
+            ).all(), "Output length must be greater than or equal to reduction factor."
             olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_olen = max(olens)
             ys = ys[:, :max_olen]
             labels = labels[:, :max_olen]
-            labels[:, -1] = 1.0  # make sure at least one frame has 1
+            labels = torch.scatter(
+                labels, 1, (olens - 1).unsqueeze(1), 1.0
+            )  # see #3388
 
-        # caluculate loss values
+        # calculate loss values
         l1_loss, l2_loss, bce_loss = self.criterion(
             after_outs, before_outs, logits, ys, labels, olens
         )

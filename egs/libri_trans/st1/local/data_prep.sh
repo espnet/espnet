@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -30,14 +30,15 @@ n_wav=$(find -L ${src}/audiofiles -iname "*.wav" | wc -l)
 n_en=$(cat ${src}/${set}.en | wc -l)
 n_fr1=$(cat ${src}/${set}.fr | wc -l)
 n_fr2=$(cat ${src}/${set}_gtranslate.fr | wc -l)
-[ ${n_wav} -ne ${n_en} ] && echo "Warning: expected ${n_wav} data data files, found ${n_en}" && exit 1;
-[ ${n_wav} -ne ${n_fr1} ] && echo "Warning: expected ${n_wav} data data files, found ${n_fr1}" && exit 1;
-[ ${n_wav} -ne ${n_fr2} ] && echo "Warning: expected ${n_wav} data data files, found ${n_fr2}" && exit 1;
+[ ${n_wav} -ne ${n_en} ] && echo "Warning: expected ${n_wav} data files, found ${n_en}" && exit 1;
+[ ${n_wav} -ne ${n_fr1} ] && echo "Warning: expected ${n_wav} data files, found ${n_fr1}" && exit 1;
+[ ${n_wav} -ne ${n_fr2} ] && echo "Warning: expected ${n_wav} data files, found ${n_fr2}" && exit 1;
 
 # extract meta data
 sed -e 's/\s\+/ /g' ${src}/alignments.meta | sed -e '1d' | while read line; do
     file_name=$(echo $line | cut -f 5 -d " ")
-    if [ ${set} = other ] && [ $(soxi -t ${src}/audiofiles/${file_name}.wav) = flac ]; then
+    format=$(soxi -t ${src}/audiofiles/${file_name}.wav)
+    if [ ${set} = other ] && [ -z "${format}" ]; then
         # NOTE: some utterances in other directory are flac rather than wav files
         echo ${file_name} | awk -v "dir=${src}/audiofiles" '{printf "%s flac -c -d -s %s/%s.wav |\n", $0, dir, $0}' >> ${wav_scp} || exit 1;
     else
@@ -85,24 +86,18 @@ for lang in en fr fr.gtranslate; do
     cp ${dst}/${lang}.norm ${dst}/${lang}.norm.tc
 
     # remove punctuation (not used)
-    local/remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
+    remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
 
     # tokenization
-    if [ ${lang} = fr.gtranslate ]; then
-        tokenizer.perl -l fr -q < ${dst}/${lang}.norm.tc > ${dst}/${lang}.norm.tc.tok
-        tokenizer.perl -l fr -q < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.tok
-        tokenizer.perl -l fr -q < ${dst}/${lang}.norm.lc.rm > ${dst}/${lang}.norm.lc.rm.tok
-    else
-        tokenizer.perl -l ${lang} -q < ${dst}/${lang}.norm.tc > ${dst}/${lang}.norm.tc.tok
-        tokenizer.perl -l ${lang} -q < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.tok
-        tokenizer.perl -l ${lang} -q < ${dst}/${lang}.norm.lc.rm > ${dst}/${lang}.norm.lc.rm.tok
-    fi
-    paste -d " " <(awk '{print $1}' ${wav_scp}) <(cat ${dst}/${lang}.norm.tc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
-        > ${dst}/text.tc.${lang}
-    paste -d " " <(awk '{print $1}' ${wav_scp}) <(cat ${dst}/${lang}.norm.lc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
-        > ${dst}/text.lc.${lang}
-    paste -d " " <(awk '{print $1}' ${wav_scp}) <(cat ${dst}/${lang}.norm.lc.rm.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
-        > ${dst}/text.lc.rm.${lang}
+    for case in lc.rm lc tc; do
+        if [ ${lang} = fr.gtranslate ]; then
+            tokenizer.perl -l fr -q < ${dst}/${lang}.norm.${case} > ${dst}/${lang}.norm.${case}.tok
+        else
+            tokenizer.perl -l ${lang} -q < ${dst}/${lang}.norm.${case} > ${dst}/${lang}.norm.${case}.tok
+        fi
+        paste -d " " <(awk '{print $1}' ${wav_scp}) <(cat ${dst}/${lang}.norm.${case}.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
+            > ${dst}/text.${case}.${lang}
+    done
 
     # save original and cleaned punctuation
     text2token.py -s 0 -n 1 ${dst}/${lang}.org | tr " " "\n" \
@@ -130,24 +125,16 @@ for f in text.tc.en text.tc.fr text.tc.fr.gtranslate; do
 done
 
 
-# Copy stuff intoc its final locations [this has been moved from the format_data script]
+# Copy stuff into its final locations [this has been moved from the format_data script]
 mkdir -p data/${set}
 for f in spk2utt utt2spk wav.scp; do
     cp ${dst}/${f} data/${set}/${f}
 done
-# en
-cp ${dst}/text.tc.en data/${set}/text.tc.en
-cp ${dst}/text.lc.en data/${set}/text.lc.en
-cp ${dst}/text.lc.rm.en data/${set}/text.lc.rm.en
-# fr
-cp ${dst}/text.tc.fr data/${set}/text.tc.fr
-cp ${dst}/text.lc.fr data/${set}/text.lc.fr
-cp ${dst}/text.lc.rm.fr data/${set}/text.lc.rm.fr
-# fr.gtranslate
-cp ${dst}/text.tc.fr.gtranslate data/${set}/text.tc.fr.gtranslate
-cp ${dst}/text.lc.fr.gtranslate data/${set}/text.lc.fr.gtranslate
-cp ${dst}/text.lc.rm.fr.gtranslate data/${set}/text.lc.rm.fr.gtranslate
-
+for lang in en fr fr.gtranslate; do
+    for case in lc.rm lc tc; do
+        cp ${dst}/text.${case}.${lang} data/${set}/text.${case}.${lang}
+    done
+done
 
 # remove empty and sort utterances
 cp -rf data/${set} data/${set}.tmp

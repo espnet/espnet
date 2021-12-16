@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -38,7 +38,7 @@ fi
 rm -rf data/${set}.tmp
 
 
-# Copy stuff intoc its final locations [this has been moved from the format_data script]
+# Copy stuff into its final locations [this has been moved from the format_data script]
 # for Es
 mkdir -p data/${set}.es
 for f in spk2utt utt2spk segments feats.scp wav.scp utt2num_frames spk2gender reco2file_and_channel; do

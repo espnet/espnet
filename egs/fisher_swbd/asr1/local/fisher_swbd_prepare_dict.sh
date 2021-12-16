@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 
 # To be run from one directory above this script.
@@ -103,7 +103,7 @@ head -n 20 $dir/oov_counts.txt
 
 
 
-# Preparing SWBD acronymns from its dictionary
+# Preparing SWBD acronyms from its dictionary
 srcdir=data/local/train_swbd # This is where we downloaded some stuff..
 dir=data/local/dict_nosp
 mkdir -p $dir

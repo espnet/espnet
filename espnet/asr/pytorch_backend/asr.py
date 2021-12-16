@@ -1,24 +1,21 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Training/decoding definition for the speech recognition task."""
 
 import copy
+from distutils.version import LooseVersion
+import itertools
 import json
 import logging
 import math
 import os
-import sys
 
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
 from chainer.training.updater import StandardUpdater
 import numpy as np
-from tensorboardX import SummaryWriter
 import torch
 from torch.nn.parallel import data_parallel
 
@@ -57,15 +54,6 @@ from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
-
-import matplotlib
-
-matplotlib.use("Agg")
-
-if sys.version_info[0] == 2:
-    from itertools import izip_longest as zip_longest
-else:
-    from itertools import zip_longest as zip_longest
 
 
 def _recursive_to(xs, device):
@@ -327,12 +315,12 @@ class CustomConverterMulEnc(object):
 
     """
 
-    def __init__(self, subsamping_factors=[1, 1], dtype=torch.float32):
+    def __init__(self, subsampling_factors=[1, 1], dtype=torch.float32):
         """Initialize the converter."""
-        self.subsamping_factors = subsamping_factors
+        self.subsampling_factors = subsampling_factors
         self.ignore_id = -1
         self.dtype = dtype
-        self.num_encs = len(subsamping_factors)
+        self.num_encs = len(subsampling_factors)
 
     def __call__(self, batch, device=torch.device("cpu")):
         """Transform a batch and send it to a device.
@@ -351,7 +339,7 @@ class CustomConverterMulEnc(object):
         ys = batch[0][-1]
 
         # perform subsampling
-        if np.sum(self.subsamping_factors) > self.num_encs:
+        if np.sum(self.subsampling_factors) > self.num_encs:
             xs_list = [
                 [x[:: self.subsampling_factors[i], :] for x in xs_list[i]]
                 for i in range(self.num_encs)
@@ -416,10 +404,10 @@ def train(args):
     # specify attention, CTC, hybrid mode
     if "transducer" in args.model_module:
         if (
-            getattr(args, "etype", False) == "transformer"
-            or getattr(args, "dtype", False) == "transformer"
+            getattr(args, "etype", False) == "custom"
+            or getattr(args, "dtype", False) == "custom"
         ):
-            mtl_mode = "transformer_transducer"
+            mtl_mode = "custom_transducer"
         else:
             mtl_mode = "transducer"
         logging.info("Pure transducer mode")
@@ -441,6 +429,7 @@ def train(args):
             idim_list[0] if args.num_encs == 1 else idim_list, odim, args
         )
     assert isinstance(model, ASRInterface)
+    total_subsampling_factor = model.get_total_subsampling_factor()
 
     logging.info(
         " Total parameter of the model = "
@@ -501,6 +490,16 @@ def train(args):
     else:
         model_params = model.parameters()
 
+    logging.warning(
+        "num. model params: {:,} (num. trained: {:,} ({:.1f}%))".format(
+            sum(p.numel() for p in model.parameters()),
+            sum(p.numel() for p in model.parameters() if p.requires_grad),
+            sum(p.numel() for p in model.parameters() if p.requires_grad)
+            * 100.0
+            / sum(p.numel() for p in model.parameters()),
+        )
+    )
+
     # Setup an optimizer
     if args.opt == "adadelta":
         optimizer = torch.optim.Adadelta(
@@ -511,16 +510,23 @@ def train(args):
     elif args.opt == "noam":
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
-        # For transformer-transducer, adim declaration is within the block definition.
-        # Thus, we need retrieve the most dominant value (d_hidden) for Noam scheduler.
-        if hasattr(args, "enc_block_arch") or hasattr(args, "dec_block_arch"):
-            adim = model.most_dom_dim
+        if "transducer" in mtl_mode:
+            if args.noam_adim > 0:
+                optimizer = get_std_opt(
+                    model_params,
+                    args.noam_adim,
+                    args.optimizer_warmup_steps,
+                    args.noam_lr,
+                )
+            else:
+                raise ValueError("noam-adim option should be set to use Noam scheduler")
         else:
-            adim = args.adim
-
-        optimizer = get_std_opt(
-            model_params, adim, args.transformer_warmup_steps, args.transformer_lr
-        )
+            optimizer = get_std_opt(
+                model_params,
+                args.adim,
+                args.transformer_warmup_steps,
+                args.transformer_lr,
+            )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
 
@@ -673,15 +679,9 @@ def train(args):
 
     # Save attention weight each epoch
     is_attn_plot = (
-        (
-            "transformer" in args.model_module
-            or "conformer" in args.model_module
-            or mtl_mode in ["att", "mtl"]
-        )
-        or (
-            mtl_mode == "transducer" and getattr(args, "rnnt_mode", False) == "rnnt-att"
-        )
-        or mtl_mode == "transformer_transducer"
+        "transformer" in args.model_module
+        or "conformer" in args.model_module
+        or mtl_mode in ["att", "mtl", "custom_transducer"]
     )
 
     if args.num_save_attention > 0 and is_attn_plot:
@@ -703,6 +703,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device,
+            subsampling_factor=total_subsampling_factor,
         )
         trainer.extend(att_reporter, trigger=(1, "epoch"))
     else:
@@ -729,8 +730,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=device,
-            ikey="output",
-            iaxis=1,
+            subsampling_factor=total_subsampling_factor,
         )
         trainer.extend(ctc_reporter, trigger=(1, "epoch"))
     else:
@@ -744,21 +744,74 @@ def train(args):
         report_keys_cer_ctc = [
             "main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)
         ] + ["validation/main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)]
-    trainer.extend(
-        extensions.PlotReport(
-            [
-                "main/loss",
-                "validation/main/loss",
-                "main/loss_ctc",
-                "validation/main/loss_ctc",
-                "main/loss_att",
-                "validation/main/loss_att",
-            ]
-            + ([] if args.num_encs == 1 else report_keys_loss_ctc),
-            "epoch",
-            file_name="loss.png",
+
+    if hasattr(model, "is_transducer"):
+        trans_keys = [
+            "main/loss",
+            "validation/main/loss",
+            "main/loss_trans",
+            "validation/main/loss_trans",
+        ]
+
+        ctc_keys = (
+            ["main/loss_ctc", "validation/main/loss_ctc"] if args.use_ctc_loss else []
         )
-    )
+
+        aux_trans_keys = (
+            [
+                "main/loss_aux_trans",
+                "validation/main/loss_aux_trans",
+            ]
+            if args.use_aux_transducer_loss
+            else []
+        )
+
+        symm_kl_div_keys = (
+            [
+                "main/loss_symm_kl_div",
+                "validation/main/loss_symm_kl_div",
+            ]
+            if args.use_symm_kl_div_loss
+            else []
+        )
+
+        lm_keys = (
+            [
+                "main/loss_lm",
+                "validation/main/loss_lm",
+            ]
+            if args.use_lm_loss
+            else []
+        )
+
+        transducer_keys = (
+            trans_keys + ctc_keys + aux_trans_keys + symm_kl_div_keys + lm_keys
+        )
+
+        trainer.extend(
+            extensions.PlotReport(
+                transducer_keys,
+                "epoch",
+                file_name="loss.png",
+            )
+        )
+    else:
+        trainer.extend(
+            extensions.PlotReport(
+                [
+                    "main/loss",
+                    "validation/main/loss",
+                    "main/loss_ctc",
+                    "validation/main/loss_ctc",
+                    "main/loss_att",
+                    "validation/main/loss_att",
+                ]
+                + ([] if args.num_encs == 1 else report_keys_loss_ctc),
+                "epoch",
+                file_name="loss.png",
+            )
+        )
+
     trainer.extend(
         extensions.PlotReport(
             ["main/acc", "validation/main/acc"], "epoch", file_name="acc.png"
@@ -778,7 +831,7 @@ def train(args):
         snapshot_object(model, "model.loss.best"),
         trigger=training.triggers.MinValueTrigger("validation/main/loss"),
     )
-    if mtl_mode not in ["ctc", "transducer", "transformer_transducer"]:
+    if mtl_mode not in ["ctc", "transducer", "custom_transducer"]:
         trainer.extend(
             snapshot_object(model, "model.acc.best"),
             trigger=training.triggers.MaxValueTrigger("validation/main/acc"),
@@ -847,21 +900,33 @@ def train(args):
     trainer.extend(
         extensions.LogReport(trigger=(args.report_interval_iters, "iteration"))
     )
-    report_keys = [
-        "epoch",
-        "iteration",
-        "main/loss",
-        "main/loss_ctc",
-        "main/loss_att",
-        "validation/main/loss",
-        "validation/main/loss_ctc",
-        "validation/main/loss_att",
-        "main/acc",
-        "validation/main/acc",
-        "main/cer_ctc",
-        "validation/main/cer_ctc",
-        "elapsed_time",
-    ] + ([] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc)
+
+    if hasattr(model, "is_transducer"):
+        report_keys = (
+            [
+                "epoch",
+                "iteration",
+            ]
+            + transducer_keys
+            + ["elapsed_time"]
+        )
+    else:
+        report_keys = [
+            "epoch",
+            "iteration",
+            "main/loss",
+            "main/loss_ctc",
+            "main/loss_att",
+            "validation/main/loss",
+            "validation/main/loss_ctc",
+            "validation/main/loss_att",
+            "main/acc",
+            "validation/main/acc",
+            "main/cer_ctc",
+            "validation/main/cer_ctc",
+            "elapsed_time",
+        ] + ([] if args.num_encs == 1 else report_keys_cer_ctc + report_keys_loss_ctc)
+
     if args.opt == "adadelta":
         trainer.extend(
             extensions.observe_value(
@@ -886,6 +951,8 @@ def train(args):
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        from torch.utils.tensorboard import SummaryWriter
+
         trainer.extend(
             TensorboardLogger(
                 SummaryWriter(args.tensorboard_dir),
@@ -907,9 +974,42 @@ def recog(args):
 
     """
     set_deterministic_pytorch(args)
-    model, train_args = load_trained_model(args.model)
+    model, train_args = load_trained_model(args.model, training=False)
     assert isinstance(model, ASRInterface)
     model.recog_args = args
+
+    if args.quantize_config is not None:
+        q_config = set([getattr(torch.nn, q) for q in args.quantize_config])
+    else:
+        q_config = {torch.nn.Linear}
+
+    if args.quantize_asr_model:
+        logging.info("Use a quantized ASR model for decoding.")
+
+        # It seems quantized LSTM only supports non-packed sequence before torch 1.4.0.
+        # Reference issue: https://github.com/pytorch/pytorch/issues/27963
+        if (
+            torch.__version__ < LooseVersion("1.4.0")
+            and "lstm" in train_args.etype
+            and torch.nn.LSTM in q_config
+        ):
+            raise ValueError(
+                "Quantized LSTM in ESPnet is only supported with torch 1.4+."
+            )
+
+        # Dunno why but weight_observer from dynamic quantized module must have
+        # dtype=torch.qint8 with torch < 1.5 although dtype=torch.float16 is supported.
+        if args.quantize_dtype == "float16" and torch.__version__ < LooseVersion(
+            "1.5.0"
+        ):
+            raise ValueError(
+                "float16 dtype for dynamic quantization is not supported with torch "
+                "version < 1.5.0. Switching to qint8 dtype instead."
+            )
+
+        dtype = getattr(torch, args.quantize_dtype)
+
+        model = torch.quantization.quantize_dynamic(model, q_config, dtype=dtype)
 
     if args.streaming_mode and "transformer" in train_args.model_module:
         raise NotImplementedError("streaming mode for transformer is not implemented")
@@ -934,6 +1034,9 @@ def recog(args):
             )
         )
         torch_load(args.rnnlm, rnnlm)
+        if args.quantize_lm_model:
+            dtype = getattr(torch, args.quantize_dtype)
+            rnnlm = torch.quantization.quantize_dynamic(rnnlm, q_config, dtype=dtype)
         rnnlm.eval()
     else:
         rnnlm = None
@@ -990,14 +1093,16 @@ def recog(args):
     )
 
     # load transducer beam search
-    if hasattr(model, "rnnt_mode"):
+    if hasattr(model, "is_transducer"):
         if hasattr(model, "dec"):
             trans_decoder = model.dec
         else:
             trans_decoder = model.decoder
+        joint_network = model.transducer_tasks.joint_network
 
         beam_search_transducer = BeamSearchTransducer(
             decoder=trans_decoder,
+            joint_network=joint_network,
             beam_size=args.beam_size,
             lm=rnnlm,
             lm_weight=args.lm_weight,
@@ -1006,7 +1111,12 @@ def recog(args):
             u_max=args.u_max,
             nstep=args.nstep,
             prefix_alpha=args.prefix_alpha,
+            expansion_gamma=args.expansion_gamma,
+            expansion_beta=args.expansion_beta,
             score_norm=args.score_norm,
+            softmax_temperature=args.softmax_temperature,
+            nbest=args.nbest,
+            quantization=args.quantize_asr_model,
         )
 
     if args.batchsize == 0:
@@ -1064,7 +1174,7 @@ def recog(args):
                             for n in range(args.nbest):
                                 nbest_hyps[n]["yseq"].extend(hyps[n]["yseq"])
                                 nbest_hyps[n]["score"] += hyps[n]["score"]
-                elif hasattr(model, "rnnt_mode"):
+                elif hasattr(model, "is_transducer"):
                     nbest_hyps = model.recognize(feat, beam_search_transducer)
                 else:
                     nbest_hyps = model.recognize(
@@ -1078,7 +1188,7 @@ def recog(args):
 
         def grouper(n, iterable, fillvalue=None):
             kargs = [iter(iterable)] * n
-            return zip_longest(*kargs, fillvalue=fillvalue)
+            return itertools.zip_longest(*kargs, fillvalue=fillvalue)
 
         # sort data if batchsize > 1
         keys = list(js.keys())
@@ -1256,7 +1366,7 @@ def enhance(args):
 
     def grouper(n, iterable, fillvalue=None):
         kargs = [iter(iterable)] * n
-        return zip_longest(*kargs, fillvalue=fillvalue)
+        return itertools.zip_longest(*kargs, fillvalue=fillvalue)
 
     num_images = 0
     if not os.path.exists(args.image_dir):
@@ -1285,6 +1395,9 @@ def enhance(args):
 
             # Plot spectrogram
             if args.image_dir is not None and num_images < args.num_images:
+                import matplotlib
+
+                matplotlib.use("Agg")
                 import matplotlib.pyplot as plt
 
                 num_images += 1
@@ -1363,88 +1476,3 @@ def enhance(args):
             if num_images >= args.num_images and enh_writer is None:
                 logging.info("Breaking the process.")
                 break
-
-
-def ctc_align(args):
-    """CTC forced alignments with the given args.
-
-    Args:
-        args (namespace): The program arguments.
-    """
-
-    def add_alignment_to_json(js, alignment, char_list):
-        """Add N-best results to json.
-
-        Args:
-            js (dict[str, Any]): Groundtruth utterance dict.
-            alignment (list[int]): List of alignment.
-            char_list (list[str]): List of characters.
-
-        Returns:
-            dict[str, Any]: N-best results added utterance dict.
-
-        """
-        # copy old json info
-        new_js = dict()
-        new_js["ctc_alignment"] = []
-
-        alignment_tokens = []
-        for idx, a in enumerate(alignment):
-            alignment_tokens.append(char_list[a])
-        alignment_tokens = " ".join(alignment_tokens)
-
-        new_js["ctc_alignment"] = alignment_tokens
-
-        return new_js
-
-    set_deterministic_pytorch(args)
-    model, train_args = load_trained_model(args.model)
-    assert isinstance(model, ASRInterface)
-    model.eval()
-
-    load_inputs_and_targets = LoadInputsAndTargets(
-        mode="asr",
-        load_output=True,
-        sort_in_input_length=False,
-        preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None
-        else args.preprocess_conf,
-        preprocess_args={"train": False},
-    )
-
-    if args.ngpu > 1:
-        raise NotImplementedError("only single GPU decoding is supported")
-    if args.ngpu == 1:
-        device = "cuda"
-    else:
-        device = "cpu"
-    dtype = getattr(torch, args.dtype)
-    logging.info(f"Decoding device={device}, dtype={dtype}")
-    model.to(device=device, dtype=dtype).eval()
-
-    # read json data
-    with open(args.align_json, "rb") as f:
-        js = json.load(f)["utts"]
-    new_js = {}
-    if args.batchsize == 0:
-        with torch.no_grad():
-            for idx, name in enumerate(js.keys(), 1):
-                logging.info("(%d/%d) aligning " + name, idx, len(js.keys()))
-                batch = [(name, js[name])]
-                feat, label = load_inputs_and_targets(batch)
-                feat = feat[0]
-                label = label[0]
-                enc = model.encode(torch.as_tensor(feat).to(device)).unsqueeze(0)
-                alignment = model.ctc.forced_align(enc, label)
-                new_js[name] = add_alignment_to_json(
-                    js[name], alignment, train_args.char_list
-                )
-    else:
-        raise NotImplementedError("Align_batch is not implemented.")
-
-    with open(args.result_label, "wb") as f:
-        f.write(
-            json.dumps(
-                {"utts": new_js}, indent=4, ensure_ascii=False, sort_keys=True
-            ).encode("utf_8")
-        )

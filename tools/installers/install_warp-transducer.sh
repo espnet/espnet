@@ -1,6 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
-
 
 if [ $# != 0 ]; then
     echo "Usage: $0"
@@ -14,7 +13,7 @@ if python3 -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; t
 fi
 
 rm -rf warp-transducer
-git clone https://github.com/HawkAaron/warp-transducer.git
+git clone --single-branch --branch espnet_v1.1 https://github.com/b-flo/warp-transducer.git
 
 (
     set -euo pipefail

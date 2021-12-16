@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2020 Nagoya University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -100,7 +100,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     fbankdir=fbank
     for x in judy elliot fin; do
-        # Trim silence parts at the begining and the end of audio
+        # Trim silence parts at the beginning and the end of audio
         if ${do_trimming}; then
             mkdir -p exp/trim_silence/${x}/figs  # avoid error
             trim_silence.sh --cmd "${train_cmd}" \

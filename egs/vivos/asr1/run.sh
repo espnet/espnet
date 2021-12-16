@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 National Institute of Informatics (Hieu-Thi Luong)
 #  Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0)
@@ -231,10 +231,10 @@ fi
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "Stage 5: Decoding"
 
-    if [[ $(get_yaml.py ${train_config} etype) = *transformer* ]] || \
-           [[ $(get_yaml.py ${train_config} dtype) = *transformer* ]] || \
-           [[ $(get_yaml.py ${train_config} model-module) = transformer ]] || \
-           [[ $(get_yaml.py ${train_config} model-module) = conformer ]]; then
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
+           [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
+           [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
 
         if [ ${use_valbest_average} == true ]; then
             recog_model=model.val${n_average}.avg.best

@@ -1,0 +1,1 @@
+../../asr1/local/clean_wsj0_data_prep.sh

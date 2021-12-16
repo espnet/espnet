@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -7,13 +7,14 @@ export LC_ALL=C
 
 . utils/parse_options.sh || exit 1;
 
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <src-dir>"
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <src-dir> <tgt-lang> <version>"
     echo "e.g.: $0 /n/rd11/corpora_8/MUSTC_v1.0 target_lang"
     exit 1;
 fi
 
 tgt_lang=$2
+version=$3
 
 for set in train dev tst-COMMON tst-HE; do
     src=$1/en-${tgt_lang}/data/${set}
@@ -46,27 +47,46 @@ for set in train dev tst-COMMON tst-HE; do
     n=$(cat ${yml} | grep duration | wc -l)
     n_en=$(cat ${en} | wc -l)
     n_tgt=$(cat ${tgt} | wc -l)
-    [ ${n} -ne ${n_en} ] && echo "Warning: expected ${n} data data files, found ${n_en}" && exit 1;
-    [ ${n} -ne ${n_tgt} ] && echo "Warning: expected ${n} data data files, found ${n_tgt}" && exit 1;
+    [ ${n} -ne ${n_en} ] && echo "Warning: expected ${n} data files, found ${n_en}" && exit 1;
+    [ ${n} -ne ${n_tgt} ] && echo "Warning: expected ${n} data files, found ${n_tgt}" && exit 1;
 
     # (1a) Transcriptions and translations preparation
     # make basic transcription file (add segments info)
     cp ${yml} ${dst}/.yaml0
     grep duration ${dst}/.yaml0 > ${dst}/.yaml1
-    awk '{
-        duration=$3; offset=$5; spkid=$7;
-        gsub(",","",duration);
-        gsub(",","",offset);
-        gsub(",","",spkid);
-        gsub("spk.","",spkid);
-        duration=sprintf("%.7f", duration);
-        if ( duration < 0.2 ) extendt=sprintf("%.7f", (0.2-duration)/2);
-        else extendt=0;
-        offset=sprintf("%.7f", offset);
-        startt=offset-extendt;
-        endt=offset+duration+extendt;
-        printf("ted_%05d_%07.0f_%07.0f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5));
-    }' ${dst}/.yaml1 > ${dst}/.yaml2
+    if [ ${version} = "v1" ]; then
+        awk '{
+            duration=$3; offset=$5; spkid=$7;
+            gsub(",","",duration);
+            gsub(",","",offset);
+            gsub(",","",spkid);
+            gsub("spk.","",spkid);
+            duration=sprintf("%.7f", duration);
+            if ( duration < 0.2 ) extendt=sprintf("%.7f", (0.2-duration)/2);
+            else extendt=0;
+            offset=sprintf("%.7f", offset);
+            startt=offset-extendt;
+            endt=offset+duration+extendt;
+            printf("ted_%05d_%07.0f_%07.0f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5));
+        }' ${dst}/.yaml1 > ${dst}/.yaml2
+    elif [ ${version} = "v2" ]; then
+        awk '{
+            duration=$3; offset=$5; spkid=$11;
+            gsub(",","",duration);
+            gsub(",","",offset);
+            gsub(",","",spkid);
+            gsub("spk.","",spkid);
+            duration=sprintf("%.7f", duration);
+            if ( duration < 0.2 ) extendt=sprintf("%.7f", (0.2-duration)/2);
+            else extendt=0;
+            offset=sprintf("%.7f", offset);
+            startt=offset-extendt;
+            endt=offset+duration+extendt;
+            printf("ted_%05d_%07.0f_%07.0f\n", spkid, int(1000*startt+0.5), int(1000*endt+0.5));
+        }' ${dst}/.yaml1 > ${dst}/.yaml2
+    else
+        echo "${version} is not available. Select v1 or v2."
+    fi
     # NOTE: Extend the lengths of short utterances (< 0.2s) rather than exclude them
 
     cp ${en} ${dst}/en.org
@@ -81,7 +101,7 @@ for set in train dev tst-COMMON tst-HE; do
         cp ${dst}/${lang}.norm ${dst}/${lang}.norm.tc
 
         # remove punctuation
-        local/remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
+        remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
 
         # tokenization
         tokenizer.perl -l ${lang} -q < ${dst}/${lang}.norm.tc > ${dst}/${lang}.norm.tc.tok
@@ -104,8 +124,8 @@ for set in train dev tst-COMMON tst-HE; do
     n=$(cat ${dst}/.yaml2 | wc -l)
     n_en=$(cat ${dst}/en.norm.tc.tok | wc -l)
     n_tgt=$(cat ${dst}/${tgt_lang}.norm.tc.tok | wc -l)
-    [ ${n} -ne ${n_en} ] && echo "Warning: expected ${n} data data files, found ${n_en}" && exit 1;
-    [ ${n} -ne ${n_tgt} ] && echo "Warning: expected ${n} data data files, found ${n_tgt}" && exit 1;
+    [ ${n} -ne ${n_en} ] && echo "Warning: expected ${n} data files, found ${n_en}" && exit 1;
+    [ ${n} -ne ${n_tgt} ] && echo "Warning: expected ${n} data files, found ${n_tgt}" && exit 1;
 
 
     # (1c) Make segments files from transcript
@@ -133,9 +153,9 @@ for set in train dev tst-COMMON tst-HE; do
     # error check
     n_en=$(cat ${dst}/text.tc.en | wc -l)
     n_tgt=$(cat ${dst}/text.tc.${tgt_lang} | wc -l)
-    [ ${n_en} -ne ${n_tgt} ] && echo "Warning: expected ${n_en} data data files, found ${n_tgt}" && exit 1;
+    [ ${n_en} -ne ${n_tgt} ] && echo "Warning: expected ${n_en} data files, found ${n_tgt}" && exit 1;
 
-    # Copy stuff intoc its final locations [this has been moved from the format_data script]
+    # Copy stuff into its final locations [this has been moved from the format_data script]
     mkdir -p data/${set}.en-${tgt_lang}
 
     # remove duplicated utterances (the same offset)
@@ -157,7 +177,7 @@ for set in train dev tst-COMMON tst-HE; do
     # error check
     n_seg=$(cat data/${set}.en-${tgt_lang}/segments | wc -l)
     n_text=$(cat data/${set}.en-${tgt_lang}/text.tc.${tgt_lang} | wc -l)
-    [ ${n_seg} -ne ${n_text} ] && echo "Warning: expected ${n_seg} data data files, found ${n_text}" && exit 1;
+    [ ${n_seg} -ne ${n_text} ] && echo "Warning: expected ${n_seg} data files, found ${n_text}" && exit 1;
 
     echo "$0: successfully prepared data in ${dst}"
 done

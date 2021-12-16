@@ -5,15 +5,24 @@ from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 
 
 @pytest.mark.parametrize(
-    "input_layer", ["linear", "conv2d", "conv2d6", "conv2d8", "embed"]
+    "input_layer", ["linear", "conv2d", "conv2d2", "conv2d6", "conv2d8", "embed"]
 )
 @pytest.mark.parametrize("positionwise_layer_type", ["conv1d", "conv1d-linear"])
 @pytest.mark.parametrize(
-    "pos_enc_layer_type, selfattention_layer_type",
-    [("abs_pos", "selfattn"), ("rel_pos", "rel_selfattn")],
+    "rel_pos_type, pos_enc_layer_type, selfattention_layer_type",
+    [
+        ("legacy", "abs_pos", "selfattn"),
+        ("latest", "rel_pos", "rel_selfattn"),
+        ("legacy", "rel_pos", "rel_selfattn"),
+        ("legacy", "legacy_rel_pos", "legacy_rel_selfattn"),
+    ],
 )
 def test_encoder_forward_backward(
-    input_layer, positionwise_layer_type, pos_enc_layer_type, selfattention_layer_type
+    input_layer,
+    positionwise_layer_type,
+    rel_pos_type,
+    pos_enc_layer_type,
+    selfattention_layer_type,
 ):
     encoder = ConformerEncoder(
         20,
@@ -23,6 +32,7 @@ def test_encoder_forward_backward(
         num_blocks=2,
         input_layer=input_layer,
         macaron_style=False,
+        rel_pos_type=rel_pos_type,
         pos_enc_layer_type=pos_enc_layer_type,
         selfattention_layer_type=selfattention_layer_type,
         activation_type="swish",
@@ -37,6 +47,39 @@ def test_encoder_forward_backward(
     x_lens = torch.LongTensor([32, 28])
     y, _, _ = encoder(x, x_lens)
     y.sum().backward()
+
+
+def test_encoder_invalid_layer_type():
+    with pytest.raises(ValueError):
+        ConformerEncoder(20, rel_pos_type="dummy")
+    with pytest.raises(ValueError):
+        ConformerEncoder(20, pos_enc_layer_type="dummy")
+    with pytest.raises(ValueError):
+        ConformerEncoder(
+            20, pos_enc_layer_type="abc_pos", selfattention_layer_type="dummy"
+        )
+
+
+def test_encoder_invalid_rel_pos_combination():
+    with pytest.raises(AssertionError):
+        ConformerEncoder(
+            20,
+            rel_pos_type="latest",
+            pos_enc_layer_type="legacy_rel_pos",
+            selfattention_layer_type="legacy_rel_sselfattn",
+        )
+    with pytest.raises(AssertionError):
+        ConformerEncoder(
+            20,
+            pos_enc_layer_type="rel_pos",
+            selfattention_layer_type="legacy_rel_sselfattn",
+        )
+    with pytest.raises(AssertionError):
+        ConformerEncoder(
+            20,
+            pos_enc_layer_type="legacy_rel_pos",
+            selfattention_layer_type="rel_sselfattn",
+        )
 
 
 def test_encoder_output_size():

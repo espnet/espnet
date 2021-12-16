@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2020 Nagoya University (Wen-Chin Huang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -40,7 +40,8 @@ text=${data_dir}/text
 [ -e ${utt2spk} ] && rm ${utt2spk}
 
 # make scp, utt2spk, and spk2utt
-find ${db}/${spk} -follow -name "*.wav" | sort | while read -r filename;do
+lang_char=$(echo ${spk} | head -c 2 | tail -c 1)
+find ${db}/${spk} -follow -name "${lang_char}[12]*.wav" | sort | while read -r filename;do
     id="${spk}_$(basename ${filename} | sed -e "s/\.[^\.]*$//g")"
     echo "${id} ${filename}" >> ${scp}
     echo "${id} ${spk}" >> ${utt2spk}
@@ -49,7 +50,6 @@ utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 echo "finished making wav.scp, utt2spk, spk2utt."
 
 # make text (only for the utts in utt2spk)
-lang_char=$(echo ${spk} | head -c 2 | tail -c 1)
 case "${lang_char}" in
     "M") 
         lang_tag=zh_ZH

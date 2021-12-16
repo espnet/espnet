@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2014, University of Edinburgh (Author: Pawel Swietojanski)
 #           2016  Johns Hopkins University (Author: Daniel Povey)
@@ -106,7 +106,7 @@ awk '{print $1}' $tmpdir/segments | \
     > $tmpdir/utt2spk_stm || exit 1;
 
 #check and correct the case when segment timings for given speaker overlap themself
-#(important for simulatenous asclite scoring to proceed).
+#(important for simultaneous asclite scoring to proceed).
 #There is actually only one such case for devset and automatic segmentetions
 join $tmpdir/utt2spk_stm $tmpdir/segments | \
   awk '{ utt=$1; spk=$2; wav=$3; t_beg=$4; t_end=$5;

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright   2014  Johns Hopkins University (author: Daniel Povey)
 #             2017  Luminar Technologies, Inc. (author: Daniel Galvez)
@@ -14,10 +14,11 @@ if [ "$1" == --remove-archive ]; then
   shift
 fi
 
-if [ $# -ne 2 ]; then
+if [ $# -ne 3 ]; then
   echo "Usage: $0 [--remove-archive] <data-base> <url> <filename>"
   echo "e.g.: $0 /export/data/ https://common-voice-data-download.s3.amazonaws.com/cv_corpus_v1.tar.gz cv_corpus_v1.tar.gz"
   echo "With --remove-archive it will remove the archive after successfully un-tarring it."
+  exit 0;
 fi
 
 data=$1

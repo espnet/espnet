@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Download zip, tar, or tar.gz file from google drive
 
@@ -48,4 +48,4 @@ decompress "${tmp}" "${download_dir}"
 
 # remove tmpfiles
 rm "${tmp}"
-echo "Sucessfully downloaded ${file_ext} file from ${share_url}"
+echo "Successfully downloaded ${file_ext} file from ${share_url}"

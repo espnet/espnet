@@ -1,0 +1,1 @@
+../../asr1/local/find_noisy_transcripts.pl

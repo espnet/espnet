@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 mindepth=0
 maxdepth=1
 
@@ -45,14 +45,14 @@ EOF
 
 
 while IFS= read -r expdir; do
-    if ls "${expdir}"/enhanced_*/scoring/result_stoi.txt &> /dev/null; then
+    if ls "${expdir}"/*/scoring/result_stoi.txt &> /dev/null; then
         echo -e "\n## $(basename ${expdir})\n"
-        grep ^config "${expdir}"/config.yaml
+        [ -e "${expdir}"/config.yaml ] && grep ^config "${expdir}"/config.yaml
         metrics=()
         heading="\n|dataset|"
         sep="|---|"
-        for type in pesq stoi sar sdr sir; do
-            if ls "${expdir}"/enhanced_*/scoring/result_${type}.txt &> /dev/null; then
+        for type in pesq stoi sar sdr sir si_snr; do
+            if ls "${expdir}"/*/scoring/result_${type}.txt &> /dev/null; then
                 metrics+=("$type")
                 heading+="${type^^}|"
                 sep+="---|"
@@ -61,7 +61,7 @@ while IFS= read -r expdir; do
         echo -e "${heading}\n${sep}"
 
         setnames=()
-        for dirname in "${expdir}"/enhanced_*/scoring/result_stoi.txt; do
+        for dirname in "${expdir}"/*/scoring/result_stoi.txt; do
             dset=$(echo $dirname | sed -e "s#${expdir}/\([^/]*\)/scoring/result_stoi.txt#\1#g")
             setnames+=("$dset")
         done

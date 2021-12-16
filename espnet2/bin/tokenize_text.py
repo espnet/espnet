@@ -12,6 +12,7 @@ from typeguard import check_argument_types
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
+from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
@@ -28,7 +29,6 @@ def field2slice(field: Optional[str]) -> slice:
         slice(0, 3, None)
         >>> field2slice("-3")
         slice(None, 3, None)
-
     """
     field = field.strip()
     try:
@@ -54,9 +54,12 @@ def field2slice(field: Optional[str]) -> slice:
     except ValueError:
         raise RuntimeError(f"Format error: e.g. '2-', '2-5', or '-5': {field}")
 
-    # -1 because of 1-based integer following "cut" command
-    # e.g "1-3" -> slice(0, 3)
-    slic = slice(s1 - 1, s2)
+    if s1 is None:
+        slic = slice(None, s2)
+    else:
+        # -1 because of 1-based integer following "cut" command
+        # e.g "1-3" -> slice(0, 3)
+        slic = slice(s1 - 1, s2)
     return slic
 
 
@@ -219,22 +222,14 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--cleaner",
         type=str_or_none,
-        choices=[None, "tacotron", "jaconv", "vietnamese"],
+        choices=[None, "tacotron", "jaconv", "vietnamese", "korean_cleaner"],
         default=None,
         help="Apply text cleaning",
     )
     parser.add_argument(
         "--g2p",
         type=str_or_none,
-        choices=[
-            None,
-            "g2p_en",
-            "g2p_en_no_space",
-            "pyopenjtalk",
-            "pyopenjtalk_kana",
-            "pypinyin_g2p",
-            "pypinyin_g2p_phone",
-        ],
+        choices=g2p_choices,
         default=None,
         help="Specify g2p method if --token_type=phn",
     )

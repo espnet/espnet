@@ -1,0 +1,24 @@
+# network architecture
+model-module: transformer
+att-unit: 512
+embed-unit: 128
+head: 8
+layer: 16
+pos-enc: none
+unit: 2048
+
+# minibatch related
+batchsize: 32
+maxlen: 300
+
+# optimization related
+opt: adam
+schedulers: lr=cosine
+dropout-rate: 0.0
+epoch: 10
+gradclip: 1.0
+lr: 1e-4
+lr-cosine-total: 100000
+lr-cosine-warmup: 1000
+patience: 3
+sortagrad: 0

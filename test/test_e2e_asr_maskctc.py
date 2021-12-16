@@ -52,24 +52,21 @@ def prepare(args):
         x[i, ilens[i] :] = -1
         y[i, olens[i] :] = model.ignore_id
 
-    data = []
+    data = {}
+    uttid_list = []
     for i in range(batchsize):
-        data.append(
-            (
-                "utt%d" % i,
-                {
-                    "input": [{"shape": [ilens[i], idim]}],
-                    "output": [{"shape": [olens[i]]}],
-                },
-            )
-        )
+        data["utt%d" % i] = {
+            "input": [{"shape": [ilens[i], idim]}],
+            "output": [{"shape": [olens[i]]}],
+        }
+        uttid_list.append("utt%d" % i)
 
-    return model, x, torch.tensor(ilens), y, data
+    return model, x, torch.tensor(ilens), y, data, uttid_list
 
 
 def test_mask():
     args = make_arg()
-    model, x, ilens, y, data = prepare(args)
+    model, x, ilens, y, data, uttid_list = prepare(args)
 
     # check <sos>/<eos>, <mask> position
     n_char = len(args.char_list) + 1
@@ -87,6 +84,15 @@ def _savefn(*args, **kwargs):
     return
 
 
+maskctc_interctc = {
+    "maskctc_n_iterations": 0,
+    "maskctc_probability_threshold": 0.5,
+    "elayers": 2,
+    "intermediate_ctc_weight": 0.3,
+    "intermediate_ctc_layer": "1",
+}
+
+
 @pytest.mark.parametrize(
     "model_dict",
     [
@@ -94,11 +100,12 @@ def _savefn(*args, **kwargs):
         ({"maskctc_n_iterations": 1, "maskctc_probability_threshold": 0.5}),
         ({"maskctc_n_iterations": 2, "maskctc_probability_threshold": 0.5}),
         ({"maskctc_n_iterations": 0, "maskctc_probability_threshold": 0.5}),
+        maskctc_interctc,
     ],
 )
 def test_transformer_trainable_and_decodable(model_dict):
     args = make_arg(**model_dict)
-    model, x, ilens, y, data = prepare(args)
+    model, x, ilens, y, data, uttid_list = prepare(args)
 
     # decoding params
     recog_args = argparse.Namespace(
@@ -114,7 +121,7 @@ def test_transformer_trainable_and_decodable(model_dict):
 
     # test attention plot
     attn_dict = model.calculate_all_attentions(x[0:1], ilens[0:1], y[0:1])
-    plot.plot_multi_head_attention(data, attn_dict, "", savefn=_savefn)
+    plot.plot_multi_head_attention(data, uttid_list, attn_dict, "", savefn=_savefn)
 
     # test decoding
     with torch.no_grad():

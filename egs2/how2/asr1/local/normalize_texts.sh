@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 normdir=local/data_normalization
 normfiles="shortened symbols url nlsyms"

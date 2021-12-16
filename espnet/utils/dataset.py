@@ -14,7 +14,7 @@ class TransformDataset(torch.utils.data.Dataset):
 
     Args:
         data: list object from make_batchset
-        transfrom: transform function
+        transform: transform function
 
     """
 

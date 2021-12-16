@@ -367,7 +367,7 @@ unlink($queue_logfile, $syncfile);
 #
 open(Q, ">$queue_scriptfile") || die "Failed to write to $queue_scriptfile";
 
-print Q "#!/bin/bash\n";
+print Q "#!/usr/bin/env bash\n";
 print Q "cd $cwd\n";
 print Q ". ./path.sh\n";
 print Q "( echo '#' Running on \`hostname\`\n";
@@ -432,7 +432,7 @@ for (my $try = 1; $try < 5; $try++) {
         print STDERR "queue.pl: It looks like the queue master may be inaccessible. " .
           " Trying again after $waitfor seconts\n";
         sleep($waitfor);
-        # ... and continue throught the loop.
+        # ... and continue through the loop.
       } else {
         exit(1);
       }

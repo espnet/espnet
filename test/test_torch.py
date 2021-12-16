@@ -1,15 +1,8 @@
-# coding: utf-8
-
 # Copyright 2017 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+import torch
 
-
-import pytest
-
-pytest.importorskip("torch")
-import torch  # NOQA
-
-from espnet.nets.pytorch_backend.nets_utils import pad_list  # NOQA
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 def test_pad_list():
@@ -31,3 +24,7 @@ def test_bmm_attention():
     import numpy
 
     numpy.testing.assert_allclose(naive.numpy(), fast.numpy(), 1e-6, 1e-6)
+
+
+def test_eye_bool_dtype():
+    assert torch.eye(2, dtype=torch.bool).dtype == torch.bool

@@ -1,4 +1,5 @@
-#!/bin/bash -e
+#!/usr/bin/env bash
+set -e
 
 # Copyright 2019 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -28,7 +29,7 @@ cwd=`pwd`
 if [ ! -e ${db}/${lang} ]; then
     mkdir -p ${db}
     cd ${db}
-    wget http://www.caito.de/data/Training/stt_tts/${lang}.tgz
+    wget http://data.solak.de/data/Training/stt_tts/${lang}.tgz
     tar xvf ${lang}.tgz
     rm ${lang}.tgz
     cd $cwd
