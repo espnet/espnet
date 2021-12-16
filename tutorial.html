@@ -57,7 +57,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#ctc-attention-and-hybrid-ctc-attention">CTC, attention, and hybrid CTC/attention</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#transducer">Transducer</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#architecture">Architecture</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#augmented-training">Augmented training</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multi-task-learning">Multi-task learning</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#inference">Inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#additional-notes">Additional notes</a></li>
 </ul>
@@ -385,6 +385,7 @@ minlenratio: <span class="m">0</span>.3
 </section>
 <section id="transducer">
 <h2>Transducer<a class="headerlink" href="#transducer" title="Permalink to this headline">¶</a></h2>
+<p><em><strong>Important: If you encounter any issue related to Transducer loss, please open an issue in <a class="reference external" href="https://github.com/b-flo/warp-transducer">our fork of warp-transducer</a>.</strong></em></p>
 <p>ESPnet supports models trained with Transducer loss, aka Transducer models. To train such model, the following should be set in the training config:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">criterion</span><span class="p">:</span> <span class="n">loss</span>
 <span class="n">model</span><span class="o">-</span><span class="n">module</span><span class="p">:</span> <span class="s2">&quot;espnet.nets.pytorch_backend.e2e_asr_transducer:E2E&quot;</span>
@@ -497,10 +498,10 @@ minlenratio: <span class="m">0</span>.3
 </li>
 </ol>
 </section>
-<section id="augmented-training">
-<h3>Augmented training<a class="headerlink" href="#augmented-training" title="Permalink to this headline">¶</a></h3>
-<p>We also support augmented Transducer model training with various auxiliary tasks, such as CTC loss, LM loss (label-smoothing), auxiliary Transducer loss, and symmetric KL divergence loss.
-The five losses can be simultaneously trained and jointly optimize the total loss function defined as:</p>
+<section id="multi-task-learning">
+<h3>Multi-task learning<a class="headerlink" href="#multi-task-learning" title="Permalink to this headline">¶</a></h3>
+<p>We also support multi-task learning with various auxiliary losses, such as: CTC, cross-entropy w/ label-smoothing (LM loss), auxiliary Transducer, and symmetric KL divergence.
+The four losses can be simultaneously trained with main Transducer loss to jointly optimize the total loss defined as:</p>
 <p><img alt="augmented Transducer training" src="http://www.sciweavers.org/tex2img.php?eq=%5Cmathcal%7BL%7D_%7Btot%7D%20%3D%20%5Clambda_%7B1%7D%5Cmathcal%7BL%7D_%7B1%7D%20%2B%20%5Clambda_%7B2%7D%5Cmathcal%7BL%7D_%7B2%7D%20%2B%20%5Clambda_%7B3%7D%5Cmathcal%7BL%7D_%7B3%7D%20%2B%20%5Clambda_%7B4%7D%20%5Cmathcal%7BL%7D_%7B4%7D%20%2B%20%5Clambda_%7B5%7D%20%5Cmathcal%7BL%7D_%7B5%7D&amp;bc=White&amp;fc=Black&amp;im=jpg&amp;fs=12&amp;ff=arev&amp;edit=" /></p>
 <p>where the losses are respectively, in order: The main Transducer loss, the CTC loss, the auxiliary Transducer loss, the symmetric KL divergence loss, and the LM loss. Lambda values define their respective contribution to the overall loss. Additionally, each loss can be independently selected or omitted depending on the task.</p>
 <p>Each loss can be defined in the training config alongside its specific options, such as follow:</p>
@@ -535,12 +536,12 @@ The five losses can be simultaneously trained and jointly optimize the total los
 <h3>Inference<a class="headerlink" href="#inference" title="Permalink to this headline">¶</a></h3>
 <p>Various decoding algorithms are also available for Transducer by setting <code class="docutils literal notranslate"><span class="pre">beam-size</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type</span></code> parameters in decode config.</p>
 <ul class="simple">
-<li><p>Greedy search  constrained to one emission by timestep (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">1</span></code>)</p></li>
-<li><p>Beam search algorithm without prefix search. (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">default</span></code>)</p></li>
-<li><p>Time Synchronous Decoding <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/9053040">Saon et al. (2020)</a>. (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">tsd</span></code>)</p></li>
-<li><p>Alignment-Length Synchronous Decoding <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/9053040">Saon et al. (2020)</a>. (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">alsd</span></code>)</p></li>
-<li><p>N-step Constrained beam search modified from <a class="reference external" href="https://arxiv.org/abs/2002.03577">Kim et al., 2020</a>. (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">default</span></code>)</p></li>
-<li><p>modified Adaptive Expansion Search, based on <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/9250505">Kim et al. (2021)</a> and NSC. (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">maes</span></code>)</p></li>
+<li><p>Greedy search  constrained to one emission by timestep (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">1</span></code>).</p></li>
+<li><p>Beam search algorithm without prefix search (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">default</span></code>).</p></li>
+<li><p>Time Synchronous Decoding <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/9053040">[Saon et al., 2020]</a> (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">tsd</span></code>).</p></li>
+<li><p>Alignment-Length Synchronous Decoding <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/9053040">[Saon et al., 2020]</a> (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">alsd</span></code>).</p></li>
+<li><p>N-step Constrained beam search modified from <a class="reference external" href="https://arxiv.org/abs/2002.03577">[Kim et al., 2020]</a> (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">default</span></code>).</p></li>
+<li><p>modified Adaptive Expansion Search, based on <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/9250505">[Kim et al., 2021]</a> and NSC (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">maes</span></code>).</p></li>
 </ul>
 <p>The algorithms share two parameters to control beam size (<code class="docutils literal notranslate"><span class="pre">beam-size</span></code>) and final hypotheses normalization (<code class="docutils literal notranslate"><span class="pre">score-norm-transducer</span></code>). The specific parameters for each algorithm are:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="c1"># Default beam search</span>
@@ -557,7 +558,7 @@ The five losses can be simultaneously trained and jointly optimize the total los
     <span class="c1"># N-step Constrained beam search</span>
     <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">nsc</span>
     <span class="n">nstep</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">maximum</span> <span class="n">expansion</span> <span class="n">steps</span> <span class="n">at</span> <span class="n">each</span> <span class="n">time</span> <span class="n">step</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
-           <span class="c1"># nstep = max-sym-exp + 1 (blank transition)</span>
+           <span class="c1"># nstep = max-sym-exp + 1 (blank)</span>
     <span class="n">prefix</span><span class="o">-</span><span class="n">alpha</span><span class="p">:</span> <span class="p">[</span><span class="n">Maximum</span> <span class="n">prefix</span> <span class="n">length</span> <span class="ow">in</span> <span class="n">prefix</span> <span class="n">search</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
 
     <span class="c1"># modified Adaptive Expansion Search</span>
@@ -575,8 +576,8 @@ The five losses can be simultaneously trained and jointly optimize the total los
 <ul class="simple">
 <li><p>Similarly to training with CTC, Transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., –recog_model model.loss.best).</p></li>
 <li><p>There are several differences between MTL and Transducer training/decoding options. The users should refer to <code class="docutils literal notranslate"><span class="pre">espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py</span></code> for an overview and <code class="docutils literal notranslate"><span class="pre">espnet/espnet/nets/pytorch_backend/transducer/arguments</span></code> for all possible arguments.</p></li>
-<li><p>FastEmit regularization <a class="reference external" href="https://arxiv.org/pdf/2010.11148">Yu et al. (2021)</a> is available through <code class="docutils literal notranslate"><span class="pre">--fastemit-lambda</span></code> training parameter (default = 0.0). If you encounter any issue related to an undefined parameter in <code class="docutils literal notranslate"><span class="pre">warp-transducer</span></code>, make sure your repo is up-to-date and re-install warp-transducer module (See <code class="docutils literal notranslate"><span class="pre">installation.md</span></code>)</p></li>
-<li><p>RNN-decoder pre-initialization using an LM is supported. The LM state dict keys (<code class="docutils literal notranslate"><span class="pre">predictor.*</span></code>) will be matched to AM state dict keys (<code class="docutils literal notranslate"><span class="pre">dec.*</span></code>).</p></li>
+<li><p>FastEmit regularization <a class="reference external" href="https://arxiv.org/pdf/2010.11148">[Yu et al., 2021]</a> is available through <code class="docutils literal notranslate"><span class="pre">--fastemit-lambda</span></code> training parameter (default = 0.0).</p></li>
+<li><p>RNN-decoder pre-initialization using an LM is supported. Note that regular decoder keys are expected. The LM state dict keys (<code class="docutils literal notranslate"><span class="pre">predictor.*</span></code>) will be renamed according to AM state dict keys (<code class="docutils literal notranslate"><span class="pre">dec.*</span></code>).</p></li>
 <li><p>Transformer-decoder pre-initialization using a Transformer LM is not supported yet.</p></li>
 </ul>
 </section>
