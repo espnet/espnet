@@ -12,7 +12,6 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
@@ -55,6 +54,8 @@ from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.asr.transducer.joint_network import JointNetwork
+from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -143,6 +144,7 @@ decoder_choices = ClassChoices(
         dynamic_conv=DynamicConvolutionTransformerDecoder,
         dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
         rnn=RNNDecoder,
+        transducer=TransducerDecoder,
     ),
     type_check=AbsDecoder,
     default="rnn",
@@ -216,12 +218,6 @@ class ASRTask(AbsTask):
             action=NestedDictAction,
             default=get_default_kwargs(CTC),
             help="The keyword arguments for CTC class.",
-        )
-        group.add_argument(
-            "--transducer_conf",
-            action=NestedDictAction,
-            default=None,
-            help="The keyword arguments for transducer decoder class.",
         )
         group.add_argument(
             "--joint_net_conf",
@@ -453,45 +449,32 @@ class ASRTask(AbsTask):
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
 
-        decoder = decoder_class(
-            vocab_size=vocab_size,
-            encoder_output_size=encoder_output_size,
-            **args.decoder_conf,
-        )
+        if args.decoder == "transducer":
+            decoder = decoder_class(
+                vocab_size,
+                embed_pad=0,
+                **args.decoder_conf,
+            )
+
+            joint_network = JointNetwork(
+                vocab_size,
+                encoder.output_size(),
+                decoder.dunits,
+                **args.joint_net_conf,
+            )
+        else:
+            decoder = decoder_class(
+                vocab_size=vocab_size,
+                encoder_output_size=encoder_output_size,
+                **args.decoder_conf,
+            )
+
+            joint_network = None
 
         # 6. CTC
         ctc = CTC(
             odim=vocab_size, encoder_output_sizse=encoder_output_size, **args.ctc_conf
         )
-
-        # 7. RNN-T Decoder
-        if args.transducer_conf:
-            if (
-                not isinstance(decoder_class, RNNDecoder)
-                and "use_attention" in args.transducer_conf
-                and args.transducer_conf["use_attention"] is True
-            ):
-                raise NotImplementedError(
-                    "Transformer class with use_attention=True"
-                    " is not supported for transducer yet."
-                )
-
-            transducer_decoder = decoder_class(
-                vocab_size=vocab_size,
-                encoder_output_size=encoder.output_size(),
-                embed_pad=0,
-                use_output_layer=False,
-                **args.transducer_conf,
-            )
-            joint_network = JointNetwork(
-                vocab_size=vocab_size,
-                encoder_output_size=encoder.output_size(),
-                decoder_output_size=transducer_decoder.dunits,
-                **args.joint_net_conf,
-            )
-        else:
-            transducer_decoder = None
-            joint_network = None
 
         # 8. Build model
         model = ESPnetASRModel(
@@ -504,7 +487,6 @@ class ASRTask(AbsTask):
             postencoder=postencoder,
             decoder=decoder,
             ctc=ctc,
-            transducer_decoder=transducer_decoder,
             joint_network=joint_network,
             token_list=token_list,
             **args.model_conf,

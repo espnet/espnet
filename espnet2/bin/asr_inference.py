@@ -25,6 +25,9 @@ from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
+from espnet2.asr.transducer.beam_search_transducer import (
+    ExtendedHypothesis as ExtTransHypothesis,  # noqa: H301
+)
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
@@ -114,11 +117,11 @@ class Speech2Text:
         else:
             ngram = None
         scorers["ngram"] = ngram
-            
+
         # 4. Build BeamSearch object
-        if asr_model.transducer_decoder:
+        if asr_model.joint_network is not None:
             beam_search_transducer = BeamSearchTransducer(
-                decoder=asr_model.transducer_decoder,
+                decoder=asr_model.decoder,
                 joint_network=asr_model.joint_network,
                 beam_size=beam_size,
                 lm=scorers["lm"] if "lm" in scorers else None,
@@ -157,7 +160,9 @@ class Speech2Text:
                     if streaming:
                         beam_search.__class__ = BatchBeamSearchOnlineSim
                         beam_search.set_streaming_config(asr_train_config)
-                        logging.info("BatchBeamSearchOnlineSim implementation is selected.")
+                        logging.info(
+                            "BatchBeamSearchOnlineSim implementation is selected."
+                        )
                     else:
                         beam_search.__class__ = BatchBeamSearch
                         logging.info("BatchBeamSearch implementation is selected.")
@@ -173,7 +178,6 @@ class Speech2Text:
                     scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
             logging.info(f"Beam_search: {beam_search}")
             logging.info(f"Decoding device={device}, dtype={dtype}")
-
 
         # 5. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
@@ -209,7 +213,12 @@ class Speech2Text:
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
     ) -> List[
-        Tuple[Optional[str], List[str], List[int], Union[Hypothesis, TransHypothesis]]
+        Tuple[
+            Optional[str],
+            List[str],
+            List[int],
+            Union[Hypothesis, ExtTransHypothesis, TransHypothesis],
+        ]
     ]:
         """Inference
 

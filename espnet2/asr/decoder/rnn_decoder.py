@@ -1,8 +1,4 @@
 import random
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
 
 import numpy as np
 import torch
@@ -13,7 +9,6 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.rnn.attentions import initial_att
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet2.asr.transducer.beam_search_transducer import Hypothesis
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 
 
@@ -100,9 +95,6 @@ class RNNDecoder(AbsDecoder):
         replace_sos: bool = False,
         num_encs: int = 1,
         att_conf: dict = get_default_kwargs(build_attention_list),
-        embed_pad: Optional[int] = None,
-        use_attention: bool = True,
-        use_output_layer: bool = True,
     ):
         # FIXME(kamo): The parts of num_spk should be refactored more more more
         assert check_argument_types()
@@ -117,31 +109,23 @@ class RNNDecoder(AbsDecoder):
         self.context_residual = context_residual
         self.sos = vocab_size - 1
         self.eos = vocab_size - 1
-        self.blank = embed_pad
         self.odim = vocab_size
         self.sampling_probability = sampling_probability
         self.dropout = dropout
         self.num_encs = num_encs
-        self.use_attention = use_attention
-        self.use_output_layer = use_output_layer
 
         # for multilingual translation
         self.replace_sos = replace_sos
-        self.embed = torch.nn.Embedding(vocab_size, hidden_size, padding_idx=embed_pad)
+
+        self.embed = torch.nn.Embedding(vocab_size, hidden_size)
         self.dropout_emb = torch.nn.Dropout(p=dropout)
 
         self.decoder = torch.nn.ModuleList()
         self.dropout_dec = torch.nn.ModuleList()
-
-        if use_attention:
-            input_size = hidden_size + eprojs
-        else:
-            input_size = hidden_size
-
         self.decoder += [
-            torch.nn.LSTMCell(input_size, hidden_size)
+            torch.nn.LSTMCell(hidden_size + eprojs, hidden_size)
             if self.dtype == "lstm"
-            else torch.nn.GRUCell(input_size, hidden_size)
+            else torch.nn.GRUCell(hidden_size + eprojs, hidden_size)
         ]
         self.dropout_dec += [torch.nn.Dropout(p=dropout)]
         for _ in range(1, self.dlayers):
@@ -222,51 +206,44 @@ class RNNDecoder(AbsDecoder):
 
         # loop for an output sequence
         for i in range(olength):
-            if self.use_attention:
-                if self.num_encs == 1:
-                    att_c, att_w = self.att_list[att_idx](
-                        hs_pad[0], hlens[0], self.dropout_dec[0](z_list[0]), att_w
-                    )
-                else:
-                    for idx in range(self.num_encs):
-                        att_c_list[idx], att_w_list[idx] = self.att_list[idx](
-                            hs_pad[idx],
-                            hlens[idx],
-                            self.dropout_dec[0](z_list[0]),
-                            att_w_list[idx],
-                        )
-                    hs_pad_han = torch.stack(att_c_list, dim=1)
-                    hlens_han = [self.num_encs] * len(ys_in_pad)
-                    att_c, att_w_list[self.num_encs] = self.att_list[self.num_encs](
-                        hs_pad_han,
-                        hlens_han,
-                        self.dropout_dec[0](z_list[0]),
-                        att_w_list[self.num_encs],
-                    )
-                if i > 0 and random.random() < self.sampling_probability:
-                    z_out = self.output(z_all[-1])
-                    z_out = np.argmax(z_out.detach().cpu(), axis=1)
-                    z_out = self.dropout_emb(self.embed(to_device(self, z_out)))
-                    ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
-                else:
-                    # utt x (zdim + hdim)
-                    ey = torch.cat((eys[:, i, :], att_c), dim=1)
-                z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
-                if self.context_residual:
-                    z_all.append(
-                        torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1)
-                    )  # utt x (zdim + hdim)
-                else:
-                    z_all.append(self.dropout_dec[-1](z_list[-1]))  # utt x (zdim)
-            else:
-                z_list, c_list = self.rnn_forward(
-                    eys[:, i, :], z_list, c_list, z_list, c_list
+            if self.num_encs == 1:
+                att_c, att_w = self.att_list[att_idx](
+                    hs_pad[0], hlens[0], self.dropout_dec[0](z_list[0]), att_w
                 )
-                z_all.append(self.dropout_dec[-1](z_list[-1]))
+            else:
+                for idx in range(self.num_encs):
+                    att_c_list[idx], att_w_list[idx] = self.att_list[idx](
+                        hs_pad[idx],
+                        hlens[idx],
+                        self.dropout_dec[0](z_list[0]),
+                        att_w_list[idx],
+                    )
+                hs_pad_han = torch.stack(att_c_list, dim=1)
+                hlens_han = [self.num_encs] * len(ys_in_pad)
+                att_c, att_w_list[self.num_encs] = self.att_list[self.num_encs](
+                    hs_pad_han,
+                    hlens_han,
+                    self.dropout_dec[0](z_list[0]),
+                    att_w_list[self.num_encs],
+                )
+            if i > 0 and random.random() < self.sampling_probability:
+                z_out = self.output(z_all[-1])
+                z_out = np.argmax(z_out.detach().cpu(), axis=1)
+                z_out = self.dropout_emb(self.embed(to_device(self, z_out)))
+                ey = torch.cat((z_out, att_c), dim=1)  # utt x (zdim + hdim)
+            else:
+                # utt x (zdim + hdim)
+                ey = torch.cat((eys[:, i, :], att_c), dim=1)
+            z_list, c_list = self.rnn_forward(ey, z_list, c_list, z_list, c_list)
+            if self.context_residual:
+                z_all.append(
+                    torch.cat((self.dropout_dec[-1](z_list[-1]), att_c), dim=-1)
+                )  # utt x (zdim + hdim)
+            else:
+                z_all.append(self.dropout_dec[-1](z_list[-1]))  # utt x (zdim)
 
         z_all = torch.stack(z_all, dim=1)
-        if self.use_output_layer:
-            z_all = self.output(z_all)
+        z_all = self.output(z_all)
         z_all.masked_fill_(
             make_pad_mask(ys_in_lens, z_all, 1),
             0,
@@ -295,32 +272,12 @@ class RNNDecoder(AbsDecoder):
             for idx in range(self.num_encs + 1):
                 # reset pre-computation of h in atts and han
                 self.att_list[idx].reset()
-
-        if self.use_output_layer:
-            return dict(
-                c_prev=c_list[:],
-                z_prev=z_list[:],
-                a_prev=a,
-                workspace=(att_idx, z_list, c_list),
-            )
-        else:
-            if self.use_attention:
-                return ((z_list, c_list), None)
-            else:
-                return (z_list, c_list)
-
-    def init_batch_states(self, x: torch.Tensor) -> torch.Tensor:
-        z_list = [self.zero_state(x)]
-        c_list = [self.zero_state(x)]
-
-        for _ in range(1, self.dlayers):
-            z_list.append(self.zero_state(x))
-            c_list.append(self.zero_state(x))
-
-        if self.use_attention:
-            return ((z_list, c_list), None)
-        else:
-            return (z_list, c_list)
+        return dict(
+            c_prev=c_list[:],
+            z_prev=z_list[:],
+            a_prev=a,
+            workspace=(att_idx, z_list, c_list),
+        )
 
     def score(self, yseq, state, x):
         # to support mutiple encoder asr mode, in single encoder mode,
@@ -375,235 +332,3 @@ class RNNDecoder(AbsDecoder):
                 workspace=(att_idx, z_list, c_list),
             ),
         )
-
-    def step_transducer(
-        self, hyp: Hypothesis, cache: dict, init_tensor: torch.Tensor = None
-    ) -> Union[Tuple[List, List], Tuple[Tuple[List, List], torch.Tensor]]:
-        """Forward one step.
-
-        Args:
-            hyp: Hypothesis
-            cache: States cache
-            init_tensor: initial tensor for att. (1, max_len)
-
-        Returns:
-            y: Decoder outputs (1, D_dec)
-            state: Decoder states
-                ([L x (1, D_dec)], [L x (1, D_dec)]) or
-                (([L x (1, D_dec)], [L x (1, D_dec)]), (1, max_len))
-            vy[0]: Token id for LM (1)
-
-        """
-        vy = to_device(self, torch.full((1, 1), hyp.yseq[-1], dtype=torch.long))
-
-        str_yseq = "".join([str(x) for x in hyp.yseq])
-
-        if str_yseq in cache:
-            y, state = cache[str_yseq]
-        else:
-            ey = self.embed(vy)
-
-            if self.use_attention:
-                att_c, att_w = self.att_list[0](
-                    init_tensor,
-                    [init_tensor.size(1)],
-                    hyp.dec_state[0][0][0],
-                    hyp.dec_state[1],
-                )
-
-                ey = torch.cat((ey[0], att_c), dim=1)
-
-                dec_state = self.rnn_forward(
-                    ey,
-                    hyp.dec_state[0][0][:],
-                    hyp.dec_state[0][1][:],
-                    *hyp.dec_state[0],
-                )
-                state = (dec_state, att_w)
-            else:
-                dec_state = self.rnn_forward(
-                    ey[0],
-                    hyp.dec_state[0][:],
-                    hyp.dec_state[1][:],
-                    *hyp.dec_state,
-                )
-                state = dec_state
-            y = self.dropout_dec[-1](dec_state[0][-1])
-
-            cache[str_yseq] = (y, state)
-
-        return y, state, vy[0]
-
-    def batch_step_transducer(
-        self,
-        hyps: List,
-        batch_states: Union[Tuple[List, List], Tuple[Tuple[List, List], torch.Tensor]],
-        cache: dict,
-        init_tensor: torch.Tensor = None,
-    ) -> Union[Tuple[List, List], Tuple[Tuple[List, List], torch.Tensor]]:
-        """Forward batch one step.
-
-        Args:
-            hyps: Batch of hypotheses
-            batch_states: Batch of decoder states
-                ([L x (B, D_dec)], [L x (B, D_dec)]) or
-                (([L x (B, D_dec)], [L x (B, D_dec)]), (B, max_len))
-            cache: States cache
-
-        Returns:
-            batch_y: Decoder outputs (B, D_dec)
-            batch_states: Batch of decoder states
-                ([L x (B, D_dec)], [L x (B, D_dec)]) or
-                (([L x (B, D_dec)], [L x (B, D_dec)]), (B, max_len))
-            lm_tokens: Batch of token ids for LM (B, 1)
-
-        """
-        final_batch = len(hyps)
-
-        tokens = []
-        process = []
-        done = [None for _ in range(final_batch)]
-
-        for i, hyp in enumerate(hyps):
-            str_yseq = "".join([str(x) for x in hyp.yseq])
-
-            if str_yseq in cache:
-                done[i] = cache[str_yseq]
-            else:
-                tokens.append(hyp.yseq[-1])
-                process.append((str_yseq, hyp.dec_state))
-
-        if process:
-            batch = len(process)
-
-            tokens = to_device(self, torch.LongTensor(tokens).view(batch))
-
-            if self.use_attention:
-                state = self.init_batch_states(init_tensor)
-                dec_state = self._create_batch_states(state, [p[1] for p in process])
-
-                ey = self.embed(tokens)
-
-                enc_hs = init_tensor.expand(batch, -1, -1)
-                enc_len = [init_tensor.squeeze(0).size(0)] * batch
-
-                att_c, att_w = self.att_list[0](
-                    enc_hs, enc_len, state[0][0][0], state[1]
-                )
-
-                ey = torch.cat((ey, att_c), dim=1)
-
-                dec_state = self.rnn_forward(
-                    ey, state[0][0][:], state[0][1][:], *state[0]
-                )
-            else:
-                dec_state = self.init_batch_states(torch.zeros((batch, self.dunits)))
-                dec_state = self._create_batch_states(
-                    dec_state, [p[1] for p in process]
-                )
-
-                ey = self.embed(tokens)
-
-                dec_state = self.rnn_forward(
-                    ey, dec_state[0][:], dec_state[1][:], *dec_state
-                )
-            y = self.dropout_dec[-1](dec_state[0][-1])
-
-        j = 0
-        for i in range(final_batch):
-            if done[i] is None:
-                if self.use_attention:
-                    new_state = self._select_state((dec_state, att_w), j)
-                else:
-                    new_state = self._select_state(dec_state, j)
-
-                done[i] = (y[j], new_state)
-                cache[process[j][0]] = (y[j], new_state)
-
-                j += 1
-
-        batch_states = self._create_batch_states(batch_states, [d[1] for d in done])
-        batch_y = torch.stack([d[0] for d in done])
-
-        lm_tokens = to_device(
-            self, torch.LongTensor([h.yseq[-1] for h in hyps]).view(final_batch, 1)
-        )
-
-        return batch_y, batch_states, lm_tokens
-
-    def _select_state(
-        self,
-        batch_states: Union[Tuple[List, List], Tuple[Tuple[List, List], torch.Tensor]],
-        idx: int,
-    ) -> Union[Tuple[List, List], Tuple[Tuple[List, List], torch.Tensor]]:
-        """Get decoder state from batch of states, for given id.
-
-        Args:
-            batch_states: Batch of decoder states
-                ([L x (B, D_dec)], [L x (B, D_dec)]) or
-                (([L x (B, D_dec)], [L x (B, D_dec)]), (B, max_len))
-            idx: Index to extract state from batch of states
-
-        Returns:
-            (): Decoder states for given id
-                ([L x (1, D_dec)], [L x (1, D_dec)]) or
-                (([L x (1, D_dec)], [L x (1, D_dec)]), (1, max_len))
-        """
-        if self.use_attention:
-            z_list = [batch_states[0][0][layer][idx] for layer in range(self.dlayers)]
-            c_list = [batch_states[0][1][layer][idx] for layer in range(self.dlayers)]
-
-            att_state = (
-                batch_states[1][idx] if batch_states[1] is not None else batch_states[1]
-            )
-            return ((z_list, c_list), att_state)
-        else:
-            z_list = [batch_states[0][layer][idx] for layer in range(self.dlayers)]
-            c_list = [batch_states[1][layer][idx] for layer in range(self.dlayers)]
-
-            return (z_list, c_list)
-
-    def _create_batch_states(
-        self,
-        batch_states: Union[Tuple[List, List], Tuple[List, List, torch.Tensor]],
-        l_states: Union[List[Tuple[List, List]], List[Tuple[List, List, torch.Tensor]]],
-        l_tokens: List[int] = None,
-    ) -> Union[Tuple[List, List], Tuple[Tuple[List, List], torch.Tensor]]:
-        """Create batch of decoder states.
-
-        Args:
-            batch_states: Batch of decoder states
-               ([L x (B, D_dec)], [L x (B, D_dec)]) or
-               (([L x (B, D_dec)], [L x (B, D_dec)]), (B, max_len))
-            l_states: List of decoder states
-                [B x ([L x (1, D_dec)], [L x (1, D_dec)])] or
-                [B x (([L x (1, D_dec)], [L x (1, D_dec)]), (1, max_len))]
-
-        Returns:
-            batch_states: Batch of decoder states
-                ([L x (B, D_dec)], [L x (B, D_dec)]) or
-                (([L x (B, D_dec)], [L x (B, D_dec)]), (B, max_len))
-
-        """
-        if self.use_attention:
-            for layer in range(self.dlayers):
-                batch_states[0][0][layer] = torch.stack(
-                    [s[0][0][layer] for s in l_states]
-                )
-                batch_states[0][1][layer] = torch.stack(
-                    [s[0][1][layer] for s in l_states]
-                )
-
-            att_states = (
-                torch.stack([s[1] for s in l_states])
-                if l_states[0][1] is not None
-                else None
-            )
-
-            return (batch_states[0], att_states)
-        else:
-            for layer in range(self.dlayers):
-                batch_states[0][layer] = torch.stack([s[0][layer] for s in l_states])
-                batch_states[1][layer] = torch.stack([s[1][layer] for s in l_states])
-
-            return batch_states
