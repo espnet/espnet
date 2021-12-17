@@ -49,6 +49,8 @@ class S3prlFrontend(AbsFrontend):
         self.upstream, self.featurizer = self._get_upstream(frontend_conf)
         self.pretrained_params = copy.deepcopy(self.upstream.state_dict())
         self.output_dim = self.featurizer.output_dim
+        self.frontend_type = "s3prl"
+        self.hop_length = self.upstream.get_downsample_rates("key")
 
     def _get_upstream(self, frontend_conf):
         """Get S3PRL upstream model."""
