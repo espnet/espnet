@@ -91,11 +91,11 @@ class FusedFrontends(AbsFrontend):
                 torch.nn.Linear(
                     in_features=frontend.output_size(),
                     out_features=self.factors[i] * self.proj_dim,
-                    device=dev,
                 )
                 for i, frontend in enumerate(self.frontends)
             ]
             self.projection_layers = torch.nn.ModuleList(self.projection_layers)
+            self.projection_layers = self.projection_layers.to(torch.device(dev))
 
     def output_size(self) -> int:
         return len(self.frontends) * self.proj_dim
