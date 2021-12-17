@@ -4,7 +4,6 @@ import torch
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch
-from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.transformer_decoder import (
@@ -52,43 +51,6 @@ def test_TransformerDecoder_backward(
         t = torch.randn(2, 4, 10)
     t_lens = torch.tensor([4, 3], dtype=torch.long)
     z_all, ys_in_lens = decoder(x, x_lens, t, t_lens)
-    z_all.sum().backward()
-
-
-@pytest.mark.parametrize("normalize_before", [True, False])
-@pytest.mark.parametrize("use_attention", [True, False])
-@pytest.mark.parametrize(
-    "decoder_class",
-    [
-        TransformerDecoder,
-        LightweightConvolutionTransformerDecoder,
-        LightweightConvolution2DTransformerDecoder,
-        DynamicConvolutionTransformerDecoder,
-        DynamicConvolution2DTransformerDecoder,
-    ],
-)
-def test_transducer_TransformerDecoder_backward(
-    normalize_before, use_attention, decoder_class
-):
-    decoder = decoder_class(
-        10,
-        12,
-        normalize_before=normalize_before,
-        use_output_layer=False,
-        linear_units=10,
-        use_attention=False,
-        embed_pad=0,
-    )
-    joint_net = JointNetwork(10, 12, decoder.dunits, joint_space_size=20)
-
-    x = torch.randn(2, 9, 12)
-    x_lens = torch.tensor([9, 7], dtype=torch.long)
-    t = torch.randint(0, 10, [2, 4], dtype=torch.long)
-    t_lens = torch.tensor([4, 3], dtype=torch.long)
-
-    decoder_out, _ = decoder(x, x_lens, t, t_lens)
-    z_all = joint_net(x.unsqueeze(2), decoder_out.unsqueeze(1))
-
     z_all.sum().backward()
 
 
