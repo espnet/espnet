@@ -1,4 +1,3 @@
-from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
 import torch
 
