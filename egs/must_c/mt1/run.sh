@@ -7,9 +7,9 @@
 . ./cmd.sh || exit 1;
 
 # general configuration
-backend=pytorch # chainer or pytorch
+backend=pytorch
 stage=-1        # start from -1 if you need to start from data download
-stop_stage=100
+stop_stage=5
 ngpu=1          # number of gpus during training ("0" uses cpu, otherwise use gpu)
 dec_ngpu=0      # number of gpus during decoding ("0" uses cpu, otherwise use gpu)
 nj=4            # number of parallel jobs for decoding
@@ -33,7 +33,7 @@ use_valbest_average=true     # if true, the validation `n_average`-best MT model
 metric=bleu                  # loss/acc/bleu
 
 # cascaded-ST related
-asr_model=
+asr_model_dir=
 decode_config_asr=
 dict_asr=
 
@@ -159,12 +159,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     echo "make json files"
     if [ ${reverse_direction} = true ]; then
-        data2json.sh --nj 16 --text data/train.en-${tgt_lang}.en/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
+        data2json.sh --nj 16 --text data/train.en-${tgt_lang}.en/text.${tgt_case} --bpecode ${bpemodel}.model --lang "en" \
             data/train.en-${tgt_lang}.en ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         for x in ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
             set=$(echo ${x} | cut -f 1 -d ".")
-            data2json.sh --text data/${set}.en-${tgt_lang}.en/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
+            data2json.sh --text data/${set}.en-${tgt_lang}.en/text.${tgt_case} --bpecode ${bpemodel}.model --lang "en" \
                 data/${set}.en-${tgt_lang}.en ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         done
 
@@ -176,11 +176,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
         done
     else
-        data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
+        data2json.sh --nj 16 --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "${tgt_lang}" \
             data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         for x in ${train_dev} ${trans_set}; do
             feat_trans_dir=${dumpdir}/${x}; mkdir -p ${feat_trans_dir}
-            data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
+            data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "${tgt_lang}" \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         done
 
@@ -255,7 +255,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         feat_trans_dir=${dumpdir}/${x}
 
         # reset log for RTF calculation
-        if [ -d ${expdir}/${decode_dir}/log/ ]; then
+        if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
             rm ${expdir}/${decode_dir}/log/decode.*.log
         fi
 
@@ -273,13 +273,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${trans_model}
 
         if [ ${reverse_direction} = true ]; then
-            score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
                 --remove_nonverbal ${remove_nonverbal} \
                 ${expdir}/${decode_dir} "en" ${dict}
         else
-            score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
                 --remove_nonverbal ${remove_nonverbal} \
-                ${expdir}/${decode_dir} ${tgt_lang} ${dict}
+                ${expdir}/${decode_dir} "${tgt_lang}" ${dict}
         fi
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
@@ -291,7 +291,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "Finished"
 fi
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -n "${decode_config_asr}" ] && [ -n "${dict_asr}" ] && [ ${reverse_direction} = false ]; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model_dir}" ] && [ -n "${decode_config_asr}" ] && [ -n "${dict_asr}" ] && [ ${reverse_direction} = false ]; then
     echo "stage 6: Cascaded-ST decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
         # Average MT models
@@ -303,17 +303,17 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
     fi
 
     for x in ${trans_set}; do
-        feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model} | rev | cut -f 2 -d "/" | rev); mkdir -p ${feat_trans_dir}
+        feat_trans_dir=${expdir}/$(echo ${asr_model_dir} | rev | cut -f 1 -d "/" | rev)/${x}; mkdir -p ${feat_trans_dir}
         rtask=$(echo ${x} | cut -f -2 -d ".").en
         data_dir=data/${rtask}
 
         # ASR outputs
         asr_decode_dir=decode_${rtask}_$(basename ${decode_config_asr%.*})
-        json2text.py ${asr_model}/${asr_decode_dir}/data.json ${dict_asr} ${data_dir}/text_asr_ref.${src_case} ${data_dir}/text_asr_hyp.${src_case}
-        spm_decode --model=${bpemodel}.model --input_format=piece < ${data_dir}/text_asr_hyp.${src_case} | sed -e "s/▁/ /g" \
+        json2text.py ${asr_model_dir}/${asr_decode_dir}/data.json ${dict_asr} ${data_dir}/text_asr_ref.${src_case} ${data_dir}/text_asr_hyp.${src_case}
+        paste -d " " <(cut -d " " -f 1 ${data_dir}/text_asr_hyp.${src_case}) <(cut -d " " -f 2- ${data_dir}/text_asr_hyp.${src_case} | spm_decode --model=${bpemodel}.model --input_format=piece | sed -e "s/▁/ /g" | awk '{if(NF>0) {print $0;} else {print "emptyutterance";}}') \
             > ${data_dir}/text_asr_hyp.wrd.${src_case}
 
-        data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang ${tgt_lang} \
+        data2json.sh --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "${tgt_lang}" \
             data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         update_json.sh --text ${data_dir}/text_asr_hyp.wrd.${src_case} --bpecode ${bpemodel}.model \
             ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
@@ -327,7 +327,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
     for x in ${trans_set}; do
     (
         decode_dir=decode_${x}_$(basename ${decode_config%.*})_pipeline
-        feat_trans_dir=${dumpdir}/${x}_$(echo ${asr_model} | rev | cut -f 2 -d "/" | rev)
+        feat_trans_dir=${expdir}/$(echo ${asr_model_dir} | rev | cut -f 1 -d "/" | rev)/${x}
 
         # reset log for RTF calculation
         if [ -f ${expdir}/${decode_dir}/log/decode.1.log ]; then
@@ -347,9 +347,9 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && [ -n "${asr_model}" ] && [ -
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+        score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
             --remove_nonverbal ${remove_nonverbal} \
-            ${expdir}/${decode_dir} ${tgt_lang} ${dict}
+            ${expdir}/${decode_dir} "${tgt_lang}" ${dict}
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
     ) &

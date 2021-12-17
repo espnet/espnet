@@ -1,4 +1,4 @@
-"""Utility functions for transducer models."""
+"""Utility functions for Transducer models."""
 
 import os
 from typing import Any
@@ -172,6 +172,7 @@ def select_k_expansions(
             sorted(
                 filter(lambda x: (k_best_exp - gamma) <= x[1], hyp_i),
                 key=lambda x: x[1],
+                reverse=True,
             )[: beam_size + beta]
         )
 
@@ -379,7 +380,7 @@ def check_batch_states(states, max_len, pad_id):
 
 
 def custom_torch_load(model_path: str, model: torch.nn.Module, training: bool = True):
-    """Load transducer model with training-only modules and parameters removed.
+    """Load Transducer model with training-only modules and parameters removed.
 
     Args:
         model_path: Model path.

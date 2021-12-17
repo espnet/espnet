@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 . tools/activate_python.sh
+. tools/extra_path.sh
 
 set -euo pipefail
 
@@ -19,3 +20,7 @@ pycodestyle -r ${modules} --show-source --show-pep8
 
 LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}:$(pwd)/tools/chainer_ctc/ext/warp-ctc/build" \
     PYTHONPATH="${PYTHONPATH:-}:$(pwd)/tools/s3prl" pytest -q
+
+echo "=== report ==="
+coverage report
+coverage xml

@@ -23,7 +23,7 @@ def base_s3prl_setup(args):
     args.upstream_ckpt = getattr(args, "upstream_ckpt", None)
     args.init_ckpt = getattr(args, "init_ckpt", None)
     args.verbose = getattr(args, "verbose", False)
-
+    args.tile_factor = getattr(args, "tile_factor", 1)
     return args
 
 
@@ -47,13 +47,6 @@ class S3prlFrontend(AbsFrontend):
 
         self.multilayer_feature = multilayer_feature
         self.upstream, self.featurizer = self._get_upstream(frontend_conf)
-        if getattr(
-            self.upstream, "model", None
-        ) is not None and self.upstream.model.__class__.__name__ in [
-            "Wav2Vec2Model",
-            "HuberModel",
-        ]:
-            self.upstream.model.encoder.layerdrop = 0.0
         self.pretrained_params = copy.deepcopy(self.upstream.state_dict())
         self.output_dim = self.featurizer.output_dim
 
@@ -81,6 +74,14 @@ class S3prlFrontend(AbsFrontend):
             source="local",
         ).to("cpu")
 
+        if getattr(
+            s3prl_upstream, "model", None
+        ) is not None and s3prl_upstream.model.__class__.__name__ in [
+            "Wav2Vec2Model",
+            "HubertModel",
+        ]:
+            s3prl_upstream.model.encoder.layerdrop = 0.0
+
         from s3prl.upstream.interfaces import Featurizer
 
         if self.multilayer_feature is None:
@@ -95,6 +96,23 @@ class S3prlFrontend(AbsFrontend):
 
         return s3prl_upstream, s3prl_featurizer
 
+    def _tile_representations(self, feature):
+        """Tile up the representations by `tile_factor`.
+
+        Input - sequence of representations
+                shape: (batch_size, seq_len, feature_dim)
+        Output - sequence of tiled representations
+                 shape: (batch_size, seq_len * factor, feature_dim)
+        """
+        assert (
+            len(feature.shape) == 3
+        ), "Input argument `feature` has invalid shape: {}".format(feature.shape)
+        tiled_feature = feature.repeat(1, 1, self.args.tile_factor)
+        tiled_feature = tiled_feature.reshape(
+            feature.size(0), feature.size(1) * self.args.tile_factor, feature.size(2)
+        )
+        return tiled_feature
+
     def output_size(self) -> int:
         return self.output_dim
 
@@ -106,6 +124,9 @@ class S3prlFrontend(AbsFrontend):
         with torch.no_grad():
             feats = self.upstream(wavs)
         feats = self.featurizer(wavs, feats)
+
+        if self.args.tile_factor != 1:
+            feats = self._tile_representations(feats)
 
         input_feats = pad_list(feats, 0.0)
         feats_lens = torch.tensor([f.shape[0] for f in feats], dtype=torch.long)

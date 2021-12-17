@@ -1,4 +1,4 @@
-"""Custom decoder definition for transducer model."""
+"""Custom decoder definition for Transducer model."""
 
 from typing import Any
 from typing import Dict
@@ -21,17 +21,18 @@ from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
 
 
 class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
-    """Custom decoder module for transducer model.
+    """Custom decoder module for Transducer model.
 
     Args:
         odim: Output dimension.
         dec_arch: Decoder block architecture (type and parameters).
         input_layer: Input layer type.
         repeat_block: Number of times dec_arch is repeated.
+        joint_activation_type: Type of activation for joint network.
         positional_encoding_type: Positional encoding type.
         positionwise_layer_type: Positionwise layer type.
         positionwise_activation_type: Positionwise activation type.
-        dropout_rate_embed: Dropout rate for embedding layer.
+        input_layer_dropout_rate: Dropout rate for input layer.
         blank_id: Blank symbol ID.
 
     """
@@ -46,7 +47,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
         positional_encoding_type: str = "abs_pos",
         positionwise_layer_type: str = "linear",
         positionwise_activation_type: str = "relu",
-        dropout_rate_embed: float = 0.0,
+        input_layer_dropout_rate: float = 0.0,
         blank_id: int = 0,
     ):
         """Construct a CustomDecoder object."""
@@ -61,7 +62,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
             positional_encoding_type=positional_encoding_type,
             positionwise_layer_type=positionwise_layer_type,
             positionwise_activation_type=positionwise_activation_type,
-            dropout_rate_embed=dropout_rate_embed,
+            input_layer_dropout_rate=input_layer_dropout_rate,
             padding_idx=blank_id,
         )
 
@@ -138,7 +139,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
         labels = torch.tensor([hyp.yseq], device=self.device)
         lm_label = labels[:, -1]
 
-        str_labels = "".join(list(map(str, hyp.yseq)))
+        str_labels = "_".join(list(map(str, hyp.yseq)))
 
         if str_labels in cache:
             dec_out, dec_state = cache[str_labels]
@@ -187,7 +188,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
         done = [None] * final_batch
 
         for i, hyp in enumerate(hyps):
-            str_labels = "".join(list(map(str, hyp.yseq)))
+            str_labels = "_".join(list(map(str, hyp.yseq)))
 
             if str_labels in cache:
                 done[i] = cache[str_labels]
