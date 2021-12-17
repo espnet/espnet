@@ -82,13 +82,16 @@ class FusedFrontends(AbsFrontend):
 
         self.gcd = np.gcd.reduce([frontend.hop_length for frontend in self.frontends])
         self.factors = [frontend.hop_length // self.gcd for frontend in self.frontends]
-
+        if torch.cuda.is_available():
+            dev = "cuda"
+        else:
+            dev = "cpu"
         if self.align_method == "linear_projection":
             self.projection_layers = [
                 torch.nn.Linear(
                     in_features=frontend.output_size(),
                     out_features=self.factors[i] * self.proj_dim,
-                    device="cuda",
+                    device=dev,
                 )
                 for i, frontend in enumerate(self.frontends)
             ]
