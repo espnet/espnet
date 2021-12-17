@@ -2,8 +2,11 @@ from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
 import torch
 
-list_frontends = [DefaultFrontend(fs="16k"), DefaultFrontend(fs="16k")]
 
+frontend1={"frontend_type":"default", "n_mels": 80, "n_fft": 512}
+frontend2={"frontend_type":"default", "hop_length":128}
+
+list_frontends=[frontend1, frontend2]
 
 def test_frontend_init():
     frontend = FusedFrontends(
@@ -14,7 +17,7 @@ def test_frontend_init():
     )
     assert len(frontend.frontends) == 2
     assert len(frontend.factors) == len(frontend.frontends)
-    assert frontend[0].frontend_type == "default"
+    assert frontend.frontends[0].frontend_type == "default"
 
 
 def test_frontend_output_size():
@@ -38,3 +41,4 @@ def test_frontend_backward():
     x_lengths = torch.LongTensor([300, 89])
     y, y_lengths = frontend(x, x_lengths)
     y.sum().backward()
+
