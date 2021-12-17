@@ -638,6 +638,7 @@ Text converter related:
                     [--no_forward_run NO_FORWARD_RUN] [--resume RESUME]
                     [--train_dtype {float16,float32,float64}]
                     [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
+                    [--use_matplotlib USE_MATPLOTLIB]
                     [--use_tensorboard USE_TENSORBOARD]
                     [--use_wandb USE_WANDB] [--wandb_project WANDB_PROJECT]
                     [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
@@ -807,6 +808,8 @@ Trainer related:
   --use_amp USE_AMP     Enable Automatic Mixed Precision. This feature requires pytorch&gt;=1.6 (default: False)
   --log_interval LOG_INTERVAL
                         Show the logs every the number iterations in each epochs at the training phase. If None is given, it is decided according the number of training samples automatically . (default: None)
+  --use_matplotlib USE_MATPLOTLIB
+                        Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
   --use_wandb USE_WANDB
@@ -1177,6 +1180,7 @@ Diarize speech related:
                      [--no_forward_run NO_FORWARD_RUN] [--resume RESUME]
                      [--train_dtype {float16,float32,float64}]
                      [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
+                     [--use_matplotlib USE_MATPLOTLIB]
                      [--use_tensorboard USE_TENSORBOARD]
                      [--use_wandb USE_WANDB] [--wandb_project WANDB_PROJECT]
                      [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
@@ -1316,6 +1320,8 @@ Trainer related:
   --use_amp USE_AMP     Enable Automatic Mixed Precision. This feature requires pytorch&gt;=1.6 (default: False)
   --log_interval LOG_INTERVAL
                         Show the logs every the number iterations in each epochs at the training phase. If None is given, it is decided according the number of training samples automatically . (default: None)
+  --use_matplotlib USE_MATPLOTLIB
+                        Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
   --use_wandb USE_WANDB
@@ -1718,6 +1724,7 @@ Input data related:
                     [--no_forward_run NO_FORWARD_RUN] [--resume RESUME]
                     [--train_dtype {float16,float32,float64}]
                     [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
+                    [--use_matplotlib USE_MATPLOTLIB]
                     [--use_tensorboard USE_TENSORBOARD]
                     [--use_wandb USE_WANDB] [--wandb_project WANDB_PROJECT]
                     [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
@@ -1850,6 +1857,8 @@ Trainer related:
   --use_amp USE_AMP     Enable Automatic Mixed Precision. This feature requires pytorch&gt;=1.6 (default: False)
   --log_interval LOG_INTERVAL
                         Show the logs every the number iterations in each epochs at the training phase. If None is given, it is decided according the number of training samples automatically . (default: None)
+  --use_matplotlib USE_MATPLOTLIB
+                        Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
   --use_wandb USE_WANDB
@@ -2137,6 +2146,7 @@ Optimizer related:
                         [--no_forward_run NO_FORWARD_RUN] [--resume RESUME]
                         [--train_dtype {float16,float32,float64}]
                         [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
+                        [--use_matplotlib USE_MATPLOTLIB]
                         [--use_tensorboard USE_TENSORBOARD]
                         [--use_wandb USE_WANDB]
                         [--wandb_project WANDB_PROJECT] [--wandb_id WANDB_ID]
@@ -2297,6 +2307,8 @@ Trainer related:
   --use_amp USE_AMP     Enable Automatic Mixed Precision. This feature requires pytorch&gt;=1.6 (default: False)
   --log_interval LOG_INTERVAL
                         Show the logs every the number iterations in each epochs at the training phase. If None is given, it is decided according the number of training samples automatically . (default: None)
+  --use_matplotlib USE_MATPLOTLIB
+                        Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
   --use_wandb USE_WANDB
@@ -2609,6 +2621,7 @@ Optimizer related:
                        [--no_forward_run NO_FORWARD_RUN] [--resume RESUME]
                        [--train_dtype {float16,float32,float64}]
                        [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
+                       [--use_matplotlib USE_MATPLOTLIB]
                        [--use_tensorboard USE_TENSORBOARD]
                        [--use_wandb USE_WANDB] [--wandb_project WANDB_PROJECT]
                        [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
@@ -2787,6 +2800,8 @@ Trainer related:
   --use_amp USE_AMP     Enable Automatic Mixed Precision. This feature requires pytorch&gt;=1.6 (default: False)
   --log_interval LOG_INTERVAL
                         Show the logs every the number iterations in each epochs at the training phase. If None is given, it is decided according the number of training samples automatically . (default: None)
+  --use_matplotlib USE_MATPLOTLIB
+                        Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
   --use_wandb USE_WANDB
@@ -3179,6 +3194,7 @@ The model configuration related:
                    [--no_forward_run NO_FORWARD_RUN] [--resume RESUME]
                    [--train_dtype {float16,float32,float64}]
                    [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
+                   [--use_matplotlib USE_MATPLOTLIB]
                    [--use_tensorboard USE_TENSORBOARD] [--use_wandb USE_WANDB]
                    [--wandb_project WANDB_PROJECT] [--wandb_id WANDB_ID]
                    [--wandb_entity WANDB_ENTITY] [--wandb_name WANDB_NAME]
@@ -3317,6 +3333,8 @@ Trainer related:
   --use_amp USE_AMP     Enable Automatic Mixed Precision. This feature requires pytorch&gt;=1.6 (default: False)
   --log_interval LOG_INTERVAL
                         Show the logs every the number iterations in each epochs at the training phase. If None is given, it is decided according the number of training samples automatically . (default: None)
+  --use_matplotlib USE_MATPLOTLIB
+                        Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
   --use_wandb USE_WANDB
@@ -3789,6 +3807,7 @@ Vocoder related:
                     [--no_forward_run NO_FORWARD_RUN] [--resume RESUME]
                     [--train_dtype {float16,float32,float64}]
                     [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
+                    [--use_matplotlib USE_MATPLOTLIB]
                     [--use_tensorboard USE_TENSORBOARD]
                     [--use_wandb USE_WANDB] [--wandb_project WANDB_PROJECT]
                     [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
@@ -3940,6 +3959,8 @@ Trainer related:
   --use_amp USE_AMP     Enable Automatic Mixed Precision. This feature requires pytorch&gt;=1.6 (default: False)
   --log_interval LOG_INTERVAL
                         Show the logs every the number iterations in each epochs at the training phase. If None is given, it is decided according the number of training samples automatically . (default: None)
+  --use_matplotlib USE_MATPLOTLIB
+                        Enable matplotlib logging (default: True)
   --use_tensorboard USE_TENSORBOARD
                         Enable tensorboard logging (default: True)
   --use_wandb USE_WANDB

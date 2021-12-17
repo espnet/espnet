@@ -197,6 +197,7 @@
     <span class="n">grad_clip_type</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">log_interval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
     <span class="n">no_forward_run</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">use_matplotlib</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="n">use_tensorboard</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="n">use_wandb</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
@@ -452,7 +453,7 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span> <span class="ow">or</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">dist_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="c1"># 3. Report the results</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">reporter</span><span class="o">.</span><span class="n">log_message</span><span class="p">())</span>
-                <span class="k">if</span> <span class="n">plot_attention_iter_factory</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">use_matplotlib</span><span class="p">:</span>
                     <span class="n">reporter</span><span class="o">.</span><span class="n">matplotlib_plot</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;images&quot;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">summary_writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">reporter</span><span class="o">.</span><span class="n">tensorboard_add_scalar</span><span class="p">(</span><span class="n">summary_writer</span><span class="p">)</span>
