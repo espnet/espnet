@@ -172,6 +172,7 @@
 
         <span class="c1"># Deepcopy (In general, dict shouldn&#39;t be used as default arg)</span>
         <span class="n">frontend_conf</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">frontend_conf</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span> <span class="o">=</span> <span class="n">hop_length</span>
 
         <span class="k">if</span> <span class="n">apply_stft</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">stft</span> <span class="o">=</span> <span class="n">Stft</span><span class="p">(</span>
@@ -201,6 +202,7 @@
             <span class="n">htk</span><span class="o">=</span><span class="n">htk</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_mels</span> <span class="o">=</span> <span class="n">n_mels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frontend_type</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span>
 
 <div class="viewcode-block" id="DefaultFrontend.output_size"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.frontend.default.DefaultFrontend.output_size">[docs]</a>    <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mels</span></div>

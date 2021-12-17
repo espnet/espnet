@@ -224,6 +224,17 @@ espnet2.asr.encoder.rnn_encoder
     :show-inheritance:
 
 
+.. _espnet2.asr.frontend.fused:
+
+espnet2.asr.frontend.fused
+--------------------------
+
+.. automodule:: espnet2.asr.frontend.fused
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.frontend.default:
 
 espnet2.asr.frontend.default

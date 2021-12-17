@@ -661,7 +661,7 @@ Text converter related:
                     [--noise_scp NOISE_SCP]
                     [--noise_apply_prob NOISE_APPLY_PROB]
                     [--noise_db_range NOISE_DB_RANGE]
-                    [--frontend {default,sliding_window,s3prl}]
+                    [--frontend {default,sliding_window,s3prl,fused}]
                     [--frontend_conf FRONTEND_CONF] [--specaug {specaug,None}]
                     [--specaug_conf SPECAUG_CONF]
                     [--normalize {global_mvn,utterance_mvn,None}]
@@ -1024,7 +1024,7 @@ Optimizer related:
   --token_type {bpe,char,word,phn}
                         The text will be tokenized in the specified level token (default: bpe)
   --bpemodel BPEMODEL   The model file of sentencepiece (default: None)
-  --frontend {default,sliding_window,s3prl}
+  --frontend {default,sliding_window,s3prl,fused}
                         The frontend type (default: default)
   --frontend_conf FRONTEND_CONF
                         The keyword arguments for frontend (default: {})
