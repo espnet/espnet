@@ -16,7 +16,7 @@ args = parser.parse_args()
 def main():
     os.makedirs(args.out_dir, exist_ok=True)
 
-    of = open(os.path.join(args.out_dir, 'phn_txt'), 'w')
+    of = open(os.path.join(args.out_dir, 'phn_txt'), 'w', encoding='utf-8')
 
     unique_phones = set()
     # generate phoneme transcript
@@ -51,7 +51,8 @@ def main():
 
                 # 2. Check for Erization
                 erization = False
-                if 'er' not in final and final[-1] == 'r':
+                if ('er' not in final and final[-1] == 'r') \
+                        or 'uer' == final or 'ier' == final:
                     final = final.rstrip('r')
                     erization = True
 
@@ -75,7 +76,7 @@ def main():
     of.close()
 
     # write a list of unique phones
-    of = open(os.path.join(args.out_dir, 'phones.txt'), 'w')
+    of = open(os.path.join(args.out_dir, 'phones.txt'), 'w', encoding='utf-8')
     unique_phones = sorted(list(unique_phones))
     for p in unique_phones:
         of.write(f'{p}\n')
