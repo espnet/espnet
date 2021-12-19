@@ -184,6 +184,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
         is_final=True,
+        infer=False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Embed positions in tensor.
 
@@ -191,10 +192,11 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             xs_pad: input tensor (B, L, D)
             ilens: input length (B)
             prev_states: Not to be used now.
+            infer: whether to be used for inference.
         Returns:
             position embedded tensor and mask
         """
-        if self.training or xs_pad.size(0) > 1:
+        if self.training or not infer:
             return self.forward_train(xs_pad, ilens, prev_states)
         else:
             return self.forward_infer(xs_pad, ilens, prev_states, is_final)
