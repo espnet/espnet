@@ -133,6 +133,12 @@ def add_arguments_transformer_common(group):
         type=str,
         help="Position of intermediate CTC layer. {int} or {int},{int},...,{int}",
     )
+    group.add_argument(
+        "--self-conditioning",
+        default=False,
+        type=strtobool,
+        help="use self-conditioning at intermediate CTC layers",
+    )
     # Encoder
     group.add_argument(
         "--elayers",

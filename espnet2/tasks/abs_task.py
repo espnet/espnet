@@ -566,6 +566,12 @@ class AbsTask(ABC):
             "of training samples automatically .",
         )
         group.add_argument(
+            "--use_matplotlib",
+            type=str2bool,
+            default=True,
+            help="Enable matplotlib logging",
+        )
+        group.add_argument(
             "--use_tensorboard",
             type=str2bool,
             default=True,
@@ -1249,6 +1255,10 @@ class AbsTask(ABC):
                 distributed_option=distributed_option,
                 mode="valid",
             )
+            if not args.use_matplotlib and args.num_att_plot != 0:
+                args.num_att_plot = 0
+                logging.info("--use_matplotlib false => Changing --num_att_plot to 0")
+
             if args.num_att_plot != 0:
                 plot_attention_iter_factory = cls.build_iter_factory(
                     args=args,
