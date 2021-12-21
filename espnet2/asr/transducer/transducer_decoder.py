@@ -37,7 +37,7 @@ class TransducerDecoder(AbsDecoder):
         hidden_size: int = 320,
         dropout: float = 0.0,
         dropout_embed: float = 0.0,
-        embed_pad: Optional[int] = None,
+        embed_pad: int = 0,
     ):
         assert check_argument_types()
 
@@ -68,6 +68,8 @@ class TransducerDecoder(AbsDecoder):
 
         self.ignore_id = -1
         self.blank_id = embed_pad
+
+        self.device = next(self.parameters()).device
 
     def set_device(self, device: torch.device):
         """Set GPU device to use.
@@ -248,7 +250,9 @@ class TransducerDecoder(AbsDecoder):
         dec_states = self.create_batch_states(dec_states, [d[1] for d in done])
 
         if use_lm:
-            lm_labels = torch.LongTensor([h.yseq[-1] for h in hyps], device=self.device)
+            lm_labels = torch.LongTensor(
+                [h.yseq[-1] for h in hyps], device=self.device
+            ).view(final_batch, 1)
 
             return dec_out, dec_states, lm_labels
 

@@ -711,9 +711,6 @@ class BeamSearchTransducer:
         state = self.decoder.select_state(beam_state, 0)
 
         if self.use_lm:
-            beam_lm_states, beam_lm_scores = self.lm.buff_predict(
-                None, beam_lm_tokens, 1
-            )
             beam_lm_scores, beam_lm_states = self.lm.batch_score(
                 beam_lm_tokens, [i.lm_state for i in init_tokens], None
             )
