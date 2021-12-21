@@ -65,7 +65,7 @@ See also:
 ### 2. Wav dump / Embedding preparation
 
 Wav dumping stage.
-This stage reformats `wav.scp` in date directories.
+This stage reformats `wav.scp` in data directories.
 
 Additionally, we support X-vector extraction in this stage as you can use in ESPnet1.
 If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract mfcc features, vad decision, and X-vector.
