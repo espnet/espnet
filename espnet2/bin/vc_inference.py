@@ -28,12 +28,12 @@ from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.tasks.vc import VCTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.vc.transformer import Transformer
 from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
+from espnet2.vc.transformer import Transformer
 
 
 class VoiceConversion:

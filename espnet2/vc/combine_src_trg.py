@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import logging
 import os
 import sys
 
@@ -57,10 +56,10 @@ def main(cmd=None):
         trg_p = os.path.join(args.trg_dir, trg_f)
         with open(src_p, "r") as inf:
             lines = inf.readlines()
-        src_lines = [l.strip() for l in lines]
+        src_lines = [line.strip() for line in lines]
         with open(trg_p, "r") as inf:
             lines = inf.readlines()
-        trg_lines = [l.strip() for l in lines]
+        trg_lines = [line.strip() for line in lines]
         assert len(src_lines) == len(trg_lines)
         src_elem0 = src_lines[0].split()[0]
         if src_elem0.startswith(args.srcspk):
@@ -87,31 +86,31 @@ def main(cmd=None):
                 else:
                     src_elem1 = src_lines[0].split()[1]
                     if src_elem1 == args.srcspk:
-                        for l in src_lines:
+                        for line in src_lines:
                             new_src_lines.append(
                                 pair_spk
-                                + l.split()[0][len(args.srcspk) :]
+                                + line.split()[0][len(args.srcspk) :]
                                 + " "
                                 + pair_spk
                             )
-                        for l in trg_lines:
+                        for line in trg_lines:
                             new_trg_lines.append(
                                 pair_spk
-                                + l.split()[0][len(args.trgspk) :]
+                                + line.split()[0][len(args.trgspk) :]
                                 + " "
                                 + pair_spk
                             )
                     else:
-                        for l in src_lines:
-                            new_src_lines.append(pair_spk + l[len(args.srcspk) :])
-                        for l in trg_lines:
-                            new_trg_lines.append(pair_spk + l[len(args.trgspk) :])
+                        for line in src_lines:
+                            new_src_lines.append(pair_spk + line[len(args.srcspk) :])
+                        for line in trg_lines:
+                            new_trg_lines.append(pair_spk + line[len(args.trgspk) :])
                 with open(src_p, "w+") as ouf:
-                    for l in new_src_lines:
-                        ouf.write("%s\n" % l)
+                    for line in new_src_lines:
+                        ouf.write("%s\n" % line)
                 with open(trg_p, "w+") as ouf:
-                    for l in new_trg_lines:
-                        ouf.write("%s\n" % l)
+                    for line in new_trg_lines:
+                        ouf.write("%s\n" % line)
 
 
 if __name__ == "__main__":

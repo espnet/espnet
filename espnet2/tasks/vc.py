@@ -22,20 +22,17 @@ from typeguard import check_return_type
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.vc.espnet_model import ESPnetVCModel
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
-from espnet2.vc.abs_vc import AbsVC
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
-from espnet2.vc.transformer import Transformer
 from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
@@ -43,6 +40,9 @@ from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
+from espnet2.vc.abs_vc import AbsVC
+from espnet2.vc.espnet_model import ESPnetVCModel
+from espnet2.vc.transformer import Transformer
 
 feats_extractor_choices = ClassChoices(
     "feats_extract",
@@ -150,10 +150,6 @@ class VCTask(AbsTask):
         # NOTE(kamo): Use '_' instead of '-' to avoid confusion
         assert check_argument_types()
         group = parser.add_argument_group(description="Task related")
-
-        # NOTE(kamo): add_arguments(..., required=True) can't be used
-        # to provide --print_config mode. Instead of it, do as
-        required = parser.get_default("required")
 
         group.add_argument(
             "--token_list",

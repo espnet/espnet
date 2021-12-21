@@ -28,8 +28,8 @@ from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
-from espnet2.vc.abs_vc import AbsVC
 from espnet2.tts.gst.style_encoder import StyleEncoder
+from espnet2.vc.abs_vc import AbsVC
 
 
 class Transformer(AbsVC):

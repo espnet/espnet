@@ -16,8 +16,8 @@ from typeguard import check_argument_types
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.vc.abs_vc import AbsVC
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+from espnet2.vc.abs_vc import AbsVC
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast
@@ -212,14 +212,7 @@ class ESPnetVCModel(AbsESPnetModel):
         else:
             # Use precalculated feats (feats_type != raw case)
             feats, feats_lengths = out_speech, out_speech_lengths
-        # input feature extraction
-        if self.input_feats_extract is not None:
-            in_feats, in_feats_lengths = self.input_feats_extract(
-                in_speech, in_speech_lengths
-            )
-        else:
-            # Use precalculated feats (feats_type != raw case)
-            in_feats, in_feats_lengths = in_speech, in_speech_lengths
+
         if self.pitch_extract is not None:
             pitch, pitch_lengths = self.pitch_extract(
                 out_speech,
