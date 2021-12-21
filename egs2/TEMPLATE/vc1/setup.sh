@@ -47,15 +47,13 @@ targets+="${dir}/${target} "
 
 
 # Symlinks to TEMPLATE/tts1
-for f in cmd.sh path.sh; do
-    target=../../TEMPLATE/tts1/"${f}"
-    ln -sf "${target}" "${dir}"
-    targets+="${dir}/${target} "
-done
+target=../../TEMPLATE/tts1/path.sh
+ln -sf "${target}" "${dir}"
+targets+="${dir}/${target} "
 
 
 # Symlinks to TEMPLATE/asr1
-for f in db.sh scripts pyscripts; do
+for f in cmd.sh db.sh scripts pyscripts; do
     target=../../TEMPLATE/asr1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
