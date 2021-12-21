@@ -3,7 +3,6 @@
 from typing import List
 from typing import Tuple
 
-import editdistance
 import numpy as np
 import torch
 
@@ -136,6 +135,8 @@ class ErrorCalculatorTransducer(object):
             (): Average sentence-level CER score
 
         """
+        import editdistance
+
         char_eds, char_ref_lens = [], []
 
         for i, seq_hat_text in enumerate(seqs_hat):
@@ -159,6 +160,8 @@ class ErrorCalculatorTransducer(object):
             (): Average sentence-level WER score
 
         """
+        import editdistance
+
         word_eds, word_ref_lens = [], []
 
         for i, seq_hat_text in enumerate(seqs_hat):
