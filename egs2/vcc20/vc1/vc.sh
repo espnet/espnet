@@ -1,1 +1,0 @@
-../../TEMPLATE/vc1/vc.sh

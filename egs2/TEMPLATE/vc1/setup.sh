@@ -41,11 +41,9 @@ done
 
 
 # Symlinks to TEMPLATE/vc1
-for f in vc.sh; do
-    target=../../TEMPLATE/vc1/"${f}"
-    ln -sf "${target}" "${dir}"
-    targets+="${dir}/${target} "
-done
+target=../../TEMPLATE/vc1/vc.sh
+ln -sf "${target}" "${dir}"
+targets+="${dir}/${target} "
 
 
 # Symlinks to TEMPLATE/tts1

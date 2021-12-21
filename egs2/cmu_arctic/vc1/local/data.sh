@@ -36,6 +36,7 @@ if ! eval "$(echo ${available_spks[*]} | grep -q ${srcspk})"; then
     echo "Specified srcspk (${srcspk}) is not available or not supported." >&2
     exit 2
 fi
+# shellcheck disable=SC2048
 if ! eval "$(echo ${available_spks[*]} | grep -q ${trgspk})"; then
     echo "Specified trgspk (${trgspk}) is not available or not supported." >&2
     exit 2
@@ -52,17 +53,12 @@ fi
 db_root=${CMU_ARCTIC}
 
 pair=${srcspk}_${trgspk}
-src_org_set=${srcspk}
 src_train_set=${srcspk}_train
 src_dev_set=${srcspk}_dev
 src_eval_set=${srcspk}_eval
-trg_org_set=${trgspk}
 trg_train_set=${trgspk}_train
 trg_dev_set=${trgspk}_dev
 trg_eval_set=${trgspk}_eval
-pair_train_set=${pair}_train
-pair_dev_set=${pair}_dev
-pair_eval_set=${pair}_eval
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     log "stage -1: Data Download"
