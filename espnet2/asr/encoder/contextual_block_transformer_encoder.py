@@ -192,7 +192,9 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
             xs_pad: input tensor (B, L, D)
             ilens: input length (B)
             prev_states: Not to be used now.
-            infer_mode: whether to be used for inference.
+            infer_mode: whether to be used for inference. This is used to
+                distinguish between forward_train (train and validate) and
+                forward_infer (decode).
         Returns:
             position embedded tensor and mask
         """
@@ -232,8 +234,8 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         # block_size could be 0 meaning infinite
         # apply usual encoder for short sequence
         if self.block_size == 0 or total_frame_num <= self.block_size:
-            xs_pad, masks, _, _, _ = self.encoders(
-                self.pos_enc(xs_pad), masks, None, None
+            xs_pad, masks, _, _, _, _ = self.encoders(
+                self.pos_enc(xs_pad), masks, False, None, None
             )
             if self.normalize_before:
                 xs_pad = self.after_norm(xs_pad)
@@ -324,7 +326,9 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         xs_chunk[:, :, self.block_size + 1] = addin
 
         # forward
-        ys_chunk, mask_online, _, _, _ = self.encoders(xs_chunk, mask_online, xs_chunk)
+        ys_chunk, mask_online, _, _, _, _ = self.encoders(
+            xs_chunk, mask_online, False, xs_chunk
+        )
 
         # copy output
         # first step
@@ -469,7 +473,9 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         assert self.block_size > 0
         if n_processed_blocks == 0 and total_frame_num <= self.block_size and is_final:
             xs_chunk = self.pos_enc(xs_pad).unsqueeze(1)
-            xs_pad, _, _, _, _, _ = self.encoders(xs_chunk, None, None, None, True)
+            xs_pad, _, _, _, _, _, _ = self.encoders(
+                xs_chunk, None, True, None, None, True
+            )
             xs_pad = xs_pad.squeeze(0)
             if self.normalize_before:
                 xs_pad = self.after_norm(xs_pad)
@@ -505,8 +511,8 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
 
             prev_addin = addin
 
-        ys_chunk, _, _, past_encoder_ctx, _, _ = self.encoders(
-            xs_chunk, None, past_encoder_ctx
+        ys_chunk, _, _, _, past_encoder_ctx, _, _ = self.encoders(
+            xs_chunk, None, True, past_encoder_ctx
         )
 
         # remove addin
