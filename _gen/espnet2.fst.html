@@ -157,54 +157,6 @@
 <h1>espnet2.fst package<a class="headerlink" href="#espnet2-fst-package" title="Permalink to this headline">¶</a></h1>
 <section id="espnet2-fst-lm-rescore">
 <span id="id1"></span><h2>espnet2.fst.lm_rescore<a class="headerlink" href="#espnet2-fst-lm-rescore" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.fst.lm_rescore"></span><dl class="function">
-<dt id="espnet2.fst.lm_rescore.compute_am_scores_and_lm_scores">
-<code class="sig-prename descclassname">espnet2.fst.lm_rescore.</code><code class="sig-name descname">compute_am_scores_and_lm_scores</code><span class="sig-paren">(</span><em class="sig-param">lats: k2.fsa.Fsa</em>, <em class="sig-param">word_fsas_with_epsilon_loops: k2.fsa.Fsa</em>, <em class="sig-param">path_to_seq_map: torch.Tensor</em>, <em class="sig-param">device: str = 'cuda'</em>, <em class="sig-param">batch_size: int = 500</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/fst/lm_rescore.html#compute_am_scores_and_lm_scores"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fst.lm_rescore.compute_am_scores_and_lm_scores" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute AM and LM scores of n-best lists (represented as word_fsas).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>lats</strong> – An FsaVec, which is the output of <cite>k2.intersect_dense_pruned</cite>.
-It must have the attribute <cite>lm_scores</cite>.</p></li>
-<li><p><strong>word_fsas_with_epsilon_loops</strong> – An FsaVec representing a n-best list. Note that it has been processed
-by <cite>k2.add_epsilon_self_loops</cite>.</p></li>
-<li><p><strong>path_to_seq_map</strong> – A 1-D torch.Tensor with dtype torch.int32. path_to_seq_map[i] indicates
-which sequence the i-th Fsa in word_fsas_with_epsilon_loops belongs to.
-path_to_seq_map.numel() == word_fsas_with_epsilon_loops.arcs.dim0().</p></li>
-<li><p><strong>batch_size</strong> – Batchify the n-best list when intersecting with inverted_lats.
-You could tune this to avoid GPU OOM issue or increase the GPU usage.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Return a tuple of (1-D torch.Tensor, 1-D torch.Tensor) containing
-the AM and LM scores of each path.
-<cite>am_scores.numel() == word_fsas_with_epsilon_loops.shape[0]</cite>
-<cite>lm_scores.numel() == word_fsas_with_epsilon_loops.shape[0]</cite></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="espnet2.fst.lm_rescore.nbest_am_lm_scores">
-<code class="sig-prename descclassname">espnet2.fst.lm_rescore.</code><code class="sig-name descname">nbest_am_lm_scores</code><span class="sig-paren">(</span><em class="sig-param">lats: k2.fsa.Fsa</em>, <em class="sig-param">num_paths: int</em>, <em class="sig-param">device: str = 'cuda'</em>, <em class="sig-param">batch_size: int = 500</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fst/lm_rescore.html#nbest_am_lm_scores"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fst.lm_rescore.nbest_am_lm_scores" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute am scores with word_seqs</p>
-<p>Compatible with both ctc_decoding or TLG decoding.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="espnet2.fst.lm_rescore.remove_repeated_and_leq">
-<code class="sig-prename descclassname">espnet2.fst.lm_rescore.</code><code class="sig-name descname">remove_repeated_and_leq</code><span class="sig-paren">(</span><em class="sig-param">tokens: List[int], blank_id: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fst/lm_rescore.html#remove_repeated_and_leq"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fst.lm_rescore.remove_repeated_and_leq" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate valid token sequence.</p>
-<p>Result may be used as input of transformer decoder and neural language model.
-Fristly, remove repeated token from a “token alignment” seqs;
-Then remove blank symbols.</p>
-<p>This fuction may be replaced by tokenizing word_seqs with tokenizer
-or composeing word_seqs_fsas with L_inv.fst
-or composing token_seqs with ctc_topo.
-Current method is slelected other than previous three methods
-because it won’t need an extra object, i.e. tokenizer, L.fst or ctc_topo.</p>
-</dd></dl>
-
 </section>
 </section>
 
