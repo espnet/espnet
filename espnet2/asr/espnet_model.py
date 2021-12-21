@@ -479,9 +479,8 @@ class ESPnetASRModel(AbsESPnetModel):
             u_len,
         )
 
-        if self.training or self.error_calculator_trans is None:
-            cer_transducer, wer_transducer = None, None
-        else:
+        cer_transducer, wer_transducer = None, None
+        if not self.training and self.error_calculator_trans is not None:
             cer_transducer, wer_transducer = self.error_calculator_trans(
                 encoder_out, target
             )

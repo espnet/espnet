@@ -14,15 +14,15 @@ def get_transducer_task_io(
     """Get Transducer loss I/O.
 
     Args:
-        labels:
-        encoder_out_lens:
+        labels: Label ID sequences. (B, L)
+        encoder_out_lens: Encoder output lengths. (B,)
         ignore_id: Padding symbol ID.
         blank_id: Blank symbol ID.
 
     Return:
-        target:
-        t_len:
-        u_len:
+        target: Target label ID sequences. (B, U)
+        t_len: Time lengths. (B,)
+        u_len: Label lengths. (B,)
 
     """
     device = labels.device
