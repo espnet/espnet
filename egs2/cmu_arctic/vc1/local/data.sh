@@ -52,7 +52,6 @@ if [ -z "${CMU_ARCTIC}" ]; then
 fi
 db_root=${CMU_ARCTIC}
 
-pair=${srcspk}_${trgspk}
 src_train_set=${srcspk}_train
 src_dev_set=${srcspk}_dev
 src_eval_set=${srcspk}_eval
