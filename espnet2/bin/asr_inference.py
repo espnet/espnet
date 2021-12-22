@@ -119,7 +119,7 @@ class Speech2Text:
         scorers["ngram"] = ngram
 
         # 4. Build BeamSearch object
-        if asr_model.joint_network is not None:
+        if asr_model.use_transducer_decoder:
             beam_search_transducer = BeamSearchTransducer(
                 decoder=asr_model.decoder,
                 joint_network=asr_model.joint_network,
