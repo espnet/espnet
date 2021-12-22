@@ -31,7 +31,7 @@ speed_perturb_factors="0.9 1.0 1.1"
     --audio_format wav                                  \
     --feats_type raw                                    \
     --token_type char                                   \
-    --ngpu 2                                            \
+    --ngpu 4                                            \
     --asr_tag "${asr_tag}"                              \
     --use_lm "${use_lm}"                                \
     --use_word_lm "${use_wordlm}"                       \
