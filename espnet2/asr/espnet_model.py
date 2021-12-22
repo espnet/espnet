@@ -199,7 +199,7 @@ class ESPnetASRModel(AbsESPnetModel):
             )
 
             if loss_ctc is not None:
-                loss = loss_transducer + (self.ctc_weight * loss_ctc)
+                loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_transducer
             else:
                 loss = loss_transducer
         else:
