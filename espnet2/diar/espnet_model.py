@@ -124,13 +124,13 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             # Then multiply the attractors and encoder_out
             pred = torch.bmm(encoder_out, attractor[:, :-1, :].permute(0, 2, 1))
             # for debugging
-            #logging.info("encoder_out_shape:{}, encoder_out_lens_shape:{}, attractor_shape:{}".format(encoder_out.shape, encoder_out_lens.shape, attractor.shape))
+            # logging.info("encoder_out_shape:{}, encoder_out_lens_shape:{}, attractor_shape:{}".format(encoder_out.shape, encoder_out_lens.shape, attractor.shape))
         # 3. Aggregate time-domain labels
         spk_labels, spk_labels_lengths = self.label_aggregator(
             spk_labels, spk_labels_lengths
         )
         # for debugging
-        #logging.info("spk_labels_shape:{}, spk_labels_lengths_shape:{}".format(spk_labels.shape, spk_labels_lengths.shape))
+        # logging.info("spk_labels_shape:{}, spk_labels_lengths_shape:{}".format(spk_labels.shape, spk_labels_lengths.shape))
 
         if self.attractor is None:
             loss_pit, loss_att = None, None

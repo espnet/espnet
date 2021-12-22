@@ -52,7 +52,9 @@ class RnnAttractor(AbsAttractor):
             attractor: [Batch, num_spk + 1, F]
             att_prob: [Batch, num_spk + 1, 1]
         """
-        pack = torch.nn.utils.rnn.pack_padded_sequence(enc_input, lengths = ilens.cpu(), batch_first=True, enforce_sorted=False)
+        pack = torch.nn.utils.rnn.pack_padded_sequence(
+            enc_input, lengths=ilens.cpu(), batch_first=True, enforce_sorted=False
+        )
         _, hs = self.attractor_encoder(pack)
         attractor, _ = self.attractor_decoder(dec_input, hs)
         attractor = self.dropout_layer(attractor)
