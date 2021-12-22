@@ -74,5 +74,7 @@ class E2E(E2ETransformer):
             cnn_module_kernel=args.cnn_module_kernel,
             stochastic_depth_rate=args.stochastic_depth_rate,
             intermediate_layers=self.intermediate_ctc_layers,
+            ctc_softmax=self.ctc.softmax if args.self_conditioning else None,
+            conditioning_layer_dim=odim,
         )
         self.reset_parameters(args)

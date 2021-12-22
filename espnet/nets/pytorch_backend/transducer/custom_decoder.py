@@ -139,7 +139,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
         labels = torch.tensor([hyp.yseq], device=self.device)
         lm_label = labels[:, -1]
 
-        str_labels = "".join(list(map(str, hyp.yseq)))
+        str_labels = "_".join(list(map(str, hyp.yseq)))
 
         if str_labels in cache:
             dec_out, dec_state = cache[str_labels]
@@ -188,7 +188,7 @@ class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):
         done = [None] * final_batch
 
         for i, hyp in enumerate(hyps):
-            str_labels = "".join(list(map(str, hyp.yseq)))
+            str_labels = "_".join(list(map(str, hyp.yseq)))
 
             if str_labels in cache:
                 done[i] = cache[str_labels]

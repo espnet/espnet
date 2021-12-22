@@ -177,7 +177,7 @@ class RNNDecoder(TransducerDecoderInterface, torch.nn.Module):
         """
         label = torch.full((1, 1), hyp.yseq[-1], dtype=torch.long, device=self.device)
 
-        str_labels = "".join(list(map(str, hyp.yseq)))
+        str_labels = "_".join(list(map(str, hyp.yseq)))
 
         if str_labels in cache:
             dec_out, dec_state = cache[str_labels]
@@ -216,7 +216,7 @@ class RNNDecoder(TransducerDecoderInterface, torch.nn.Module):
         done = [None] * final_batch
 
         for i, hyp in enumerate(hyps):
-            str_labels = "".join(list(map(str, hyp.yseq)))
+            str_labels = "_".join(list(map(str, hyp.yseq)))
 
             if str_labels in cache:
                 done[i] = cache[str_labels]

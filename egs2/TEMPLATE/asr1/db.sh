@@ -115,6 +115,7 @@ JDCINAL=downloads
 GRABO=downloads
 WENETSPEECH=
 SPEECHCOMMANDS=downloads
+TOTONAC=downloads
 
 # For only CMU environment
 if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
@@ -245,4 +246,5 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     MUCS_SUBTASK2=downloads
     GAMAYUN=downloads
     IWSLT21LR=downloads/iwslt21
+    TOTONAC=downloads
 fi
