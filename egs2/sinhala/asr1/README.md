@@ -10,7 +10,7 @@
   - Commit date: `Thu Sep 16 21:19:45 2021 +0900` 
 
 ## Using Transformer based encoder-decoder predicting transcript along with intent
-- ASR config: [conf/tuning/train_asr.yaml(conf/tuning/train_asr.yaml)]
+- ASR config: [conf/tuning/train_asr.yaml](conf/tuning/train_asr.yaml)
 - token_type: word
 - keep_nbest_models: 5
 
