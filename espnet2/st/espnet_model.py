@@ -92,7 +92,9 @@ class ESPnetSTModel(AbsESPnetModel):
         self.preencoder = preencoder
         self.postencoder = postencoder
         self.encoder = encoder
-        self.decoder = decoder # TODO(jiatong): directly implement multi-decoder structure at here
+        self.decoder = (
+            decoder  # TODO(jiatong): directly implement multi-decoder structure at here
+        )
 
         self.criterion_st = LabelSmoothingLoss(
             size=vocab_size,
@@ -110,19 +112,29 @@ class ESPnetSTModel(AbsESPnetModel):
 
         # submodule for ASR task
         if self.asr_weight > 0:
-            assert src_token_list is not None, "Missing src_token_list, cannot add asr module to st model"
+            assert (
+                src_token_list is not None
+            ), "Missing src_token_list, cannot add asr module to st model"
             if self.mtlalpha > 0.0:
                 self.ctc = ctc
             if self.mtlalpha < 1.0:
                 self.extra_asr_decoder = extra_asr_decoder
             elif extra_asr_decoder is not None:
-                logging.warning("Not using extra_asr_decoder because mtlalpha is set as {} (== 1.0)".format(mtlalpha))
+                logging.warning(
+                    "Not using extra_asr_decoder because mtlalpha is set as {} (== 1.0)".format(
+                        mtlalpha
+                    )
+                )
 
         # submodule for MT task
         if self.mt_weight > 0:
             self.extra_mt_decoder = extra_mt_decoder
         elif extra_mt_decoder is not None:
-            logging.warning("Not using extra_mt_decoder because mt_weight is set as {} (== 0)".format(mt_weight))
+            logging.warning(
+                "Not using extra_mt_decoder because mt_weight is set as {} (== 0)".format(
+                    mt_weight
+                )
+            )
 
         # MT error calculator
         if report_bleu:
@@ -134,7 +146,9 @@ class ESPnetSTModel(AbsESPnetModel):
 
         # ASR error calculator
         if report_cer or report_wer:
-            assert src_token_list is not None, "Missing src_token_list, cannot add asr module to st model"
+            assert (
+                src_token_list is not None
+            ), "Missing src_token_list, cannot add asr module to st model"
             self.asr_error_calculator = ASRErrorCalculator(
                 src_token_list, sym_space, sym_blank, report_cer, report_wer
             )
@@ -176,12 +190,12 @@ class ESPnetSTModel(AbsESPnetModel):
         # additional checks with valid src_text
         if src_text is not None:
             assert src_text_lengths.dim() == 1, src_text_lengths.shape
-            assert (
-                text.shape[0]
-                == src_text.shape[0]
-                == src_text_lengths.shape[0]
-            ), (text.shape, src_text.shape, src_text_lengths.shape)
-        
+            assert text.shape[0] == src_text.shape[0] == src_text_lengths.shape[0], (
+                text.shape,
+                src_text.shape,
+                src_text_lengths.shape,
+            )
+
         batch_size = speech.shape[0]
 
         # for data-parallel
@@ -207,15 +221,20 @@ class ESPnetSTModel(AbsESPnetModel):
             )
         else:
             loss_asr_ctc, cer_asr_ctc = 0, None
-        
+
         # 2c. Attention-decoder branch (extra ASR)
         if self.asr_weight > 0 and self.mtlalpha < 1.0:
-            loss_asr_att, acc_asr_att, cer_asr_att, wer_asr_att = self._calc_asr_att_loss(
+            (
+                loss_asr_att,
+                acc_asr_att,
+                cer_asr_att,
+                wer_asr_att,
+            ) = self._calc_asr_att_loss(
                 encoder_out, encoder_out_lens, src_text, src_text_lengths
             )
         else:
             loss_asr_att, acc_asr_att, cer_asr_att, wer_asr_att = 0, None, None, None
-        
+
         # 2d. Attention-decoder branch (extra MT)
         if self.mt_weight > 0:
             loss_mt_att, acc_mt_att = self._calc_mt_att_loss(
@@ -339,15 +358,14 @@ class ESPnetSTModel(AbsESPnetModel):
             # No frontend and no feature extract
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
-    
+
     def _calc_mt_att_loss(
         self,
         encoder_out: torch.Tensor,
         encoder_out_lens: torch.Tensor,
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
-        st: bool = True
-
+        st: bool = True,
     ):
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1

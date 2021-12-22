@@ -1366,14 +1366,8 @@ if ! "${skip_eval}"; then
             # 1. Split the key file
             key_file=${_data}/${_scp}
             split_scps=""
-            if "${use_k2}"; then
-              # Now only _nj=1 is verified
-              _nj=1
-              st_inference_tool="espnet2.bin.k2_st_inference"
-            else
-              _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-              st_inference_tool="espnet2.bin.st_inference"
-            fi
+            _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+            st_inference_tool="espnet2.bin.st_inference"
 
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
@@ -1403,6 +1397,74 @@ if ! "${skip_eval}"; then
             done
         done
     fi
+
+    if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
+        log "Stage 13: Scoring"
+        if [ "${token_type}" = phn ]; then
+            log "Error: Not implemented for token_type=phn"
+            exit 1
+        fi
+
+        for dset in ${test_sets}; do
+            _data="${data_feats}/${dset}"
+            _dir="${asr_exp}/${inference_tag}/${dset}"
+
+            # TODO(jiatong): add asr scoring and inference
+
+            _scoredir="${_dir}/score_bleu"
+            mkdir -p "${_scoredir}"
+
+            paste \
+                <(<"${_data}/text.${tgt_case}.${tgt_lang}" \
+                    ${python} -m espnet2.bin.tokenize_text  \
+                        -f 2- --input - --output - \
+                        --token_type word \
+                        --non_linguistic_symbols "${nlsyms_txt}" \
+                        --remove_non_linguistic_symbols true \
+                        --cleaner "${cleaner}" \
+                        ) \
+                <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                    >"${_scoredir}/ref.trn.org"
+
+            # NOTE(kamo): Don't use cleaner for hyp
+            paste \
+                <(<"${_dir}/text"  \
+                        ${python} -m espnet2.bin.tokenize_text  \
+                            -f 2- --input - --output - \
+                            --token_type word \
+                            --non_linguistic_symbols "${nlsyms_txt}" \
+                            --remove_non_linguistic_symbols true \
+                            ) \
+                <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                    >"${_scoredir}/hyp.trn.org"
+            
+            # remove utterance id
+            perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
+            perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
+
+            # detokenizer
+            detokenizer.perl -l en -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
+            detokenizer.perl -l en -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
+
+            if [ ${tgt_case} = "tc" ]; then
+                sacrebleu "${_scoredir}/ref.trn.detok" \
+                          -i "${_scoredir}/hyp.trn.detok" \
+                          -m bleu chrf ter \
+                          >> ${_scoredir}/result.tc.txt
+                
+                log "Write a case-sensitive BLEU result in ${_scoredir}/result.tc.txt"
+            fi
+
+            # detokenize & remove punctuation except apostrophe
+            remove_punctuation.pl < "${_scoredir}/ref.trn.detok" > "${_scoredir}/ref.trn.detok.lc.rm"
+            remove_punctuation.pl < "${_scoredir}/hyp.trn.detok" > "${_scoredir}/hyp.trn.detok.lc.rm"
+            scarebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
+                      -i "${_scoredir}/hyp.trn.detok.lc.rm" \
+                      -m bleu chrf ter \
+                      >> ${_scoredir}/result.lc.txt
+            log "Write a case-insensitve BLEU result in ${_scoredir}/result.lc.txt"
+
+        done
 
     log "Skip the evaluation stages"
 fi

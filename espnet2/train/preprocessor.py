@@ -208,7 +208,7 @@ class CommonPreprocessor(AbsPreprocessor):
                 )
         else:
             self.noises = None
-    
+
     def _speech_process(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, Union[str, np.ndarray]]:
@@ -301,7 +301,7 @@ class CommonPreprocessor(AbsPreprocessor):
                 data[self.speech_name] = speech * self.speech_volume_normalize / ma
         assert check_return_type(data)
         return data
-    
+
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
@@ -421,7 +421,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
     ):
         # TODO(jiatong): sync with Kamo and Jing on interface for preprocessor
         super().__init__(
-            train=train, 
+            train=train,
             token_type=token_type[0],
             token_list=token_list[0],
             bpemodel=bpemodel[0],
@@ -438,10 +438,12 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
             noise_scp=noise_scp,
             noise_apply_prob=noise_apply_prob,
             noise_db_range=noise_db_range,
-            speech_volume_normalize=speech_volume_normalize)
-        
-        assert len(token_type) == len(token_list) == len(bpemodel) == len(text_name), \
-            "token_type, token_list, bpemodel, or processing text_name mismatched"
+            speech_volume_normalize=speech_volume_normalize,
+        )
+
+        assert (
+            len(token_type) == len(token_list) == len(bpemodel) == len(text_name)
+        ), "token_type, token_list, bpemodel, or processing text_name mismatched"
         self.num_tokenizer = len(token_type)
         self.tokenizer = []
         self.token_id_converter = []
@@ -451,24 +453,28 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                 if token_list[i] is None:
                     raise ValueError("token_list is required if token_type is not None")
 
-                self.tokenizer.append(build_tokenizer(
-                    token_type=token_type[i],
-                    bpemodel=bpemodel[i],
-                    delimiter=delimiter,
-                    space_symbol=space_symbol,
-                    non_linguistic_symbols=non_linguistic_symbols,
-                    g2p_type=g2p_type,
-                ))
-                self.token_id_converter.append(TokenIDConverter(
-                    token_list=token_list[i],
-                    unk_symbol=unk_symbol,
-                ))
+                self.tokenizer.append(
+                    build_tokenizer(
+                        token_type=token_type[i],
+                        bpemodel=bpemodel[i],
+                        delimiter=delimiter,
+                        space_symbol=space_symbol,
+                        non_linguistic_symbols=non_linguistic_symbols,
+                        g2p_type=g2p_type,
+                    )
+                )
+                self.token_id_converter.append(
+                    TokenIDConverter(
+                        token_list=token_list[i],
+                        unk_symbol=unk_symbol,
+                    )
+                )
             else:
                 self.tokenizer.append(None)
                 self.token_id_converter.append(None)
-        
+
         self.text_cleaner = TextCleaner(text_cleaner)
-        self.text_name = text_name # override the text_name from CommonPreprocessor
+        self.text_name = text_name  # override the text_name from CommonPreprocessor
 
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
