@@ -1,6 +1,7 @@
 # Set the path of your corpus
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
+AIDATATANG_200ZH=downloads
 AISHELL=downloads
 AISHELL3=downloads
 AISHELL4=downloads
@@ -119,6 +120,7 @@ TOTONAC=downloads
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
+    AIDATATANG_200ZH=downloads
     AISHELL=
     AISHELL3=downloads
     ALFFA=downloads
