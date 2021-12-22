@@ -70,6 +70,7 @@ requirements = {
         "torch_optimizer",
         "fairscale",
         "fairseq",
+        "asteroid",
         "transformers",
         "gtn",
     ],

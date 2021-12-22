@@ -26,6 +26,9 @@ from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import CISDRLoss
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.criterions.time_domain import SNRLoss
+from espnet2.enh.loss.criterions.time_domain import STOILoss
+from espnet2.enh.loss.criterions.time_domain import Wav2vec2DFLoss
+from espnet2.enh.loss.criterions.time_domain import HubertDFLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
@@ -88,6 +91,9 @@ criterion_choices = ClassChoices(
     classes=dict(
         snr=SNRLoss,
         ci_sdr=CISDRLoss,
+        stoi=STOILoss,
+        w2v2_df=Wav2vec2DFLoss,
+        hubert_df=HubertDFLoss,
         si_snr=SISNRLoss,
         mse=FrequencyDomainMSE,
         l1=FrequencyDomainL1,
