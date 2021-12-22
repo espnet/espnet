@@ -149,6 +149,8 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.postencoder.abs_postencoder</span> <span class="kn">import</span> <span class="n">AbsPostEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.abs_preencoder</span> <span class="kn">import</span> <span class="n">AbsPreEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.abs_specaug</span> <span class="kn">import</span> <span class="n">AbsSpecAug</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.transducer.error_calculator</span> <span class="kn">import</span> <span class="n">ErrorCalculatorTransducer</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.transducer.utils</span> <span class="kn">import</span> <span class="n">get_transducer_task_io</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
@@ -177,7 +179,7 @@
         <span class="n">postencoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsPostEncoder</span><span class="p">],</span>
         <span class="n">decoder</span><span class="p">:</span> <span class="n">AbsDecoder</span><span class="p">,</span>
         <span class="n">ctc</span><span class="p">:</span> <span class="n">CTC</span><span class="p">,</span>
-        <span class="n">rnnt_decoder</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">joint_network</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span>
         <span class="n">ctc_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="n">ignore_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">lsm_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
@@ -190,10 +192,10 @@
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">ctc_weight</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">ctc_weight</span>
-        <span class="k">assert</span> <span class="n">rnnt_decoder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Not implemented&quot;</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="c1"># note that eos is the same as sos (equivalent ID)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
@@ -207,32 +209,65 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">preencoder</span> <span class="o">=</span> <span class="n">preencoder</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">postencoder</span> <span class="o">=</span> <span class="n">postencoder</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span>
-        <span class="c1"># we set self.decoder = None in the CTC mode since</span>
-        <span class="c1"># self.decoder parameters were never used and PyTorch complained</span>
-        <span class="c1"># and threw an Exception in the multi-GPU experiment.</span>
-        <span class="c1"># thanks Jeff Farris for pointing out the issue.</span>
-        <span class="k">if</span> <span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">else</span><span class="p">:</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_transducer_decoder</span> <span class="o">=</span> <span class="n">joint_network</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_transducer_decoder</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">warprnnt_pytorch</span> <span class="kn">import</span> <span class="n">RNNTLoss</span>
+
             <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">joint_network</span> <span class="o">=</span> <span class="n">joint_network</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">criterion_transducer</span> <span class="o">=</span> <span class="n">RNNTLoss</span><span class="p">(</span>
+                <span class="n">blank</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span><span class="p">,</span>
+                <span class="n">fastemit_lambda</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">report_cer</span> <span class="ow">or</span> <span class="n">report_wer</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator_trans</span> <span class="o">=</span> <span class="n">ErrorCalculatorTransducer</span><span class="p">(</span>
+                    <span class="n">decoder</span><span class="p">,</span>
+                    <span class="n">joint_network</span><span class="p">,</span>
+                    <span class="n">token_list</span><span class="p">,</span>
+                    <span class="n">sym_space</span><span class="p">,</span>
+                    <span class="n">sym_blank</span><span class="p">,</span>
+                    <span class="n">report_cer</span><span class="o">=</span><span class="n">report_cer</span><span class="p">,</span>
+                    <span class="n">report_wer</span><span class="o">=</span><span class="n">report_wer</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator_trans</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="n">ErrorCalculator</span><span class="p">(</span>
+                        <span class="n">token_list</span><span class="p">,</span> <span class="n">sym_space</span><span class="p">,</span> <span class="n">sym_blank</span><span class="p">,</span> <span class="n">report_cer</span><span class="p">,</span> <span class="n">report_wer</span>
+                    <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># we set self.decoder = None in the CTC mode since</span>
+            <span class="c1"># self.decoder parameters were never used and PyTorch complained</span>
+            <span class="c1"># and threw an Exception in the multi-GPU experiment.</span>
+            <span class="c1"># thanks Jeff Farris for pointing out the issue.</span>
+            <span class="k">if</span> <span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">criterion_att</span> <span class="o">=</span> <span class="n">LabelSmoothingLoss</span><span class="p">(</span>
+                <span class="n">size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+                <span class="n">padding_idx</span><span class="o">=</span><span class="n">ignore_id</span><span class="p">,</span>
+                <span class="n">smoothing</span><span class="o">=</span><span class="n">lsm_weight</span><span class="p">,</span>
+                <span class="n">normalize_length</span><span class="o">=</span><span class="n">length_normalized_loss</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">report_cer</span> <span class="ow">or</span> <span class="n">report_wer</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="n">ErrorCalculator</span><span class="p">(</span>
+                    <span class="n">token_list</span><span class="p">,</span> <span class="n">sym_space</span><span class="p">,</span> <span class="n">sym_blank</span><span class="p">,</span> <span class="n">report_cer</span><span class="p">,</span> <span class="n">report_wer</span>
+                <span class="p">)</span>
+
         <span class="k">if</span> <span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="n">ctc</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">rnnt_decoder</span> <span class="o">=</span> <span class="n">rnnt_decoder</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">criterion_att</span> <span class="o">=</span> <span class="n">LabelSmoothingLoss</span><span class="p">(</span>
-            <span class="n">size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
-            <span class="n">padding_idx</span><span class="o">=</span><span class="n">ignore_id</span><span class="p">,</span>
-            <span class="n">smoothing</span><span class="o">=</span><span class="n">lsm_weight</span><span class="p">,</span>
-            <span class="n">normalize_length</span><span class="o">=</span><span class="n">length_normalized_loss</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">report_cer</span> <span class="ow">or</span> <span class="n">report_wer</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="n">ErrorCalculator</span><span class="p">(</span>
-                <span class="n">token_list</span><span class="p">,</span> <span class="n">sym_space</span><span class="p">,</span> <span class="n">sym_blank</span><span class="p">,</span> <span class="n">report_cer</span><span class="p">,</span> <span class="n">report_wer</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">extract_feats_in_collect_stats</span> <span class="o">=</span> <span class="n">extract_feats_in_collect_stats</span>
 
@@ -267,41 +302,60 @@
         <span class="c1"># 1. Encoder</span>
         <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
 
-        <span class="c1"># 2a. Attention-decoder branch</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
-            <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc_att</span><span class="p">,</span> <span class="n">cer_att</span><span class="p">,</span> <span class="n">wer_att</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc_att</span><span class="p">,</span> <span class="n">cer_att</span><span class="p">,</span> <span class="n">wer_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_att_loss</span><span class="p">(</span>
-                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span>
-            <span class="p">)</span>
+        <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc_att</span><span class="p">,</span> <span class="n">cer_att</span><span class="p">,</span> <span class="n">wer_att</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="n">loss_transducer</span><span class="p">,</span> <span class="n">cer_transducer</span><span class="p">,</span> <span class="n">wer_transducer</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
 
-        <span class="c1"># 2b. CTC branch</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
-            <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
-        <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># 1. CTC branch</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
             <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_ctc_loss</span><span class="p">(</span>
                 <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span>
             <span class="p">)</span>
 
-        <span class="c1"># 2c. RNN-T branch</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnnt_decoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_rnnt_loss</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_transducer_decoder</span><span class="p">:</span>
+            <span class="c1"># 2a. Transducer decoder branch</span>
+            <span class="p">(</span>
+                <span class="n">loss_transducer</span><span class="p">,</span>
+                <span class="n">cer_transducer</span><span class="p">,</span>
+                <span class="n">wer_transducer</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_transducer_loss</span><span class="p">(</span>
+                <span class="n">encoder_out</span><span class="p">,</span>
+                <span class="n">encoder_out_lens</span><span class="p">,</span>
+                <span class="n">text</span><span class="p">,</span>
+            <span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
-            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_att</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
-            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_ctc</span>
+            <span class="k">if</span> <span class="n">loss_ctc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_transducer</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">*</span> <span class="n">loss_ctc</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_transducer</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">*</span> <span class="n">loss_ctc</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">loss_att</span>
+            <span class="c1"># 2b. Attention decoder branch</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">!=</span> <span class="mf">1.0</span><span class="p">:</span>
+                <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc_att</span><span class="p">,</span> <span class="n">cer_att</span><span class="p">,</span> <span class="n">wer_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_att_loss</span><span class="p">(</span>
+                    <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span>
+                <span class="p">)</span>
+
+            <span class="c1"># 3. CTC-Att loss definition</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_att</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_ctc</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">*</span> <span class="n">loss_ctc</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">loss_att</span>
 
         <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
             <span class="n">loss_att</span><span class="o">=</span><span class="n">loss_att</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_att</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">loss_ctc</span><span class="o">=</span><span class="n">loss_ctc</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_ctc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">loss_transducer</span><span class="o">=</span><span class="n">loss_transducer</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">loss_transducer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">acc</span><span class="o">=</span><span class="n">acc_att</span><span class="p">,</span>
             <span class="n">cer</span><span class="o">=</span><span class="n">cer_att</span><span class="p">,</span>
             <span class="n">wer</span><span class="o">=</span><span class="n">wer_att</span><span class="p">,</span>
             <span class="n">cer_ctc</span><span class="o">=</span><span class="n">cer_ctc</span><span class="p">,</span>
+            <span class="n">cer_transducer</span><span class="o">=</span><span class="n">cer_transducer</span><span class="p">,</span>
+            <span class="n">wer_transducer</span><span class="o">=</span><span class="n">wer_transducer</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># force_gatherable: to-device and to-tensor if scalar for DataParallel</span>
@@ -527,14 +581,53 @@
             <span class="n">cer_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span><span class="p">(</span><span class="n">ys_hat</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">ys_pad</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">is_ctc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span>
 
-    <span class="k">def</span> <span class="nf">_calc_rnnt_loss</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">_calc_transducer_loss</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">encoder_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">encoder_out_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">ys_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">ys_pad_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+        <span class="sd">&quot;&quot;&quot;Compute Transducer loss.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            encoder_out: Encoder output sequences. (B, T, D_enc)</span>
+<span class="sd">            encoder_out_lens: Encoder output sequences lengths. (B,)</span>
+<span class="sd">            labels: Label ID sequences. (B, L)</span>
+
+<span class="sd">        Return:</span>
+<span class="sd">            loss_transducer: Transducer loss value.</span>
+<span class="sd">            cer_transducer: Character error rate for Transducer.</span>
+<span class="sd">            wer_transducer: Word Error Rate for Transducer.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">decoder_in</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">t_len</span><span class="p">,</span> <span class="n">u_len</span> <span class="o">=</span> <span class="n">get_transducer_task_io</span><span class="p">(</span>
+            <span class="n">labels</span><span class="p">,</span>
+            <span class="n">encoder_out_lens</span><span class="p">,</span>
+            <span class="n">ignore_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">,</span>
+            <span class="n">blank_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">set_device</span><span class="p">(</span><span class="n">encoder_out</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">decoder_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">decoder_in</span><span class="p">)</span>
+
+        <span class="n">joint_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">joint_network</span><span class="p">(</span>
+            <span class="n">encoder_out</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">decoder_out</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">loss_transducer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion_transducer</span><span class="p">(</span>
+            <span class="n">joint_out</span><span class="p">,</span>
+            <span class="n">target</span><span class="p">,</span>
+            <span class="n">t_len</span><span class="p">,</span>
+            <span class="n">u_len</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">cer_transducer</span><span class="p">,</span> <span class="n">wer_transducer</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator_trans</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cer_transducer</span><span class="p">,</span> <span class="n">wer_transducer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator_trans</span><span class="p">(</span>
+                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">target</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">loss_transducer</span><span class="p">,</span> <span class="n">cer_transducer</span><span class="p">,</span> <span class="n">wer_transducer</span></div>
 </pre></div>
 
            </div>

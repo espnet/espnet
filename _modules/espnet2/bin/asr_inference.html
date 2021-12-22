@@ -150,6 +150,11 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.scorers.ctc</span> <span class="kn">import</span> <span class="n">CTCPrefixScorer</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.scorers.length_bonus</span> <span class="kn">import</span> <span class="n">LengthBonus</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_utils</span> <span class="kn">import</span> <span class="n">get_commandline_args</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.transducer.beam_search_transducer</span> <span class="kn">import</span> <span class="n">BeamSearchTransducer</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.transducer.beam_search_transducer</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ExtendedHypothesis</span> <span class="k">as</span> <span class="n">ExtTransHypothesis</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.transducer.beam_search_transducer</span> <span class="kn">import</span> <span class="n">Hypothesis</span> <span class="k">as</span> <span class="n">TransHypothesis</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.datadir_writer</span> <span class="kn">import</span> <span class="n">DatadirWriter</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">ASRTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.lm</span> <span class="kn">import</span> <span class="n">LMTask</span>
@@ -179,6 +184,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">asr_train_config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">asr_model_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">transducer_conf</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">lm_train_config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">lm_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">ngram_scorer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;full&quot;</span><span class="p">,</span>
@@ -208,6 +214,7 @@
         <span class="n">asr_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
 
         <span class="n">decoder</span> <span class="o">=</span> <span class="n">asr_model</span><span class="o">.</span><span class="n">decoder</span>
+
         <span class="n">ctc</span> <span class="o">=</span> <span class="n">CTCPrefixScorer</span><span class="p">(</span><span class="n">ctc</span><span class="o">=</span><span class="n">asr_model</span><span class="o">.</span><span class="n">ctc</span><span class="p">,</span> <span class="n">eos</span><span class="o">=</span><span class="n">asr_model</span><span class="o">.</span><span class="n">eos</span><span class="p">)</span>
         <span class="n">token_list</span> <span class="o">=</span> <span class="n">asr_model</span><span class="o">.</span><span class="n">token_list</span>
         <span class="n">scorers</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
@@ -238,51 +245,67 @@
         <span class="n">scorers</span><span class="p">[</span><span class="s2">&quot;ngram&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ngram</span>
 
         <span class="c1"># 4. Build BeamSearch object</span>
-        <span class="n">weights</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-            <span class="n">decoder</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">ctc_weight</span><span class="p">,</span>
-            <span class="n">ctc</span><span class="o">=</span><span class="n">ctc_weight</span><span class="p">,</span>
-            <span class="n">lm</span><span class="o">=</span><span class="n">lm_weight</span><span class="p">,</span>
-            <span class="n">ngram</span><span class="o">=</span><span class="n">ngram_weight</span><span class="p">,</span>
-            <span class="n">length_bonus</span><span class="o">=</span><span class="n">penalty</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">beam_search</span> <span class="o">=</span> <span class="n">BeamSearch</span><span class="p">(</span>
-            <span class="n">beam_size</span><span class="o">=</span><span class="n">beam_size</span><span class="p">,</span>
-            <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
-            <span class="n">scorers</span><span class="o">=</span><span class="n">scorers</span><span class="p">,</span>
-            <span class="n">sos</span><span class="o">=</span><span class="n">asr_model</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span>
-            <span class="n">eos</span><span class="o">=</span><span class="n">asr_model</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span>
-            <span class="n">vocab_size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">token_list</span><span class="p">),</span>
-            <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
-            <span class="n">pre_beam_score_key</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">1.0</span> <span class="k">else</span> <span class="s2">&quot;full&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="c1"># TODO(karita): make all scorers batchfied</span>
-        <span class="k">if</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">non_batch</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">k</span>
-                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">beam_search</span><span class="o">.</span><span class="n">full_scorers</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">BatchScorerInterface</span><span class="p">)</span>
-            <span class="p">]</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">non_batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">streaming</span><span class="p">:</span>
-                    <span class="n">beam_search</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">=</span> <span class="n">BatchBeamSearchOnlineSim</span>
-                    <span class="n">beam_search</span><span class="o">.</span><span class="n">set_streaming_config</span><span class="p">(</span><span class="n">asr_train_config</span><span class="p">)</span>
-                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;BatchBeamSearchOnlineSim implementation is selected.&quot;</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">beam_search</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">=</span> <span class="n">BatchBeamSearch</span>
-                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;BatchBeamSearch implementation is selected.&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;As non-batch scorers </span><span class="si">{</span><span class="n">non_batch</span><span class="si">}</span><span class="s2"> are found, &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;fall back to non-batch implementation.&quot;</span>
-                <span class="p">)</span>
-        <span class="n">beam_search</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">scorer</span> <span class="ow">in</span> <span class="n">scorers</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scorer</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-                <span class="n">scorer</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Beam_search: </span><span class="si">{</span><span class="n">beam_search</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Decoding device=</span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">, dtype=</span><span class="si">{</span><span class="n">dtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">asr_model</span><span class="o">.</span><span class="n">use_transducer_decoder</span><span class="p">:</span>
+            <span class="n">beam_search_transducer</span> <span class="o">=</span> <span class="n">BeamSearchTransducer</span><span class="p">(</span>
+                <span class="n">decoder</span><span class="o">=</span><span class="n">asr_model</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span>
+                <span class="n">joint_network</span><span class="o">=</span><span class="n">asr_model</span><span class="o">.</span><span class="n">joint_network</span><span class="p">,</span>
+                <span class="n">beam_size</span><span class="o">=</span><span class="n">beam_size</span><span class="p">,</span>
+                <span class="n">lm</span><span class="o">=</span><span class="n">scorers</span><span class="p">[</span><span class="s2">&quot;lm&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;lm&quot;</span> <span class="ow">in</span> <span class="n">scorers</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">lm_weight</span><span class="o">=</span><span class="n">lm_weight</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">transducer_conf</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">beam_search</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">beam_search_transducer</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="c1"># 4. [Optional] Build Text converter: e.g. bpe-sym -&gt; Text</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">decoder</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">ctc_weight</span><span class="p">,</span>
+                <span class="n">ctc</span><span class="o">=</span><span class="n">ctc_weight</span><span class="p">,</span>
+                <span class="n">lm</span><span class="o">=</span><span class="n">lm_weight</span><span class="p">,</span>
+                <span class="n">length_bonus</span><span class="o">=</span><span class="n">penalty</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">beam_search</span> <span class="o">=</span> <span class="n">BeamSearch</span><span class="p">(</span>
+                <span class="n">beam_size</span><span class="o">=</span><span class="n">beam_size</span><span class="p">,</span>
+                <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+                <span class="n">scorers</span><span class="o">=</span><span class="n">scorers</span><span class="p">,</span>
+                <span class="n">sos</span><span class="o">=</span><span class="n">asr_model</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span>
+                <span class="n">eos</span><span class="o">=</span><span class="n">asr_model</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span>
+                <span class="n">vocab_size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">token_list</span><span class="p">),</span>
+                <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
+                <span class="n">pre_beam_score_key</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">1.0</span> <span class="k">else</span> <span class="s2">&quot;full&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># TODO(karita): make all scorers batchfied</span>
+            <span class="k">if</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">non_batch</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">k</span>
+                    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">beam_search</span><span class="o">.</span><span class="n">full_scorers</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">BatchScorerInterface</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">non_batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">streaming</span><span class="p">:</span>
+                        <span class="n">beam_search</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">=</span> <span class="n">BatchBeamSearchOnlineSim</span>
+                        <span class="n">beam_search</span><span class="o">.</span><span class="n">set_streaming_config</span><span class="p">(</span><span class="n">asr_train_config</span><span class="p">)</span>
+                        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                            <span class="s2">&quot;BatchBeamSearchOnlineSim implementation is selected.&quot;</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">beam_search</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">=</span> <span class="n">BatchBeamSearch</span>
+                        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;BatchBeamSearch implementation is selected.&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;As non-batch scorers </span><span class="si">{</span><span class="n">non_batch</span><span class="si">}</span><span class="s2"> are found, &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;fall back to non-batch implementation.&quot;</span>
+                    <span class="p">)</span>
+
+            <span class="n">beam_search</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">scorer</span> <span class="ow">in</span> <span class="n">scorers</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scorer</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+                    <span class="n">scorer</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Beam_search: </span><span class="si">{</span><span class="n">beam_search</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Decoding device=</span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">, dtype=</span><span class="si">{</span><span class="n">dtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># 5. [Optional] Build Text converter: e.g. bpe-sym -&gt; Text</span>
         <span class="k">if</span> <span class="n">token_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">token_type</span> <span class="o">=</span> <span class="n">asr_train_args</span><span class="o">.</span><span class="n">token_type</span>
         <span class="k">if</span> <span class="n">bpemodel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -305,6 +328,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">converter</span> <span class="o">=</span> <span class="n">converter</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span> <span class="o">=</span> <span class="n">beam_search</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beam_search_transducer</span> <span class="o">=</span> <span class="n">beam_search_transducer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">maxlenratio</span> <span class="o">=</span> <span class="n">maxlenratio</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">minlenratio</span> <span class="o">=</span> <span class="n">minlenratio</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
@@ -314,7 +338,14 @@
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">Hypothesis</span><span class="p">]]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span>
+        <span class="n">Tuple</span><span class="p">[</span>
+            <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+            <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+            <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+            <span class="n">Union</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">,</span> <span class="n">ExtTransHypothesis</span><span class="p">,</span> <span class="n">TransHypothesis</span><span class="p">],</span>
+        <span class="p">]</span>
+    <span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Inference</span>
 
 <span class="sd">        Args:</span>
@@ -343,17 +374,24 @@
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span>
 
         <span class="c1"># c. Passed the encoder result and the beam search</span>
-        <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="p">(</span>
-            <span class="n">x</span><span class="o">=</span><span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">maxlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">maxlenratio</span><span class="p">,</span> <span class="n">minlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">minlenratio</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search_transducer</span><span class="p">:</span>
+            <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search_transducer</span><span class="p">(</span><span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">maxlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">maxlenratio</span><span class="p">,</span> <span class="n">minlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">minlenratio</span>
+            <span class="p">)</span>
+
         <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="n">nbest_hyps</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbest</span><span class="p">]</span>
 
         <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="n">nbest_hyps</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="n">Hypothesis</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">hyp</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="p">(</span><span class="n">Hypothesis</span><span class="p">,</span> <span class="n">TransHypothesis</span><span class="p">)),</span> <span class="nb">type</span><span class="p">(</span><span class="n">hyp</span><span class="p">)</span>
 
             <span class="c1"># remove sos/eos and get results</span>
-            <span class="n">token_int</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">token_int</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">token_int</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
 
             <span class="c1"># remove blank symbol id, which is assumed to be 0</span>
             <span class="n">token_int</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">token_int</span><span class="p">))</span>
@@ -430,6 +468,7 @@
     <span class="n">token_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">bpemodel</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">allow_variable_data_keys</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">transducer_conf</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
     <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
@@ -457,6 +496,7 @@
     <span class="n">speech2text_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
         <span class="n">asr_train_config</span><span class="o">=</span><span class="n">asr_train_config</span><span class="p">,</span>
         <span class="n">asr_model_file</span><span class="o">=</span><span class="n">asr_model_file</span><span class="p">,</span>
+        <span class="n">transducer_conf</span><span class="o">=</span><span class="n">transducer_conf</span><span class="p">,</span>
         <span class="n">lm_train_config</span><span class="o">=</span><span class="n">lm_train_config</span><span class="p">,</span>
         <span class="n">lm_file</span><span class="o">=</span><span class="n">lm_file</span><span class="p">,</span>
         <span class="n">ngram_file</span><span class="o">=</span><span class="n">ngram_file</span><span class="p">,</span>
@@ -651,6 +691,12 @@
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--lm_weight&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;RNNLM weight&quot;</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--ngram_weight&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;ngram weight&quot;</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--streaming&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--transducer_conf&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for transducer beam search.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Text converter related&quot;</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>

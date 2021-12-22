@@ -152,8 +152,9 @@ asr_inference.py
                             [--maxlenratio MAXLENRATIO]
                             [--minlenratio MINLENRATIO] [--ctc_weight CTC_WEIGHT]
                             [--lm_weight LM_WEIGHT] [--ngram_weight NGRAM_WEIGHT]
-                            [--streaming STREAMING] [--token_type {char,bpe,None}]
-                            [--bpemodel BPEMODEL]
+                            [--streaming STREAMING]
+                            [--transducer_conf TRANSDUCER_CONF]
+                            [--token_type {char,bpe,None}] [--bpemodel BPEMODEL]
     
     ASR Decoding
     
@@ -217,6 +218,9 @@ asr_inference.py
       --ngram_weight NGRAM_WEIGHT
                             ngram weight (default: 0.9)
       --streaming STREAMING
+      --transducer_conf TRANSDUCER_CONF
+                            The keyword arguments for transducer beam search.
+                            (default: None)
     
     Text converter related:
       --token_type {char,bpe,None}
@@ -403,6 +407,7 @@ asr_train.py
                         [--token_list TOKEN_LIST]
                         [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                         [--input_size INPUT_SIZE] [--ctc_conf CTC_CONF]
+                        [--joint_net_conf JOINT_NET_CONF]
                         [--model_conf MODEL_CONF]
                         [--use_preprocessor USE_PREPROCESSOR]
                         [--token_type {bpe,char,word,phn}] [--bpemodel BPEMODEL]
@@ -425,7 +430,7 @@ asr_train.py
                         [--encoder_conf ENCODER_CONF]
                         [--postencoder {hugging_face_transformers,None}]
                         [--postencoder_conf POSTENCODER_CONF]
-                        [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}]
+                        [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer}]
                         [--decoder_conf DECODER_CONF]
     
     base parser
@@ -767,6 +772,8 @@ asr_train.py
       --input_size INPUT_SIZE
                             The number of input dimension of the feature (default: None)
       --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {'dropout_rate': 0.0, 'ctc_type': 'builtin', 'reduce': True, 'ignore_nan_grad': True})
+      --joint_net_conf JOINT_NET_CONF
+                            The keyword arguments for joint network class. (default: None)
       --model_conf MODEL_CONF
                             The keyword arguments for model class. (default: {'ctc_weight': 0.5, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'extract_feats_in_collect_stats': True})
     
@@ -801,7 +808,7 @@ asr_train.py
                             The postencoder type (default: None)
       --postencoder_conf POSTENCODER_CONF
                             The keyword arguments for postencoder (default: {})
-      --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}
+      --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer}
                             The decoder type (default: rnn)
       --decoder_conf DECODER_CONF
                             The keyword arguments for decoder (default: {})

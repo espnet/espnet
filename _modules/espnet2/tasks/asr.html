@@ -181,6 +181,8 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.sinc</span> <span class="kn">import</span> <span class="n">LightweightSincConvs</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.abs_specaug</span> <span class="kn">import</span> <span class="n">AbsSpecAug</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.specaug</span> <span class="kn">import</span> <span class="n">SpecAug</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.transducer.joint_network</span> <span class="kn">import</span> <span class="n">JointNetwork</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.transducer.transducer_decoder</span> <span class="kn">import</span> <span class="n">TransducerDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.global_mvn</span> <span class="kn">import</span> <span class="n">GlobalMVN</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.utterance_mvn</span> <span class="kn">import</span> <span class="n">UtteranceMVN</span>
@@ -270,6 +272,7 @@
         <span class="n">dynamic_conv</span><span class="o">=</span><span class="n">DynamicConvolutionTransformerDecoder</span><span class="p">,</span>
         <span class="n">dynamic_conv2d</span><span class="o">=</span><span class="n">DynamicConvolution2DTransformerDecoder</span><span class="p">,</span>
         <span class="n">rnn</span><span class="o">=</span><span class="n">RNNDecoder</span><span class="p">,</span>
+        <span class="n">transducer</span><span class="o">=</span><span class="n">TransducerDecoder</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsDecoder</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;rnn&quot;</span><span class="p">,</span>
@@ -343,6 +346,12 @@
             <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="n">get_default_kwargs</span><span class="p">(</span><span class="n">CTC</span><span class="p">),</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for CTC class.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--joint_net_conf&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for joint network class.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--model_conf&quot;</span><span class="p">,</span>
@@ -568,19 +577,32 @@
         <span class="c1"># 5. Decoder</span>
         <span class="n">decoder_class</span> <span class="o">=</span> <span class="n">decoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">decoder</span><span class="p">)</span>
 
-        <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_class</span><span class="p">(</span>
-            <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
-            <span class="n">encoder_output_size</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">decoder</span> <span class="o">==</span> <span class="s2">&quot;transducer&quot;</span><span class="p">:</span>
+            <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_class</span><span class="p">(</span>
+                <span class="n">vocab_size</span><span class="p">,</span>
+                <span class="n">embed_pad</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">joint_network</span> <span class="o">=</span> <span class="n">JointNetwork</span><span class="p">(</span>
+                <span class="n">vocab_size</span><span class="p">,</span>
+                <span class="n">encoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">(),</span>
+                <span class="n">decoder</span><span class="o">.</span><span class="n">dunits</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">joint_net_conf</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_class</span><span class="p">(</span>
+                <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+                <span class="n">encoder_output_size</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">joint_network</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># 6. CTC</span>
         <span class="n">ctc</span> <span class="o">=</span> <span class="n">CTC</span><span class="p">(</span>
             <span class="n">odim</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">encoder_output_sizse</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">ctc_conf</span>
         <span class="p">)</span>
-
-        <span class="c1"># 7. RNN-T Decoder (Not implemented)</span>
-        <span class="n">rnnt_decoder</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># 8. Build model</span>
         <span class="n">model</span> <span class="o">=</span> <span class="n">ESPnetASRModel</span><span class="p">(</span>
@@ -593,7 +615,7 @@
             <span class="n">postencoder</span><span class="o">=</span><span class="n">postencoder</span><span class="p">,</span>
             <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
             <span class="n">ctc</span><span class="o">=</span><span class="n">ctc</span><span class="p">,</span>
-            <span class="n">rnnt_decoder</span><span class="o">=</span><span class="n">rnnt_decoder</span><span class="p">,</span>
+            <span class="n">joint_network</span><span class="o">=</span><span class="n">joint_network</span><span class="p">,</span>
             <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
             <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">,</span>
         <span class="p">)</span>
