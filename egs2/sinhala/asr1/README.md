@@ -2,50 +2,36 @@
 # RESULTS
 
 ## Environments
-- date: `Sat Jul 24 00:48:04 2021 -0400`
-- python version: `3.6.13 (default, Jun  4 2021, 14:25:59)  [GCC 7.5.0]`
-- espnet version: `espnet 0.9.10`
-- pytorch version: `pytorch 1.4.0+cu100`
-- Git hash: `3de98cec5d2bfe39ab4f7bbe8baa2a531e694ce3`
-  - Commit date: `Sat Jul 24 00:48:04 2021 -0400`
-- Pretrained Model: https://zenodo.org/record/5154341 
+- date: `Wed Dec 22 00:25:08 EST 2021`
+- python version: `3.9.5 (default, Jun  4 2021, 12:28:51)  [GCC 7.5.0]`
+- espnet version: `espnet 0.10.3a3`
+- pytorch version: `pytorch 1.8.1+cu102`
+- Git hash: `ea2174b5cef70a9b65a64980ef56283222283af2`
+  - Commit date: `Thu Sep 16 21:19:45 2021 +0900` 
 
-## Using Transformer based encoder-decoder and decoding character with spectral augmentation 
-
-- ASR config: [conf/tuning/train_asr_transformer_adam_specaug.yaml](conf/tuning/train_asr_transformer_adam_specaug.yaml)
-
-|dataset|Snt|Intent Classification (%)|
-|---|---|---|
-|inference_asr_model_valid.acc.best/test|3793|98.3|
-|inference_asr_model_valid.acc.best/valid|3118|91.6|
-
-## Using Transformer based encoder-decoder and decoding sentence with spectral augmentation
-- ASR config: [conf/tuning/train_asr_transformer_adam_specaug_small.yaml](conf/tuning/train_asr_transformer_adam_specaug_small.yaml)
-- token_type: word
-- keep_nbest_models: 5
-- Pretrainded model: https://zenodo.org/record/5171544
-
-|dataset|Snt|Intent Classification (%)|
-|---|---|---|
-|inference_asr_model_valid.acc.ave_5best/test|3793|98.8|
-|inference_asr_model_valid.acc.ave_5best/valid|3118|93.6|
-
-
-## Using Transformer based encoder-decoder and decoding sentence with spectral augmentation and predicting transcript along with intent
-- ASR config: [conf/tuning/train_asr_transformer_adam_specaug.yaml](conf/tuning/train_asr_transformer_adam_specaug.yaml)
+## Using Transformer based encoder-decoder predicting transcript along with intent
+- ASR config: [conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml](conf/tuning/train_asr.yaml)
 - token_type: word
 - keep_nbest_models: 5
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
-|inference_asr_model_valid.acc.ave_5best/test|3793|99.5|
+|inference_asr_model_valid.acc.ave_5best/test|762|93.57|
+|inference_asr_model_valid.acc.ave_5best/valid|763|94.88|
 
-###ASR results
-
-#### WER
+## asr_train_asr_raw_en_word
+### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|inference_asr_model_valid.acc.ave_5best/test|3793|20316|99.7|0.2|0.1|0.2|0.4|1.5|
-|inference_asr_model_valid.acc.ave_5best/valid|3118|16751|97.9|1.5|0.6|0.5|2.6|5.5|
+|inference_asr_model_valid.acc.ave_5best/test|762|15965|97.2|1.8|1.0|1.3|4.1|13.9|
+|inference_asr_model_valid.acc.ave_5best/valid|763|15853|96.4|2.5|1.1|1.8|5.5|16.3|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|inference_asr_model_valid.acc.ave_5best/test|762|41332|97.8|1.4|0.8|1.0|3.2|13.9|
+|inference_asr_model_valid.acc.ave_5best/valid|763|41124|97.3|1.9|0.8|1.4|4.1|16.3|
+
 
