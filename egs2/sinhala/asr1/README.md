@@ -16,8 +16,8 @@
 
 |dataset|Snt|Intent Classification (%)|
 |---|---|---|
-|inference_asr_model_valid.acc.ave_5best/test|762|93.57|
-|inference_asr_model_valid.acc.ave_5best/valid|763|94.88|
+|inference_asr_model_valid.acc.ave_5best/test|762|94.88|
+|inference_asr_model_valid.acc.ave_5best/valid|763|93.577|
 
 ## asr_train_asr_raw_en_word
 ### WER
