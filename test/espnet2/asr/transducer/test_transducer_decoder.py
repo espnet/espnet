@@ -2,7 +2,6 @@ import pytest
 import torch
 
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis
-from espnet2.asr.transducer.beam_search_transducer import ExtendedHypothesis
 from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
 
 
@@ -12,7 +11,7 @@ def test_TransducerDecoder_forward(rnn_type):
     decoder = TransducerDecoder(10, rnn_type=rnn_type)
 
     decoder.set_device(ys.device)
-    dec_out = decoder(ys)
+    _ = decoder(ys)
 
 
 def test_TransducerDecoder_invalid_type():

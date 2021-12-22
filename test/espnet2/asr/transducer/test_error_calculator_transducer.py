@@ -6,23 +6,27 @@ from espnet2.asr.transducer.joint_network import JointNetwork
 from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
 
 
-@pytest.mark.parametrize("report_opts", [
-    {"report_cer": False, "report_wer": False},
-    {"report_cer": True, "report_wer": True},
-    
-])
+@pytest.mark.parametrize(
+    "report_opts",
+    [
+        {"report_cer": False, "report_wer": False},
+        {"report_cer": True, "report_wer": True},
+    ],
+)
 def test_error_calculator(report_opts):
     token_list = ["<blank>", "a", "b", "c", "<space>"]
     vocab_size = len(token_list)
 
     encoder_output_size = 4
     decoder_output_size = 4
-    joint_space_size = 2
 
     decoder = TransducerDecoder(
-        vocab_size, hidden_size=decoder_output_size,
+        vocab_size,
+        hidden_size=decoder_output_size,
     )
-    joint_net = JointNetwork(vocab_size, encoder_output_size, decoder_output_size)
+    joint_net = JointNetwork(
+        vocab_size, encoder_output_size, decoder_output_size, joint_space_size=2
+    )
 
     error_calc = ErrorCalculatorTransducer(
         decoder,

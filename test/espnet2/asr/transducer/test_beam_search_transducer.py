@@ -2,8 +2,6 @@ import pytest
 import torch
 
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
-from espnet2.asr.transducer.beam_search_transducer import Hypothesis
-from espnet2.asr.transducer.beam_search_transducer import ExtendedHypothesis
 from espnet2.asr.transducer.joint_network import JointNetwork
 from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
@@ -26,16 +24,17 @@ from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 def test_transducer_beam_search(rnn_type, search_params):
     token_list = ["<blank>", "a", "b", "c"]
     vocab_size = len(token_list)
+    beam_size = 1 if search_params["search_type"] == "greedy" else 2
 
     encoder_output_size = 4
     decoder_output_size = 4
-    joint_space_size = 2
-    beam_size = 1 if search_params["search_type"] == "greedy" else 2
 
     decoder = TransducerDecoder(
         vocab_size, hidden_size=decoder_output_size, rnn_type=rnn_type
     )
-    joint_net = JointNetwork(vocab_size, encoder_output_size, decoder_output_size)
+    joint_net = JointNetwork(
+        vocab_size, encoder_output_size, decoder_output_size, joint_space_size=2
+    )
 
     lm = search_params.pop("lm", SequentialRNNLM(vocab_size, rnn_type="lstm"))
 

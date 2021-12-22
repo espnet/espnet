@@ -1,9 +1,8 @@
-"""Common functions for ASR."""
+"""Error Calculator module for Transducer."""
 
 from typing import List
 from typing import Tuple
 
-import numpy as np
 import torch
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
@@ -14,12 +13,12 @@ class ErrorCalculatorTransducer(object):
     """Calculate CER and WER for transducer models.
 
     Args:
-        decoder: Decoder module
-        token_list: List of tokens
-        sym_space: Space symbol
-        sym_blank: Blank symbol
-        report_cer: Whether to compute CER
-        report_wer: Whether to compute WER
+        decoder: Decoder module.
+        token_list: List of tokens.
+        sym_space: Space symbol.
+        sym_blank: Blank symbol.
+        report_cer: Whether to compute CER.
+        report_wer: Whether to compute WER.
 
     """
 
@@ -33,7 +32,7 @@ class ErrorCalculatorTransducer(object):
         report_cer: bool = False,
         report_wer: bool = False,
     ):
-        """Construct an ErrorCalculator object for transducer model."""
+        """Construct an ErrorCalculatorTransducer."""
         super().__init__()
 
         self.beam_search = BeamSearchTransducer(
@@ -41,6 +40,7 @@ class ErrorCalculatorTransducer(object):
             joint_network=joint_network,
             beam_size=2,
             search_type="default",
+            score_norm=False,
         )
 
         self.decoder = decoder
@@ -52,124 +52,120 @@ class ErrorCalculatorTransducer(object):
         self.report_cer = report_cer
         self.report_wer = report_wer
 
-    def __call__(self, hs_pad, ys_pad):
-        """Calculate sentence-level WER/CER score for transducer models.
+    def __call__(self, encoder_out: torch.Tensor, target: torch.Tensor):
+        """Calculate sentence-level WER/CER score for Transducer model.
 
         Args:
-            hs_pad (torch.Tensor): batch of padded input sequence (batch, T, D)
-            ys_pad (torch.Tensor): reference (batch, seqlen)
+            encoder_out: Encoder output sequences. (B, T, D_enc)
+            target: Target label ID sequences. (B, L)
 
         Returns:
-            (float): sentence-level CER score
-            (float): sentence-level WER score
+            : Sentence-level CER score.
+            : Sentence-level WER score.
 
         """
         cer, wer = None, None
 
-        if not self.report_cer and not self.report_wer:
-            return cer, wer
-
-        batchsize = int(hs_pad.size(0))
+        batchsize = int(encoder_out.size(0))
         batch_nbest = []
 
-        hs_pad = hs_pad.to(next(self.decoder.parameters()).device)
+        encoder_out = encoder_out.to(next(self.decoder.parameters()).device)
 
         for b in range(batchsize):
-            nbest_hyps = self.beam_search(hs_pad[b])
+            nbest_hyps = self.beam_search(encoder_out[b])
             batch_nbest.append(nbest_hyps)
 
-        ys_hat = [nbest_hyp[0].yseq[1:] for nbest_hyp in batch_nbest]
+        pred = [nbest_hyp[0].yseq[1:] for nbest_hyp in batch_nbest]
 
-        seqs_hat, seqs_true = self.convert_to_char(ys_hat, ys_pad.cpu())
+        char_pred, char_target = self.convert_to_char(pred, target)
 
         if self.report_cer:
-            cer = self.calculate_cer(seqs_hat, seqs_true)
+            cer = self.calculate_cer(char_pred, char_target)
 
         if self.report_wer:
-            wer = self.calculate_wer(seqs_hat, seqs_true)
+            wer = self.calculate_wer(char_pred, char_target)
 
         return cer, wer
 
     def convert_to_char(
-        self, ys_hat: torch.Tensor, ys_pad: torch.Tensor
+        self, pred: torch.Tensor, target: torch.Tensor
     ) -> Tuple[List, List]:
-        """Convert index to character.
+        """Convert label ID sequences to character sequences.
 
         Args:
-            ys_hat: Predictions (B, seq_len)
-            ys_pad: References (B, seq_len)
+            pred: Prediction label ID sequences. (B, U)
+            target: Target label ID sequences. (B, L)
 
         Returns:
-            seqs_hat: Token list of prediction
-            seqs_true: Token list of reference
+            char_pred: Prediction character sequences. (B, ?)
+            char_target: Target character sequences. (B, ?)
 
         """
-        seqs_hat, seqs_true = [], []
+        char_pred, char_target = [], []
 
-        for i, y_hat in enumerate(ys_hat):
-            y_true = ys_pad[i]
+        for i, pred_i in enumerate(pred):
+            char_pred_i = [self.token_list[int(h)] for h in pred_i]
+            char_target_i = [self.token_list[int(r)] for r in target[i]]
 
-            eos_true = np.where(y_true == -1)[0]
-            eos_true = eos_true[0] if len(eos_true) > 0 else len(y_true)
+            char_pred_i = "".join(char_pred_i).replace(self.space, " ")
+            char_pred_i = char_pred_i.replace(self.blank, "")
 
-            seq_hat = [self.token_list[int(idx)] for idx in y_hat[:eos_true]]
-            seq_true = [self.token_list[int(idx)] for idx in y_true if int(idx) != -1]
+            char_target_i = "".join(char_target_i).replace(self.space, " ")
+            char_target_i = char_target_i.replace(self.blank, "")
 
-            seq_hat_text = "".join(seq_hat).replace(self.space, " ")
-            seq_hat_text = seq_hat_text.replace(self.blank, "")
-            seq_true_text = "".join(seq_true).replace(self.space, " ")
+            char_pred.append(char_pred_i)
+            char_target.append(char_target_i)
 
-            seqs_hat.append(seq_hat_text)
-            seqs_true.append(seq_true_text)
+        return char_pred, char_target
 
-        return seqs_hat, seqs_true
-
-    def calculate_cer(self, seqs_hat: torch.Tensor, seqs_true: torch.Tensor) -> float:
-        """Calculate sentence-level CER score for transducer model.
-
-        Args:
-            seqs_hat: Predictions (B, seq_len)
-            seqs_true: References (B, seq_len)
-
-        Returns:
-            (): Average sentence-level CER score
-
-        """
-        import editdistance
-
-        char_eds, char_ref_lens = [], []
-
-        for i, seq_hat_text in enumerate(seqs_hat):
-            seq_true_text = seqs_true[i]
-            hyp_chars = seq_hat_text.replace(" ", "")
-            ref_chars = seq_true_text.replace(" ", "")
-
-            char_eds.append(editdistance.eval(hyp_chars, ref_chars))
-            char_ref_lens.append(len(ref_chars))
-
-        return float(sum(char_eds)) / sum(char_ref_lens)
-
-    def calculate_wer(self, seqs_hat: torch.Tensor, seqs_true: torch.Tensor) -> float:
-        """Calculate sentence-level WER score for transducer model.
+    def calculate_cer(
+        self, char_pred: torch.Tensor, char_target: torch.Tensor
+    ) -> float:
+        """Calculate sentence-level CER score.
 
         Args:
-            seqs_hat: Predictions (B, seq_len)
-            seqs_true: References (B, seq_len)
+            char_pred: Prediction character sequences. (B, ?)
+            char_target: Target character sequences. (B, ?)
 
         Returns:
-            (): Average sentence-level WER score
+            : Average sentence-level CER score.
 
         """
         import editdistance
 
-        word_eds, word_ref_lens = [], []
+        distances, lens = [], []
 
-        for i, seq_hat_text in enumerate(seqs_hat):
-            seq_true_text = seqs_true[i]
-            hyp_words = seq_hat_text.split()
-            ref_words = seq_true_text.split()
+        for i, char_pred_i in enumerate(char_pred):
+            pred = char_pred_i.replace(" ", "")
+            target = char_target[i].replace(" ", "")
 
-            word_eds.append(editdistance.eval(hyp_words, ref_words))
-            word_ref_lens.append(len(ref_words))
+            distances.append(editdistance.eval(pred, target))
+            lens.append(len(target))
 
-        return float(sum(word_eds)) / sum(word_ref_lens)
+        return float(sum(distances)) / sum(lens)
+
+    def calculate_wer(
+        self, char_pred: torch.Tensor, char_target: torch.Tensor
+    ) -> float:
+        """Calculate sentence-level WER score.
+
+        Args:
+            char_pred: Prediction character sequences. (B, ?)
+            char_target: Target character sequences. (B, ?)
+
+        Returns:
+            : Average sentence-level WER score
+
+        """
+        import editdistance
+
+        distances, lens = [], []
+
+        for i, char_pred_i in enumerate(char_pred):
+            pred = char_pred_i.split()
+            target = char_target[i].split()
+
+            distances.append(editdistance.eval(pred, target))
+            lens.append(len(target))
+
+        return float(sum(distances)) / sum(lens)

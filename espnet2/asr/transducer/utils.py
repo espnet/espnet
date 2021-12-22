@@ -20,6 +20,7 @@ def get_transducer_task_io(
         blank_id: Blank symbol ID.
 
     Return:
+        decoder_in: Decoder inputs. (B, U)
         target: Target label ID sequences. (B, U)
         t_len: Time lengths. (B,)
         u_len: Label lengths. (B,)
@@ -27,8 +28,14 @@ def get_transducer_task_io(
     """
     device = labels.device
 
-    ys = [y[y != ignore_id] for y in labels]
-    target = pad_list(ys, blank_id).type(torch.int32).to(device)
+    labels_unpad = [y[y != ignore_id] for y in labels]
+    blank = labels[0].new([blank_id])
+
+    decoder_in = pad_list(
+        [torch.cat([blank, label], dim=0) for label in labels_unpad], blank_id
+    ).to(device)
+
+    target = pad_list(labels_unpad, blank_id).type(torch.int32).to(device)
 
     if encoder_out_lens.dim() > 1:
         enc_mask = [m[m != 0] for m in encoder_out_lens]
@@ -37,6 +44,6 @@ def get_transducer_task_io(
         encoder_out_lens = list(map(int, encoder_out_lens))
 
     t_len = torch.IntTensor(encoder_out_lens).to(device)
-    u_len = torch.IntTensor([y.size(0) for y in ys]).to(device)
+    u_len = torch.IntTensor([y.size(0) for y in labels_unpad]).to(device)
 
-    return target, t_len, u_len
+    return decoder_in, target, t_len, u_len

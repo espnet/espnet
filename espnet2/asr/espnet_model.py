@@ -12,7 +12,6 @@ from typeguard import check_argument_types
 
 from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.transducer.utils import get_decoder_input
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,  # noqa: H301
@@ -95,7 +94,10 @@ class ESPnetASRModel(AbsESPnetModel):
             self.decoder = decoder
             self.joint_network = joint_network
 
-            self.criterion_transducer = RNNTLoss(blank=self.blank_id)
+            self.criterion_transducer = RNNTLoss(
+                blank=self.blank_id,
+                fastemit_lambda=0.0,
+            )
 
             if report_cer or report_wer:
                 self.error_calculator_trans = ErrorCalculatorTransducer(
@@ -104,9 +106,11 @@ class ESPnetASRModel(AbsESPnetModel):
                     token_list,
                     sym_space,
                     sym_blank,
-                    report_cer,
-                    report_wer,
+                    report_cer=report_cer,
+                    report_wer=report_wer,
                 )
+            else:
+                self.error_calculator_trans = None
 
                 if self.ctc_weight != 0:
                     self.error_calculator = ErrorCalculator(
@@ -189,7 +193,9 @@ class ESPnetASRModel(AbsESPnetModel):
                 cer_transducer,
                 wer_transducer,
             ) = self._calc_transducer_loss(
-                encoder_out, encoder_out_lens, text, text_lengths
+                encoder_out,
+                encoder_out_lens,
+                text,
             )
 
             if loss_ctc is not None:
@@ -453,23 +459,33 @@ class ESPnetASRModel(AbsESPnetModel):
         self,
         encoder_out: torch.Tensor,
         encoder_out_lens: torch.Tensor,
-        ys_pad: torch.Tensor,
-        ys_pad_lens: torch.Tensor,
+        labels: torch.Tensor,
     ):
-        decoder_in = get_decoder_input(ys_pad, self.blank_id, self.ignore_id)
+        """Compute Transducer loss.
+
+        Args:
+            encoder_out: Encoder output sequences. (B, T, D_enc)
+            encoder_out_lens: Encoder output sequences lengths. (B,)
+            labels: Label ID sequences. (B, L)
+
+        Return:
+            loss_transducer: Transducer loss value.
+            cer_transducer: Character error rate for Transducer.
+            wer_transducer: Word Error Rate for Transducer.
+
+        """
+        decoder_in, target, t_len, u_len = get_transducer_task_io(
+            labels,
+            encoder_out_lens,
+            ignore_id=self.ignore_id,
+            blank_id=self.blank_id,
+        )
 
         self.decoder.set_device(encoder_out.device)
         decoder_out = self.decoder(decoder_in)
 
         joint_out = self.joint_network(
             encoder_out.unsqueeze(2), decoder_out.unsqueeze(1)
-        )
-
-        target, t_len, u_len = get_transducer_task_io(
-            ys_pad,
-            encoder_out_lens,
-            ignore_id=self.ignore_id,
-            blank_id=self.blank_id,
         )
 
         loss_transducer = self.criterion_transducer(
