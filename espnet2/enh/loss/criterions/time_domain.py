@@ -13,6 +13,7 @@ class TimeDomainLoss(AbsEnhLoss, ABC):
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
+
 class STOILoss(TimeDomainLoss):
     """STOI loss
 
@@ -44,16 +45,13 @@ class STOILoss(TimeDomainLoss):
     def name(self) -> str:
         return "stoi_loss"
 
-    def forward(
-        self,
-        ref: torch.Tensor,
-        inf: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor,) -> torch.Tensor:
 
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
         self.loss_stoi.to(inf.device)
         return self.loss_stoi(inf, ref)
-    
+
+
 class HubertDFLoss(TimeDomainLoss):
     """Hubert Deep Feature Loss
 
@@ -72,31 +70,39 @@ class HubertDFLoss(TimeDomainLoss):
         loss: (Batch,)
     """
 
-    def __init__(self,layer=12):
+    def __init__(self, layer=12):
         super().__init__()
         self.hubert = HubertForCTC.from_pretrained("facebook/hubert-large-ls960-ft")
         self.hubert.freeze_feature_extractor()
         for param in self.hubert.parameters():
-                param.requires_grad = False
+            param.requires_grad = False
         self.layer = layer
 
     @property
     def name(self) -> str:
         return "hubertdf_loss"
 
-    def forward(
-        self,
-        ref: torch.Tensor,
-        inf: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor,) -> torch.Tensor:
 
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
         self.hubert.to(inf.device)
-        act_target = self.hubert.hubert(ref, output_hidden_states=True)[-1][self.layer:self.layer+1]
-        act_estimate = self.hubert.hubert(inf, output_hidden_states=True)[-1][self.layer:self.layer+1]
-        return torch.log10(torch.stack([torch.sum((x - y)**2, dim=(1, 2)) for x, y in zip(act_target, act_estimate)]) + 1)
+        act_target = self.hubert.hubert(ref, output_hidden_states=True)[-1][
+            self.layer : self.layer + 1
+        ]
+        act_estimate = self.hubert.hubert(inf, output_hidden_states=True)[-1][
+            self.layer : self.layer + 1
+        ]
+        return torch.log10(
+            torch.stack(
+                [
+                    torch.sum((x - y) ** 2, dim=(1, 2))
+                    for x, y in zip(act_target, act_estimate)
+                ]
+            )
+            + 1
+        )
 
-    
+
 class Wav2vec2DFLoss(TimeDomainLoss):
     """Wav2vec2 Deep Feature Loss
 
@@ -114,30 +120,37 @@ class Wav2vec2DFLoss(TimeDomainLoss):
         loss: (Batch,)
     """
 
-    def __init__(self,layer=12):
+    def __init__(self, layer=12):
         super().__init__()
         self.w2v2 = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
         self.w2v2.freeze_feature_extractor()
         for param in self.w2v2.parameters():
-                param.requires_grad = False
+            param.requires_grad = False
         self.layer = layer
 
     @property
     def name(self) -> str:
         return "w2v2df_loss"
 
-    def forward(
-        self,
-        ref: torch.Tensor,
-        inf: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor,) -> torch.Tensor:
 
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
         self.w2v2.to(inf.device)
-        act_target = self.w2v2.wav2vec2(ref, output_hidden_states=True)[-1][self.layer:self.layer+1]
-        act_estimate = self.w2v2.wav2vec2(inf, output_hidden_states=True)[-1][self.layer:self.layer+1]
-        return torch.log10(torch.stack([torch.sum((x - y)**2, dim=(1, 2)) for x, y in zip(act_target, act_estimate)]) + 1)
-
+        act_target = self.w2v2.wav2vec2(ref, output_hidden_states=True)[-1][
+            self.layer : self.layer + 1
+        ]
+        act_estimate = self.w2v2.wav2vec2(inf, output_hidden_states=True)[-1][
+            self.layer : self.layer + 1
+        ]
+        return torch.log10(
+            torch.stack(
+                [
+                    torch.sum((x - y) ** 2, dim=(1, 2))
+                    for x, y in zip(act_target, act_estimate)
+                ]
+            )
+            + 1
+        )
 
 
 class CISDRLoss(TimeDomainLoss):
@@ -165,11 +178,7 @@ class CISDRLoss(TimeDomainLoss):
     def name(self) -> str:
         return "ci_sdr_loss"
 
-    def forward(
-        self,
-        ref: torch.Tensor,
-        inf: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor,) -> torch.Tensor:
 
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
 
@@ -187,11 +196,7 @@ class SNRLoss(TimeDomainLoss):
     def name(self) -> str:
         return "snr_loss"
 
-    def forward(
-        self,
-        ref: torch.Tensor,
-        inf: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor,) -> torch.Tensor:
         # the return tensor should be shape of (batch,)
 
         noise = inf - ref
@@ -212,11 +217,7 @@ class SISNRLoss(TimeDomainLoss):
     def name(self) -> str:
         return "si_snr_loss"
 
-    def forward(
-        self,
-        ref: torch.Tensor,
-        inf: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor,) -> torch.Tensor:
         # the return tensor should be shape of (batch,)
         assert ref.size() == inf.size()
         B, T = ref.size()

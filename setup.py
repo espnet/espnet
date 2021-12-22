@@ -34,6 +34,8 @@ requirements = {
         "espnet_tts_frontend",
         # ENH
         "ci_sdr",
+        "asteroid",
+        "transformers",
         "pytorch_wpe",
     ],
     # train: The modules invoked when training only.
@@ -70,8 +72,6 @@ requirements = {
         "torch_optimizer",
         "fairscale",
         "fairseq",
-        "asteroid",
-        "transformers",
         "gtn",
     ],
     "setup": ["numpy", "pytest-runner"],
