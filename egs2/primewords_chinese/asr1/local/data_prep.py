@@ -101,4 +101,4 @@ for setname in ['train', 'dev', 'test']:
         for sample in sample_list:
             text_f.write(f"{int(sample['id']):08d} {sample['text']}\n")
             wav_scp_f.write(f"{int(sample['id']):08d} {sample['abs_path']}\n")
-            utt2spk_f.write(f"{int(sample['id']):08d} {int(sample['user_id']):06d}\n")
+            utt2spk_f.write(f"{int(sample['id']):08d} {int(sample['id']):08d}\n")
