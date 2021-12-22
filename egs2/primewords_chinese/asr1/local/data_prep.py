@@ -68,9 +68,9 @@ dev_samples = []
 test_samples = []
 for sample in transcript:
     processed_sample = {
-        'user_id': f"{int(sample['user_id']):08d}",     # speaker id
+        'user_id': sample['user_id'],     # speaker id
         'text': ''.join(sample['text'].split()),        # remove white spaces
-        'id': f"{int(sample['id']):08d}",               # utterance id
+        'id': sample['id'],               # utterance id
         'abs_path': wavname2abspath[sample['file']]
     }
     if processed_sample['user_id'] in train_users:
@@ -99,6 +99,6 @@ for setname in ['train', 'dev', 'test']:
         os.path.join(dest_dir, 'wav.scp'), 'w'
     ) as wav_scp_f, open(os.path.join(dest_dir, 'utt2spk'), 'w') as utt2spk_f:
         for sample in sample_list:
-            text_f.write(f"{sample['id']} {sample['text']}\n")
-            wav_scp_f.write(f"{sample['id']} {sample['abs_path']}\n")
-            utt2spk_f.write(f"{sample['id']} {sample['user_id']}\n")
+            text_f.write(f"{int(sample['id']):08d} {sample['text']}\n")
+            wav_scp_f.write(f"{int(sample['id']):08d} {sample['abs_path']}\n")
+            utt2spk_f.write(f"{int(sample['id']):08d} {int(sample['user_id']):06d}\n")
