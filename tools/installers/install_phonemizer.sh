@@ -60,12 +60,9 @@ fi
 
 # Install phonemizer
 if [ ! -e phonemizer.done ]; then
-    rm -rf phonemizer
-    # NOTE(kan-bayashi): It is better to use fixed tag
-    git clone https://github.com/bootphon/phonemizer
     (
         set -euo pipefail
-        cd phonemizer && python3 -m pip install -e .
+        pip install phonemizer==3.0
     )
     touch phonemizer.done
 else

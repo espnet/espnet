@@ -46,6 +46,7 @@ class DefaultFrontend(AbsFrontend):
 
         # Deepcopy (In general, dict shouldn't be used as default arg)
         frontend_conf = copy.deepcopy(frontend_conf)
+        self.hop_length = hop_length
 
         if apply_stft:
             self.stft = Stft(
@@ -75,6 +76,7 @@ class DefaultFrontend(AbsFrontend):
             htk=htk,
         )
         self.n_mels = n_mels
+        self.frontend_type = "default"
 
     def output_size(self) -> int:
         return self.n_mels

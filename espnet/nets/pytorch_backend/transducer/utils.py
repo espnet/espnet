@@ -172,6 +172,7 @@ def select_k_expansions(
             sorted(
                 filter(lambda x: (k_best_exp - gamma) <= x[1], hyp_i),
                 key=lambda x: x[1],
+                reverse=True,
             )[: beam_size + beta]
         )
 

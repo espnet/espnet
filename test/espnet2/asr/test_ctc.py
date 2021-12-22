@@ -14,7 +14,7 @@ def ctc_args():
     return h, h_lens, y, y_lens
 
 
-@pytest.mark.parametrize("ctc_type", ["builtin", "warpctc"])
+@pytest.mark.parametrize("ctc_type", ["builtin", "warpctc", "gtnctc"])
 def test_ctc_forward_backward(ctc_type, ctc_args):
     if ctc_type == "warpctc":
         pytest.importorskip("warpctc_pytorch")
@@ -22,7 +22,7 @@ def test_ctc_forward_backward(ctc_type, ctc_args):
     ctc(*ctc_args).sum().backward()
 
 
-@pytest.mark.parametrize("ctc_type", ["builtin", "warpctc"])
+@pytest.mark.parametrize("ctc_type", ["builtin", "warpctc", "gtnctc"])
 def test_ctc_log_softmax(ctc_type, ctc_args):
     if ctc_type == "warpctc":
         pytest.importorskip("warpctc_pytorch")
@@ -30,7 +30,7 @@ def test_ctc_log_softmax(ctc_type, ctc_args):
     ctc.log_softmax(ctc_args[0])
 
 
-@pytest.mark.parametrize("ctc_type", ["builtin", "warpctc"])
+@pytest.mark.parametrize("ctc_type", ["builtin", "warpctc", "gtnctc"])
 def test_ctc_argmax(ctc_type, ctc_args):
     if ctc_type == "warpctc":
         pytest.importorskip("warpctc_pytorch")

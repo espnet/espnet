@@ -29,7 +29,7 @@ class TransducerTasks(torch.nn.Module):
         ctc_loss_weight: float = 0.5,
         ctc_loss_dropout_rate: float = 0.0,
         lm_loss: bool = False,
-        lm_loss_weight: float = 1.0,
+        lm_loss_weight: float = 0.5,
         lm_loss_smoothing_rate: float = 0.0,
         aux_transducer_loss: bool = False,
         aux_transducer_loss_weight: float = 0.2,

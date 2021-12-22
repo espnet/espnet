@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import argparse
+from distutils.version import LooseVersion
 import tempfile
 
 import json
@@ -13,6 +14,9 @@ from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
+
+is_torch_1_4_plus = LooseVersion(torch.__version__) >= LooseVersion("1.4.0")
+is_torch_1_5_plus = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 
 
 def make_train_args(**kwargs):
@@ -72,6 +76,7 @@ def make_recog_args(**kwargs):
         max_sym_exp=2,
         u_max=5,
         prefix_alpha=2,
+        softmax_temperature=1.0,
         score_norm_transducer=True,
         rnnlm=None,
         lm_weight=0.1,
@@ -86,8 +91,8 @@ def get_default_scope_inputs():
     idim = 12
     odim = 5
 
-    ilens = [12, 4]
-    olens = [5, 4]
+    ilens = [15, 11]
+    olens = [13, 9]
 
     return bs, idim, odim, ilens, olens
 
@@ -193,21 +198,29 @@ def prepare(args):
         ),
         (
             {
+                "custom_enc_input_layer": "linear",
+                "custom_enc_positional_encoding_type": "abs_pos",
                 "enc_block_arch": [
                     {
-                        "type": "tdnn",
-                        "idim": 2,
-                        "odim": 2,
-                        "ctx_size": 2,
-                        "dilation": 1,
-                        "stride": 1,
+                        "type": "transformer",
+                        "d_hidden": 32,
+                        "d_ff": 4,
+                        "heads": 1,
+                    },
+                    {
+                        "type": "conv1d",
+                        "idim": 32,
+                        "odim": 16,
+                        "kernel_size": 3,
+                        "dilation": 2,
+                        "stride": 2,
                         "dropout-rate": 0.3,
                         "use-relu": True,
                         "use-batch-norm": True,
                     },
                     {
                         "type": "transformer",
-                        "d_hidden": 2,
+                        "d_hidden": 16,
                         "d_ff": 4,
                         "heads": 1,
                         "dropout-rate": 0.3,
@@ -222,11 +235,11 @@ def prepare(args):
             {
                 "enc_block_arch": [
                     {
-                        "type": "tdnn",
-                        "idim": 2,
-                        "odim": 2,
-                        "ctx_size": 2,
-                        "dilation": 1,
+                        "type": "conv1d",
+                        "idim": 8,
+                        "odim": 8,
+                        "kernel_size": 2,
+                        "dilation": 2,
                         "stride": 1,
                         "dropout-rate": 0.3,
                         "use-relu": True,
@@ -234,14 +247,13 @@ def prepare(args):
                     },
                     {
                         "type": "conformer",
-                        "d_hidden": 2,
-                        "d_ff": 2,
+                        "d_hidden": 8,
+                        "d_ff": 4,
                         "heads": 1,
                         "macaron_style": False,
                         "use_conv_mod": False,
                     },
                 ],
-                "custom_enc_input_layer": "linear",
                 "custom_enc_self_attn_type": "rel_self_attn",
                 "custom_enc_positional_encoding_type": "rel_pos",
             },
@@ -251,10 +263,10 @@ def prepare(args):
             {
                 "enc_block_arch": [
                     {
-                        "type": "tdnn",
+                        "type": "conv1d",
                         "idim": 2,
                         "odim": 2,
-                        "ctx_size": 2,
+                        "kernel_size": 2,
                         "dilation": 1,
                         "stride": 1,
                     }
@@ -265,8 +277,16 @@ def prepare(args):
         (
             {
                 "dec_block_arch": [
-                    {"type": "causal-conv1d", "idim": 2, "odim": 2, "kernel_size": 3},
-                    {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
+                    {
+                        "type": "causal-conv1d",
+                        "idim": 8,
+                        "odim": 8,
+                        "kernel_size": 3,
+                        "dropout-rate": 0.3,
+                        "use-relu": True,
+                        "use-batch-norm": True,
+                    },
+                    {"type": "transformer", "d_hidden": 8, "d_ff": 4, "heads": 1},
                 ]
             },
             {},
@@ -293,6 +313,8 @@ def prepare(args):
         ({}, {"beam_size": 2, "search_type": "tsd", "rnnlm": get_wordlm()}),
         ({}, {"beam_size": 2, "search_type": "maes", "nstep": 4, "rnnlm": get_lm()}),
         ({}, {"beam_size": 2, "search_type": "maes", "rnnlm": get_wordlm()}),
+        ({}, {"beam_size": 2, "softmax_temperature": 2.0, "rnnlm": get_wordlm()}),
+        ({}, {"beam_size": 2, "search_type": "nsc", "softmax_temperature": 5.0}),
     ],
 )
 def test_custom_transducer_trainable_and_decodable(train_dic, recog_dic):
@@ -320,6 +342,7 @@ def test_custom_transducer_trainable_and_decodable(train_dic, recog_dic):
         nstep=recog_args.nstep,
         prefix_alpha=recog_args.prefix_alpha,
         score_norm=recog_args.score_norm_transducer,
+        softmax_temperature=recog_args.softmax_temperature,
     )
 
     with torch.no_grad():
@@ -328,12 +351,14 @@ def test_custom_transducer_trainable_and_decodable(train_dic, recog_dic):
         print(nbest[0]["yseq"][1:-1])
 
 
+@pytest.mark.execution_timeout(4)
 def test_calculate_plot_attention():
     from espnet.nets.pytorch_backend.transformer import plot
 
     train_args = make_train_args(report_cer=True)
     model, feats, feats_len, labels, data, uttid_list = prepare(train_args)
 
+    model.attention_plot_class
     attn_dict = model.calculate_all_attentions(feats[0:1], feats_len[0:1], labels[0:1])
 
     plot.plot_multi_head_attention(data, uttid_list, attn_dict, "/tmp/espnet-test")
@@ -484,10 +509,10 @@ def test_invalid_block_arguments():
         _, _, _ = build_blocks("decoder", 4, "embed", [{"type": "conformer"}])
 
     with pytest.raises(ValueError):
-        _, _, _ = build_blocks("encoder", 4, "linear", [{"type": "tdnn"}])
+        _, _, _ = build_blocks("encoder", 4, "embed", [{"type": "causal-conv1d"}])
 
     with pytest.raises(ValueError):
-        _, _, _ = build_blocks("decoder", 4, "embed", [{"type": "causal-conv1d"}])
+        _, _, _ = build_blocks("decoder", 4, "embed", [{"type": "conv1d"}])
 
     with pytest.raises(ValueError):
         _, _, _ = build_blocks(
@@ -528,3 +553,138 @@ def test_invalid_block_io():
                 },
             ],
         )
+
+
+@pytest.mark.parametrize(
+    "train_dic",
+    [
+        {},
+        {
+            "enc_block_arch": [
+                {
+                    "type": "conformer",
+                    "d_hidden": 2,
+                    "d_ff": 2,
+                    "heads": 1,
+                    "macaron_style": True,
+                    "use_conv_mod": True,
+                    "conv_mod_kernel": 1,
+                }
+            ],
+            "custom_enc_input_layer": "vgg2l",
+            "custom_enc_self_attn_type": "rel_self_attn",
+            "custom_enc_positional_encoding_type": "rel_pos",
+        },
+        {
+            "enc_block_arch": [
+                {
+                    "type": "conv1d",
+                    "idim": 2,
+                    "odim": 2,
+                    "kernel_size": 2,
+                    "dilation": 1,
+                    "stride": 1,
+                    "dropout-rate": 0.3,
+                    "use-relu": True,
+                    "use-batch-norm": True,
+                },
+                {
+                    "type": "transformer",
+                    "d_hidden": 2,
+                    "d_ff": 2,
+                    "heads": 1,
+                    "macaron_style": False,
+                    "use_conv_mod": False,
+                },
+            ],
+            "custom_enc_input_layer": "linear",
+        },
+        {
+            "dec_block_arch": [
+                {"type": "causal-conv1d", "idim": 2, "odim": 2, "kernel_size": 1},
+                {"type": "transformer", "d_hidden": 2, "d_ff": 2, "heads": 1},
+            ]
+        },
+    ],
+)
+@pytest.mark.parametrize(
+    "recog_dic",
+    [
+        {},
+        {"beam_size": 2, "search_type": "default"},
+        {"beam_size": 2, "search_type": "alsd"},
+        {"beam_size": 2, "search_type": "tsd"},
+        {"beam_size": 2, "search_type": "nsc"},
+        {"beam_size": 2, "search_type": "maes"},
+    ],
+)
+@pytest.mark.parametrize(
+    "quantize_dic",
+    [
+        {"mod": {torch.nn.Linear}, "dtype": torch.qint8},
+        {"mod": {torch.nn.Linear}, "dtype": torch.float16},
+        {"mod": {torch.nn.LSTM}, "dtype": torch.qint8},
+        {"mod": {torch.nn.LSTM}, "dtype": torch.float16},
+        {"mod": {torch.nn.Linear, torch.nn.LSTM}, "dtype": torch.qint8},
+        {"mod": {torch.nn.Linear, torch.nn.LSTM}, "dtype": torch.float16},
+    ],
+)
+def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
+    train_args = make_train_args(**train_dic)
+    recog_args = make_recog_args(**recog_dic)
+
+    model, feats, feats_len, _, _, _ = prepare(train_args)
+
+    if not is_torch_1_5_plus and (
+        torch.nn.Linear in quantize_dic["mod"]
+        and quantize_dic["dtype"] == torch.float16
+    ):
+        # In recognize(...) from asr.py we raise ValueError however
+        # AssertionError is originaly raised by torch.
+        with pytest.raises(AssertionError):
+            model = torch.quantization.quantize_dynamic(
+                model,
+                quantize_dic["mod"],
+                dtype=quantize_dic["dtype"],
+            )
+        pytest.skip("Skip rest of the test after checking AssertionError")
+    else:
+        model = torch.quantization.quantize_dynamic(
+            model,
+            quantize_dic["mod"],
+            dtype=quantize_dic["dtype"],
+        )
+
+    beam_search = BeamSearchTransducer(
+        decoder=model.decoder,
+        joint_network=model.transducer_tasks.joint_network,
+        beam_size=recog_args.beam_size,
+        lm=recog_args.rnnlm,
+        lm_weight=recog_args.lm_weight,
+        search_type=recog_args.search_type,
+        max_sym_exp=recog_args.max_sym_exp,
+        u_max=recog_args.u_max,
+        nstep=recog_args.nstep,
+        prefix_alpha=recog_args.prefix_alpha,
+        score_norm=recog_args.score_norm_transducer,
+        quantization=True,
+    )
+
+    with torch.no_grad():
+        model.recognize(feats[0, : feats_len[0]].numpy(), beam_search)
+
+
+@pytest.mark.parametrize(
+    "train_dic, subsample",
+    [
+        ({}, 4),
+        ({"custom_enc_input_layer": "vgg2l"}, 4),
+        ({"custom_enc_input_layer": "linear"}, 1),
+    ],
+)
+def test_subsampling(train_dic, subsample):
+    train_args = make_train_args(**train_dic)
+
+    model, feats, feats_len, _, _, _ = prepare(train_args)
+
+    assert model.get_total_subsampling_factor() == subsample

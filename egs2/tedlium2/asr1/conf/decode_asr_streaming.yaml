@@ -1,0 +1,11 @@
+beam_size: 10
+penalty: 0.0
+maxlenratio: 0.0
+minlenratio: 0.0
+ctc_weight: 0.5
+lm_weight: 0.3
+sim_chunk_length: 640
+disable_repetition_detection: true
+decoder_text_length_limit: 0
+encoded_feat_length_limit: 0
+#streaming: True

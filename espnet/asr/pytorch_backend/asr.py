@@ -4,6 +4,7 @@
 """Training/decoding definition for the speech recognition task."""
 
 import copy
+from distutils.version import LooseVersion
 import itertools
 import json
 import logging
@@ -15,7 +16,6 @@ from chainer import training
 from chainer.training import extensions
 from chainer.training.updater import StandardUpdater
 import numpy as np
-from tensorboardX import SummaryWriter
 import torch
 from torch.nn.parallel import data_parallel
 
@@ -54,10 +54,6 @@ from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
-
-import matplotlib
-
-matplotlib.use("Agg")
 
 
 def _recursive_to(xs, device):
@@ -955,6 +951,8 @@ def train(args):
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        from torch.utils.tensorboard import SummaryWriter
+
         trainer.extend(
             TensorboardLogger(
                 SummaryWriter(args.tensorboard_dir),
@@ -986,12 +984,31 @@ def recog(args):
         q_config = {torch.nn.Linear}
 
     if args.quantize_asr_model:
-        assert (
-            "transducer" not in train_args.model_module
-        ), "Quantization of transducer model is not supported yet."
-        logging.info("Use quantized asr model for decoding")
+        logging.info("Use a quantized ASR model for decoding.")
+
+        # It seems quantized LSTM only supports non-packed sequence before torch 1.4.0.
+        # Reference issue: https://github.com/pytorch/pytorch/issues/27963
+        if (
+            torch.__version__ < LooseVersion("1.4.0")
+            and "lstm" in train_args.etype
+            and torch.nn.LSTM in q_config
+        ):
+            raise ValueError(
+                "Quantized LSTM in ESPnet is only supported with torch 1.4+."
+            )
+
+        # Dunno why but weight_observer from dynamic quantized module must have
+        # dtype=torch.qint8 with torch < 1.5 although dtype=torch.float16 is supported.
+        if args.quantize_dtype == "float16" and torch.__version__ < LooseVersion(
+            "1.5.0"
+        ):
+            raise ValueError(
+                "float16 dtype for dynamic quantization is not supported with torch "
+                "version < 1.5.0. Switching to qint8 dtype instead."
+            )
 
         dtype = getattr(torch, args.quantize_dtype)
+
         model = torch.quantization.quantize_dynamic(model, q_config, dtype=dtype)
 
     if args.streaming_mode and "transformer" in train_args.model_module:
@@ -1099,6 +1116,7 @@ def recog(args):
             score_norm=args.score_norm,
             softmax_temperature=args.softmax_temperature,
             nbest=args.nbest,
+            quantization=args.quantize_asr_model,
         )
 
     if args.batchsize == 0:
@@ -1377,6 +1395,9 @@ def enhance(args):
 
             # Plot spectrogram
             if args.image_dir is not None and num_images < args.num_images:
+                import matplotlib
+
+                matplotlib.use("Agg")
                 import matplotlib.pyplot as plt
 
                 num_images += 1

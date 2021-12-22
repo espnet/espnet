@@ -162,6 +162,15 @@ interctc_args = dict(
     stochastic_depth_rate=0.3,
 )
 
+selfconditionedctc_args = dict(
+    mtlalpha=1.0,
+    elayers=2,
+    intermediate_ctc_weight=0.3,
+    intermediate_ctc_layer="1",
+    stochastic_depth_rate=0.0,
+    self_conditioning=True,
+)
+
 
 def _savefn(*args, **kwargs):
     return
@@ -181,6 +190,7 @@ def _savefn(*args, **kwargs):
         ("pytorch", {"report_cer": True, "report_wer": True, "mtlalpha": 0.0}),
         ("pytorch", {"report_cer": True, "report_wer": True, "mtlalpha": 1.0}),
         ("pytorch", interctc_args),
+        ("pytorch", selfconditionedctc_args),
         ("chainer", {}),
     ],
 )

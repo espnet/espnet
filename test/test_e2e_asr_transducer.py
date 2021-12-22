@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import argparse
+from distutils.version import LooseVersion
 import tempfile
 
 import json
@@ -14,6 +15,9 @@ from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.nets_utils import pad_list
+
+is_torch_1_4_plus = LooseVersion(torch.__version__) >= LooseVersion("1.4.0")
+is_torch_1_5_plus = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 
 
 def get_default_train_args(**kwargs):
@@ -391,3 +395,104 @@ def test_invalid_aux_transducer_loss_enc_layers():
 
     with pytest.raises(ValueError):
         E2E(idim, odim, train_args)
+
+
+@pytest.mark.parametrize(
+    "train_dic",
+    [
+        {},
+        {"etype": "vggblstm"},
+    ],
+)
+@pytest.mark.parametrize(
+    "recog_dic",
+    [
+        {},
+        {"beam_size": 2, "search_type": "default"},
+        {"beam_size": 2, "search_type": "alsd"},
+        {"beam_size": 2, "search_type": "tsd"},
+        {"beam_size": 2, "search_type": "nsc"},
+        {"beam_size": 2, "search_type": "maes"},
+    ],
+)
+@pytest.mark.parametrize(
+    "quantize_dic",
+    [
+        {"mod": {torch.nn.Linear}, "dtype": torch.qint8},
+        {"mod": {torch.nn.Linear}, "dtype": torch.float16},
+        {"mod": {torch.nn.LSTM}, "dtype": torch.qint8},
+        {"mod": {torch.nn.LSTM}, "dtype": torch.float16},
+        {"mod": {torch.nn.Linear, torch.nn.LSTM}, "dtype": torch.qint8},
+        {"mod": {torch.nn.Linear, torch.nn.LSTM}, "dtype": torch.float16},
+    ],
+)
+def test_dynamic_quantization(train_dic, recog_dic, quantize_dic):
+    idim, odim, ilens, olens = get_default_scope_inputs()
+
+    train_args = get_default_train_args(**train_dic)
+    recog_args = get_default_recog_args(**recog_dic)
+
+    model = E2E(idim, odim, train_args)
+
+    if not is_torch_1_5_plus and (
+        torch.nn.Linear in quantize_dic["mod"]
+        and quantize_dic["dtype"] == torch.float16
+    ):
+        # In recognize(...) from asr.py we raise ValueError however
+        # AssertionError is originaly raised by torch.
+        with pytest.raises(AssertionError):
+            model = torch.quantization.quantize_dynamic(
+                model,
+                quantize_dic["mod"],
+                dtype=quantize_dic["dtype"],
+            )
+        pytest.skip("Skip rest of the test after checking AssertionError")
+    else:
+        model = torch.quantization.quantize_dynamic(
+            model,
+            quantize_dic["mod"],
+            quantize_dic["dtype"],
+        )
+
+    beam_search = BeamSearchTransducer(
+        decoder=model.dec,
+        joint_network=model.transducer_tasks.joint_network,
+        beam_size=recog_args.beam_size,
+        lm=recog_args.rnnlm,
+        lm_weight=recog_args.lm_weight,
+        search_type=recog_args.search_type,
+        max_sym_exp=recog_args.max_sym_exp,
+        u_max=recog_args.u_max,
+        nstep=recog_args.nstep,
+        prefix_alpha=recog_args.prefix_alpha,
+        score_norm=recog_args.score_norm_transducer,
+        quantization=True,
+    )
+
+    with torch.no_grad():
+        in_data = np.random.randn(20, idim)
+
+        if not is_torch_1_4_plus and torch.nn.LSTM in quantize_dic["mod"]:
+            # Cf. previous comment
+            with pytest.raises(AssertionError):
+                model.recognize(in_data, beam_search)
+        else:
+            model.recognize(in_data, beam_search)
+
+
+@pytest.mark.parametrize(
+    "train_dic, subsample",
+    [
+        ({}, 4),
+        ({"etype": "blstm"}, 1),
+        ({"etype": "blstmp"}, 2),
+    ],
+)
+def test_subsampling(train_dic, subsample):
+    idim, odim, ilens, olens = get_default_scope_inputs()
+
+    train_args = get_default_train_args(**train_dic)
+
+    model = E2E(idim, odim, train_args)
+
+    assert model.get_total_subsampling_factor() == subsample

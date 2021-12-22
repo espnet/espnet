@@ -2,14 +2,14 @@
 
 # ESPnet: end-to-end speech processing toolkit
 
-|system/pytorch ver.|1.3.1|1.4.0|1.5.1|1.6.0|1.7.1|1.8.1|1.9.0|
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-|ubuntu20/python3.9/pip|||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|ubuntu20/python3.8/pip|||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|ubuntu18/python3.7/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|debian9/python3.7/conda|||||||[![debian9](https://github.com/espnet/espnet/workflows/debian9/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adebian9)|
-|centos7/python3.7/conda||||||[![centos7](https://github.com/espnet/espnet/workflows/centos7/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Acentos7)||
-|doc/python3.8|||||||[![doc](https://github.com/espnet/espnet/workflows/doc/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adoc)|
+|system/pytorch ver.|1.3.1|1.4.0|1.5.1|1.6.0|1.7.1|1.8.1|1.9.1|1.10.1|
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+|ubuntu20/python3.9/pip||||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
+|ubuntu20/python3.8/pip||||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
+|ubuntu18/python3.7/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
+|debian9/python3.7/conda||||||||[![debian9](https://github.com/espnet/espnet/workflows/debian9/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adebian9)|
+|centos7/python3.7/conda||||||||[![centos7](https://github.com/espnet/espnet/workflows/centos7/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Acentos7)|
+|doc/python3.8||||||||[![doc](https://github.com/espnet/espnet/workflows/doc/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adoc)|
 
 [![PyPI version](https://badge.fury.io/py/espnet.svg)](https://badge.fury.io/py/espnet)
 [![Python Versions](https://img.shields.io/pypi/pyversions/espnet.svg)](https://pypi.org/project/espnet/)
@@ -55,29 +55,35 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - **Transducer** based end-to-end ASR
   - Architecture:
     - RNN-based encoder and decoder.
-    - Custom encoder and decoder supporting Transformer, Conformer (encoder), TDNN (encoder) and causal Conv1D (decoder) blocks.
+    - Custom encoder and decoder supporting Transformer, Conformer (encoder), 1D Conv / TDNN (encoder) and causal 1D Conv (decoder) blocks.
     - VGG2L (RNN/custom encoder) and Conv2D (custom encoder) bottlenecks.
   - Search algorithms:
     - Greedy search constrained to one emission by timestep.
-    - Default beam search algorithm without prefix search.
-    - Alignment-Length Synchronous decoding ([Saon et al., 2020](https://ieeexplore.ieee.org/abstract/document/9053040)).
-    - Time Synchronous Decoding ([Saon et al., 2020](https://ieeexplore.ieee.org/abstract/document/9053040)).
-    - N-step Constrained beam search modified from [Kim et al., 2020](https://arxiv.org/abs/2002.03577).
-    - modified Adaptive Expansion Search based on [Kim et al. (2021)](https://ieeexplore.ieee.org/abstract/document/9250505) and NSC.
+    - Default beam search algorithm [[Graves, 2012]](https://arxiv.org/abs/1211.3711) without prefix search.
+    - Alignment-Length Synchronous decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040).
+    - Time Synchronous Decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040).
+    - N-step Constrained beam search modified from [[Kim et al., 2020]](https://arxiv.org/abs/2002.03577).
+    - modified Adaptive Expansion Search based on [[Kim et al., 2021]](https://ieeexplore.ieee.org/abstract/document/9250505) and NSC.
   - Features:
-    - Multi-task learning with various auxiliary tasks: CTC, Label smoothing, auxiliary RNN-T and symmetric KL divergence.
+    - Multi-task learning with various auxiliary losses:
+      - Encoder: CTC, auxiliary Transducer and symmetric KL divergence.
+      - Decoder: cross-entropy w/ label smoothing.
     - Transfer learning with acoustic model and/or language model.
-    - Training with [FastEmit regularization method](https://arxiv.org/abs/2010.11148).
+    - Training with FastEmit regularization method [[Yu et al., 2021]](https://arxiv.org/abs/2010.11148).
   > Please refer to the [tutorial page](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
 - CTC segmentation
 - Non-autoregressive model based on Mask-CTC
 - ASR examples for supporting endangered language documentation (Please refer to egs/puebla_nahuatl and egs/yoloxochitl_mixtec for details)
 - Wav2Vec2.0 pretrained model as Encoder, imported from [FairSeq](https://github.com/pytorch/fairseq/tree/master/fairseq).
 - Self-supervised learning representations as features, using upstream models in [S3PRL](https://github.com/s3prl/s3prl) in frontend.
+  - Set `frontend` to be `s3prl`
+  - Select any upstream model by setting the `frontend_conf` to the corresponding name.
+- Streaming Transformer/Conformer ASR with blockwise synchronous beam search.
 
 Demonstration
 - Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_asr_realtime_demo.ipynb)
 - [Gradio](https://github.com/gradio-app/gradio) Web Demo on [Huggingface Spaces](https://huggingface.co/docs/hub/spaces). Check out the [Web Demo](https://huggingface.co/spaces/akhaliq/espnet2_asr)
+- Streaming Transformer ASR [Local Demo](https://github.com/espnet/notebook/blob/master/espnet2_streaming_asr_demo.ipynb) with ESPnet2.
 
 ### TTS: Text-to-speech
 - Architecture
@@ -108,6 +114,7 @@ Demonstration
 
 Demonstration
 - Real-time TTS demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tts_realtime_demo.ipynb)
+- Integrated to [Huggingface Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See demo: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/akhaliq/ESPnet2-TTS)
 
 To train the neural vocoder, please check the following repositories:
 - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
@@ -168,21 +175,22 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 - If you intend to do full experiments including DNN training, then see [Installation](https://espnet.github.io/espnet/installation.html).
 - If you just need the Python module only:
     ```sh
+    # We recommend you installing pytorch before installing espnet following https://pytorch.org/get-started/locally/
     pip install espnet
     # To install latest
     # pip install git+https://github.com/espnet/espnet
+    # To install additional packages
+    # pip install "espnet[all]"
     ```
 
-    You need to install some packages.
+    If you'll use ESPnet1, please install chainer and cupy.
 
     ```sh
-    pip install torch
-    pip install chainer==6.0.0 cupy==6.0.0    # [Option] If you'll use ESPnet1
-    pip install torchaudio                    # [Option] If you'll use enhancement task
-    pip install torch_optimizer               # [Option] If you'll use additional optimizers in ESPnet2
+    pip install chainer==6.0.0 cupy==6.0.0    # [Option]
     ```
 
-    There are some required packages depending on each task other than above. If you meet ImportError, please install them at that time.
+    You might need to install some packages depending on each task. We prepared various installation scripts at [tools/installers](tools/installers).
+
 - (ESPnet2) Once installed, run `wandb login` and set `--use_wandb true` to enable tracking runs using W&B.
 
 ## Usage
