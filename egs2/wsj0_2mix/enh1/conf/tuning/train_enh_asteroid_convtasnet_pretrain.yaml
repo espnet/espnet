@@ -27,8 +27,7 @@ scheduler_conf:
     mode: min
     factor: 0.5
     patience: 1
-model_conf:
-    loss_type: si_snr
+
 encoder: same
 decoder: same
 separator: asteroid
@@ -37,3 +36,12 @@ separator_conf:
     model_name: ConvTasNet
     pretrained_path: mpariente/ConvTasNet_WHAM!_sepclean # choose the pretrained model
 
+criterions: 
+  # The first criterion
+  - name: si_snr 
+    conf:
+      eps: 1.0e-7
+    wrapper: pit
+    wrapper_conf:
+      weight: 1.0
+      independent_perm: True
