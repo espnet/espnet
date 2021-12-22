@@ -99,6 +99,7 @@ RU_OPEN_STT=downloads
 RUSLAN=downloads
 SIWIS=downloads
 GIGASPEECH=
+GOOGLEI18N=downloads
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
@@ -247,4 +248,5 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     GAMAYUN=downloads
     IWSLT21LR=downloads/iwslt21
     TOTONAC=downloads
+    GOOGLEI18N=downloads
 fi
