@@ -49,8 +49,8 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
 
     with open(metadata, "r", encoding="utf-8") as f:
         header = f.readline().split(",")
-        assert len(header) == 6
         if num_spk == 2:
+            assert len(header) == 6
             for linenum, line in enumerate(f, 1):
                 mix_id, mix_path, _, _, _, length = line.strip().split(",")
                 # from 3536-8226-0026_1673-143397-0009
@@ -82,20 +82,21 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                 reco2dur.write("{} {}\n".format(mix_id, float(length) / fs))
 
         elif num_spk == 3:
+            assert len(header) == 7
             for linenum, line in enumerate(f, 1):
-                mix_id, mix_path, _, _, _, length = line.strip().split(",")
+                mix_id, mix_path, _, _, _, _, length = line.strip().split(",")
                 # from 6313-76958-0019_6295-244435-0031_2277-149897-0012
                 # to 6313-76958-0019, 6295-244435-0031, 2277-149897-0012
                 source1_id, source2_id, source3_id = mix_id.split("_")
                 spk1, spk2, spk3 = source1_id.split("-")[0], source2_id.split("-")[0], source3_id.split("-")[0]
-                reco1, reco2, reco3 = source1_id[len(spk1) + 1:], source2_id[len(spk2) + 1:], source3_id[len(spk2) + 1:]
+                reco1, reco2, reco3 = source1_id[len(spk1) + 1:], source2_id[len(spk2) + 1:], source3_id[len(spk3) + 1:]
                 wavscp.write("{} {}\n".format(mix_id, mix_path))
                 spk1_segs, spk2_segs, spk3_segs = source_rttm[reco1], source_rttm[reco2], source_rttm[reco3]
 
                 for spk_id, start, end in spk1_segs:
                     assert spk_id == spk1
                     # making seg_id to have prefixes of spk_id to avoid sorting issue
-                    seg_id = "{}_{}_{}_{}".format(spk_id, mix_id, float2str(start), float2str(end))
+                    seg_id = "{}-{}_{}_{}".format(spk_id, mix_id, float2str(start), float2str(end))
                     segments.write("{} {} {} {}\n".format(seg_id, mix_id, start, end))
                     utt2spk.write("{} {}\n".format(seg_id, spk_id))
                     rttm.write("SPEAKER\t{}\t1\t{}\t{}\t<NA>\t<NA>\t{}\t<NA>\n".format(mix_id, start, end-start, spk_id))
@@ -104,7 +105,7 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                 for spk_id, start, end in spk2_segs:
                     assert spk_id == spk2
                     # making seg_id to have prefixes of spk_id to avoid sorting issue
-                    seg_id = "{}_{}_{}_{}".format(spk_id, mix_id, float2str(start), float2str(end))
+                    seg_id = "{}-{}_{}_{}".format(spk_id, mix_id, float2str(start), float2str(end))
                     segments.write("{} {} {} {}\n".format(seg_id, mix_id, start, end))
                     utt2spk.write("{} {}\n".format(seg_id, spk_id))
                     rttm.write("SPEAKER\t{}\t1\t{}\t{}\t<NA>\t<NA>\t{}\t<NA>\n".format(mix_id, start, end-start, spk_id))
@@ -113,7 +114,7 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                 for spk_id, start, end in spk3_segs:
                     assert spk_id == spk3
                     # making seg_id to have prefixes of spk_id to avoid sorting issue
-                    seg_id = "{}_{}_{}_{}".format(spk_id, mix_id, float2str(start), float2str(end))
+                    seg_id = "{}-{}_{}_{}".format(spk_id, mix_id, float2str(start), float2str(end))
                     segments.write("{} {} {} {}\n".format(seg_id, mix_id, start, end))
                     utt2spk.write("{} {}\n".format(seg_id, spk_id))
                     rttm.write("SPEAKER\t{}\t1\t{}\t{}\t<NA>\t<NA>\t{}\t<NA>\n".format(mix_id, start, end-start, spk_id))
@@ -146,9 +147,9 @@ train_rttm, train_spk = load_rttm_text(os.path.join(args.rttm_dir, "train_clean_
 dev_rttm, dev_spk = load_rttm_text(os.path.join(args.rttm_dir, "dev_clean.rttm"))
 test_rttm, test_spk = load_rttm_text(os.path.join(args.rttm_dir, "test_clean.rttm"))
 
-process_metadata(os.path.join(args.source_dir, "mixture_train-100_mix_both.csv"), os.path.join(args.target_dir, "train"), train_rttm, args.fs, args.num_spk)
-process_metadata(os.path.join(args.source_dir, "mixture_dev_mix_both.csv"), os.path.join(args.target_dir, "dev"), dev_rttm, args.fs, args.num_spk)
-process_metadata(os.path.join(args.source_dir, "mixture_test_mix_both.csv"), os.path.join(args.target_dir, "test"), test_rttm, args.fs, args.num_spk)
+process_metadata(os.path.join(args.source_dir, "mixture_train-100_mix_both.csv"), os.path.join(args.target_dir, "train" + str(args.num_spk)), train_rttm, args.fs, args.num_spk)
+process_metadata(os.path.join(args.source_dir, "mixture_dev_mix_both.csv"), os.path.join(args.target_dir, "dev" + str(args.num_spk)), dev_rttm, args.fs, args.num_spk)
+process_metadata(os.path.join(args.source_dir, "mixture_test_mix_both.csv"), os.path.join(args.target_dir, "test" + str(args.num_spk)), test_rttm, args.fs, args.num_spk)
 
 print("Successfully finish Kaldi-style preparation")
 

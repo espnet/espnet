@@ -105,7 +105,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         else:
             # 2b. Encoder Decoder Attractors
             # Shuffle the chronological order of encoder_out, then calculate attractor
-            encoder_out_shuffled = encoder_out
+            encoder_out_shuffled = encoder_out.clone()
             for i in range(len(encoder_out_lens)):
                 encoder_out_shuffled[i, : encoder_out_lens[i], :] = encoder_out[
                     i, torch.randperm(encoder_out_lens[i]), :

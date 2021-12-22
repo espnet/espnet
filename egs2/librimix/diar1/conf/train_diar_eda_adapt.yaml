@@ -25,28 +25,21 @@ attractor_conf:
     dropout: 0.1
     attractor_grad: True
 
-# decoder related
-#decoder: linear
-
-# chunk-based training
-#iterator_type: chunk
-#chunk_length: 20000
-#num_cache_chunks: 64
 
 # minibatch related
-#batch_type: folded
-#batch_size: 64
+batch_type: folded
+batch_size: 1
 
 # optimization related
 optim: adam
-#accum_grad: 2
+accum_grad: 10
 grad_clip: 5
-max_epoch: 250
+max_epoch: 50
 optim_conf:
-    lr: 0.002
-scheduler: warmuplr
-scheduler_conf:
-    warmup_steps: 30000
+    lr: 0.0001
+#scheduler: warmuplr
+#scheduler_conf:
+#    warmup_steps: 100000
 
 # others:
 best_model_criterion:
@@ -55,13 +48,8 @@ best_model_criterion:
    - max
 keep_nbest_models: 10
 
-batch_type: numel
-batch_bins: 15000000
-accum_grad: 6
-#max_epoch: 100
-patience: none
 # The initialization method for model parameters
-init: xavier_uniform
+#init: xavier_uniform
 
 specaug: specaug
 specaug_conf:
@@ -71,7 +59,6 @@ specaug_conf:
     - 0
     - 30
     num_freq_mask: 2
-#    apply_time_mask: false
     apply_time_mask: true
     time_mask_width_range:
     - 0
