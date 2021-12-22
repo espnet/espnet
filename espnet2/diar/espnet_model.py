@@ -22,9 +22,6 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
-# for debugging
-import logging
-
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast
 else:
@@ -123,14 +120,10 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             # Remove the final attractor which does not correspond to a speaker
             # Then multiply the attractors and encoder_out
             pred = torch.bmm(encoder_out, attractor[:, :-1, :].permute(0, 2, 1))
-            # for debugging
-            # logging.info("encoder_out_shape:{}, encoder_out_lens_shape:{}, attractor_shape:{}".format(encoder_out.shape, encoder_out_lens.shape, attractor.shape))
         # 3. Aggregate time-domain labels
         spk_labels, spk_labels_lengths = self.label_aggregator(
             spk_labels, spk_labels_lengths
         )
-        # for debugging
-        # logging.info("spk_labels_shape:{}, spk_labels_lengths_shape:{}".format(spk_labels.shape, spk_labels_lengths.shape))
 
         if self.attractor is None:
             loss_pit, loss_att = None, None
