@@ -44,6 +44,7 @@ egs*/*/*/nltk*
 egs*/*/*/.cache*
 
 # tools related
+tools/chainer
 tools/bin
 tools/include
 tools/lib
