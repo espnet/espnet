@@ -33,7 +33,7 @@ set -o pipefail
 
 train_set=train
 train_dev=dev
-test_set=test
+test_set="test"
 
 audio_data=${HUB4_SPANISH}/LDC98S74
 transcript_data=${HUB4_SPANISH}/LDC98T29
