@@ -8,7 +8,7 @@ This is a template of TTS recipe for ESPnet2.
   * [Table of Contents](#table-of-contents)
   * [Recipe flow](#recipe-flow)
     * [1\. Data preparation](#1-data-preparation)
-    * [2\. Wav dump / Embedding preapartion](#2-wav-dump--embedding-preparation)
+    * [2\. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
     * [3\. Removal of long / short data](#3-removal-of-long--short-data)
     * [4\. Token list generation](#4-token-list-generation)
     * [5\. TTS statistics collection](#5-tts-statistics-collection)
@@ -65,13 +65,13 @@ See also:
 ### 2. Wav dump / Embedding preparation
 
 Wav dumping stage.
-This stage reformats `wav.scp` in date directories.
+This stage reformats `wav.scp` in data directories.
 
 Additionally, we support X-vector extraction in this stage as you can use in ESPnet1.
 If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract mfcc features, vad decision, and X-vector.
 This processing requires the compiled kaldi, please be careful.
 
-Also, speaker ID embedding and language ID embedding preparation will be performed in this stage if you sepecify `--use_sid true` and `--use_lid true` otpions.
+Also, speaker ID embedding and language ID embedding preparation will be performed in this stage if you specify `--use_sid true` and `--use_lid true` options.
 Note that this processing assume that `utt2spk` or `utt2lang` are correctly created in stage 1, please be careful.
 
 ### 3. Removal of long / short data
@@ -126,7 +126,7 @@ See also:
 
 #### Stage 10: Upload model to Hugging Face
 
-Upload the trained model to Hugging Face for sharing. Additonal information at [Docs](https://espnet.github.io/espnet/espnet2_tutorial.html#packing-and-sharing-your-trained-model).
+Upload the trained model to Hugging Face for sharing. Additional information at [Docs](https://espnet.github.io/espnet/espnet2_tutorial.html#packing-and-sharing-your-trained-model).
 
 ## How to run
 
@@ -574,7 +574,7 @@ cd egs2/<recipe_name>/tts1
     exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
     dump/raw/eval1/wav.scp
 
-# If you want to calculate more precisely, limit the f0 range
+# If you want to calculate more precisely, limit the F0 range
 ./pyscripts/utils/evaluate_f0.py \
     --f0min xxx \
     --f0max yyy \
@@ -602,7 +602,7 @@ cd egs2/<recipe_name>/tts1
 
 # Some ASR models assume the existence of silence at the beginning and the end of audio
 # Then, you can perform silence padding with sox to get more reasonable ASR results
-awk < exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp" \
+awk < "exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp" \
     '{print $1 " sox " $2 " -t wav - pad 0.25 0.25 |"}' \
     > exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav_pad.scp
 ./scripts/utils/evaluate_asr.sh \
@@ -719,7 +719,7 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 
 You can find example configs of the above models in [`egs2/ljspeech/tts1/conf/tuning`](../../ljspeech/tts1/conf/tuning).
 
-### Multi speaker model extention
+### Multi speaker model extension
 
 You can use / combine the following embedding to build multi-speaker model:
 - [X-Vector](https://ieeexplore.ieee.org/abstract/document/8461375)
@@ -753,7 +753,7 @@ See [how to make/port new recipe](https://github.com/espnet/espnet/tree/master/e
 
 Add a new module in [`espnet2/text/phoneme_tokenizer.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py) and add it to `g2p_choices` in [`espnet2/text/phoneme_tokenizer.py`](https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py).
 
-We have the warpper module of [bootphon/phonemizer](https://github.com/bootphon/phonemizer).
+We have the wrapper module of [bootphon/phonemizer](https://github.com/bootphon/phonemizer).
 You can find the module [`espnet2/text/phoneme_tokenizer.py`](https://github.com/kan-bayashi/espnet/blob/7cc12c6a25924892b281c2c1513de52365a1be0b/espnet2/text/phoneme_tokenizer.py#L110).
 If the g2p you wanted is implemented in [bootphon/phonemizer](https://github.com/bootphon/phonemizer), we can easily add it [like this](https://github.com/kan-bayashi/espnet/blob/7cc12c6a25924892b281c2c1513de52365a1be0b/espnet2/text/phoneme_tokenizer.py#L172-L173) (Note that you need to update the choice as I mentioned the above).
 
@@ -928,12 +928,12 @@ Please check the following items carefully:
 - Add the pose symbol in text if the speech contains the silence.
 - If the dataset is small, please consider the use of adaptation with pretrained model.
 - If the dataset is small, please consider the use of large reduction factor, which helps the attention learning.
-- Check the attention plot during the training. Loss value is not so meaningfull in TTS.
+- Check the attention plot during the training. Loss value is not so meaningful in TTS.
 
 ### Why the outputs contains metallic noise when combining neural vocoder?
 
 This will be happened especially when the neural vocoders did not use noise as the input (e.g., MelGAN, HiFiGAN), which are less robust to the mismatch of acoustic features.
-The metallic sound can reduce by performing vocder [finetuning with text2mel GTA outputs](#how-to-train-vocoder-with-text2mel-gta-outputs) or [joint training / finetuning of text2mel and vocoder](#joint-text2wav-training).
+The metallic sound can reduce by performing vocoder [finetuning with text2mel GTA outputs](#how-to-train-vocoder-with-text2mel-gta-outputs) or [joint training / finetuning of text2mel and vocoder](#joint-text2wav-training).
 
 ### How is the duration for FastSpeech2 generated?
 

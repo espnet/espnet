@@ -41,6 +41,11 @@ class CTC(torch.nn.Module):
             if ignore_nan_grad:
                 logging.warning("ignore_nan_grad option is not supported for warp_ctc")
             self.ctc_loss = warp_ctc.CTCLoss(size_average=True, reduce=reduce)
+
+        elif self.ctc_type == "gtnctc":
+            from espnet.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
+
+            self.ctc_loss = GTNCTCLossFunction.apply
         else:
             raise ValueError(
                 f'ctc_type must be "builtin" or "warpctc": {self.ctc_type}'
@@ -116,6 +121,11 @@ class CTC(torch.nn.Module):
                 # but builtin return as tensor w/o shape (scalar).
                 loss = loss.sum()
             return loss
+
+        elif self.ctc_type == "gtnctc":
+            log_probs = torch.nn.functional.log_softmax(th_pred, dim=2)
+            return self.ctc_loss(log_probs, th_target, th_ilen, 0, "none")
+
         else:
             raise NotImplementedError
 
@@ -130,11 +140,15 @@ class CTC(torch.nn.Module):
         """
         # hs_pad: (B, L, NProj) -> ys_hat: (B, L, Nvocab)
         ys_hat = self.ctc_lo(F.dropout(hs_pad, p=self.dropout_rate))
-        # ys_hat: (B, L, D) -> (L, B, D)
-        ys_hat = ys_hat.transpose(0, 1)
 
-        # (B, L) -> (BxL,)
-        ys_true = torch.cat([ys_pad[i, :l] for i, l in enumerate(ys_lens)])
+        if self.ctc_type == "gtnctc":
+            # gtn expects list form for ys
+            ys_true = [y[y != -1] for y in ys_pad]  # parse padded ys
+        else:
+            # ys_hat: (B, L, D) -> (L, B, D)
+            ys_hat = ys_hat.transpose(0, 1)
+            # (B, L) -> (BxL,)
+            ys_true = torch.cat([ys_pad[i, :l] for i, l in enumerate(ys_lens)])
 
         loss = self.loss_fn(ys_hat, ys_true, hlens, ys_lens).to(
             device=hs_pad.device, dtype=hs_pad.dtype

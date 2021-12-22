@@ -351,6 +351,7 @@ def test_custom_transducer_trainable_and_decodable(train_dic, recog_dic):
         print(nbest[0]["yseq"][1:-1])
 
 
+@pytest.mark.execution_timeout(4)
 def test_calculate_plot_attention():
     from espnet.nets.pytorch_backend.transformer import plot
 

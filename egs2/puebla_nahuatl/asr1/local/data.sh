@@ -45,13 +45,14 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     mkdir -p ${PUEBLA_NAHUATL}
    local/download_and_untar.sh local  https://www.openslr.org/resources/92/Puebla-Nahuatl-Manifest.tgz Puebla-Nahuatl-Manifest.tgz
    local/download_and_untar.sh ${PUEBLA_NAHUATL} https://www.openslr.org/resources/92/Sound-Files-Puebla-Nahuatl.tgz.part0 Sound-Files-Puebla-Nahuatl.tgz.part0 9
+   git clone https://github.com/ftshijt/Puebla_Nahuatl_Split.git local/split
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "stage2: Preparing data for yoloxochitl_mixtec"
+    log "stage2: Preparing data for Puebla Nahuatl"
     ### Task dependent. You have to make data the following preparation part by yourself.
     for x in train dev "test"; do
-        python local/data_prep.py -w $wavdir -t data/${x} -m ${annotation_type} -i local/Pueble-Nahuatl-Manifest/speaker_wav_mapping_nahuatl_${x}.csv -a ${annotation_dir}
+        python local/data_prep.py -w $wavdir -t data/${x} -m ${annotation_type} -i local/split/Pueble-Nahuatl-Manifest/speaker_wav_mapping_nahuatl_${x}.csv -a ${annotation_dir}
         utils/fix_data_dir.sh data/${x}
         chmod +x data/${x}/remix_script.sh
         mkdir -p remixed

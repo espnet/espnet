@@ -19,7 +19,6 @@ from typing import Tuple
 
 import torch
 
-from torch.utils.tensorboard import SummaryWriter
 from typeguard import check_argument_types
 
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
@@ -93,7 +92,7 @@ class GANTrainer(Trainer):
         schedulers: Sequence[Optional[AbsScheduler]],
         scaler: Optional[GradScaler],
         reporter: SubReporter,
-        summary_writer: Optional[SummaryWriter],
+        summary_writer,
         options: GANTrainerOptions,
         distributed_option: DistributedOption,
     ) -> bool:

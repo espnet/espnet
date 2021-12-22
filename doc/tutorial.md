@@ -198,6 +198,8 @@ minlenratio: 0.3
 
 ### Transducer
 
+***Important: If you encounter any issue related to Transducer loss, please open an issue in [our fork of warp-transducer](https://github.com/b-flo/warp-transducer).***
+
 ESPnet supports models trained with Transducer loss, aka Transducer models. To train such model, the following should be set in the training config:
 
 ```
@@ -307,10 +309,10 @@ Here, the *custom* architecture is a unique feature of the Transducer model in E
                   att-dropout-rate: 0.4
         dec-block-repeat: 2
 
-#### Augmented training
+#### Multi-task learning
 
-We also support augmented Transducer model training with various auxiliary tasks, such as CTC loss, LM loss (label-smoothing), auxiliary Transducer loss, and symmetric KL divergence loss.
-The five losses can be simultaneously trained and jointly optimize the total loss function defined as:
+We also support multi-task learning with various auxiliary losses, such as: CTC, cross-entropy w/ label-smoothing (LM loss), auxiliary Transducer, and symmetric KL divergence.
+The four losses can be simultaneously trained with main Transducer loss to jointly optimize the total loss defined as:
 
 ![augmented Transducer training](http://www.sciweavers.org/tex2img.php?eq=\mathcal{L}_{tot}%20%3D%20\lambda_{1}\mathcal{L}_{1}%20%2B%20\lambda_{2}\mathcal{L}_{2}%20%2B%20\lambda_{3}\mathcal{L}_{3}%20%2B%20\lambda_{4}%20\mathcal{L}_{4}%20%2B%20\lambda_{5}%20\mathcal{L}_{5}&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=)
 
@@ -347,12 +349,12 @@ Each loss can be defined in the training config alongside its specific options, 
 
 Various decoding algorithms are also available for Transducer by setting `beam-size` and `search-type` parameters in decode config.
 
-  - Greedy search  constrained to one emission by timestep (`beam-size: 1`)
-  - Beam search algorithm without prefix search. (`beam-size: >1` and `search-type: default`)
-  - Time Synchronous Decoding [Saon et al. (2020)](https://ieeexplore.ieee.org/abstract/document/9053040). (`beam-size: >1` and `search-type: tsd`)
-  - Alignment-Length Synchronous Decoding [Saon et al. (2020)](https://ieeexplore.ieee.org/abstract/document/9053040). (`beam-size: >1` and `search-type: alsd`)
-  - N-step Constrained beam search modified from [Kim et al., 2020](https://arxiv.org/abs/2002.03577). (`beam-size: >1` and `search-type: default`)
-  - modified Adaptive Expansion Search, based on [Kim et al. (2021)](https://ieeexplore.ieee.org/abstract/document/9250505) and NSC. (`beam-size: >1` and `search-type: maes`)
+  - Greedy search  constrained to one emission by timestep (`beam-size: 1`).
+  - Beam search algorithm without prefix search (`beam-size: >1` and `search-type: default`).
+  - Time Synchronous Decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040) (`beam-size: >1` and `search-type: tsd`).
+  - Alignment-Length Synchronous Decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040) (`beam-size: >1` and `search-type: alsd`).
+  - N-step Constrained beam search modified from [[Kim et al., 2020]](https://arxiv.org/abs/2002.03577) (`beam-size: >1` and `search-type: default`).
+  - modified Adaptive Expansion Search, based on [[Kim et al., 2021]](https://ieeexplore.ieee.org/abstract/document/9250505) and NSC (`beam-size: >1` and `search-type: maes`).
 
 The algorithms share two parameters to control beam size (`beam-size`) and final hypotheses normalization (`score-norm-transducer`). The specific parameters for each algorithm are:
 
@@ -370,7 +372,7 @@ The algorithms share two parameters to control beam size (`beam-size`) and final
         # N-step Constrained beam search
         search-type: nsc
         nstep: [Number of maximum expansion steps at each time step (int)]
-               # nstep = max-sym-exp + 1 (blank transition)
+               # nstep = max-sym-exp + 1 (blank)
         prefix-alpha: [Maximum prefix length in prefix search (int)]
 
         # modified Adaptive Expansion Search
@@ -386,8 +388,8 @@ Except for the default algorithm, the described parameters are used to control t
 
 - Similarly to training with CTC, Transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., --recog_model model.loss.best).
 - There are several differences between MTL and Transducer training/decoding options. The users should refer to `espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py` for an overview and `espnet/espnet/nets/pytorch_backend/transducer/arguments` for all possible arguments.
-- FastEmit regularization [Yu et al. (2021)](https://arxiv.org/pdf/2010.11148) is available through `--fastemit-lambda` training parameter (default = 0.0). If you encounter any issue related to an undefined parameter in `warp-transducer`, make sure your repo is up-to-date and re-install warp-transducer module (See `installation.md`)
-- RNN-decoder pre-initialization using an LM is supported. The LM state dict keys (`predictor.*`) will be matched to AM state dict keys (`dec.*`).
+- FastEmit regularization [[Yu et al., 2021]](https://arxiv.org/pdf/2010.11148) is available through `--fastemit-lambda` training parameter (default = 0.0).
+- RNN-decoder pre-initialization using an LM is supported. Note that regular decoder keys are expected. The LM state dict keys (`predictor.*`) will be renamed according to AM state dict keys (`dec.*`).
 - Transformer-decoder pre-initialization using a Transformer LM is not supported yet.
 
 ### Changing the training configuration

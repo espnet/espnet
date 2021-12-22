@@ -20,9 +20,7 @@ import numpy as np
 import torch
 import torch.nn
 import torch.optim
-from torch.utils.tensorboard import SummaryWriter
 from typeguard import check_argument_types
-import wandb
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
@@ -73,6 +71,7 @@ class TrainerOptions:
     grad_clip_type: float
     log_interval: Optional[int]
     no_forward_run: bool
+    use_matplotlib: bool
     use_tensorboard: bool
     use_wandb: bool
     output_dir: Union[Path, str]
@@ -81,6 +80,7 @@ class TrainerOptions:
     sharded_ddp: bool
     patience: Optional[int]
     keep_nbest_models: Union[int, List[int]]
+    nbest_averaging_interval: int
     early_stopping_criterion: Sequence[str]
     best_model_criterion: Sequence[Sequence[str]]
     val_scheduler_criterion: Sequence[str]
@@ -173,12 +173,12 @@ class Trainer:
         assert len(optimizers) == len(schedulers), (len(optimizers), len(schedulers))
 
         if isinstance(trainer_options.keep_nbest_models, int):
-            keep_nbest_models = trainer_options.keep_nbest_models
+            keep_nbest_models = [trainer_options.keep_nbest_models]
         else:
             if len(trainer_options.keep_nbest_models) == 0:
                 logging.warning("No keep_nbest_models is given. Change to [1]")
                 trainer_options.keep_nbest_models = [1]
-            keep_nbest_models = max(trainer_options.keep_nbest_models)
+            keep_nbest_models = trainer_options.keep_nbest_models
 
         output_dir = Path(trainer_options.output_dir)
         reporter = Reporter()
@@ -251,6 +251,8 @@ class Trainer:
         if trainer_options.use_tensorboard and (
             not distributed_option.distributed or distributed_option.dist_rank == 0
         ):
+            from torch.utils.tensorboard import SummaryWriter
+
             summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
         else:
             summary_writer = None
@@ -296,7 +298,6 @@ class Trainer:
                     options=trainer_options,
                     distributed_option=distributed_option,
                 )
-
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 # att_plot doesn't support distributed
                 if plot_attention_iter_factory is not None:
@@ -326,7 +327,7 @@ class Trainer:
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 # 3. Report the results
                 logging.info(reporter.log_message())
-                if plot_attention_iter_factory is not None:
+                if trainer_options.use_matplotlib:
                     reporter.matplotlib_plot(output_dir / "images")
                 if summary_writer is not None:
                     reporter.tensorboard_add_scalar(summary_writer)
@@ -381,6 +382,8 @@ class Trainer:
                     and iepoch % trainer_options.wandb_model_log_interval == 0
                 )
                 if log_model and trainer_options.use_wandb:
+                    import wandb
+
                     logging.info("Logging Model on this epoch :::::")
                     artifact = wandb.Artifact(
                         name=f"model_{wandb.run.id}",
@@ -399,11 +402,24 @@ class Trainer:
                 # Get the union set of the n-best among multiple criterion
                 nbests = set().union(
                     *[
-                        set(reporter.sort_epochs(ph, k, m)[:keep_nbest_models])
+                        set(reporter.sort_epochs(ph, k, m)[: max(keep_nbest_models)])
                         for ph, k, m in trainer_options.best_model_criterion
                         if reporter.has(ph, k)
                     ]
                 )
+
+                # Generated n-best averaged model
+                if (
+                    trainer_options.nbest_averaging_interval > 0
+                    and iepoch % trainer_options.nbest_averaging_interval == 0
+                ):
+                    average_nbest_models(
+                        reporter=reporter,
+                        output_dir=output_dir,
+                        best_model_criterion=trainer_options.best_model_criterion,
+                        nbest=keep_nbest_models,
+                    )
+
                 for e in range(1, iepoch):
                     p = output_dir / f"{e}epoch.pth"
                     if p.exists() and e not in nbests:
@@ -432,8 +448,8 @@ class Trainer:
                 f"The training was finished at {trainer_options.max_epoch} epochs "
             )
 
+        # Generated n-best averaged model
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
-            # Generated n-best averaged model
             average_nbest_models(
                 reporter=reporter,
                 output_dir=output_dir,
@@ -450,7 +466,7 @@ class Trainer:
         schedulers: Sequence[Optional[AbsScheduler]],
         scaler: Optional[GradScaler],
         reporter: SubReporter,
-        summary_writer: Optional[SummaryWriter],
+        summary_writer,
         options: TrainerOptions,
         distributed_option: DistributedOption,
     ) -> bool:
@@ -660,7 +676,6 @@ class Trainer:
             if distributed:
                 iterator_stop.fill_(1)
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
-
         return all_steps_are_invalid
 
     @classmethod
@@ -719,7 +734,7 @@ class Trainer:
         cls,
         model: torch.nn.Module,
         output_dir: Optional[Path],
-        summary_writer: Optional[SummaryWriter],
+        summary_writer,
         iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         reporter: SubReporter,
         options: TrainerOptions,
@@ -787,5 +802,7 @@ class Trainer:
                         )
 
                     if options.use_wandb:
+                        import wandb
+
                         wandb.log({f"attention plot/{k}_{id_}": wandb.Image(fig)})
             reporter.next()
