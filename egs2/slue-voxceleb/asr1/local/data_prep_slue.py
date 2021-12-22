@@ -33,24 +33,30 @@ for x in dir_dict:
         text_f.truncate()
         wav_scp_f.truncate()
         utt2spk_f.truncate()
-        transcript_df = pd.read_csv(os.path.join(root, dir_dict[x]), sep='\t')
+        transcript_df = pd.read_csv(os.path.join(root, dir_dict[x]), sep="\t")
         # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
-            if x=="test":
-                speaker=row[1]
-                words="<blank>" # Test set is blind, will have to submit to leaderboard
+            if x == "test":
+                speaker = row[1]
+                words = (
+                    "<blank>"  # Test set is blind, will have to submit to leaderboard
+                )
             else:
                 print(x)
                 print(row)
-                words=row[4].replace(" ", "_")+" "+row[1].encode("ascii", "ignore").decode()
+                words = (
+                    row[4].replace(" ", "_")
+                    + " "
+                    + row[1].encode("ascii", "ignore").decode()
+                )
                 print(words)
-                speaker=row[2]
-            if x=="train":
-                path="fine-tune_raw/"+row[0]+".flac"
-            elif x=="devel":
-                path="dev_raw/"+row[0]+".flac"
+                speaker = row[2]
+            if x == "train":
+                path = "fine-tune_raw/" + row[0] + ".flac"
+            elif x == "devel":
+                path = "dev_raw/" + row[0] + ".flac"
             else:
-                path="test_raw/"+row[0]+".flac"
+                path = "test_raw/" + row[0] + ".flac"
             utt_id = row[0]
             # print(utt_id + " " + words + "\n")
             text_f.write(utt_id + " " + words + "\n")
