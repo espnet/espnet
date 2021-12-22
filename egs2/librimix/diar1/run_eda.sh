@@ -14,9 +14,9 @@ train_set=train
 valid_set=dev
 test_sets=test
 
-train_config1=conf/train_diar_eda_5.yaml
+train_config1=conf/train_diar_eda.yaml
 train_config2=conf/train_diar_eda_adapt.yaml
-decode_config=conf/decode_diar.yaml
+decode_config=conf/decode_diar_eda.yaml
 
 pretrain_stage=false
 adapt_stage=true
