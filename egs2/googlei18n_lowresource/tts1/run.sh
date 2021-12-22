@@ -66,7 +66,7 @@ g2p=none
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
     --win_length "${win_length}" \
-    --token_type phn \
+    --token_type raw \
     --cleaner none \
     --g2p "${g2p}" \
     --train_config "${train_config}" \
