@@ -188,8 +188,8 @@ class ESPnetASRModel(AbsESPnetModel):
             )
 
             # Collect CTC branch stats
-            stats['loss_ctc']=loss_ctc.detach() if loss_ctc is not None else None
-            stats['cer_ctc']=cer_ctc
+            stats["loss_ctc"] = loss_ctc.detach() if loss_ctc is not None else None
+            stats["cer_ctc"] = cer_ctc
 
         if self.use_transducer_decoder:
             # 2a. Transducer decoder branch
@@ -209,9 +209,11 @@ class ESPnetASRModel(AbsESPnetModel):
                 loss = loss_transducer
 
             # Collect Transducer branch stats
-            stats['loss_transducer']=loss_transducer.detach() if loss_transducer is not None else None
-            stats['cer_transducer']=cer_transducer
-            stats['wer_transducer']=wer_transducer
+            stats["loss_transducer"] = (
+                loss_transducer.detach() if loss_transducer is not None else None
+            )
+            stats["cer_transducer"] = cer_transducer
+            stats["wer_transducer"] = wer_transducer
 
         else:
             # 2b. Attention decoder branch
@@ -229,13 +231,13 @@ class ESPnetASRModel(AbsESPnetModel):
                 loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
 
             # Collect Attn branch stats
-            stats['loss_att']=loss_att.detach() if loss_att is not None else None
-            stats['acc']=acc_att
-            stats['cer']=cer_att
-            stats['wer']=wer_att
+            stats["loss_att"] = loss_att.detach() if loss_att is not None else None
+            stats["acc"] = acc_att
+            stats["cer"] = cer_att
+            stats["wer"] = wer_att
 
         # Collect total loss stats
-        stats['loss'] = loss.detach() if loss is not None else None
+        stats["loss"] = loss.detach() if loss is not None else None
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)

@@ -544,7 +544,9 @@ class Reporter:
 
         return plt
 
-    def tensorboard_add_scalar(self, summary_writer, epoch: int = None, key1: str = None):
+    def tensorboard_add_scalar(
+        self, summary_writer, epoch: int = None, key1: str = None
+    ):
         if epoch is None:
             epoch = self.get_epoch()
             total_count = self.stats[epoch]["train"]["total_count"]
@@ -556,7 +558,9 @@ class Reporter:
 
         for key1 in key1_iterator:
             for key2 in self.get_keys2(key1):
-                summary_writer.add_scalar(f"{key2}", self.stats[epoch][key1][key2], total_count)
+                summary_writer.add_scalar(
+                    f"{key2}", self.stats[epoch][key1][key2], total_count
+                )
 
     def wandb_log(self, epoch: int = None):
         import wandb

@@ -253,8 +253,12 @@ class Trainer:
         ):
             from torch.utils.tensorboard import SummaryWriter
 
-            train_summary_writer = SummaryWriter(str(output_dir / "tensorboard" / "train"))
-            valid_summary_writer = SummaryWriter(str(output_dir / "tensorboard" / "valid"))
+            train_summary_writer = SummaryWriter(
+                str(output_dir / "tensorboard" / "train")
+            )
+            valid_summary_writer = SummaryWriter(
+                str(output_dir / "tensorboard" / "valid")
+            )
         else:
             train_summary_writer = None
 
