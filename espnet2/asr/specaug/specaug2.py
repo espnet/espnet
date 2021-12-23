@@ -33,7 +33,7 @@ class SpecAug2(AbsSpecAug):
         num_freq_mask: int = 2,
         apply_time_mask: bool = True,
         time_mask_width_ratio_range: Union[float, Sequence[float]] = (0.0, 0.05),
-        num_time_mask: int = 10,
+        num_time_mask: int = 2,
     ):
         if not apply_time_warp and not apply_time_mask and not apply_freq_mask:
             raise ValueError(
