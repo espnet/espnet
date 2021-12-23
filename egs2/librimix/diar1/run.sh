@@ -10,12 +10,12 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
-valid_set=dev
-test_sets=test
+train_set="train"
+valid_set="dev"
+test_sets="test"
 
-train_config=conf/train_diar.yaml
-decode_config=conf/decode_diar.yaml
+train_config="conf/train_diar.yaml"
+decode_config="conf/decode_diar.yaml"
 num_spk=2
 
 ./diar.sh \
