@@ -101,9 +101,8 @@ We basically develop in the `master` branch.
 
 ESPnet's testing is located under `test/`.  You can install additional packages for testing as follows:
 ``` console
-$ cd <espnet_root>
-$ . ./tools/activate_python.sh
-$ pip install -e ".[test]"
+$ cd <espnet_root>/tools
+$ make espnet_dev.done
 ```
 
 ### 4.1 Python
