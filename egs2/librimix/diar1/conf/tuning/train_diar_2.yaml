@@ -1,9 +1,6 @@
-#    If "attractor" is "None" or not specified, SA-EEND will be used. 
-#    Else if "attractor" is not "None" EEND-EDA will be used.
-#    For the details about SA-EEND and EEND-EDA, refer to the following papers:
+#    This config file is for SA-EEND.
+#    For the details about SA-EEND, refer to the following paper:
 #    SA-EEND: https://arxiv.org/pdf/1909.06247.pdf
-#    EEND-EDA: https://arxiv.org/pdf/2005.09921.pdf, https://arxiv.org/pdf/2106.10654.pdf
-
 
 # network architecture
 # encoder related
@@ -17,21 +14,8 @@ encoder_conf:
     attention_heads: 4
     attention_dropout_rate: 0.1
 
-# attractor related
-#attractor: rnn
-#attractor_conf:
-#    unit: 256 # same as encoder output size
-#    layer: 1
-#    dropout: 0.1
-#    attractor_grad: False
-
 # decoder related
 decoder: linear
-
-# chunk-based training
-#iterator_type: chunk
-#chunk_length: 20000
-#num_cache_chunks: 64
 
 # minibatch related
 batch_type: folded
@@ -55,10 +39,6 @@ best_model_criterion:
    - max
 keep_nbest_models: 10
 
-#batch_type: numel
-#batch_bins: 15000000
-#accum_grad: 6
-#max_epoch: 100
 patience: none
 # The initialization method for model parameters
 init: xavier_uniform

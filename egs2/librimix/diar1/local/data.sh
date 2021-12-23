@@ -18,8 +18,6 @@ num_spk="2 3"
 
  . utils/parse_options.sh || exit 1;
 
-LIBRIMIX=downloads
-
 if [ -z "${LIBRIMIX}" ]; then
     log "Fill the value of 'LIBRIMIX' of db.sh"
     exit 1

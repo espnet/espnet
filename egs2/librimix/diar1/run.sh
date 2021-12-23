@@ -16,7 +16,7 @@ test_sets="test"
 
 train_config="conf/train_diar.yaml"
 decode_config="conf/decode_diar.yaml"
-num_spk=2
+num_spk=2 # 2, 3
 
 ./diar.sh \
     --collar 0.0 \
