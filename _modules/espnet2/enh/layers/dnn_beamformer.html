@@ -213,7 +213,9 @@
             <span class="n">nmask</span><span class="o">=</span><span class="n">bnmask</span><span class="p">,</span>
             <span class="n">nonlinear</span><span class="o">=</span><span class="n">nonlinear</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ref</span> <span class="o">=</span> <span class="n">AttentionReference</span><span class="p">(</span><span class="n">bidim</span><span class="p">,</span> <span class="n">badim</span><span class="p">)</span> <span class="k">if</span> <span class="n">ref_channel</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ref</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">AttentionReference</span><span class="p">(</span><span class="n">bidim</span><span class="p">,</span> <span class="n">badim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span> <span class="k">if</span> <span class="n">ref_channel</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span> <span class="o">=</span> <span class="n">ref_channel</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">use_noise_mask</span> <span class="o">=</span> <span class="n">use_noise_mask</span>
@@ -618,10 +620,11 @@
 
 
 <div class="viewcode-block" id="AttentionReference"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dnn_beamformer.AttentionReference">[docs]</a><span class="k">class</span> <span class="nc">AttentionReference</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bidim</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bidim</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mlp_psd</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">bidim</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">gvec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">att_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span>
 
 <div class="viewcode-block" id="AttentionReference.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dnn_beamformer.AttentionReference.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -649,7 +652,7 @@
         <span class="n">psd</span> <span class="o">=</span> <span class="p">(</span><span class="n">psd</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">C</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
 
         <span class="c1"># Calculate amplitude</span>
-        <span class="n">psd_feat</span> <span class="o">=</span> <span class="p">(</span><span class="n">psd</span><span class="o">.</span><span class="n">real</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">psd</span><span class="o">.</span><span class="n">imag</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
+        <span class="n">psd_feat</span> <span class="o">=</span> <span class="p">(</span><span class="n">psd</span><span class="o">.</span><span class="n">real</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">psd</span><span class="o">.</span><span class="n">imag</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
 
         <span class="c1"># (B, C, F) -&gt; (B, C, F2)</span>
         <span class="n">mlp_psd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp_psd</span><span class="p">(</span><span class="n">psd_feat</span><span class="p">)</span>
