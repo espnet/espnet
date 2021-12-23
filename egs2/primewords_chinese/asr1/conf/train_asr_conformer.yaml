@@ -8,7 +8,7 @@ encoder_conf:
     num_blocks: 12      # the number of encoder blocks
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
-    attention_dropout_rate: 0.0
+    attention_dropout_rate: 0.1
     input_layer: conv2d # encoder architecture type
     normalize_before: true
     pos_enc_layer_type: rel_pos
@@ -16,7 +16,7 @@ encoder_conf:
     activation_type: swish
     macaron_style: true
     use_cnn_module: true
-    cnn_module_kernel: 15
+    cnn_module_kernel: 31
 
 # decoder related
 decoder: transformer
@@ -26,8 +26,8 @@ decoder_conf:
     num_blocks: 6
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
-    self_attention_dropout_rate: 0.0
-    src_attention_dropout_rate: 0.0
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
 
 # hybrid CTC/attention
 model_conf:
@@ -37,7 +37,7 @@ model_conf:
 
 # minibatch related
 batch_type: numel
-batch_bins: 30000000
+batch_bins: 35000000
 
 # optimization related
 accum_grad: 1
