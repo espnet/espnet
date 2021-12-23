@@ -30,10 +30,10 @@ all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_inst
 
 ifneq ($(strip $(CHAINER_VERSION)),)
 python: activate_python.sh espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
-extra: espnet_dev.done warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done
+extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done
 else
 python: activate_python.sh espnet.done pytorch.done fairscale.done torch_optimizer.done
-extra: espnet_dev.done warp-ctc.done warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done
+extra: warp-ctc.done warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done
 endif
 
 
@@ -103,10 +103,6 @@ endif
 espnet.done: pytorch.done conda_packages.done
 	. ./activate_python.sh && python3 -m pip install -e "..[train, recipe]"  # Install editable mode by default
 	touch espnet.done
-	
-espnet_dev.done: espnet.done
-	. ./activate_python.sh && python3 -m pip install -e "..[test]"  # Install editable mode by default
-	touch espnet_dev.done
 
 chainer.done: espnet.done
 	. ./activate_python.sh && ./installers/install_chainer.sh "${CUDA_VERSION}"
