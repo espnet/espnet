@@ -20,7 +20,7 @@ inference_config=conf/decode_asr.yaml
 speed_perturb_factors="0.9 0.95 1.0 1.05 1.1"
 
 ./asr.sh                                                \
-    --skip_data_prep false                               \
+    --skip_data_prep false                              \
     --skip_train false                                  \
     --skip_eval false                                   \
     --ngpu 1                                            \
@@ -40,10 +40,11 @@ speed_perturb_factors="0.9 0.95 1.0 1.05 1.1"
     --train_set "${train_set}"                          \
     --valid_set "${valid_set}"                          \
     --test_sets "${test_sets}"                          \
-    --lm_train_text "data/${train_set}/text" "$@"           
+    --local_score_opts "--asr_tag ${asr_tag} --inference_tag ${inference_tag} --test_sets ${test_sets}" \
+    --lm_train_text "data/${train_set}/text" "$@" 
 
-# Calculate and save classification accuracy
-local/score.sh \
-    --asr_tag "${asr_tag}" \
-    --inference_tag "${inference_tag}" \
-    --test_sets "${test_sets}"
+# # Calculate and save classification accuracy
+# local/score.sh \
+#     --asr_tag "${asr_tag}" \
+#     --inference_tag "${inference_tag}" \
+#     --test_sets "${test_sets}"
