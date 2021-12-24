@@ -5,7 +5,8 @@ from typing import Union
 import math
 
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-from espnet2.layers.mask_along_axis import MaskAlongAxis, mask_along_axis
+from espnet2.layers.mask_along_axis import mask_along_axis
+from espnet2.layers.mask_along_axis import MaskAlongAxis
 from espnet2.layers.time_warp import TimeWarp
 
 
@@ -37,7 +38,7 @@ class SpecAug2(AbsSpecAug):
     ):
         if not apply_time_warp and not apply_time_mask and not apply_freq_mask:
             raise ValueError(
-                "Either one of time_warp, time_mask, or freq_mask should be applied",
+                "Either one of time_warp, time_mask, or freq_mask should be applied"
             )
         super().__init__()
         self.apply_time_warp = apply_time_warp
@@ -64,8 +65,9 @@ class SpecAug2(AbsSpecAug):
                 time_mask_width_ratio_range = (0.0, time_mask_width_ratio_range)
             if len(time_mask_width_ratio_range) != 2:
                 raise TypeError(
-                    f"time_mask_width_ratio_range must be a tuple of float and float values: "
-                    f"{time_mask_width_ratio_range}",
+                    f"time_mask_width_ratio_range must be a tuple of "
+                    f"float and float values: "
+                    f"{time_mask_width_ratio_range}"
                 )
             assert time_mask_width_ratio_range[1] > time_mask_width_ratio_range[0]
             self.time_mask_width_ratio_range = time_mask_width_ratio_range
@@ -82,9 +84,13 @@ class SpecAug2(AbsSpecAug):
             x, x_lengths = self.freq_mask(x, x_lengths)
         if self.apply_time_mask:
             max_seq_len = x.shape[1]
-            min_time_mask_width = math.floor(self.time_mask_width_ratio_range[0] * max_seq_len)
+            min_time_mask_width = math.floor(
+                self.time_mask_width_ratio_range[0] * max_seq_len
+            )
             min_time_mask_width = max([0, min_time_mask_width])
-            max_time_mask_width = math.floor(self.time_mask_width_ratio_range[1] * max_seq_len)
+            max_time_mask_width = math.floor(
+                self.time_mask_width_ratio_range[1] * max_seq_len
+            )
             max_time_mask_width = min([max_seq_len, max_time_mask_width])
             if max_time_mask_width > min_time_mask_width:
                 x, x_lengths = mask_along_axis(
