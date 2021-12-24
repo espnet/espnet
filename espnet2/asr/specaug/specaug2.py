@@ -2,16 +2,14 @@
 from typing import Sequence
 from typing import Union
 
-import math
-
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-from espnet2.layers.mask_along_axis import mask_along_axis
 from espnet2.layers.mask_along_axis import MaskAlongAxis
+from espnet2.layers.mask_along_axis import MaskAlongAxisVariableMaxWidth
 from espnet2.layers.time_warp import TimeWarp
 
 
 class SpecAug2(AbsSpecAug):
-    """Implementation of SpecAug with variable maximum width for time masking.
+    """Implements SpecAug with variable maximum width for time masking.
 
     Reference:
         Daniel S. Park et al.
@@ -60,20 +58,16 @@ class SpecAug2(AbsSpecAug):
             self.freq_mask = None
 
         if apply_time_mask:
-            self.num_time_mask = num_time_mask
-            if isinstance(time_mask_width_ratio_range, float):
-                time_mask_width_ratio_range = (0.0, time_mask_width_ratio_range)
-            if len(time_mask_width_ratio_range) != 2:
-                raise TypeError(
-                    f"time_mask_width_ratio_range must be a tuple of "
-                    f"float and float values: "
-                    f"{time_mask_width_ratio_range}"
-                )
-            assert time_mask_width_ratio_range[1] > time_mask_width_ratio_range[0]
-            self.time_mask_width_ratio_range = time_mask_width_ratio_range
+            self.time_mask = MaskAlongAxisVariableMaxWidth(
+                mask_width_ratio_range=time_mask_width_ratio_range,
+                num_mask=num_time_mask,
+                dim="time",
+            )
+        else:
+            self.time_mask = None
 
     def forward(self, x, x_lengths=None):
-        """Forward method of SpecAug2
+        """Forward method of SpecAug2.
 
         Args:
             x (torch.Tensor): (batch, length, freq)
@@ -82,22 +76,6 @@ class SpecAug2(AbsSpecAug):
             x, x_lengths = self.time_warp(x, x_lengths)
         if self.freq_mask is not None:
             x, x_lengths = self.freq_mask(x, x_lengths)
-        if self.apply_time_mask:
-            max_seq_len = x.shape[1]
-            min_time_mask_width = math.floor(
-                self.time_mask_width_ratio_range[0] * max_seq_len
-            )
-            min_time_mask_width = max([0, min_time_mask_width])
-            max_time_mask_width = math.floor(
-                self.time_mask_width_ratio_range[1] * max_seq_len
-            )
-            max_time_mask_width = min([max_seq_len, max_time_mask_width])
-            if max_time_mask_width > min_time_mask_width:
-                x, x_lengths = mask_along_axis(
-                    spec=x,
-                    spec_lengths=x_lengths,
-                    mask_width_range=(min_time_mask_width, max_time_mask_width),
-                    dim=1,
-                    num_mask=self.num_time_mask,
-                )
+        if self.time_mask is not None:
+            x, x_lengths = self.time_mask(x, x_lengths)
         return x, x_lengths
