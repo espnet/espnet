@@ -1332,7 +1332,7 @@ i.e. x -&gt; x + att(x)</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet2.asr.encoder.contextual_block_conformer_encoder.ContextualBlockConformerEncoder.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">is_final=True</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_conformer_encoder.html#ContextualBlockConformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_conformer_encoder.ContextualBlockConformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">is_final=True</em>, <em class="sig-param">infer_mode=False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_conformer_encoder.html#ContextualBlockConformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_conformer_encoder.ContextualBlockConformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Embed positions in tensor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1340,6 +1340,9 @@ i.e. x -&gt; x + att(x)</p></li>
 <li><p><strong>xs_pad</strong> – input tensor (B, L, D)</p></li>
 <li><p><strong>ilens</strong> – input length (B)</p></li>
 <li><p><strong>prev_states</strong> – Not to be used now.</p></li>
+<li><p><strong>infer_mode</strong> – whether to be used for inference. This is used to
+distinguish between forward_train (train and validate) and
+forward_infer (decode).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1719,7 +1722,7 @@ i.e. x -&gt; x + att(x)</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">is_final=True</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_transformer_encoder.html#ContextualBlockTransformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">is_final=True</em>, <em class="sig-param">infer_mode=False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/contextual_block_transformer_encoder.html#ContextualBlockTransformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.contextual_block_transformer_encoder.ContextualBlockTransformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Embed positions in tensor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1727,6 +1730,9 @@ i.e. x -&gt; x + att(x)</p></li>
 <li><p><strong>xs_pad</strong> – input tensor (B, L, D)</p></li>
 <li><p><strong>ilens</strong> – input length (B)</p></li>
 <li><p><strong>prev_states</strong> – Not to be used now.</p></li>
+<li><p><strong>infer_mode</strong> – whether to be used for inference. This is used to
+distinguish between forward_train (train and validate) and
+forward_infer (decode).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

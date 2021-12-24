@@ -513,7 +513,7 @@ encoder_conf:
 <section id="faq">
 <h3>FAQ<a class="headerlink" href="#faq" title="Permalink to this headline">¶</a></h3>
 <ol class="simple">
-<li><p>Issue about <code class="docutils literal notranslate"><span class="pre">'NoneType'</span> <span class="pre">object</span> <span class="pre">has</span> <span class="pre">no</span> <span class="pre">attribute</span> <span class="pre">'max'</span></code> during training: Please avoid the <code class="docutils literal notranslate"><span class="pre">valid_batch_size</span></code> to be 1, check more details <a class="reference external" href="https://github.com/espnet/espnet/issues/3853">here</a>.</p></li>
+<li><p>Issue about <code class="docutils literal notranslate"><span class="pre">'NoneType'</span> <span class="pre">object</span> <span class="pre">has</span> <span class="pre">no</span> <span class="pre">attribute</span> <span class="pre">'max'</span></code> during training: Please make sure you employ <code class="docutils literal notranslate"><span class="pre">forward_train</span></code> function during traininig, check more details <a class="reference external" href="https://github.com/espnet/espnet/issues/3803">here</a>.</p></li>
 <li><p>I successfully trained the model, but encountered the above issue during decoding: You may forget to specify <code class="docutils literal notranslate"><span class="pre">--use_streaming</span> <span class="pre">true</span></code> to select streaming inference.</p></li>
 </ol>
 </section>

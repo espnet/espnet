@@ -389,7 +389,11 @@
             <span class="n">speech</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend_states</span><span class="p">,</span> <span class="n">is_final</span><span class="o">=</span><span class="n">is_final</span>
         <span class="p">)</span>
         <span class="n">enc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span>
-            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_states</span><span class="p">,</span> <span class="n">is_final</span><span class="o">=</span><span class="n">is_final</span>
+            <span class="n">feats</span><span class="p">,</span>
+            <span class="n">feats_lengths</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">encoder_states</span><span class="p">,</span>
+            <span class="n">is_final</span><span class="o">=</span><span class="n">is_final</span><span class="p">,</span>
+            <span class="n">infer_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="p">(</span>
             <span class="n">x</span><span class="o">=</span><span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
