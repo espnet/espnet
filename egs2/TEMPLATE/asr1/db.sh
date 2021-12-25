@@ -38,6 +38,7 @@ LIBRISPEECH=
 LIBRILIGHT_LIMITED=
 FSC=
 SLURP=
+VOXCELEB=
 MINI_LIBRISPEECH=downloads
 MISP2021=
 LIBRITTS=
@@ -116,6 +117,7 @@ GRABO=downloads
 WENETSPEECH=
 SPEECHCOMMANDS=downloads
 TOTONAC=downloads
+PRIMEWORDS_CHINESE=downloads
 
 # For only CMU environment
 if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
@@ -145,6 +147,7 @@ if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
     BABEL_403=/projects/tir5/data/speech_corpora/babel/IARPA-babel403b-v1.0b-build/BABEL_OP3_403/
     BABEL_404=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_OP3_404/
     GRABO=/projects/tir5/data/speech_corpora/Grabo
+    PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
 fi
 
 # For only JHU environment
