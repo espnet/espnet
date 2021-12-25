@@ -62,7 +62,7 @@ fi
 if [ ! -e phonemizer.done ]; then
     (
         set -euo pipefail
-        pip install phonemizer==3.0
+        pip install phonemizer==3.0.1
     )
     touch phonemizer.done
 else
