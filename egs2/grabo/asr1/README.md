@@ -8,7 +8,7 @@ For more information about the dataset, please refer to these papers:
 
 - Renkens, Vincent, and Hugo Van hamme. "Capsule networks for low resource spoken language understanding." arXiv preprint arXiv:1805.02922 (2018).
 
-We followed the following paper to randomly split the original dataset into train/dev/test sets.
+We followed this paper to ***randomly*** split the entire dataset into train/dev/test sets. Please modify the data preparation script to make the procedure deterministic. Otherwise the results cannot be exactly reproduced. Since this dataset is small, it might be better to run multiple experiments and calculate the average accuracy.
 
 - Tian, Yusheng, and Philip John Gorinski. "Improving end-to-end speech-to-intent classification with Reptile." arXiv preprint arXiv:2008.01994 (2020).
 
@@ -35,7 +35,6 @@ Model: https://zenodo.org/record/5716386#.YcZQgxOZMVU
 |---|---|---|---|---|---|---|---|---|
 |infer/dev|1584|1584|97.9|2.1|0.0|0.0|2.1|2.1|
 |infer/test|3631|3631|97.6|2.4|0.0|0.0|2.4|2.4|
-
 
 
 # feats_type: fbank_pitch
