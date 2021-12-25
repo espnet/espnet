@@ -144,6 +144,7 @@ if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
     BABEL_402=/projects/tir5/data/speech_corpora/babel/IARPA-babel402b-v1.0b-build/BABEL_OP3_402/
     BABEL_403=/projects/tir5/data/speech_corpora/babel/IARPA-babel403b-v1.0b-build/BABEL_OP3_403/
     BABEL_404=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_OP3_404/
+    GRABO=/projects/tir5/data/speech_corpora/Grabo
 fi
 
 # For only JHU environment
