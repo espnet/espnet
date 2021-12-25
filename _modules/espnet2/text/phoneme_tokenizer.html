@@ -124,7 +124,8 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.text.phoneme_tokenizer</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
@@ -439,31 +440,41 @@
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
+        <span class="n">backend</span><span class="p">,</span>
         <span class="n">word_separator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">syllable_separator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">phone_separator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="p">,</span>
+        <span class="n">strip</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">split_by_single_token</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">phonemize_kwargs</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">phonemizer_kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="c1"># delayed import</span>
-        <span class="kn">from</span> <span class="nn">phonemizer</span> <span class="kn">import</span> <span class="n">phonemize</span>
+        <span class="kn">from</span> <span class="nn">phonemizer.backend</span> <span class="kn">import</span> <span class="n">BACKENDS</span>
         <span class="kn">from</span> <span class="nn">phonemizer.separator</span> <span class="kn">import</span> <span class="n">Separator</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">phonemize</span> <span class="o">=</span> <span class="n">phonemize</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">separator</span> <span class="o">=</span> <span class="n">Separator</span><span class="p">(</span>
             <span class="n">word</span><span class="o">=</span><span class="n">word_separator</span><span class="p">,</span>
             <span class="n">syllable</span><span class="o">=</span><span class="n">syllable_separator</span><span class="p">,</span>
             <span class="n">phone</span><span class="o">=</span><span class="n">phone_separator</span><span class="p">,</span>
         <span class="p">)</span>
+
+        <span class="c1"># define logger to suppress the warning in phonemizer</span>
+        <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;phonemizer&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phonemizer</span> <span class="o">=</span> <span class="n">BACKENDS</span><span class="p">[</span><span class="n">backend</span><span class="p">](</span>
+            <span class="o">**</span><span class="n">phonemizer_kwargs</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">strip</span> <span class="o">=</span> <span class="n">strip</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">split_by_single_token</span> <span class="o">=</span> <span class="n">split_by_single_token</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">phonemize_kwargs</span> <span class="o">=</span> <span class="n">phonemize_kwargs</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonemize</span><span class="p">(</span>
-            <span class="n">text</span><span class="p">,</span>
+        <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phonemizer</span><span class="o">.</span><span class="n">phonemize</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">text</span><span class="p">],</span>
             <span class="n">separator</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">separator</span><span class="p">,</span>
-            <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">phonemize_kwargs</span><span class="p">,</span>
-        <span class="p">)</span>
+            <span class="n">strip</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">strip</span><span class="p">,</span>
+            <span class="n">njobs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_by_single_token</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">tokens</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
@@ -617,7 +628,7 @@
             <span class="sa">f</span><span class="s1">&#39;g2p_type=&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">g2p_type</span><span class="si">}</span><span class="s1">&quot;, &#39;</span>
             <span class="sa">f</span><span class="s1">&#39;space_symbol=&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">space_symbol</span><span class="si">}</span><span class="s1">&quot;, &#39;</span>
             <span class="sa">f</span><span class="s1">&#39;non_linguistic_symbols=&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">non_linguistic_symbols</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
-            <span class="sa">f</span><span class="s2">&quot;)&quot;</span>
+            <span class="s2">&quot;)&quot;</span>
         <span class="p">)</span>
 
 <div class="viewcode-block" id="PhonemeTokenizer.text2tokens"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.PhonemeTokenizer.text2tokens">[docs]</a>    <span class="k">def</span> <span class="nf">text2tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
