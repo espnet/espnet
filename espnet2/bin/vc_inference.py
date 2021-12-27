@@ -50,16 +50,16 @@ class VoiceConversion:
         >>> voice_conversion = VoiceConversion.from_pretrained(
         >>>     train_config="/path/to/config.yml",
         >>>     model_file="/path/to/model.pth",
-        >>>     vocoder_tag="kan-bayashi/ljspeech_tacotron2",
+        >>>     vocoder_tag="peter-yh-wu/cmu_arctic_transformer",
         >>> )
         >>> # Case 3: Load the pretrained model and use Griffin-Lim vocoder
         >>> voice_conversion = VoiceConversion.from_pretrained(
-        >>>     model_tag="kan-bayashi/ljspeech_tacotron2",
+        >>>     model_tag="peter-yh-wu/cmu_arctic_transformer",
         >>> )
         >>> # Case 4: Load the pretrained model and the pretrained vocoder
         >>> voice_conversion = VoiceConversion.from_pretrained(
-        >>>     model_tag="kan-bayashi/ljspeech_tacotron2",
-        >>>     vocoder_tag="parallel_wavegan/ljspeech_parallel_wavegan.v1",
+        >>>     model_tag="peter-yh-wu/cmu_arctic_transformer",
+        >>>     vocoder_tag="parallel_wavegan/cmu_arctic_parallel_wavegan.v1",
         >>> )
         >>> # Run inference and save as wav file
         >>> import soundfile as sf
