@@ -51,7 +51,7 @@ if [ -z ${SPEECHCOMMANDS} ]; then
     exit 1
 fi
 
-
+cur_path=$(pwd)
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Download Data to ${SPEECHCOMMANDS}"
     if [ ! -d ${SPEECHCOMMANDS} ]; then
@@ -135,7 +135,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    cd ${SPEECHCOMMANDS}/..
+    cd ${cur_path}
 
     # prepare datasets
     if [ ${num_commands} -eq 12 ]; then

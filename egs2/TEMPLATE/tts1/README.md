@@ -680,6 +680,9 @@ You can change via `--g2p` option in `tts.sh`.
 - `espeak_ng_dutch`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
     - e.g. `Hallo Wereld.` -> `[h, ˈɑ, l, oː, ʋ, ˈɪː, r, ə, l, t, .]`
     - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
+- `espeak_ng_hindi`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
+    - e.g. `नमस्ते दुनिया` -> `[n, ə, m, ˈʌ, s, t, eː, d, ˈʊ, n, ɪ, j, ˌaː]`
+    - This result provided by the wrapper library [bootphon/phonemizer](https://github.com/bootphon/phonemizer)
 - `espeak_ng_english_us_vits`: [espeak-ng/espeak-ng](https://github.com/espeak-ng/espeak-ng)
     - VITS official implementation-like processing (https://github.com/jaywalnut310/vits)
     - e.g. `Hello World.` -> `[h, ə, l, ˈ, o, ʊ, , <space>, w, ˈ, ɜ, ː, l, d, .]`
@@ -689,6 +692,10 @@ You can change via `--g2p` option in `tts.sh`.
 - `g2pk_no_space`: [Kyubyong/g2pK](https://github.com/Kyubyong/g2pK)
     - Same G2P but do not use word separator
     - e.g. `안녕하세요 세계입니다.` -> `[ᄋ, ᅡ, ᆫ, ᄂ, ᅧ, ᆼ, ᄒ, ᅡ, ᄉ, ᅦ, ᄋ, ᅭ, ᄉ, ᅦ, ᄀ, ᅨ, ᄋ, ᅵ, ᆷ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
+- `korean_jaso`: [jdongian/python-jamo](https://github.com/jdongian/python-jamo)
+    - e.g. `나는 학교에 갑니다.` -> `[ᄂ, ᅡ, ᄂ, ᅳ, ᆫ, <space>, ᄒ, ᅡ, ᆨ, ᄀ, ᅭ, ᄋ, ᅦ, <space>, ᄀ, ᅡ, ᆸ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
+- `korean_jaso_no_space`: [jdongian/python-jamo](https://github.com/jdongian/python-jamo)
+    - e.g. `나는 학교에 갑니다.` -> `[ᄂ, ᅡ, ᄂ, ᅳ, ᆫ, ᄒ, ᅡ, ᆨ, ᄀ, ᅭ, ᄋ, ᅦ, ᄀ, ᅡ, ᆸ, ᄂ, ᅵ, ᄃ, ᅡ, .]`
 
 You can see the code example from [here](https://github.com/espnet/espnet/blob/cd7d28e987b00b30f8eb8efd7f4796f048dc3be9/test/espnet2/text/test_phoneme_tokenizer.py).
 
@@ -920,15 +927,16 @@ There are several solutions to solve this issue:
 The most of the problems are caused by the bad cleaning of the dataset.
 Please check the following items carefully:
 
+- Check the attention plot during the training. Loss value is not so meaningful in TTS.
+    - You can check [this PR](https://github.com/espnet/espnet/pull/2807) as an example.
 - Remove the silence at the beginning and end of the speech.
-    - You can use silence trimming scripts in [this example](https://github.com/espnet/espnet/blob/f03101557753517ebac8c432f0793d97d68fa5f0/egs2/hui_acg/tts1/local/data.sh#L73-L82).
+    - You can use silence trimming scripts in [this example](https://github.com/espnet/espnet/blob/52ea42d8abfbfb63500e91a150a285aa7d14bfd6/egs2/hui_acg/tts1/local/data.sh#L61-L70).
 - Separate speech if it contains a long silence at the middle of speech.
 - Use phonemes instead of characters if G2P is available.
 - Clean the text as possible as you can (abbreviation, number, etc...)
 - Add the pose symbol in text if the speech contains the silence.
 - If the dataset is small, please consider the use of adaptation with pretrained model.
 - If the dataset is small, please consider the use of large reduction factor, which helps the attention learning.
-- Check the attention plot during the training. Loss value is not so meaningful in TTS.
 
 ### Why the outputs contains metallic noise when combining neural vocoder?
 
