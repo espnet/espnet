@@ -141,6 +141,7 @@ class LearnableFourierPosEnc(torch.nn.Module):
             apply_scaling (bool): Whether to scale the input before adding the pos encoding.
             hidden_dim (int): if not None, we modulate the pos encodings with an MLP whose hidden layer has hidden_dim neurons.
         """
+
     def __init__(self, d_model, dropout_rate=0.0, max_len=5000, gamma=1.0, reverse=False, apply_scaling=False,
                  hidden_dim=None):
         super(LearnableFourierPosEnc, self).__init__()
