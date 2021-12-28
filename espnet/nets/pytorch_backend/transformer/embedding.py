@@ -136,10 +136,12 @@ class LearnableFourierPosEnc(torch.nn.Module):
         d_model (int): Embedding dimension.
         dropout_rate (float): Dropout rate.
         max_len (int): Maximum input length.
-        gamma (float): init parameter for the positional kernel variance see https://arxiv.org/pdf/2106.02795.pdf.
+        gamma (float): init parameter for the positional kernel variance
+            see https://arxiv.org/pdf/2106.02795.pdf.
         reverse (bool): Whether to reverse the input position.
         apply_scaling (bool): Whether to scale the input before adding the pos encoding.
-        hidden_dim (int): if not None, we modulate the pos encodings with an MLP whose hidden layer has hidden_dim neurons.
+        hidden_dim (int): if not None, we modulate the pos encodings with
+            an MLP whose hidden layer has hidden_dim neurons.
     """
 
     def __init__(
@@ -260,70 +262,6 @@ class LegacyRelPositionalEncoding(PositionalEncoding):
         x = x * self.xscale
         pos_emb = self.pe[:, : x.size(1)]
         return self.dropout(x), self.dropout(pos_emb)
-
-
-class LearnableFourierPosEnc(torch.nn.Module):
-    def __init__(
-        self,
-        d_model,
-        dropout_rate=0.0,
-        max_len=5000,
-        gamma=None,
-        reverse=False,
-        apply_scaling=False,
-    ):
-        super(LearnableFourierPosEnc, self).__init__()
-
-        self.d_model = d_model
-        self.reverse = reverse
-        self.apply_scaling = apply_scaling
-        self.dropout = torch.nn.Dropout(dropout_rate)
-        self.max_len = max_len
-
-        self.gamma = gamma
-        if self.gamma is None:
-            self.gamma = self.scale
-
-        assert (
-            d_model % 2 == 0
-        ), "d_model should be divisible by two in order to use this layer."
-        self.w_r = torch.nn.Parameter(torch.empty(1, d_model))
-        self._reset()  # init the weights
-
-    def _reset(self):
-        self.w_r.data = torch.normal((1, self.d_model)) * (1 / self.gamma)
-
-    def extend_pe(self, x):
-        """Reset the positional encodings."""
-
-        if self.reverse:
-            position_v = torch.arange(
-                x.size(1) - 1, -1, -1.0, dtype=torch.float32
-            ).unsqueeze(1)
-        else:
-            position_v = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
-
-        cosine = torch.cos(torch.matmul(position_v, self.w_r))
-        sine = torch.sine(torch.matmul(position_v, self.w_r))
-        pos_enc = torch.cat((cosine, sine), 0)
-        pos_enc /= math.sqrt(self.d_model)
-
-        return pos_enc.reshape(
-            1,
-        )
-
-    def forward(self, x: torch.Tensor):
-        """Add positional encoding.
-
-        Args:
-            x (torch.Tensor): Input tensor (batch, time, `*`).
-
-        Returns:
-            torch.Tensor: Encoded tensor (batch, time, `*`).
-        """
-        self.extend_pe(x)
-        x = x * self.xscale + self.pe[:, : x.size(1)]
-        return self.dropout(x)
 
 
 class RelPositionalEncoding(torch.nn.Module):
