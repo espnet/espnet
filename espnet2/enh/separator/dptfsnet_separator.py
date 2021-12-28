@@ -49,7 +49,7 @@ class DPTFSNetSeparator(AbsSeparator):
             input_size=input_dim,
             output_size=input_dim * num_spk,
             dropout=dropout,
-            num_layers=layer
+            num_layers=layer,
         )
 
         if nonlinear not in ("sigmoid", "relu", "tanh"):

@@ -38,18 +38,17 @@ class TransformerEncoderLayer(Module):
         >>> out = encoder_layer(src)
     """
 
-    def __init__(self, d_model, nhead, bidirectional=True, dropout=0, activation="relu"):
+    def __init__(
+        self, d_model, nhead, bidirectional=True, dropout=0, activation="relu"
+    ):
         super(TransformerEncoderLayer, self).__init__()
         self.self_attn = MultiheadAttention(d_model, nhead, dropout=dropout)
-        # Implementation of Feedforward model
-        # self.linear1 = Linear(d_model, dim_feedforward)
-        self.gru = GRU(d_model, d_model*2, 1, bidirectional=bidirectional)
+        self.gru = GRU(d_model, d_model * 2, 1, bidirectional=bidirectional)
         self.dropout = Dropout(dropout)
-        # self.linear2 = Linear(dim_feedforward, d_model)
         if bidirectional:
-            self.linear2 = Linear(d_model*2*2, d_model)
+            self.linear2 = Linear(d_model * 2 * 2, d_model)
         else:
-            self.linear2 = Linear(d_model*2, d_model)
+            self.linear2 = Linear(d_model * 2, d_model)
 
         self.norm1 = LayerNorm(d_model)
         self.norm2 = LayerNorm(d_model)
@@ -59,8 +58,8 @@ class TransformerEncoderLayer(Module):
         self.activation = _get_activation_fn(activation)
 
     def __setstate__(self, state):
-        if 'activation' not in state:
-            state['activation'] = F.relu
+        if "activation" not in state:
+            state["activation"] = F.relu
         super(TransformerEncoderLayer, self).__setstate__(state)
 
     def forward(self, src, src_mask=None, src_key_padding_mask=None):
@@ -73,11 +72,11 @@ class TransformerEncoderLayer(Module):
         Shape:
             see the docs in Transformer class.
         """
-        src2 = self.self_attn(src, src, src, attn_mask=src_mask,
-                              key_padding_mask=src_key_padding_mask)[0]
+        src2 = self.self_attn(
+            src, src, src, attn_mask=src_mask, key_padding_mask=src_key_padding_mask
+        )[0]
         src = src + self.dropout1(src2)
         src = self.norm1(src)
-        # src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
         self.gru.flatten_parameters()
         out, h_n = self.gru(src)
         del h_n
@@ -94,6 +93,7 @@ def _get_activation_fn(activation):
         return F.gelu
 
     raise RuntimeError("activation should be relu/gelu, not {}".format(activation))
+
 
 class DPTFSNet(nn.Module):
     """
@@ -114,8 +114,7 @@ class DPTFSNet(nn.Module):
         self.output_size = output_size
 
         self.input = nn.Sequential(
-            nn.Conv2d(input_size, input_size // 2, kernel_size=1),
-            nn.PReLU()
+            nn.Conv2d(input_size, input_size // 2, kernel_size=1), nn.PReLU()
         )
 
         # dual-path Transformer
@@ -124,30 +123,52 @@ class DPTFSNet(nn.Module):
         self.row_norm = nn.ModuleList([])
         self.col_norm = nn.ModuleList([])
         for i in range(num_layers):
-            self.row_trans.append(TransformerEncoderLayer(d_model=input_size//2, nhead=4, dropout=dropout, bidirectional=True))
-            self.col_trans.append(TransformerEncoderLayer(d_model=input_size//2, nhead=4, dropout=dropout, bidirectional=True))
-            self.row_norm.append(nn.GroupNorm(1, input_size//2, eps=1e-8))
-            self.col_norm.append(nn.GroupNorm(1, input_size//2, eps=1e-8))
+            self.row_trans.append(
+                TransformerEncoderLayer(
+                    d_model=input_size // 2,
+                    nhead=4,
+                    dropout=dropout,
+                    bidirectional=True,
+                )
+            )
+            self.col_trans.append(
+                TransformerEncoderLayer(
+                    d_model=input_size // 2,
+                    nhead=4,
+                    dropout=dropout,
+                    bidirectional=True,
+                )
+            )
+            self.row_norm.append(nn.GroupNorm(1, input_size // 2, eps=1e-8))
+            self.col_norm.append(nn.GroupNorm(1, input_size // 2, eps=1e-8))
 
         # output layer
-        self.output = nn.Sequential(nn.PReLU(),
-                                    nn.Conv2d(input_size//2, output_size, 1)
-                                    )
+        self.output = nn.Sequential(
+            nn.PReLU(), nn.Conv2d(input_size // 2, output_size, 1)
+        )
 
     def forward(self, input):
         #  input --- [b,  c,  num_frames, frame_size]  --- [b, c, dim2, dim1]
         b, c, dim2, dim1 = input.shape
         output = self.input(input)
         for i in range(len(self.row_trans)):
-            row_input = output.permute(3, 0, 2, 1).contiguous().view(dim1, b*dim2, -1)  # [dim1, b*dim2, c]
+            row_input = (
+                output.permute(3, 0, 2, 1).contiguous().view(dim1, b * dim2, -1)
+            )  # [dim1, b*dim2, c]
             row_output = self.row_trans[i](row_input)  # [dim1, b*dim2, c]
-            row_output = row_output.view(dim1, b, dim2, -1).permute(1, 3, 2, 0).contiguous()  # [b, c, dim2, dim1]
+            row_output = (
+                row_output.view(dim1, b, dim2, -1).permute(1, 3, 2, 0).contiguous()
+            )  # [b, c, dim2, dim1]
             row_output = self.row_norm[i](row_output)  # [b, c, dim2, dim1]
             output = output + row_output  # [b, c, dim2, dim1]
 
-            col_input = output.permute(2, 0, 3, 1).contiguous().view(dim2, b*dim1, -1)  # [dim2, b*dim1, c]
+            col_input = (
+                output.permute(2, 0, 3, 1).contiguous().view(dim2, b * dim1, -1)
+            )  # [dim2, b*dim1, c]
             col_output = self.col_trans[i](col_input)  # [dim2, b*dim1, c]
-            col_output = col_output.view(dim2, b, dim1, -1).permute(1, 3, 0, 2).contiguous()  # [b, c, dim2, dim1]
+            col_output = (
+                col_output.view(dim2, b, dim1, -1).permute(1, 3, 0, 2).contiguous()
+            )  # [b, c, dim2, dim1]
             col_output = self.col_norm[i](col_output)  # [b, c, dim2, dim1]
             output = output + col_output  # [b, c, dim2, dim1]
 
@@ -155,6 +176,7 @@ class DPTFSNet(nn.Module):
         output = self.output(output)  # [b, c, dim2, dim1]
 
         return output
+
 
 def _pad_segment(input, segment_size):
     # input is the features: (B, N, T)
