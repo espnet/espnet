@@ -5,6 +5,9 @@ import torch
 from transformers import Wav2Vec2ForCTC, HubertForCTC
 from asteroid.losses.stoi import NegSTOILoss
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
+import math
+
+ln10 = math.log(10)
 
 
 class TimeDomainLoss(AbsEnhLoss, ABC):
@@ -21,13 +24,13 @@ class STOILoss(TimeDomainLoss):
         [1] C.H.Taal, R.C.Hendriks, R.Heusdens, J.Jensen 'A Short-Time Objective
         Intelligibility Measure for Time-Frequency Weighted Noisy Speech',
         ICASSP 2010, Texas, Dallas.
-        [2] C.H.Taal, R.C.Hendriks, R.Heusdens, J.Jensen 'An Algorithm for 
-        Intelligibility Prediction of Time-Frequency Weighted Noisy Speech', 
+        [2] C.H.Taal, R.C.Hendriks, R.Heusdens, J.Jensen 'An Algorithm for
+        Intelligibility Prediction of Time-Frequency Weighted Noisy Speech',
         IEEE Transactions on Audio, Speech, and Language Processing, 2011.
-        [3] J. Jensen and C. H. Taal, 'An Algorithm for Predicting the 
+        [3] J. Jensen and C. H. Taal, 'An Algorithm for Predicting the
         Intelligibility of Speech Masked by Modulated Noise Maskers',
         IEEE Transactions on Audio, Speech and Language Processing, 2016.
-        
+
     Args:
         ref: (Batch, samples)
         inf: (Batch, samples)
@@ -45,7 +48,7 @@ class STOILoss(TimeDomainLoss):
     def name(self) -> str:
         return "stoi_loss"
 
-    def forward(self, ref: torch.Tensor, inf: torch.Tensor,) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor) -> torch.Tensor:
 
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
         self.loss_stoi.to(inf.device)
@@ -56,12 +59,12 @@ class HubertDFLoss(TimeDomainLoss):
     """Hubert Deep Feature Loss
 
     Reference:
-        Hsu, W. N., Bolte, B., Tsai, Y. H. H., Lakhotia, K., Salakhutdinov, R., 
-        & Mohamed, A. (2021). HuBERT: Self-Supervised Speech Representation 
-        Learning by Masked Prediction of Hidden Units. 
+        Hsu, W. N., Bolte, B., Tsai, Y. H. H., Lakhotia, K., Salakhutdinov, R.,
+        & Mohamed, A. (2021). HuBERT: Self-Supervised Speech Representation
+        Learning by Masked Prediction of Hidden Units.
         arXiv preprint arXiv:2106.07447.
-        pretrained model: https://huggingface.co/facebook/hubert-large-ls960-ft 
-        
+        pretrained model: https://huggingface.co/facebook/hubert-large-ls960-ft
+
     Args:
         ref: (Batch, samples)
         inf: (Batch, samples)
@@ -70,37 +73,33 @@ class HubertDFLoss(TimeDomainLoss):
         loss: (Batch,)
     """
 
-    def __init__(self, layer=12):
+    def __init__(self, layers=[12]):
         super().__init__()
-        self.hubert = HubertForCTC.from_pretrained("facebook/hubert-large-ls960-ft")
-        self.hubert.freeze_feature_extractor()
-        for param in self.hubert.parameters():
+        self.hubert = [HubertForCTC.from_pretrained("facebook/hubert-large-ls960-ft")]
+        self.hubert[0].freeze_feature_extractor()
+        for param in self.hubert[0].parameters():
             param.requires_grad = False
-        self.layer = layer
+        self.layers = tuple(layers)
 
     @property
     def name(self) -> str:
         return "hubertdf_loss"
 
-    def forward(self, ref: torch.Tensor, inf: torch.Tensor,) -> torch.Tensor:
-
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor) -> torch.Tensor:
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
-        self.hubert.to(inf.device)
-        act_target = self.hubert.hubert(ref, output_hidden_states=True)[-1][
-            self.layer : self.layer + 1
-        ]
-        act_estimate = self.hubert.hubert(inf, output_hidden_states=True)[-1][
-            self.layer : self.layer + 1
-        ]
-        return torch.log10(
-            torch.stack(
-                [
-                    torch.sum((x - y) ** 2, dim=(1, 2))
-                    for x, y in zip(act_target, act_estimate)
-                ]
+        self.hubert[0].eval().to(inf.device)
+        act_target = self.hubert[0].hubert(ref, output_hidden_states=True)[-1]
+        act_estimate = self.hubert[0].hubert(inf, output_hidden_states=True)[-1]
+        loss = 0.0
+        for layer in self.layers:
+            loss_ = (
+                torch.log1p(
+                    (act_target[layer] - act_estimate[layer]).pow(2).sum(dim=(1, 2))
+                )
+                / ln10
             )
-            + 1
-        )
+            loss = loss + loss_
+        return loss
 
 
 class Wav2vec2DFLoss(TimeDomainLoss):
@@ -111,7 +110,7 @@ class Wav2vec2DFLoss(TimeDomainLoss):
         A framework for self-supervised learning of speech representations.
         In Proc. NIPS 2020
         pretrained model: https://huggingface.co/facebook/wav2vec2-base-960h
-        
+
     Args:
         ref: (Batch, samples)
         inf: (Batch, samples)
@@ -120,37 +119,33 @@ class Wav2vec2DFLoss(TimeDomainLoss):
         loss: (Batch,)
     """
 
-    def __init__(self, layer=12):
+    def __init__(self, layers=[12]):
         super().__init__()
-        self.w2v2 = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
-        self.w2v2.freeze_feature_extractor()
-        for param in self.w2v2.parameters():
+        self.w2v2 = [Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")]
+        self.w2v2[0].freeze_feature_extractor()
+        for param in self.w2v2[0].parameters():
             param.requires_grad = False
-        self.layer = layer
+        self.layers = tuple(layers)
 
     @property
     def name(self) -> str:
         return "w2v2df_loss"
 
-    def forward(self, ref: torch.Tensor, inf: torch.Tensor,) -> torch.Tensor:
-
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor) -> torch.Tensor:
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
-        self.w2v2.to(inf.device)
-        act_target = self.w2v2.wav2vec2(ref, output_hidden_states=True)[-1][
-            self.layer : self.layer + 1
-        ]
-        act_estimate = self.w2v2.wav2vec2(inf, output_hidden_states=True)[-1][
-            self.layer : self.layer + 1
-        ]
-        return torch.log10(
-            torch.stack(
-                [
-                    torch.sum((x - y) ** 2, dim=(1, 2))
-                    for x, y in zip(act_target, act_estimate)
-                ]
+        self.w2v2[0].eval().to(inf.device)
+        act_target = self.w2v2[0].wav2vec2(ref, output_hidden_states=True)[-1]
+        act_estimate = self.w2v2[0].wav2vec2(inf, output_hidden_states=True)[-1]
+        loss = 0.0
+        for layer in self.layers:
+            loss_ = (
+                torch.log1p(
+                    (act_target[layer] - act_estimate[layer]).pow(2).sum(dim=(1, 2))
+                )
+                / ln10
             )
-            + 1
-        )
+            loss = loss + loss_
+        return loss
 
 
 class CISDRLoss(TimeDomainLoss):
@@ -178,7 +173,7 @@ class CISDRLoss(TimeDomainLoss):
     def name(self) -> str:
         return "ci_sdr_loss"
 
-    def forward(self, ref: torch.Tensor, inf: torch.Tensor,) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor) -> torch.Tensor:
 
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
 
@@ -196,7 +191,7 @@ class SNRLoss(TimeDomainLoss):
     def name(self) -> str:
         return "snr_loss"
 
-    def forward(self, ref: torch.Tensor, inf: torch.Tensor,) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor) -> torch.Tensor:
         # the return tensor should be shape of (batch,)
 
         noise = inf - ref
@@ -217,7 +212,7 @@ class SISNRLoss(TimeDomainLoss):
     def name(self) -> str:
         return "si_snr_loss"
 
-    def forward(self, ref: torch.Tensor, inf: torch.Tensor,) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor) -> torch.Tensor:
         # the return tensor should be shape of (batch,)
         assert ref.size() == inf.size()
         B, T = ref.size()
