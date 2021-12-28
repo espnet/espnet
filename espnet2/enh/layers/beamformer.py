@@ -63,7 +63,7 @@ def get_rtf(
     iterations: int = 3,
     use_torch_solver: bool = True,
 ):
-    """Calculate the relative transfer function (RTF) using the power method.
+    """Calculate the relative transfer function (RTF) using the power method (e.g. [1])
 
     Algorithm:
         1) rtf = reference_vector
@@ -84,20 +84,27 @@ def get_rtf(
         use_torch_solver (bool): Whether to use `solve` instead of `inverse`
     Returns:
         rtf (torch.complex64/ComplexTensor): (..., F, C, 1)
+
+    References:
+        [1] Boeddeker, Christoph, et al. "Convolutive transfer function invariant sdr training criteria for multi-channel reverberant speech separation.
+        " ICASSP 2021-2021 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP). IEEE, 2021.
     """
+
     if use_torch_solver:
         phi = solve(psd_speech, psd_noise)
     else:
         phi = matmul(inverse(psd_noise), psd_speech)
+
     rtf = (
         phi[..., reference_vector, None]
         if isinstance(reference_vector, int)
         else matmul(phi, reference_vector[..., None, :, None])
     )
-    for _ in range(iterations - 2):
+    for _ in range(iterations - 1):
         rtf = matmul(phi, rtf)
-        # rtf = rtf / complex_norm(rtf)
-    rtf = matmul(psd_speech, rtf)
+
+    rtf = matmul(psd_noise, rtf)
+
     return rtf
 
 
