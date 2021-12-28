@@ -154,6 +154,7 @@ class LearnableFourierPosEnc(torch.nn.Module):
         apply_scaling=False,
         hidden_dim=None,
     ):
+        """Initialize class."""
         super(LearnableFourierPosEnc, self).__init__()
 
         self.d_model = d_model
@@ -192,7 +193,6 @@ class LearnableFourierPosEnc(torch.nn.Module):
 
     def extend_pe(self, x):
         """Reset the positional encodings."""
-
         if self.reverse:
             position_v = torch.arange(
                 x.size(1) - 1, -1, -1.0, dtype=torch.float32
