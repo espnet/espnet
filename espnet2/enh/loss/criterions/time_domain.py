@@ -1,10 +1,11 @@
 from abc import ABC
-from asteroid.losses.stoi import NegSTOILoss
 import ci_sdr
 import math
 import torch
-from transformers import Wav2Vec2ForCTC
+
+from asteroid.losses.stoi import NegSTOILoss
 from transformers import HubertForCTC
+from transformers import Wav2Vec2ForCTC
 
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 

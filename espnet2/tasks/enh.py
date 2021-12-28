@@ -24,11 +24,11 @@ from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import CISDRLoss
+from espnet2.enh.loss.criterions.time_domain import HubertDFLoss
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.criterions.time_domain import SNRLoss
 from espnet2.enh.loss.criterions.time_domain import STOILoss
 from espnet2.enh.loss.criterions.time_domain import Wav2vec2DFLoss
-from espnet2.enh.loss.criterions.time_domain import HubertDFLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
