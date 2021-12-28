@@ -9,7 +9,7 @@
   - Commit date: `Wed Dec 22 14:08:29 2021 -0500`
 
 ## asr_train_asr_conformer_raw_zh_char_sp
-- Model link: (will be uploaded soon)
+- Model link: https://huggingface.co/sw005320/aidatatang_200zh_conformer
 
 ### CER
 
