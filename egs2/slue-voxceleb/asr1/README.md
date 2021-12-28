@@ -8,6 +8,8 @@
 - pytorch version: `pytorch 1.8.1+cu102`
 - Git hash: `6bf3c2a4f138d35331634d2e879bbc5c32a5266e`
   - Commit date: `Mon Dec 22 15:41:32 EST 2021`
+- Pretrained Model
+  - Hugging Face : https://huggingface.co/espnet/siddhana_slue_asr_train_asr_conformer_raw_en_word_valid.acc.ave_10best
 
 
 ## Using Conformer based encoder and Transformer based decoder with spectral augmentation and predicting transcript along with intent
