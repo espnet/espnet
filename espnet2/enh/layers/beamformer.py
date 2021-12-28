@@ -86,8 +86,9 @@ def get_rtf(
         rtf (torch.complex64/ComplexTensor): (..., F, C, 1)
 
     References:
-        [1] Boeddeker, Christoph, et al. "Convolutive transfer function invariant sdr training criteria for multi-channel reverberant speech separation.
-        " ICASSP 2021-2021 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP). IEEE, 2021.
+        [1] Boeddeker, Christoph, et al. "Convolutive transfer function invariant
+        sdr training criteria for multi-channel reverberant speech separation."
+        ICASSP 2021
     """
 
     if use_torch_solver:
