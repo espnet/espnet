@@ -48,6 +48,17 @@ espnet2.asr.transducer.error_calculator
     :show-inheritance:
 
 
+.. _espnet2.asr.transducer.__init__:
+
+espnet2.asr.transducer.__init__
+-------------------------------
+
+.. automodule:: espnet2.asr.transducer.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.transducer.beam_search_transducer:
 
 espnet2.asr.transducer.beam_search_transducer
