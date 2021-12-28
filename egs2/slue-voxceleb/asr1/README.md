@@ -15,14 +15,14 @@
 - token_type: word
 
 |dataset|Snt|Intent Classification Accuracy (%)|Intent Classification Macro F1 (%)|
-|---|---|---|
+|---|---|---|---|
 |inference_asr_model_valid.acc.ave_10best/devel|955|80.2|29.7|
 
 ### Detailed Classification Report
 
 |dataset|Label|Snt|Prec|Recall|F1|
-|---|---|---|
+|---|---|---|---|---|---|
 |inference_asr_model_valid.acc.ave_10best/devel|Neutral|784|85|93|89|
 |inference_asr_model_valid.acc.ave_10best/devel|Positive|167|40|24|30|
 |inference_asr_model_valid.acc.ave_10best/devel|Negative|3|0|0|0|
-|inference_asr_model_valid.acc.ave_10best/devel|<mixed>|1|0|0|0|
+|inference_asr_model_valid.acc.ave_10best/devel|Mixed|1|0|0|0|
