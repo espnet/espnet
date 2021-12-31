@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Change the configuration for training &mdash; ESPnet 0.10.5a1 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <title>Change the configuration for training &mdash; ESPnet 0.10.5 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
@@ -32,7 +32,7 @@
             <a href="index.html" class="icon icon-home"> ESPnet
           </a>
               <div class="version">
-                0.10.5a1
+                0.10.5
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -239,9 +239,9 @@ scheduler_conf:
 <p>We adopt <a class="reference external" href="https://github.com/bw2/ConfigArgParse">ConfigArgParse</a> for this configuration system.
 The configuration in YAML format has an equivalent effect to the command line argument.
 e.g. The following two are equivalent:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># config.yaml</span>
-<span class="nt">foo</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">3</span>
-<span class="nt">bar</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">4</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># config.yaml</span><span class="w"></span>
+<span class="nt">foo</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span><span class="w"></span>
+<span class="nt">bar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span><span class="w"></span>
 </pre></div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python -m espnet2.bin.asr_train --config conf/config.yaml
