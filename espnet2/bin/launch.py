@@ -66,8 +66,9 @@ def get_parser():
         "--debug",
         type=str2bool,
         default=False,
-        help="Debug mode for running pdb.set_trace(). Only when running locally."
-        " Supports only 1 node, multigpu is okay but sometimes stdin doesn't behave well.",
+        help="Debug mode for running pdb.set_trace(). Only when running locally. "
+        "For multigpu use 'from espnet2.utils import pdb'. "
+        "It is experimental -- sometimes stdin doesn't behave well.",
     )
     parser.add_argument(
         "--master_port",
