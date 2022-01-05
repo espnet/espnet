@@ -258,15 +258,12 @@ EOF
             + ["--gpu", str(args.ngpu), args.log]
             # arguments for *_train.py
         )
-        pycmd = (
-            args.args
-            + [
-                "--ngpu",
-                str(args.ngpu),
-                "--multiprocessing_distributed",
-                str(args.multiprocessing_distributed),
-            ]
-        )
+        pycmd = args.args + [
+            "--ngpu",
+            str(args.ngpu),
+            "--multiprocessing_distributed",
+            str(args.multiprocessing_distributed),
+        ]
         if args.debug:
             # if debug mode, don't pipe into log file
             process = subprocess.Popen(pycmd)
@@ -380,13 +377,17 @@ EOF
         if process.returncode != 0:
             if args.debug:
                 print(
-                    subprocess.CalledProcessError(returncode=process.returncode, cmd=" ".join(pycmd)),
+                    subprocess.CalledProcessError(
+                        returncode=process.returncode, cmd=" ".join(pycmd)
+                    ),
                     file=sys.stderr,
                 )
                 raise RuntimeError
             else:
                 print(
-                    subprocess.CalledProcessError(returncode=process.returncode, cmd=" ".join(cmd)),
+                    subprocess.CalledProcessError(
+                        returncode=process.returncode, cmd=" ".join(cmd)
+                    ),
                     file=sys.stderr,
                 )
                 p = Path(args.log)
