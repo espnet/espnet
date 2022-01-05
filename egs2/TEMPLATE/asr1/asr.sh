@@ -38,6 +38,7 @@ gpu_inference=false  # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands.
+debug=false          # Debug mode to allow pdb.set_trace() for local debugging
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
@@ -845,6 +846,7 @@ if ! "${skip_train}"; then
                 --ngpu "${ngpu}" \
                 --num_nodes "${num_nodes}" \
                 --init_file_prefix "${lm_exp}"/.dist_init_ \
+                --debug "${debug}" \
                 --multiprocessing_distributed true -- \
                 ${python} -m espnet2.bin.lm_train \
                     --ngpu "${ngpu}" \
@@ -1092,6 +1094,7 @@ if ! "${skip_train}"; then
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \
             --init_file_prefix "${asr_exp}"/.dist_init_ \
+            --debug "${debug}" \
             --multiprocessing_distributed true -- \
             ${python} -m espnet2.bin.asr_train \
                 --use_preprocessor true \
