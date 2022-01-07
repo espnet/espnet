@@ -40,7 +40,6 @@ def read_sinhala_data(audio_csv,sentences_csv,export_csv):
                 #export audio of for the crop with wav_path_start_duration
                 export_path = os.path.join("wavs",wav_name)
                 #Append to output_df 
-                print(export_path)
                 output_df.append([export_path,'unknown',transcript,intent_details.replace(" ","")])
 
     X = pd.DataFrame(output_df,columns = ['path','speakerId','transcription','task_type'])
@@ -77,12 +76,9 @@ for x in dir_dict:
         transcript_df = pd.read_csv(os.path.join(sinhala_root, "data", dir_dict[x]))
         # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
-            print(row[4], " ".join([ch for ch in row[3]]))
             words = row[4].replace(" ", "_") + " " + " ".join([ch for ch in row[3]])
-            print(words)
             path_arr = row[1].split("/")
             utt_id = path_arr[-2] + "_" + path_arr[-1]
-            # print(utt_id + " " + words + "\n")
             text_f.write(utt_id + " " + words + "\n")
             wav_scp_f.write(utt_id + " " + hyper_root + "/" + row[1] + "\n")
             utt2spk_f.write(utt_id + " " + row[2] + "\n")
