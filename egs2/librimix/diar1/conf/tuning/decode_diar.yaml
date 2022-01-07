@@ -1,0 +1,2 @@
+fs: 8000
+num_spk: 2 # The number of speakers will be estimated if "num_spk" is "None"
