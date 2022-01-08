@@ -39,3 +39,5 @@
 |inference_asr_model_valid.acc.ave_5best/valid|763|41124|97.3|1.9|0.8|1.4|4.1|16.3|
 
 
+### Pre-trained Model
+The pre-trained model has been uploaded to HuggingFace [ESPNet Model](https://huggingface.co/espnet/Karthik_sinhala_asr_train_asr_transformer)
