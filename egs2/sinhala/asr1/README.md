@@ -10,8 +10,8 @@
   - Commit date: `Thu Sep 16 21:19:45 2021 +0900` 
  
 ## Dataset 
-Dataset Link: https://drive.google.com/file/d/17_e0JhMW4_FPxfh93foplnxb4OQp8zh3/view?usp=sharing
-Licence Link: http://rtuthaya.lk/wp-content/uploads/2019/11/LICENSE.txt
+- Dataset Link: https://drive.google.com/file/d/17_e0JhMW4_FPxfh93foplnxb4OQp8zh3/view?usp=sharing
+- Licence Link: http://rtuthaya.lk/wp-content/uploads/2019/11/LICENSE.txt
 
 ## Using Transformer based encoder-decoder predicting transcript along with intent
 - ASR config: [conf/tuning/train_asr.yaml](conf/tuning/train_asr.yaml)
