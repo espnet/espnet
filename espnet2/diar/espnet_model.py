@@ -125,6 +125,14 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             spk_labels, spk_labels_lengths
         )
 
+        # If encoder uses conv* as input_layer (i.e., subsampling), 
+        # the sequence length of 'pred' might me slighly less than the 
+        # length of 'spk_labels'. Here we force them to be equal.
+        length_diff_tolerance = 2
+        length_diff = spk_labels.shape[1] - pred.shape[1]
+        if  length_diff > 0 and length_diff <= length_diff_tolerance:
+            spk_labels = spk_labels[:, 0:pred.shape[1], :]
+
         if self.attractor is None:
             loss_pit, loss_att = None, None
             loss, perm_idx, perm_list, label_perm = self.pit_loss(
