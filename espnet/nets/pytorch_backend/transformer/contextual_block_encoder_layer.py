@@ -62,6 +62,7 @@ class ContextualBlockEncoderLayer(nn.Module):
         self,
         x,
         mask,
+        infer_mode=False,
         past_ctx=None,
         next_ctx=None,
         is_short_segment=False,
@@ -69,7 +70,7 @@ class ContextualBlockEncoderLayer(nn.Module):
         cache=None,
     ):
         """Calculate forward propagation."""
-        if self.training or x.size(0) > 1:
+        if self.training or not infer_mode:
             return self.forward_train(x, mask, past_ctx, next_ctx, layer_idx, cache)
         else:
             return self.forward_infer(
@@ -155,7 +156,7 @@ class ContextualBlockEncoderLayer(nn.Module):
             next_ctx[:, 0, layer_idx, :] = x[:, 0, -1, :]
             next_ctx[:, 1:, layer_idx, :] = x[:, 0:-1, -1, :]
 
-        return x, mask, next_ctx, next_ctx, layer_idx
+        return x, mask, False, next_ctx, next_ctx, layer_idx
 
     def forward_infer(
         self,
@@ -249,4 +250,4 @@ class ContextualBlockEncoderLayer(nn.Module):
         else:
             next_ctx = None
 
-        return x, mask, past_ctx, next_ctx, is_short_segment, layer_idx + 1
+        return x, mask, True, past_ctx, next_ctx, is_short_segment, layer_idx + 1
