@@ -27,7 +27,7 @@ requirements = {
         "torch_complex",
         "nltk>=3.4.5",
         "numpy==1.20.3",
-        "Cython==0.29.24",
+        "Cython==0.29.26",
         # ASR
         "sentencepiece",
         "ctc-segmentation<1.8,>=1.6.6",
