@@ -29,6 +29,8 @@ Two versions are supported in this recipe: 12 commands and 35 commands. The vari
 
 ## asr_conformer_noBatchNorm_warmup5k_lr2e-4_accum3_conv15_5speeds (12 commands)
 
+Model: https://zenodo.org/record/5635530#.YcaCZBOZMVU
+
 ### Environments
 - date: `Sun Oct  3 05:20:21 UTC 2021`
 - python version: `3.8.12 | packaged by conda-forge | (default, Sep 16 2021, 02:08:29)  [GCC 9.4.0]`
@@ -53,6 +55,8 @@ Two versions are supported in this recipe: 12 commands and 35 commands. The vari
 
 
 ## asr_35commands_conformer_noBatchNorm_warmup5k_lr2e-4_accum3_conv15_5speeds (35 commands)
+
+Model: https://zenodo.org/record/5637586#.YcaCQhOZMVU
 
 ### Environments
 - date: `Mon Oct  4 20:07:28 UTC 2021`

@@ -263,7 +263,11 @@ class Speech2TextStreaming:
             speech, self.frontend_states, is_final=is_final
         )
         enc, _, self.encoder_states = self.asr_model.encoder(
-            feats, feats_lengths, self.encoder_states, is_final=is_final
+            feats,
+            feats_lengths,
+            self.encoder_states,
+            is_final=is_final,
+            infer_mode=True,
         )
         nbest_hyps = self.beam_search(
             x=enc[0],
