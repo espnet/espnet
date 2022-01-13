@@ -98,6 +98,8 @@ st_stats_dir=  # Specify the directory path for ST statistics.
 st_config=     # Config for st model training.
 st_args=       # Arguments for st model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in st config.
+pretrained_asr=               # Pretrained model to load
+ignore_init_mismatch=false      # Ignore initial mismatch
 feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_st=1            # Number of splitting for lm corpus.
 src_lang=es                # source language abbrev. id (e.g., es)
@@ -213,6 +215,8 @@ Options:
     --st_args          # Arguments for st model training (default="${st_args}").
                        # e.g., --st_args "--max_epoch 10"
                        # Note that it will overwrite args in st config.
+    --pretrained_asr=          # Pretrained model to load (default="${pretrained_asr}").
+    --ignore_init_mismatch=      # Ignore mismatch parameter init with pretrained model (default="${ignore_init_mismatch}").
     --feats_normalize  # Normalizaton layer type. (default="${feats_normalize}").
     --num_splits_st    # Number of splitting for lm corpus.  (default="${num_splits_st}").
     --src_lang=        # source language abbrev. id (e.g., es). (default="${src_lang}")
@@ -501,10 +505,9 @@ if ! "${skip_data_prep}"; then
                 fi
             done
             utils/combine_data.sh --extra_files "${utt_extra_files}" "data/${train_set}_sp" ${_dirs}
-           
             for extra_file in ${utt_extra_files}; do
-                python pyscripts/utils/remove_duplicate_keys.py data/"${dset}"/${extra_file} > data/"${dset}"/${extra_file}.tmp 
-                mv data/"${dset}"/${extra_file}.tmp data/"${dset}"/${extra_file}
+                python pyscripts/utils/remove_duplicate_keys.py data/"${train_set}_sp"/${extra_file} > data/"${train_set}_sp"/${extra_file}.tmp 
+                mv data/"${train_set}_sp"/${extra_file}.tmp data/"${train_set}_sp"/${extra_file}
             done 
         else
            log "Skip stage 2: Speed perturbation"
@@ -1267,6 +1270,8 @@ if ! "${skip_train}"; then
                 --valid_shape_file "${st_stats_dir}/valid/text_shape.${tgt_token_type}" \
                 --valid_shape_file "${st_stats_dir}/valid/src_text_shape.${src_token_type}" \
                 --resume true \
+                --init_param ${pretrained_asr} \
+                --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${_fold_length}" \
                 --fold_length "${st_text_fold_length}" \
                 --fold_length "${st_text_fold_length}" \
@@ -1465,6 +1470,7 @@ if ! "${skip_eval}"; then
             log "Write a case-insensitve BLEU result in ${_scoredir}/result.lc.txt"
 
         done
+    fi
 
     log "Skip the evaluation stages"
 fi
