@@ -4,23 +4,23 @@ espnet.scheduler package
 Initialize sub package.
 
 
-.. _espnet.scheduler.scheduler:
-
-espnet.scheduler.scheduler
---------------------------
-
-.. automodule:: espnet.scheduler.scheduler
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet.scheduler.pytorch:
 
 espnet.scheduler.pytorch
 ------------------------
 
 .. automodule:: espnet.scheduler.pytorch
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.scheduler.scheduler:
+
+espnet.scheduler.scheduler
+--------------------------
+
+.. automodule:: espnet.scheduler.scheduler
     :members:
     :undoc-members:
     :show-inheritance:

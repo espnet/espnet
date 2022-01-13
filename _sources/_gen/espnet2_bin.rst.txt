@@ -958,6 +958,7 @@ diar_train.py
                          [--use_preprocessor USE_PREPROCESSOR]
                          [--frontend {default,sliding_window,s3prl}]
                          [--frontend_conf FRONTEND_CONF]
+                         [--specaug {specaug,None}] [--specaug_conf SPECAUG_CONF]
                          [--normalize {global_mvn,utterance_mvn,None}]
                          [--normalize_conf NORMALIZE_CONF]
                          [--encoder {conformer,transformer,rnn}]
@@ -1299,6 +1300,10 @@ diar_train.py
                             The frontend type (default: default)
       --frontend_conf FRONTEND_CONF
                             The keyword arguments for frontend (default: {})
+      --specaug {specaug,None}
+                            The specaug type (default: None)
+      --specaug_conf SPECAUG_CONF
+                            The keyword arguments for specaug (default: {})
       --normalize {global_mvn,utterance_mvn,None}
                             The normalize type (default: utterance_mvn)
       --normalize_conf NORMALIZE_CONF
