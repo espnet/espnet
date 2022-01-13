@@ -40,7 +40,7 @@ requirements = {
     ],
     # train: The modules invoked when training only.
     "train": [
-        "matplotlib==3.2.0",
+        "matplotlib==3.3.0",
         "pillow>=6.1.0",
         "editdistance==0.5.2",
         "wandb",
