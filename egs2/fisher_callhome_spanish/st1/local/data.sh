@@ -83,9 +83,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # temporarally using first reference as target text
     for dataset in fisher_dev fisher_dev2; do
-        ln -sf text.lc.en.0 data/${dataset}/text.lc.en
-	ln -sf text.tc.en.0 data/${dataset}/text.tc.en
-	ln -sf text.lc.rm.en.0 data/${dataset}/text.lc.rm.en
+        ln -sf data/${dataset}/text.lc.en.0 data/${dataset}/text.lc.en
+	    ln -sf data/${dataset}/text.tc.en.0 data/${dataset}/text.tc.en
+	    ln -sf data/${dataset}/text.lc.rm.en.0 data/${dataset}/text.lc.rm.en
     done
     utils/combine_data.sh \
         --extra-files "text.lc.en text.lc.es text.lc.rm.en text.lc.rm.es text.tc.en text.tc.es" \

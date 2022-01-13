@@ -1476,98 +1476,98 @@ if ! "${skip_eval}"; then
 fi
 
 
-# packed_model="${st_exp}/${st_exp##*/}_${inference_st_model%.*}.zip"
-# if ! "${skip_upload}"; then
-#     if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
-#         log "Stage 14: Pack model: ${packed_model}"
+packed_model="${st_exp}/${st_exp##*/}_${inference_st_model%.*}.zip"
+if ! "${skip_upload}"; then
+    if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
+        log "Stage 14: Pack model: ${packed_model}"
 
-#         _opts=
-#         if "${use_lm}"; then
-#             _opts+="--lm_train_config ${lm_exp}/config.yaml "
-#             _opts+="--lm_file ${lm_exp}/${inference_lm} "
-#             _opts+="--option ${lm_exp}/perplexity_test/ppl "
-#             _opts+="--option ${lm_exp}/images "
-#         fi
-#         if [ "${feats_normalize}" = global_mvn ]; then
-#             _opts+="--option ${st_stats_dir}/train/feats_stats.npz "
-#         fi
-#         if [ "${token_type}" = bpe ]; then
-#             _opts+="--option ${bpemodel} "
-#         fi
-#         if [ "${nlsyms_txt}" != none ]; then
-#             _opts+="--option ${nlsyms_txt} "
-#         fi
-#         # shellcheck disable=SC2086
-#         ${python} -m espnet2.bin.pack st \
-#             --st_train_config "${st_exp}"/config.yaml \
-#             --st_model_file "${st_exp}"/"${inference_st_model}" \
-#             ${_opts} \
-#             --option "${st_exp}"/RESULTS.md \
-#             --option "${st_exp}"/RESULTS.md \
-#             --option "${st_exp}"/images \
-#             --outpath "${packed_model}"
-#     fi
+        _opts=
+        if "${use_lm}"; then
+            _opts+="--lm_train_config ${lm_exp}/config.yaml "
+            _opts+="--lm_file ${lm_exp}/${inference_lm} "
+            _opts+="--option ${lm_exp}/perplexity_test/ppl "
+            _opts+="--option ${lm_exp}/images "
+        fi
+        if [ "${feats_normalize}" = global_mvn ]; then
+            _opts+="--option ${st_stats_dir}/train/feats_stats.npz "
+        fi
+        if [ "${token_type}" = bpe ]; then
+            _opts+="--option ${bpemodel} "
+        fi
+        if [ "${nlsyms_txt}" != none ]; then
+            _opts+="--option ${nlsyms_txt} "
+        fi
+        # shellcheck disable=SC2086
+        ${python} -m espnet2.bin.pack st \
+            --st_train_config "${st_exp}"/config.yaml \
+            --st_model_file "${st_exp}"/"${inference_st_model}" \
+            ${_opts} \
+            --option "${st_exp}"/RESULTS.md \
+            --option "${st_exp}"/RESULTS.md \
+            --option "${st_exp}"/images \
+            --outpath "${packed_model}"
+    fi
 
 
-#     if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
-#         log "Stage 15: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
+        log "Stage 15: Upload model to Zenodo: ${packed_model}"
 
-#         # To upload your model, you need to do:
-#         #   1. Sign up to Zenodo: https://zenodo.org/
-#         #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
-#         #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
+        # To upload your model, you need to do:
+        #   1. Sign up to Zenodo: https://zenodo.org/
+        #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
+        #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
 
-#         if command -v git &> /dev/null; then
-#             _creator_name="$(git config user.name)"
-#             _checkout="
-# git checkout $(git show -s --format=%H)"
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="
+git checkout $(git show -s --format=%H)"
 
-#         else
-#             _creator_name="$(whoami)"
-#             _checkout=""
-#         fi
-#         # /some/where/espnet/egs2/foo/st1/ -> foo/st1
-#         _task="$(pwd | rev | cut -d/ -f2 | rev)"
-#         # foo/st1 -> foo
-#         _corpus="${_task%/*}"
-#         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/st1/ -> foo/st1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/st1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
-#         # Generate description file
-#         cat << EOF > "${st_exp}"/description
-# This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
-# <p>&nbsp;</p>
-# <ul>
-# <li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
-# <li><strong>Evaluate in the recipe</strong><pre>
-# <code class="language-bash">git clone https://github.com/espnet/espnet
-# cd espnet${_checkout}
-# pip install -e .
-# cd $(pwd | rev | cut -d/ -f1-3 | rev)
-# ./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
-# </pre></li>
-# <li><strong>Results</strong><pre><code>$(cat "${st_exp}"/RESULTS.md)</code></pre></li>
-# <li><strong>ST config</strong><pre><code>$(cat "${st_exp}"/config.yaml)</code></pre></li>
-# <li><strong>LM config</strong><pre><code>$(if ${use_lm}; then cat "${lm_exp}"/config.yaml; else echo NONE; fi)</code></pre></li>
-# </ul>
-# EOF
+        # Generate description file
+        cat << EOF > "${st_exp}"/description
+This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
+<p>&nbsp;</p>
+<ul>
+<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
+<li><strong>Evaluate in the recipe</strong><pre>
+<code class="language-bash">git clone https://github.com/espnet/espnet
+cd espnet${_checkout}
+pip install -e .
+cd $(pwd | rev | cut -d/ -f1-3 | rev)
+./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
+</pre></li>
+<li><strong>Results</strong><pre><code>$(cat "${st_exp}"/RESULTS.md)</code></pre></li>
+<li><strong>ST config</strong><pre><code>$(cat "${st_exp}"/config.yaml)</code></pre></li>
+<li><strong>LM config</strong><pre><code>$(if ${use_lm}; then cat "${lm_exp}"/config.yaml; else echo NONE; fi)</code></pre></li>
+</ul>
+EOF
 
-#         # NOTE(kamo): The model file is uploaded here, but not published yet.
-#         #   Please confirm your record at Zenodo and publish it by yourself.
+        # NOTE(kamo): The model file is uploaded here, but not published yet.
+        #   Please confirm your record at Zenodo and publish it by yourself.
 
-#         # shellcheck disable=SC2086
-#         espnet_model_zoo_upload \
-#             --file "${packed_model}" \
-#             --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
-#             --description_file "${st_exp}"/description \
-#             --creator_name "${_creator_name}" \
-#             --license "CC-BY-4.0" \
-#             --use_sandbox false \
-#             --publish false
-#     fi
+        # shellcheck disable=SC2086
+        espnet_model_zoo_upload \
+            --file "${packed_model}" \
+            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
+            --description_file "${st_exp}"/description \
+            --creator_name "${_creator_name}" \
+            --license "CC-BY-4.0" \
+            --use_sandbox false \
+            --publish false
+    fi
 
-# # TODO (jiatong): add HF uploading feature
-# else
-#     log "Skip the uploading stages"
-# fi
+# TODO (jiatong): add HF uploading feature
+else
+    log "Skip the uploading stages"
+fi
 
-# log "Successfully finished. [elapsed=${SECONDS}s]"
+log "Successfully finished. [elapsed=${SECONDS}s]"
