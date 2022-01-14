@@ -251,6 +251,14 @@
             <span class="n">spk_labels</span><span class="p">,</span> <span class="n">spk_labels_lengths</span>
         <span class="p">)</span>
 
+        <span class="c1"># If encoder uses conv* as input_layer (i.e., subsampling),</span>
+        <span class="c1"># the sequence length of &#39;pred&#39; might be slighly less than the</span>
+        <span class="c1"># length of &#39;spk_labels&#39;. Here we force them to be equal.</span>
+        <span class="n">length_diff_tolerance</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">length_diff</span> <span class="o">=</span> <span class="n">spk_labels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">pred</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">length_diff</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">length_diff</span> <span class="o">&lt;=</span> <span class="n">length_diff_tolerance</span><span class="p">:</span>
+            <span class="n">spk_labels</span> <span class="o">=</span> <span class="n">spk_labels</span><span class="p">[:,</span> <span class="mi">0</span> <span class="p">:</span> <span class="n">pred</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">:]</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">attractor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">loss_pit</span><span class="p">,</span> <span class="n">loss_att</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
             <span class="n">loss</span><span class="p">,</span> <span class="n">perm_idx</span><span class="p">,</span> <span class="n">perm_list</span><span class="p">,</span> <span class="n">label_perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pit_loss</span><span class="p">(</span>
