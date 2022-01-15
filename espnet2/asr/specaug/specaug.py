@@ -46,7 +46,8 @@ class SpecAug(AbsSpecAug):
             and (time_mask_width_ratio_range is not None)
         ):
             raise ValueError(
-                'Either one of "time_mask_width_range" or "time_mask_width_ratio_range" can be used'
+                'Either one of "time_mask_width_range" or '
+                '"time_mask_width_ratio_range" can be used'
             )
         super().__init__()
         self.apply_time_warp = apply_time_warp
@@ -82,7 +83,8 @@ class SpecAug(AbsSpecAug):
                 )
             else:
                 raise ValueError(
-                    'Either one of "time_mask_width_range" or "time_mask_width_ratio_range" should be used.'
+                    'Either one of "time_mask_width_range" or '
+                    '"time_mask_width_ratio_range" should be used.'
                 )
         else:
             self.time_mask = None
