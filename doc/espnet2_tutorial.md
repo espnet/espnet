@@ -338,5 +338,5 @@ To enable online decoding, the argument `--use_streaming true` should be added t
 ```
 
 ### FAQ
-1. Issue about `'NoneType' object has no attribute 'max'` during training: Please avoid the `valid_batch_size` to be 1, check more details [here](https://github.com/espnet/espnet/issues/3853).
-2. I successfully trained the model, but encountered the above issue during decoding: You may forget to specify `--use_streaming true` to select streaming inference.
+1. Issue about `'NoneType' object has no attribute 'max'` during training: Please make sure you employ `forward_train` function during traininig, check more details [here](https://github.com/espnet/espnet/issues/3803).
+3. I successfully trained the model, but encountered the above issue during decoding: You may forget to specify `--use_streaming true` to select streaming inference.

@@ -15,12 +15,12 @@ from typeguard import check_argument_types
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.diar.attractor.abs_attractor import AbsAttractor
 from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast
@@ -44,11 +44,12 @@ class ESPnetDiarizationModel(AbsESPnetModel):
     def __init__(
         self,
         frontend: Optional[AbsFrontend],
+        specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
         label_aggregator: torch.nn.Module,
         encoder: AbsEncoder,
         decoder: AbsDecoder,
-        attractor: AbsAttractor,
+        attractor: Optional[AbsAttractor],
         attractor_weight: float = 1.0,
     ):
         assert check_argument_types()
@@ -58,6 +59,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         self.encoder = encoder
         self.normalize = normalize
         self.frontend = frontend
+        self.specaug = specaug
         self.label_aggregator = label_aggregator
         self.attractor_weight = attractor_weight
         self.attractor = attractor
@@ -100,7 +102,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         else:
             # 2b. Encoder Decoder Attractors
             # Shuffle the chronological order of encoder_out, then calculate attractor
-            encoder_out_shuffled = encoder_out
+            encoder_out_shuffled = encoder_out.clone()
             for i in range(len(encoder_out_lens)):
                 encoder_out_shuffled[i, : encoder_out_lens[i], :] = encoder_out[
                     i, torch.randperm(encoder_out_lens[i]), :
@@ -118,11 +120,19 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             # Remove the final attractor which does not correspond to a speaker
             # Then multiply the attractors and encoder_out
             pred = torch.bmm(encoder_out, attractor[:, :-1, :].permute(0, 2, 1))
-
         # 3. Aggregate time-domain labels
         spk_labels, spk_labels_lengths = self.label_aggregator(
             spk_labels, spk_labels_lengths
         )
+
+        # If encoder uses conv* as input_layer (i.e., subsampling),
+        # the sequence length of 'pred' might be slighly less than the
+        # length of 'spk_labels'. Here we force them to be equal.
+        length_diff_tolerance = 2
+        length_diff = spk_labels.shape[1] - pred.shape[1]
+        if length_diff > 0 and length_diff <= length_diff_tolerance:
+            spk_labels = spk_labels[:, 0 : pred.shape[1], :]
+
         if self.attractor is None:
             loss_pit, loss_att = None, None
             loss, perm_idx, perm_list, label_perm = self.pit_loss(
@@ -198,11 +208,15 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
-            # 2. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
+            # 2. Data augmentation
+            if self.specaug is not None and self.training:
+                feats, feats_lengths = self.specaug(feats, feats_lengths)
+
+            # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
             if self.normalize is not None:
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
 
-            # 3. Forward encoder
+            # 4. Forward encoder
             # feats: (Batch, Length, Dim)
             # -> encoder_out: (Batch, Length2, Dim)
             encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)

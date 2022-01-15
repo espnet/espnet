@@ -1,6 +1,7 @@
 # Set the path of your corpus
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
+AIDATATANG_200ZH=downloads
 AISHELL=downloads
 AISHELL3=downloads
 AISHELL4=downloads
@@ -32,6 +33,7 @@ CSS10=
 HKUST1=
 HKUST2=
 HUI_ACG=downloads
+HUB4_SPANISH=
 LABOROTV=
 TEDXJP=
 LIBRISPEECH=
@@ -41,6 +43,7 @@ SLURP=
 VOXCELEB=
 MINI_LIBRISPEECH=downloads
 MISP2021=
+LIBRIMIX=downloads
 LIBRITTS=
 LJSPEECH=downloads
 NSC=
@@ -100,6 +103,7 @@ RU_OPEN_STT=downloads
 RUSLAN=downloads
 SIWIS=downloads
 GIGASPEECH=
+GOOGLEI18N=downloads
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
@@ -117,6 +121,7 @@ GRABO=downloads
 WENETSPEECH=
 SPEECHCOMMANDS=downloads
 TOTONAC=downloads
+PRIMEWORDS_CHINESE=downloads
 
 # For only CMU environment
 if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
@@ -145,10 +150,13 @@ if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
     BABEL_402=/projects/tir5/data/speech_corpora/babel/IARPA-babel402b-v1.0b-build/BABEL_OP3_402/
     BABEL_403=/projects/tir5/data/speech_corpora/babel/IARPA-babel403b-v1.0b-build/BABEL_OP3_403/
     BABEL_404=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_OP3_404/
+    GRABO=/projects/tir5/data/speech_corpora/Grabo
+    PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
 fi
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
+    AIDATATANG_200ZH=downloads
     AISHELL=
     AISHELL3=downloads
     ALFFA=downloads
@@ -179,6 +187,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     HKUST1=
     HKUST2=
     HUI_ACG=downloads
+    HUB4_SPANISH=
     LABOROTV=
     TEDXJP=
     LIBRISPEECH=
@@ -248,4 +257,5 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     GAMAYUN=downloads
     IWSLT21LR=downloads/iwslt21
     TOTONAC=downloads
+    GOOGLEI18N=downloads
 fi
