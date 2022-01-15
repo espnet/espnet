@@ -55,7 +55,6 @@ from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet2.asr.specaug.specaug2 import SpecAug2
 from espnet2.asr.transducer.joint_network import JointNetwork
 from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -90,7 +89,6 @@ specaug_choices = ClassChoices(
     name="specaug",
     classes=dict(
         specaug=SpecAug,
-        specaug2=SpecAug2,
     ),
     type_check=AbsSpecAug,
     default=None,
