@@ -33,6 +33,7 @@ CSS10=
 HKUST1=
 HKUST2=
 HUI_ACG=downloads
+HUB4_SPANISH=
 LABOROTV=
 TEDXJP=
 LIBRISPEECH=
@@ -42,6 +43,7 @@ SLURP=
 VOXCELEB=
 MINI_LIBRISPEECH=downloads
 MISP2021=
+LIBRIMIX=downloads
 LIBRITTS=
 LJSPEECH=downloads
 NSC=
@@ -101,6 +103,7 @@ RU_OPEN_STT=downloads
 RUSLAN=downloads
 SIWIS=downloads
 GIGASPEECH=
+GOOGLEI18N=downloads
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
@@ -184,6 +187,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     HKUST1=
     HKUST2=
     HUI_ACG=downloads
+    HUB4_SPANISH=
     LABOROTV=
     TEDXJP=
     LIBRISPEECH=
@@ -253,4 +257,5 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     GAMAYUN=downloads
     IWSLT21LR=downloads/iwslt21
     TOTONAC=downloads
+    GOOGLEI18N=downloads
 fi
