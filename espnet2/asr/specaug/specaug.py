@@ -38,12 +38,16 @@ class SpecAug(AbsSpecAug):
     ):
         if not apply_time_warp and not apply_time_mask and not apply_freq_mask:
             raise ValueError(
-                "Either one of time_warp, time_mask, or freq_mask should be applied",
+                "Either one of time_warp, time_mask, or freq_mask should be applied"
             )
-        if apply_time_mask and (time_mask_width_range is not None) and (time_mask_width_ratio_range is not None):
+        if (
+            apply_time_mask
+            and (time_mask_width_range is not None)
+            and (time_mask_width_ratio_range is not None)
+        ):
             raise ValueError(
                 'Either one of "time_mask_width_range" or "time_mask_width_ratio_range" can be used'
-            )    
+            )
         super().__init__()
         self.apply_time_warp = apply_time_warp
         self.apply_freq_mask = apply_freq_mask
