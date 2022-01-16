@@ -138,7 +138,6 @@ class LearnableFourierPosEnc(torch.nn.Module):
         max_len (int): Maximum input length.
         gamma (float): init parameter for the positional kernel variance
             see https://arxiv.org/pdf/2106.02795.pdf.
-        reverse (bool): Whether to reverse the input position.
         apply_scaling (bool): Whether to scale the input before adding the pos encoding.
         hidden_dim (int): if not None, we modulate the pos encodings with
             an MLP whose hidden layer has hidden_dim neurons.
@@ -150,7 +149,6 @@ class LearnableFourierPosEnc(torch.nn.Module):
         dropout_rate=0.0,
         max_len=5000,
         gamma=1.0,
-        reverse=False,
         apply_scaling=False,
         hidden_dim=None,
     ):
@@ -158,7 +156,6 @@ class LearnableFourierPosEnc(torch.nn.Module):
         super(LearnableFourierPosEnc, self).__init__()
 
         self.d_model = d_model
-        self.reverse = reverse
 
         if apply_scaling:
             self.xscale = math.sqrt(self.d_model)
@@ -181,9 +178,9 @@ class LearnableFourierPosEnc(torch.nn.Module):
         self.hidden_dim = hidden_dim
         if self.hidden_dim is not None:
             self.mlp = torch.nn.Sequential(
-                torch.nn.Linear(d_model, hidden_dim, bias=False),
+                torch.nn.Linear(d_model, hidden_dim),
                 torch.nn.GELU(),
-                torch.nn.Linear(hidden_dim, d_model, bias=False),
+                torch.nn.Linear(hidden_dim, d_model),
             )
 
     def _reset(self):
@@ -193,12 +190,8 @@ class LearnableFourierPosEnc(torch.nn.Module):
 
     def extend_pe(self, x):
         """Reset the positional encodings."""
-        if self.reverse:
-            position_v = torch.arange(
-                x.size(1) - 1, -1, -1.0, dtype=torch.float32
-            ).unsqueeze(1)
-        else:
-            position_v = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
+
+        position_v = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
 
         cosine = torch.cos(torch.matmul(position_v, self.w_r))
         sine = torch.sin(torch.matmul(position_v, self.w_r))
