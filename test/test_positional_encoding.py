@@ -37,13 +37,8 @@ def test_pe_extendable(dtype, device):
 
 
 @pytest.mark.parametrize(
-    "dtype, device",
-    "apply_scaling",
-    "hidden_dim",
-    [(dt, dv) for dt in ("float32", "float64") for dv in ("cpu", "cuda")],
-    [True, False],
-    [None, 12],
-)
+    "dtype, device, apply_scaling, hidden_dim",
+    [(dt, dv, scal, hd) for dt in ("float32", "float64") for dv in ("cpu", "cuda") for scal in [True, False] for hd in [None, 12]])
 def test_learnedFourierPe_extendable(dtype, device, apply_scaling, hidden_dim):
     if device == "cuda" and not torch.cuda.is_available():
         pytest.skip("no cuda device is available")
