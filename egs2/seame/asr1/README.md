@@ -16,6 +16,5 @@
  (Mandarin CER / English WER)
  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
  |---|---|---|---|---|---|---|---|---|
- |decode_lm0.2_ctc0.4_beam30/devman|6531|96737|85.2|11.3|3.5|1.8|16.5|75.5|
- |decode_lm0.2_ctc0.4_beam30/devsge|5321|54390|79.4|16.0|4.6|2.6|23.2|74.3|
-
+ |decode_lm0.2_ctc0.4_beam10/devman|6531|96737|85.3|11.4|3.3|1.9|16.6|75.5|
+ |decode_lm0.2_ctc0.4_beam10/devsge|5321|54390|79.5|16.2|4.4|2.8|23.3|74.3|

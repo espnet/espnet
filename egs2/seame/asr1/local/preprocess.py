@@ -1,6 +1,23 @@
 #!/usr/bin/env python3
 # -*- encoding: utf8 -*-
 
+"""
+    This is an python implementation of preprocessing of 
+    the SEAME Mandarin-English code-switching corpus.
+    We follow original papers [1, 2] and the official 
+    github repository [3] to make this code produces the 
+    same amount of training and testing data.
+
+    [1] Dau-Cheng Lyu, Tien-Ping Tan, Eng-Siong Chng, and
+        Haizhou Li, "SEAME: a Mandarin-English Code-switching
+        Speech Corpus in South-East Asia," in Interspeech, 2010.
+    [2] Zhiping Zeng, Yerbolat Khassanov, Van Tung Pham, Haihua
+        Xu, Eng Siong Chng, and Haizhou Li, "On the End-to-End 
+        Solution to Mandarin-English Code-switching Speech 
+        Recognition," in Interspeech, 2019.
+    [3] https://github.com/zengzp0912/SEAME-dev-set
+"""
+
 import re
 import os
 import sys
