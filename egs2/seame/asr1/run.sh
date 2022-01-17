@@ -27,6 +27,9 @@ if [ ! -f "data/train/token.man.2" ]; then
     fi
 fi
 
+man_chars=2622
+bpe_nlsyms=""
+
 source data/train/token.man.2  # for bpe_nlsyms & man_chars
 nbpe=$((3000 + man_chars + 4))  # 5626
 # English BPE: 3000 / Mandarin: 2622 / other symbols: 4
