@@ -124,7 +124,8 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.layers.mask_along_axis</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span></span><span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
@@ -252,6 +253,81 @@
             <span class="n">num_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_mask</span><span class="p">,</span>
             <span class="n">replace_with_zero</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">replace_with_zero</span><span class="p">,</span>
         <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MaskAlongAxisVariableMaxWidth"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.mask_along_axis.MaskAlongAxisVariableMaxWidth">[docs]</a><span class="k">class</span> <span class="nc">MaskAlongAxisVariableMaxWidth</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Mask input spec along a specified axis with variable maximum width.</span>
+
+<span class="sd">    Formula:</span>
+<span class="sd">        max_width = max_width_ratio * seq_len</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">mask_width_ratio_range</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">),</span>
+        <span class="n">num_mask</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">dim</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;time&quot;</span><span class="p">,</span>
+        <span class="n">replace_with_zero</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mask_width_ratio_range</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="n">mask_width_ratio_range</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">mask_width_ratio_range</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mask_width_ratio_range</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;mask_width_ratio_range must be a tuple of float and float values: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mask_width_ratio_range</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">mask_width_ratio_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">mask_width_ratio_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">dim</span> <span class="o">==</span> <span class="s2">&quot;time&quot;</span><span class="p">:</span>
+                <span class="n">dim</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">dim</span> <span class="o">==</span> <span class="s2">&quot;freq&quot;</span><span class="p">:</span>
+                <span class="n">dim</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;dim must be int, &#39;time&#39; or &#39;freq&#39;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask_axis</span> <span class="o">=</span> <span class="s2">&quot;time&quot;</span>
+        <span class="k">elif</span> <span class="n">dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask_axis</span> <span class="o">=</span> <span class="s2">&quot;freq&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask_axis</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_width_ratio_range</span> <span class="o">=</span> <span class="n">mask_width_ratio_range</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_mask</span> <span class="o">=</span> <span class="n">num_mask</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">replace_with_zero</span> <span class="o">=</span> <span class="n">replace_with_zero</span>
+
+<div class="viewcode-block" id="MaskAlongAxisVariableMaxWidth.extra_repr"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.mask_along_axis.MaskAlongAxisVariableMaxWidth.extra_repr">[docs]</a>    <span class="k">def</span> <span class="nf">extra_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;mask_width_ratio_range=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_width_ratio_range</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;num_mask=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_mask</span><span class="si">}</span><span class="s2">, axis=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_axis</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="MaskAlongAxisVariableMaxWidth.forward"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.mask_along_axis.MaskAlongAxisVariableMaxWidth.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">spec_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Forward function.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            spec: (Batch, Length, Freq)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">]</span>
+        <span class="n">min_mask_width</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">max_seq_len</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_width_ratio_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">min_mask_width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="n">min_mask_width</span><span class="p">])</span>
+        <span class="n">max_mask_width</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">max_seq_len</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_width_ratio_range</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">max_mask_width</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="n">max_seq_len</span><span class="p">,</span> <span class="n">max_mask_width</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">max_mask_width</span> <span class="o">&gt;</span> <span class="n">min_mask_width</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">mask_along_axis</span><span class="p">(</span>
+                <span class="n">spec</span><span class="p">,</span>
+                <span class="n">spec_lengths</span><span class="p">,</span>
+                <span class="n">mask_width_range</span><span class="o">=</span><span class="p">(</span><span class="n">min_mask_width</span><span class="p">,</span> <span class="n">max_mask_width</span><span class="p">),</span>
+                <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span>
+                <span class="n">num_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_mask</span><span class="p">,</span>
+                <span class="n">replace_with_zero</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">replace_with_zero</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">spec</span><span class="p">,</span> <span class="n">spec_lengths</span></div></div>
 </pre></div>
 
            </div>

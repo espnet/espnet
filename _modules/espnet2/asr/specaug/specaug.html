@@ -125,11 +125,13 @@
              
   <h1>Source code for espnet2.asr.specaug.specaug</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;SpecAugment module.&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.abs_specaug</span> <span class="kn">import</span> <span class="n">AbsSpecAug</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.mask_along_axis</span> <span class="kn">import</span> <span class="n">MaskAlongAxis</span>
+<span class="kn">from</span> <span class="nn">espnet2.layers.mask_along_axis</span> <span class="kn">import</span> <span class="n">MaskAlongAxisVariableMaxWidth</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.time_warp</span> <span class="kn">import</span> <span class="n">TimeWarp</span>
 
 
@@ -156,12 +158,22 @@
         <span class="n">freq_mask_width_range</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span>
         <span class="n">num_freq_mask</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
         <span class="n">apply_time_mask</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">time_mask_width_range</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
+        <span class="n">time_mask_width_range</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">time_mask_width_ratio_range</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">num_time_mask</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">apply_time_warp</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">apply_time_mask</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">apply_freq_mask</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Either one of time_warp, time_mask, or freq_mask should be applied&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Either one of time_warp, time_mask, or freq_mask should be applied&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">apply_time_mask</span>
+            <span class="ow">and</span> <span class="p">(</span><span class="n">time_mask_width_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="p">(</span><span class="n">time_mask_width_ratio_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Either one of &quot;time_mask_width_range&quot; or &#39;</span>
+                <span class="s1">&#39;&quot;time_mask_width_ratio_range&quot; can be used&#39;</span>
             <span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">apply_time_warp</span> <span class="o">=</span> <span class="n">apply_time_warp</span>
@@ -183,11 +195,23 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">freq_mask</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="n">apply_time_mask</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">time_mask</span> <span class="o">=</span> <span class="n">MaskAlongAxis</span><span class="p">(</span>
-                <span class="n">dim</span><span class="o">=</span><span class="s2">&quot;time&quot;</span><span class="p">,</span>
-                <span class="n">mask_width_range</span><span class="o">=</span><span class="n">time_mask_width_range</span><span class="p">,</span>
-                <span class="n">num_mask</span><span class="o">=</span><span class="n">num_time_mask</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">time_mask_width_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">time_mask</span> <span class="o">=</span> <span class="n">MaskAlongAxis</span><span class="p">(</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="s2">&quot;time&quot;</span><span class="p">,</span>
+                    <span class="n">mask_width_range</span><span class="o">=</span><span class="n">time_mask_width_range</span><span class="p">,</span>
+                    <span class="n">num_mask</span><span class="o">=</span><span class="n">num_time_mask</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="n">time_mask_width_ratio_range</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">time_mask</span> <span class="o">=</span> <span class="n">MaskAlongAxisVariableMaxWidth</span><span class="p">(</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="s2">&quot;time&quot;</span><span class="p">,</span>
+                    <span class="n">mask_width_ratio_range</span><span class="o">=</span><span class="n">time_mask_width_ratio_range</span><span class="p">,</span>
+                    <span class="n">num_mask</span><span class="o">=</span><span class="n">num_time_mask</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;Either one of &quot;time_mask_width_range&quot; or &#39;</span>
+                    <span class="s1">&#39;&quot;time_mask_width_ratio_range&quot; should be used.&#39;</span>
+                <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">time_mask</span> <span class="o">=</span> <span class="kc">None</span>
 

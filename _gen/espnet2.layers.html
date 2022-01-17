@@ -193,6 +193,37 @@ strings are acceptable.</p>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="espnet2.layers.mask_along_axis.MaskAlongAxisVariableMaxWidth">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.layers.mask_along_axis.</code><code class="sig-name descname">MaskAlongAxisVariableMaxWidth</code><span class="sig-paren">(</span><em class="sig-param">mask_width_ratio_range: Union[float</em>, <em class="sig-param">Sequence[float]] = (0.0</em>, <em class="sig-param">0.05)</em>, <em class="sig-param">num_mask: int = 2</em>, <em class="sig-param">dim: Union[int</em>, <em class="sig-param">str] = 'time'</em>, <em class="sig-param">replace_with_zero: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/mask_along_axis.html#MaskAlongAxisVariableMaxWidth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.mask_along_axis.MaskAlongAxisVariableMaxWidth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Mask input spec along a specified axis with variable maximum width.</p>
+<dl class="simple">
+<dt>Formula:</dt><dd><p>max_width = max_width_ratio * seq_len</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.layers.mask_along_axis.MaskAlongAxisVariableMaxWidth.extra_repr">
+<code class="sig-name descname">extra_repr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/mask_along_axis.html#MaskAlongAxisVariableMaxWidth.extra_repr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.mask_along_axis.MaskAlongAxisVariableMaxWidth.extra_repr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the extra representation of the module</p>
+<p>To print customized extra information, you should re-implement
+this method in your own modules. Both single-line and multi-line
+strings are acceptable.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.layers.mask_along_axis.MaskAlongAxisVariableMaxWidth.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">spec: torch.Tensor</em>, <em class="sig-param">spec_lengths: torch.Tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/mask_along_axis.html#MaskAlongAxisVariableMaxWidth.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.mask_along_axis.MaskAlongAxisVariableMaxWidth.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>spec</strong> – (Batch, Length, Freq)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="function">
 <dt id="espnet2.layers.mask_along_axis.mask_along_axis">
 <code class="sig-prename descclassname">espnet2.layers.mask_along_axis.</code><code class="sig-name descname">mask_along_axis</code><span class="sig-paren">(</span><em class="sig-param">spec: torch.Tensor</em>, <em class="sig-param">spec_lengths: torch.Tensor</em>, <em class="sig-param">mask_width_range: Sequence[int] = (0</em>, <em class="sig-param">30)</em>, <em class="sig-param">dim: int = 1</em>, <em class="sig-param">num_mask: int = 2</em>, <em class="sig-param">replace_with_zero: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/mask_along_axis.html#mask_along_axis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.mask_along_axis.mask_along_axis" title="Permalink to this definition">¶</a></dt>
