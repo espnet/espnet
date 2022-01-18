@@ -2,18 +2,18 @@
 # -*- encoding: utf8 -*-
 
 """
-    This is an python implementation of preprocessing of 
+    This is an python implementation of preprocessing of
     the SEAME Mandarin-English code-switching corpus.
-    We follow original papers [1, 2] and the official 
-    github repository [3] to make this code produces the 
+    We follow original papers [1, 2] and the official
+    github repository [3] to make this code produces the
     same amount of training and testing data.
 
     [1] Dau-Cheng Lyu, Tien-Ping Tan, Eng-Siong Chng, and
         Haizhou Li, "SEAME: a Mandarin-English Code-switching
         Speech Corpus in South-East Asia," in Interspeech, 2010.
     [2] Zhiping Zeng, Yerbolat Khassanov, Van Tung Pham, Haihua
-        Xu, Eng Siong Chng, and Haizhou Li, "On the End-to-End 
-        Solution to Mandarin-English Code-switching Speech 
+        Xu, Eng Siong Chng, and Haizhou Li, "On the End-to-End
+        Solution to Mandarin-English Code-switching Speech
         Recognition," in Interspeech, 2019.
     [3] https://github.com/zengzp0912/SEAME-dev-set
 """
@@ -196,13 +196,12 @@ def read_trans(data_dict, pth, phs, audio_list, aduio_pth):
 
             if phs.lower() == "phasei":
                 lang = None
-                try:
+                if len(line.split("\t")) == 4:
                     idx, start, end, text = line.split("\t")
-                except:
-                    if len(line.split("\t")) < 4:
-                        idx, content = line.split("\t", 1)
-                        print(f"Skip {idx} with {content}... (no transcript)")
-                        continue
+                else:
+                    idx, cont = line.split("\t", 1)
+                    print(f"Skip {idx} with {cont}... (no transcript)")
+                    continue
             elif phs.lower() == "phaseii":
                 idx, start, end, lang, text = line.split("\t")
             else:
@@ -442,8 +441,8 @@ def write_f(pth, filename, data_dict):
                                             wav_cmds[
                                                 recordid
                                             ] = f"flac -c -d -s {audio_pth} |"
-                                            # map to second, original data use millisecond,
-                                            # idx here has already /10.
+                                            # map to sec, original ms,
+                                            # idx here has /10.
                                             start, end = (
                                                 float(start) / 100,
                                                 float(end) / 100,
