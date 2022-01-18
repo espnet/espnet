@@ -550,6 +550,8 @@ class Reporter:
         if epoch is None:
             epoch = self.get_epoch()
             total_count = self.stats[epoch]["train"]["total_count"]
+            if key1 == "train":
+                summary_writer.add_scalar("iter_epoch", epoch, total_count)
 
         if key1 is not None:
             key1_iterator = tuple([key1])
