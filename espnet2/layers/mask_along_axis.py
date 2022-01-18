@@ -1,3 +1,4 @@
+import math
 import torch
 from typeguard import check_argument_types
 from typing import Sequence
@@ -126,3 +127,78 @@ class MaskAlongAxis(torch.nn.Module):
             num_mask=self.num_mask,
             replace_with_zero=self.replace_with_zero,
         )
+
+
+class MaskAlongAxisVariableMaxWidth(torch.nn.Module):
+    """Mask input spec along a specified axis with variable maximum width.
+
+    Formula:
+        max_width = max_width_ratio * seq_len
+    """
+
+    def __init__(
+        self,
+        mask_width_ratio_range: Union[float, Sequence[float]] = (0.0, 0.05),
+        num_mask: int = 2,
+        dim: Union[int, str] = "time",
+        replace_with_zero: bool = True,
+    ):
+        assert check_argument_types()
+        if isinstance(mask_width_ratio_range, float):
+            mask_width_ratio_range = (0.0, mask_width_ratio_range)
+        if len(mask_width_ratio_range) != 2:
+            raise TypeError(
+                f"mask_width_ratio_range must be a tuple of float and float values: "
+                f"{mask_width_ratio_range}",
+            )
+
+        assert mask_width_ratio_range[1] > mask_width_ratio_range[0]
+        if isinstance(dim, str):
+            if dim == "time":
+                dim = 1
+            elif dim == "freq":
+                dim = 2
+            else:
+                raise ValueError("dim must be int, 'time' or 'freq'")
+        if dim == 1:
+            self.mask_axis = "time"
+        elif dim == 2:
+            self.mask_axis = "freq"
+        else:
+            self.mask_axis = "unknown"
+
+        super().__init__()
+        self.mask_width_ratio_range = mask_width_ratio_range
+        self.num_mask = num_mask
+        self.dim = dim
+        self.replace_with_zero = replace_with_zero
+
+    def extra_repr(self):
+        return (
+            f"mask_width_ratio_range={self.mask_width_ratio_range}, "
+            f"num_mask={self.num_mask}, axis={self.mask_axis}"
+        )
+
+    def forward(self, spec: torch.Tensor, spec_lengths: torch.Tensor = None):
+        """Forward function.
+
+        Args:
+            spec: (Batch, Length, Freq)
+        """
+
+        max_seq_len = spec.shape[self.dim]
+        min_mask_width = math.floor(max_seq_len * self.mask_width_ratio_range[0])
+        min_mask_width = max([0, min_mask_width])
+        max_mask_width = math.floor(max_seq_len * self.mask_width_ratio_range[1])
+        max_mask_width = min([max_seq_len, max_mask_width])
+
+        if max_mask_width > min_mask_width:
+            return mask_along_axis(
+                spec,
+                spec_lengths,
+                mask_width_range=(min_mask_width, max_mask_width),
+                dim=self.dim,
+                num_mask=self.num_mask,
+                replace_with_zero=self.replace_with_zero,
+            )
+        return spec, spec_lengths
