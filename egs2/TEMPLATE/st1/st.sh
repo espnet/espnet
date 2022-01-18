@@ -537,10 +537,10 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
-                # TODO(jiatong): copy data dir does not hold for some files, probably create our own?
                 for extra_file in ${utt_extra_files}; do
                     cp data/"${dset}"/${extra_file} "${data_feats}${_suf}/${dset}"
-                done 
+                done
+                utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}${_suf}/${dset}"
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
                 _opts=
                 if [ -e data/"${dset}"/segments ]; then
@@ -641,7 +641,7 @@ if ! "${skip_data_prep}"; then
             # Copy data dir
             utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
-            # TODO(jiatong): copy data dir does not hold for some files, probably create our own?
+
             for extra_file in ${utt_extra_files}; do
                 cp "${data_feats}/org/${dset}/${extra_file}" "${data_feats}/${dset}"
             done
@@ -1405,14 +1405,10 @@ if ! "${skip_eval}"; then
 
     if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
         log "Stage 13: Scoring"
-        if [ "${token_type}" = phn ]; then
-            log "Error: Not implemented for token_type=phn"
-            exit 1
-        fi
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${asr_exp}/${inference_tag}/${dset}"
+            _dir="${st_exp}/${inference_tag}/${dset}"
 
             # TODO(jiatong): add asr scoring and inference
 
@@ -1463,7 +1459,7 @@ if ! "${skip_eval}"; then
             # detokenize & remove punctuation except apostrophe
             remove_punctuation.pl < "${_scoredir}/ref.trn.detok" > "${_scoredir}/ref.trn.detok.lc.rm"
             remove_punctuation.pl < "${_scoredir}/hyp.trn.detok" > "${_scoredir}/hyp.trn.detok.lc.rm"
-            scarebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
+            sacrebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
                       -i "${_scoredir}/hyp.trn.detok.lc.rm" \
                       -m bleu chrf ter \
                       >> ${_scoredir}/result.lc.txt
@@ -1491,7 +1487,7 @@ if ! "${skip_upload}"; then
         if [ "${feats_normalize}" = global_mvn ]; then
             _opts+="--option ${st_stats_dir}/train/feats_stats.npz "
         fi
-        if [ "${token_type}" = bpe ]; then
+        if [ "${tgt_token_type}" = bpe ]; then
             _opts+="--option ${bpemodel} "
         fi
         if [ "${nlsyms_txt}" != none ]; then
