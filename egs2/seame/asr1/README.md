@@ -13,8 +13,20 @@
  - LM config: [./conf/tuning/train_lm_transformer.yaml](./conf/tuning/train_lm_transformer.yaml)
  
 ### WER
- (Mandarin CER / English WER)
+ Mixed Mandarin CER / English WER
  |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
  |---|---|---|---|---|---|---|---|---|
  |decode_lm0.2_ctc0.4_beam10/devman|6531|96737|85.3|11.4|3.3|1.9|16.6|75.5|
  |decode_lm0.2_ctc0.4_beam10/devsge|5321|54390|79.5|16.2|4.4|2.8|23.3|74.3|
+
+ Mandarin CER
+ |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+ |---|---|---|---|---|---|---|---|---|
+ |decode_lm0.2_ctc0.4_beam10/devman|6531|71806|88.2|7.6|4.3|3.2|15.0|59.4|
+ |decode_lm0.2_ctc0.4_beam10/devsge|5321|20327|84.9|9.1|6.0|6.9|22.0|34.5|
+
+ English WER
+ |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+ |---|---|---|---|---|---|---|---|---|
+ |decode_lm0.2_ctc0.4_beam10/devman|6531|24931|76.9|14.4|8.7|6.1|29.2|52.6|
+ |decode_lm0.2_ctc0.4_beam10/devsge|5321|34063|76.2|16.2|7.5|4.5|28.2|66.2|
