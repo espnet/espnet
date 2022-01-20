@@ -275,7 +275,7 @@ def test_matplotlib_plot(tmp_path: Path):
 def test_tensorboard_add_scalar(tmp_path: Path):
     reporter = Reporter()
     reporter.set_epoch(1)
-    key1 = uuid.uuid4().hex
+    key1 = "train"
     with reporter.observe(key1) as sub:
         stats1 = {"aa": 0.6}
         sub.register(stats1)
