@@ -305,12 +305,17 @@
         <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc_att</span><span class="p">,</span> <span class="n">cer_att</span><span class="p">,</span> <span class="n">wer_att</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
         <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
         <span class="n">loss_transducer</span><span class="p">,</span> <span class="n">cer_transducer</span><span class="p">,</span> <span class="n">wer_transducer</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 
         <span class="c1"># 1. CTC branch</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
             <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_ctc_loss</span><span class="p">(</span>
                 <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span>
             <span class="p">)</span>
+
+            <span class="c1"># Collect CTC branch stats</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss_ctc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_ctc</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_ctc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;cer_ctc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cer_ctc</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_transducer_decoder</span><span class="p">:</span>
             <span class="c1"># 2a. Transducer decoder branch</span>
@@ -328,6 +333,14 @@
                 <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_transducer</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">*</span> <span class="n">loss_ctc</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_transducer</span>
+
+            <span class="c1"># Collect Transducer branch stats</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss_transducer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">loss_transducer</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_transducer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">)</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;cer_transducer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cer_transducer</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;wer_transducer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wer_transducer</span>
+
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># 2b. Attention decoder branch</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">!=</span> <span class="mf">1.0</span><span class="p">:</span>
@@ -343,20 +356,14 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">*</span> <span class="n">loss_ctc</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">loss_att</span>
 
-        <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-            <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
-            <span class="n">loss_att</span><span class="o">=</span><span class="n">loss_att</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_att</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">loss_ctc</span><span class="o">=</span><span class="n">loss_ctc</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_ctc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">loss_transducer</span><span class="o">=</span><span class="n">loss_transducer</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">loss_transducer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-            <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">acc</span><span class="o">=</span><span class="n">acc_att</span><span class="p">,</span>
-            <span class="n">cer</span><span class="o">=</span><span class="n">cer_att</span><span class="p">,</span>
-            <span class="n">wer</span><span class="o">=</span><span class="n">wer_att</span><span class="p">,</span>
-            <span class="n">cer_ctc</span><span class="o">=</span><span class="n">cer_ctc</span><span class="p">,</span>
-            <span class="n">cer_transducer</span><span class="o">=</span><span class="n">cer_transducer</span><span class="p">,</span>
-            <span class="n">wer_transducer</span><span class="o">=</span><span class="n">wer_transducer</span><span class="p">,</span>
-        <span class="p">)</span>
+            <span class="c1"># Collect Attn branch stats</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss_att&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_att</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_att</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;acc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">acc_att</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;cer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cer_att</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;wer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wer_att</span>
+
+        <span class="c1"># Collect total loss stats</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
 
         <span class="c1"># force_gatherable: to-device and to-tensor if scalar for DataParallel</span>
         <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">force_gatherable</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">loss</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>

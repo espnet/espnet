@@ -379,9 +379,14 @@
         <span class="p">):</span>
             <span class="kn">from</span> <span class="nn">torch.utils.tensorboard</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
 
-            <span class="n">summary_writer</span> <span class="o">=</span> <span class="n">SummaryWriter</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;tensorboard&quot;</span><span class="p">))</span>
+            <span class="n">train_summary_writer</span> <span class="o">=</span> <span class="n">SummaryWriter</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;tensorboard&quot;</span> <span class="o">/</span> <span class="s2">&quot;train&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">valid_summary_writer</span> <span class="o">=</span> <span class="n">SummaryWriter</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;tensorboard&quot;</span> <span class="o">/</span> <span class="s2">&quot;valid&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">summary_writer</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">train_summary_writer</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">iepoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start_epoch</span><span class="p">,</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">max_epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
@@ -411,7 +416,7 @@
                     <span class="n">iterator</span><span class="o">=</span><span class="n">train_iter_factory</span><span class="o">.</span><span class="n">build_iter</span><span class="p">(</span><span class="n">iepoch</span><span class="p">),</span>
                     <span class="n">reporter</span><span class="o">=</span><span class="n">sub_reporter</span><span class="p">,</span>
                     <span class="n">scaler</span><span class="o">=</span><span class="n">scaler</span><span class="p">,</span>
-                    <span class="n">summary_writer</span><span class="o">=</span><span class="n">summary_writer</span><span class="p">,</span>
+                    <span class="n">summary_writer</span><span class="o">=</span><span class="n">train_summary_writer</span><span class="p">,</span>
                     <span class="n">options</span><span class="o">=</span><span class="n">trainer_options</span><span class="p">,</span>
                     <span class="n">distributed_option</span><span class="o">=</span><span class="n">distributed_option</span><span class="p">,</span>
                 <span class="p">)</span>
@@ -431,7 +436,7 @@
                         <span class="bp">cls</span><span class="o">.</span><span class="n">plot_attention</span><span class="p">(</span>
                             <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
                             <span class="n">output_dir</span><span class="o">=</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;att_ws&quot;</span><span class="p">,</span>
-                            <span class="n">summary_writer</span><span class="o">=</span><span class="n">summary_writer</span><span class="p">,</span>
+                            <span class="n">summary_writer</span><span class="o">=</span><span class="n">train_summary_writer</span><span class="p">,</span>
                             <span class="n">iterator</span><span class="o">=</span><span class="n">plot_attention_iter_factory</span><span class="o">.</span><span class="n">build_iter</span><span class="p">(</span><span class="n">iepoch</span><span class="p">),</span>
                             <span class="n">reporter</span><span class="o">=</span><span class="n">sub_reporter</span><span class="p">,</span>
                             <span class="n">options</span><span class="o">=</span><span class="n">trainer_options</span><span class="p">,</span>
@@ -455,8 +460,9 @@
                 <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">reporter</span><span class="o">.</span><span class="n">log_message</span><span class="p">())</span>
                 <span class="k">if</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">use_matplotlib</span><span class="p">:</span>
                     <span class="n">reporter</span><span class="o">.</span><span class="n">matplotlib_plot</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;images&quot;</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">summary_writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">reporter</span><span class="o">.</span><span class="n">tensorboard_add_scalar</span><span class="p">(</span><span class="n">summary_writer</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">train_summary_writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">reporter</span><span class="o">.</span><span class="n">tensorboard_add_scalar</span><span class="p">(</span><span class="n">train_summary_writer</span><span class="p">,</span> <span class="n">key1</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>
+                    <span class="n">reporter</span><span class="o">.</span><span class="n">tensorboard_add_scalar</span><span class="p">(</span><span class="n">valid_summary_writer</span><span class="p">,</span> <span class="n">key1</span><span class="o">=</span><span class="s2">&quot;valid&quot;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">trainer_options</span><span class="o">.</span><span class="n">use_wandb</span><span class="p">:</span>
                     <span class="n">reporter</span><span class="o">.</span><span class="n">wandb_log</span><span class="p">()</span>
 
