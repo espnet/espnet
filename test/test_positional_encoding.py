@@ -1,9 +1,10 @@
 import pytest
 import torch
 
+
+from espnet.nets.pytorch_backend.transformer.embedding import LearnableFourierPosEnc
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
-from espnet.nets.pytorch_backend.transformer.embedding import LearnableFourierPosEnc
 
 
 @pytest.mark.parametrize(
