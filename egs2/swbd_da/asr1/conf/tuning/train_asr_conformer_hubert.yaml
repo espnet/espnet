@@ -1,5 +1,5 @@
 batch_type: numel
-batch_bins: 7000000
+batch_bins: 4000000
 accum_grad: 1
 max_epoch: 35
 patience: none
@@ -8,7 +8,7 @@ best_model_criterion:
 -   - valid
     - loss
     - min
-keep_nbest_models: 4
+keep_nbest_models: 7
 
 encoder: conformer
 encoder_conf:
@@ -40,8 +40,7 @@ decoder_conf:
 
 model_conf:
     ctc_weight: 0.0
-    lsm_weight: 0.0
-    length_normalized_loss: false
+    extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
 
 optim: adam
 optim_conf:
@@ -50,9 +49,21 @@ scheduler: warmuplr
 scheduler_conf:
     warmup_steps: 25000
 
+freeze_param: [
+"frontend.upstream"
+]
+
+frontend: s3prl
 frontend_conf:
-  n_fft: 512
-  hop_length: 256
+    frontend_conf:
+        upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder.
+    download_dir: ./hub
+    multilayer_feature: True
+
+preencoder: linear
+preencoder_conf:
+    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+    output_size: 80
 
 specaug: specaug
 specaug_conf:
