@@ -18,7 +18,7 @@ freeze_param: [
 frontend: s3prl
 frontend_conf:
     frontend_conf:
-        upstream: wav2vec2_large_960  # Note: If the upstream is changed, please change the input_size in the preencoder.
+        upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder.
     download_dir: ./hub
     multilayer_feature: True
 
@@ -67,7 +67,6 @@ optim_conf:
 scheduler: warmuplr
 scheduler_conf:
     warmup_steps: 40000
-
 
 specaug: specaug
 specaug_conf:
