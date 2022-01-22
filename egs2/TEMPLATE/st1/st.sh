@@ -537,10 +537,22 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+
+                # expand the utt_extra_files for multi-references
+                expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
-                    cp data/"${dset}"/${extra_file} "${data_feats}${_suf}/${dset}"
+                    # with regex to suuport multi-references
+                    for single_file in $(ls data/"${dset}"/${extra_file}*); do
+                        cp ${single_file} "${data_feats}${_suf}/${dset}"
+                        expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
+                    done 
                 done
-                utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}${_suf}/${dset}"
+                echo "${expand_utt_extra_files}"
+                utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}" "${data_feats}${_suf}/${dset}"
+                for extra_file in ${expand_utt_extra_files}; do
+                    LC_ALL=C sort -u -k1,1 "${data_feats}${_suf}/${dset}/${extra_file}" -o "${data_feats}${_suf}/${dset}/${extra_file}"
+                done
+
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
                 _opts=
                 if [ -e data/"${dset}"/segments ]; then
@@ -570,15 +582,24 @@ if ! "${skip_data_prep}"; then
                 fi
                 # 1. Copy datadir
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
-                # TODO(jiatong): copy data dir does not hold for some files, probably create our own?
+
+                # expand the utt_extra_files for multi-references
+                expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
-                    cp data/"${dset}"/${extra_file} "${data_feats}${_suf}/${dset}"
+                    # with regex to suuport multi-references
+                    for single_file in $(ls data/"${dset}"/${extra_file}*); do
+                        cp ${single_file} "${data_feats}${_suf}/${dset}"
+                        expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
+                    done 
+                done
+                for extra_file in ${expand_utt_extra_files}; do
+                    LC_ALL=C sort -u -k1,1 "${data_feats}${_suf}/${dset}/${extra_file}" -o "${data_feats}${_suf}/${dset}/${extra_file}"
                 done
 
                 # 2. Feature extract
                 _nj=$(min "${nj}" "$(<"${data_feats}${_suf}/${dset}/utt2spk" wc -l)")
                 steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}${_suf}/${dset}"
-                utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}${_suf}/${dset}"
+                utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}*" "${data_feats}${_suf}/${dset}"
 
                 # 3. Derive the the frame length and feature dimension
                 scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
@@ -610,9 +631,19 @@ if ! "${skip_data_prep}"; then
                 # Generate dummy wav.scp to avoid error by copy_data_dir.sh
                 <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
-                # TODO(jiatong): copy data dir does not hold for some files, probably create our own?
+
+                # expand the utt_extra_files for multi-references
+                expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
-                    cp data/"${dset}"/${extra_file} "${data_feats}${_suf}/${dset}"
+                    # with regex to suuport multi-references
+                    for single_file in $(ls data/"${dset}"/${extra_file}*); do
+                        cp ${single_file} "${data_feats}${_suf}/${dset}"
+                        expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
+                    done 
+                done
+                utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}*" "${data_feats}${_suf}/${dset}"
+                for extra_file in ${expand_utt_extra_files}; do
+                    LC_ALL=C sort -u -k1,1 "${data_feats}${_suf}/${dset}/${extra_file}" -o "${data_feats}${_suf}/${dset}/${extra_file}"
                 done
 
                 # Derive the the frame length and feature dimension
@@ -642,8 +673,8 @@ if ! "${skip_data_prep}"; then
             utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
 
-            for extra_file in ${utt_extra_files}; do
-                cp "${data_feats}/org/${dset}/${extra_file}" "${data_feats}/${dset}"
+            for utt_extra_file in ${utt_extra_files}; do
+                cp "${data_feats}/org/${dset}/${utt_extra_file}" "${data_feats}/${dset}"
             done
             # Remove short utterances
             _feats_type="$(<${data_feats}/${dset}/feats_type)"
@@ -692,9 +723,10 @@ if ! "${skip_data_prep}"; then
 
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
-            for extra_file in ${utt_extra_files}; do
-                python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${extra_file} > ${data_feats}/${dset}/${extra_file}.tmp 
-                mv ${data_feats}/${dset}/${extra_file}.tmp ${data_feats}/${dset}/${extra_file}
+            for utt_extra_file in ${utt_extra_files}; do
+                python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
+                    > ${data_feats}/${dset}/${utt_extra_file}.tmp 
+                mv ${data_feats}/${dset}/${utt_extra_file}.tmp ${data_feats}/${dset}/${utt_extra_file}
             done 
         done
 
@@ -1448,22 +1480,66 @@ if ! "${skip_eval}"; then
             detokenizer.perl -l en -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
 
             if [ ${tgt_case} = "tc" ]; then
+                echo "Case sensitive BLEU result (single-reference)" >> ${_scoredir}/result.tc.txt
                 sacrebleu "${_scoredir}/ref.trn.detok" \
                           -i "${_scoredir}/hyp.trn.detok" \
                           -m bleu chrf ter \
                           >> ${_scoredir}/result.tc.txt
                 
-                log "Write a case-sensitive BLEU result in ${_scoredir}/result.tc.txt"
+                log "Write a case-sensitive BLEU (single-reference) result in ${_scoredir}/result.tc.txt"
             fi
 
             # detokenize & remove punctuation except apostrophe
             remove_punctuation.pl < "${_scoredir}/ref.trn.detok" > "${_scoredir}/ref.trn.detok.lc.rm"
             remove_punctuation.pl < "${_scoredir}/hyp.trn.detok" > "${_scoredir}/hyp.trn.detok.lc.rm"
+            echo "Case insensitive BLEU result (single-reference)" >> ${_scoredir}/result.lc.txt
             sacrebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
                       -i "${_scoredir}/hyp.trn.detok.lc.rm" \
                       -m bleu chrf ter \
                       >> ${_scoredir}/result.lc.txt
-            log "Write a case-insensitve BLEU result in ${_scoredir}/result.lc.txt"
+            log "Write a case-insensitve BLEU (single-reference) result in ${_scoredir}/result.lc.txt"
+
+            # process multi-references cases
+            multi_references=$(ls "${_data}/text.${tgt_case}.${tgt_lang}".* || echo "")
+            if [ "${multi_references}" != "" ]; then
+                case_sensitive_refs=""
+                case_insensitive_refs=""
+                for multi_reference in ${multi_references}; do
+                    ref_idx="${multi_reference##*.}"
+                    paste \
+                        <(<${multi_reference} \
+                            ${python} -m espnet2.bin.tokenize_text  \
+                                -f 2- --input - --output - \
+                                --token_type word \
+                                --non_linguistic_symbols "${nlsyms_txt}" \
+                                --remove_non_linguistic_symbols true \
+                                --cleaner "${cleaner}" \
+                                ) \
+                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                            >"${_scoredir}/ref.trn.org.${ref_idx}"
+                    
+                    # 
+                    perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
+                    detokenizer.perl -l en -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
+                    remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
+                    case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
+                    case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
+                done
+
+                if [ ${tgt_case} = "tc" ]; then
+                    echo "Case sensitive BLEU result (multi-references)" >> ${_scoredir}/result.tc.txt
+                    sacrebleu ${case_sensitive_refs} \
+                        -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter \
+                        >> ${_scoredir}/result.tc.txt
+                    log "Write a case-sensitve BLEU (multi-reference) result in ${_scoredir}/result.tc.txt"
+                fi
+
+                echo "Case insensitive BLEU result (multi-references)" >> ${_scoredir}/result.lc.txt
+                sacrebleu -lc ${case_insensitive_refs} \
+                    -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter \
+                    >> ${_scoredir}/result.lc.txt
+                log "Write a case-insensitve BLEU (multi-reference) result in ${_scoredir}/result.lc.txt"
+            fi
 
         done
     fi
