@@ -1,0 +1,1 @@
+../../../../egs/hub4_spanish/asr1/local/parse_sgm.pl
