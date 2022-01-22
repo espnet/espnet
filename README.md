@@ -2,7 +2,7 @@
 
 # ESPnet: end-to-end speech processing toolkit
 
-|system/pytorch ver.|1.3.1|1.4.0|1.5.1|1.6.0|1.7.1|1.8.1|1.9.1|1.10.0|
+|system/pytorch ver.|1.3.1|1.4.0|1.5.1|1.6.0|1.7.1|1.8.1|1.9.1|1.10.1|
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 |ubuntu20/python3.9/pip||||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
 |ubuntu20/python3.8/pip||||||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
@@ -27,10 +27,8 @@
 | [**Notebook**](https://github.com/espnet/notebook)
 | [**Tutorial (2019)**](https://github.com/espnet/interspeech2019-tutorial)
 
-ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end speech recognition and end-to-end text-to-speech.
-ESPnet uses [chainer](https://chainer.org/) and [pytorch](http://pytorch.org/) as a main deep learning engine,
-and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.
-
+ESPnet is an end-to-end speech processing toolkit covering end-to-end speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, and so on.
+ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for various speech processing experiments.
 ## Key Features
 
 ### Kaldi style complete recipe
@@ -38,20 +36,21 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Support numbers of `TTS` recipes with a similar manner to the ASR recipe (LJSpeech, LibriTTS, M-AILABS, etc.)
 - Support numbers of `ST` recipes (Fisher-CallHome Spanish, Libri-trans, IWSLT'18, How2, Must-C, Mboshi-French, etc.)
 - Support numbers of `MT` recipes (IWSLT'16, the above ST recipes etc.)
-- Support speech separation and recognition recipe (WSJ-2mix)
-- Support voice conversion recipe (VCC2020 baseline) (new!)
-- Support speech language understanding recipe (FSC baseline) (new!)
-
+- Support numbers of `SLU` recipes (CATSLU-MAPS, FSC, Grabo, IEMOCAP, JDCINAL, SNIPS, SLURP, SWBD-DA, etc.)
+- Support numbers of `SE/SS` recipes (DNS-IS2020, LibriMix, SMS-WSJ, VCTK-noisyreverb, WHAM!, WHAMR!, WSJ-2mix, etc.)
+- Support voice conversion recipe (VCC2020 baseline)
+- Support speaker diarization recipe (mini_librispeech)
 
 ### ASR: Automatic Speech Recognition
 - **State-of-the-art performance** in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
 - **Hybrid CTC/attention** based end-to-end ASR
   - Fast/accurate training with CTC/attention multitask training
   - CTC/attention joint decoding to boost monotonic alignment decoding
-  - Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU) or Transformer
+  - Encoder: VGG-like CNN + BiRNN (LSTM/GRU), sub-sampling BiRNN (LSTM/GRU), Transformer, or conformer
 - Attention: Dot product, location-aware attention, variants of multihead
 - Incorporate RNNLM/LSTMLM/TransformerLM/N-gram trained only with text data
 - Batch GPU decoding
+- Data augmentation
 - **Transducer** based end-to-end ASR
   - Architecture:
     - RNN-based encoder and decoder.
@@ -59,15 +58,17 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
     - VGG2L (RNN/custom encoder) and Conv2D (custom encoder) bottlenecks.
   - Search algorithms:
     - Greedy search constrained to one emission by timestep.
-    - Default beam search algorithm without prefix search.
-    - Alignment-Length Synchronous decoding ([Saon et al., 2020](https://ieeexplore.ieee.org/abstract/document/9053040)).
-    - Time Synchronous Decoding ([Saon et al., 2020](https://ieeexplore.ieee.org/abstract/document/9053040)).
-    - N-step Constrained beam search modified from [Kim et al., 2020](https://arxiv.org/abs/2002.03577).
-    - modified Adaptive Expansion Search based on [Kim et al. (2021)](https://ieeexplore.ieee.org/abstract/document/9250505) and NSC.
+    - Default beam search algorithm [[Graves, 2012]](https://arxiv.org/abs/1211.3711) without prefix search.
+    - Alignment-Length Synchronous decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040).
+    - Time Synchronous Decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040).
+    - N-step Constrained beam search modified from [[Kim et al., 2020]](https://arxiv.org/abs/2002.03577).
+    - modified Adaptive Expansion Search based on [[Kim et al., 2021]](https://ieeexplore.ieee.org/abstract/document/9250505) and NSC.
   - Features:
-    - Multi-task learning with various auxiliary tasks: CTC, Label smoothing, auxiliary RNN-T and symmetric KL divergence.
+    - Multi-task learning with various auxiliary losses:
+      - Encoder: CTC, auxiliary Transducer and symmetric KL divergence.
+      - Decoder: cross-entropy w/ label smoothing.
     - Transfer learning with acoustic model and/or language model.
-    - Training with [FastEmit regularization method](https://arxiv.org/abs/2010.11148).
+    - Training with FastEmit regularization method [[Yu et al., 2021]](https://arxiv.org/abs/2010.11148).
   > Please refer to the [tutorial page](https://espnet.github.io/espnet/tutorial.html#transducer) for complete documentation.
 - CTC segmentation
 - Non-autoregressive model based on Mask-CTC
@@ -76,10 +77,12 @@ and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature e
 - Self-supervised learning representations as features, using upstream models in [S3PRL](https://github.com/s3prl/s3prl) in frontend.
   - Set `frontend` to be `s3prl`
   - Select any upstream model by setting the `frontend_conf` to the corresponding name.
+- Streaming Transformer/Conformer ASR with blockwise synchronous beam search.
 
 Demonstration
 - Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_asr_realtime_demo.ipynb)
 - [Gradio](https://github.com/gradio-app/gradio) Web Demo on [Huggingface Spaces](https://huggingface.co/docs/hub/spaces). Check out the [Web Demo](https://huggingface.co/spaces/akhaliq/espnet2_asr)
+- Streaming Transformer ASR [Local Demo](https://github.com/espnet/notebook/blob/master/espnet2_streaming_asr_demo.ipynb) with ESPnet2.
 
 ### TTS: Text-to-speech
 - Architecture
@@ -684,14 +687,6 @@ The sample rate of the audio must be consistent with that of the data used in tr
 
 </div></details>
 
-## References
-
-[1] Shinji Watanabe, Takaaki Hori, Shigeki Karita, Tomoki Hayashi, Jiro Nishitoba, Yuya Unno, Nelson Enrique Yalta Soplin, Jahn Heymann, Matthew Wiesner, Nanxin Chen, Adithya Renduchintala, and Tsubasa Ochiai, "ESPnet: End-to-End Speech Processing Toolkit," *Proc. Interspeech'18*, pp. 2207-2211 (2018)
-
-[2] Suyoun Kim, Takaaki Hori, and Shinji Watanabe, "Joint CTC-attention based end-to-end speech recognition using multi-task learning," *Proc. ICASSP'17*, pp. 4835--4839 (2017)
-
-[3] Shinji Watanabe, Takaaki Hori, Suyoun Kim, John R. Hershey and Tomoki Hayashi, "Hybrid CTC/Attention Architecture for End-to-End Speech Recognition," *IEEE Journal of Selected Topics in Signal Processing*, vol. 11, no. 8, pp. 1240-1253, Dec. 2017
-
 ## Citations
 
 ```
@@ -736,5 +731,11 @@ The sample rate of the audio must be consistent with that of the data used in tr
   pages={785--792},
   year={2021},
   organization={IEEE},
+}
+@article{arora2021espnet,
+  title={ESPnet-SLU: Advancing Spoken Language Understanding through ESPnet},
+  author={Arora, Siddhant and Dalmia, Siddharth and Denisov, Pavel and Chang, Xuankai and Ueda, Yushi and Peng, Yifan and Zhang, Yuekai and Kumar, Sujay and Ganesan, Karthik and Yan, Brian and others},
+  journal={arXiv preprint arXiv:2111.14706},
+  year={2021}
 }
 ```
