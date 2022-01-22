@@ -246,7 +246,14 @@ class ESPnetSTModel(AbsESPnetModel):
         # 3. Loss computation
         asr_ctc_weight = self.mtlalpha
         loss_st = loss_st_att
-        loss_asr = asr_ctc_weight * loss_asr_ctc + (1 - asr_ctc_weight) * loss_asr_att
+        if asr_ctc_weight == 1.0:
+            loss_asr = loss_asr_ctc
+        elif asr_ctc_weight == 0.0:
+            loss_asr = loss_asr_att
+        else:
+            loss_asr = (
+                asr_ctc_weight * loss_asr_ctc + (1 - asr_ctc_weight) * loss_asr_att
+            )
         loss_mt = self.mt_weight * loss_mt_att
         loss = (
             (1 - self.asr_weight - self.mt_weight) * loss_st
