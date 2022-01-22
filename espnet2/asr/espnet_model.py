@@ -179,12 +179,17 @@ class ESPnetASRModel(AbsESPnetModel):
         loss_att, acc_att, cer_att, wer_att = None, None, None, None
         loss_ctc, cer_ctc = None, None
         loss_transducer, cer_transducer, wer_transducer = None, None, None
+        stats = dict()
 
         # 1. CTC branch
         if self.ctc_weight != 0.0:
             loss_ctc, cer_ctc = self._calc_ctc_loss(
                 encoder_out, encoder_out_lens, text, text_lengths
             )
+
+            # Collect CTC branch stats
+            stats["loss_ctc"] = loss_ctc.detach() if loss_ctc is not None else None
+            stats["cer_ctc"] = cer_ctc
 
         if self.use_transducer_decoder:
             # 2a. Transducer decoder branch
@@ -202,6 +207,14 @@ class ESPnetASRModel(AbsESPnetModel):
                 loss = loss_transducer + (self.ctc_weight * loss_ctc)
             else:
                 loss = loss_transducer
+
+            # Collect Transducer branch stats
+            stats["loss_transducer"] = (
+                loss_transducer.detach() if loss_transducer is not None else None
+            )
+            stats["cer_transducer"] = cer_transducer
+            stats["wer_transducer"] = wer_transducer
+
         else:
             # 2b. Attention decoder branch
             if self.ctc_weight != 1.0:
@@ -217,20 +230,14 @@ class ESPnetASRModel(AbsESPnetModel):
             else:
                 loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
 
-        stats = dict(
-            loss=loss.detach(),
-            loss_att=loss_att.detach() if loss_att is not None else None,
-            loss_ctc=loss_ctc.detach() if loss_ctc is not None else None,
-            loss_transducer=loss_transducer.detach()
-            if loss_transducer is not None
-            else None,
-            acc=acc_att,
-            cer=cer_att,
-            wer=wer_att,
-            cer_ctc=cer_ctc,
-            cer_transducer=cer_transducer,
-            wer_transducer=wer_transducer,
-        )
+            # Collect Attn branch stats
+            stats["loss_att"] = loss_att.detach() if loss_att is not None else None
+            stats["acc"] = acc_att
+            stats["cer"] = cer_att
+            stats["wer"] = wer_att
+
+        # Collect total loss stats
+        stats["loss"] = loss.detach()
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)

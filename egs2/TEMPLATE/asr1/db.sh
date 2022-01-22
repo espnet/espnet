@@ -33,6 +33,7 @@ CSS10=
 HKUST1=
 HKUST2=
 HUI_ACG=downloads
+HUB4_SPANISH=
 LABOROTV=
 TEDXJP=
 LIBRISPEECH=
@@ -102,6 +103,7 @@ RU_OPEN_STT=downloads
 RUSLAN=downloads
 SIWIS=downloads
 GIGASPEECH=
+GOOGLEI18N=downloads
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
@@ -120,6 +122,7 @@ WENETSPEECH=
 SPEECHCOMMANDS=downloads
 TOTONAC=downloads
 PRIMEWORDS_CHINESE=downloads
+SEAME=
 
 # For only CMU environment
 if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
@@ -185,6 +188,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     HKUST1=
     HKUST2=
     HUI_ACG=downloads
+    HUB4_SPANISH=
     LABOROTV=
     TEDXJP=
     LIBRISPEECH=
@@ -254,4 +258,5 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     GAMAYUN=downloads
     IWSLT21LR=downloads/iwslt21
     TOTONAC=downloads
+    GOOGLEI18N=downloads
 fi
