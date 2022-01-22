@@ -1004,16 +1004,6 @@ if ! "${skip_train}"; then
 
 
     if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-        tempdir=$(mktemp -d "/tmp/jiatong_st-$$.XXXXXXXX")
-        trap 'rm -rf ${tempdir}' EXIT
-        cp -r "${data_feats}" ${tempdir}
-        data_feats="${tempdir}/$(basename ${data_feats})"
-        scp_lists=$(find ${tempdir} -type f -name "*.scp")
-        for f in ${scp_lists}; do
-            sed -i -e "s/${dumpdir//\//\\/}/${tempdir//\//\\/}/g" $f
-        done
-
-
         _asr_train_dir="${data_feats}/${train_set}"
         _asr_valid_dir="${data_feats}/${valid_set}"
         log "Stage 11: ASR Training: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
