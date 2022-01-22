@@ -31,11 +31,6 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_sp.es
-train_set_prefix=train_sp
-train_dev=train_dev.es
-recog_set="fisher_dev.es fisher_dev2.es fisher_test.es callhome_devtest.es callhome_evltest.es"
-
 # Assume the file structures as
 # - ${FISHER_CALLHOME_SPANISH}
 #     - LDC2010S01 # (for fisher speech)
