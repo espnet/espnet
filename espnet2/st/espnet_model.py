@@ -121,9 +121,8 @@ class ESPnetSTModel(AbsESPnetModel):
                 self.extra_asr_decoder = extra_asr_decoder
             elif extra_asr_decoder is not None:
                 logging.warning(
-                    "Not using extra_asr_decoder because mtlalpha is set as {} (== 1.0)".format(
-                        mtlalpha
-                    )
+                    "Not using extra_asr_decoder because",
+                    "mtlalpha is set as {} (== 1.0)".format(mtlalpha),
                 )
 
         # submodule for MT task
@@ -131,9 +130,8 @@ class ESPnetSTModel(AbsESPnetModel):
             self.extra_mt_decoder = extra_mt_decoder
         elif extra_mt_decoder is not None:
             logging.warning(
-                "Not using extra_mt_decoder because mt_weight is set as {} (== 0)".format(
-                    mt_weight
-                )
+                "Not using extra_mt_decoder because",
+                "mt_weight is set as {} (== 0)".format(mt_weight),
             )
 
         # MT error calculator

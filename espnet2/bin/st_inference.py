@@ -16,7 +16,6 @@ from typeguard import check_return_type
 from typing import List
 
 from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
@@ -24,8 +23,8 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.tasks.st import STTask
 from espnet2.tasks.lm import LMTask
+from espnet2.tasks.st import STTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
@@ -38,12 +37,14 @@ from espnet2.utils.types import str_or_none
 
 class Speech2Text:
     """Speech2Text class
+
     Examples:
         >>> import soundfile
         >>> speech2text = Speech2Text("st_config.yml", "st.pth")
         >>> audio, rate = soundfile.read("speech.wav")
         >>> speech2text(audio)
         [(text, token, token_int, hypothesis object), ...]
+
     """
 
     def __init__(
@@ -177,10 +178,12 @@ class Speech2Text:
         self, speech: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
         """Inference
+
         Args:
             data: Input speech data
         Returns:
             text, token, token_int, hyp
+
         """
         assert check_argument_types()
 
@@ -235,11 +238,13 @@ class Speech2Text:
         **kwargs: Optional[Any],
     ):
         """Build Speech2Text instance from the pretrained model.
+
         Args:
             model_tag (Optional[str]): Model tag of the pretrained models.
                 Currently, the tags of espnet_model_zoo are supported.
         Returns:
             Speech2Text: Speech2Text instance.
+
         """
         if model_tag is not None:
             try:
