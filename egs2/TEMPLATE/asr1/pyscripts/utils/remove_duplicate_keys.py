@@ -8,6 +8,7 @@
 import argparse
 from pathlib import Path
 
+
 def read_2column_text(path):
     """Read a text file having 2 column as dict object.
     Examples:
@@ -32,10 +33,13 @@ def read_2column_text(path):
                 print("{} {}".format(k, v))
                 keys.add(k)
 
+
 def main():
     """Print the duplicate-free result in stdout."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("index_file", type=str, help="Kaldi-style utterance-indexed file path.")
+    parser.add_argument(
+        "index_file", type=str, help="Kaldi-style utterance-indexed file path."
+    )
     args = parser.parse_args()
 
     read_2column_text(args.index_file)
