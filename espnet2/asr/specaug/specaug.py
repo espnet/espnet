@@ -1,9 +1,11 @@
 """SpecAugment module."""
+from typing import Optional
 from typing import Sequence
 from typing import Union
 
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.mask_along_axis import MaskAlongAxis
+from espnet2.layers.mask_along_axis import MaskAlongAxisVariableMaxWidth
 from espnet2.layers.time_warp import TimeWarp
 
 
@@ -30,12 +32,22 @@ class SpecAug(AbsSpecAug):
         freq_mask_width_range: Union[int, Sequence[int]] = (0, 20),
         num_freq_mask: int = 2,
         apply_time_mask: bool = True,
-        time_mask_width_range: Union[int, Sequence[int]] = (0, 100),
+        time_mask_width_range: Optional[Union[int, Sequence[int]]] = None,
+        time_mask_width_ratio_range: Optional[Union[float, Sequence[float]]] = None,
         num_time_mask: int = 2,
     ):
         if not apply_time_warp and not apply_time_mask and not apply_freq_mask:
             raise ValueError(
-                "Either one of time_warp, time_mask, or freq_mask should be applied",
+                "Either one of time_warp, time_mask, or freq_mask should be applied"
+            )
+        if (
+            apply_time_mask
+            and (time_mask_width_range is not None)
+            and (time_mask_width_ratio_range is not None)
+        ):
+            raise ValueError(
+                'Either one of "time_mask_width_range" or '
+                '"time_mask_width_ratio_range" can be used'
             )
         super().__init__()
         self.apply_time_warp = apply_time_warp
@@ -57,11 +69,23 @@ class SpecAug(AbsSpecAug):
             self.freq_mask = None
 
         if apply_time_mask:
-            self.time_mask = MaskAlongAxis(
-                dim="time",
-                mask_width_range=time_mask_width_range,
-                num_mask=num_time_mask,
-            )
+            if time_mask_width_range is not None:
+                self.time_mask = MaskAlongAxis(
+                    dim="time",
+                    mask_width_range=time_mask_width_range,
+                    num_mask=num_time_mask,
+                )
+            elif time_mask_width_ratio_range is not None:
+                self.time_mask = MaskAlongAxisVariableMaxWidth(
+                    dim="time",
+                    mask_width_ratio_range=time_mask_width_ratio_range,
+                    num_mask=num_time_mask,
+                )
+            else:
+                raise ValueError(
+                    'Either one of "time_mask_width_range" or '
+                    '"time_mask_width_ratio_range" should be used.'
+                )
         else:
             self.time_mask = None
 

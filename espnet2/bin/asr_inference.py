@@ -262,10 +262,11 @@ class Speech2Text:
             assert isinstance(hyp, (Hypothesis, TransHypothesis)), type(hyp)
 
             # remove sos/eos and get results
+            last_pos = None if self.asr_model.use_transducer_decoder else -1
             if isinstance(hyp.yseq, list):
-                token_int = hyp.yseq[1:-1]
+                token_int = hyp.yseq[1:last_pos]
             else:
-                token_int = hyp.yseq[1:-1].tolist()
+                token_int = hyp.yseq[1:last_pos].tolist()
 
             # remove blank symbol id, which is assumed to be 0
             token_int = list(filter(lambda x: x != 0, token_int))

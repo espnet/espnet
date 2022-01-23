@@ -8,7 +8,7 @@ best_model_criterion:
 -   - valid
     - loss
     - min
-keep_nbest_models: 2
+keep_nbest_models: 4
 
 encoder: conformer
 encoder_conf:

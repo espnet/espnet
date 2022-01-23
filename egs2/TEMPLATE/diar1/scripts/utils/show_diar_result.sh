@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-mindepth=0
-maxdepth=1
+mindepth=1
+maxdepth=5
 
 . utils/parse_options.sh
 
@@ -44,26 +44,21 @@ cat << EOF
 EOF
 
 while IFS= read -r expdir; do
-    if ls "${expdir}"/*/*/*/scoring/result_* &> /dev/null; then
+#    if ls "${expdir}"/*/*/*/scoring/result_* &> /dev/null; then
+    if ls "${expdir}"/scoring/result_* &> /dev/null; then
+    diardir=${expdir#*/}
         cat << EOF
-## $(basename ${expdir})
+## ${diardir%%/*}
 ### DER
-EOF
-        while IFS= read -r datasetdir; do
-            if ls "${datasetdir}"/scoring/result_* &> /dev/null; then
-                cat << EOF
-$(basename ${datasetdir})
-
+${expdir##*/}
 |threshold_median_collar|DER|
 |---|---|
 EOF
-                for file in "${datasetdir}"/scoring/result_*; do
-                    grep OVER ${file} \
-                        | grep -v nooverlap \
-                        | sed "s/^.*[^0-9]\([0-9]\{1,3\}\.[0-9]\{2\}\).*$/\|$(basename ${file})\|\1\|/"
-                    echo -n
-                done
-            fi
-        done < <(find ${expdir} -mindepth 1 -maxdepth 5 -type d)
+        for file in "${expdir}"/scoring/result_*; do
+            grep OVER ${file} \
+                | grep -v nooverlap \
+                | sed "s/^.*[^0-9]\([0-9]\{1,3\}\.[0-9]\{2\}\).*$/\|$(basename ${file})\|\1\|/"
+            echo -n
+        done
     fi
 done < <(find ${exp} -mindepth ${mindepth} -maxdepth ${maxdepth} -type d)
