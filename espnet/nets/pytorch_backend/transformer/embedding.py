@@ -190,7 +190,7 @@ class LearnableFourierPosEnc(torch.nn.Module):
 
     def extend_pe(self, x):
         """Reset the positional encodings."""
-        position_v = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1)
+        position_v = torch.arange(0, x.size(1), dtype=torch.float32).unsqueeze(1).to(x)
 
         cosine = torch.cos(torch.matmul(position_v, self.w_r))
         sine = torch.sin(torch.matmul(position_v, self.w_r))

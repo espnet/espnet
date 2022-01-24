@@ -52,30 +52,19 @@ def test_learnedFourierPe_extendable(dtype, device, apply_scaling, hidden_dim):
         pytest.skip("no cuda device is available")
     dtype = getattr(torch, dtype)
     dim = 2
-    pe = LearnableFourierPosEnc(dim, 0.0, 3).to(dtype=dtype, device=device)
+    pe = LearnableFourierPosEnc(
+        dim, apply_scaling=apply_scaling, hidden_dim=hidden_dim
+    ).to(dtype=dtype, device=device)
     x = torch.rand(2, 3, dim, dtype=dtype, device=device)
-    y = pe(x)
-    init_cache = pe.pe
-
-    # test not extended from init
-    x = torch.rand(2, 3, dim, dtype=dtype, device=device)
-    y = pe(x)
-    assert pe.pe is init_cache
+    pe(x)
 
     x = torch.rand(2, 5, dim, dtype=dtype, device=device)
-    y = pe(x)
-
-    sd = pe.state_dict()
-    assert len(sd) == 0, "PositionalEncoding should save nothing"
-    pe2 = PositionalEncoding(dim, 0.0, 3).to(dtype=dtype, device=device)
-    pe2.load_state_dict(sd)
-    y2 = pe2(x)
-    assert torch.allclose(y, y2)
+    pe(x)
 
 
 @pytest.mark.parametrize(
     "dtype, device",
-    [(dt, dv) for dt in ("float32", "float64") for dv in ("cpu", "cuda")],
+    [(dt, dv) for dt in ("float32", "float64", "float16") for dv in ("cpu", "cuda")],
 )
 def test_scaled_pe_extendable(dtype, device):
     if device == "cuda" and not torch.cuda.is_available():
