@@ -155,6 +155,12 @@ if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
     PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
 fi
 
+# For CMU TIR cluster
+if [[ "$(hostname -d)" == lti.cs.cmu.edu ]]; then
+    FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
+
+fi
+
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AIDATATANG_200ZH=downloads
