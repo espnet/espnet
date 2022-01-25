@@ -4,6 +4,17 @@ espnet2.tasks package
 
 
 
+.. _espnet2.tasks.st:
+
+espnet2.tasks.st
+----------------
+
+.. automodule:: espnet2.tasks.st
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tasks.asr:
 
 espnet2.tasks.asr

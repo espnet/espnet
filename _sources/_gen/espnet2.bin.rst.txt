@@ -92,6 +92,17 @@ espnet2.bin.split_scps
     :show-inheritance:
 
 
+.. _espnet2.bin.st_train:
+
+espnet2.bin.st_train
+--------------------
+
+.. automodule:: espnet2.bin.st_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.lm_calc_perplexity:
 
 espnet2.bin.lm_calc_perplexity
@@ -230,6 +241,17 @@ espnet2.bin.tokenize_text
 -------------------------
 
 .. automodule:: espnet2.bin.tokenize_text
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.st_inference:
+
+espnet2.bin.st_inference
+------------------------
+
+.. automodule:: espnet2.bin.st_inference
     :members:
     :undoc-members:
     :show-inheritance:
