@@ -10,20 +10,21 @@ frontend_conf:
 # encoder related
 encoder: conformer
 encoder_conf:
-    input_layer: conv2d
-    num_blocks: 12
-    linear_units: 2048
-    dropout_rate: 0.1
     output_size: 256
     attention_heads: 4
-    attention_dropout_rate: 0.0
-    pos_enc_layer_type: rel_pos
-    selfattention_layer_type: rel_selfattn
-    activation_type: swish
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: true
     macaron_style: true
-    use_cnn_module: true
-    cnn_module_kernel: 15
-
+    pos_enc_layer_type: "rel_pos"
+    selfattention_layer_type: "rel_selfattn"
+    activation_type: "swish"
+    use_cnn_module:  true
+    cnn_module_kernel: 31
 
 # decoder related
 decoder: transformer

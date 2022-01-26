@@ -29,3 +29,27 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/dev_all|12986|115994|76.9|13.3|9.7|5.4|28.5|62.4|
 |decode_asr_asr_model_valid.acc.ave/test|6283|55738|80.2|12.0|7.9|5.8|25.6|61.4|
+
+
+
+## asr_train_asr_conformer6_raw_bpe1000_sp
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dev_all|12986|81587|82.4|12.4|5.2|5.4|23.0|57.5|
+|decode_asr_asr_model_valid.acc.ave/test|6283|40307|85.0|11.0|4.1|5.4|20.5|55.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dev_all|12986|392279|91.6|2.9|5.4|5.3|13.7|57.5|
+|decode_asr_asr_model_valid.acc.ave/test|6283|195370|93.6|2.4|4.0|5.4|11.7|55.5|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.acc.ave/dev_all|12986|115994|81.6|10.1|8.3|5.3|23.7|57.5|
+|decode_asr_asr_model_valid.acc.ave/test|6283|55738|84.9|8.6|6.5|5.7|20.7|55.5|

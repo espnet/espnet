@@ -23,16 +23,11 @@ tgt_case=lc.rm
 
 ./st.sh \
     --local_data_opts "--stage 0" \
-    --stage 1 \
-    --stop_stage 13 \
     --audio_format "flac.ark" \
     --use_lm false \
     --token_joint false \
     --nj 40 \
-    --inference_nj 40 \
-    --st_tag "transformer_asr_pretrained" \
-    --pretrained_asr "/projects/tir3/users/jiatongs/st/espnet/egs2/fisher_callhome_spanish/asr1/exp/asr_train_asr_raw_bpe1000_sp/valid.acc.ave_10best.pth" \
-    --ignore_init_mismatch true \
+    --inference_nj 8 \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
     --src_token_type "bpe" \
