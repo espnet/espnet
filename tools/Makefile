@@ -201,6 +201,10 @@ transformers.done: espnet.done
 	. ./activate_python.sh && ./installers/install_transformers.sh
 	touch transformers.done
 
+longformer.done: espnet.done
+	. ./activate_python.sh && ./installers/install_longformer.sh
+	touch longformer.done
+
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py
 

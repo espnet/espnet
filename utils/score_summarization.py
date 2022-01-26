@@ -2,6 +2,9 @@ import sys
 import os
 from datasets import load_metric
 import numpy as np
+from nlgeval import compute_metrics
+from nlgeval import NLGEval
+
 
 ref_file = sys.argv[1]
 hyp_file = sys.argv[2]
@@ -31,8 +34,6 @@ result_bert = metric.compute(
     lang="en",
 )
 
-from nlgeval import compute_metrics
-from nlgeval import NLGEval
 
 nlg = NLGEval()  # loads the models
 for (key, ref, hyp) in zip(keys, labels, decoded_preds):

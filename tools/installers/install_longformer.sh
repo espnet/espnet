@@ -19,4 +19,4 @@ EOF
 )
 
 pip install git+https://github.com/allenai/longformer.git
-pip install nlgeval
+pip install nlgeval datasets
