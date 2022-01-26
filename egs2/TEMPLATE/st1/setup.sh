@@ -41,7 +41,7 @@ done
 
 
 # Symlinks to TEMPLATE
-for f in asr.sh path.sh db.sh scripts pyscripts; do
+for f in st.sh path.sh db.sh scripts pyscripts; do
     target=../../TEMPLATE/st1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
