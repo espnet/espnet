@@ -111,6 +111,7 @@ SUNDA=downloads
 CMU_ARCTIC=downloads
 CMU_INDIC=downloads
 INDIC_SPEECH=downloads
+IWSLT22_DIALECT=
 JKAC=
 MUCS_SUBTASK1=downloads
 MUCS_SUBTASK2=downloads
@@ -152,6 +153,7 @@ if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
     BABEL_403=/projects/tir5/data/speech_corpora/babel/IARPA-babel403b-v1.0b-build/BABEL_OP3_403/
     BABEL_404=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_OP3_404/
     GRABO=/projects/tir5/data/speech_corpora/Grabo
+    IWSLT22_DIALECT=/projects/tir5/data/speech_corpora/LDC2022E01_IWSLT22_Tunisian_Arabic_Shared_Task_Training_Data/
     PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
 fi
 
