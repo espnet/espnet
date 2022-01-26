@@ -1,7 +1,0 @@
-beam_size: 4
-batch_size: 1
-penalty: 0.1
-minlenratio: 0.01
-maxlenratio: 0.2
-ctc_weight: 0.0
-lm_weight: 0.0

@@ -20,9 +20,6 @@ from espnet.nets.pytorch_backend.transformer.attention import (
     RelPositionMultiHeadedAttention,  # noqa: H301
     LegacyRelPositionMultiHeadedAttention,  # noqa: H301
 )
-from espnet.nets.pytorch_backend.transformer.longformer_attention import (
-    LongformerAttention,
-)
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,  # noqa: H301
     ScaledPositionalEncoding,  # noqa: H301
@@ -129,10 +126,10 @@ class ConformerEncoder(AbsEncoder):
         elif pos_enc_layer_type == "scaled_abs_pos":
             pos_enc_class = ScaledPositionalEncoding
         elif pos_enc_layer_type == "rel_pos":
-            # assert selfattention_layer_type == "rel_selfattn"
+            assert selfattention_layer_type in ["rel_selfattn","lf_selfattn"]
             pos_enc_class = RelPositionalEncoding
         elif pos_enc_layer_type == "legacy_rel_pos":
-            # assert selfattention_layer_type == "legacy_rel_selfattn"
+            assert selfattention_layer_type in ["rel_selfattn","lf_selfattn"]
             pos_enc_class = LegacyRelPositionalEncoding
             logging.warning(
                 "Using legacy_rel_pos and it will be deprecated in the future."
@@ -247,11 +244,11 @@ class ConformerEncoder(AbsEncoder):
                 zero_triu,
             )
         elif selfattention_layer_type == "lf_selfattn":
-
-            encoder_selfattn_layer = LongformerAttention
-
+            from espnet.nets.pytorch_backend.transformer.longformer_attention import LongformerAttention
             import longformer
             from longformer.longformer import LongformerConfig
+            encoder_selfattn_layer = LongformerAttention
+            
 
             config = LongformerConfig(
                 attention_window=attention_windows,

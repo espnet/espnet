@@ -37,5 +37,3 @@ class LongformerAttention(nn.Module):
         #     output_attentions=True,
         # )
         return output
-
-        ##
