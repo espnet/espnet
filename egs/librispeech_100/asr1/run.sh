@@ -260,7 +260,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         if ${skip_lm_training}; then
             lmtag="nolm"
         else
-            recog_opts="--rnnlm ${lmexpdir}/rnnlm.model.best"
+            recog_opts="--rnnlm ${lmexpdir}/${lang_model}"
         fi
     fi
 
