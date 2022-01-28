@@ -4,12 +4,12 @@ espnet2.asr package
 
 
 
-.. _espnet2.asr.espnet_model:
+.. _espnet2.asr.ctc:
 
-espnet2.asr.espnet_model
-------------------------
+espnet2.asr.ctc
+---------------
 
-.. automodule:: espnet2.asr.espnet_model
+.. automodule:: espnet2.asr.ctc
     :members:
     :undoc-members:
     :show-inheritance:
@@ -26,276 +26,12 @@ espnet2.asr.__init__
     :show-inheritance:
 
 
-.. _espnet2.asr.ctc:
+.. _espnet2.asr.espnet_model:
 
-espnet2.asr.ctc
----------------
+espnet2.asr.espnet_model
+------------------------
 
-.. automodule:: espnet2.asr.ctc
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.specaug.specaug:
-
-espnet2.asr.specaug.specaug
----------------------------
-
-.. automodule:: espnet2.asr.specaug.specaug
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.specaug.__init__:
-
-espnet2.asr.specaug.__init__
-----------------------------
-
-.. automodule:: espnet2.asr.specaug.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.specaug.abs_specaug:
-
-espnet2.asr.specaug.abs_specaug
--------------------------------
-
-.. automodule:: espnet2.asr.specaug.abs_specaug
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.frontend.default:
-
-espnet2.asr.frontend.default
-----------------------------
-
-.. automodule:: espnet2.asr.frontend.default
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.frontend.windowing:
-
-espnet2.asr.frontend.windowing
-------------------------------
-
-.. automodule:: espnet2.asr.frontend.windowing
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.frontend.s3prl:
-
-espnet2.asr.frontend.s3prl
---------------------------
-
-.. automodule:: espnet2.asr.frontend.s3prl
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.frontend.__init__:
-
-espnet2.asr.frontend.__init__
------------------------------
-
-.. automodule:: espnet2.asr.frontend.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.frontend.fused:
-
-espnet2.asr.frontend.fused
---------------------------
-
-.. automodule:: espnet2.asr.frontend.fused
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.frontend.abs_frontend:
-
-espnet2.asr.frontend.abs_frontend
----------------------------------
-
-.. automodule:: espnet2.asr.frontend.abs_frontend
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.postencoder.hugging_face_transformers_postencoder:
-
-espnet2.asr.postencoder.hugging_face_transformers_postencoder
--------------------------------------------------------------
-
-.. automodule:: espnet2.asr.postencoder.hugging_face_transformers_postencoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.postencoder.__init__:
-
-espnet2.asr.postencoder.__init__
---------------------------------
-
-.. automodule:: espnet2.asr.postencoder.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.postencoder.abs_postencoder:
-
-espnet2.asr.postencoder.abs_postencoder
----------------------------------------
-
-.. automodule:: espnet2.asr.postencoder.abs_postencoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.decoder.abs_decoder:
-
-espnet2.asr.decoder.abs_decoder
--------------------------------
-
-.. automodule:: espnet2.asr.decoder.abs_decoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.decoder.rnn_decoder:
-
-espnet2.asr.decoder.rnn_decoder
--------------------------------
-
-.. automodule:: espnet2.asr.decoder.rnn_decoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.decoder.__init__:
-
-espnet2.asr.decoder.__init__
-----------------------------
-
-.. automodule:: espnet2.asr.decoder.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.decoder.transformer_decoder:
-
-espnet2.asr.decoder.transformer_decoder
----------------------------------------
-
-.. automodule:: espnet2.asr.decoder.transformer_decoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.encoder.transformer_encoder:
-
-espnet2.asr.encoder.transformer_encoder
----------------------------------------
-
-.. automodule:: espnet2.asr.encoder.transformer_encoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.encoder.vgg_rnn_encoder:
-
-espnet2.asr.encoder.vgg_rnn_encoder
------------------------------------
-
-.. automodule:: espnet2.asr.encoder.vgg_rnn_encoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.encoder.rnn_encoder:
-
-espnet2.asr.encoder.rnn_encoder
--------------------------------
-
-.. automodule:: espnet2.asr.encoder.rnn_encoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.encoder.abs_encoder:
-
-espnet2.asr.encoder.abs_encoder
--------------------------------
-
-.. automodule:: espnet2.asr.encoder.abs_encoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.encoder.hubert_encoder:
-
-espnet2.asr.encoder.hubert_encoder
-----------------------------------
-
-.. automodule:: espnet2.asr.encoder.hubert_encoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.encoder.wav2vec2_encoder:
-
-espnet2.asr.encoder.wav2vec2_encoder
-------------------------------------
-
-.. automodule:: espnet2.asr.encoder.wav2vec2_encoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.encoder.__init__:
-
-espnet2.asr.encoder.__init__
-----------------------------
-
-.. automodule:: espnet2.asr.encoder.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.encoder.conformer_encoder:
-
-espnet2.asr.encoder.conformer_encoder
--------------------------------------
-
-.. automodule:: espnet2.asr.encoder.conformer_encoder
+.. automodule:: espnet2.asr.espnet_model
     :members:
     :undoc-members:
     :show-inheritance:
@@ -312,6 +48,94 @@ espnet2.asr.encoder.contextual_block_transformer_encoder
     :show-inheritance:
 
 
+.. _espnet2.asr.encoder.vgg_rnn_encoder:
+
+espnet2.asr.encoder.vgg_rnn_encoder
+-----------------------------------
+
+.. automodule:: espnet2.asr.encoder.vgg_rnn_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.encoder.transformer_encoder:
+
+espnet2.asr.encoder.transformer_encoder
+---------------------------------------
+
+.. automodule:: espnet2.asr.encoder.transformer_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.encoder.__init__:
+
+espnet2.asr.encoder.__init__
+----------------------------
+
+.. automodule:: espnet2.asr.encoder.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.encoder.hubert_encoder:
+
+espnet2.asr.encoder.hubert_encoder
+----------------------------------
+
+.. automodule:: espnet2.asr.encoder.hubert_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.encoder.abs_encoder:
+
+espnet2.asr.encoder.abs_encoder
+-------------------------------
+
+.. automodule:: espnet2.asr.encoder.abs_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.encoder.wav2vec2_encoder:
+
+espnet2.asr.encoder.wav2vec2_encoder
+------------------------------------
+
+.. automodule:: espnet2.asr.encoder.wav2vec2_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.encoder.rnn_encoder:
+
+espnet2.asr.encoder.rnn_encoder
+-------------------------------
+
+.. automodule:: espnet2.asr.encoder.rnn_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.encoder.conformer_encoder:
+
+espnet2.asr.encoder.conformer_encoder
+-------------------------------------
+
+.. automodule:: espnet2.asr.encoder.conformer_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.encoder.contextual_block_conformer_encoder:
 
 espnet2.asr.encoder.contextual_block_conformer_encoder
@@ -323,67 +147,45 @@ espnet2.asr.encoder.contextual_block_conformer_encoder
     :show-inheritance:
 
 
-.. _espnet2.asr.transducer.joint_network:
+.. _espnet2.asr.decoder.transformer_decoder:
 
-espnet2.asr.transducer.joint_network
-------------------------------------
-
-.. automodule:: espnet2.asr.transducer.joint_network
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.transducer.utils:
-
-espnet2.asr.transducer.utils
-----------------------------
-
-.. automodule:: espnet2.asr.transducer.utils
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.transducer.error_calculator:
-
-espnet2.asr.transducer.error_calculator
+espnet2.asr.decoder.transformer_decoder
 ---------------------------------------
 
-.. automodule:: espnet2.asr.transducer.error_calculator
+.. automodule:: espnet2.asr.decoder.transformer_decoder
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.asr.transducer.__init__:
+.. _espnet2.asr.decoder.__init__:
 
-espnet2.asr.transducer.__init__
+espnet2.asr.decoder.__init__
+----------------------------
+
+.. automodule:: espnet2.asr.decoder.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.decoder.rnn_decoder:
+
+espnet2.asr.decoder.rnn_decoder
 -------------------------------
 
-.. automodule:: espnet2.asr.transducer.__init__
+.. automodule:: espnet2.asr.decoder.rnn_decoder
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.asr.transducer.transducer_decoder:
+.. _espnet2.asr.decoder.abs_decoder:
 
-espnet2.asr.transducer.transducer_decoder
------------------------------------------
+espnet2.asr.decoder.abs_decoder
+-------------------------------
 
-.. automodule:: espnet2.asr.transducer.transducer_decoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.asr.transducer.beam_search_transducer:
-
-espnet2.asr.transducer.beam_search_transducer
----------------------------------------------
-
-.. automodule:: espnet2.asr.transducer.beam_search_transducer
+.. automodule:: espnet2.asr.decoder.abs_decoder
     :members:
     :undoc-members:
     :show-inheritance:
@@ -395,6 +197,17 @@ espnet2.asr.preencoder.abs_preencoder
 -------------------------------------
 
 .. automodule:: espnet2.asr.preencoder.abs_preencoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.preencoder.sinc:
+
+espnet2.asr.preencoder.sinc
+---------------------------
+
+.. automodule:: espnet2.asr.preencoder.sinc
     :members:
     :undoc-members:
     :show-inheritance:
@@ -422,12 +235,199 @@ espnet2.asr.preencoder.linear
     :show-inheritance:
 
 
-.. _espnet2.asr.preencoder.sinc:
+.. _espnet2.asr.frontend.default:
 
-espnet2.asr.preencoder.sinc
+espnet2.asr.frontend.default
+----------------------------
+
+.. automodule:: espnet2.asr.frontend.default
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.frontend.__init__:
+
+espnet2.asr.frontend.__init__
+-----------------------------
+
+.. automodule:: espnet2.asr.frontend.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.frontend.windowing:
+
+espnet2.asr.frontend.windowing
+------------------------------
+
+.. automodule:: espnet2.asr.frontend.windowing
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.frontend.fused:
+
+espnet2.asr.frontend.fused
+--------------------------
+
+.. automodule:: espnet2.asr.frontend.fused
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.frontend.s3prl:
+
+espnet2.asr.frontend.s3prl
+--------------------------
+
+.. automodule:: espnet2.asr.frontend.s3prl
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.frontend.abs_frontend:
+
+espnet2.asr.frontend.abs_frontend
+---------------------------------
+
+.. automodule:: espnet2.asr.frontend.abs_frontend
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.specaug.__init__:
+
+espnet2.asr.specaug.__init__
+----------------------------
+
+.. automodule:: espnet2.asr.specaug.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.specaug.specaug:
+
+espnet2.asr.specaug.specaug
 ---------------------------
 
-.. automodule:: espnet2.asr.preencoder.sinc
+.. automodule:: espnet2.asr.specaug.specaug
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.specaug.abs_specaug:
+
+espnet2.asr.specaug.abs_specaug
+-------------------------------
+
+.. automodule:: espnet2.asr.specaug.abs_specaug
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.postencoder.abs_postencoder:
+
+espnet2.asr.postencoder.abs_postencoder
+---------------------------------------
+
+.. automodule:: espnet2.asr.postencoder.abs_postencoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.postencoder.__init__:
+
+espnet2.asr.postencoder.__init__
+--------------------------------
+
+.. automodule:: espnet2.asr.postencoder.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.postencoder.hugging_face_transformers_postencoder:
+
+espnet2.asr.postencoder.hugging_face_transformers_postencoder
+-------------------------------------------------------------
+
+.. automodule:: espnet2.asr.postencoder.hugging_face_transformers_postencoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.transducer_decoder:
+
+espnet2.asr.transducer.transducer_decoder
+-----------------------------------------
+
+.. automodule:: espnet2.asr.transducer.transducer_decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.beam_search_transducer:
+
+espnet2.asr.transducer.beam_search_transducer
+---------------------------------------------
+
+.. automodule:: espnet2.asr.transducer.beam_search_transducer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.joint_network:
+
+espnet2.asr.transducer.joint_network
+------------------------------------
+
+.. automodule:: espnet2.asr.transducer.joint_network
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.utils:
+
+espnet2.asr.transducer.utils
+----------------------------
+
+.. automodule:: espnet2.asr.transducer.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.__init__:
+
+espnet2.asr.transducer.__init__
+-------------------------------
+
+.. automodule:: espnet2.asr.transducer.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.error_calculator:
+
+espnet2.asr.transducer.error_calculator
+---------------------------------------
+
+.. automodule:: espnet2.asr.transducer.error_calculator
     :members:
     :undoc-members:
     :show-inheritance:

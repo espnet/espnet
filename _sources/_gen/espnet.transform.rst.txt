@@ -4,12 +4,12 @@ espnet.transform package
 Initialize main package.
 
 
-.. _espnet.transform.add_deltas:
+.. _espnet.transform.cmvn:
 
-espnet.transform.add_deltas
----------------------------
+espnet.transform.cmvn
+---------------------
 
-.. automodule:: espnet.transform.add_deltas
+.. automodule:: espnet.transform.cmvn
     :members:
     :undoc-members:
     :show-inheritance:
@@ -37,6 +37,28 @@ espnet.transform.wpe
     :show-inheritance:
 
 
+.. _espnet.transform.transformation:
+
+espnet.transform.transformation
+-------------------------------
+
+.. automodule:: espnet.transform.transformation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.transform.__init__:
+
+espnet.transform.__init__
+-------------------------
+
+.. automodule:: espnet.transform.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet.transform.spectrogram:
 
 espnet.transform.spectrogram
@@ -59,23 +81,23 @@ espnet.transform.functional
     :show-inheritance:
 
 
+.. _espnet.transform.perturb:
+
+espnet.transform.perturb
+------------------------
+
+.. automodule:: espnet.transform.perturb
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet.transform.transform_interface:
 
 espnet.transform.transform_interface
 ------------------------------------
 
 .. automodule:: espnet.transform.transform_interface
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.transform.__init__:
-
-espnet.transform.__init__
--------------------------
-
-.. automodule:: espnet.transform.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -92,34 +114,12 @@ espnet.transform.channel_selector
     :show-inheritance:
 
 
-.. _espnet.transform.perturb:
+.. _espnet.transform.add_deltas:
 
-espnet.transform.perturb
-------------------------
+espnet.transform.add_deltas
+---------------------------
 
-.. automodule:: espnet.transform.perturb
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.transform.transformation:
-
-espnet.transform.transformation
--------------------------------
-
-.. automodule:: espnet.transform.transformation
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.transform.cmvn:
-
-espnet.transform.cmvn
----------------------
-
-.. automodule:: espnet.transform.cmvn
+.. automodule:: espnet.transform.add_deltas
     :members:
     :undoc-members:
     :show-inheritance:

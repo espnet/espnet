@@ -4,23 +4,12 @@ espnet2.fileio package
 
 
 
-.. _espnet2.fileio.npy_scp:
+.. _espnet2.fileio.rttm:
 
-espnet2.fileio.npy_scp
-----------------------
+espnet2.fileio.rttm
+-------------------
 
-.. automodule:: espnet2.fileio.npy_scp
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.fileio.sound_scp:
-
-espnet2.fileio.sound_scp
-------------------------
-
-.. automodule:: espnet2.fileio.sound_scp
+.. automodule:: espnet2.fileio.rttm
     :members:
     :undoc-members:
     :show-inheritance:
@@ -59,6 +48,17 @@ espnet2.fileio.__init__
     :show-inheritance:
 
 
+.. _espnet2.fileio.sound_scp:
+
+espnet2.fileio.sound_scp
+------------------------
+
+.. automodule:: espnet2.fileio.sound_scp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.fileio.datadir_writer:
 
 espnet2.fileio.datadir_writer
@@ -70,12 +70,12 @@ espnet2.fileio.datadir_writer
     :show-inheritance:
 
 
-.. _espnet2.fileio.rttm:
+.. _espnet2.fileio.npy_scp:
 
-espnet2.fileio.rttm
--------------------
+espnet2.fileio.npy_scp
+----------------------
 
-.. automodule:: espnet2.fileio.rttm
+.. automodule:: espnet2.fileio.npy_scp
     :members:
     :undoc-members:
     :show-inheritance:

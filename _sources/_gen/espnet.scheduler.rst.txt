@@ -4,23 +4,23 @@ espnet.scheduler package
 Initialize sub package.
 
 
-.. _espnet.scheduler.pytorch:
-
-espnet.scheduler.pytorch
-------------------------
-
-.. automodule:: espnet.scheduler.pytorch
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet.scheduler.scheduler:
 
 espnet.scheduler.scheduler
 --------------------------
 
 .. automodule:: espnet.scheduler.scheduler
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.scheduler.chainer:
+
+espnet.scheduler.chainer
+------------------------
+
+.. automodule:: espnet.scheduler.chainer
     :members:
     :undoc-members:
     :show-inheritance:
@@ -37,12 +37,12 @@ espnet.scheduler.__init__
     :show-inheritance:
 
 
-.. _espnet.scheduler.chainer:
+.. _espnet.scheduler.pytorch:
 
-espnet.scheduler.chainer
+espnet.scheduler.pytorch
 ------------------------
 
-.. automodule:: espnet.scheduler.chainer
+.. automodule:: espnet.scheduler.pytorch
     :members:
     :undoc-members:
     :show-inheritance:
