@@ -12,7 +12,7 @@ train_set=train
 train_dev=dev
 test_set=test1
 
-st_config=conf/train_st.yaml
+st_config=conf/tuning/transformer_fisherlike_4gpu_bbins16m_fix.yaml
 inference_config=conf/decode_st.yaml
 
 src_nbpe=1000
@@ -22,12 +22,13 @@ src_case=tc.rm
 tgt_case=tc
 
 ./st.sh \
-    --stage 3 \
-    --stop_stage 3 \
+    --stage 11 \
+    --stop_stage 13 \
     --use_lm false \
     --token_joint false \
     --nj 40 \
     --inference_nj 40 \
+    --audio_format "flac.ark" \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
     --src_token_type "bpe" \
@@ -49,5 +50,4 @@ tgt_case=tc
     #--local_data_opts "--stage 0" \
     #--ignore_init_mismatch true \
     #--st_tag "transformer_asr_pretrained" \
-    #--audio_format "flac.ark" \
     #--pretrained_asr "/projects/tir3/users/jiatongs/st/espnet/egs2/fisher_callhome_spanish/asr1/exp/asr_train_asr_raw_bpe1000_sp/valid.acc.ave_10best.pth" \
