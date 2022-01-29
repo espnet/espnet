@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-train_set="train"
+train_set="train_clean_100"
 valid_set="dev"
 test_sets="test_clean test_other dev_clean dev_other"
 
