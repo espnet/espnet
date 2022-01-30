@@ -429,7 +429,7 @@ if ! "${skip_data_prep}"; then
                     # NOTE(kan-bayashi): 0 is reserved for unknown languages
                     echo "<unk> 0" > "${data_feats}${_suf}/${dset}/lang2lid"
                     cut -f 2 -d " " "${data_feats}${_suf}/${dset}/utt2lang" | sort | uniq | \
-                        awk '{print $1 " " NR}' >> "${data_feats}${_suf}/${dset}/utt2lid"
+                        awk '{print $1 " " NR}' >> "${data_feats}${_suf}/${dset}/lang2lid"
                 fi
                 # NOTE(kan-bayashi): We can reuse the same script for making utt2sid
                 pyscripts/utils/utt2spk_to_utt2sid.py \

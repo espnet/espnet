@@ -16,9 +16,9 @@ if [ ! -e tdmelodic_pyopenjtalk.done ]; then
         # TODO(kan-bayashi): Better to fix tagged version
         #   commit id when creating PR: 766477584a423a1e62b0f81f79fb7e5e189962b5
         rm -rf tdmelodic_openjtalk && git clone https://github.com/sarulab-speech/tdmelodic_openjtalk.git
-        rm -rf pyopenjtalk && git clone https://github.com/r9y9/pyopenjtalk.git -b v0.1.5
+        rm -rf pyopenjtalk && git clone https://github.com/r9y9/pyopenjtalk.git -b v0.1.6
         cd pyopenjtalk
-        git switch -c v0.1.5
+        git switch -c v0.1.6
         git submodule update --recursive --init
 
         # concatenate the dictionary

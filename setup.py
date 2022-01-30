@@ -31,6 +31,7 @@ requirements = {
         "ctc-segmentation<1.8,>=1.6.6",
         # TTS
         "pyworld>=0.2.10",
+        "pypinyin<=0.44.0",
         "espnet_tts_frontend",
         # ENH
         "ci_sdr",
@@ -73,7 +74,10 @@ requirements = {
         "transformers",
         "gtn",
     ],
-    "setup": ["numpy", "pytest-runner"],
+    "setup": [
+        "numpy<=1.21.3",
+        "pytest-runner",
+    ],
     "test": [
         "pytest>=3.3.0",
         "pytest-timeouts>=1.2.1",
