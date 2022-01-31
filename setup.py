@@ -70,7 +70,7 @@ requirements = {
         "torchaudio",
         "torch_optimizer",
         "fairscale",
-        "fairseq<=0.10.1",
+        "fairseq",
         "transformers",
         "gtn",
     ],
