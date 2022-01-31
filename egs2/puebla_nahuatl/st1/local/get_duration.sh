@@ -1,1 +1,0 @@
-../../../../egs/puebla_nahuatl/st1/local/get_duration.sh
