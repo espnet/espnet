@@ -50,7 +50,6 @@ feats_type=raw             # Input feature type.
 audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 min_wav_duration=0.1       # Minimum duration in second.
 max_wav_duration=20        # Maximum duration in second.
-use_xvector=false          # Whether to use x-vector (Require Kaldi).
 use_sid=false              # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 use_lid=false              # Whether to use language id as the inputs (Need utt2lang in data directory).
 feats_extract=fbank        # On-the-fly feature extractor.
@@ -65,6 +64,11 @@ n_mels=80                  # The number of mel basis.
 # Only used for the model using pitch & energy features (e.g. FastSpeech2)
 f0min=80  # Maximum f0 for pitch extraction.
 f0max=400 # Minimum f0 for pitch extraction.
+
+# X-Vector related
+use_xvector=false          # Whether to use x-vector.
+xv_tool=sb  # Toolkit to use (Speechbrain: sb, ESPnet:esp, kaldi)
+xv_model=speechbrain/spkrec-ecapa-voxceleb  # kaldi: http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
 
 # Vocabulary related
 oov="<unk>"         # Out of vocabrary symbol.
@@ -141,7 +145,9 @@ Options:
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
-    --use_xvector      # Whether to use X-vector (Require Kaldi, default="${use_xvector}").
+    --use_xvector      # Whether to use X-vector (default="${use_xvector}").
+    --xv_tool           # Toolkit for generating the X-vectors (default="${xv_tool}").
+    --xv_model      # Pretrained model to generate the X-vectors (default="${xv_model}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
     --use_lid          # Whether to use language id as the inputs (default="${use_lid}").
     --feats_extract    # On the fly feature extractor (default="${feats_extract}").
@@ -333,68 +339,81 @@ if ! "${skip_data_prep}"; then
                 "data/${dset}/wav.scp" "${data_feats}${_suf}/${dset}"
             echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
         done
+    fi
 
-        # Extract X-vector
+    # Extract X-vector
+    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         if "${use_xvector}"; then
-            log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector (Require Kaldi)"
-            # Download X-vector pretrained model
-            xvector_exp=${expdir}/xvector_nnet_1a
-            if [ ! -e "${xvector_exp}" ]; then
-                log "X-vector model does not exist. Download pre-trained model."
-                wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
-                tar xvf 0008_sitw_v2_1a.tar.gz
-                [ ! -e "${expdir}" ] && mkdir -p "${expdir}"
-                mv 0008_sitw_v2_1a/exp/xvector_nnet_1a "${xvector_exp}"
-                rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
-            fi
-
-            # Generate the MFCC features, VAD decision, and X-vector
-            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-                # 1. Copy datadir and resample to 16k
-                utils/copy_data_dir.sh "data/${dset}" "${dumpdir}/mfcc/${dset}"
-                utils/data/resample_data_dir.sh 16000 "${dumpdir}/mfcc/${dset}"
-
-                # 2. Extract mfcc features
-                _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/utt2spk wc -l)")
-                steps/make_mfcc.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                    --write-utt2num-frames true \
-                    --mfcc-config conf/mfcc.conf \
-                    "${dumpdir}/mfcc/${dset}"
-                utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
-
-                # 3. Compute VAD decision
-                _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/spk2utt wc -l)")
-                sid/compute_vad_decision.sh --nj ${_nj} --cmd "${train_cmd}" \
-                    --vad-config conf/vad.conf \
-                    "${dumpdir}/mfcc/${dset}"
-                utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
-
-                # 4. Extract X-vector
-                sid/nnet3/xvector/extract_xvectors.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                    "${xvector_exp}" \
-                    "${dumpdir}/mfcc/${dset}" \
-                    "${dumpdir}/xvector/${dset}"
-
-                # 5. Filter scp
-                # NOTE(kan-bayashi): Since sometimes mfcc or x-vector extraction is failed,
-                #   the number of utts will be different from the original features (raw or fbank).
-                #   To avoid this mismatch, perform filtering of the original feature scp here.
-                if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                    _suf="/org"
-                else
-                    _suf=""
+            if [ "${xv_tool}" == "kaldi" ]; then
+                log "Stage 3: Extract X-vector: data/ -> ${dumpdir}/xvector (Require Kaldi)"
+                # Download X-vector pretrained model
+                xvector_exp=${expdir}/xvector_nnet_1a
+                if [ ! -e "${xvector_exp}" ]; then
+                    log "X-vector model does not exist. Download pre-trained model."
+                    wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
+                    tar xvf 0008_sitw_v2_1a.tar.gz
+                    [ ! -e "${expdir}" ] && mkdir -p "${expdir}"
+                    mv 0008_sitw_v2_1a/exp/xvector_nnet_1a "${xvector_exp}"
+                    rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
                 fi
-                cp "${data_feats}${_suf}/${dset}"/wav.{scp,scp.bak}
-                <"${data_feats}${_suf}/${dset}/wav.scp.bak" \
-                    utils/filter_scp.pl "${dumpdir}/xvector/${dset}/xvector.scp" \
-                    >"${data_feats}${_suf}/${dset}/wav.scp"
-                utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
-            done
+
+                # Generate the MFCC features, VAD decision, and X-vector
+                for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                    # 1. Copy datadir and resample to 16k
+                    utils/copy_data_dir.sh "data/${dset}" "${dumpdir}/mfcc/${dset}"
+                    utils/data/resample_data_dir.sh 16000 "${dumpdir}/mfcc/${dset}"
+
+                    # 2. Extract mfcc features
+                    _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/utt2spk wc -l)")
+                    steps/make_mfcc.sh --nj "${_nj}" --cmd "${train_cmd}" \
+                        --write-utt2num-frames true \
+                        --mfcc-config conf/mfcc.conf \
+                        "${dumpdir}/mfcc/${dset}"
+                    utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
+
+                    # 3. Compute VAD decision
+                    _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/spk2utt wc -l)")
+                    sid/compute_vad_decision.sh --nj ${_nj} --cmd "${train_cmd}" \
+                        --vad-config conf/vad.conf \
+                        "${dumpdir}/mfcc/${dset}"
+                    utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
+
+                    # 4. Extract X-vector
+                    sid/nnet3/xvector/extract_xvectors.sh --nj "${_nj}" --cmd "${train_cmd}" \
+                        "${xvector_exp}" \
+                        "${dumpdir}/mfcc/${dset}" \
+                        "${dumpdir}/xvector/${dset}"
+
+                    # 5. Filter scp
+                    # NOTE(kan-bayashi): Since sometimes mfcc or x-vector extraction is failed,
+                    #   the number of utts will be different from the original features (raw or fbank).
+                    #   To avoid this mismatch, perform filtering of the original feature scp here.
+                    if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                        _suf="/org"
+                    else
+                        _suf=""
+                    fi
+                    cp "${data_feats}${_suf}/${dset}"/wav.{scp,scp.bak}
+                    <"${data_feats}${_suf}/${dset}/wav.scp.bak" \
+                        utils/filter_scp.pl "${dumpdir}/xvector/${dset}/xvector.scp" \
+                        >"${data_feats}${_suf}/${dset}/wav.scp"
+                    utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
+                done
+            else
+                # Assume that others toolkits are python-based
+                log "Stage 3: Extract X-vector: data/ -> ${dumpdir}/xvector using python toolkits"
+                for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                    pyscripts/extract_xvectors.py --pretrained ${xv_model} \
+                                                                --toolkit ${xv_tool} \
+                                                                data/${dset} \
+                                                                ${dumpdir}/xvector/${dset}
+                done
+            fi
         fi
 
         # Prepare spk id input
         if "${use_sid}"; then
-            log "Stage 2+: Prepare speaker id: data/ -> ${data_feats}/"
+            log "Stage 3: Prepare speaker id: data/ -> ${data_feats}/"
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                     _suf="/org"
@@ -417,7 +436,7 @@ if ! "${skip_data_prep}"; then
 
         # Prepare lang id input
         if "${use_lid}"; then
-            log "Stage 2+: Prepare lang id: data/ -> ${data_feats}/"
+            log "Stage 3: Prepare lang id: data/ -> ${data_feats}/"
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                     _suf="/org"
@@ -441,8 +460,8 @@ if ! "${skip_data_prep}"; then
     fi
 
 
-    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-        log "Stage 3: Remove long/short data: ${data_feats}/org -> ${data_feats}"
+    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+        log "Stage 4: Remove long/short data: ${data_feats}/org -> ${data_feats}"
 
         # NOTE(kamo): Not applying to test_sets to keep original data
         for dset in "${train_set}" "${valid_set}"; do
@@ -496,8 +515,8 @@ if ! "${skip_data_prep}"; then
     fi
 
 
-    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-        log "Stage 4: Generate token_list from ${srctexts}"
+    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+        log "Stage 5: Generate token_list from ${srctexts}"
         # "nlsyms_txt" should be generated by local/data.sh if need
 
         # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
@@ -526,10 +545,10 @@ fi
 
 
 if ! "${skip_train}"; then
-    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 5: TTS collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 6: TTS collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
@@ -662,10 +681,10 @@ if ! "${skip_train}"; then
     fi
 
 
-    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 6: TTS Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 7: TTS Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
@@ -897,8 +916,8 @@ fi
 
 
 if ! "${skip_eval}"; then
-    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-        log "Stage 7: Decoding: training_dir=${tts_exp}"
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 8: Decoding: training_dir=${tts_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -1051,8 +1070,8 @@ fi
 packed_model="${tts_exp}/${tts_exp##*/}_${inference_model%.*}.zip"
 if [ -z "${download_model}" ]; then
     # Skip pack preparation if using a downloaded model
-    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-        log "Stage 8: Pack model: ${packed_model}"
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 9: Pack model: ${packed_model}"
         log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         _opts=""
@@ -1091,8 +1110,8 @@ if [ -z "${download_model}" ]; then
 fi
 
 if ! "${skip_upload}"; then
-    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-        log "Stage 9: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Stage 10: Upload model to Zenodo: ${packed_model}"
 
         # To upload your model, you need to do:
         #   1. Signup to Zenodo: https://zenodo.org/
@@ -1149,11 +1168,11 @@ else
 fi
 
 if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
-        log "Stage 10: Upload model to HuggingFace: ${hf_repo}"
+        log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \

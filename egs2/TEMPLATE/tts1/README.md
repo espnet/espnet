@@ -62,24 +62,29 @@ It calls `local/data.sh` to creates Kaldi-style data directories in `data/` for 
 See also:
 - [About Kaldi-style data directory](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory)
 
-### 2. Wav dump / Embedding preparation
+### 2. Wav dump
 
 Wav dumping stage.
 This stage reformats `wav.scp` in data directories.
 
-Additionally, we support X-vector extraction in this stage as you can use in ESPnet1.
-If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract mfcc features, vad decision, and X-vector.
+### 3. Embedding preparation
+
+We support X-vector extraction in this stage as you can use in ESPnet1.
+If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract X-vectors.
+You can select the type of toolkit to use (kaldi, sb:speechbrain, or esp:espnet) when you specify `--xv_tool <option>` 
+(Default: `xv_tool=sb`).
+If you specify kaldi, then we additionally extract mfcc features and vad decision.
 This processing requires the compiled kaldi, please be careful.
 
 Also, speaker ID embedding and language ID embedding preparation will be performed in this stage if you specify `--use_sid true` and `--use_lid true` options.
 Note that this processing assume that `utt2spk` or `utt2lang` are correctly created in stage 1, please be careful.
 
-### 3. Removal of long / short data
+### 4. Removal of long / short data
 
 Processing stage to remove long and short utterances from the training and validation data.
 You can change the threshold values via `--min_wav_duration` and `--max_wav_duration`.
 
-### 4. Token list generation
+### 5. Token list generation
 
 Token list generation stage.
 It generates token list (dictionary) from `srctexts`.
@@ -92,12 +97,12 @@ See also:
 - [Supported text cleaner](#supported-text-cleaner).
 - [Supported text frontend](#supported-text-frontend).
 
-### 5. TTS statistics collection
+### 6. TTS statistics collection
 
 Statistics calculation stage.
 It collects the shape information of the input and output and calculates statistics for feature normalization (mean and variance over training data).
 
-### 6. TTS training
+### 7. TTS training
 
 TTS model training stage.
 You can change the training setting via `--train_config` and `--train_args` options.
@@ -107,7 +112,7 @@ See also:
 - [Change the configuration for training](https://espnet.github.io/espnet/espnet2_training_option.html)
 - [Distributed training](https://espnet.github.io/espnet/espnet2_distributed.html)
 
-### 7. TTS decoding
+### 8. TTS decoding
 
 TTS model decoding stage.
 You can change the decoding setting via `--inference_config` and `--inference_args`.
@@ -115,7 +120,7 @@ You can change the decoding setting via `--inference_config` and `--inference_ar
 See also:
 - [Change the configuration for training](https://espnet.github.io/espnet/espnet2_training_option.html)
 
-### 8-9. (Optional) Pack results for upload
+### 9-10. (Optional) Pack results for upload
 
 Packing stage.
 It packs the trained model files and uploads to [Zenodo](https://zenodo.org/) (Zenodo upload will be deprecated).
@@ -124,7 +129,7 @@ If you want to run this stage, you need to register your account in zenodo.
 See also:
 - [ESPnet Model Zoo](https://github.com/espnet/espnet_model_zoo)
 
-#### Stage 10: Upload model to Hugging Face
+#### Stage 11: Upload model to Hugging Face
 
 Upload the trained model to Hugging Face for sharing. Additional information at [Docs](https://espnet.github.io/espnet/espnet2_tutorial.html#packing-and-sharing-your-trained-model).
 
