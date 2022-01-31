@@ -1,0 +1,1 @@
+../../../../egs/puebla_nahuatl/st1/local/divide_lang.sh
