@@ -270,7 +270,7 @@ class NoiseInjection(object):
 
         if self.dbunit:
             ratio = 10 ** (ratio / 20)
-        scale = ratio * numpy.sqrt((x ** 2).mean())
+        scale = ratio * numpy.sqrt((x**2).mean())
 
         # 2. Get noise
         if self.utt2noise is not None:
@@ -281,7 +281,7 @@ class NoiseInjection(object):
                 # Randomly select the noise source
                 noise = self.state.choice(list(self.utt2noise.values()))
             # Normalize the level
-            noise /= numpy.sqrt((noise ** 2).mean())
+            noise /= numpy.sqrt((noise**2).mean())
 
             # Adjust the noise length
             diff = abs(len(x) - len(noise))

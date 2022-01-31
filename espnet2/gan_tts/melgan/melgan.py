@@ -84,7 +84,7 @@ class MelGANGenerator(torch.nn.Module):
             ]
             layers += [
                 torch.nn.ConvTranspose1d(
-                    channels // (2 ** i),
+                    channels // (2**i),
                     channels // (2 ** (i + 1)),
                     upsample_scale * 2,
                     stride=upsample_scale,
@@ -100,7 +100,7 @@ class MelGANGenerator(torch.nn.Module):
                     ResidualStack(
                         kernel_size=stack_kernel_size,
                         channels=channels // (2 ** (i + 1)),
-                        dilation=stack_kernel_size ** j,
+                        dilation=stack_kernel_size**j,
                         bias=bias,
                         nonlinear_activation=nonlinear_activation,
                         nonlinear_activation_params=nonlinear_activation_params,
