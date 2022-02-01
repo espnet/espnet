@@ -69,8 +69,8 @@ This stage reformats `wav.scp` in data directories.
 
 Additionally, We support X-vector extraction in this stage as you can use in ESPnet1.
 If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract X-vectors.
-You can select the type of toolkit to use (kaldi, speechbrain, or espnet) when you specify `--xv_tool <option>` 
-(Default: `xv_tool=kaldi`).
+You can select the type of toolkit to use (kaldi, speechbrain, or espnet) when you specify `--xvector_tool <option>` 
+(Default: `xvector_tool=kaldi`).
 If you specify kaldi, then we additionally extract mfcc features and vad decision.
 This processing requires the compiled kaldi, please be careful.
 
