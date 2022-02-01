@@ -28,7 +28,7 @@ if [ ! -e speechbrain.done ]; then
             set -euo pipefail
             python3 -m pip install speechbrain==0.5.11
         else
-            echo "ERROR: pytorch version <1.8.0"
+            echo "ERROR: speechbrain version >=1.8.0"
         fi
     )
     touch speechbrain.done

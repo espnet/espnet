@@ -67,8 +67,8 @@ f0max=400 # Minimum f0 for pitch extraction.
 
 # X-Vector related
 use_xvector=false          # Whether to use x-vector.
-xv_tool=sb  # Toolkit to use (Speechbrain: sb, ESPnet:esp, kaldi)
-xv_model=speechbrain/spkrec-ecapa-voxceleb  # kaldi: http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
+xvector_tool=kaldi  # Toolkit to use (speechbrain, espnet, kaldi)
+xvector_model=speechbrain/spkrec-ecapa-voxceleb  # for espnet or speechbrain
 
 # Vocabulary related
 oov="<unk>"         # Out of vocabrary symbol.
@@ -146,8 +146,8 @@ Options:
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
     --use_xvector      # Whether to use X-vector (default="${use_xvector}").
-    --xv_tool           # Toolkit for generating the X-vectors (default="${xv_tool}").
-    --xv_model      # Pretrained model to generate the X-vectors (default="${xv_model}").
+    --xvector_tool           # Toolkit for generating the X-vectors (default="${xvector_tool}").
+    --xvector_model      # Pretrained model to generate the X-vectors (default="${xvector_model}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
     --use_lid          # Whether to use language id as the inputs (default="${use_lid}").
     --feats_extract    # On the fly feature extractor (default="${feats_extract}").
@@ -339,13 +339,11 @@ if ! "${skip_data_prep}"; then
                 "data/${dset}/wav.scp" "${data_feats}${_suf}/${dset}"
             echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
         done
-    fi
 
-    # Extract X-vector
-    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+        # Extract X-vector
         if "${use_xvector}"; then
-            if [ "${xv_tool}" == "kaldi" ]; then
-                log "Stage 3: Extract X-vector: data/ -> ${dumpdir}/xvector (Require Kaldi)"
+            if [ "${xvector_tool}" = "kaldi" ]; then
+                log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector (Require Kaldi)"
                 # Download X-vector pretrained model
                 xvector_exp=${expdir}/xvector_nnet_1a
                 if [ ! -e "${xvector_exp}" ]; then
@@ -401,19 +399,20 @@ if ! "${skip_data_prep}"; then
                 done
             else
                 # Assume that others toolkits are python-based
-                log "Stage 3: Extract X-vector: data/ -> ${dumpdir}/xvector using python toolkits"
+                log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector using python toolkits"
                 for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-                    pyscripts/utils/extract_xvectors.py --pretrained ${xv_model} \
-                                                                --toolkit ${xv_tool} \
-                                                                ${data_feats}/${dset} \
-                                                                ${dumpdir}/xvector/${dset}
+                    pyscripts/utils/extract_xvectors.py \
+                            --pretrained_model ${xvector_model} \
+                            --toolkit ${xvector_tool} \
+                            ${data_feats}/${dset} \
+                            ${dumpdir}/xvector/${dset}
                 done
             fi
         fi
 
         # Prepare spk id input
         if "${use_sid}"; then
-            log "Stage 3: Prepare speaker id: data/ -> ${data_feats}/"
+            log "Stage 2+: Prepare speaker id: data/ -> ${data_feats}/"
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                     _suf="/org"
@@ -436,7 +435,7 @@ if ! "${skip_data_prep}"; then
 
         # Prepare lang id input
         if "${use_lid}"; then
-            log "Stage 3: Prepare lang id: data/ -> ${data_feats}/"
+            log "Stage 2+: Prepare lang id: data/ -> ${data_feats}/"
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                     _suf="/org"
@@ -460,8 +459,8 @@ if ! "${skip_data_prep}"; then
     fi
 
 
-    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-        log "Stage 4: Remove long/short data: ${data_feats}/org -> ${data_feats}"
+    if [ ${stage} -le 3] && [ ${stop_stage} -ge 3 ]; then
+        log "Stage 3: Remove long/short data: ${data_feats}/org -> ${data_feats}"
 
         # NOTE(kamo): Not applying to test_sets to keep original data
         for dset in "${train_set}" "${valid_set}"; do
@@ -515,8 +514,8 @@ if ! "${skip_data_prep}"; then
     fi
 
 
-    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-        log "Stage 5: Generate token_list from ${srctexts}"
+    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+        log "Stage 4: Generate token_list from ${srctexts}"
         # "nlsyms_txt" should be generated by local/data.sh if need
 
         # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
@@ -545,10 +544,10 @@ fi
 
 
 if ! "${skip_train}"; then
-    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 6: TTS collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 5: TTS collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
@@ -681,10 +680,10 @@ if ! "${skip_train}"; then
     fi
 
 
-    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 7: TTS Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 6: TTS Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
@@ -916,8 +915,8 @@ fi
 
 
 if ! "${skip_eval}"; then
-    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-        log "Stage 8: Decoding: training_dir=${tts_exp}"
+    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+        log "Stage 7: Decoding: training_dir=${tts_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -1070,8 +1069,8 @@ fi
 packed_model="${tts_exp}/${tts_exp##*/}_${inference_model%.*}.zip"
 if [ -z "${download_model}" ]; then
     # Skip pack preparation if using a downloaded model
-    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-        log "Stage 9: Pack model: ${packed_model}"
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+        log "Stage 8: Pack model: ${packed_model}"
         log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         _opts=""
@@ -1110,8 +1109,8 @@ if [ -z "${download_model}" ]; then
 fi
 
 if ! "${skip_upload}"; then
-    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
-        log "Stage 10: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 9: Upload model to Zenodo: ${packed_model}"
 
         # To upload your model, you need to do:
         #   1. Signup to Zenodo: https://zenodo.org/
@@ -1168,11 +1167,11 @@ else
 fi
 
 if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
-        log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
+        log "Stage 10: Upload model to HuggingFace: ${hf_repo}"
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \

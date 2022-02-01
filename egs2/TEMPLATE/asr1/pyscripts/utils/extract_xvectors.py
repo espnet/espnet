@@ -23,14 +23,15 @@ def get_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--pretrained",
+        "--pretrained_model",
         type=str,
         help="Pretrained model."
     )
     parser.add_argument(
         "--toolkit",
         type=str,
-        help="Toolkit for Extracting X-vectors."
+        help="Toolkit for Extracting X-vectors.",
+        choices=['espnet', 'speechbrain']
     )
     parser.add_argument(
         "--verbose",
@@ -42,12 +43,12 @@ def get_parser():
         "--device",
         type=str,
         default='cuda:0',
-        help="Verbosity level."
+        help="Inference device"
     )
     parser.add_argument(
         "in_folder",
         type=Path,
-        help="Path to the input data."
+        help="Path to the input kaldi data directory."
     )
     parser.add_argument(
         "out_folder",
@@ -74,7 +75,12 @@ def main(argv):
         )
         logging.warning("Skip DEBUG/INFO messages")
     
-    if args.toolkit == 'sb':
+    if torch.cuda.is_available() and ('cuda' in args.device):
+        device = args.device
+    else:
+        device = 'cpu'
+
+    if args.toolkit == 'speechbrain':
         from speechbrain.dataio.preprocess import AudioNormalizer
         from speechbrain.pretrained import EncoderClassifier
 
@@ -84,11 +90,8 @@ def main(argv):
             for line in reader:
                 details = line.split()
                 spk2utt[details[0]] = details[1:]
-        
-        if torch.cuda.is_available() and ('cuda' in args.device):
-            device = args.device
-        else:
-            device = 'cpu'
+
+        # TODO(nelson): The model inference can be moved into functon.
         classifier = EncoderClassifier.from_hparams(
             source=args.pretrained,
             run_opts={"device":device}
@@ -124,10 +127,10 @@ def main(argv):
         writer_utt.close()
         writer_spk.close()
 
-    elif args.toolkit == 'esp':
+    elif args.toolkit == 'espnet':
         raise NotImplementedError('Follow details at: https://github.com/espnet/espnet/issues/3040')
     else:
-        raise ValueError(f'Unkown type of toolkit. Only supported: sb, esp, kaldi')
+        raise ValueError(f'Unkown type of toolkit. Only supported: speechbrain, espnet, kaldi')
 
 
 if __name__ == "__main__":
