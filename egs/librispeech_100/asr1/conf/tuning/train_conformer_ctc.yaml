@@ -23,13 +23,13 @@ opt: noam
 accum-grad: 8
 grad-clip: 5
 patience: 0
-epochs: 100
+epochs: 100 # 70 epochs give reasonable results
 dropout-rate: 0.1
 
 # transformer specific setting
 backend: pytorch
 model-module: "espnet.nets.pytorch_backend.e2e_asr_conformer:E2E"
-transformer-input-layer: conv2d     # encoder architecture type
+transformer-input-layer: conv2d
 transformer-lr: 5.0
 transformer-warmup-steps: 25000
 transformer-attn-dropout-rate: 0.0
@@ -46,7 +46,7 @@ cnn-module-kernel: 15
 rel-pos-type: latest
 
 # Report CER & WER
-report-cer: true
+report-cer: true # important for reporting cer_ctc
 report-wer: true
 
 # for visualization
