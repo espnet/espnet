@@ -29,7 +29,6 @@ skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
 skip_upload=true     # Skip packing and uploading stages.
-skip_upload_hf=true  # Skip uploading to hugging face stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
@@ -53,15 +52,24 @@ min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
 
 # Tokenization related
-token_type=bpe      # Tokenization type (char or bpe).
-nbpe=30             # The number of BPE vocabulary.
-bpemode=unigram     # Mode of BPE (unigram or bpe).
 oov="<unk>"         # Out of vocabulary symbol.
 blank="<blank>"     # CTC blank symbol
 sos_eos="<sos/eos>" # sos and eos symbole
-bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
-bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE
-bpe_char_cover=1.0  # character coverage when modeling BPE
+token_joint=false       # whether to use a single bpe system for both source and target languages
+src_case=lc.rm
+src_token_type=bpe      # Tokenization type (char or bpe) for source languages.
+src_nbpe=30             # The number of BPE vocabulary for source language.
+src_bpemode=unigram     # Mode of BPE for source language (unigram or bpe).
+src_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for source language.
+src_bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE of source language
+src_bpe_char_cover=1.0  # character coverage when modeling BPE for source language
+tgt_case=tc
+tgt_token_type=bpe      # Tokenization type (char or bpe) for target language.
+tgt_nbpe=30             # The number of BPE vocabulary for target language.
+tgt_bpemode=unigram     # Mode of BPE (unigram or bpe) for target language.
+tgt_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for target language.
+tgt_bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE for target language.
+tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target language.
 
 # Ngram model related
 use_ngram=false
@@ -69,7 +77,7 @@ ngram_exp=
 ngram_num=3
 
 # Language model related
-use_lm=true       # Use language model for ASR decoding.
+use_lm=true       # Use language model for ST decoding.
 lm_tag=           # Suffix to the result dir for language model training.
 lm_exp=           # Specify the directory path for LM experiment.
                   # If this option is specified, lm_tag is ignored.
@@ -82,34 +90,23 @@ num_splits_lm=1   # Number of splitting for lm corpus.
 # shellcheck disable=SC2034
 word_vocab_size=10000 # Size of word vocabulary.
 
-# ASR model related
-asr_tag=       # Suffix to the result dir for asr model training.
-asr_exp=       # Specify the directory path for ASR experiment.
-               # If this option is specified, asr_tag is ignored.
-asr_stats_dir= # Specify the directory path for ASR statistics.
-asr_config=    # Config for asr model training.
-asr_args=      # Arguments for asr model training, e.g., "--max_epoch 10".
-               # Note that it will overwrite args in asr config.
-pretrained_model=              # Pretrained model to load
+# ST model related
+st_tag=        # Suffix to the result dir for st model training.
+st_exp=        # Specify the directory path for ST experiment.
+               # If this option is specified, st_tag is ignored.
+st_stats_dir=  # Specify the directory path for ST statistics.
+st_config=     # Config for st model training.
+st_args=       # Arguments for st model training, e.g., "--max_epoch 10".
+               # Note that it will overwrite args in st config.
+pretrained_asr=               # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
 feats_normalize=global_mvn # Normalizaton layer type.
-num_splits_asr=1           # Number of splitting for lm corpus.
-
-# Upload model related
-hf_repo=
+num_splits_st=1            # Number of splitting for lm corpus.
+src_lang=es                # source language abbrev. id (e.g., es)
+tgt_lang=en                # target language abbrev. id (e.g., en)
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
-k2_ctc_decoding=true
-use_nbest_rescoring=true # use transformer-decoder
-                         # and transformer language model for nbest rescoring
-num_paths=1000 # The 3rd argument of k2.random_paths.
-nll_batch_size=100 # Affect GPU memory usage when computing nll
-                   # during nbest rescoring
-k2_config=./conf/decode_asr_transformer_with_k2.yaml
-
-use_streaming=false # Whether to use streaming decoding
-
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -117,19 +114,20 @@ inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                   # Note that it will overwrite args in inference config.
 inference_lm=valid.loss.ave.pth       # Language model path for decoding.
 inference_ngram=${ngram_num}gram.bin
-inference_asr_model=valid.acc.ave.pth # ASR model path for decoding.
+inference_st_model=valid.acc.ave.pth # ST model path for decoding.
                                       # e.g.
-                                      # inference_asr_model=train.loss.best.pth
-                                      # inference_asr_model=3epoch.pth
-                                      # inference_asr_model=valid.acc.best.pth
-                                      # inference_asr_model=valid.loss.ave.pth
+                                      # inference_st_model=train.loss.best.pth
+                                      # inference_st_model=3epoch.pth
+                                      # inference_st_model=valid.acc.best.pth
+                                      # inference_st_model=valid.loss.ave.pth
 download_model= # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
 valid_set=       # Name of validation set used for monitoring/tuning network training.
 test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
-bpe_train_text=  # Text file path of bpe training set.
+src_bpe_train_text=  # Text file path of bpe training set for source language.
+tgt_bpe_train_text=  # Text file path of bpe training set for target language.
 lm_train_text=   # Text file path of language model training set.
 lm_dev_text=     # Text file path of language model development set.
 lm_test_text=    # Text file path of language model evaluation set.
@@ -139,8 +137,8 @@ g2p=none         # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
 score_opts=                # The options given to sclite scoring
 local_score_opts=          # The options given to local/score.sh.
-asr_speech_fold_length=800 # fold_length for speech data during ASR training.
-asr_text_fold_length=150   # fold_length for text data during ASR training.
+st_speech_fold_length=800 # fold_length for speech data during ST training.
+st_text_fold_length=150   # fold_length for text data during ST training.
 lm_fold_length=150         # fold_length for LM training.
 
 help_message=$(cat << EOF
@@ -177,15 +175,23 @@ Options:
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
 
     # Tokenization related
-    --token_type              # Tokenization type (char or bpe, default="${token_type}").
-    --nbpe                    # The number of BPE vocabulary (default="${nbpe}").
-    --bpemode                 # Mode of BPE (unigram or bpe, default="${bpemode}").
     --oov                     # Out of vocabulary symbol (default="${oov}").
     --blank                   # CTC blank symbol (default="${blank}").
     --sos_eos                 # sos and eos symbole (default="${sos_eos}").
-    --bpe_input_sentence_size # Size of input sentence for BPE (default="${bpe_input_sentence_size}").
-    --bpe_nlsyms              # Non-linguistic symbol list for sentencepiece, separated by a comma. (default="${bpe_nlsyms}").
-    --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
+    --token_joint=false       # Whether to use a single bpe system for both source and target languages.
+                              # if set as true, will use tgt_* for processing (default="${token_joint}").
+    --src_token_type=bpe      # Tokenization type (char or bpe) for source languages. (default="${src_token_type}").
+    --src_nbpe=30             # The number of BPE vocabulary for source language. (default="${src_nbpe}").
+    --src_bpemode=unigram     # Mode of BPE for source language (unigram or bpe). (default="${src_bpemode}").
+    --src_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for source language. (default="${src_bpe_input_sentence_size}").
+    --src_bpe_nlsyms=         # Non-linguistic symbols list, separated by a comma, for BPE of source language. (default="${src_bpe_nlsyms}").
+    --src_bpe_char_cover=1.0  # Character coverage when modeling BPE for source language. (default="${src_bpe_char_cover}").
+    --tgt_token_type=bpe      # Tokenization type (char or bpe) for target language. (default="${tgt_token_type}").
+    --tgt_nbpe=30             # The number of BPE vocabulary for target language. (default="${tgt_nbpe}").
+    --tgt_bpemode=unigram     # Mode of BPE (unigram or bpe) for target language. (default="${tgt_bpemode}").
+    --tgt_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for target language. (default="${tgt_bpe_input_sentence_size}").
+    --tgt_bpe_nlsyms=         # Non-linguistic symbols list, separated by a comma, for BPE for target language. (default="${tgt_bpe_nlsyms}").
+    --tgt_bpe_char_cover=1.0  # Character coverage when modeling BPE for target language. (default="${tgt_bpe_char_cover}").
 
     # Language model related
     --lm_tag          # Suffix to the result dir for language model training (default="${lm_tag}").
@@ -200,19 +206,21 @@ Options:
     --word_vocab_size # Size of word vocabulary (default="${word_vocab_size}").
     --num_splits_lm   # Number of splitting for lm corpus (default="${num_splits_lm}").
 
-    # ASR model related
-    --asr_tag          # Suffix to the result dir for asr model training (default="${asr_tag}").
-    --asr_exp          # Specify the directory path for ASR experiment.
-                       # If this option is specified, asr_tag is ignored (default="${asr_exp}").
-    --asr_stats_dir    # Specify the directory path for ASR statistics (default="${asr_stats_dir}").
-    --asr_config       # Config for asr model training (default="${asr_config}").
-    --asr_args         # Arguments for asr model training (default="${asr_args}").
-                       # e.g., --asr_args "--max_epoch 10"
-                       # Note that it will overwrite args in asr config.
-    --pretrained_model=          # Pretrained model to load (default="${pretrained_model}").
+    # ST model related
+    --st_tag           # Suffix to the result dir for st model training (default="${st_tag}").
+    --st_exp           # Specify the directory path for ST experiment.
+                       # If this option is specified, st_tag is ignored (default="${st_exp}").
+    --st_stats_dir     # Specify the directory path for ST statistics (default="${st_stats_dir}").
+    --st_config        # Config for st model training (default="${st_config}").
+    --st_args          # Arguments for st model training (default="${st_args}").
+                       # e.g., --st_args "--max_epoch 10"
+                       # Note that it will overwrite args in st config.
+    --pretrained_asr=          # Pretrained model to load (default="${pretrained_asr}").
     --ignore_init_mismatch=      # Ignore mismatch parameter init with pretrained model (default="${ignore_init_mismatch}").
-    --feats_normalize  # Normalizaton layer type (default="${feats_normalize}").
-    --num_splits_asr   # Number of splitting for lm corpus  (default="${num_splits_asr}").
+    --feats_normalize  # Normalizaton layer type. (default="${feats_normalize}").
+    --num_splits_st    # Number of splitting for lm corpus.  (default="${num_splits_st}").
+    --src_lang=        # source language abbrev. id (e.g., es). (default="${src_lang}")
+    --tgt_lang=        # target language abbrev. id (e.g., en). (default="${tgt_lang}")
 
     # Decoding related
     --inference_tag       # Suffix to the result dir for decoding (default="${inference_tag}").
@@ -221,16 +229,16 @@ Options:
                           # e.g., --inference_args "--lm_weight 0.1"
                           # Note that it will overwrite args in inference config.
     --inference_lm        # Language model path for decoding (default="${inference_lm}").
-    --inference_asr_model # ASR model path for decoding (default="${inference_asr_model}").
+    --inference_st_model # ST model path for decoding (default="${inference_st_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
-    --use_streaming       # Whether to use streaming decoding (default="${use_streaming}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
     --valid_set     # Name of validation set used for monitoring/tuning network training (required).
     --test_sets     # Names of test sets.
                     # Multiple items (e.g., both dev and eval sets) can be specified (required).
-    --bpe_train_text # Text file path of bpe training set.
+    --src_bpe_train_text # Text file path of bpe training set for source language.
+    --tgt_bpe_train_text # Text file path of bpe training set for target language
     --lm_train_text  # Text file path of language model training set.
     --lm_dev_text   # Text file path of language model development set (default="${lm_dev_text}").
     --lm_test_text  # Text file path of language model evaluation set (default="${lm_test_text}").
@@ -240,8 +248,8 @@ Options:
     --lang          # The language type of corpus (default=${lang}).
     --score_opts             # The options given to sclite scoring (default="{score_opts}").
     --local_score_opts       # The options given to local/score.sh (default="{local_score_opts}").
-    --asr_speech_fold_length # fold_length for speech data during ASR training (default="${asr_speech_fold_length}").
-    --asr_text_fold_length   # fold_length for text data during ASR training (default="${asr_text_fold_length}").
+    --st_speech_fold_length # fold_length for speech data during ST training (default="${st_speech_fold_length}").
+    --st_text_fold_length   # fold_length for text data during ST training (default="${st_text_fold_length}").
     --lm_fold_length         # fold_length for LM training (default="${lm_fold_length}").
 EOF
 )
@@ -281,14 +289,23 @@ else
     exit 2
 fi
 
-# Use the same text as ASR for bpe training if not specified.
-[ -z "${bpe_train_text}" ] && bpe_train_text="${data_feats}/${train_set}/text"
-# Use the same text as ASR for lm training if not specified.
-[ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text"
-# Use the same text as ASR for lm training if not specified.
-[ -z "${lm_dev_text}" ] && lm_dev_text="${data_feats}/${valid_set}/text"
+# Extra files for translation process
+utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}"
+# Use the same text as ST for bpe training if not specified.
+if "${token_joint}"; then
+    # if token_joint, the bpe training will use both src_lang and tgt_lang to train a single bpe model
+    # TODO (prepare data as text.${src_lang}_${tgt_lang})
+    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
+else
+    [ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
+    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
+fi
+# Use the same text as ST for lm training if not specified.
+[ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
+# Use the same text as ST for lm training if not specified.
+[ -z "${lm_dev_text}" ] && lm_dev_text="${data_feats}/${valid_set}/text.${tgt_case}.${tgt_lang}"
 # Use the text of the 1st evaldir if lm_test is not specified
-[ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${test_sets%% *}/text"
+[ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${test_sets%% *}/text.${tgt_case}.${tgt_lang}"
 
 # Check tokenization type
 if [ "${lang}" != noinfo ]; then
@@ -296,60 +313,94 @@ if [ "${lang}" != noinfo ]; then
 else
     token_listdir=data/token_list
 fi
-bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
-bpeprefix="${bpedir}"/bpe
-bpemodel="${bpeprefix}".model
-bpetoken_list="${bpedir}"/tokens.txt
-chartoken_list="${token_listdir}"/char/tokens.txt
+# The tgt bpedir is set for all cases when using bpe
+tgt_bpedir="${token_listdir}/tgt_bpe_${tgt_bpemode}${tgt_nbpe}"
+tgt_bpeprefix="${tgt_bpedir}"/bpe
+tgt_bpemodel="${tgt_bpeprefix}".model
+tgt_bpetoken_list="${tgt_bpedir}"/tokens.txt
+tgt_chartoken_list="${token_listdir}"/char/tgt_tokens.txt
+if "${token_joint}"; then
+    # if token_joint, the bpe training will use both src_lang and tgt_lang to train a single bpe model
+    src_bpedir="${tgt_bpedir}"
+    src_bpeprefix="${tgt_bpeprefix}"
+    src_bpemodel="${tgt_bpemodel}"
+    src_bpetoken_list="${tgt_bpetoken_list}"
+    src_chartoken_list="${tgt_chartoken_list}"
+else
+    src_bpedir="${token_listdir}/src_bpe_${tgt_bpemode}${tgt_nbpe}"
+    src_bpeprefix="${src_bpedir}"/bpe
+    src_bpemodel="${src_bpeprefix}".model
+    src_bpetoken_list="${src_bpedir}"/tokens.txt
+    src_chartoken_list="${token_listdir}"/char/src_tokens.txt
+fi
+
 # NOTE: keep for future development.
 # shellcheck disable=SC2034
-wordtoken_list="${token_listdir}"/word/tokens.txt
-
-if [ "${token_type}" = bpe ]; then
-    token_list="${bpetoken_list}"
-elif [ "${token_type}" = char ]; then
-    token_list="${chartoken_list}"
-    bpemodel=none
-elif [ "${token_type}" = word ]; then
-    token_list="${wordtoken_list}"
-    bpemodel=none
+tgt_wordtoken_list="${token_listdir}"/word/tgt_tokens.txt
+if "${token_joint}"; then
+    src_wordtoken_list="${tgt_wordtoken_list}"
 else
-    log "Error: not supported --token_type '${token_type}'"
+    src_wordtoken_list="${token_listdir}"/word/src_tokens.txt
+fi
+
+# Set token types for src and tgt langs
+if [ "${src_token_type}" = bpe ]; then
+    src_token_list="${src_bpetoken_list}"
+elif [ "${src_token_type}" = char ]; then
+    src_token_list="${src_chartoken_list}"
+    src_bpemodel=none
+elif [ "${src_token_type}" = word ]; then
+    src_token_list="${src_wordtoken_list}"
+    src_bpemodel=none
+else
+    log "Error: not supported --src_token_type '${src_token_type}'"
+    exit 2
+fi
+if [ "${tgt_token_type}" = bpe ]; then
+    tgt_token_list="${tgt_bpetoken_list}"
+elif [ "${tgt_token_type}" = char ]; then
+    tgt_token_list="${tgt_chartoken_list}"
+    tgt_bpemodel=none
+elif [ "${tgt_token_type}" = word ]; then
+    tgt_token_list="${tgt_wordtoken_list}"
+    tgt_bpemodel=none
+else
+    log "Error: not supported --tgt_token_type '${tgt_token_type}'"
     exit 2
 fi
 if ${use_word_lm}; then
     log "Error: Word LM is not supported yet"
     exit 2
 
-    lm_token_list="${wordtoken_list}"
+    lm_token_list="${tgt_wordtoken_list}"
     lm_token_type=word
 else
-    lm_token_list="${token_list}"
-    lm_token_type="${token_type}"
+    lm_token_list="${tgt_token_list}"
+    lm_token_type="${tgt_token_type}"
 fi
 
 
 # Set tag for naming of model directory
-if [ -z "${asr_tag}" ]; then
-    if [ -n "${asr_config}" ]; then
-        asr_tag="$(basename "${asr_config}" .yaml)_${feats_type}"
+if [ -z "${st_tag}" ]; then
+    if [ -n "${st_config}" ]; then
+        st_tag="$(basename "${st_config}" .yaml)_${feats_type}"
     else
-        asr_tag="train_${feats_type}"
+        st_tag="train_${feats_type}"
     fi
     if [ "${lang}" != noinfo ]; then
-        asr_tag+="_${lang}_${token_type}"
+        st_tag+="_${lang}_${tgt_token_type}_${tgt_case}"
     else
-        asr_tag+="_${token_type}"
+        st_tag+="_${tgt_token_type}_${tgt_case}"
     fi
-    if [ "${token_type}" = bpe ]; then
-        asr_tag+="${nbpe}"
+    if [ "${tgt_token_type}" = bpe ]; then
+        st_tag+="${tgt_nbpe}"
     fi
     # Add overwritten arg's info
-    if [ -n "${asr_args}" ]; then
-        asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=/]//g")"
+    if [ -n "${st_args}" ]; then
+        st_tag+="$(echo "${st_args}" | sed -e "s/--/\_/g" -e "s/[ |=/]//g")"
     fi
     if [ -n "${speed_perturb_factors}" ]; then
-        asr_tag+="_sp"
+        st_tag+="_sp"
     fi
 fi
 if [ -z "${lm_tag}" ]; then
@@ -364,7 +415,7 @@ if [ -z "${lm_tag}" ]; then
         lm_tag+="_${lm_token_type}"
     fi
     if [ "${lm_token_type}" = bpe ]; then
-        lm_tag+="${nbpe}"
+        lm_tag+="${tgt_nbpe}"
     fi
     # Add overwritten arg's info
     if [ -n "${lm_args}" ]; then
@@ -373,17 +424,17 @@ if [ -z "${lm_tag}" ]; then
 fi
 
 # The directory used for collect-stats mode
-if [ -z "${asr_stats_dir}" ]; then
+if [ -z "${st_stats_dir}" ]; then
     if [ "${lang}" != noinfo ]; then
-        asr_stats_dir="${expdir}/asr_stats_${feats_type}_${lang}_${token_type}"
+        st_stats_dir="${expdir}/st_stats_${feats_type}_${lang}_${tgt_token_type}"
     else
-        asr_stats_dir="${expdir}/asr_stats_${feats_type}_${token_type}"
+        st_stats_dir="${expdir}/st_stats_${feats_type}_${tgt_token_type}"
     fi
-    if [ "${token_type}" = bpe ]; then
-        asr_stats_dir+="${nbpe}"
+    if [ "${tgt_token_type}" = bpe ]; then
+        st_stats_dir+="${tgt_nbpe}"
     fi
     if [ -n "${speed_perturb_factors}" ]; then
-        asr_stats_dir+="_sp"
+        st_stats_dir+="_sp"
     fi
 fi
 if [ -z "${lm_stats_dir}" ]; then
@@ -393,12 +444,12 @@ if [ -z "${lm_stats_dir}" ]; then
         lm_stats_dir="${expdir}/lm_stats_${lm_token_type}"
     fi
     if [ "${lm_token_type}" = bpe ]; then
-        lm_stats_dir+="${nbpe}"
+        lm_stats_dir+="${tgt_nbpe}"
     fi
 fi
 # The directory used for training commands
-if [ -z "${asr_exp}" ]; then
-    asr_exp="${expdir}/asr_${asr_tag}"
+if [ -z "${st_exp}" ]; then
+    st_exp="${expdir}/st_${st_tag}"
 fi
 if [ -z "${lm_exp}" ]; then
     lm_exp="${expdir}/lm_${lm_tag}"
@@ -424,12 +475,10 @@ if [ -z "${inference_tag}" ]; then
     if "${use_ngram}"; then
         inference_tag+="_ngram_$(basename "${ngram_exp}")_$(echo "${inference_ngram}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
-    inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    inference_tag+="_st_model_$(echo "${inference_st_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
 
     if "${use_k2}"; then
       inference_tag+="_use_k2"
-      inference_tag+="_k2_ctc_decoding_${k2_ctc_decoding}"
-      inference_tag+="_use_nbest_rescoring_${use_nbest_rescoring}"
     fi
 fi
 
@@ -444,17 +493,22 @@ if ! "${skip_data_prep}"; then
 
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         if [ -n "${speed_perturb_factors}" ]; then
-           log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
-           for factor in ${speed_perturb_factors}; do
-               if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
-                   scripts/utils/perturb_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
-                   _dirs+="data/${train_set}_sp${factor} "
-               else
-                   # If speed factor is 1, same as the original
-                   _dirs+="data/${train_set} "
-               fi
-           done
-           utils/combine_data.sh "data/${train_set}_sp" ${_dirs}
+            log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
+            for factor in ${speed_perturb_factors}; do
+                if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+                    scripts/utils/perturb_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" \
+                         "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
+                    _dirs+="data/${train_set}_sp${factor} "
+                else
+                    # If speed factor is 1, same as the original
+                    _dirs+="data/${train_set} "
+                fi
+            done
+            utils/combine_data.sh --extra_files "${utt_extra_files}" "data/${train_set}_sp" ${_dirs}
+            for extra_file in ${utt_extra_files}; do
+                python pyscripts/utils/remove_duplicate_keys.py data/"${train_set}_sp"/${extra_file} > data/"${train_set}_sp"/${extra_file}.tmp 
+                mv data/"${train_set}_sp"/${extra_file}.tmp data/"${train_set}_sp"/${extra_file}
+            done 
         else
            log "Skip stage 2: Speed perturbation"
         fi
@@ -483,6 +537,22 @@ if ! "${skip_data_prep}"; then
                     _suf=""
                 fi
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+
+                # expand the utt_extra_files for multi-references
+                expand_utt_extra_files=""
+                for extra_file in ${utt_extra_files}; do
+                    # with regex to suuport multi-references
+                    for single_file in $(ls data/"${dset}"/${extra_file}*); do
+                        cp ${single_file} "${data_feats}${_suf}/${dset}"
+                        expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
+                    done 
+                done
+                echo "${expand_utt_extra_files}"
+                utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}" "${data_feats}${_suf}/${dset}"
+                for extra_file in ${expand_utt_extra_files}; do
+                    LC_ALL=C sort -u -k1,1 "${data_feats}${_suf}/${dset}/${extra_file}" -o "${data_feats}${_suf}/${dset}/${extra_file}"
+                done
+
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
                 _opts=
                 if [ -e data/"${dset}"/segments ]; then
@@ -513,10 +583,23 @@ if ! "${skip_data_prep}"; then
                 # 1. Copy datadir
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
 
+                # expand the utt_extra_files for multi-references
+                expand_utt_extra_files=""
+                for extra_file in ${utt_extra_files}; do
+                    # with regex to suuport multi-references
+                    for single_file in $(ls data/"${dset}"/${extra_file}*); do
+                        cp ${single_file} "${data_feats}${_suf}/${dset}"
+                        expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
+                    done 
+                done
+                for extra_file in ${expand_utt_extra_files}; do
+                    LC_ALL=C sort -u -k1,1 "${data_feats}${_suf}/${dset}/${extra_file}" -o "${data_feats}${_suf}/${dset}/${extra_file}"
+                done
+
                 # 2. Feature extract
                 _nj=$(min "${nj}" "$(<"${data_feats}${_suf}/${dset}/utt2spk" wc -l)")
                 steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}${_suf}/${dset}"
-                utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
+                utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}*" "${data_feats}${_suf}/${dset}"
 
                 # 3. Derive the the frame length and feature dimension
                 scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
@@ -549,6 +632,20 @@ if ! "${skip_data_prep}"; then
                 <data/"${dset}"/cmvn.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
 
+                # expand the utt_extra_files for multi-references
+                expand_utt_extra_files=""
+                for extra_file in ${utt_extra_files}; do
+                    # with regex to suuport multi-references
+                    for single_file in $(ls data/"${dset}"/${extra_file}*); do
+                        cp ${single_file} "${data_feats}${_suf}/${dset}"
+                        expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
+                    done 
+                done
+                utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}*" "${data_feats}${_suf}/${dset}"
+                for extra_file in ${expand_utt_extra_files}; do
+                    LC_ALL=C sort -u -k1,1 "${data_feats}${_suf}/${dset}/${extra_file}" -o "${data_feats}${_suf}/${dset}/${extra_file}"
+                done
+
                 # Derive the the frame length and feature dimension
                 _nj=$(min "${nj}" "$(<"${data_feats}${_suf}/${dset}/utt2spk" wc -l)")
                 scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
@@ -572,11 +669,13 @@ if ! "${skip_data_prep}"; then
 
         # NOTE(kamo): Not applying to test_sets to keep original data
         for dset in "${train_set}" "${valid_set}"; do
-
             # Copy data dir
             utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/org/${dset}" "${data_feats}/${dset}"
             cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
 
+            for utt_extra_file in ${utt_extra_files}; do
+                cp "${data_feats}/org/${dset}/${utt_extra_file}" "${data_feats}/${dset}"
+            done
             # Remove short utterances
             _feats_type="$(<${data_feats}/${dset}/feats_type)"
             if [ "${_feats_type}" = raw ]; then
@@ -623,55 +722,63 @@ if ! "${skip_data_prep}"; then
                 awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
 
             # fix_data_dir.sh leaves only utts which exist in all files
-            utils/fix_data_dir.sh "${data_feats}/${dset}"
+            utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
+            for utt_extra_file in ${utt_extra_files}; do
+                python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
+                    > ${data_feats}/${dset}/${utt_extra_file}.tmp 
+                mv ${data_feats}/${dset}/${utt_extra_file}.tmp ${data_feats}/${dset}/${utt_extra_file}
+            done 
         done
 
         # shellcheck disable=SC2002
         cat ${lm_train_text} | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
     fi
 
-
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-        if [ "${token_type}" = bpe ]; then
-            log "Stage 5: Generate token_list from ${bpe_train_text} using BPE"
+        # First generate tgt lang
+        if [ "${tgt_token_type}" = bpe ]; then
+            log "Stage 5a: Generate token_list from ${tgt_bpe_train_text} using BPE for tgt_lang"
 
-            mkdir -p "${bpedir}"
+            mkdir -p "${tgt_bpedir}"
             # shellcheck disable=SC2002
-            cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
+            cat ${tgt_bpe_train_text} | cut -f 2- -d" "  > "${tgt_bpedir}"/train.txt
 
-            if [ -n "${bpe_nlsyms}" ]; then
-                _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
+            if [ -n "${tgt_bpe_nlsyms}" ]; then
+                _opts_spm="--user_defined_symbols=${tgt_bpe_nlsyms}"
             else
                 _opts_spm=""
             fi
 
             spm_train \
-                --input="${bpedir}"/train.txt \
-                --vocab_size="${nbpe}" \
-                --model_type="${bpemode}" \
-                --model_prefix="${bpeprefix}" \
-                --character_coverage=${bpe_char_cover} \
-                --input_sentence_size="${bpe_input_sentence_size}" \
+                --input="${tgt_bpedir}"/train.txt \
+                --vocab_size="${tgt_nbpe}" \
+                --model_type="${tgt_bpemode}" \
+                --model_prefix="${tgt_bpeprefix}" \
+                --character_coverage=${tgt_bpe_char_cover} \
+                --input_sentence_size="${tgt_bpe_input_sentence_size}" \
                 ${_opts_spm}
 
             {
             echo "${blank}"
             echo "${oov}"
             # Remove <unk>, <s>, </s> from the vocabulary
-            <"${bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+            <"${tgt_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
             echo "${sos_eos}"
-            } > "${token_list}"
+            } > "${tgt_token_list}"
 
-        elif [ "${token_type}" = char ] || [ "${token_type}" = word ]; then
-            log "Stage 5: Generate character level token_list from ${lm_train_text}"
+        elif [ "${tgt_token_type}" = char ] || [ "${tgt_token_type}" = word ]; then
+            log "Stage 5a: Generate character level token_list from ${tgt_bpe_train_text}  for tgt_lang"
 
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
+            # shellcheck disable=SC2002
+            cat ${tgt_bpe_train_text} | cut -f 2- -d" "  > "${data_feats}"/token_train.txt
+
             # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+            # 0 is reserved for CTC-blank for ST and also used as ignore-index in the other task
             ${python} -m espnet2.bin.tokenize_text  \
-                --token_type "${token_type}" \
-                --input "${data_feats}/lm_train.txt" --output "${token_list}" ${_opts} \
+                --token_type "${tgt_token_type}" \
+                --input "${data_feats}/token_train.txt" --output "${tgt_token_list}" ${_opts} \
                 --field 2- \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
@@ -681,12 +788,12 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${sos_eos}:-1"
 
         else
-            log "Error: not supported --token_type '${token_type}'"
+            log "Error: not supported --token_type '${tgt_token_type}'"
             exit 2
         fi
 
         # Create word-list for word-LM training
-        if ${use_word_lm} && [ "${token_type}" != word ]; then
+        if ${use_word_lm} && [ "${tgt_token_type}" != word ]; then
             log "Generate word level token_list from ${data_feats}/lm_train.txt"
             ${python} -m espnet2.bin.tokenize_text \
                 --token_type word \
@@ -701,7 +808,70 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${sos_eos}:-1"
         fi
 
+        # Then generate src lang
+        if "${token_joint}"; then
+            log "Stage 5b: Skip separate token construction for src_lang when setting ${token_joint} as true"
+        else
+            if [ "${src_token_type}" = bpe ]; then
+                log "Stage 5b: Generate token_list from ${src_bpe_train_text} using BPE for src_lang"
+
+                mkdir -p "${src_bpedir}"
+                # shellcheck disable=SC2002
+                cat ${src_bpe_train_text} | cut -f 2- -d" "  > "${src_bpedir}"/train.txt
+
+                if [ -n "${src_bpe_nlsyms}" ]; then
+                    _opts_spm="--user_defined_symbols=${src_bpe_nlsyms}"
+                else
+                    _opts_spm=""
+                fi
+
+                spm_train \
+                    --input="${src_bpedir}"/train.txt \
+                    --vocab_size="${src_nbpe}" \
+                    --model_type="${src_bpemode}" \
+                    --model_prefix="${src_bpeprefix}" \
+                    --character_coverage=${src_bpe_char_cover} \
+                    --input_sentence_size="${src_bpe_input_sentence_size}" \
+                    ${_opts_spm}
+
+                {
+                echo "${blank}"
+                echo "${oov}"
+                # Remove <unk>, <s>, </s> from the vocabulary
+                <"${src_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+                echo "${sos_eos}"
+                } > "${src_token_list}"
+
+            elif [ "${src_token_type}" = char ] || [ "${src_token_type}" = word ]; then
+                log "Stage 5b: Generate character level token_list from ${src_bpe_train_text}  for src_lang"
+
+                _opts="--non_linguistic_symbols ${nlsyms_txt}"
+
+                # shellcheck disable=SC2002
+                cat ${src_bpe_train_text} | cut -f 2- -d" "  > "${data_feats}"/token_train.txt
+
+                # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+                # 0 is reserved for CTC-blank for ST and also used as ignore-index in the other task
+                ${python} -m espnet2.bin.tokenize_text  \
+                    --token_type "${src_token_type}" \
+                    --input "${data_feats}/token_train.txt" --output "${src_token_list}" ${_opts} \
+                    --field 2- \
+                    --cleaner "${cleaner}" \
+                    --g2p "${g2p}" \
+                    --write_vocabulary true \
+                    --add_symbol "${blank}:0" \
+                    --add_symbol "${oov}:1" \
+                    --add_symbol "${sos_eos}:-1"
+
+            else
+                log "Error: not supported --token_type '${src_token_type}'"
+                exit 2
+            fi
+
+
+        fi
     fi
+
 else
     log "Skip the stages for data preparation"
 fi
@@ -757,7 +927,7 @@ if ! "${skip_train}"; then
                 ${python} -m espnet2.bin.lm_train \
                     --collect_stats true \
                     --use_preprocessor true \
-                    --bpemodel "${bpemodel}" \
+                    --bpemodel "${tgt_bpemodel}" \
                     --token_type "${lm_token_type}"\
                     --token_list "${lm_token_list}" \
                     --non_linguistic_symbols "${nlsyms_txt}" \
@@ -838,6 +1008,7 @@ if ! "${skip_train}"; then
                 jobname="${lm_exp}/train.log"
             fi
 
+            # TODO(jiatong): fix bpe
             # shellcheck disable=SC2086
             ${python} -m espnet2.bin.launch \
                 --cmd "${cuda_cmd} --name ${jobname}" \
@@ -849,7 +1020,7 @@ if ! "${skip_train}"; then
                 ${python} -m espnet2.bin.lm_train \
                     --ngpu "${ngpu}" \
                     --use_preprocessor true \
-                    --bpemodel "${bpemodel}" \
+                    --bpemodel "${tgt_bpemodel}" \
                     --token_type "${lm_token_type}"\
                     --token_list "${lm_token_list}" \
                     --non_linguistic_symbols "${nlsyms_txt}" \
@@ -894,7 +1065,7 @@ if ! "${skip_train}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         if "${use_ngram}"; then
             log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
-            cut -f 2- -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
+            cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
             build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
         else
             log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
@@ -903,18 +1074,18 @@ if ! "${skip_train}"; then
 
 
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
-        _asr_train_dir="${data_feats}/${train_set}"
-        _asr_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 10: ASR collect stats: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
+        _st_train_dir="${data_feats}/${train_set}"
+        _st_valid_dir="${data_feats}/${valid_set}"
+        log "Stage 10: ST collect stats: train_set=${_st_train_dir}, valid_set=${_st_valid_dir}"
 
         _opts=
-        if [ -n "${asr_config}" ]; then
+        if [ -n "${st_config}" ]; then
             # To generate the config file: e.g.
-            #   % python3 -m espnet2.bin.asr_train --print_config --optim adam
-            _opts+="--config ${asr_config} "
+            #   % python3 -m espnet2.bin.st_train --print_config --optim adam
+            _opts+="--config ${st_config} "
         fi
 
-        _feats_type="$(<${_asr_train_dir}/feats_type)"
+        _feats_type="$(<${_st_train_dir}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
             if [[ "${audio_format}" == *ark* ]]; then
@@ -927,18 +1098,18 @@ if ! "${skip_train}"; then
         else
             _scp=feats.scp
             _type=kaldi_ark
-            _input_size="$(<${_asr_train_dir}/feats_dim)"
+            _input_size="$(<${_st_train_dir}/feats_dim)"
             _opts+="--input_size=${_input_size} "
         fi
 
         # 1. Split the key file
-        _logdir="${asr_stats_dir}/logdir"
+        _logdir="${st_stats_dir}/logdir"
         mkdir -p "${_logdir}"
 
         # Get the minimum number among ${nj} and the number lines of input files
-        _nj=$(min "${nj}" "$(<${_asr_train_dir}/${_scp} wc -l)" "$(<${_asr_valid_dir}/${_scp} wc -l)")
+        _nj=$(min "${nj}" "$(<${_st_train_dir}/${_scp} wc -l)" "$(<${_st_valid_dir}/${_scp} wc -l)")
 
-        key_file="${_asr_train_dir}/${_scp}"
+        key_file="${_st_train_dir}/${_scp}"
         split_scps=""
         for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/train.${n}.scp"
@@ -946,7 +1117,7 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        key_file="${_asr_valid_dir}/${_scp}"
+        key_file="${_st_valid_dir}/${_scp}"
         split_scps=""
         for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/valid.${n}.scp"
@@ -955,34 +1126,40 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${asr_stats_dir}/run.sh'. You can resume the process from stage 10 using this script"
-        mkdir -p "${asr_stats_dir}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${asr_stats_dir}/run.sh"; chmod +x "${asr_stats_dir}/run.sh"
+        log "Generate '${st_stats_dir}/run.sh'. You can resume the process from stage 10 using this script"
+        mkdir -p "${st_stats_dir}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${st_stats_dir}/run.sh"; chmod +x "${st_stats_dir}/run.sh"
 
         # 3. Submit jobs
-        log "ASR collect-stats started... log: '${_logdir}/stats.*.log'"
+        log "ST collect-stats started... log: '${_logdir}/stats.*.log'"
 
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
         #       but it's used only for deciding the sample ids.
 
+        # TODO(jiatong): fix different bpe model
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m espnet2.bin.asr_train \
+            ${python} -m espnet2.bin.st_train \
                 --collect_stats true \
                 --use_preprocessor true \
-                --bpemodel "${bpemodel}" \
-                --token_type "${token_type}" \
-                --token_list "${token_list}" \
+                --bpemodel "${tgt_bpemodel}" \
+                --src_bpemodel "${src_bpemodel}" \
+                --token_type "${tgt_token_type}" \
+                --src_token_type "${src_token_type}" \
+                --token_list "${tgt_token_list}" \
+                --src_token_list "${src_token_list}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --train_data_path_and_name_and_type "${_asr_train_dir}/${_scp},speech,${_type}" \
-                --train_data_path_and_name_and_type "${_asr_train_dir}/text,text,text" \
-                --valid_data_path_and_name_and_type "${_asr_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_asr_valid_dir}/text,text,text" \
+                --train_data_path_and_name_and_type "${_st_train_dir}/${_scp},speech,${_type}" \
+                --train_data_path_and_name_and_type "${_st_train_dir}/text.${tgt_case}.${tgt_lang},text,text" \
+                --train_data_path_and_name_and_type "${_st_train_dir}/text.${src_case}.${src_lang},src_text,text" \
+                --valid_data_path_and_name_and_type "${_st_valid_dir}/${_scp},speech,${_type}" \
+                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
+                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${asr_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                ${_opts} ${st_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
@@ -990,32 +1167,40 @@ if ! "${skip_train}"; then
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
         # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${asr_stats_dir}"
+        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${st_stats_dir}"
 
         # Append the num-tokens at the last dimensions. This is used for batch-bins count
-        <"${asr_stats_dir}/train/text_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${asr_stats_dir}/train/text_shape.${token_type}"
+        <"${st_stats_dir}/train/text_shape" \
+            awk -v N="$(<${tgt_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${st_stats_dir}/train/text_shape.${tgt_token_type}"
 
-        <"${asr_stats_dir}/valid/text_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${asr_stats_dir}/valid/text_shape.${token_type}"
+        <"${st_stats_dir}/train/src_text_shape" \
+            awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${st_stats_dir}/train/src_text_shape.${src_token_type}"
+
+        <"${st_stats_dir}/valid/text_shape" \
+            awk -v N="$(<${tgt_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${st_stats_dir}/valid/text_shape.${tgt_token_type}"
+
+        <"${st_stats_dir}/valid/src_text_shape" \
+            awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${st_stats_dir}/valid/src_text_shape.${src_token_type}"
     fi
 
 
     if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-        _asr_train_dir="${data_feats}/${train_set}"
-        _asr_valid_dir="${data_feats}/${valid_set}"
-        log "Stage 11: ASR Training: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
+        _st_train_dir="${data_feats}/${train_set}"
+        _st_valid_dir="${data_feats}/${valid_set}"
+        log "Stage 11: ST Training: train_set=${_st_train_dir}, valid_set=${_st_valid_dir}"
 
         _opts=
-        if [ -n "${asr_config}" ]; then
+        if [ -n "${st_config}" ]; then
             # To generate the config file: e.g.
-            #   % python3 -m espnet2.bin.asr_train --print_config --optim adam
-            _opts+="--config ${asr_config} "
+            #   % python3 -m espnet2.bin.st_train --print_config --optim adam
+            _opts+="--config ${st_config} "
         fi
 
-        _feats_type="$(<${_asr_train_dir}/feats_type)"
+        _feats_type="$(<${_st_train_dir}/feats_type)"
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
             # "sound" supports "wav", "flac", etc.
@@ -1024,36 +1209,38 @@ if ! "${skip_train}"; then
             else
                 _type=sound
             fi
-            _fold_length="$((asr_speech_fold_length * 100))"
+            _fold_length="$((st_speech_fold_length * 100))"
             _opts+="--frontend_conf fs=${fs} "
         else
             _scp=feats.scp
             _type=kaldi_ark
-            _fold_length="${asr_speech_fold_length}"
-            _input_size="$(<${_asr_train_dir}/feats_dim)"
+            _fold_length="${st_speech_fold_length}"
+            _input_size="$(<${_st_train_dir}/feats_dim)"
             _opts+="--input_size=${_input_size} "
 
         fi
         if [ "${feats_normalize}" = global_mvn ]; then
             # Default normalization is utterance_mvn and changes to global_mvn
-            _opts+="--normalize=global_mvn --normalize_conf stats_file=${asr_stats_dir}/train/feats_stats.npz "
+            _opts+="--normalize=global_mvn --normalize_conf stats_file=${st_stats_dir}/train/feats_stats.npz "
         fi
 
-        if [ "${num_splits_asr}" -gt 1 ]; then
+        if [ "${num_splits_st}" -gt 1 ]; then
             # If you met a memory error when parsing text files, this option may help you.
             # The corpus is split into subsets and each subset is used for training one by one in order,
             # so the memory footprint can be limited to the memory required for each dataset.
 
-            _split_dir="${asr_stats_dir}/splits${num_splits_asr}"
+            _split_dir="${st_stats_dir}/splits${num_splits_st}"
             if [ ! -f "${_split_dir}/.done" ]; then
                 rm -f "${_split_dir}/.done"
                 ${python} -m espnet2.bin.split_scps \
                   --scps \
-                      "${_asr_train_dir}/${_scp}" \
-                      "${_asr_train_dir}/text" \
-                      "${asr_stats_dir}/train/speech_shape" \
-                      "${asr_stats_dir}/train/text_shape.${token_type}" \
-                  --num_splits "${num_splits_asr}" \
+                      "${_st_train_dir}/${_scp}" \
+                      "${_st_train_dir}/text.${tgt_case}.${tgt_lang}" \
+                      "${_st_train_dir}/text.${src_case}.${src_lang}" \
+                      "${st_stats_dir}/train/speech_shape" \
+                      "${st_stats_dir}/train/text_shape.${tgt_token_type}" \
+                      "${st_stats_dir}/train/src_text_shape.${src_token_type}" \
+                  --num_splits "${num_splits_st}" \
                   --output_dir "${_split_dir}"
                 touch "${_split_dir}/.done"
             else
@@ -1061,57 +1248,67 @@ if ! "${skip_train}"; then
             fi
 
             _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
             _opts+="--train_shape_file ${_split_dir}/speech_shape "
-            _opts+="--train_shape_file ${_split_dir}/text_shape.${token_type} "
+            _opts+="--train_shape_file ${_split_dir}/text_shape.${tgt_token_type} "
+            _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
             _opts+="--multiple_iterator true "
-
         else
-            _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${_scp},speech,${_type} "
-            _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text,text,text "
-            _opts+="--train_shape_file ${asr_stats_dir}/train/speech_shape "
-            _opts+="--train_shape_file ${asr_stats_dir}/train/text_shape.${token_type} "
+            _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/${_scp},speech,${_type} "
+            _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${tgt_case}.${tgt_lang},text,text "
+            _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${src_case}.${src_lang},src_text,text "
+            _opts+="--train_shape_file ${st_stats_dir}/train/speech_shape "
+            _opts+="--train_shape_file ${st_stats_dir}/train/text_shape.${tgt_token_type} "
+            _opts+="--train_shape_file ${st_stats_dir}/train/src_text_shape.${src_token_type} "
         fi
 
-        log "Generate '${asr_exp}/run.sh'. You can resume the process from stage 11 using this script"
-        mkdir -p "${asr_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${asr_exp}/run.sh"; chmod +x "${asr_exp}/run.sh"
+        log "Generate '${st_exp}/run.sh'. You can resume the process from stage 11 using this script"
+        mkdir -p "${st_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${st_exp}/run.sh"; chmod +x "${st_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
-        log "ASR training started... log: '${asr_exp}/train.log'"
+        log "ST training started... log: '${st_exp}/train.log'"
         if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
             # SGE can't include "/" in a job name
-            jobname="$(basename ${asr_exp})"
+            jobname="$(basename ${st_exp})"
         else
-            jobname="${asr_exp}/train.log"
+            jobname="${st_exp}/train.log"
         fi
 
+        # TODO(jiatong): fix bpe
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
-            --log "${asr_exp}"/train.log \
+            --log "${st_exp}"/train.log \
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \
-            --init_file_prefix "${asr_exp}"/.dist_init_ \
+            --init_file_prefix "${st_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            ${python} -m espnet2.bin.asr_train \
+            ${python} -m espnet2.bin.st_train \
                 --use_preprocessor true \
-                --bpemodel "${bpemodel}" \
-                --token_type "${token_type}" \
-                --token_list "${token_list}" \
+                --bpemodel "${tgt_bpemodel}" \
+                --token_type "${tgt_token_type}" \
+                --token_list "${tgt_token_list}" \
+                --src_bpemodel "${src_bpemodel}" \
+                --src_token_type "${src_token_type}" \
+                --src_token_list "${src_token_list}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --valid_data_path_and_name_and_type "${_asr_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_asr_valid_dir}/text,text,text" \
-                --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
-                --valid_shape_file "${asr_stats_dir}/valid/text_shape.${token_type}" \
+                --valid_data_path_and_name_and_type "${_st_valid_dir}/${_scp},speech,${_type}" \
+                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
+                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
+                --valid_shape_file "${st_stats_dir}/valid/speech_shape" \
+                --valid_shape_file "${st_stats_dir}/valid/text_shape.${tgt_token_type}" \
+                --valid_shape_file "${st_stats_dir}/valid/src_text_shape.${src_token_type}" \
                 --resume true \
-                --init_param ${pretrained_model} \
+                --init_param ${pretrained_asr} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${_fold_length}" \
-                --fold_length "${asr_text_fold_length}" \
-                --output_dir "${asr_exp}" \
-                ${_opts} ${asr_args}
+                --fold_length "${st_text_fold_length}" \
+                --fold_length "${st_text_fold_length}" \
+                --output_dir "${st_exp}" \
+                ${_opts} ${st_args}
 
     fi
 else
@@ -1121,24 +1318,24 @@ fi
 
 if [ -n "${download_model}" ]; then
     log "Use ${download_model} for decoding and evaluation"
-    asr_exp="${expdir}/${download_model}"
-    mkdir -p "${asr_exp}"
+    st_exp="${expdir}/${download_model}"
+    mkdir -p "${st_exp}"
 
     # If the model already exists, you can skip downloading
-    espnet_model_zoo_download --unpack true "${download_model}" > "${asr_exp}/config.txt"
+    espnet_model_zoo_download --unpack true "${download_model}" > "${st_exp}/config.txt"
 
     # Get the path of each file
-    _asr_model_file=$(<"${asr_exp}/config.txt" sed -e "s/.*'asr_model_file': '\([^']*\)'.*$/\1/")
-    _asr_train_config=$(<"${asr_exp}/config.txt" sed -e "s/.*'asr_train_config': '\([^']*\)'.*$/\1/")
+    _st_model_file=$(<"${st_exp}/config.txt" sed -e "s/.*'st_model_file': '\([^']*\)'.*$/\1/")
+    _st_train_config=$(<"${st_exp}/config.txt" sed -e "s/.*'st_train_config': '\([^']*\)'.*$/\1/")
 
     # Create symbolic links
-    ln -sf "${_asr_model_file}" "${asr_exp}"
-    ln -sf "${_asr_train_config}" "${asr_exp}"
-    inference_asr_model=$(basename "${_asr_model_file}")
+    ln -sf "${_st_model_file}" "${st_exp}"
+    ln -sf "${_st_train_config}" "${st_exp}"
+    inference_st_model=$(basename "${_st_model_file}")
 
-    if [ "$(<${asr_exp}/config.txt grep -c lm_file)" -gt 0 ]; then
-        _lm_file=$(<"${asr_exp}/config.txt" sed -e "s/.*'lm_file': '\([^']*\)'.*$/\1/")
-        _lm_train_config=$(<"${asr_exp}/config.txt" sed -e "s/.*'lm_train_config': '\([^']*\)'.*$/\1/")
+    if [ "$(<${st_exp}/config.txt grep -c lm_file)" -gt 0 ]; then
+        _lm_file=$(<"${st_exp}/config.txt" sed -e "s/.*'lm_file': '\([^']*\)'.*$/\1/")
+        _lm_train_config=$(<"${st_exp}/config.txt" sed -e "s/.*'lm_train_config': '\([^']*\)'.*$/\1/")
 
         lm_exp="${expdir}/${download_model}/lm"
         mkdir -p "${lm_exp}"
@@ -1153,7 +1350,7 @@ fi
 
 if ! "${skip_eval}"; then
     if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
-        log "Stage 12: Decoding: training_dir=${asr_exp}"
+        log "Stage 12: Decoding: training_dir=${st_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -1181,28 +1378,12 @@ if ! "${skip_eval}"; then
         fi
 
         # 2. Generate run.sh
-        log "Generate '${asr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
-        mkdir -p "${asr_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${asr_exp}/${inference_tag}/run.sh"; chmod +x "${asr_exp}/${inference_tag}/run.sh"
-        if "${use_k2}"; then
-          # Now only _nj=1 is verified if using k2
-          asr_inference_tool="espnet2.bin.asr_inference_k2"
-
-          _opts+="--is_ctc_decoding ${k2_ctc_decoding} "
-          _opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
-          _opts+="--num_paths ${num_paths} "
-          _opts+="--nll_batch_size ${nll_batch_size} "
-          _opts+="--k2_config ${k2_config} "
-        else
-          if "${use_streaming}"; then
-              asr_inference_tool="espnet2.bin.asr_inference_streaming"
-          else
-              asr_inference_tool="espnet2.bin.asr_inference"
-          fi
-        fi
+        log "Generate '${st_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
+        mkdir -p "${st_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${st_exp}/${inference_tag}/run.sh"; chmod +x "${st_exp}/${inference_tag}/run.sh"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${asr_exp}/${inference_tag}/${dset}"
+            _dir="${st_exp}/${inference_tag}/${dset}"
             _logdir="${_dir}/logdir"
             mkdir -p "${_logdir}"
 
@@ -1222,12 +1403,8 @@ if ! "${skip_eval}"; then
             # 1. Split the key file
             key_file=${_data}/${_scp}
             split_scps=""
-            if "${use_k2}"; then
-              # Now only _nj=1 is verified if using k2
-              _nj=1
-            else
-              _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-            fi
+            _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
+            st_inference_tool="espnet2.bin.st_inference"
 
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
@@ -1236,153 +1413,143 @@ if ! "${skip_eval}"; then
             utils/split_scp.pl "${key_file}" ${split_scps}
 
             # 2. Submit decoding jobs
-            log "Decoding started... log: '${_logdir}/asr_inference.*.log'"
+            log "Decoding started... log: '${_logdir}/st_inference.*.log'"
             # shellcheck disable=SC2086
-            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
-                ${python} -m ${asr_inference_tool} \
+            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/st_inference.JOB.log \
+                ${python} -m ${st_inference_tool} \
                     --batch_size ${batch_size} \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --asr_train_config "${asr_exp}"/config.yaml \
-                    --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
+                    --st_train_config "${st_exp}"/config.yaml \
+                    --st_model_file "${st_exp}"/"${inference_st_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${inference_args}
 
             # 3. Concatenates the output files from each jobs
             for f in token token_int score text; do
-                if [ -f "${_logdir}/output.1/1best_recog/${f}" ]; then
-                  for i in $(seq "${_nj}"); do
-                      cat "${_logdir}/output.${i}/1best_recog/${f}"
-                  done | sort -k1 >"${_dir}/${f}"
-                fi
+                for i in $(seq "${_nj}"); do
+                    cat "${_logdir}/output.${i}/1best_recog/${f}"
+                done | LC_ALL=C sort -k1 >"${_dir}/${f}"
             done
         done
     fi
-
 
     if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
         log "Stage 13: Scoring"
-        if [ "${token_type}" = phn ]; then
-            log "Error: Not implemented for token_type=phn"
-            exit 1
-        fi
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${asr_exp}/${inference_tag}/${dset}"
+            _dir="${st_exp}/${inference_tag}/${dset}"
 
-            for _type in cer wer ter; do
-                [ "${_type}" = ter ] && [ ! -f "${bpemodel}" ] && continue
+            # TODO(jiatong): add asr scoring and inference
 
-                _scoredir="${_dir}/score_${_type}"
-                mkdir -p "${_scoredir}"
+            _scoredir="${_dir}/score_bleu"
+            mkdir -p "${_scoredir}"
 
-                if [ "${_type}" = wer ]; then
-                    # Tokenize text to word level
+            paste \
+                <(<"${_data}/text.${tgt_case}.${tgt_lang}" \
+                    ${python} -m espnet2.bin.tokenize_text  \
+                        -f 2- --input - --output - \
+                        --token_type word \
+                        --non_linguistic_symbols "${nlsyms_txt}" \
+                        --remove_non_linguistic_symbols true \
+                        --cleaner "${cleaner}" \
+                        ) \
+                <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                    >"${_scoredir}/ref.trn.org"
+
+            # NOTE(kamo): Don't use cleaner for hyp
+            paste \
+                <(<"${_dir}/text"  \
+                        ${python} -m espnet2.bin.tokenize_text  \
+                            -f 2- --input - --output - \
+                            --token_type word \
+                            --non_linguistic_symbols "${nlsyms_txt}" \
+                            --remove_non_linguistic_symbols true \
+                            ) \
+                <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                    >"${_scoredir}/hyp.trn.org"
+            
+            # remove utterance id
+            perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
+            perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
+
+            # detokenizer
+            detokenizer.perl -l en -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
+            detokenizer.perl -l en -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
+
+            if [ ${tgt_case} = "tc" ]; then
+                echo "Case sensitive BLEU result (single-reference)" >> ${_scoredir}/result.tc.txt
+                sacrebleu "${_scoredir}/ref.trn.detok" \
+                          -i "${_scoredir}/hyp.trn.detok" \
+                          -m bleu chrf ter \
+                          >> ${_scoredir}/result.tc.txt
+                
+                log "Write a case-sensitive BLEU (single-reference) result in ${_scoredir}/result.tc.txt"
+            fi
+
+            # detokenize & remove punctuation except apostrophe
+            remove_punctuation.pl < "${_scoredir}/ref.trn.detok" > "${_scoredir}/ref.trn.detok.lc.rm"
+            remove_punctuation.pl < "${_scoredir}/hyp.trn.detok" > "${_scoredir}/hyp.trn.detok.lc.rm"
+            echo "Case insensitive BLEU result (single-reference)" >> ${_scoredir}/result.lc.txt
+            sacrebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
+                      -i "${_scoredir}/hyp.trn.detok.lc.rm" \
+                      -m bleu chrf ter \
+                      >> ${_scoredir}/result.lc.txt
+            log "Write a case-insensitve BLEU (single-reference) result in ${_scoredir}/result.lc.txt"
+
+            # process multi-references cases
+            multi_references=$(ls "${_data}/text.${tgt_case}.${tgt_lang}".* || echo "")
+            if [ "${multi_references}" != "" ]; then
+                case_sensitive_refs=""
+                case_insensitive_refs=""
+                for multi_reference in ${multi_references}; do
+                    ref_idx="${multi_reference##*.}"
                     paste \
-                        <(<"${_data}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type word \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  --cleaner "${cleaner}" \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/ref.trn"
-
-                    # NOTE(kamo): Don't use cleaner for hyp
-                    paste \
-                        <(<"${_dir}/text"  \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type word \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/hyp.trn"
-
-
-                elif [ "${_type}" = cer ]; then
-                    # Tokenize text to char level
-                    paste \
-                        <(<"${_data}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type char \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  --cleaner "${cleaner}" \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/ref.trn"
-
-                    # NOTE(kamo): Don't use cleaner for hyp
-                    paste \
-                        <(<"${_dir}/text"  \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type char \
-                                  --non_linguistic_symbols "${nlsyms_txt}" \
-                                  --remove_non_linguistic_symbols true \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/hyp.trn"
-
-                elif [ "${_type}" = ter ]; then
-                    # Tokenize text using BPE
-                    paste \
-                        <(<"${_data}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type bpe \
-                                  --bpemodel "${bpemodel}" \
-                                  --cleaner "${cleaner}" \
+                        <(<${multi_reference} \
+                            ${python} -m espnet2.bin.tokenize_text  \
+                                -f 2- --input - --output - \
+                                --token_type word \
+                                --non_linguistic_symbols "${nlsyms_txt}" \
+                                --remove_non_linguistic_symbols true \
+                                --cleaner "${cleaner}" \
                                 ) \
                         <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/ref.trn"
+                            >"${_scoredir}/ref.trn.org.${ref_idx}"
+                    
+                    # 
+                    perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
+                    detokenizer.perl -l en -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
+                    remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
+                    case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
+                    case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
+                done
 
-                    # NOTE(kamo): Don't use cleaner for hyp
-                    paste \
-                        <(<"${_dir}/text" \
-                              ${python} -m espnet2.bin.tokenize_text  \
-                                  -f 2- --input - --output - \
-                                  --token_type bpe \
-                                  --bpemodel "${bpemodel}" \
-                                  ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                            >"${_scoredir}/hyp.trn"
-
+                if [ ${tgt_case} = "tc" ]; then
+                    echo "Case sensitive BLEU result (multi-references)" >> ${_scoredir}/result.tc.txt
+                    sacrebleu ${case_sensitive_refs} \
+                        -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter \
+                        >> ${_scoredir}/result.tc.txt
+                    log "Write a case-sensitve BLEU (multi-reference) result in ${_scoredir}/result.tc.txt"
                 fi
 
-                sclite \
-		    ${score_opts} \
-                    -r "${_scoredir}/ref.trn" trn \
-                    -h "${_scoredir}/hyp.trn" trn \
-                    -i rm -o all stdout > "${_scoredir}/result.txt"
+                echo "Case insensitive BLEU result (multi-references)" >> ${_scoredir}/result.lc.txt
+                sacrebleu -lc ${case_insensitive_refs} \
+                    -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter \
+                    >> ${_scoredir}/result.lc.txt
+                log "Write a case-insensitve BLEU (multi-reference) result in ${_scoredir}/result.lc.txt"
+            fi
 
-                log "Write ${_type} result in ${_scoredir}/result.txt"
-                grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
-            done
         done
-
-        [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${asr_exp}"
-
-        # Show results in Markdown syntax
-        scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md
-        cat "${asr_exp}"/RESULTS.md
-
     fi
-else
+
     log "Skip the evaluation stages"
 fi
 
 
-packed_model="${asr_exp}/${asr_exp##*/}_${inference_asr_model%.*}.zip"
-if [ -z "${download_model}" ]; then
-    # Skip pack preparation if using a downloaded model
+packed_model="${st_exp}/${st_exp##*/}_${inference_st_model%.*}.zip"
+if ! "${skip_upload}"; then
     if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
         log "Stage 14: Pack model: ${packed_model}"
 
@@ -1394,30 +1561,28 @@ if [ -z "${download_model}" ]; then
             _opts+="--option ${lm_exp}/images "
         fi
         if [ "${feats_normalize}" = global_mvn ]; then
-            _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
+            _opts+="--option ${st_stats_dir}/train/feats_stats.npz "
         fi
-        if [ "${token_type}" = bpe ]; then
+        if [ "${tgt_token_type}" = bpe ]; then
             _opts+="--option ${bpemodel} "
         fi
         if [ "${nlsyms_txt}" != none ]; then
             _opts+="--option ${nlsyms_txt} "
         fi
         # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.pack asr \
-            --asr_train_config "${asr_exp}"/config.yaml \
-            --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
+        ${python} -m espnet2.bin.pack st \
+            --st_train_config "${st_exp}"/config.yaml \
+            --st_model_file "${st_exp}"/"${inference_st_model}" \
             ${_opts} \
-            --option "${asr_exp}"/RESULTS.md \
-            --option "${asr_exp}"/RESULTS.md \
-            --option "${asr_exp}"/images \
+            --option "${st_exp}"/RESULTS.md \
+            --option "${st_exp}"/RESULTS.md \
+            --option "${st_exp}"/images \
             --outpath "${packed_model}"
     fi
-fi
 
-if ! "${skip_upload}"; then
+
     if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
         log "Stage 15: Upload model to Zenodo: ${packed_model}"
-        log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/
@@ -1433,14 +1598,14 @@ git checkout $(git show -s --format=%H)"
             _creator_name="$(whoami)"
             _checkout=""
         fi
-        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        # /some/where/espnet/egs2/foo/st1/ -> foo/st1
         _task="$(pwd | rev | cut -d/ -f2 | rev)"
-        # foo/asr1 -> foo
+        # foo/st1 -> foo
         _corpus="${_task%/*}"
         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
         # Generate description file
-        cat << EOF > "${asr_exp}"/description
+        cat << EOF > "${st_exp}"/description
 This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
 <p>&nbsp;</p>
 <ul>
@@ -1452,8 +1617,8 @@ pip install -e .
 cd $(pwd | rev | cut -d/ -f1-3 | rev)
 ./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
 </pre></li>
-<li><strong>Results</strong><pre><code>$(cat "${asr_exp}"/RESULTS.md)</code></pre></li>
-<li><strong>ASR config</strong><pre><code>$(cat "${asr_exp}"/config.yaml)</code></pre></li>
+<li><strong>Results</strong><pre><code>$(cat "${st_exp}"/RESULTS.md)</code></pre></li>
+<li><strong>ST config</strong><pre><code>$(cat "${st_exp}"/config.yaml)</code></pre></li>
 <li><strong>LM config</strong><pre><code>$(if ${use_lm}; then cat "${lm_exp}"/config.yaml; else echo NONE; fi)</code></pre></li>
 </ul>
 EOF
@@ -1465,66 +1630,16 @@ EOF
         espnet_model_zoo_upload \
             --file "${packed_model}" \
             --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
-            --description_file "${asr_exp}"/description \
+            --description_file "${st_exp}"/description \
             --creator_name "${_creator_name}" \
             --license "CC-BY-4.0" \
             --use_sandbox false \
             --publish false
     fi
+
+# TODO (jiatong): add HF uploading feature
 else
-    log "Skip the uploading stage"
-fi
-
-if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ]; then
-        [ -z "${hf_repo}" ] && \
-            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
-            exit 1
-        log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
-
-        gitlfs=$(git lfs --version 2> /dev/null || true)
-        [ -z "${gitlfs}" ] && \
-            log "ERROR: You need to install git-lfs first" && \
-            exit 1
-
-        dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
-        [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
-
-        if command -v git &> /dev/null; then
-            _creator_name="$(git config user.name)"
-            _checkout="git checkout $(git show -s --format=%H)"
-        else
-            _creator_name="$(whoami)"
-            _checkout=""
-        fi
-        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
-        _task="$(pwd | rev | cut -d/ -f2 | rev)"
-        # foo/asr1 -> foo
-        _corpus="${_task%/*}"
-        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-
-        # copy files in ${dir_repo}
-        unzip -o ${packed_model} -d ${dir_repo}
-        # Generate description file
-        # shellcheck disable=SC2034
-        hf_task=automatic-speech-recognition
-        # shellcheck disable=SC2034
-        espnet_task=ASR
-        # shellcheck disable=SC2034
-        task_exp=${asr_exp}
-        eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
-
-        this_folder=${PWD}
-        cd ${dir_repo}
-        if [ -n "$(git status --porcelain)" ]; then
-            git add .
-            git commit -m "Update model"
-        fi
-        git push
-        cd ${this_folder}
-    fi
-else
-    log "Skip the uploading to HuggingFace stage"
+    log "Skip the uploading stages"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
