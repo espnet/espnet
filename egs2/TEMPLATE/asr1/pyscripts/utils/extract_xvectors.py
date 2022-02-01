@@ -22,33 +22,17 @@ def get_parser():
         description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
-        "--pretrained_model",
-        type=str,
-        help="Pretrained model."
-    )
+    parser.add_argument("--pretrained_model", type=str, help="Pretrained model.")
     parser.add_argument(
         "--toolkit",
         type=str,
         help="Toolkit for Extracting X-vectors.",
-        choices=['espnet', 'speechbrain']
+        choices=["espnet", "speechbrain"],
     )
+    parser.add_argument("--verbose", type=int, default=1, help="Verbosity level.")
+    parser.add_argument("--device", type=str, default="cuda:0", help="Inference device")
     parser.add_argument(
-        "--verbose",
-        type=int,
-        default=1,
-        help="Verbosity level."
-    )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default='cuda:0',
-        help="Inference device"
-    )
-    parser.add_argument(
-        "in_folder",
-        type=Path,
-        help="Path to the input kaldi data directory."
+        "in_folder", type=Path, help="Path to the input kaldi data directory."
     )
     parser.add_argument(
         "out_folder",
@@ -74,43 +58,42 @@ def main(argv):
             format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
         )
         logging.warning("Skip DEBUG/INFO messages")
-    
-    if torch.cuda.is_available() and ('cuda' in args.device):
+
+    if torch.cuda.is_available() and ("cuda" in args.device):
         device = args.device
     else:
-        device = 'cpu'
+        device = "cpu"
 
-    if args.toolkit == 'speechbrain':
+    if args.toolkit == "speechbrain":
         from speechbrain.dataio.preprocess import AudioNormalizer
         from speechbrain.pretrained import EncoderClassifier
 
         # Prepare spk2utt for mean x-vector
         spk2utt = dict()
-        with open(os.path.join(args.in_folder, 'spk2utt'), 'r') as reader:
+        with open(os.path.join(args.in_folder, "spk2utt"), "r") as reader:
             for line in reader:
                 details = line.split()
                 spk2utt[details[0]] = details[1:]
 
         # TODO(nelson): The model inference can be moved into functon.
         classifier = EncoderClassifier.from_hparams(
-            source=args.pretrained,
-            run_opts={"device":device}
+            source=args.pretrained, run_opts={"device": device}
         )
         audio_norm = AudioNormalizer()
 
-        wav_scp = SoundScpReader(os.path.join(args.in_folder, 'wav.scp'))
+        wav_scp = SoundScpReader(os.path.join(args.in_folder, "wav.scp"))
         os.makedirs(args.out_folder, exist_ok=True)
         writer_utt = kaldiio.WriteHelper(
-            'ark,scp:{0}/xvector.ark,{0}/xvector.scp'.format(args.out_folder)
+            "ark,scp:{0}/xvector.ark,{0}/xvector.scp".format(args.out_folder)
         )
         writer_spk = kaldiio.WriteHelper(
-            'ark,scp:{0}/spk_xvector.ark,{0}/spk_xvector.scp'.format(args.out_folder)
+            "ark,scp:{0}/spk_xvector.ark,{0}/spk_xvector.scp".format(args.out_folder)
         )
-        
+
         for speaker in tqdm(spk2utt):
             xvectors = list()
             for utt in spk2utt[speaker]:
-                in_sr, wav  = wav_scp[utt]
+                in_sr, wav = wav_scp[utt]
                 # Amp Normalization -1 ~ 1
                 amax = np.amax(np.absolute(wav))
                 wav = wav.astype(np.float32) / amax
@@ -120,17 +103,21 @@ def main(argv):
                 embeds = classifier.encode_batch(wav).detach().cpu().numpy()[0]
                 writer_utt[utt] = np.squeeze(embeds)
                 xvectors.append(embeds)
-            
+
             # Speaker Normalization
             xvectors = np.mean(np.concatenate(xvectors, 0), 0)
             writer_spk[speaker] = embeds
         writer_utt.close()
         writer_spk.close()
 
-    elif args.toolkit == 'espnet':
-        raise NotImplementedError('Follow details at: https://github.com/espnet/espnet/issues/3040')
+    elif args.toolkit == "espnet":
+        raise NotImplementedError(
+            "Follow details at: https://github.com/espnet/espnet/issues/3040"
+        )
     else:
-        raise ValueError(f'Unkown type of toolkit. Only supported: speechbrain, espnet, kaldi')
+        raise ValueError(
+            f"Unkown type of toolkit. Only supported: speechbrain, espnet, kaldi"
+        )
 
 
 if __name__ == "__main__":
