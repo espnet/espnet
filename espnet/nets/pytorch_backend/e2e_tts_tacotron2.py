@@ -121,7 +121,7 @@ class GuidedAttentionLoss(torch.nn.Module):
         grid_x, grid_y = torch.meshgrid(torch.arange(olen), torch.arange(ilen))
         grid_x, grid_y = grid_x.float().to(olen.device), grid_y.float().to(ilen.device)
         return 1.0 - torch.exp(
-            -((grid_y / ilen - grid_x / olen) ** 2) / (2 * (sigma ** 2))
+            -((grid_y / ilen - grid_x / olen) ** 2) / (2 * (sigma**2))
         )
 
     @staticmethod
