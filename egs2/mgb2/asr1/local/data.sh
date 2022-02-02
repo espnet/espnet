@@ -3,15 +3,15 @@
 # Copyright (C) 2020 Kanari AI 
 # (Amir Hussein)
 
-if [ $# -ne 4 ]; then
-  echo "Usage: $0 <DB-dir> <process-xml> <data-subset> <mer>"
-  exit 1;
-fi
+mkdir DB
+cd DB
+ln -s /projects/tir5/data/speech_corpora/IWSLT_2022/* ./
+cd ..
 
-db_dir=$1
-process_xml=$2
-subset=$3  # subset of training data
-mer=$4
+db_dir=DB
+process_xml="python"
+subset=1000  # subset of training data
+mer=80
 test_dir=data/test
 
 train_dir=data/train
@@ -68,6 +68,7 @@ else
   exit 1;
 fi
 
+echo lalala
 # Generating necessary files for Dev 
 for x in text segments; do
   cp $db_dir/dev/${x}.all $dev_dir/${x}

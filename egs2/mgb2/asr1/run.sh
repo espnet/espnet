@@ -10,11 +10,7 @@ train_set=train
 valid_set=dev
 test_set=test
 
-
-#BASELINE CONFIG : 
 asr_config=conf/tuning/train_asr_conformer.yaml
-
-
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
@@ -42,8 +38,3 @@ speed_perturb_factors="1.1 0.9 1.0"
     --speed_perturb_factors "${speed_perturb_factors}" \
     --ngpu 1 \
     --lm_train_text "data/${train_set}/text" "$@"
-
-    
-# sbatch -t 0 --exclude  tir-0-17,tir-0-15,tir-0-36,tir-0-11 --cpus-per-task=4 --mem=30G  run.sh --stage 1  --stop_stage 1
-
-# sbatch -t 0 --exclude tir-0-17,tir-0-15,tir-0-36,tir-0-11  --cpus-per-task=4 --gres=gpu:a100:1 --mem=40G  --output=OUTPUTS/stage11.out  run.sh --stage 11  --stop_stage 11
