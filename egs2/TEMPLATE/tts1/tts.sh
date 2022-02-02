@@ -66,9 +66,9 @@ f0min=80  # Maximum f0 for pitch extraction.
 f0max=400 # Minimum f0 for pitch extraction.
 
 # X-Vector related
-use_xvector=false          # Whether to use x-vector.
-xvector_tool=kaldi  # Toolkit to use (speechbrain, espnet, kaldi)
-xvector_model=speechbrain/spkrec-ecapa-voxceleb  # for espnet or speechbrain
+use_xvector=false   # Whether to use x-vector.
+xvector_tool=kaldi  # Toolkit for extracting x-vector (speechbrain, espnet, kaldi)
+xvector_model=speechbrain/spkrec-ecapa-voxceleb  # For only espnet or speechbrain
 
 # Vocabulary related
 oov="<unk>"         # Out of vocabrary symbol.
