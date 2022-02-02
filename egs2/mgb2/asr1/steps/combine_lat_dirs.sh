@@ -1,1 +1,0 @@
-combine_ali_dirs.sh
