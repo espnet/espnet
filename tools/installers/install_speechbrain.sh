@@ -2,8 +2,6 @@
 
 set -euo pipefail
 
-MAKE=make
-
 if [ $# != 0 ]; then
     echo "Usage: $0"
     exit 1;
