@@ -402,10 +402,10 @@ if ! "${skip_data_prep}"; then
                 log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector using python toolkits"
                 for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                     pyscripts/utils/extract_xvectors.py \
-                            --pretrained_model ${xvector_model} \
-                            --toolkit ${xvector_tool} \
-                            ${data_feats}/${dset} \
-                            ${dumpdir}/xvector/${dset}
+                        --pretrained_model ${xvector_model} \
+                        --toolkit ${xvector_tool} \
+                        ${data_feats}/${dset} \
+                        ${dumpdir}/xvector/${dset}
                 done
             fi
         fi
