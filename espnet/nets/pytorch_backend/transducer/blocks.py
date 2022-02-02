@@ -369,8 +369,12 @@ def build_conformer_block(
     pos_dropout_rate = block.get("pos-dropout-rate", 0.0)
     att_dropout_rate = block.get("att-dropout-rate", 0.0)
 
+    macaron_style = block["macaron_style"]
+    use_conv_mod = block["use_conv_mod"]
+
     if pw_layer_type == "linear":
-        pw_layer = PositionwiseFeedForward(
+        pw_layer = PositionwiseFeedForward
+        pw_layer_args = (
             d_hidden,
             d_ff,
             pos_dropout_rate,
@@ -379,33 +383,29 @@ def build_conformer_block(
     else:
         raise NotImplementedError("Conformer block only supports linear yet.")
 
-    macaron_net = (
-        PositionwiseFeedForward(
+    if macaron_style:
+        macaron_net = PositionwiseFeedForward
+        macaron_net_args = (
             d_hidden,
             d_ff,
             pos_dropout_rate,
             get_activation(pw_activation_type),
         )
-        if block["macaron_style"]
-        else None
-    )
 
-    conv_mod = (
-        ConvolutionModule(
+    if use_conv_mod:
+        conv_mod = ConvolutionModule
+        conv_mod_args = (
             d_hidden,
             block["conv_mod_kernel"],
             get_activation(conv_mod_activation_type),
         )
-        if block["use_conv_mod"]
-        else None
-    )
 
     return lambda: ConformerEncoderLayer(
         d_hidden,
         self_attn_class(block["heads"], d_hidden, att_dropout_rate),
-        pw_layer,
-        macaron_net,
-        conv_mod,
+        pw_layer(*pw_layer_args),
+        macaron_net(*macaron_net_args) if macaron_style else None,
+        conv_mod(*conv_mod_args) if use_conv_mod else None,
         dropout_rate,
     )
 
