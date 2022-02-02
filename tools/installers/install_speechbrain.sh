@@ -23,15 +23,13 @@ EOF
 
 # Install speechbrain
 if [ ! -e speechbrain.done ]; then
-    (
-        if "${torch_18_plus}"; then
-            set -euo pipefail
-            python3 -m pip install speechbrain==0.5.11
-        else
-            echo "ERROR: speechbrain version >=1.8.0"
-        fi
-    )
-    touch speechbrain.done
+    if "${torch_18_plus}"; then
+        python3 -m pip install speechbrain==0.5.11
+        touch speechbrain.done
+    else
+        echo "[ERROR]: speechbrain requires pytorch>=1.8.0"
+        exit 1
+    fi
 else
     echo "speechbrain is already installed."
 fi
