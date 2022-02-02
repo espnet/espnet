@@ -146,8 +146,8 @@ Options:
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
     --use_xvector      # Whether to use X-vector (default="${use_xvector}").
-    --xvector_tool      # Toolkit for generating the X-vectors (default="${xvector_tool}").
-    --xvector_model     # Pretrained model to generate the X-vectors (default="${xvector_model}").
+    --xvector_tool     # Toolkit for generating the X-vectors (default="${xvector_tool}").
+    --xvector_model    # Pretrained model to generate the X-vectors (default="${xvector_model}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
     --use_lid          # Whether to use language id as the inputs (default="${use_lid}").
     --feats_extract    # On the fly feature extractor (default="${feats_extract}").
