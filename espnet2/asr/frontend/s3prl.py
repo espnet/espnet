@@ -47,13 +47,6 @@ class S3prlFrontend(AbsFrontend):
 
         self.multilayer_feature = multilayer_feature
         self.upstream, self.featurizer = self._get_upstream(frontend_conf)
-        if getattr(
-            self.upstream, "model", None
-        ) is not None and self.upstream.model.__class__.__name__ in [
-            "Wav2Vec2Model",
-            "HuberModel",
-        ]:
-            self.upstream.model.encoder.layerdrop = 0.0
         self.pretrained_params = copy.deepcopy(self.upstream.state_dict())
         self.output_dim = self.featurizer.output_dim
         self.frontend_type = "s3prl"
@@ -82,6 +75,14 @@ class S3prlFrontend(AbsFrontend):
             refresh=s3prl_args.upstream_refresh,
             source="local",
         ).to("cpu")
+
+        if getattr(
+            s3prl_upstream, "model", None
+        ) is not None and s3prl_upstream.model.__class__.__name__ in [
+            "Wav2Vec2Model",
+            "HubertModel",
+        ]:
+            s3prl_upstream.model.encoder.layerdrop = 0.0
 
         from s3prl.upstream.interfaces import Featurizer
 

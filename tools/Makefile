@@ -1,5 +1,5 @@
-# PyTorch version: 1.3.1, 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1 and 1.10.0 are tested.
-TH_VERSION := 1.10.0
+# PyTorch version: 1.3.1, 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1, 1.10.0 and 1.10.1 are tested.
+TH_VERSION := 1.10.1
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -57,6 +57,9 @@ endif
 
 #########################################
 
+bc.done: activate_python.sh
+	. ./activate_python.sh && { command -v bc || conda install -y bc -c conda-forge; }
+	touch bc.done
 cmake.done: activate_python.sh
 	. ./activate_python.sh && { command -v cmake || conda install -y cmake; }
 	touch cmake.done
@@ -73,7 +76,7 @@ sndfile.done: activate_python.sh
 	. ./activate_python.sh && { python3 -c "from ctypes.util import find_library as F; assert F('sndfile') is not None" || conda install -y libsndfile=1.0.28 -c conda-forge; }
 	touch sndfile.done
 ifneq ($(strip $(USE_CONDA)),)
-conda_packages.done: cmake.done flac.done ffmpeg.done sox.done sndfile.done
+conda_packages.done: bc.done cmake.done flac.done ffmpeg.done sox.done sndfile.done
 else
 conda_packages.done:
 endif
@@ -90,8 +93,12 @@ sph2pipe.done:
 
 pytorch.done: activate_python.sh
 ifeq ($(strip $(USE_CONDA)),)
+	# NOTE(kan-bayashi): Temporary fixed numpy version
+	. ./activate_python.sh && pip install "numpy<=1.21.3"
 	. ./activate_python.sh && ./installers/install_torch.sh "false" "${TH_VERSION}" "${CUDA_VERSION}"
 else
+	# NOTE(kan-bayashi): Temporary fixed numpy version
+	. ./activate_python.sh && conda install "numpy<=1.21.3"
 	. ./activate_python.sh && ./installers/install_torch.sh "true" "${TH_VERSION}" "${CUDA_VERSION}"
 endif
 	touch pytorch.done
@@ -185,7 +192,7 @@ s3prl.done: espnet.done
 k2.done: espnet.done
 	. ./activate_python.sh && ./installers/install_k2.sh
 	touch k2.done
-	
+
 gtn.done: espnet.done
 	. ./activate_python.sh && ./installers/install_gtn.sh
 	touch gtn.done

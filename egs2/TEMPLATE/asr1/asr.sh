@@ -100,6 +100,16 @@ hf_repo=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
+k2_ctc_decoding=true
+use_nbest_rescoring=true # use transformer-decoder
+                         # and transformer language model for nbest rescoring
+num_paths=1000 # The 3rd argument of k2.random_paths.
+nll_batch_size=100 # Affect GPU memory usage when computing nll
+                   # during nbest rescoring
+k2_config=./conf/decode_asr_transformer_with_k2.yaml
+
+use_streaming=false # Whether to use streaming decoding
+
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -213,6 +223,7 @@ Options:
     --inference_lm        # Language model path for decoding (default="${inference_lm}").
     --inference_asr_model # ASR model path for decoding (default="${inference_asr_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
+    --use_streaming       # Whether to use streaming decoding (default="${use_streaming}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -417,6 +428,8 @@ if [ -z "${inference_tag}" ]; then
 
     if "${use_k2}"; then
       inference_tag+="_use_k2"
+      inference_tag+="_k2_ctc_decoding_${k2_ctc_decoding}"
+      inference_tag+="_use_nbest_rescoring_${use_nbest_rescoring}"
     fi
 fi
 
@@ -881,7 +894,7 @@ if ! "${skip_train}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         if "${use_ngram}"; then
             log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
-            cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
+            cut -f 2- -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
             build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
         else
             log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
@@ -1170,6 +1183,22 @@ if ! "${skip_eval}"; then
         # 2. Generate run.sh
         log "Generate '${asr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
         mkdir -p "${asr_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${asr_exp}/${inference_tag}/run.sh"; chmod +x "${asr_exp}/${inference_tag}/run.sh"
+        if "${use_k2}"; then
+          # Now only _nj=1 is verified if using k2
+          asr_inference_tool="espnet2.bin.asr_inference_k2"
+
+          _opts+="--is_ctc_decoding ${k2_ctc_decoding} "
+          _opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
+          _opts+="--num_paths ${num_paths} "
+          _opts+="--nll_batch_size ${nll_batch_size} "
+          _opts+="--k2_config ${k2_config} "
+        else
+          if "${use_streaming}"; then
+              asr_inference_tool="espnet2.bin.asr_inference_streaming"
+          else
+              asr_inference_tool="espnet2.bin.asr_inference"
+          fi
+        fi
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
@@ -1194,12 +1223,10 @@ if ! "${skip_eval}"; then
             key_file=${_data}/${_scp}
             split_scps=""
             if "${use_k2}"; then
-              # Now only _nj=1 is verified
+              # Now only _nj=1 is verified if using k2
               _nj=1
-              asr_inference_tool="espnet2.bin.k2_asr_inference"
             else
               _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-              asr_inference_tool="espnet2.bin.asr_inference"
             fi
 
             for n in $(seq "${_nj}"); do
@@ -1224,9 +1251,11 @@ if ! "${skip_eval}"; then
 
             # 3. Concatenates the output files from each jobs
             for f in token token_int score text; do
-                for i in $(seq "${_nj}"); do
-                    cat "${_logdir}/output.${i}/1best_recog/${f}"
-                done | LC_ALL=C sort -k1 >"${_dir}/${f}"
+                if [ -f "${_logdir}/output.1/1best_recog/${f}" ]; then
+                  for i in $(seq "${_nj}"); do
+                      cat "${_logdir}/output.${i}/1best_recog/${f}"
+                  done | sort -k1 >"${_dir}/${f}"
+                fi
             done
         done
     fi

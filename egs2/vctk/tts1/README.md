@@ -69,7 +69,7 @@ done
     --tts_task gan_tts \
     --feats_extract linear_spectrogram \
     --feats_normalize none \
-    --train_config ./conf/tuning/train_full_band_multi_spk_vits.yaml \
+    --train_config ./conf/tuning/train_multi_spk_vits.yaml \
     --inference_model train.total_count.ave.pth
 ```
 
@@ -78,7 +78,7 @@ done
 - 22.05 kHz / 1M iters / Use speaker ID (one-hot) / Averaged the last 5 epochs
 - https://zenodo.org/record/5560132
 
-### vctk_tts_train_full_band_multi_spk_vits_raw_phn_tacotron_espeak_ng_english_us_vits_train.total_count.ave
+### vctk_tts_train_xvector_vits_raw_phn_tacotron_espeak_ng_english_us_vits_train.total_count.ave
 
 <details><summary>Command</summary><div>
 
@@ -117,7 +117,7 @@ done
     --tts_task gan_tts \
     --feats_extract linear_spectrogram \
     --feats_normalize none \
-    --train_config ./conf/tuning/train_full_band_multi_spk_vits.yaml \
+    --train_config ./conf/tuning/train_xvector_vits.yaml \
     --inference_model train.total_count.ave.pth
 ```
 
@@ -208,7 +208,7 @@ done
     --tts_task gan_tts \
     --feats_extract linear_spectrogram \
     --feats_normalize none \
-    --train_config ./conf/tuning/train_full_band_multi_spk_vits.yaml \
+    --train_config ./conf/tuning/train_multi_spk_vits.yaml \
     --inference_model train.total_count.ave.pth
 ```
 

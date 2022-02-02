@@ -1,74 +1,116 @@
-# Self-supervised learning features [HuBERT_large_ll60k, Conformer, utt_mvn](conf/tuning/train_asr_conformer7_hubert_960hr_large.yaml) with [Transformer-LM](conf/tuning/train_lm_transformer2.yaml)
+# Self-supervised learning features [HuBERT_large_ll60k, Conformer, utt_mvn](conf/tuning/train_asr_conformer7_hubert_ll60k_large.yaml) with [Transformer-LM](conf/tuning/train_lm_transformer2.yaml)
 
 ## Environments
-- date: `Fri Aug  6 11:44:39 JST 2021`
-- python version: `3.7.9 (default, Apr 23 2021, 13:48:31)  [GCC 5.5.0 20171010]`
-- espnet version: `espnet 0.9.9`
-- pytorch version: `pytorch 1.7.0`
-- Git hash: `0f7558a716ab830d0c29da8785840124f358d47b`
-  - Commit date: `Tue Jun 8 15:33:49 2021 -0400`
-- Pretrained model: https://huggingface.co/espnet/xuankai_chang_librispeech_asr_train_asr_conformer7_hubert_960hr_large_raw_en_bpe5000_sp_26epoch
+- date: `Sat Jan  1 23:24:39 EST 2022`
+- python version: `3.7.11 (default, Jul 27 2021, 14:32:16)  [GCC 7.5.0]`
+- espnet version: `espnet 0.10.5a1`
+- pytorch version: `pytorch 1.8.1`
+- Git hash: `37a5c7cdb84b1d2361f4a4fa08826b2873bf7753`
+  - Commit date: `Thu Nov 25 05:30:02 2021 +0000`
+- Pretrained model: https://huggingface.co/espnet/simpleoier_librispeech_asr_train_asr_conformer7_hubert_ll60k_large_raw_en_bpe5000_sp
 
 ### WER
+
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/dev_clean|2703|54402|98.5|1.3|0.2|0.2|1.7|22.1|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/dev_other|2864|50948|96.8|2.8|0.4|0.3|3.4|33.7|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/test_clean|2620|52576|98.4|1.4|0.2|0.2|1.8|22.1|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/test_other|2939|52343|96.8|2.8|0.4|0.4|3.6|36.0|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|54402|98.5|1.4|0.2|0.2|1.7|22.9|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|50948|96.7|3.0|0.3|0.3|3.6|36.0|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|52576|98.4|1.4|0.2|0.2|1.8|23.4|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|52343|96.6|3.1|0.3|0.4|3.7|37.2|
 
 ### CER
+
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/dev_clean|2703|288456|99.6|0.2|0.2|0.2|0.6|22.1|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/dev_other|2864|265951|98.8|0.6|0.6|0.3|1.5|33.7|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/test_clean|2620|281530|99.6|0.2|0.2|0.2|0.6|22.1|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/test_other|2939|272758|98.9|0.5|0.5|0.4|1.4|36.0|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|288456|99.7|0.2|0.2|0.2|0.5|22.9|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|265951|99.0|0.6|0.5|0.4|1.4|36.0|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|281530|99.7|0.2|0.2|0.2|0.5|23.4|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|272758|99.1|0.5|0.4|0.4|1.3|37.2|
 
 ### TER
+
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/dev_clean|2703|68010|98.2|1.3|0.5|0.4|2.2|22.1|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/dev_other|2864|63110|96.0|2.8|1.2|0.6|4.6|33.7|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/test_clean|2620|65818|98.1|1.3|0.6|0.4|2.3|22.1|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/test_other|2939|65101|96.0|2.7|1.3|0.6|4.6|36.0|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|68010|98.2|1.4|0.4|0.4|2.2|22.9|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|63110|96.1|3.0|0.9|0.8|4.7|36.0|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|65818|98.1|1.4|0.5|0.4|2.3|23.4|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|65101|96.1|2.9|1.1|0.7|4.6|37.2|
 
+# Self-supervised learning features [WavLM_large, Conformer, utt_mvn](conf/tuning/train_asr_conformer7_wavlm_large.yaml) with [Transformer-LM](conf/tuning/train_lm_transformer2.yaml)
+
+## Environments
+- date: `Tue Jan  4 20:52:48 EST 2022`
+- python version: `3.7.11 (default, Jul 27 2021, 14:32:16)  [GCC 7.5.0]`
+- espnet version: `espnet 0.10.5a1`
+- pytorch version: `pytorch 1.8.1`
+- Git hash: `37a5c7cdb84b1d2361f4a4fa08826b2873bf7753`
+  - Commit date: `Thu Nov 25 05:30:02 2021 +0000`
+- Pretrained model: https://huggingface.co/espnet/simpleoier_librispeech_asr_train_asr_conformer7_wavlm_large_raw_en_bpe5000_sp
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|54402|98.4|1.4|0.1|0.2|1.7|23.1|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|50948|96.7|3.0|0.3|0.3|3.6|35.5|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|52576|98.4|1.5|0.1|0.2|1.8|23.7|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|52343|96.7|3.0|0.3|0.4|3.7|37.9|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|288456|99.7|0.2|0.2|0.2|0.5|23.1|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|265951|98.9|0.6|0.4|0.4|1.5|35.5|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|281530|99.6|0.2|0.2|0.2|0.6|23.7|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|272758|99.1|0.5|0.4|0.4|1.3|37.9|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|68010|98.2|1.4|0.4|0.3|2.1|23.1|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|63110|96.0|3.1|0.9|0.9|4.9|35.5|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|65818|98.1|1.4|0.5|0.4|2.3|23.7|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|65101|96.1|2.9|1.0|0.8|4.7|37.9|
 
 # Self-supervised learning features [Wav2Vec2_large_960hr, Conformer, utt_mvn](conf/tuning/train_asr_conformer7_wav2vec2_960hr_large.yaml) with [Transformer-LM](conf/tuning/train_lm_transformer2.yaml)
 
 ## Environments
-- date: `Sat Jul  3 23:10:19 JST 2021`
-- python version: `3.7.9 (default, Apr 23 2021, 13:48:31)  [GCC 5.5.0 20171010]`
-- espnet version: `espnet 0.9.9`
-- pytorch version: `pytorch 1.7.0`
-- Git hash: `0f7558a716ab830d0c29da8785840124f358d47b`
-  - Commit date: `Tue Jun 8 15:33:49 2021 -0400`
-- Pretrained model: https://huggingface.co/espnet/xuankai_chang_librispeech_asr_train_asr_conformer7_wav2vec2_960hr_large_raw_en_bpe5000_sp_25epoch
+- date: `Thu Dec 16 23:20:01 EST 2021`
+- python version: `3.7.11 (default, Jul 27 2021, 14:32:16)  [GCC 7.5.0]`
+- espnet version: `espnet 0.10.5a1`
+- pytorch version: `pytorch 1.8.1`
+- Git hash: `37a5c7cdb84b1d2361f4a4fa08826b2873bf7753`
+  - Commit date: `Thu Nov 25 05:30:02 2021 +0000`
+- Pretrained model: https://huggingface.co/espnet/simpleoier_librispeech_asr_train_asr_conformer7_wav2vec2_960hr_large_raw_en_bpe5000_sp
 
 ### WER
+
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/dev_clean|2703|54402|98.3|1.6|0.2|0.2|1.9|24.9|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/dev_other|2864|50948|95.1|4.3|0.6|0.4|5.4|42.8|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/test_clean|2620|52576|98.1|1.7|0.2|0.2|2.2|26.8|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/test_other|2939|52343|95.3|4.1|0.6|0.5|5.2|45.8|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|54402|98.3|1.6|0.2|0.2|1.9|24.6|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|50948|95.2|4.3|0.5|0.5|5.2|42.5|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|52576|98.1|1.6|0.2|0.2|2.1|25.7|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|52343|95.4|4.1|0.5|0.5|5.1|45.1|
 
 ### CER
+
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/dev_clean|2703|288456|99.5|0.2|0.2|0.2|0.6|24.9|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/dev_other|2864|265951|98.1|1.0|0.9|0.5|2.4|42.8|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/test_clean|2620|281530|99.5|0.2|0.3|0.2|0.7|26.8|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/test_other|2939|272758|98.3|0.8|0.9|0.5|2.3|45.8|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|288456|99.6|0.2|0.2|0.2|0.6|24.6|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|265951|98.3|1.0|0.7|0.6|2.3|42.5|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|281530|99.5|0.2|0.3|0.2|0.7|25.7|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|272758|98.4|0.8|0.7|0.6|2.1|45.1|
 
 ### TER
+
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/dev_clean|2703|68010|97.8|1.6|0.6|0.4|2.6|24.9|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/dev_other|2864|63110|94.1|4.3|1.6|1.1|7.0|42.8|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/test_clean|2620|65818|97.6|1.6|0.8|0.4|2.8|26.8|
-|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_17epoch_asr_model_valid.acc.best/test_other|2939|65101|94.3|4.0|1.8|1.0|6.7|45.8|
-
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_clean|2703|68010|98.0|1.5|0.5|0.4|2.4|24.6|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|63110|94.4|4.3|1.3|1.2|6.8|42.5|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|65818|97.7|1.6|0.7|0.4|2.7|25.7|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|65101|94.5|3.9|1.5|1.0|6.4|45.1|
 
 # Tuning warmup_steps
 - Note
@@ -143,6 +185,30 @@
 |decode_asr_asr_model_valid.acc.ave/test_clean|2620|65818|97.2|2.0|0.8|0.4|3.3|31.4|
 |decode_asr_asr_model_valid.acc.ave/test_other|2939|65101|93.7|4.5|1.8|0.9|7.2|49.0|
 
+
+## CTC decoding with nbest rescoring from decoder and LM (using k2)
+With configure file:
+egs2/librispeech/asr1/conf/decode_asr_transformer_with_k2.yaml
+
+### WER
+Test with a single Tesla V100 gpu and batch_size==2
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|Decoding time, seconds|
+|---|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/dev_clean|2703|54402|98.2|1.6|0.2|0.2|2.0|26.5|613|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/dev_other|2864|50948|95.1|4.3|0.5|0.5|5.4|42.7|959|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/test_clean|2620|52576|98.0|1.8|0.2|0.3|2.3|27.6|618|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/test_other|2939|52343|95.2|4.2|0.5|0.5|5.3|44.7|970|
+
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/dev_clean|2703|288456|99.5|0.3|0.3|0.2|0.7|26.5|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/dev_other|2864|265951|98.1|1.0|0.9|0.6|2.5|42.7|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/test_clean|2620|281530|99.4|0.3|0.3|0.2|0.8|27.6|
+|decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave_use_k2_is_ctc_decoding_true_use_nbest_rescoring_true/test_other|2939|272758|98.2|0.9|0.9|0.6|2.3|44.7|
 
 
 # Updated the result of conformer with transformer LM

@@ -8,7 +8,7 @@ set -o pipefail
 
 train_set=train_far 
 valid_set=dev_far
-test_sets=dev_far #test_far
+test_sets=dev_far
 
 asr_config=conf/tuning/train_asr_conformer.yaml
 lm_config=conf/train_lm.yaml
