@@ -230,7 +230,7 @@
     <span class="p">)</span>
     <span class="n">framed_w</span> <span class="o">*=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">get_window</span><span class="p">(</span><span class="n">window</span><span class="p">,</span> <span class="n">frame_length</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">framed_w</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="c1"># power: (C, T)</span>
-    <span class="n">power</span> <span class="o">=</span> <span class="p">(</span><span class="n">framed_w</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">power</span> <span class="o">=</span> <span class="p">(</span><span class="n">framed_w</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="c1"># mean_power: (C, 1)</span>
     <span class="n">mean_power</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">power</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">mean_power</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
@@ -408,7 +408,7 @@
                         <span class="c1"># noise: (Nmic, Time)</span>
                         <span class="n">noise</span> <span class="o">=</span> <span class="n">noise</span><span class="o">.</span><span class="n">T</span>
 
-                        <span class="n">noise_power</span> <span class="o">=</span> <span class="p">(</span><span class="n">noise</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                        <span class="n">noise_power</span> <span class="o">=</span> <span class="p">(</span><span class="n">noise</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
                         <span class="n">scale</span> <span class="o">=</span> <span class="p">(</span>
                             <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="n">noise_db</span> <span class="o">/</span> <span class="mi">20</span><span class="p">)</span>
                             <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">power</span><span class="p">)</span>

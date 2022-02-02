@@ -211,7 +211,7 @@
             <span class="p">]</span>
             <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose1d</span><span class="p">(</span>
-                    <span class="n">channels</span> <span class="o">//</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">i</span><span class="p">),</span>
+                    <span class="n">channels</span> <span class="o">//</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">i</span><span class="p">),</span>
                     <span class="n">channels</span> <span class="o">//</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span>
                     <span class="n">upsample_scale</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
                     <span class="n">stride</span><span class="o">=</span><span class="n">upsample_scale</span><span class="p">,</span>
@@ -227,7 +227,7 @@
                     <span class="n">ResidualStack</span><span class="p">(</span>
                         <span class="n">kernel_size</span><span class="o">=</span><span class="n">stack_kernel_size</span><span class="p">,</span>
                         <span class="n">channels</span><span class="o">=</span><span class="n">channels</span> <span class="o">//</span> <span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span>
-                        <span class="n">dilation</span><span class="o">=</span><span class="n">stack_kernel_size</span> <span class="o">**</span> <span class="n">j</span><span class="p">,</span>
+                        <span class="n">dilation</span><span class="o">=</span><span class="n">stack_kernel_size</span><span class="o">**</span><span class="n">j</span><span class="p">,</span>
                         <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
                         <span class="n">nonlinear_activation</span><span class="o">=</span><span class="n">nonlinear_activation</span><span class="p">,</span>
                         <span class="n">nonlinear_activation_params</span><span class="o">=</span><span class="n">nonlinear_activation_params</span><span class="p">,</span>

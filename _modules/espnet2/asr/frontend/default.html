@@ -236,7 +236,7 @@
 
         <span class="c1"># 4. STFT -&gt; Power spectrum</span>
         <span class="c1"># h: ComplexTensor(B, T, F) -&gt; torch.Tensor(B, T, F)</span>
-        <span class="n">input_power</span> <span class="o">=</span> <span class="n">input_stft</span><span class="o">.</span><span class="n">real</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">input_stft</span><span class="o">.</span><span class="n">imag</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">input_power</span> <span class="o">=</span> <span class="n">input_stft</span><span class="o">.</span><span class="n">real</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">input_stft</span><span class="o">.</span><span class="n">imag</span><span class="o">**</span><span class="mi">2</span>
 
         <span class="c1"># 5. Feature transform e.g. Stft -&gt; Log-Mel-Fbank</span>
         <span class="c1"># input_power: (Batch, [Channel,] Length, Freq)</span>

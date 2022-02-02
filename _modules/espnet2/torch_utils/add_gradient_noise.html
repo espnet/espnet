@@ -150,7 +150,7 @@
 <span class="sd">        scale_factor: {0.55}: The scale of `sigma`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">interval</span> <span class="o">=</span> <span class="p">(</span><span class="n">iteration</span> <span class="o">//</span> <span class="n">duration</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="n">sigma</span> <span class="o">=</span> <span class="n">eta</span> <span class="o">/</span> <span class="n">interval</span> <span class="o">**</span> <span class="n">scale_factor</span>
+    <span class="n">sigma</span> <span class="o">=</span> <span class="n">eta</span> <span class="o">/</span> <span class="n">interval</span><span class="o">**</span><span class="n">scale_factor</span>
     <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">_shape</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">grad</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>

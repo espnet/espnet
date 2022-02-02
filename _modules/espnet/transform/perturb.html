@@ -397,7 +397,7 @@
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbunit</span><span class="p">:</span>
             <span class="n">ratio</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">**</span> <span class="p">(</span><span class="n">ratio</span> <span class="o">/</span> <span class="mi">20</span><span class="p">)</span>
-        <span class="n">scale</span> <span class="o">=</span> <span class="n">ratio</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">x</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="n">ratio</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
 
         <span class="c1"># 2. Get noise</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">utt2noise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -408,7 +408,7 @@
                 <span class="c1"># Randomly select the noise source</span>
                 <span class="n">noise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">utt2noise</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
             <span class="c1"># Normalize the level</span>
-            <span class="n">noise</span> <span class="o">/=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">noise</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+            <span class="n">noise</span> <span class="o">/=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">noise</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
 
             <span class="c1"># Adjust the noise length</span>
             <span class="n">diff</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">noise</span><span class="p">))</span>

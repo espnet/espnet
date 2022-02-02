@@ -479,7 +479,7 @@
             <span class="p">)</span>
             <span class="c1"># (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)</span>
             <span class="n">neg_x_ent_2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
-                <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">z_p</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">z_p</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
                 <span class="n">s_p_sq_r</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="c1"># (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)</span>
@@ -489,7 +489,7 @@
             <span class="p">)</span>
             <span class="c1"># (B, 1, T_text)</span>
             <span class="n">neg_x_ent_4</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
-                <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_p</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">s_p_sq_r</span><span class="p">,</span>
+                <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_p</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">s_p_sq_r</span><span class="p">,</span>
                 <span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                 <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">)</span>
@@ -616,7 +616,7 @@
             <span class="p">)</span>
             <span class="c1"># (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)</span>
             <span class="n">neg_x_ent_2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
-                <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">z_p</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">z_p</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
                 <span class="n">s_p_sq_r</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="c1"># (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)</span>
@@ -626,7 +626,7 @@
             <span class="p">)</span>
             <span class="c1"># (B, 1, T_text)</span>
             <span class="n">neg_x_ent_4</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
-                <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_p</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">s_p_sq_r</span><span class="p">,</span>
+                <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">m_p</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">s_p_sq_r</span><span class="p">,</span>
                 <span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                 <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">)</span>

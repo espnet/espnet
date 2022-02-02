@@ -219,7 +219,7 @@
                             <span class="n">seq</span> <span class="o">=</span> <span class="n">seq</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span>
                         <span class="c1"># Accumulate value, its square, and count</span>
                         <span class="n">sum_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="n">seq</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-                        <span class="n">sq_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">seq</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="n">sq_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">seq</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                         <span class="n">count_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
 
                         <span class="c1"># 4. [Option] Write derived features as npy format file.</span>

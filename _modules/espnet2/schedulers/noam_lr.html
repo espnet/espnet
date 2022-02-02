@@ -174,7 +174,7 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">last_epoch</span><span class="p">)</span>
 
 <div class="viewcode-block" id="NoamLR.lr_for_WarmupLR"><a class="viewcode-back" href="../../../_gen/espnet2.schedulers.html#espnet2.schedulers.noam_lr.NoamLR.lr_for_WarmupLR">[docs]</a>    <span class="k">def</span> <span class="nf">lr_for_WarmupLR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">lr</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_size</span> <span class="o">**</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">warmup_steps</span> <span class="o">**</span> <span class="mf">0.5</span></div>
+        <span class="k">return</span> <span class="n">lr</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_size</span><span class="o">**</span><span class="mf">0.5</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">warmup_steps</span><span class="o">**</span><span class="mf">0.5</span></div>
 
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span>
@@ -186,8 +186,8 @@
         <span class="n">step_num</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_epoch</span> <span class="o">+</span> <span class="mi">1</span>
         <span class="k">return</span> <span class="p">[</span>
             <span class="n">lr</span>
-            <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_size</span> <span class="o">**</span> <span class="o">-</span><span class="mf">0.5</span>
-            <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="n">step_num</span> <span class="o">**</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">step_num</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">warmup_steps</span> <span class="o">**</span> <span class="o">-</span><span class="mf">1.5</span><span class="p">)</span>
+            <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_size</span><span class="o">**-</span><span class="mf">0.5</span>
+            <span class="o">*</span> <span class="nb">min</span><span class="p">(</span><span class="n">step_num</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">step_num</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">warmup_steps</span><span class="o">**-</span><span class="mf">1.5</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">lr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_lrs</span>
         <span class="p">]</span></div></div>
 </pre></div>

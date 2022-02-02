@@ -282,7 +282,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">convs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">layers</span><span class="p">):</span>
-            <span class="n">dilation</span> <span class="o">=</span> <span class="n">kernel_size</span> <span class="o">**</span> <span class="n">i</span>
+            <span class="n">dilation</span> <span class="o">=</span> <span class="n">kernel_size</span><span class="o">**</span><span class="n">i</span>
             <span class="n">padding</span> <span class="o">=</span> <span class="p">(</span><span class="n">kernel_size</span> <span class="o">*</span> <span class="n">dilation</span> <span class="o">-</span> <span class="n">dilation</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">convs</span> <span class="o">+=</span> <span class="p">[</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>

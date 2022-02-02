@@ -253,9 +253,9 @@
 
         <span class="n">diff</span> <span class="o">=</span> <span class="n">ref</span> <span class="o">-</span> <span class="n">inf</span>
         <span class="k">if</span> <span class="n">is_complex</span><span class="p">(</span><span class="n">diff</span><span class="p">):</span>
-            <span class="n">mseloss</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">real</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">diff</span><span class="o">.</span><span class="n">imag</span> <span class="o">**</span> <span class="mi">2</span>
+            <span class="n">mseloss</span> <span class="o">=</span> <span class="n">diff</span><span class="o">.</span><span class="n">real</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">diff</span><span class="o">.</span><span class="n">imag</span><span class="o">**</span><span class="mi">2</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">mseloss</span> <span class="o">=</span> <span class="n">diff</span> <span class="o">**</span> <span class="mi">2</span>
+            <span class="n">mseloss</span> <span class="o">=</span> <span class="n">diff</span><span class="o">**</span><span class="mi">2</span>
         <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
             <span class="n">mseloss</span> <span class="o">=</span> <span class="n">mseloss</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
         <span class="k">elif</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
