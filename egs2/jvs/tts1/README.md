@@ -195,7 +195,7 @@ $ ls downloads/f3698edf589206588f58f5ec837fa516/exp/exp/tts_train_vits_raw_phn_j
 config.yaml  images  train.total_count.ave_10best.pth
 ```
 
-Let us replace the `tokens.txt` and `feats_stats.npz` with pretrained model's one.
+Let us replace the `tokens.txt` with pretrained model's one.
 ```sh
 # Make backup (Rename -> *.bak)
 $ mv dump/22k/token_list/phn_jaconv_pyopenjtalk_accent_with_pause/tokens.{txt,txt.bak}
