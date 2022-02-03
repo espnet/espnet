@@ -67,8 +67,11 @@ See also:
 Wav dumping stage.
 This stage reformats `wav.scp` in data directories.
 
-Additionally, we support X-vector extraction in this stage as you can use in ESPnet1.
-If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract mfcc features, vad decision, and X-vector.
+Additionally, We support X-vector extraction in this stage as you can use in ESPnet1.
+If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract X-vectors.
+You can select the type of toolkit to use (kaldi, speechbrain, or espnet) when you specify `--xvector_tool <option>` 
+(Default: `xvector_tool=kaldi`).
+If you specify kaldi, then we additionally extract mfcc features and vad decision.
 This processing requires the compiled kaldi, please be careful.
 
 Also, speaker ID embedding and language ID embedding preparation will be performed in this stage if you specify `--use_sid true` and `--use_lid true` options.
