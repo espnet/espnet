@@ -64,6 +64,21 @@ To port models from zenodo using Hugging Face hub,
 1. Create a Hugging Face account - https://huggingface.co/
 2. Request to be added to espnet organisation - https://huggingface.co/espnet
 3. Go to `egs2/RECIPE/*/scripts/utils` and run `./upload_models_to_hub.sh "ZENODO_MODEL_NAME"`
+   
+To upload models using Huggingface-cli follow the following steps:
+You can also refer to https://huggingface.co/docs/transformers/model_sharing
+1. Create a Hugging Face account - https://huggingface.co/
+2. Request to be added to espnet organisation - https://huggingface.co/espnet 
+3. Run huggingface-cli login (You can get the token request at this step under setting > Access Tokens > espnet token  
+4. huggingface-cli repo create your-model-name --organization espnet 
+5. git clone https://huggingface.co/username/your-model-name (clone this outside ESPNet to avoid issues as this a git repo)
+6. cd your-model-name
+7. git lfs install 
+8. copy contents from exp diretory of your recipe into this directory (Check other models of similar task under ESPNet to confirm your structure and README contents) 
+9. git add . 
+10.git commit -m "Add model files" 
+11.git push
+12.Check if the inference demo on HF is running successfully to verify the upload      
 
 #### 1.3.3 Additional requirements for new recipe
 
