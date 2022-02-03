@@ -234,7 +234,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         # block_size could be 0 meaning infinite
         # apply usual encoder for short sequence
         if self.block_size == 0 or total_frame_num <= self.block_size:
-            xs_pad, masks, _, _, _, _ = self.encoders(
+            xs_pad, masks, _, _, _, _, _ = self.encoders(
                 self.pos_enc(xs_pad), masks, False, None, None
             )
             if self.normalize_before:
@@ -290,8 +290,8 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         mask_online = xs_pad.new_zeros(
             xs_pad.size(0), block_num, self.block_size + 2, self.block_size + 2
         )
-        mask_online.narrow(2, 1, self.block_size + 1).narrow(
-            3, 0, self.block_size + 1
+        mask_online.narrow(2, 0, self.block_size + 2).narrow(
+            3, 0, self.block_size + 2
         ).fill_(1)
 
         xs_chunk = xs_pad.new_zeros(
@@ -326,7 +326,7 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
         xs_chunk[:, :, self.block_size + 1] = addin
 
         # forward
-        ys_chunk, mask_online, _, _, _, _ = self.encoders(
+        ys_chunk, mask_online, _, _, _, _, _ = self.encoders(
             xs_chunk, mask_online, False, xs_chunk
         )
 
