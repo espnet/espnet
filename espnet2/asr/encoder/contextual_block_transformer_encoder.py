@@ -511,8 +511,16 @@ class ContextualBlockTransformerEncoder(AbsEncoder):
 
             prev_addin = addin
 
+        ##### mask setup, it should be the same to that of forward_train 
+        mask_online = xs_pad.new_zeros(
+            xs_pad.size(0), block_num, self.block_size + 2, self.block_size + 2
+        )
+        mask_online.narrow(2, 0, self.block_size + 2).narrow(
+            3, 0, self.block_size + 2
+        ).fill_(1)
+
         ys_chunk, _, _, _, past_encoder_ctx, _, _ = self.encoders(
-            xs_chunk, None, True, past_encoder_ctx
+            xs_chunk, mask_online, True, past_encoder_ctx
         )
 
         # remove addin
