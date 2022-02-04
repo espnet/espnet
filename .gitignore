@@ -42,6 +42,7 @@ egs*/*/*/tensorboard
 egs*/*/*/wav*
 egs*/*/*/nltk*
 egs*/*/*/.cache*
+egs*/*/*/pretrained_models*
 
 # tools related
 tools/chainer

@@ -8,15 +8,15 @@ import configargparse
 
 # parser
 parser = configargparse.ArgumentParser(
-    description='generate RST files from <root> module recursively into <dst>/_gen',
+    description="generate RST files from <root> module recursively into <dst>/_gen",
     config_file_parser_class=configargparse.YAMLConfigFileParser,
-    formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--root', nargs='+',
-                    help='root module to generate docs recursively')
-parser.add_argument('--dst', type=str,
-                    help='destination path to generate RSTs')
-parser.add_argument('--exclude', nargs='*', default=[],
-                    help='exclude module name')
+    formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
+)
+parser.add_argument(
+    "--root", nargs="+", help="root module to generate docs recursively"
+)
+parser.add_argument("--dst", type=str, help="destination path to generate RSTs")
+parser.add_argument("--exclude", nargs="*", default=[], help="exclude module name")
 args = parser.parse_args()
 print(args)
 
@@ -36,12 +36,14 @@ def gen_rst(module_path, f):
     doc = module.__doc__
     if doc is None:
         doc = ""
-    f.write(f"""
+    f.write(
+        f"""
 {title}
 {sep}
 {doc}
 
-""")
+"""
+    )
 
     for cpath in glob(module_path + "/**/*.py", recursive=True):
         print(cpath)
@@ -51,7 +53,8 @@ def gen_rst(module_path, f):
             continue
         cname = to_module(cpath)
         csep = "-" * len(cname)
-        f.write(f"""
+        f.write(
+            f"""
 .. _{cname}:
 
 {cname}
@@ -62,7 +65,8 @@ def gen_rst(module_path, f):
     :undoc-members:
     :show-inheritance:
 
-""")
+"""
+        )
     f.flush()
 
 

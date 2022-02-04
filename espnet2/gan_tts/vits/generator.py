@@ -352,7 +352,7 @@ class VITSGenerator(torch.nn.Module):
             )
             # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
             neg_x_ent_2 = torch.matmul(
-                -0.5 * (z_p ** 2).transpose(1, 2),
+                -0.5 * (z_p**2).transpose(1, 2),
                 s_p_sq_r,
             )
             # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
@@ -362,7 +362,7 @@ class VITSGenerator(torch.nn.Module):
             )
             # (B, 1, T_text)
             neg_x_ent_4 = torch.sum(
-                -0.5 * (m_p ** 2) * s_p_sq_r,
+                -0.5 * (m_p**2) * s_p_sq_r,
                 [1],
                 keepdim=True,
             )
@@ -489,7 +489,7 @@ class VITSGenerator(torch.nn.Module):
             )
             # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
             neg_x_ent_2 = torch.matmul(
-                -0.5 * (z_p ** 2).transpose(1, 2),
+                -0.5 * (z_p**2).transpose(1, 2),
                 s_p_sq_r,
             )
             # (B, T_feats, H) x (B, H, T_text) = (B, T_feats, T_text)
@@ -499,7 +499,7 @@ class VITSGenerator(torch.nn.Module):
             )
             # (B, 1, T_text)
             neg_x_ent_4 = torch.sum(
-                -0.5 * (m_p ** 2) * s_p_sq_r,
+                -0.5 * (m_p**2) * s_p_sq_r,
                 [1],
                 keepdim=True,
             )
