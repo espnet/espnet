@@ -535,7 +535,7 @@ class ContextualBlockConformerEncoder(AbsEncoder):
 
             prev_addin = addin
 
-        ##### mask setup, it should be the same to that of forward_train 
+        # mask setup, it should be the same to that of forward_train
         mask_online = xs_pad.new_zeros(
             xs_pad.size(0), block_num, self.block_size + 2, self.block_size + 2
         )
