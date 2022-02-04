@@ -5,16 +5,18 @@ from typing import Tuple
 
 import torch
 
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
+from espnet2.asr.transducer.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.transducer.joint_network import JointNetwork
 
 
-class ErrorCalculatorTransducer(object):
+class ErrorCalculator(object):
     """Calculate CER and WER for transducer models.
 
     Args:
         decoder: Decoder module.
-        token_list: List of tokens.
+        joint_network: Joint Network module.
+        token_list: List of token units.
         sym_space: Space symbol.
         sym_blank: Blank symbol.
         report_cer: Whether to compute CER.
@@ -25,7 +27,7 @@ class ErrorCalculatorTransducer(object):
     def __init__(
         self,
         decoder: AbsDecoder,
-        joint_network: torch.nn.Module,
+        joint_network: JointNetwork,
         token_list: List[int],
         sym_space: str,
         sym_blank: str,

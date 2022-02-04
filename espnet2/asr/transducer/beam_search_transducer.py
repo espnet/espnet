@@ -16,7 +16,7 @@ from espnet.nets.pytorch_backend.transducer.utils import recombine_hyps
 from espnet.nets.pytorch_backend.transducer.utils import select_k_expansions
 from espnet.nets.pytorch_backend.transducer.utils import subtract
 
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.transducer.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.transducer.joint_network import JointNetwork
 
 
@@ -26,19 +26,15 @@ class Hypothesis:
 
     score: float
     yseq: List[int]
-    dec_state: Union[
-        Tuple[torch.Tensor, Optional[torch.Tensor]],
-        List[Optional[torch.Tensor]],
-        torch.Tensor,
-    ]
-    lm_state: Union[Dict[str, Any], List[Any]] = None
+    dec_state: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]
+    lm_state: Optional[Union[Dict[str, Any], List[Any]]] = None
 
 
 @dataclass
 class ExtendedHypothesis(Hypothesis):
     """Extended hypothesis definition for NSC beam search and mAES."""
 
-    dec_out: List[torch.Tensor] = None
+    dec_out: List[Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]] = None
     lm_scores: torch.Tensor = None
 
 
