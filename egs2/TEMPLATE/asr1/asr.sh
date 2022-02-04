@@ -94,7 +94,7 @@ pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
 feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_asr=1           # Number of splitting for lm corpus.
-
+asr_transducer=false	# Set to true for ASR Transducer models.
 # Upload model related
 hf_repo=
 
@@ -901,8 +901,7 @@ if ! "${skip_train}"; then
         fi
     fi
 
-    # (b-flo) Temporary: Check wether ASR model is a Transducer through config name.
-    if [[ $asr_config == *"transducer"* ]]; then
+    if [ $asr_transducer = true ]; then
 	asr_train_bin=espnet2.bin.asr_transducer_train
     else
 	asr_train_bin=espnet2.bin.asr_train
@@ -1190,7 +1189,7 @@ if ! "${skip_eval}"; then
         log "Generate '${asr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
         mkdir -p "${asr_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${asr_exp}/${inference_tag}/run.sh"; chmod +x "${asr_exp}/${inference_tag}/run.sh"
 
-	if [[ $asr_config == *"transducer"* ]]; then
+	if [ $asr_transducer = true ]; then
 	  asr_inference_tool="espnet2.bin.asr_transducer_inference"
         elif "${use_k2}"; then
           # Now only _nj=1 is verified if using k2
