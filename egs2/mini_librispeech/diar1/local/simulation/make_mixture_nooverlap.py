@@ -90,8 +90,8 @@ for line in open(args.script):
     else:
         noise_data = noise_data[:maxlen]
     # noise power is scaled according to selected SNR, then mixed
-    signal_power = np.sum(mixture ** 2) / len(mixture)
-    noise_power = np.sum(noise_data ** 2) / len(noise_data)
+    signal_power = np.sum(mixture**2) / len(mixture)
+    noise_power = np.sum(noise_data**2) / len(noise_data)
     scale = math.sqrt(math.pow(10, -noise_snr / 10) * signal_power / noise_power)
     mixture += noise_data * scale
     # output the wav file and write wav.scp

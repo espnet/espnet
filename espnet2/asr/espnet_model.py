@@ -141,6 +141,7 @@ class ESPnetASRModel(AbsESPnetModel):
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
 
+        stats = dict()
         # 2a. Attention-decoder branch
         if self.ctc_weight == 1.0:
             loss_att, acc_att, cer_att, wer_att = None, None, None, None
@@ -148,6 +149,11 @@ class ESPnetASRModel(AbsESPnetModel):
             loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
                 encoder_out, encoder_out_lens, text, text_lengths
             )
+
+        stats["loss_att"] = loss_att.detach() if loss_att is not None else None
+        stats["acc"] = acc_att
+        stats["cer"] = cer_att
+        stats["wer"] = wer_att
 
         # 2b. CTC branch
         if self.ctc_weight == 0.0:
@@ -157,6 +163,9 @@ class ESPnetASRModel(AbsESPnetModel):
                 encoder_out, encoder_out_lens, text, text_lengths
             )
 
+        stats["loss_ctc"] = loss_ctc.detach() if loss_ctc is not None else None
+        stats["cer_ctc"] = cer_ctc
+
         # 3. Loss
         if self.ctc_weight == 0.0:
             loss = loss_att
@@ -165,15 +174,7 @@ class ESPnetASRModel(AbsESPnetModel):
         else:
             loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
 
-        stats = dict(
-            loss=loss.detach(),
-            loss_att=loss_att.detach() if loss_att is not None else None,
-            loss_ctc=loss_ctc.detach() if loss_ctc is not None else None,
-            acc=acc_att,
-            cer=cer_att,
-            wer=wer_att,
-            cer_ctc=cer_ctc,
-        )
+        stats["loss"] = loss.detach()
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)

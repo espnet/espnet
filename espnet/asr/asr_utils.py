@@ -490,7 +490,7 @@ else:
                     )
                 else:
                     plt.plot(times_probs, ctc_prob[:, idx])
-            plt.xlabel(u"Input [frame]", fontsize=12)
+            plt.xlabel("Input [frame]", fontsize=12)
             plt.ylabel("Posteriors", fontsize=12)
             plt.xticks(list(range(0, int(n_frames) + 1, 10)))
             plt.yticks(list(range(0, 2, 1)))
@@ -666,7 +666,7 @@ def add_gradient_noise(model, iteration, duration=100, eta=1.0, scale_factor=0.5
         scale_factor (float) {0.55}: The scale of `sigma`.
     """
     interval = (iteration // duration) + 1
-    sigma = eta / interval ** scale_factor
+    sigma = eta / interval**scale_factor
     for param in model.parameters():
         if param.grad is not None:
             _shape = param.grad.size()

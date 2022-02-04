@@ -39,18 +39,21 @@ logger = logging.getLogger("sklearn_kmeans")
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--feats-dir", type=str,
-                        help="folder contains wav.scp for training")
-    parser.add_argument("--n-clusters", default=100, type=int,
-                        help="number of clusters for K-Means")
+    parser.add_argument(
+        "--feats-dir", type=str, help="folder contains wav.scp for training"
+    )
+    parser.add_argument(
+        "--n-clusters", default=100, type=int, help="number of clusters for K-Means"
+    )
     parser.add_argument("--nj", default=1, type=int, help="only support mfcc")
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--fs", type=int, default=16000)
     parser.add_argument("--feature-type", type=str, default="mfcc")
     parser.add_argument("--hubert-model-url", type=str, default=None)
     parser.add_argument("--hubert-model-path", type=str, default=None)
-    parser.add_argument("--portion", type=float, default=1.0,
-                        help="Using a subset of the data.")
+    parser.add_argument(
+        "--portion", type=float, default=1.0, help="Using a subset of the data."
+    )
 
     group = parser.add_argument_group(description="K-means model.")
     group.add_argument("--km-path", type=str, help="path for k-means model.")
@@ -68,7 +71,7 @@ def get_parser():
 def get_path_iterator(wav, portion=0.1):
     with open(wav, "r") as f:
         lines = [line.rstrip() for line in f]
-        lines = sample(lines, int(portion*len(lines)))
+        lines = sample(lines, int(portion * len(lines)))
 
         def iterate():
             for line in lines:
@@ -86,8 +89,7 @@ def get_mfcc_feature(feats_dir, fs, nj, portion):
 
     if nj > 1:
         feats = joblib.Parallel(n_jobs=nj)(
-            joblib.delayed(
-                reader.get_feats)(path)
+            joblib.delayed(reader.get_feats)(path)
             for utt_id, path in tqdm.tqdm(iterator, total=num)
         )
     else:
@@ -115,8 +117,13 @@ def get_hubert_feature(feats_dir, fs, portion, url, dir, layer):
 
 
 def load_feature(
-    feats_dir, fs, nj, portion, feature_type,
-    hubert_model_url, hubert_model_path,
+    feats_dir,
+    fs,
+    nj,
+    portion,
+    feature_type,
+    hubert_model_url,
+    hubert_model_path,
 ):
     # generate mfcc feature
     if feature_type == "mfcc":
@@ -124,9 +131,7 @@ def load_feature(
     elif "hubert" in feature_type:
         hlayer = int(feature_type.replace("hubert", ""))
         feat = get_hubert_feature(
-            feats_dir, fs, portion,
-            hubert_model_url, hubert_model_path,
-            hlayer
+            feats_dir, fs, portion, hubert_model_url, hubert_model_path, hlayer
         )
     else:
         raise ValueError(f"feature_type: {feature_type}")
