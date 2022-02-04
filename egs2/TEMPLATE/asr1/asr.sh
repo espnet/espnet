@@ -901,6 +901,12 @@ if ! "${skip_train}"; then
         fi
     fi
 
+    # (b-flo) Temporary: Check wether ASR model is a Transducer through config name.
+    if [[ $asr_config == *"transducer"* ]]; then
+	asr_train_bin=espnet2.bin.asr_transducer_train
+    else
+	asr_train_bin=espnet2.bin.asr_train
+    fi
 
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         _asr_train_dir="${data_feats}/${train_set}"
@@ -966,7 +972,7 @@ if ! "${skip_train}"; then
 
         # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m espnet2.bin.asr_train \
+            ${python} -m ${asr_train_bin} \
                 --collect_stats true \
                 --use_preprocessor true \
                 --bpemodel "${bpemodel}" \
@@ -1093,7 +1099,7 @@ if ! "${skip_train}"; then
             --num_nodes "${num_nodes}" \
             --init_file_prefix "${asr_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            ${python} -m espnet2.bin.asr_train \
+            ${python} -m ${asr_train_bin} \
                 --use_preprocessor true \
                 --bpemodel "${bpemodel}" \
                 --token_type "${token_type}" \
@@ -1183,7 +1189,10 @@ if ! "${skip_eval}"; then
         # 2. Generate run.sh
         log "Generate '${asr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
         mkdir -p "${asr_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${asr_exp}/${inference_tag}/run.sh"; chmod +x "${asr_exp}/${inference_tag}/run.sh"
-        if "${use_k2}"; then
+
+	if [[ $asr_config == *"transducer"* ]]; then
+	  asr_inference_tool="espnet2.bin.asr_transducer_inference"
+        elif "${use_k2}"; then
           # Now only _nj=1 is verified if using k2
           asr_inference_tool="espnet2.bin.asr_inference_k2"
 
