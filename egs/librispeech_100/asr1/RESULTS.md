@@ -1,6 +1,6 @@
 # Conformer-CTC
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: (https://drive.google.com/file/d/1w-GzALrVIbCNiMpGh3UajhvXpOGPMil_)
+    - model link: (<https://drive.google.com/file/d/1w-GzALrVIbCNiMpGh3UajhvXpOGPMil_>)
     - training config file: `conf/tuning/train_conformer_ctc.yaml`
     - decoding config file: `conf/tuning/decode_ctc.yaml`
     - cmvn file: `data/train_clean_100_sp/cmvn.ark`
@@ -17,7 +17,7 @@
 
 # Conformer-CTC/Attention
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: (https://drive.google.com/file/d/1QTVqk4sPSdECjuqEjr7vP0ZG7PoLgIMc)
+    - model link: (<https://drive.google.com/file/d/1QTVqk4sPSdECjuqEjr7vP0ZG7PoLgIMc>)
     - training config file: `conf/tuning/train_conformer_ctcatt.yaml`
     - decoding config file: `conf/tuning/decode_ctcatt.yaml`
     - cmvn file: `data/train_clean_100_sp/cmvn.ark`
@@ -34,7 +34,7 @@
 
 # Conformer-Transducer
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: (https://drive.google.com/file/d/1seIYIpMe2gVYM-bWbRbrrqjFuptr1jYb)
+    - model link: (<https://drive.google.com/file/d/1seIYIpMe2gVYM-bWbRbrrqjFuptr1jYb>)
     - training config file: `conf/tuning/train_conformer_transducer.yaml`
     - decoding config file: `conf/tuning/decode_transducer.yaml`
     - cmvn file: `data/train_clean_100_sp/cmvn.ark`
