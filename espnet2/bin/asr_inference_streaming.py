@@ -41,6 +41,9 @@ from typing import Union
 class Speech2TextStreaming:
     """Speech2TextStreaming class
 
+    Details in "Streaming Transformer ASR with Blockwise Synchronous Beam Search"
+    (https://arxiv.org/abs/2006.14941)
+
     Examples:
         >>> import soundfile
         >>> speech2text = Speech2TextStreaming("asr_config.yml", "asr.pth")

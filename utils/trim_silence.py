@@ -20,7 +20,7 @@ from espnet.utils.cli_utils import get_commandline_args
 
 
 def _time_to_str(time_idx):
-    time_idx = time_idx * 10 ** 4
+    time_idx = time_idx * 10**4
     return "%06d" % time_idx
 
 
