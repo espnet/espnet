@@ -496,8 +496,12 @@
     <span class="n">pos_dropout_rate</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pos-dropout-rate&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
     <span class="n">att_dropout_rate</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;att-dropout-rate&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
 
+    <span class="n">macaron_style</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="s2">&quot;macaron_style&quot;</span><span class="p">]</span>
+    <span class="n">use_conv_mod</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="s2">&quot;use_conv_mod&quot;</span><span class="p">]</span>
+
     <span class="k">if</span> <span class="n">pw_layer_type</span> <span class="o">==</span> <span class="s2">&quot;linear&quot;</span><span class="p">:</span>
-        <span class="n">pw_layer</span> <span class="o">=</span> <span class="n">PositionwiseFeedForward</span><span class="p">(</span>
+        <span class="n">pw_layer</span> <span class="o">=</span> <span class="n">PositionwiseFeedForward</span>
+        <span class="n">pw_layer_args</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">d_hidden</span><span class="p">,</span>
             <span class="n">d_ff</span><span class="p">,</span>
             <span class="n">pos_dropout_rate</span><span class="p">,</span>
@@ -506,33 +510,29 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Conformer block only supports linear yet.&quot;</span><span class="p">)</span>
 
-    <span class="n">macaron_net</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">PositionwiseFeedForward</span><span class="p">(</span>
+    <span class="k">if</span> <span class="n">macaron_style</span><span class="p">:</span>
+        <span class="n">macaron_net</span> <span class="o">=</span> <span class="n">PositionwiseFeedForward</span>
+        <span class="n">macaron_net_args</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">d_hidden</span><span class="p">,</span>
             <span class="n">d_ff</span><span class="p">,</span>
             <span class="n">pos_dropout_rate</span><span class="p">,</span>
             <span class="n">get_activation</span><span class="p">(</span><span class="n">pw_activation_type</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="s2">&quot;macaron_style&quot;</span><span class="p">]</span>
-        <span class="k">else</span> <span class="kc">None</span>
-    <span class="p">)</span>
 
-    <span class="n">conv_mod</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">ConvolutionModule</span><span class="p">(</span>
+    <span class="k">if</span> <span class="n">use_conv_mod</span><span class="p">:</span>
+        <span class="n">conv_mod</span> <span class="o">=</span> <span class="n">ConvolutionModule</span>
+        <span class="n">conv_mod_args</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">d_hidden</span><span class="p">,</span>
             <span class="n">block</span><span class="p">[</span><span class="s2">&quot;conv_mod_kernel&quot;</span><span class="p">],</span>
             <span class="n">get_activation</span><span class="p">(</span><span class="n">conv_mod_activation_type</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">block</span><span class="p">[</span><span class="s2">&quot;use_conv_mod&quot;</span><span class="p">]</span>
-        <span class="k">else</span> <span class="kc">None</span>
-    <span class="p">)</span>
 
     <span class="k">return</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">ConformerEncoderLayer</span><span class="p">(</span>
         <span class="n">d_hidden</span><span class="p">,</span>
         <span class="n">self_attn_class</span><span class="p">(</span><span class="n">block</span><span class="p">[</span><span class="s2">&quot;heads&quot;</span><span class="p">],</span> <span class="n">d_hidden</span><span class="p">,</span> <span class="n">att_dropout_rate</span><span class="p">),</span>
-        <span class="n">pw_layer</span><span class="p">,</span>
-        <span class="n">macaron_net</span><span class="p">,</span>
-        <span class="n">conv_mod</span><span class="p">,</span>
+        <span class="n">pw_layer</span><span class="p">(</span><span class="o">*</span><span class="n">pw_layer_args</span><span class="p">),</span>
+        <span class="n">macaron_net</span><span class="p">(</span><span class="o">*</span><span class="n">macaron_net_args</span><span class="p">)</span> <span class="k">if</span> <span class="n">macaron_style</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">conv_mod</span><span class="p">(</span><span class="o">*</span><span class="n">conv_mod_args</span><span class="p">)</span> <span class="k">if</span> <span class="n">use_conv_mod</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">dropout_rate</span><span class="p">,</span>
     <span class="p">)</span></div>
 
