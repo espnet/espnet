@@ -8,6 +8,7 @@ from nlgeval import NLGEval
 
 ref_file = sys.argv[1]
 hyp_file = sys.argv[2]
+tag = sys.argv[3]
 
 with open(ref_file, "r") as f:
     ref_dict = {
@@ -24,7 +25,6 @@ with open(hyp_file, "r") as f:
 keys = [k for k, v in hyp_dict.items()]
 labels = [ref_dict[k] for k, _ in hyp_dict.items()]
 decoded_preds = [v for k, v in hyp_dict.items()]
-metric = load_metric("rouge")
 
 
 metric = load_metric("bertscore")
@@ -40,7 +40,12 @@ for (key, ref, hyp) in zip(keys, labels, decoded_preds):
     metrics_dict = nlg.compute_individual_metrics([ref], hyp)
     print(key, metrics_dict["METEOR"], metrics_dict["ROUGE_L"])
 refs = [[x] for x in labels]
-metrics_dict = compute_metrics(hypothesis=decoded_preds, references=refs)
+metrics_dict = nlg.compute_metrics(ref_list=[labels], hyp_list=decoded_preds)
+metric = load_metric("rouge")
+result = metric.compute(predictions=decoded_preds, references=labels)
+result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
+
+print("|dataset|ROUGE-1|ROUGE-2|ROUGE-L|METEOR|BERTScore|\n|---|---|---|---|---|---|")
 print(
-    f"OVERALL ROUGE-1 {result['rouge1']}, ROUGE-2 {result['rouge2']}, ROUGE-L {result['rougeL']} BERT SCORE {100*np.mean(result_bert['precision'])}, METEOR {metrics_dict['METEOR']}"
+    f"|{tag}|{result['rouge1']}|{result['rouge2']}|{result['rougeL']}|{metrics_dict['METEOR']}|{100*np.mean(result_bert['precision'])}|"
 )

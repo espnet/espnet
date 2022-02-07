@@ -1,14 +1,15 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 set -u
 set -o pipefail
 
-train_set="tr_2000h_sum"
-valid_set="cv05_sum"
-test_sets="dev5_test_sum"
-asr_config=conf/train_asr_conformer.yaml
-inference_config=conf/decode.yaml
+train_set="tr_2000h_utt"
+valid_set="cv05_utt"
+test_sets="dev5_test_utt"
+
+asr_config=conf/train_asr_conformer_lf.yaml
+inference_config=conf/decode_asr.yaml
 
 feats_type=extracted
 
@@ -19,7 +20,6 @@ nbpe=1000
 bpe_nlsyms="[hes]"
 
 use_lm=false
-mdur=100
 
 
 
@@ -36,5 +36,4 @@ mdur=100
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --max_wav_duration "$mdur" \
     --bpe_train_text "data/${train_set}/text" "$@"
