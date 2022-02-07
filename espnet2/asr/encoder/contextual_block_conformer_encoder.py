@@ -314,8 +314,8 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         mask_online = xs_pad.new_zeros(
             xs_pad.size(0), block_num, self.block_size + 2, self.block_size + 2
         )
-        mask_online.narrow(2, 0, self.block_size + 2).narrow(
-            3, 0, self.block_size + 2
+        mask_online.narrow(2, 1, self.block_size + 1).narrow(
+            3, 0, self.block_size + 1
         ).fill_(1)
 
         xs_chunk = xs_pad.new_zeros(
@@ -539,8 +539,8 @@ class ContextualBlockConformerEncoder(AbsEncoder):
         mask_online = xs_pad.new_zeros(
             xs_pad.size(0), block_num, self.block_size + 2, self.block_size + 2
         )
-        mask_online.narrow(2, 0, self.block_size + 2).narrow(
-            3, 0, self.block_size + 2
+        mask_online.narrow(2, 1, self.block_size + 1).narrow(
+            3, 0, self.block_size + 1
         ).fill_(1)
 
         ys_chunk, _, _, _, past_encoder_ctx, _, _ = self.encoders(
