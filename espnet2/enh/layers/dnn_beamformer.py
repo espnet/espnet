@@ -284,7 +284,7 @@ class DNN_Beamformer(torch.nn.Module):
                 "wmpdr"
             ) or self.beamformer_type.startswith("wpd"):
                 if powers is None:
-                    power_input = data_d.real ** 2 + data_d.imag ** 2
+                    power_input = data_d.real**2 + data_d.imag**2
                     # Averaging along the channel axis: (..., C, T) -> (..., T)
                     powers = (power_input * mask_speech.double()).mean(dim=-2)
                 else:
@@ -368,7 +368,7 @@ class DNN_Beamformer(torch.nn.Module):
                 "wmpdr"
             ) or self.beamformer_type.startswith("wpd"):
                 if powers is None:
-                    power_input = data_d.real ** 2 + data_d.imag ** 2
+                    power_input = data_d.real**2 + data_d.imag**2
                     # Averaging along the channel axis: (..., C, T) -> (..., T)
                     powers = [
                         (power_input * m.double()).mean(dim=-2) for m in mask_speech
@@ -526,7 +526,7 @@ class AttentionReference(torch.nn.Module):
         psd = (psd.sum(dim=-1) / (C - 1)).transpose(-1, -2)
 
         # Calculate amplitude
-        psd_feat = (psd.real ** 2 + psd.imag ** 2 + self.eps) ** 0.5
+        psd_feat = (psd.real**2 + psd.imag**2 + self.eps) ** 0.5
 
         # (B, C, F) -> (B, C, F2)
         mlp_psd = self.mlp_psd(psd_feat)

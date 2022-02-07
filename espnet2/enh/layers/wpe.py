@@ -65,7 +65,7 @@ def get_power(signal, dim=-2) -> torch.Tensor:
         Power with shape (F, T)
 
     """
-    power = signal.real ** 2 + signal.imag ** 2
+    power = signal.real**2 + signal.imag**2
     power = power.mean(dim=dim)
     return power
 
