@@ -22,10 +22,12 @@ src_case=tc.rm
 tgt_case=tc
 
 ./st.sh \
+    --ignore_init_mismatch true \
     --stage 11 \
     --stop_stage 13 \
     --use_lm false \
     --token_joint false \
+    --audio_format "flac.ark" \
     --nj 40 \
     --inference_nj 40 \
     --audio_format "flac.ark" \
@@ -48,6 +50,8 @@ tgt_case=tc
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
     --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}"  "$@"
     #--local_data_opts "--stage 0" \
-    #--ignore_init_mismatch true \
     #--st_tag "transformer_asr_pretrained" \
     #--pretrained_asr "/projects/tir3/users/jiatongs/st/espnet/egs2/fisher_callhome_spanish/asr1/exp/asr_train_asr_raw_bpe1000_sp/valid.acc.ave_10best.pth" \
+    #--ngpu ${ngpu} \
+    #--st_tag ${st_tag} \
+
