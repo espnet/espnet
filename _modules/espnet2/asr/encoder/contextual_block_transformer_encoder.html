@@ -361,7 +361,7 @@
         <span class="c1"># block_size could be 0 meaning infinite</span>
         <span class="c1"># apply usual encoder for short sequence</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">total_frame_num</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span><span class="p">:</span>
-            <span class="n">xs_pad</span><span class="p">,</span> <span class="n">masks</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">(</span>
+            <span class="n">xs_pad</span><span class="p">,</span> <span class="n">masks</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">pos_enc</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">),</span> <span class="n">masks</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
@@ -453,7 +453,7 @@
         <span class="n">xs_chunk</span><span class="p">[:,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">addin</span>
 
         <span class="c1"># forward</span>
-        <span class="n">ys_chunk</span><span class="p">,</span> <span class="n">mask_online</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">(</span>
+        <span class="n">ys_chunk</span><span class="p">,</span> <span class="n">mask_online</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">(</span>
             <span class="n">xs_chunk</span><span class="p">,</span> <span class="n">mask_online</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">xs_chunk</span>
         <span class="p">)</span>
 
@@ -638,8 +638,16 @@
 
             <span class="n">prev_addin</span> <span class="o">=</span> <span class="n">addin</span>
 
+        <span class="c1"># mask setup, it should be the same to that of forward_train</span>
+        <span class="n">mask_online</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span>
+            <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">block_num</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="p">)</span>
+        <span class="n">mask_online</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span>
+            <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
         <span class="n">ys_chunk</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">past_encoder_ctx</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">(</span>
-            <span class="n">xs_chunk</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">past_encoder_ctx</span>
+            <span class="n">xs_chunk</span><span class="p">,</span> <span class="n">mask_online</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">past_encoder_ctx</span>
         <span class="p">)</span>
 
         <span class="c1"># remove addin</span>
