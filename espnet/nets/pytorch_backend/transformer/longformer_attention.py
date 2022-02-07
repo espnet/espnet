@@ -31,9 +31,4 @@ class LongformerAttention(nn.Module):
             head_mask=None,
             output_attentions=True,
         )
-        # output, self.attention = self.attention_layer(
-        #     hidden_states=query,
-        #     attention_mask=attention_mask.unsqueeze(1),
-        #     output_attentions=True,
-        # )
         return output

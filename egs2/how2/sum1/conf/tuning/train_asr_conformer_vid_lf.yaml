@@ -4,7 +4,7 @@ batch_type: length
 accum_grad: 10
 max_epoch: 100
 patience: 10
-init: none
+init: xavier_uniform
 best_model_criterion:
 -   - valid
     - acc
