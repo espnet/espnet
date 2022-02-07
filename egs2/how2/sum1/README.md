@@ -45,7 +45,7 @@ Then run the finetuning on summarization using the previously trained model as t
 
 #Results on Summarization
 
-## asr_raw_ft_sum
+## asr_ft_sum
 ### SUMM
 
 |dataset|Snt|Wrd|ROUGE-1|ROUGE-2|ROUGE-L|METEOR|BERTScore|
