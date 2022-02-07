@@ -12,7 +12,7 @@ train_set=train
 train_dev=dev
 test_set=test1
 
-st_config=conf/tuning/transformer_fisherlike_4gpu_bbins16m_fix.yaml
+st_config=conf/train_st_conformer.yaml
 inference_config=conf/decode_st.yaml
 
 src_nbpe=1000
@@ -49,9 +49,3 @@ tgt_case=tc
     --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
     --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}"  "$@"
-    #--local_data_opts "--stage 0" \
-    #--st_tag "transformer_asr_pretrained" \
-    #--pretrained_asr "/projects/tir3/users/jiatongs/st/espnet/egs2/fisher_callhome_spanish/asr1/exp/asr_train_asr_raw_bpe1000_sp/valid.acc.ave_10best.pth" \
-    #--ngpu ${ngpu} \
-    #--st_tag ${st_tag} \
-
