@@ -9,6 +9,9 @@
   - Commit date: `Sat Jan 29 11:32:38 2022 -0500`
 
 ## asr_train_asr_conformer_ctc0.3_lr2e-3_warmup15k_newspecaug_raw_bpe1000_sp
+  - Model link: [huggingface](https://huggingface.co/espnet/brianyan918_iwslt22_dialect_train_asr_conformer_ctc0.3_lr2e-3_warmup15k_newspecaug)
+  - ASR config: [./conf/train_asr_conformer.yaml](./conf/train_asr_conformer.yaml)
+  - Inference config: [./conf/decode_asr.yaml](./conf/decode_asr.yaml)
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -28,6 +31,9 @@
 |decode_asr_asr_model_valid.acc.ave/test1|4204|64424|63.8|22.8|13.4|12.2|48.3|87.9|
 
 ## asr_transformer_fisherlike_4gpu_bbins16m_raw_bpe1000_sp
+  - Model link: [huggingface](https://huggingface.co/espnet/brianyan918_iwslt22_dialect_transformer_fisherlike)
+  - ASR config: [./conf/train_asr_transformer.yaml](./conf/train_asr_transformer.yaml)
+  - Inference config: [./conf/decode_asr.yaml](./conf/decode_asr.yaml)
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
