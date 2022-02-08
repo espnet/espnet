@@ -88,7 +88,7 @@ BABEL_401=
 BABEL_402=
 BABEL_403=
 BABEL_404=
-PUEBLA_NAHUATL=
+PUEBLA_NAHUATL=downloads
 TEDLIUM2=downloads
 TEDLIUM3=downloads
 VCTK=downloads
@@ -154,6 +154,12 @@ if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
     BABEL_404=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_OP3_404/
     GRABO=/projects/tir5/data/speech_corpora/Grabo
     PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
+fi
+
+# For CMU TIR cluster
+if [[ "$(hostname -d)" == lti.cs.cmu.edu ]]; then
+    FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
+
 fi
 
 # For only JHU environment
