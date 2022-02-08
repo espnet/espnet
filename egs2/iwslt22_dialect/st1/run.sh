@@ -18,6 +18,10 @@ inference_config=conf/decode_st.yaml
 src_nbpe=1000
 tgt_nbpe=1000
 
+# tc: truecase
+# lc: lowercase
+# lc.rm: lowercase with punctuation removal
+# Note, it is best to keep tgt_case as tc to match IWSLT22 eval
 src_case=tc.rm
 tgt_case=tc
 
