@@ -45,9 +45,24 @@ Then run the finetuning on summarization using the previously trained model as t
 
 #Results on Summarization
 
-## asr_raw_ft_sum
+## asr_ft_sum
 ### SUMM
 
 |dataset|Snt|Wrd|ROUGE-1|ROUGE-2|ROUGE-L|METEOR|BERTScore|
 |---|---|---|---|---|---|---|---|
 |decode_sum_asr_model_valid.acc.best/dev5_test_sum|2127|69795|60.72|44.7|56.1|29.36|91.53|
+
+
+
+Please cite the following paper if you use this recipe:
+```
+@article{sharma2022speech,
+      title={Speech Summarization using Restricted Self-Attention}, 
+      author={Roshan Sharma and Shruti Palaskar and Alan W Black and Florian Metze},
+      year={2022},
+      eprint={2110.06263},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
+
+```
