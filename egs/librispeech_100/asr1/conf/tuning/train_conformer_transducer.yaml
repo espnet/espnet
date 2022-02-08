@@ -10,7 +10,7 @@ sortagrad: 0
 opt: noam
 transformer-lr: 5.0
 transformer-warmup-steps: 25000
-epochs: 100
+epochs: 100 # # 70 epochs give reasonable results
 patience: 0
 accum-grad: 8
 grad-clip: 5.0
@@ -23,6 +23,7 @@ custom-enc-pw-activation-type: swish
 ## encoder related
 etype: custom
 custom-enc-input-layer: vgg2l
+custom-enc-input-dropout-rate: 0.3
 enc-block-arch:
         - type: conformer
           d_hidden: 256
@@ -46,10 +47,6 @@ joint-dim: 300
 
 # transducer related
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
-
-# reporter related
-report-wer: True
-report-cer: True
 
 num-save-attention: 0
 num-save-ctc: 0
