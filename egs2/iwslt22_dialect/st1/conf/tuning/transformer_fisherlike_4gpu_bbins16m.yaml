@@ -1,0 +1,86 @@
+# network architecture
+
+# frontend related
+frontend: default
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+# encoder related
+encoder: transformer
+encoder_conf:
+    input_layer: conv2d
+    num_blocks: 12
+    linear_units: 2048
+    dropout_rate: 0.1
+    output_size: 256  # dimension of attention
+    attention_heads: 4
+
+# decoder related
+decoder: transformer
+decoder_conf:
+    input_layer: embed
+    num_blocks: 6
+    linear_units: 2048
+    dropout_rate: 0.1
+
+extra_asr_decoder: transformer
+extra_asr_decoder_conf:
+    input_layer: embed
+    num_blocks: 2
+    linear_units: 2048
+    dropout_rate: 0.1
+
+extra_mt_decoder: transformer
+extra_mt_decoder_conf:
+    input_layer: embed
+    num_blocks: 2
+    linear_units: 2048
+    dropout_rate: 0.1
+
+# loss related
+model_conf:
+    asr_weight: 0.3
+    mt_weight: 0.0
+    mtlalpha: 1.0
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+# optimization related
+optim: adam
+accum_grad: 2
+grad_clip: 3
+max_epoch: 50
+optim_conf:
+    lr: 12.5
+scheduler: noamlr
+scheduler_conf:
+    model_size: 256
+    warmup_steps: 25000
+
+# minibatch related
+batch_type: numel
+batch_bins: 16000000
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 30
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2
