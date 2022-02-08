@@ -18,6 +18,6 @@ else:
 EOF
 )
 
-pip install datasets
+pip install datasets bert-score
 pip install git+https://github.com/Maluuba/nlg-eval.git@master
 pip install git+https://github.com/allenai/longformer.git

@@ -17,7 +17,7 @@ stop_stage=1
 . ./path.sh
 . ./cmd.sh
 
-url_how2_2000=
+url_how2_2000=https://drive.google.com/file/d/1SHg7La_hflMTIm6gaCus46sn4zYqWJvb/view?usp=sharing
 data_how2=how2_feats
 
 log "$0 $*"
@@ -43,22 +43,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     if [ -d ${data_how2} ]; then
         log "$0: HowTo directory or archive already exists in ${data_how2_text}. Skipping download."
     else
-        if ! command -v wget >/dev/null; then
-            log "$0: wget is not installed."
-            exit 2
-        fi
         log "$0: downloading test set from ${url_iwslt19}"
-
-        if ! wget --no-check-certificate -o how2_feats.tar.gz ${url_how2_2000}; then
-            log "$0: error executing wget ${url_how2_2000}"
-            exit 2
-        fi
-
-        if ! tar -xvzf how2_feats.tar.gz -C ${data_how2}; then
-            log "$0: error un-tarring archive how2_feats.tar.gz"
-            exit 2
-        fi
-
+        ../../../utils/download_from_google_drive.sh ${url_how2_2000} $PWD tar.gz
         log "$0: Successfully downloaded and un-tarred how2_feats.tar.gz"
     fi
 fi
@@ -66,6 +52,8 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparation and verification"
-
+    mv how2_feats/data .
+    mv how2_feats/fbank .
 fi 
+
 log "Successfully finished. [elapsed=${SECONDS}s]"
