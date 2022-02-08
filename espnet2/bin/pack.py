@@ -15,9 +15,11 @@ class ASRPackedContents(PackedContents):
     files = ["asr_model_file", "lm_file"]
     yaml_files = ["asr_train_config", "lm_train_config"]
 
+
 class STPackedContents(PackedContents):
     files = ["st_model_file"]
     yaml_files = ["st_train_config"]
+
 
 class TTSPackedContents(PackedContents):
     files = ["model_file"]
