@@ -41,9 +41,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data download"
 
     if [ -d ${data_how2} ]; then
-        log "$0: HowTo directory or archive already exists in ${data_how2_text}. Skipping download."
+        log "$0: HowTo directory or archive already exists in ${data_how2}. Skipping download."
     else
-        log "$0: downloading test set from ${url_iwslt19}"
         ../../../utils/download_from_google_drive.sh ${url_how2_2000} $PWD tar.gz
         log "$0: Successfully downloaded and un-tarred how2_feats.tar.gz"
     fi
