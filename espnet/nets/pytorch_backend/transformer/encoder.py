@@ -50,12 +50,12 @@ class Encoder(torch.nn.Module):
         attention_dim (int): Dimension of attention.
         attention_heads (int): The number of heads of multi head attention.
         conv_wshare (int): The number of kernel of convolution. Only used in
-            self_attention_layer_type == "lightconv*" or "dynamiconv*".
+            selfattention_layer_type == "lightconv*" or "dynamiconv*".
         conv_kernel_length (Union[int, str]): Kernel size str of convolution
-            (e.g. 71_71_71_71_71_71). Only used in self_attention_layer_type
+            (e.g. 71_71_71_71_71_71). Only used in selfattention_layer_type
             == "lightconv*" or "dynamiconv*".
         conv_usebias (bool): Whether to use bias in convolution. Only used in
-            self_attention_layer_type == "lightconv*" or "dynamiconv*".
+            selfattention_layer_type == "lightconv*" or "dynamiconv*".
         linear_units (int): The number of units of position-wise feed forward.
         num_blocks (int): The number of decoder blocks.
         dropout_rate (float): Dropout rate.
