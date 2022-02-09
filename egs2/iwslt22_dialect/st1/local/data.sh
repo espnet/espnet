@@ -85,6 +85,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         <"data/${set}/text.tc.rm.ta" awk ' { if( NF != 1 ) print $0; } ' >"data/${set}/text"
         utils/fix_data_dir.sh --utt_extra_files "text.tc.rm.ta text.tc.en text.en text.ta" data/${set}
         cp data/${set}/text.tc.en data/${set}/text
+        utils/fix_data_dir.sh --utt_extra_files "text.tc.rm.ta text.tc.en text.en text.ta" data/${set}
         utils/validate_data_dir.sh --no-feats data/${set} || exit 1
     done
 fi

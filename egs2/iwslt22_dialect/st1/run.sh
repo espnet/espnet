@@ -27,7 +27,7 @@ tgt_case=tc
 
 ./st.sh \
     --ignore_init_mismatch true \
-    --stage 11 \
+    --stage 1 \
     --stop_stage 13 \
     --use_lm false \
     --token_joint false \

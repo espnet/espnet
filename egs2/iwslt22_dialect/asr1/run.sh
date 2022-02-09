@@ -16,7 +16,7 @@ nbpe=1000
 
 ./asr.sh \
     --ngpu 1 \
-    --stage 11 \
+    --stage 1 \
     --stop_stage 13 \
     --audio_format "flac.ark" \
     --local_data_opts "--stage 0" \
