@@ -143,6 +143,11 @@
     <span class="n">yaml_files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;asr_train_config&quot;</span><span class="p">,</span> <span class="s2">&quot;lm_train_config&quot;</span><span class="p">]</span></div>
 
 
+<div class="viewcode-block" id="STPackedContents"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.pack.STPackedContents">[docs]</a><span class="k">class</span> <span class="nc">STPackedContents</span><span class="p">(</span><span class="n">PackedContents</span><span class="p">):</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;st_model_file&quot;</span><span class="p">]</span>
+    <span class="n">yaml_files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;st_train_config&quot;</span><span class="p">]</span></div>
+
+
 <div class="viewcode-block" id="TTSPackedContents"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.pack.TTSPackedContents">[docs]</a><span class="k">class</span> <span class="nc">TTSPackedContents</span><span class="p">(</span><span class="n">PackedContents</span><span class="p">):</span>
     <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;model_file&quot;</span><span class="p">]</span>
     <span class="n">yaml_files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;train_config&quot;</span><span class="p">]</span></div>
@@ -174,6 +179,7 @@
     <span class="c1"># Create subparser for ASR</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">contents</span> <span class="ow">in</span> <span class="p">[</span>
         <span class="p">(</span><span class="s2">&quot;asr&quot;</span><span class="p">,</span> <span class="n">ASRPackedContents</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;st&quot;</span><span class="p">,</span> <span class="n">STPackedContents</span><span class="p">),</span>
         <span class="p">(</span><span class="s2">&quot;tts&quot;</span><span class="p">,</span> <span class="n">TTSPackedContents</span><span class="p">),</span>
         <span class="p">(</span><span class="s2">&quot;enh&quot;</span><span class="p">,</span> <span class="n">EnhPackedContents</span><span class="p">),</span>
         <span class="p">(</span><span class="s2">&quot;diar&quot;</span><span class="p">,</span> <span class="n">DiarPackedContents</span><span class="p">),</span>
