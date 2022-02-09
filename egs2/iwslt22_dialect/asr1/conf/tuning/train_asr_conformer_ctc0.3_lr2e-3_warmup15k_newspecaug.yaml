@@ -1,10 +1,9 @@
-# This configuration requires 4 GPUs with 32GB memory
 batch_type: numel
-batch_bins: 8000000
-accum_grad: 3
-max_epoch: 60
+batch_bins: 25000000
+accum_grad: 2
+max_epoch: 80
 patience: none
-init: xavier_uniform
+init: none
 best_model_criterion:
 -   - valid
     - acc
@@ -15,18 +14,19 @@ encoder: conformer
 encoder_conf:
     output_size: 256
     attention_heads: 4
-    linear_units: 2048
+    linear_units: 1024
     num_blocks: 12
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
-    input_layer: conv2d6
+    input_layer: conv2d
     normalize_before: true
-    macaron_style: false
-    pos_enc_layer_type: "rel_pos"
-    selfattention_layer_type: "rel_selfattn"
-    activation_type: "swish"
-    use_cnn_module:  true
+    macaron_style: true
+    rel_pos_type: latest
+    pos_enc_layer_type: rel_pos
+    selfattention_layer_type: rel_selfattn
+    activation_type: swish
+    use_cnn_module: true
     cnn_module_kernel: 31
 
 decoder: transformer
@@ -46,10 +46,15 @@ model_conf:
 
 optim: adam
 optim_conf:
-    lr: 0.001
+    lr: 0.002
+    weight_decay: 0.000001
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 25000
+    warmup_steps: 15000
+
+frontend_conf:
+  n_fft: 512
+  hop_length: 256
 
 specaug: specaug
 specaug_conf:
@@ -59,10 +64,10 @@ specaug_conf:
     apply_freq_mask: true
     freq_mask_width_range:
     - 0
-    - 30
+    - 27
     num_freq_mask: 2
     apply_time_mask: true
-    time_mask_width_range:
-    - 0
-    - 40
-    num_time_mask: 2
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 5
