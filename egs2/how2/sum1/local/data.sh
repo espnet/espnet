@@ -17,7 +17,7 @@ stop_stage=1
 . ./path.sh
 . ./cmd.sh
 
-url_how2_2000=https://drive.google.com/file/d/1SHg7La_hflMTIm6gaCus46sn4zYqWJvb/view?usp=sharing
+url_how2_2000="https://drive.google.com/file/d/1SHg7La_hflMTIm6gaCus46sn4zYqWJvb/view?usp=sharing"
 data_how2=how2_feats
 
 log "$0 $*"
@@ -31,11 +31,6 @@ fi
 . ./path.sh
 . ./cmd.sh
 
-if [ ! -d ${data_how2_text} ]; then
-    log "${data_how2_text} doesn't exist. Downloading from URL-----"
-    wget 
-    exit 1
-fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data download"
