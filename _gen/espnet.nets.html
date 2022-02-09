@@ -8304,12 +8304,12 @@ torch.Tensor: Encoded memory mask (#batch, maxlen_in).</p>
 <li><p><strong>attention_dim</strong> (<em>int</em>) – Dimension of attention.</p></li>
 <li><p><strong>attention_heads</strong> (<em>int</em>) – The number of heads of multi head attention.</p></li>
 <li><p><strong>conv_wshare</strong> (<em>int</em>) – The number of kernel of convolution. Only used in
-self_attention_layer_type == “lightconv*” or “dynamiconv*”.</p></li>
+selfattention_layer_type == “lightconv*” or “dynamiconv*”.</p></li>
 <li><p><strong>conv_kernel_length</strong> (<em>Union</em><em>[</em><em>int</em><em>, </em><em>str</em><em>]</em>) – Kernel size str of convolution
-(e.g. 71_71_71_71_71_71). Only used in self_attention_layer_type
+(e.g. 71_71_71_71_71_71). Only used in selfattention_layer_type
 == “lightconv*” or “dynamiconv*”.</p></li>
 <li><p><strong>conv_usebias</strong> (<em>bool</em>) – Whether to use bias in convolution. Only used in
-self_attention_layer_type == “lightconv*” or “dynamiconv*”.</p></li>
+selfattention_layer_type == “lightconv*” or “dynamiconv*”.</p></li>
 <li><p><strong>linear_units</strong> (<em>int</em>) – The number of units of position-wise feed forward.</p></li>
 <li><p><strong>num_blocks</strong> (<em>int</em>) – The number of decoder blocks.</p></li>
 <li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>

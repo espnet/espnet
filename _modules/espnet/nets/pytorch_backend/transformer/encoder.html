@@ -177,12 +177,12 @@
 <span class="sd">        attention_dim (int): Dimension of attention.</span>
 <span class="sd">        attention_heads (int): The number of heads of multi head attention.</span>
 <span class="sd">        conv_wshare (int): The number of kernel of convolution. Only used in</span>
-<span class="sd">            self_attention_layer_type == &quot;lightconv*&quot; or &quot;dynamiconv*&quot;.</span>
+<span class="sd">            selfattention_layer_type == &quot;lightconv*&quot; or &quot;dynamiconv*&quot;.</span>
 <span class="sd">        conv_kernel_length (Union[int, str]): Kernel size str of convolution</span>
-<span class="sd">            (e.g. 71_71_71_71_71_71). Only used in self_attention_layer_type</span>
+<span class="sd">            (e.g. 71_71_71_71_71_71). Only used in selfattention_layer_type</span>
 <span class="sd">            == &quot;lightconv*&quot; or &quot;dynamiconv*&quot;.</span>
 <span class="sd">        conv_usebias (bool): Whether to use bias in convolution. Only used in</span>
-<span class="sd">            self_attention_layer_type == &quot;lightconv*&quot; or &quot;dynamiconv*&quot;.</span>
+<span class="sd">            selfattention_layer_type == &quot;lightconv*&quot; or &quot;dynamiconv*&quot;.</span>
 <span class="sd">        linear_units (int): The number of units of position-wise feed forward.</span>
 <span class="sd">        num_blocks (int): The number of decoder blocks.</span>
 <span class="sd">        dropout_rate (float): Dropout rate.</span>
