@@ -46,10 +46,6 @@ decoder_conf:
 
 joint_net_conf:
     joint_space_size: 640
-# model_conf:
-#     ctc_weight: 0.3
-#     lsm_weight: 0.1
-#     length_normalized_loss: false
 
 optim: adam
 optim_conf:
