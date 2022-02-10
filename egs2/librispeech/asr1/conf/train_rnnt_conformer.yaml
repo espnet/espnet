@@ -9,8 +9,8 @@ patience: none
 init: none
 best_model_criterion:
 -   - valid
-    - acc
-    - max
+    - loss
+    - min
 keep_nbest_models: 10
 
 model_conf:
