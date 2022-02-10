@@ -202,8 +202,8 @@ transformers.done: espnet.done
 	touch transformers.done
 
 parallel-wavegan.done: espnet.done
-        . ./activate_python.sh && ./installers/install_parallel-wavegan.sh
-        touch parallel-wavegan.done
+	. ./activate_python.sh && ./installers/install_parallel-wavegan.sh
+	touch parallel-wavegan.done
 
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py
