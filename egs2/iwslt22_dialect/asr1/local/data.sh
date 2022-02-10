@@ -49,7 +49,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     
     for set in train dev test1
     do
-        cp data/${set}/text.en data/${set}/text
         utils/utt2spk_to_spk2utt.pl data/${set}/utt2spk > data/${set}/spk2utt
         utils/fix_data_dir.sh data/${set}
         utils/validate_data_dir.sh --no-feats data/${set} || exit 1
@@ -76,10 +75,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         paste -d ' ' data/${set}/uttlist data/${set}/text.rm > data/${set}/text.tc.rm
 
         # remove empty lines that were previously only punctuation
-        # small to use fix_data_dir as is, where it does reduce lines based on extra files
         <"data/${set}/text.tc.rm" awk ' { if( NF != 1 ) print $0; } ' >"data/${set}/text"
         utils/fix_data_dir.sh --utt_extra_files "text.tc.rm" data/${set}
-        cp data/${set}/text.tc.rm data/${set}/text
         utils/validate_data_dir.sh --no-feats data/${set} || exit 1
     done
 fi
