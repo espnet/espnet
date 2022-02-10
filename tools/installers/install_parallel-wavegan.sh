@@ -7,4 +7,4 @@ if [ $# != 0 ]; then
     exit 1;
 fi
 
-pip install parallel_wavgan==0.5.4
+pip install parallel_wavegan==0.5.4
