@@ -7406,6 +7406,52 @@ torch.Tensor: Transformed value tensor (#batch, n_head, time2, d_k).</p>
 <span id="id42"></span><h2>espnet.nets.pytorch_backend.transformer.embedding<a class="headerlink" href="#espnet-nets-pytorch-backend-transformer-embedding" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.nets.pytorch_backend.transformer.embedding"></span><p>Positional Encoding Module.</p>
 <dl class="class">
+<dt id="espnet.nets.pytorch_backend.transformer.embedding.LearnableFourierPosEnc">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.embedding.</code><code class="sig-name descname">LearnableFourierPosEnc</code><span class="sig-paren">(</span><em class="sig-param">d_model</em>, <em class="sig-param">dropout_rate=0.0</em>, <em class="sig-param">max_len=5000</em>, <em class="sig-param">gamma=1.0</em>, <em class="sig-param">apply_scaling=False</em>, <em class="sig-param">hidden_dim=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/embedding.html#LearnableFourierPosEnc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.embedding.LearnableFourierPosEnc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Learnable Fourier Features for Positional Encoding.</p>
+<p>See <a class="reference external" href="https://arxiv.org/pdf/2106.02795.pdf">https://arxiv.org/pdf/2106.02795.pdf</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d_model</strong> (<em>int</em>) – Embedding dimension.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>max_len</strong> (<em>int</em>) – Maximum input length.</p></li>
+<li><p><strong>gamma</strong> (<em>float</em>) – init parameter for the positional kernel variance
+see <a class="reference external" href="https://arxiv.org/pdf/2106.02795.pdf">https://arxiv.org/pdf/2106.02795.pdf</a>.</p></li>
+<li><p><strong>apply_scaling</strong> (<em>bool</em>) – Whether to scale the input before adding the pos encoding.</p></li>
+<li><p><strong>hidden_dim</strong> (<em>int</em>) – if not None, we modulate the pos encodings with
+an MLP whose hidden layer has hidden_dim neurons.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Initialize class.</p>
+<dl class="method">
+<dt id="espnet.nets.pytorch_backend.transformer.embedding.LearnableFourierPosEnc.extend_pe">
+<code class="sig-name descname">extend_pe</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/embedding.html#LearnableFourierPosEnc.extend_pe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.embedding.LearnableFourierPosEnc.extend_pe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset the positional encodings.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.pytorch_backend.transformer.embedding.LearnableFourierPosEnc.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/embedding.html#LearnableFourierPosEnc.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.embedding.LearnableFourierPosEnc.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add positional encoding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>torch.Tensor</em>) – Input tensor (batch, time, <cite>*</cite>).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Encoded tensor (batch, time, <cite>*</cite>).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="espnet.nets.pytorch_backend.transformer.embedding.LegacyRelPositionalEncoding">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.embedding.</code><code class="sig-name descname">LegacyRelPositionalEncoding</code><span class="sig-paren">(</span><em class="sig-param">d_model</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">max_len=5000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/embedding.html#LegacyRelPositionalEncoding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.embedding.LegacyRelPositionalEncoding" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet.nets.pytorch_backend.transformer.embedding.PositionalEncoding" title="espnet.nets.pytorch_backend.transformer.embedding.PositionalEncoding"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.pytorch_backend.transformer.embedding.PositionalEncoding</span></code></a></p>

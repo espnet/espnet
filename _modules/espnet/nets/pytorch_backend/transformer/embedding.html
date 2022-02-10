@@ -254,6 +254,95 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div></div>
 
 
+<div class="viewcode-block" id="LearnableFourierPosEnc"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.LearnableFourierPosEnc">[docs]</a><span class="k">class</span> <span class="nc">LearnableFourierPosEnc</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Learnable Fourier Features for Positional Encoding.</span>
+
+<span class="sd">    See https://arxiv.org/pdf/2106.02795.pdf</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        d_model (int): Embedding dimension.</span>
+<span class="sd">        dropout_rate (float): Dropout rate.</span>
+<span class="sd">        max_len (int): Maximum input length.</span>
+<span class="sd">        gamma (float): init parameter for the positional kernel variance</span>
+<span class="sd">            see https://arxiv.org/pdf/2106.02795.pdf.</span>
+<span class="sd">        apply_scaling (bool): Whether to scale the input before adding the pos encoding.</span>
+<span class="sd">        hidden_dim (int): if not None, we modulate the pos encodings with</span>
+<span class="sd">            an MLP whose hidden layer has hidden_dim neurons.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">d_model</span><span class="p">,</span>
+        <span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">max_len</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>
+        <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">apply_scaling</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize class.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LearnableFourierPosEnc</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span> <span class="o">=</span> <span class="n">d_model</span>
+
+        <span class="k">if</span> <span class="n">apply_scaling</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xscale</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_model</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xscale</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout_rate</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_len</span> <span class="o">=</span> <span class="n">max_len</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">gamma</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span> <span class="o">//</span> <span class="mi">2</span>
+
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">d_model</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="p">),</span> <span class="s2">&quot;d_model should be divisible by two in order to use this layer.&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">w_r</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">d_model</span> <span class="o">//</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reset</span><span class="p">()</span>  <span class="c1"># init the weights</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">hidden_dim</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">d_model</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">GELU</span><span class="p">(),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">d_model</span><span class="p">),</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">w_r</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
+            <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="p">)),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="LearnableFourierPosEnc.extend_pe"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.LearnableFourierPosEnc.extend_pe">[docs]</a>    <span class="k">def</span> <span class="nf">extend_pe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reset the positional encodings.&quot;&quot;&quot;</span>
+        <span class="n">position_v</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">cosine</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">position_v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_r</span><span class="p">))</span>
+        <span class="n">sine</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">position_v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">w_r</span><span class="p">))</span>
+        <span class="n">pos_enc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">cosine</span><span class="p">,</span> <span class="n">sine</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">pos_enc</span> <span class="o">/=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_model</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pos_enc</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span><span class="p">(</span><span class="n">pos_enc</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="LearnableFourierPosEnc.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.LearnableFourierPosEnc.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add positional encoding.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (torch.Tensor): Input tensor (batch, time, `*`).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: Encoded tensor (batch, time, `*`).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extend_pe</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">xscale</span> <span class="o">+</span> <span class="n">pe</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div></div>
+
+
 <div class="viewcode-block" id="LegacyRelPositionalEncoding"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.embedding.LegacyRelPositionalEncoding">[docs]</a><span class="k">class</span> <span class="nc">LegacyRelPositionalEncoding</span><span class="p">(</span><span class="n">PositionalEncoding</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Relative positional encoding module (old version).</span>
 
