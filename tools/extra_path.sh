@@ -13,7 +13,6 @@ else
     TOOL_DIR="$(pwd)"
 fi
 
-export PATH="${TOOL_DIR}":"${PATH:-}"
 export PATH="${TOOL_DIR}"/sph2pipe_v2.5:"${PATH:-}"
 export PATH="${TOOL_DIR}"/sctk-2.4.10/bin:"${PATH:-}"
 export PATH="${TOOL_DIR}"/mwerSegmenter:"${PATH:-}"
@@ -28,4 +27,3 @@ export PATH="${TOOL_DIR}"/festival/bin:"${PATH:-}"
 export LD_LIBRARY_PATH="${TOOL_DIR}"/lib:"${TOOL_DIR}"/lib64:"${LD_LIBRARY_PATH:-}"
 export LD_LIBRARY_PATH="${TOOL_DIR}"/espeak-ng/lib:"${LD_LIBRARY_PATH:-}"
 export PYTHONPATH="${TOOL_DIR}"/s3prl:"${PYTHONPATH:-}"
-export PYTHONPATH="${TOOL_DIR}"/ParallelWaveGAN:"${PYTHONPATH:-}"
