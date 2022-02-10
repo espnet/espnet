@@ -1,6 +1,8 @@
 import pytest
 import torch
 
+
+from espnet.nets.pytorch_backend.transformer.embedding import LearnableFourierPosEnc
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
 
@@ -33,6 +35,31 @@ def test_pe_extendable(dtype, device):
     pe2.load_state_dict(sd)
     y2 = pe2(x)
     assert torch.allclose(y, y2)
+
+
+@pytest.mark.parametrize(
+    "dtype, device, apply_scaling, hidden_dim",
+    [
+        (dt, dv, scal, hd)
+        for dt in ("float32", "float64")
+        for dv in ("cpu", "cuda")
+        for scal in [True, False]
+        for hd in [None, 12]
+    ],
+)
+def test_learnedFourierPe_extendable(dtype, device, apply_scaling, hidden_dim):
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("no cuda device is available")
+    dtype = getattr(torch, dtype)
+    dim = 2
+    pe = LearnableFourierPosEnc(
+        dim, apply_scaling=apply_scaling, hidden_dim=hidden_dim
+    ).to(dtype=dtype, device=device)
+    x = torch.rand(2, 3, dim, dtype=dtype, device=device)
+    pe(x)
+
+    x = torch.rand(2, 5, dim, dtype=dtype, device=device)
+    pe(x)
 
 
 @pytest.mark.parametrize(

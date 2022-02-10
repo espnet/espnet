@@ -33,6 +33,7 @@ CSS10=
 HKUST1=
 HKUST2=
 HUI_ACG=downloads
+HUB4_SPANISH=
 LABOROTV=
 TEDXJP=
 LIBRISPEECH=
@@ -87,7 +88,7 @@ BABEL_401=
 BABEL_402=
 BABEL_403=
 BABEL_404=
-PUEBLA_NAHUATL=
+PUEBLA_NAHUATL=downloads
 TEDLIUM2=downloads
 TEDLIUM3=downloads
 VCTK=downloads
@@ -102,6 +103,7 @@ RU_OPEN_STT=downloads
 RUSLAN=downloads
 SIWIS=downloads
 GIGASPEECH=
+GOOGLEI18N=downloads
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
@@ -109,6 +111,7 @@ SUNDA=downloads
 CMU_ARCTIC=downloads
 CMU_INDIC=downloads
 INDIC_SPEECH=downloads
+IWSLT22_DIALECT=
 JKAC=
 MUCS_SUBTASK1=downloads
 MUCS_SUBTASK2=downloads
@@ -120,6 +123,7 @@ WENETSPEECH=
 SPEECHCOMMANDS=downloads
 TOTONAC=downloads
 PRIMEWORDS_CHINESE=downloads
+SEAME=
 
 # For only CMU environment
 if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
@@ -149,7 +153,14 @@ if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
     BABEL_403=/projects/tir5/data/speech_corpora/babel/IARPA-babel403b-v1.0b-build/BABEL_OP3_403/
     BABEL_404=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_OP3_404/
     GRABO=/projects/tir5/data/speech_corpora/Grabo
+    IWSLT22_DIALECT=/projects/tir5/data/speech_corpora/LDC2022E01_IWSLT22_Tunisian_Arabic_Shared_Task_Training_Data/
     PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
+fi
+
+# For CMU TIR cluster
+if [[ "$(hostname -d)" == lti.cs.cmu.edu ]]; then
+    FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
+
 fi
 
 # For only JHU environment
@@ -185,6 +196,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     HKUST1=
     HKUST2=
     HUI_ACG=downloads
+    HUB4_SPANISH=
     LABOROTV=
     TEDXJP=
     LIBRISPEECH=
@@ -254,4 +266,5 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     GAMAYUN=downloads
     IWSLT21LR=downloads/iwslt21
     TOTONAC=downloads
+    GOOGLEI18N=downloads
 fi

@@ -87,7 +87,9 @@ frontend_choices = ClassChoices(
 )
 specaug_choices = ClassChoices(
     name="specaug",
-    classes=dict(specaug=SpecAug),
+    classes=dict(
+        specaug=SpecAug,
+    ),
     type_check=AbsSpecAug,
     default=None,
     optional=True,

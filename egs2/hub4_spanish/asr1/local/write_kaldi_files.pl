@@ -1,0 +1,1 @@
+../../../../egs/hub4_spanish/asr1/local/write_kaldi_files.pl

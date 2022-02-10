@@ -8,7 +8,7 @@ frame_shift=128
 fs=8000
 subsampling=1
 
-./utils/parse_options.sh || exit 1
+. ./utils/parse_options.sh || exit 1
 
 if [ $# -lt 3 ]; then
     echo "Usage: $0 <scoring_dir> <infer_scp> <gt_label>";

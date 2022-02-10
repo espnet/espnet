@@ -10,7 +10,7 @@ import torch
 import tqdm
 import pdb
 
-from sklearn_km import (MfccFeatureReader, get_path_iterator, HubertFeatureReader)
+from sklearn_km import MfccFeatureReader, get_path_iterator, HubertFeatureReader
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -23,8 +23,9 @@ def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--km-path", type=str)
     parser.add_argument("--label-path", type=str)
-    parser.add_argument("--recog-set", default=None,
-                        nargs='+', help='folders contain wav.scp for recog')
+    parser.add_argument(
+        "--recog-set", default=None, nargs="+", help="folders contain wav.scp for recog"
+    )
     parser.add_argument("--feature", default="mfcc", type=str)
     parser.add_argument("--nj", default=1, type=int)
     parser.add_argument("--sample-rate", type=int, default=16000)
@@ -44,9 +45,7 @@ class ApplyKmeans(object):
         if isinstance(x, torch.Tensor):
             x = x.cpu().numpy()
         probs = (
-            (x ** 2).sum(1, keepdims=True)
-            - 2 * np.matmul(x, self.nc)
-            + self.nc_norm
+            (x ** 2).sum(1, keepdims=True) - 2 * np.matmul(x, self.nc) + self.nc_norm
         )
         return np.argmin(probs, axis=1)
 
@@ -60,13 +59,12 @@ def dump_pseudo_label_mfcc(km_path, task, sample_rate, nj):
     if nj > 1:
         feats = joblib.Parallel(n_jobs=nj)(
             joblib.delayed(reader.get_feats)(path)
-                           for utt_id, path in
-                           tqdm.tqdm(iterator, total=num))
+            for utt_id, path in tqdm.tqdm(iterator, total=num)
+        )
 
         p_labs = joblib.Parallel(n_jobs=nj)(
-            joblib.delayed(apply_kmeans)(feat)
-            for feat in
-            tqdm.tqdm(feats, total=num))
+            joblib.delayed(apply_kmeans)(feat) for feat in tqdm.tqdm(feats, total=num)
+        )
         iterator = generator()
         utt_ids = [utt_id for utt_id, _ in iterator]
     else:
@@ -120,7 +118,7 @@ def dump_label(km_path, label_path, recog_set, feature, nj, sample_rate, hurl, h
             with open(label_path, "w") as f:
                 for utt_id, p_lab in zip(utt_ids, p_labs):
                     f.write(utt_id + " " + " ".join(map(str, p_lab)) + "\n")
-            
+
     logger.info("finished successfully")
 
 
