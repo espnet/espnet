@@ -3,13 +3,12 @@
 # (https://arxiv.org/abs/2201.10800)
 #
 
-
-from turtle import forward, shape
-from black import main
 import torch
 import torch.nn as nn
 
-from espnet2.enh.layers.dprnn import SingleRNN, split_feature, merge_feature
+from espnet2.enh.layers.dprnn import merge_feature
+from espnet2.enh.layers.dprnn import SingleRNN
+from espnet2.enh.layers.dprnn import split_feature
 from espnet2.enh.layers.tcn import chose_norm
 
 
@@ -19,10 +18,13 @@ class MemLSTM(nn.Module):
     args:
         hidden_size: int, dimension of the hidden state.
         dropout: float, dropout ratio. Default is 0.
-        bidirectional: bool, whether the LSTM layers are bidirectional. Default is False.
+        bidirectional: bool, whether the LSTM layers are bidirectional.
+            Default is False.
         mem_type: 'hc', 'h', 'c' or 'id'.
-            It controls whether the hidden (or cell) state of SegLSTM will be processed by MemLSTM.
-            In 'id' mode, both the hidden and cell states will be identically returned.
+            It controls whether the hidden (or cell) state of
+            SegLSTM will be processed by MemLSTM.
+            In 'id' mode, both the hidden and cell states will
+            be identically returned.
         norm_type: gLN, cLN. cLN is for causal implementation.
     """
 
@@ -117,11 +119,12 @@ class SegLSTM(nn.Module):
     """the Seg-LSTM of SkiM
 
     args:
-        input_size: int, dimension of the input feature. The input should have shape
-                    (batch, seq_len, input_size).
+        input_size: int, dimension of the input feature.
+            The input should have shape (batch, seq_len, input_size).
         hidden_size: int, dimension of the hidden state.
         dropout: float, dropout ratio. Default is 0.
-        bidirectional: bool, whether the LSTM layers are bidirectional. Default is False.
+        bidirectional: bool, whether the LSTM layers are bidirectional.
+            Default is False.
         norm_type: gLN, cLN. cLN is for causal implementation.
     """
 
@@ -152,7 +155,7 @@ class SegLSTM(nn.Module):
 
         B, T, H = input.shape
 
-        if hc == None:
+        if hc is None:
             # In fist input SkiM block, h and c are not available
             d = self.num_direction
             h = torch.zeros(d, B, self.hidden_size).to(input.device)
@@ -183,12 +186,14 @@ class SkiM(nn.Module):
         segment_size: segmentation size for splitting long features
         bidirectional: bool, whether the RNN layers are bidirectional.
         mem_type: 'hc', 'h', 'c', 'id' or None.
-            It controls whether the hidden (or cell) state of SegLSTM will be processed by MemLSTM.
-            In 'id' mode, both the hidden and cell states will be identically returned.
+            It controls whether the hidden (or cell) state of SegLSTM
+            will be processed by MemLSTM.
+            In 'id' mode, both the hidden and cell states will
+            be identically returned.
             When mem_type is None, the MemLSTM will be removed.
         norm_type: gLN, cLN. cLN is for causal implementation.
-        seg_overlap: Bool, whether the segmentation will reserve 50% overlap for adjacent segments.
-            Default is False.
+        seg_overlap: Bool, whether the segmentation will reserve 50%
+            overlap for adjacent segments.Default is False.
     """
 
     def __init__(

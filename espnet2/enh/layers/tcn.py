@@ -47,7 +47,7 @@ class TemporalConvNet(nn.Module):
         for r in range(R):
             blocks = []
             for x in range(X):
-                dilation = 2 ** x
+                dilation = 2**x
                 padding = (P - 1) * dilation if causal else (P - 1) * dilation // 2
                 blocks += [
                     TemporalBlock(
@@ -215,7 +215,7 @@ def check_nonlinear(nolinear_type):
         raise ValueError("Unsupported nonlinear type")
 
 
-def chose_norm(norm_type, channel_size, shape='BDT'):
+def chose_norm(norm_type, channel_size, shape="BDT"):
     """The input of normalization will be (M, C, K), where M is batch size.
 
     C is channel size and K is sequence length.
@@ -237,12 +237,12 @@ def chose_norm(norm_type, channel_size, shape='BDT'):
 class ChannelwiseLayerNorm(nn.Module):
     """Channel-wise Layer Normalization (cLN)."""
 
-    def __init__(self, channel_size, shape='BDT'):
+    def __init__(self, channel_size, shape="BDT"):
         super().__init__()
         self.gamma = nn.Parameter(torch.Tensor(1, channel_size, 1))  # [1, N, 1]
         self.beta = nn.Parameter(torch.Tensor(1, channel_size, 1))  # [1, N, 1]
         self.reset_parameters()
-        assert shape in ['BDT', 'BTD']
+        assert shape in ["BDT", "BTD"]
         self.shape = shape
 
     def reset_parameters(self):
@@ -264,17 +264,17 @@ class ChannelwiseLayerNorm(nn.Module):
             M, N, K, L = y.shape
             y = y.view(M, N, K * L)
 
-        if self.shape == 'BTD':
+        if self.shape == "BTD":
             y = y.transpose(1, 2).contiguous()
 
         mean = torch.mean(y, dim=1, keepdim=True)  # [M, 1, K]
         var = torch.var(y, dim=1, keepdim=True, unbiased=False)  # [M, 1, K]
         cLN_y = self.gamma * (y - mean) / torch.pow(var + EPS, 0.5) + self.beta
 
-        if self.shape == 'BTD':
+        if self.shape == "BTD":
             cLN_y = cLN_y.transpose(1, 2).contiguous()
 
-        if dim  == 4:
+        if dim == 4:
             cLN_y = cLN_y.view(M, N, K, L)
         return cLN_y
 
@@ -282,12 +282,12 @@ class ChannelwiseLayerNorm(nn.Module):
 class GlobalLayerNorm(nn.Module):
     """Global Layer Normalization (gLN)."""
 
-    def __init__(self, channel_size, shape='BDT'):
+    def __init__(self, channel_size, shape="BDT"):
         super().__init__()
         self.gamma = nn.Parameter(torch.Tensor(1, channel_size, 1))  # [1, N, 1]
         self.beta = nn.Parameter(torch.Tensor(1, channel_size, 1))  # [1, N, 1]
         self.reset_parameters()
-        assert shape in ['BDT', 'BTD']
+        assert shape in ["BDT", "BTD"]
         self.shape = shape
 
     def reset_parameters(self):
@@ -303,15 +303,15 @@ class GlobalLayerNorm(nn.Module):
         Returns:
             gLN_y: [M, N, K]
         """
-        if self.shape == 'BTD':
-            y = y.transpose(1, 2).contiguous()      
+        if self.shape == "BTD":
+            y = y.transpose(1, 2).contiguous()
 
         mean = y.mean(dim=1, keepdim=True).mean(dim=2, keepdim=True)  # [M, 1, 1]
         var = (
             (torch.pow(y - mean, 2)).mean(dim=1, keepdim=True).mean(dim=2, keepdim=True)
         )
         gLN_y = self.gamma * (y - mean) / torch.pow(var + EPS, 0.5) + self.beta
-        
-        if self.shape == 'BTD':
-            gLN_y = gLN_y.transpose(1, 2).contiguous()   
+
+        if self.shape == "BTD":
+            gLN_y = gLN_y.transpose(1, 2).contiguous()
         return gLN_y

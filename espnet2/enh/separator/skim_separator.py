@@ -18,17 +18,19 @@ class SkiMSeparator(AbsSeparator):
         causal: bool, whether the system is causal.
         num_spk: number of target speakers.
         nonlinear: the nonlinear function for mask estimation,
-                select from 'relu', 'tanh', 'sigmoid'
+            select from 'relu', 'tanh', 'sigmoid'
         layer: int, number of SkiM blocks. Default is 3.
         unit: int, dimension of the hidden state.
         segment_size: segmentation size for splitting long features
         dropout: float, dropout ratio. Default is 0.
         mem_type: 'hc', 'h', 'c', 'id' or None.
-                It controls whether the hidden (or cell) state of SegLSTM will be processed by MemLSTM.
-                In 'id' mode, both the hidden and cell states will be identically returned.
-                When mem_type is None, the MemLSTM will be removed.
-        seg_overlap: Bool, whether the segmentation will reserve 50% overlap for adjacent segments.
-                Default is False.
+            It controls whether the hidden (or cell) state of
+            SegLSTM will be processed by MemLSTM.
+            In 'id' mode, both the hidden and cell states
+            will be identically returned.
+            When mem_type is None, the MemLSTM will be removed.
+        seg_overlap: Bool, whether the segmentation will reserve 50%
+            overlap for adjacent segments. Default is False.
     """
 
     def __init__(

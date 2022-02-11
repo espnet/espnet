@@ -39,7 +39,7 @@ def test_skim_separator_forward_backward_complex(
         segment_size=segment_size,
         dropout=dropout,
         mem_type=mem_type,
-        seg_overlap=seg_overlap
+        seg_overlap=seg_overlap,
     )
     model.train()
 
@@ -88,7 +88,7 @@ def test_skim_separator_forward_backward_real(
         segment_size=segment_size,
         dropout=dropout,
         mem_type=mem_type,
-        seg_overlap=seg_overlap
+        seg_overlap=seg_overlap,
     )
     model.train()
 
@@ -112,7 +112,7 @@ def test_skim_separator_invalid_type():
             dropout=0.1,
             num_spk=2,
             nonlinear="fff",
-            mem_type='aaa',
+            mem_type="aaa",
             segment_size=2,
         )
 
