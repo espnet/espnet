@@ -13,11 +13,11 @@ log() {
 db_dir=${MGB2}
 mer=80
 
- . utils/parse_options.sh || exit 1;
+. utils/parse_options.sh || exit 1;
 
-train_dir=data/train
-dev_dir=data/dev
-test_dir=data/eval
+train_dir="data/train"
+dev_dir="data/dev"
+test_dir="data/eval"
 
 for x in $train_dir $dev_dir $test_dir; do
   mkdir -p $x
