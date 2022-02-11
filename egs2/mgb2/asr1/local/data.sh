@@ -21,7 +21,7 @@ mer=80
 
 train_dir=data/train
 dev_dir=data/dev
-test_dir=data/test
+test_dir=data/eval
 
 for x in $train_dir $dev_dir $test_dir; do
   mkdir -p $x
@@ -165,7 +165,7 @@ fi
 
 for dir in $train_dir $dev_dir ${dev_dir}_overlap ${dev_dir}_non_overlap $test_dir ${test_dir}_non_overlap; do
   utils/fix_data_dir.sh $dir
-  #utils/validate_data_dir.sh --no-feats $dir
+  #utils/validate_data_dir.sh --no-feats $dir  # SOMETHING TO FIX HERE !!!!
 done
 
 for t in $train_dir $dev_dir ${dev_dir}_overlap ${dev_dir}_non_overlap; do
