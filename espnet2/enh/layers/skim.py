@@ -224,6 +224,7 @@ class SkiM(nn.Module):
             "hc",
             "h",
             "c",
+            "id",
             None,
         ], f"only support 'hc', 'h', 'c', 'id', and None, current type: {mem_type}"
 

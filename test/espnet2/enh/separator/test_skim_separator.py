@@ -63,7 +63,7 @@ def test_skim_separator_forward_backward_complex(
 @pytest.mark.parametrize("dropout", [0.0, 0.2])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
-@pytest.mark.parametrize("mem_type", ["hc", "c", "h", None])
+@pytest.mark.parametrize("mem_type", ["hc", "c", "h", "id", None])
 @pytest.mark.parametrize("segment_size", [2, 4])
 @pytest.mark.parametrize("seg_overlap", [False, True])
 def test_skim_separator_forward_backward_real(
