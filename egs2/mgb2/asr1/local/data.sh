@@ -32,7 +32,7 @@ find $db_dir/train/wav -type f -name "*.wav" | \
   $train_dir/wav_list                                 
 
 # generate wav.scp file for training data
-while read line; do
+while read -r line; do
   echo $line $db_dir/train/wav/$line.wav >> $train_dir/wav.scp
 done < $train_dir/wav_list
 
@@ -44,7 +44,7 @@ set -u
 set -o pipefail
 
 log "data preparation started"
-xmldir=$db_dir/train/xml/bw
+xmldir=$db_dir/train/xml/utf8
 
 log "using python to process xml file"
 # check if bs4 and lxml are install in in python
@@ -59,7 +59,7 @@ if ! python3 -c "import lxml" 2>/dev/null; then
 fi
 
 # process xml file using python
-while read basename; do
+while read -r basename; do
   [ -e $xmldir/$basename.xml ] && local/process_xml.py $xmldir/$basename.xml - | local/add_to_datadir.py $basename $train_dir $mer
 done < $train_dir/wav_list
 
@@ -73,7 +73,7 @@ find $db_dir/dev/wav -type f -name "*.wav" | \
   awk -F/ '{print $NF}' | perl -pe 's/\.wav//g' > \
   $dev_dir/wav_list
 
-while read line; do
+while read -r line; do
   echo $line $db_dir/dev/wav/$line.wav >> $dev_dir/wav.scp
 done < $dev_dir/wav_list
 
@@ -110,7 +110,7 @@ find $db_dir/test/wav -type f -name "*.wav" | \
   awk -F/ '{print $NF}' | perl -pe 's/\.wav//g' > \
   $test_dir/wav_list
 
-while read line; do
+while read -r line; do
   echo $line $db_dir/test/wav/$line.wav >> $test_dir/wav.scp
 done < $test_dir/wav_list
 
@@ -143,7 +143,7 @@ find $db_dir/train/wav -type f -name "*.wav" | \
   awk -F/ '{print $NF}' | perl -pe 's/\.wav//g' > \
   $train_dir/wav_list
 
-while read line; do
+while read -r line; do
   echo $line $db_dir/train/wav/$line.wav >> $train_dir/wav.scp
 done < $train_dir/wav_list
 
