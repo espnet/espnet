@@ -66,15 +66,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     local/normalize_trans.sh ${sfisher_transcripts} ${callhome_transcripts}
 
     utils/combine_data.sh \
-        --extra-files "text.lc.en text.lc.es text.lc.rm.en text.lc.rm.es text.tc.en text.tc.es" \
+        --extra-files "text.lc.es text.lc.rm.es text.tc.es" \
         data/train \
         data/fisher_train data/callhome_train/ 
 
     cp -r data/fisher_dev data/dev
-    # Use 1 reference as dev set
-    ln -sf data/dev/text.lc.en.0 data/dev/text.lc.en
-    ln -sf data/dev/text.tc.en.0 data/dev/text.tc.en
-    ln -sf data/dev/text.lc.rm.en.0 data/dev/text.lc.rm.en
+
 fi
 
 
