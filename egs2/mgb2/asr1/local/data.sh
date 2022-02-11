@@ -13,7 +13,7 @@ log() {
 db_dir=${MGB2}
 mer=80
 
-. utils/parse_options.sh || exit 1;
+ . utils/parse_options.sh || exit 1;
 
 train_dir="data/train"
 dev_dir="data/dev"
@@ -32,10 +32,11 @@ find $db_dir/train/wav -type f -name "*.wav" | \
   $train_dir/wav_list                                 
 
 # generate wav.scp file for training data
-for x in $(cat $train_dir/wav_list); do 
-  echo $x $db_dir/train/wav/$x.wav >> $train_dir/wav.scp
-done
-
+log "lala"
+while read line; do
+  echo $line $db_dir/train/wav/$line.wav >> $train_dir/wav.scp
+done < $train_dir/wav_list
+log "lolo"
 
 
 # Set bash to 'debug' mode, it will exit on :
@@ -45,28 +46,25 @@ set -u
 set -o pipefail
 
 log "data preparation started"
-
-
 xmldir=$db_dir/train/xml/bw
 
 log "using python to process xml file"
-
 # check if bs4 and lxml are install in in python
 
 if ! python3 -c "import bs4" 2>/dev/null; then
-  echo "$0: BeautifulSoup4 not installed, you can install it by 'pip install beautifulsoup4' if you prefer to use python to process xml file" 
+  log "$0: BeautifulSoup4 not installed, you can install it by 'pip install beautifulsoup4' if you prefer to use python to process xml file" 
   exit 1;
 fi
 if ! python3 -c "import lxml" 2>/dev/null; then
-  echo "$0: lxml not installed, you can install it by 'pip install lxml' if you prefer to use python to process xml file"
+  log "$0: lxml not installed, you can install it by 'pip install lxml' if you prefer to use python to process xml file"
   exit 1;
 fi
 
 # process xml file using python
-cat $train_dir/wav_list | while read basename; do
-  [ ! -e $xmldir/$basename.xml ] 
+while read basename; do
+  echo $basename
   [ -e $xmldir/$basename.xml ] && local/process_xml.py $xmldir/$basename.xml - | local/add_to_datadir.py $basename $train_dir $mer
-done
+done < $train_dir/wav_list
 
 
 # Generating necessary files for Dev 
@@ -78,9 +76,9 @@ find $db_dir/dev/wav -type f -name "*.wav" | \
   awk -F/ '{print $NF}' | perl -pe 's/\.wav//g' > \
   $dev_dir/wav_list
 
-for x in $(cat $dev_dir/wav_list); do 
-  echo $x $db_dir/dev/wav/$x.wav >> $dev_dir/wav.scp
-done
+while read line; do
+  echo $line $db_dir/dev/wav/$line.wav >> $dev_dir/wav.scp
+done < $dev_dir/wav_list
 
 # Creating a file reco2file_and_channel which is used by convert_ctm.pl in local/score.sh script
 awk '{print $1" "$1" A"}' $dev_dir/wav.scp > $dev_dir/reco2file_and_channel
@@ -115,9 +113,9 @@ find $db_dir/test/wav -type f -name "*.wav" | \
   awk -F/ '{print $NF}' | perl -pe 's/\.wav//g' > \
   $test_dir/wav_list
 
-for x in $(cat $test_dir/wav_list); do 
-  echo $x $db_dir/test/wav/$x.wav >> $test_dir/wav.scp
-done
+while read line; do
+  echo $line $db_dir/test/wav/$line.wav >> $test_dir/wav.scp
+done < $test_dir/wav_list
 
 # Creating a file reco2file_and_channel which is used by convert_ctm.pl in local/score.sh script
 awk '{print $1" "$1" A"}' $test_dir/wav.scp > $test_dir/reco2file_and_channel
@@ -148,9 +146,9 @@ find $db_dir/train/wav -type f -name "*.wav" | \
   awk -F/ '{print $NF}' | perl -pe 's/\.wav//g' > \
   $train_dir/wav_list
 
-for x in $(cat $train_dir/wav_list); do 
-  echo $x $db_dir/train/wav/$x.wav >> $train_dir/wav.scp
-done
+while read line; do
+  echo $line $db_dir/train/wav/$line.wav >> $train_dir/wav.scp
+done < $train_dir/wav_list
 
 #Creating a file reco2file_and_channel which is used by convert_ctm.pl in local/score.sh script
 awk '{print $1" "$1" A"}' $train_dir/wav.scp > $train_dir/reco2file_and_channel
