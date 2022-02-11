@@ -111,7 +111,7 @@ build(){
     docker_image=$( docker images -q ${this_tag}  )
     if ! [[ -n ${docker_image} ]]; then
         log "Now building gpu-latest with ubuntu:${default_ubuntu_ver} and cuda:${default_cuda_ver}"
-        docker build ${build_args} -f prebuilt/devel/Dockerfile \
+        docker build ${build_args} -f prebuilt/devel.dockerfile \
                             --target devel \
                             -t ${this_tag}  . | tee -a build_gpu.log > /dev/null
         docker_image=$( docker images -q ${this_tag} )
@@ -168,7 +168,7 @@ build_local(){
 }
 
 run_recipe1(){
-    ./run.sh --docker-egs an4/asr1 \
+    ./run.sh --docker-egs mini_an4/asr1 \
                         --docker-cmd run.sh \
                         --docker-gpu ${1} \
                         --verbose 1 \
@@ -179,10 +179,10 @@ run_recipe1(){
 }
 
 run_recipe2(){
-   ./run.sh --docker-egs an4/asr1  \
+   ./run.sh --docker-egs mini_an4/asr1  \
                     --docker-cmd run.sh \
                     --docker-gpu ${1} \
-                    --docker-env "NLTK_DATA=/espnet/egs2/an4/asr1/nltk_data,HOME=/espnet/egs2/an4/asr1" \
+                    --docker-env "NLTK_DATA=/espnet/egs2/mini_an4/asr1/nltk_data,HOME=/espnet/egs2/mini_an4/asr1" \
                     --is-egs2 \
                     --ngpu ${2} \
                     --stage ${3} \
@@ -195,7 +195,7 @@ testing(){
     # Test Docker Containers with cpu setup
     run_stage=-1
     for backend in chainer pytorch; do
-        if [ -f ../egs/an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
+        if [ -f ../egs/mini_an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
             run_stage=3
         fi
         if [ ! -f .test_cpu_${backend}.done ]; then
@@ -205,7 +205,7 @@ testing(){
     done
 
     for backend in chainer pytorch; do
-        if [ -f ../egs/an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
+        if [ -f ../egs/mini_an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
             run_stage=3
         fi
         if [ ! -f .test_gpu_${backend}.done ]; then

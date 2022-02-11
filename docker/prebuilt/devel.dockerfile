@@ -48,7 +48,7 @@ RUN if [ -z "${CUDA_VER}" ]; then \
     . ./activate_python.sh && \
     ./installers/install_warp-ctc.sh && \
     ./installers/install_kenlm.sh && \
-    # ./installers/install_chainer_ctc.sh && \
+    ./installers/install_chainer.sh cpu && \
     conda clean --all && \
     rm -f *.tar.*  && \
     pip cache purge
