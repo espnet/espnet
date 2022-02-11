@@ -6,8 +6,8 @@ set -u
 set -o pipefail
 
 train_set=train
-train_dev="dev_all"
-test_set="dev_all test"
+train_dev=dev
+test_set="fisher_dev fisher_dev2 fisher_test callhome_evltest callhome_devtest"
 
 asr_config=conf/train_asr.yaml
 lm_config=conf/train_lm.yaml
