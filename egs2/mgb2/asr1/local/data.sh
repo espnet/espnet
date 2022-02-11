@@ -1,21 +1,27 @@
 #!/usr/bin/env bash
 
-# Copyright (C) 2020 Kanari AI 
-# (Amir Hussein)
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
+. ./db.sh || exit 1;
 
-mkdir DB
-cd DB
-ln -s /projects/tir5/data/speech_corpora/IWSLT_2022/* ./
-cd ..
 
-db_dir=DB
+log() {
+    local fname=${BASH_SOURCE[1]##*/}
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
+}
+
+stage=0       # start from 0 if you need to start from data preparation
+stop_stage=100
+
+db_dir=${MGB2}
 process_xml="python"
-subset=1000  # subset of training data
 mer=80
-test_dir=data/test
+
+ . utils/parse_options.sh || exit 1;
 
 train_dir=data/train
 dev_dir=data/dev
+test_dir=data/test
 
 for x in $train_dir $dev_dir $test_dir; do
   mkdir -p $x
@@ -34,41 +40,39 @@ for x in $(cat $train_dir/wav_list); do
   echo $x $db_dir/train/wav/$x.wav >> $train_dir/wav.scp
 done
 
-# Creating subset of the train data for quick recipe testing
-head -n $subset $train_dir/wav_list > $train_dir/wav_list.short
 
-set -e -o pipefail
+
+# Set bash to 'debug' mode, it will exit on :
+# -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
+set -e
+set -u
+set -o pipefail
+
+log "data preparation started"
+
 
 xmldir=$db_dir/train/xml/bw
-if [ $process_xml == "python" ]; then
-  echo "using python to process xml file"
-  # check if bs4 and lxml are installin in python
-  local/check_tools.sh
-  # process xml file using python
-  cat $train_dir/wav_list | while read basename; do
-    [ ! -e $xmldir/$basename.xml ] && echo "Missing $xmldir/$basename.xml" 
-    [ -e $xmldir/$basename.xml ] && local/process_xml.py $xmldir/$basename.xml - | local/add_to_datadir.py $basename $train_dir $mer
-  done
-elif [ $process_xml == 'xml' ]; then
-  # check if xml binary exsits
-  if command -v xml >/dev/null 2>/dev/null; then
-    echo "using xml"
-    cat $train_dir/wav_list | while read basename; do
-      [ ! -e $xmldir/$basename.xml ] && echo "Missing $xmldir/$basename.xml" && exit 1
-      xml sel -t -m '//segments[@annotation_id="transcript_align"]' -m "segment" -n -v  "concat(@who,' ',@starttime,' ',@endtime,' ',@WMER,' ')" -m "element" -v "concat(text(),' ')" $xmldir/$basename.xml | local/add_to_datadir.py $basename $train_dir 
-      echo $basename $wavDir/$basename.wav >> $train_dir/wav.scp
-    done
-  else
-    echo "xml not found, you may use python by '--process-xml python'"
-    exit 1;
-  fi
-else
-  # invalid option
-  echo "$0: invalid option for --process-xml, choose from 'xml' or 'python'"
+
+log "using python to process xml file"
+
+# check if bs4 and lxml are install in in python
+
+if ! python3 -c "import bs4" 2>/dev/null; then
+  echo "$0: BeautifulSoup4 not installed, you can install it by 'pip install beautifulsoup4' if you prefer to use python to process xml file" 
+  exit 1;
+fi
+if ! python3 -c "import lxml" 2>/dev/null; then
+  echo "$0: lxml not installed, you can install it by 'pip install lxml' if you prefer to use python to process xml file"
   exit 1;
 fi
 
-echo lalala
+# process xml file using python
+cat $train_dir/wav_list | while read basename; do
+  [ ! -e $xmldir/$basename.xml ] 
+  [ -e $xmldir/$basename.xml ] && local/process_xml.py $xmldir/$basename.xml - | local/add_to_datadir.py $basename $train_dir $mer
+done
+
+
 # Generating necessary files for Dev 
 for x in text segments; do
   cp $db_dir/dev/${x}.all $dev_dir/${x}
@@ -105,7 +109,6 @@ done
 
 # We are developing on non overapped data
 cp ${dev_dir}_non_overlap/* $dev_dir
-
 
 # Test
 cp $db_dir/test/text $test_dir/text
@@ -170,12 +173,5 @@ for t in $train_dir $dev_dir ${dev_dir}_overlap ${dev_dir}_non_overlap; do
   sed -i 's/@@LAT@@//g' $t/text
   
 done
-# Subset of training data
-train_subset=data/train_subset
-mkdir -p $train_subset
-utils/filter_scp.pl $train_dir/wav_list.short ${train_dir}/wav.scp > \
-  ${train_subset}/wav.scp
-cp ${train_dir}/{utt2spk,segments,spk2utt,text,reco2file_and_channel} ${train_subset}
-utils/fix_data_dir.sh ${train_subset}
 
-echo "Training and Test data preparation succeeded"
+log "Training and Test data preparation succeeded"

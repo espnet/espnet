@@ -1,1 +1,0 @@
-../../../../egs/babel/asr1/local/make_corpus_subset.sh
