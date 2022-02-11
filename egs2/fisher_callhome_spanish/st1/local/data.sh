@@ -77,7 +77,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     cp -r data/fisher_dev data/dev
     # Use 1 reference as dev set
-    ln -sf data/dev/text.lc.en.0 data/dev/text.lc.en
-    ln -sf data/dev/text.tc.en.0 data/dev/text.tc.en
-    ln -sf data/dev/text.lc.rm.en.0 data/dev/text.lc.rm.en
+    ln -sf text.lc.en.0 data/dev/text.lc.en
+    ln -sf text.tc.en.0 data/dev/text.tc.en
+    ln -sf text.lc.rm.en.0 data/dev/text.lc.rm.en
 fi

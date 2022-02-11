@@ -13,7 +13,6 @@ asr_config=conf/train_asr.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
-fs=8k
 nbpe=1000
 
 ./asr.sh \
@@ -22,7 +21,6 @@ nbpe=1000
     --local_data_opts "--stage 0" \
     --use_lm false \
     --lm_config "${lm_config}" \
-    --fs ${fs} \
     --token_type bpe \
     --nbpe $nbpe \
     --feats_type raw \
