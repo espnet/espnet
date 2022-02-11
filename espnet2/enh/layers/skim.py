@@ -144,7 +144,7 @@ class SegLSTM(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
         self.proj = nn.Linear(hidden_size * self.num_direction, input_size)
         self.norm = chose_norm(
-            norm_type=norm_type, channel_size=hidden_size, shape="BTD"
+            norm_type=norm_type, channel_size=input_size, shape="BTD"
         )
 
     def forward(self, input, hc):
@@ -163,7 +163,7 @@ class SegLSTM(nn.Module):
         output, (h, c) = self.lstm(input, (h, c))
         output = self.dropout(output)
         output = self.proj(output.contiguous().view(-1, output.shape[2])).view(
-            output.shape
+            input.shape
         )
         output = input + self.norm(output)
 
@@ -171,6 +171,26 @@ class SegLSTM(nn.Module):
 
 
 class SkiM(nn.Module):
+    """Skipping Memory Net
+
+    args:
+        input_size: int, dimension of the input feature.
+            Input shape shoud be (batch, length, input_size)
+        hidden_size: int, dimension of the hidden state.
+        output_size: int, dimension of the output size.
+        dropout: float, dropout ratio. Default is 0.
+        num_blocks: number of basic SkiM blocks
+        segment_size: segmentation size for splitting long features
+        bidirectional: bool, whether the RNN layers are bidirectional.
+        mem_type: 'hc', 'h', 'c', 'id' or None.
+            It controls whether the hidden (or cell) state of SegLSTM will be processed by MemLSTM.
+            In 'id' mode, both the hidden and cell states will be identically returned.
+            When mem_type is None, the MemLSTM will be removed.
+        norm_type: gLN, cLN. cLN is for causal implementation.
+        seg_overlap: Bool, whether the segmentation will reserve 50% overlap for adjacent segments.
+            Default is False.
+    """
+
     def __init__(
         self,
         input_size,
@@ -195,6 +215,13 @@ class SkiM(nn.Module):
         self.norm_type = norm_type
         self.seg_overlap = seg_overlap
 
+        assert mem_type in [
+            "hc",
+            "h",
+            "c",
+            None,
+        ], f"only support 'hc', 'h', 'c', 'id', and None, current type: {mem_type}"
+
         self.seg_lstms = nn.ModuleList([])
         for i in range(num_blocks):
             self.seg_lstms.append(
@@ -218,16 +245,19 @@ class SkiM(nn.Module):
                         norm_type=norm_type,
                     )
                 )
-        self.output_fc = nn.Sequential(nn.PReLU(), nn.Conv1d(input_size, output_size, 1))
+        self.output_fc = nn.Sequential(
+            nn.PReLU(), nn.Conv1d(input_size, output_size, 1)
+        )
 
     def forward(self, input):
         # input shape: B, T (S*K), D
         B, T, D = input.shape
 
         if self.seg_overlap:
-            input, rest = split_feature(input.transpose(1, 2),
-                                        segment_size=self.segment_size)  # B, D, K, S
-            input = input.permute(0, 3, 2, 1).contiguous() # B, S, K, D
+            input, rest = split_feature(
+                input.transpose(1, 2), segment_size=self.segment_size
+            )  # B, D, K, S
+            input = input.permute(0, 3, 2, 1).contiguous()  # B, S, K, D
         else:
             input, rest = self._padfeature(input=input)
             input = input.view(B, -1, self.segment_size, D)  # B, S, K, D
@@ -241,16 +271,16 @@ class SkiM(nn.Module):
             output, hc = self.seg_lstms[i](output, hc)  # BS, K, D
             if self.mem_type and i < self.num_blocks - 1:
                 hc = self.mem_lstms[i](hc, S)
-        
+
         if self.seg_overlap:
-            output = output.view(B, S, K, D).permute(0, 3, 2, 1) # B, D, K, S
-            output = merge_feature(output, rest) # B, D, T
-            output = self.output(output).transpose(1, 2)
+            output = output.view(B, S, K, D).permute(0, 3, 2, 1)  # B, D, K, S
+            output = merge_feature(output, rest)  # B, D, T
+            output = self.output_fc(output).transpose(1, 2)
 
         else:
             output = output.view(B, S * K, D)[:, :T, :]  # B, T, D
-            output = self.output(output.transpose(1, 2)).transpose(1, 2)
-        
+            output = self.output_fc(output.transpose(1, 2)).transpose(1, 2)
+
         return output
 
     def _padfeature(self, input):
@@ -265,6 +295,17 @@ class SkiM(nn.Module):
 
 if __name__ == "__main__":
 
-    model = SkiM(256, 123, 345, dropout=0.1, num_blocks=3, segment_size=20,bidirectional=True, mem_type='hc', norm_type='gLN', seg_overlap=False)
-    input = torch.randn(2, 1002, 256)
+    model = SkiM(
+        333,
+        111,
+        222,
+        dropout=0.1,
+        num_blocks=3,
+        segment_size=20,
+        bidirectional=False,
+        mem_type="hc",
+        norm_type="cLN",
+        seg_overlap=True,
+    )
+    input = torch.randn(2, 1002, 333)
     print(model(input).shape)
