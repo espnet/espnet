@@ -40,7 +40,7 @@ decoder_conf:
     stride: 1
 separator: skim
 separator_conf:
-    casual: False
+    casual: True
     num_spk: 2
     layer: 6
     nonlinear: relu

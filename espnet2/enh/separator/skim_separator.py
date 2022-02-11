@@ -11,6 +11,26 @@ from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
 class SkiMSeparator(AbsSeparator):
+    """Skipping Memory (SkiM) Separator
+
+    Args:
+        input_dim: input feature dimension
+        casual: bool, whether the system is casual.
+        num_spk: number of target speakers.
+        nonlinear: the nonlinear function for mask estimation,
+                select from 'relu', 'tanh', 'sigmoid'
+        layer: int, number of SkiM blocks. Default is 3.
+        unit: int, dimension of the hidden state.
+        segment_size: segmentation size for splitting long features
+        dropout: float, dropout ratio. Default is 0.
+        mem_type: 'hc', 'h', 'c', 'id' or None.
+                It controls whether the hidden (or cell) state of SegLSTM will be processed by MemLSTM.
+                In 'id' mode, both the hidden and cell states will be identically returned.
+                When mem_type is None, the MemLSTM will be removed.
+        seg_overlap: Bool, whether the segmentation will reserve 50% overlap for adjacent segments.
+                Default is False.
+    """
+
     def __init__(
         self,
         input_dim: int,
@@ -21,28 +41,10 @@ class SkiMSeparator(AbsSeparator):
         unit: int = 512,
         segment_size: int = 20,
         dropout: float = 0.0,
-        mem_type: str = 'hc',
+        mem_type: str = "hc",
         seg_overlap: bool = False,
     ):
-        """Skipping Memory (SkiM) Separator
 
-        Args:
-            input_dim: input feature dimension
-            casual: bool, whether the system is casual.
-            num_spk: number of target speakers.
-            nonlinear: the nonlinear function for mask estimation,
-                    select from 'relu', 'tanh', 'sigmoid'
-            layer: int, number of SkiM blocks. Default is 3.
-            unit: int, dimension of the hidden state.
-            segment_size: segmentation size for splitting long features
-            dropout: float, dropout ratio. Default is 0.
-            mem_type: 'hc', 'h', 'c', 'id' or None.
-                    It controls whether the hidden (or cell) state of SegLSTM will be processed by MemLSTM.
-                    In 'id' mode, both the hidden and cell states will be identically returned.
-                    When mem_type is None, the MemLSTM will be removed.
-            seg_overlap: Bool, whether the segmentation will reserve 50% overlap for adjacent segments.
-                    Default is False.
-        """
         super().__init__()
 
         self._num_spk = num_spk
@@ -56,7 +58,7 @@ class SkiMSeparator(AbsSeparator):
             dropout=dropout,
             num_blocks=layer,
             bidirectional=(not casual),
-            norm_type='cLN' if casual else 'gLN',
+            norm_type="cLN" if casual else "gLN",
             segment_size=segment_size,
             seg_overlap=seg_overlap,
             mem_type=mem_type,
