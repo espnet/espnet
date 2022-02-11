@@ -98,7 +98,7 @@ ifeq ($(strip $(USE_CONDA)),)
 	. ./activate_python.sh && ./installers/install_torch.sh "false" "${TH_VERSION}" "${CUDA_VERSION}"
 else
 	# NOTE(kan-bayashi): Temporary fixed numpy version
-	. ./activate_python.sh && conda install "numpy<=1.21.3"
+	. ./activate_python.sh && conda install -y "numpy<=1.21.3"
 	. ./activate_python.sh && ./installers/install_torch.sh "true" "${TH_VERSION}" "${CUDA_VERSION}"
 endif
 	touch pytorch.done
@@ -148,6 +148,10 @@ pyopenjtalk.done: espnet.done conda_packages.done
 phonemizer.done: espnet.done conda_packages.done
 	. ./activate_python.sh && ./installers/install_phonemizer.sh
 	touch phonemizer.done
+
+speechbrain.done: espnet.done conda_packages.done
+	. ./activate_python.sh && ./installers/install_speechbrain.sh
+	touch speechbrain.done
 
 moses.done:
 	git clone --depth 1 https://github.com/moses-smt/mosesdecoder.git moses
