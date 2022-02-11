@@ -32,11 +32,9 @@ find $db_dir/train/wav -type f -name "*.wav" | \
   $train_dir/wav_list                                 
 
 # generate wav.scp file for training data
-log "lala"
 while read line; do
   echo $line $db_dir/train/wav/$line.wav >> $train_dir/wav.scp
 done < $train_dir/wav_list
-log "lolo"
 
 
 # Set bash to 'debug' mode, it will exit on :
