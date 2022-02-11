@@ -6,9 +6,9 @@ set -u
 set -o pipefail
 
 nj=20
-train_set=train
-valid_set=dev
-test_set=eval
+train_set="train"
+valid_set="dev"
+test_set="eval"
 
 asr_config=conf/tuning/train_asr_conformer.yaml
 lm_config=conf/train_lm.yaml
