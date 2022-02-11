@@ -60,7 +60,6 @@ fi
 
 # process xml file using python
 while read basename; do
-  echo $basename
   [ -e $xmldir/$basename.xml ] && local/process_xml.py $xmldir/$basename.xml - | local/add_to_datadir.py $basename $train_dir $mer
 done < $train_dir/wav_list
 
