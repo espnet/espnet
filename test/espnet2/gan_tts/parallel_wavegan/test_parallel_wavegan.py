@@ -135,7 +135,7 @@ except ImportError:
 )
 def test_parallel_wavegan_compatibility():
     from parallel_wavegan.models import (
-        ParallelWaveGANGenerator as PWGParallelWaveGANGenerator,
+        ParallelWaveGANGenerator as PWGParallelWaveGANGenerator,  # NOQA
     )
 
     model_pwg = PWGParallelWaveGANGenerator()
