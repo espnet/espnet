@@ -5,12 +5,12 @@ set -e
 set -u
 set -o pipefail
 
-nj=20
+nj=30
 train_set="train"
 valid_set="dev"
 test_set="eval"
 
-asr_config=conf/tuning/train_asr_conformer.yaml
+asr_config=conf/tuning/train_asr_conformer_ctc0.3_lr2e-3_warmup15k_newspecaug.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
