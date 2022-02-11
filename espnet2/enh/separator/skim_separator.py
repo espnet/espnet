@@ -15,7 +15,7 @@ class SkiMSeparator(AbsSeparator):
 
     Args:
         input_dim: input feature dimension
-        casual: bool, whether the system is casual.
+        causal: bool, whether the system is causal.
         num_spk: number of target speakers.
         nonlinear: the nonlinear function for mask estimation,
                 select from 'relu', 'tanh', 'sigmoid'
@@ -34,7 +34,7 @@ class SkiMSeparator(AbsSeparator):
     def __init__(
         self,
         input_dim: int,
-        casual: bool = True,
+        causal: bool = True,
         num_spk: int = 2,
         nonlinear: str = "relu",
         layer: int = 3,
@@ -51,14 +51,17 @@ class SkiMSeparator(AbsSeparator):
 
         self.segment_size = segment_size
 
+        if mem_type not in ("hc", "h", "c", "id", None):
+            raise ValueError("Not supporting mem_type={}".format(mem_type))
+
         self.skim = SkiM(
             input_size=input_dim,
             hidden_size=unit,
             output_size=input_dim * num_spk,
             dropout=dropout,
             num_blocks=layer,
-            bidirectional=(not casual),
-            norm_type="cLN" if casual else "gLN",
+            bidirectional=(not causal),
+            norm_type="cLN" if causal else "gLN",
             segment_size=segment_size,
             seg_overlap=seg_overlap,
             mem_type=mem_type,
