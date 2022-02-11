@@ -14,6 +14,7 @@ if [ $# -lt 2 ]; then
 fi
 
 # download data preparation scripts for transcriptions
+# Note uses fork because of utf-8 issues in iconv - https://github.com/joshua-decoder/fisher-callhome-corpus/pull/3
 [ ! -d data/local/fisher-callhome-corpus ] && git clone https://github.com/siddalmia/fisher-callhome-corpus.git data/local/fisher-callhome-corpus
 
 # create symbolic links
