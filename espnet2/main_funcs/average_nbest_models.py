@@ -42,7 +42,7 @@ def average_nbest_models(
         suffix = suffix + "."
     else:
         suffix = ""
-    
+
     # 1. Get nbests: List[Tuple[str, str, List[Tuple[epoch, value]]]]
     nbest_epochs = [
         (ph, k, reporter.sort_epochs_and_values(ph, k, m)[: max(nbests)])
