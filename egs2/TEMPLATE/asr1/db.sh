@@ -123,7 +123,7 @@ SPEECHCOMMANDS=downloads
 TOTONAC=downloads
 PRIMEWORDS_CHINESE=downloads
 SEAME=
-SBN=
+BENGALI=downloads
 
 # For only CMU environment
 if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
@@ -253,6 +253,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     ZEROTH_KOREAN=downloads
     LRS2=
     JAVA=
+    BENGALI=
     RU_OPEN_STT=downloads
     RUSLAN=downloads
     SIWIS=downloads

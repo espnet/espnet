@@ -28,15 +28,15 @@ set -o pipefail
 
 log "data preparation started"
 
-#mkdir -p ${sbn}
+mkdir -p ${BENGALI}
 
 workspace=$PWD
-data_dir='/ocean/projects/cis210027p/dzeinali/espnet/egs2/sbn/asr1/data'
+
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "sub-stage 0: Download Data to downloads"
 
-    cd ${data_dir}
+    cd ${BENGALI}
     idxs=("1", "2", "3", "4", "5", "6" "7" "8" "9" "a" "b" "c" "d" "e" "f")
     for i in "${idxs[@]}"; do
         wget https://us.openslr.org/resources/53/asr_bengali_${i}.zip
@@ -52,12 +52,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "sub-stage 1: Preparing Data for openslr"
 
     python3 local/data_prep.py -d ${data_dir}
-    utils/spk2utt_to_utt2spk.pl data/sbn_train/spk2utt > data/sbn_train/utt2spk
-    utils/spk2utt_to_utt2spk.pl data/sbn_dev/spk2utt > data/sbn_dev/utt2spk
-    utils/spk2utt_to_utt2spk.pl data/sbn_test/spk2utt > data/sbn_test/utt2spk
-    utils/fix_data_dir.sh data/sbn_train
-    utils/fix_data_dir.sh data/sbn_dev
-    utils/fix_data_dir.sh data/sbn_test
+    utils/spk2utt_to_utt2spk.pl data/bn_train/spk2utt > data/bn_train/utt2spk
+    utils/spk2utt_to_utt2spk.pl data/bn_dev/spk2utt > data/bn_dev/utt2spk
+    utils/spk2utt_to_utt2spk.pl data/bn_test/spk2utt > data/bn_test/utt2spk
+    utils/fix_data_dir.sh data/bn_train
+    utils/fix_data_dir.sh data/bn_dev
+    utils/fix_data_dir.sh data/bn_test
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
