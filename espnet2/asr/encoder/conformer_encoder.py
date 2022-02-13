@@ -47,7 +47,7 @@ class ConformerEncoder(AbsEncoder):
 
     Args:
         input_size (int): Input dimension.
-        output_size (int): Dimention of attention.
+        output_size (int): Dimension of attention.
         attention_heads (int): The number of heads of multi head attention.
         linear_units (int): The number of units of position-wise feed forward.
         num_blocks (int): The number of decoder blocks.
@@ -126,10 +126,10 @@ class ConformerEncoder(AbsEncoder):
         elif pos_enc_layer_type == "scaled_abs_pos":
             pos_enc_class = ScaledPositionalEncoding
         elif pos_enc_layer_type == "rel_pos":
-            assert selfattention_layer_type in ["rel_selfattn", "lf_selfattn"]
+            assert selfattention_layer_type == "rel_selfattn"
             pos_enc_class = RelPositionalEncoding
         elif pos_enc_layer_type == "legacy_rel_pos":
-            assert selfattention_layer_type in ["rel_selfattn", "lf_selfattn"]
+            assert selfattention_layer_type == "legacy_rel_selfattn"
             pos_enc_class = LegacyRelPositionalEncoding
             logging.warning(
                 "Using legacy_rel_pos and it will be deprecated in the future."
@@ -244,6 +244,7 @@ class ConformerEncoder(AbsEncoder):
                 zero_triu,
             )
         elif selfattention_layer_type == "lf_selfattn":
+            assert pos_enc_layer_type == "abs_pos"
             from espnet.nets.pytorch_backend.transformer.longformer_attention import (
                 LongformerAttention,
             )

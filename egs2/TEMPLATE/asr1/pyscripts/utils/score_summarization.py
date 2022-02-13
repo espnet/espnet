@@ -8,7 +8,6 @@ from nlgeval import NLGEval
 
 ref_file = sys.argv[1]
 hyp_file = sys.argv[2]
-tag = sys.argv[3]
 
 with open(ref_file, "r") as f:
     ref_dict = {
@@ -46,5 +45,5 @@ result = metric.compute(predictions=decoded_preds, references=labels)
 result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
 
 print(
-    f"ROUGE {result['rouge1']} {result['rouge2']} {result['rougeL']} {metrics_dict['METEOR']*100.0} {100*np.mean(result_bert['precision'])}"
+    f"RESULT {result['rouge1']} {result['rouge2']} {result['rougeL']} {metrics_dict['METEOR']*100.0} {100*np.mean(result_bert['precision'])}"
 )
