@@ -116,8 +116,8 @@ if [ ${is_root} = false ]; then
         build_args="${build_args} --build-arg THIS_UID=${UID}"
         build_args="${build_args} --build-arg EXTRA_LIBS=${EXTRAS}"
 
-        echo "Now running docker build ${build_args} -f prebuilt/Dockerfile -t espnet/espnet:${container_tag} ."
-        (docker build ${build_args} -f prebuilt/Dockerfile -t  espnet/espnet:${container_tag} .) || exit 1
+        echo "Now running docker build ${build_args} -f espnet.dockerfile -t espnet/espnet:${container_tag} ."
+        (docker build ${build_args} -f espnet.dockerfile -t  espnet/espnet:${container_tag} .) || exit 1
     fi
 else
     container_tag=${from_tag}

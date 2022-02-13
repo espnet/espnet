@@ -19,7 +19,7 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
-mkdir ${FISHER_CALLHOME_SPANISH}
+mkdir -p ${FISHER_CALLHOME_SPANISH}
 if [ -z "${FISHER_CALLHOME_SPANISH}" ]; then
     log "Fill the value of 'FISHER_CALLHOME_SPANISH' of db.sh"
     exit 1
@@ -53,11 +53,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/fsp_data_prep.sh ${sfisher_speech} ${sfisher_transcripts}
     local/callhome_data_prep.sh ${callhome_speech} ${callhome_transcripts}
 
-    utils/fix_data_dir.sh data/local/data/train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and test though the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
-    utils/fix_data_dir.sh data/local/data/callhome_train_all # JJ: seems like train_all includes all the data (not only for train but also for dev and testthough the name seems misleading. MAYBE it would be better to get data directory partitions for dev and test already from fs_data_prep.sh and callhome_data_prep.sh)
-    cp -r data/local/data/train_all data/train_all
-    cp -r data/local/data/callhome_train_all data/callhome_train_all
-
     # split data
     local/create_splits.sh ${split}
     local/callhome_create_splits.sh ${split_callhome}
@@ -69,7 +64,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # concatenate multiple utterances
     local/normalize_trans.sh ${sfisher_transcripts} ${callhome_transcripts}
-    ./utils/combine_data.sh data/dev_all data/dev data/dev2
+
+    utils/combine_data.sh \
+        --extra-files "text.lc.es text.lc.rm.es text.tc.es" \
+        data/train \
+        data/fisher_train data/callhome_train/ 
+
+    cp -r data/fisher_dev data/dev
+
 fi
 
 
