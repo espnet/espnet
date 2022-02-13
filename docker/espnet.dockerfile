@@ -11,9 +11,7 @@ ARG EXTRA_LIBS
 
 RUN if [ ${EXTRA_LIBS} = true ]; then \
         cd /espnet/tools; \
-        . ./activate_python.sh; \
-        pip install parallel_wavegan; \
-        pip install git+https://github.com/cybertronai/pytorch-lamb; \
+        make extra; \
     fi
 
 # Add user to container
