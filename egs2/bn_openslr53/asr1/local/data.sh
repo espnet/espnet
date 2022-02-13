@@ -27,8 +27,12 @@ set -o pipefail
 . utils/parse_options.sh
 
 log "data preparation started"
-
-mkdir -p ${BENGALI}
+if [ -z ${BENGALI} ]; then 
+    mkdir -p ${BENGALI}
+else
+    BENGALI=downloads
+    mkdir -p ${BENGALI}
+fi  
 
 workspace=$PWD
 
