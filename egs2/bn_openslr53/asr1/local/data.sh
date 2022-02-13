@@ -27,10 +27,10 @@ set -o pipefail
 . utils/parse_options.sh
 
 log "data preparation started"
-if [ -z ${BENGALI} ]; then 
+if [ -z ${BENGALI+x} ]; then 
+    BENGALI=downloads
     mkdir -p ${BENGALI}
 else
-    BENGALI=downloads
     mkdir -p ${BENGALI}
 fi  
 
