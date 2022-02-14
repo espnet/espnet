@@ -75,7 +75,7 @@ You can also refer to https://huggingface.co/docs/transformers/model_sharing
 6. `cd your-model-name`
 7. git lfs install 
 8. copy contents from exp diretory of your recipe into this directory (Check other models of similar task under ESPNet to confirm your directory structure) 
-9. git add . 
+9. `git add . `
 10. git commit -m "Add model files" 
 11. git push
 12. Check if the inference demo on HF is running successfully to verify the upload      
