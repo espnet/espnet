@@ -76,6 +76,18 @@ to its differences.
 - If a recipe for a new corpus is proposed, you should add its name and information to:
 https://github.com/espnet/espnet/blob/master/egs/README.md if it's a ESPnet1 recipe,
 or https://github.com/espnet/espnet/blob/master/egs2/README.md + `db.sh` if it's a ESPnet2 recipe.
+   
+#### 1.3.4 Checklist before you submit the recipe-based PR
+
+- [ ] be careful about the name for the recipe. It is recommended to follow naming conventions of the other recipes
+- [ ] common/shared files are linked with **soft link** (see Section 1.3.3)
+- [ ] modified or new python scripts should be passed through **latest** black formating (by using python package black). The command to be executed could be `black espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/asr1/pyscripts`
+- [ ] cluster settings should be set as **default** (e.g., cmd.sh conf/slurm.conf conf/queue.conf conf/pbs.conf)
+- [ ] update `egs/README.md` or `egs2/README.md` with corresponding recipes
+- [ ] add corresponding entry in `egs2/TEMPLATE/db.sh` for a new corpus
+- [ ] try to **simplify** the model configurations. We recommend to have only the best configuration for the start of a recipe. Please also follow the default rule defined in Section 1.3.3
+- [ ] large meta-information for a corpus should be maintained elsewhere other than in the recipe itself
+- [ ] recommend to also include results and pre-trained model with the recipe
 
 ## 2 Pull Request
 If your proposed feature or bugfix is ready, please open a Pull Request (PR) at https://github.com/espnet/espnet
