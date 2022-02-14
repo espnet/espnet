@@ -1,1 +1,1 @@
-../../../../egs/fisher_callhome_spanish/asr1/local/fsp_make_trans.pl
+../../../../egs/fisher_callhome_spanish/st1/local/fsp_make_trans.pl

@@ -24,6 +24,12 @@ remove_emo=
 # Remove the utterances with the specified emotional labels
 # emotional labels: ang (anger), hap (happiness), exc (excitement), sad (sadness),
 # fru (frustration), fea (fear), sur (surprise), neu (neutral), and xxx (other)
+convert_to_sentiment=false
+# for sentiment (positive, negative and neutral) analysis
+# mapping from emotion to sentiment is as follows:
+# Positive: hap, exc, sur
+# Negative: ang, sad, fru, fea
+# Neutral: neu
 
 #data
 datadir=/ocean/projects/cis210027p/shared/corpora/IEMOCAP_full_release
@@ -77,9 +83,27 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 emo=$(grep ${utt_id} ${datadir}/Session${n}/dialog/EmoEvaluation/${ses_id}.txt \
                         | sed "s/^.*\t${utt_id}\t\([a-z]\{3\}\)\t.*$/\1/g")
                 if ! eval "echo ${remove_emo} | grep -q ${emo}" ; then
-                    echo "${utt_id} ${file}" >> data/${tmp}/wav.scp
-                    echo "${utt_id} ${utt_id}" >> data/${tmp}/utt2spk
-                    echo "${utt_id} <${emo}> ${words}" >> data/${tmp}/text
+                    # for sentiment analysis
+                    if [ ${convert_to_sentiment} = "true" ]; then
+                        words2=$(echo "$words" | perl local/prepare_sentiment.pl)
+                        if [ ${emo} = "hap" ] || [ ${emo} = "exc" ] || [ ${emo} = "sur" ]; then
+                            echo "${utt_id} Positive ${words2}" >> data/${tmp}/text
+                            echo "${utt_id} ${file}" >> data/${tmp}/wav.scp
+                            echo "${utt_id} ${utt_id}" >> data/${tmp}/utt2spk
+                        elif [ ${emo} = "ang" ] || [ ${emo} = "sad" ] || [ ${emo} = "fru" ] || [ ${emo} = "fea" ]; then
+                            echo "${utt_id} Negative ${words2}" >> data/${tmp}/text
+                            echo "${utt_id} ${file}" >> data/${tmp}/wav.scp
+                            echo "${utt_id} ${utt_id}" >> data/${tmp}/utt2spk
+                        elif [ ${emo} = "neu" ];then
+                            echo "${utt_id} Neutral ${words2}" >> data/${tmp}/text
+                            echo "${utt_id} ${file}" >> data/${tmp}/wav.scp
+                            echo "${utt_id} ${utt_id}" >> data/${tmp}/utt2spk
+                        fi
+                    else
+                        echo "${utt_id} <${emo}> ${words}" >> data/${tmp}/text
+                        echo "${utt_id} ${file}" >> data/${tmp}/wav.scp
+                        echo "${utt_id} ${utt_id}" >> data/${tmp}/utt2spk
+                    fi
                 fi
             done
         done
@@ -95,29 +119,31 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: IEMOCAP Transcript Conversion"
-    mkdir -p data/{train,valid,test}/{original,tmp}/
-    for dset in train valid test; do        
-        cp data/${dset}/text -t data/${dset}/original/
-        if ${lowercase}; then
-            log "lowercase ${dset}"
-            perl local/lowercase.pl < data/${dset}/text > data/${dset}/tmp/text
+    if [ ${convert_to_sentiment} != "true" ]; then
+        log "stage 2: IEMOCAP Transcript Conversion"
+        mkdir -p data/{train,valid,test}/{original,tmp}/
+        for dset in train valid test; do        
+            cp data/${dset}/text -t data/${dset}/original/
+            if ${lowercase}; then
+                log "lowercase ${dset}"
+                perl local/lowercase.pl < data/${dset}/text > data/${dset}/tmp/text
+                cp data/${dset}/tmp/text data/${dset}/text
+            fi
+            if ${remove_punctuation}; then
+                log "remove_punctuation ${dset}"
+                perl local/remove_punctuation.pl < data/${dset}/text > data/${dset}/tmp/text
+                cp data/${dset}/tmp/text data/${dset}/text
+            fi
+            if ${remove_tag}; then
+                log "remove_tag ${dset}"
+                perl local/remove_tag.pl < data/${dset}/text > data/${dset}/tmp/text
+                cp data/${dset}/tmp/text data/${dset}/text
+            fi
+            #Remove extra space and normalize punctuation
+            perl local/normalize_punctuation.pl < data/${dset}/text > data/${dset}/tmp/text
             cp data/${dset}/tmp/text data/${dset}/text
-        fi
-        if ${remove_punctuation}; then
-            log "remove_punctuation ${dset}"
-            perl local/remove_punctuation.pl < data/${dset}/text > data/${dset}/tmp/text
-            cp data/${dset}/tmp/text data/${dset}/text
-        fi
-        if ${remove_tag}; then
-            log "remove_tag ${dset}"
-            perl local/remove_tag.pl < data/${dset}/text > data/${dset}/tmp/text
-            cp data/${dset}/tmp/text data/${dset}/text
-        fi
-        #Remove extra space and normalize punctuation
-        perl local/normalize_punctuation.pl < data/${dset}/text > data/${dset}/tmp/text
-        cp data/${dset}/tmp/text data/${dset}/text
-    done
+        done
+    fi
     for dset in test valid train; do 
         utils/validate_data_dir.sh --no-feats data/${dset} || exit 1
     done
