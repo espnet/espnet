@@ -70,7 +70,7 @@ You can also refer to https://huggingface.co/docs/transformers/model_sharing
 1. Create a Hugging Face account - https://huggingface.co/
 2. Request to be added to espnet organisation - https://huggingface.co/espnet 
 3. Run huggingface-cli login (You can get the token request at this step under setting > Access Tokens > espnet token  
-4. huggingface-cli repo create your-model-name --organization espnet 
+4. `huggingface-cli repo create your-model-name --organization espnet`
 5. `git clone https://huggingface.co/username/your-model-name` (clone this outside ESPNet to avoid issues as this a git repo)
 6. `cd your-model-name`
 7. git lfs install 
