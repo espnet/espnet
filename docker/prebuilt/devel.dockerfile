@@ -1,5 +1,5 @@
 ARG FROM_TAG
-FROM espnet/espnet:${FROM_TAG}
+FROM espnet/espnet:${FROM_TAG} as devel
 LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
 ARG CUDA_VER
@@ -48,7 +48,7 @@ RUN if [ -z "${CUDA_VER}" ]; then \
     . ./activate_python.sh && \
     ./installers/install_warp-ctc.sh && \
     ./installers/install_kenlm.sh && \
-    # ./installers/install_chainer_ctc.sh && \
+    ./installers/install_chainer.sh cpu && \
     conda clean --all && \
     rm -f *.tar.*  && \
     pip cache purge
@@ -56,3 +56,28 @@ RUN if [ -z "${CUDA_VER}" ]; then \
 RUN rm -rf ../espnet
 
 WORKDIR /
+
+
+#### For local docker
+FROM devel as espnet_local
+LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
+
+ARG CUDA_VER
+WORKDIR /
+
+# IF using a local ESPNet repository, a temporary file containing the ESPnet git repo is copied over
+ARG ESPNET_ARCHIVE=./espnet-local.tar
+COPY  ${ESPNET_ARCHIVE} /espnet-local.tar
+
+
+# Download ESPnet
+RUN echo "Getting ESPnet sources from local repository, in temporary file: " ${ESPNET_ARCHIVE}
+RUN mkdir /espnet
+RUN tar xf espnet-local.tar -C /espnet/
+RUN rm espnet-local.tar
+
+RUN cd espnet && \
+    rm -rf docker egs test utils
+
+# Install espnet
+WORKDIR /espnet/tools

@@ -9,7 +9,7 @@ train_set=train
 train_dev=dev
 test_set=test1
 
-asr_config=conf/tuning/train_asr_conformer.yaml
+asr_config=conf/train_asr_conformer.yaml
 inference_config=conf/decode_asr.yaml
 
 nbpe=1000

@@ -1,5 +1,7 @@
 ARG FROM_TAG
-FROM espnet/espnet:${FROM_TAG}
+ARG NUM_BUILD_CORES=8
+ARG DOCKER_VER
+FROM espnet/espnet:${FROM_TAG} AS cuda_builder
 LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
 ## FROM CUDA 11.1 base 
@@ -54,6 +56,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # apt from auto upgrading the cublas package. See https://gitlab.com/nvidia/container-images/cuda/-/issues/88
 RUN apt-mark hold libcublas-dev-11-1
 ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
-
 
 WORKDIR /
