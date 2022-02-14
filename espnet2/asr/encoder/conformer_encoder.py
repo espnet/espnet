@@ -93,7 +93,7 @@ class ConformerEncoder(AbsEncoder):
         positionwise_layer_type: str = "linear",
         positionwise_conv_kernel_size: int = 3,
         macaron_style: bool = False,
-        rel_pos_type: str = "latest",
+        rel_pos_type: str = "legacy",
         pos_enc_layer_type: str = "rel_pos",
         selfattention_layer_type: str = "rel_selfattn",
         activation_type: str = "swish",
