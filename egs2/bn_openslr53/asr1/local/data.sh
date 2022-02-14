@@ -27,12 +27,11 @@ set -o pipefail
 . utils/parse_options.sh
 
 log "data preparation started"
-if [ -z ${BENGALI+x} ]; then 
-    BENGALI=downloads
-    mkdir -p ${BENGALI}
-else
-    mkdir -p ${BENGALI}
-fi  
+mkdir -p ${BENGALI}
+if [ -z "${BENGALI}" ]; then
+    log "Fill the value of 'COMMONVOICE' of db.sh"
+    exit 1
+fi
 
 workspace=$PWD
 
@@ -40,22 +39,19 @@ workspace=$PWD
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "sub-stage 0: Download Data to downloads"
 
-    cd ${BENGALI}
-    idxs=("1", "2", "3", "4", "5", "6" "7" "8" "9" "a" "b" "c" "d" "e" "f")
+    idxs=("1" "2" "3" "4" "5" "6" "7" "8" "9" "a" "b" "c" "d" "e" "f")
     for i in "${idxs[@]}"; do
-        wget https://us.openslr.org/resources/53/asr_bengali_${i}.zip
+        wget -O ${BENGALI} https://us.openslr.org/resources/53/asr_bengali_${i}.zip
         unzip -o asr_bengali_${i}.zip
         rm -f asr_bengali_${i}.zip
-    done
-    mv asr_bengali/* .
+    done 
     rm -rf asr_bengali
-    cd $workspace
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "sub-stage 1: Preparing Data for openslr"
 
-    python3 local/data_prep.py -d ${data_dir}
+    python3 local/data_prep.py -d ${BENGALI}
     utils/spk2utt_to_utt2spk.pl data/bn_train/spk2utt > data/bn_train/utt2spk
     utils/spk2utt_to_utt2spk.pl data/bn_dev/spk2utt > data/bn_dev/utt2spk
     utils/spk2utt_to_utt2spk.pl data/bn_test/spk2utt > data/bn_test/utt2spk
