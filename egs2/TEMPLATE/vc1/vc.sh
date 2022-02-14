@@ -101,8 +101,7 @@ src_test_sets=""     # Names of src test sets. Multiple items (e.g., both dev an
 trg_train_set=""     # Name of src training set.
 trg_valid_set=""     # Name of src validation set used for monitoring/tuning network training.
 trg_test_sets=""     # Names of src test sets. Multiple items (e.g., both dev and eval sets) can be specified.
-nlsyms_txt=none  # Non-linguistic symbol list (needed if existing).
-lang=noinfo      # The language type of corpus.
+lang=noinfo         # The language type of corpus.
 speech_fold_length=800 # fold_length for speech data.
 
 # Upload model related
