@@ -76,8 +76,8 @@ train_config=""    # Config for training.
 train_args=""      # Arguments for training, e.g., "--max_epoch 1".
                    # Note that it will overwrite args in train config.
 tag=""             # Suffix for training directory.
-vc_exp=""         # Specify the directory path for experiment. If this option is specified, tag is ignored.
-vc_stats_dir=""   # Specify the directory path for statistics. If empty, automatically decided.
+vc_exp=""          # Specify the directory path for experiment. If this option is specified, tag is ignored.
+vc_stats_dir=""    # Specify the directory path for statistics. If empty, automatically decided.
 num_splits=1       # Number of splitting for vc corpus.
 teacher_dumpdir="" # Directory of teacher outputs (needed if vc=fastspeech).
 write_collected_feats=false # Whether to dump features in stats collection.
