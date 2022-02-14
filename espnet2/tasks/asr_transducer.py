@@ -140,6 +140,21 @@ class ASRTransducerTask(AbsTask):
             help="The number of input dimension of the feature",
         )
         group.add_argument(
+            "--init",
+            type=lambda x: str_or_none(x.lower()),
+            default=None,
+            help="The initialization method",
+            choices=[
+                "chainer",
+                "chainer_espnet1",
+                "xavier_uniform",
+                "xavier_normal",
+                "kaiming_uniform",
+                "kaiming_normal",
+                None,
+            ],
+        )
+        group.add_argument(
             "--model_conf",
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetASRTransducerModel),
@@ -432,7 +447,8 @@ class ASRTransducerTask(AbsTask):
         )
 
         # 9. Initialize
-        initialize(model)
+        if args.init is not None:
+            initialize(model, args.init)
 
         assert check_return_type(model)
 
