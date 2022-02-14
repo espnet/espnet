@@ -164,7 +164,7 @@
 <span id="id1"></span><h2>espnet2.main_funcs.average_nbest_models<a class="headerlink" href="#espnet2-main-funcs-average-nbest-models" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.main_funcs.average_nbest_models"></span><dl class="function">
 <dt id="espnet2.main_funcs.average_nbest_models.average_nbest_models">
-<code class="sig-prename descclassname">espnet2.main_funcs.average_nbest_models.</code><code class="sig-name descname">average_nbest_models</code><span class="sig-paren">(</span><em class="sig-param">output_dir: pathlib.Path, reporter: espnet2.train.reporter.Reporter, best_model_criterion: Sequence[Sequence[str]], nbest: Union[Collection[int], int]</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/main_funcs/average_nbest_models.html#average_nbest_models"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.average_nbest_models.average_nbest_models" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">espnet2.main_funcs.average_nbest_models.</code><code class="sig-name descname">average_nbest_models</code><span class="sig-paren">(</span><em class="sig-param">output_dir: pathlib.Path, reporter: espnet2.train.reporter.Reporter, best_model_criterion: Sequence[Sequence[str]], nbest: Union[Collection[int], int], suffix: Optional[str] = None</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/main_funcs/average_nbest_models.html#average_nbest_models"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.main_funcs.average_nbest_models.average_nbest_models" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate averaged model from n-best models</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -173,7 +173,8 @@
 <li><p><strong>reporter</strong> – Reporter instance</p></li>
 <li><p><strong>best_model_criterion</strong> – Give criterions to decide the best model.
 e.g. [(“valid”, “loss”, “min”), (“train”, “acc”, “max”)]</p></li>
-<li><p><strong>nbest</strong> – </p></li>
+<li><p><strong>nbest</strong> – Number of best model files to be averaged</p></li>
+<li><p><strong>suffix</strong> – A suffix added to the averaged model file name</p></li>
 </ul>
 </dd>
 </dl>
