@@ -149,9 +149,6 @@ Options:
     --win_length       # Window length (default="${win_length}").
     --f0min            # Maximum f0 for pitch extraction (default="${f0min}").
     --f0max            # Minimum f0 for pitch extraction (default="${f0max}").
-    --oov              # Out of vocabrary symbol (default="${oov}").
-    --blank            # CTC blank symbol (default="${blank}").
-    --sos_eos          # sos and eos symbole (default="${sos_eos}").
 
     # Training related
     --train_config  # Config for training (default="${train_config}").
