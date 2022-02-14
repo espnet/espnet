@@ -248,7 +248,6 @@ class ConformerEncoder(AbsEncoder):
             from espnet.nets.pytorch_backend.transformer.longformer_attention import (
                 LongformerAttention,
             )
-            import longformer
             from longformer.longformer import LongformerConfig
 
             encoder_selfattn_layer = LongformerAttention

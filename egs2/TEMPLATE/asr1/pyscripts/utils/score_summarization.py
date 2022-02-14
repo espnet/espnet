@@ -45,5 +45,6 @@ result = metric.compute(predictions=decoded_preds, references=labels)
 result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
 
 print(
-    f"RESULT {result['rouge1']} {result['rouge2']} {result['rougeL']} {metrics_dict['METEOR']*100.0} {100*np.mean(result_bert['precision'])}"
+    f"RESULT {result['rouge1']} {result['rouge2']} {result['rougeL']} \
+    {metrics_dict['METEOR']*100.0} {100*np.mean(result_bert['precision'])}"
 )
