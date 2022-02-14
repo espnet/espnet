@@ -1,0 +1,1 @@
+../../../../tools/kaldi/egs/mgb2_arabic/s5/local/process_xml.py
