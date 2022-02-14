@@ -66,11 +66,6 @@ n_mels=80                  # The number of mel basis.
 f0min=80  # Maximum f0 for pitch extraction.
 f0max=400 # Minimum f0 for pitch extraction.
 
-# Vocabulary related
-oov="<unk>"         # Out of vocabrary symbol.
-blank="<blank>"     # CTC blank symbol.
-sos_eos="<sos/eos>" # sos and eos symbols.
-
 # Training related
 train_config=""    # Config for training.
 train_args=""      # Arguments for training, e.g., "--max_epoch 1".
