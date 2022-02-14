@@ -137,6 +137,7 @@ def test_parallel_wavegan_compatibility():
     from parallel_wavegan.models import (
         ParallelWaveGANGenerator as PWGParallelWaveGANGenerator,  # NOQA
     )
+
     model_pwg = PWGParallelWaveGANGenerator(**make_generator_args())
     model_espnet2 = ParallelWaveGANGenerator(**make_generator_args())
     model_espnet2.load_state_dict(model_pwg.state_dict())
