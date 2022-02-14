@@ -1478,12 +1478,7 @@ fi
 if ! "${skip_upload_hf}"; then
     if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ]; then
         [ -z "${hf_repo}" ] && \
-            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps if you have not setup the HF account \n: 
-	    1. Create a Hugging Face account - https://huggingface.co/  \n
-            2. Request to be added to espnet organisation - https://huggingface.co/espnet  \n
-            3. Run huggingface-cli login (You can get the token request at this step under setting > Access Tokens > espnet token  \n
-            4. huggingface-cli repo create your-model-name --organization espnet \n
-	    5. set the variable hf_repo with the name of this repository" && \ 
+            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/pull/4027/files#diff-b9f381af6d3ca8c14a68dca2a24de815830013fd69a3fe6a113e108c7aaf0d2dR1490-R1505" && \ 
             exit 1
         log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
 
