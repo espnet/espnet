@@ -1,1 +1,0 @@
-/projects/tir6/general/dberrebb/MNLP_HW_SPEECH/espnet/tools/kaldi/egs/mgb2_arabic/s5/local/add_to_datadir.py
