@@ -187,7 +187,6 @@ Options:
     --trg_valid_set      # Name of trg validation set used for monitoring/tuning network training (required).
     --trg_test_sets      # Names of trg test sets (required).
                          # Note that multiple items (e.g., both dev and eval sets) can be specified.
-    --nlsyms_txt         # Non-linguistic symbol list (default="${nlsyms_txt}").
     --lang               # The language type of corpus (default="${lang}").
     --speech_fold_length # Fold length for speech data (default="${speech_fold_length}").
 EOF
