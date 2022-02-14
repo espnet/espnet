@@ -1,1 +1,1 @@
-../../../../tools/kaldi/egs/mgb2_arabic/s5/local/process_xml.py
+/projects/tir6/general/dberrebb/MNLP_HW_SPEECH/espnet/tools/kaldi/egs/mgb2_arabic/s5/local/process_xml.py
