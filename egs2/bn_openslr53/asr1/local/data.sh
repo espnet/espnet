@@ -29,7 +29,7 @@ set -o pipefail
 log "data preparation started"
 mkdir -p ${BENGALI}
 if [ -z "${BENGALI}" ]; then
-    log "Fill the value of 'COMMONVOICE' of db.sh"
+    log "Fill the value of 'BENGALI' of db.sh"
     exit 1
 fi
 
