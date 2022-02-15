@@ -366,10 +366,4 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    ## print WER results
-    echo "Stage 6: Print WER results"
-    modeldir=${expdir}	# Which model
-    ./local/show_result.sh $modeldir $modeldir/RESULTS.txt
-fi
 exit 0
