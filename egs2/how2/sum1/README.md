@@ -19,6 +19,7 @@ Then run the finetuning on summarization using the previously trained model as t
 
 #Results on ASR
 
+
 ## asr_base_conformer_lf_mix
 ### WER
 
@@ -47,6 +48,9 @@ Then run the finetuning on summarization using the previously trained model as t
 
 ## asr_ft_sum
 ### SUMM
+- Model link: [huggingface](https://huggingface.co/espnet/roshansh_how2_asr_raw_ft_sum_valid.acc)
+- ASR config: [./conf/train_sum_conformer_lf.yaml](./conf/train_sum_conformer_lf.yaml)
+- Inference config: [./conf/decode_sum.yaml](./conf/decode_sum.yaml)
 
 |dataset|Snt|Wrd|ROUGE-1|ROUGE-2|ROUGE-L|METEOR|BERTScore|
 |---|---|---|---|---|---|---|---|
