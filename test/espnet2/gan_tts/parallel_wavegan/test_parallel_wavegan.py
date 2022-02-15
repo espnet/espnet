@@ -138,15 +138,15 @@ def test_parallel_wavegan_compatibility():
         ParallelWaveGANGenerator as PWGParallelWaveGANGenerator,  # NOQA
     )
 
-    model_pwg = PWGParallelWaveGANGenerator()
-    model_espnet2 = ParallelWaveGANGenerator()
+    model_pwg = PWGParallelWaveGANGenerator(**make_generator_args())
+    model_espnet2 = ParallelWaveGANGenerator(**make_generator_args())
     model_espnet2.load_state_dict(model_pwg.state_dict())
     model_pwg.eval()
     model_espnet2.eval()
 
     with torch.no_grad():
-        z = torch.randn(3 * 256, 1)
-        c = torch.randn(3, 80)
+        z = torch.randn(3 * 16, 1)
+        c = torch.randn(3, 10)
         out_pwg = model_pwg.inference(c, z)
         out_espnet2 = model_espnet2.inference(c, z)
         np.testing.assert_array_equal(
