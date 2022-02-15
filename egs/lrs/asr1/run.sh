@@ -185,6 +185,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     	mv data/lang_char/train_unigram500_units.txt data/lang_char/${train_set}_unigram500_units.txt
   	rm -rf avsrlrs2_3
 	rm -rf model.v1.tar.gz
+	
+	##### it is depands on your corpus, if the corpus text transcription is uppercase, use this to convert to lowercase
     	textfilenames1=data/${train_set}/text
    	textfilenames2=data/Test/text	
     	textfilenames3=data/Val/text	
