@@ -246,7 +246,7 @@ class ConformerEncoder(AbsEncoder):
         elif selfattention_layer_type == "lf_selfattn":
             assert pos_enc_layer_type == "abs_pos"
             from espnet.nets.pytorch_backend.transformer.longformer_attention import (
-                LongformerAttention,
+                LongformerAttention,  # noqa: H301
             )
             from longformer.longformer import LongformerConfig
 
