@@ -55,7 +55,7 @@ Then run the finetuning on summarization using the previously trained model as t
 
 
 Please cite the following paper if you use this recipe:
-```
+```Bibtex
 @misc{sharma2022speech,
       title={Speech Summarization using Restricted Self-Attention}, 
       author={Roshan Sharma and Shruti Palaskar and Alan W Black and Florian Metze},
