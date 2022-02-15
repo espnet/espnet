@@ -33,8 +33,6 @@ if [ -z "${BENGALI}" ]; then
     exit 1
 fi
 
-workspace=$PWD
-
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "sub-stage 0: Download Data to downloads"
