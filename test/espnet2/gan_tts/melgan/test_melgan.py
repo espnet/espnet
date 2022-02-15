@@ -136,8 +136,8 @@ except ImportError:
 def test_parallel_wavegan_compatibility():
     from parallel_wavegan.models import MelGANGenerator as PWGMelGANGenerator
 
-    model_pwg = PWGMelGANGenerator()
-    model_espnet2 = MelGANGenerator()
+    model_pwg = PWGMelGANGenerator(**make_melgan_generator_args())
+    model_espnet2 = MelGANGenerator(**make_melgan_generator_args())
     model_espnet2.load_state_dict(model_pwg.state_dict())
     model_pwg.eval()
     model_espnet2.eval()
