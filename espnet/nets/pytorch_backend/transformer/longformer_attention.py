@@ -4,17 +4,18 @@
 # Copyright 2022 Roshan Sharma (Carnegie Mellon University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Longformer based Local Attention Definition """
+"""Longformer based Local Attention Definition."""
 
-import torch
 from torch import nn
-from longformer.longformer import LongformerSelfAttention
 from longformer.longformer import LongformerConfig
+from longformer.longformer import LongformerSelfAttention
 
 
 class LongformerAttention(nn.Module):
+    """Longformer based Local Attention Definition."""
+
     def __init__(self, config: LongformerConfig, layer_id: int):
-        """Does Longformer based Self-Attention.
+        """Compute Longformer based Self-Attention.
 
         Args:
             config : Longformer attention configuration
@@ -26,7 +27,7 @@ class LongformerAttention(nn.Module):
         self.attention = None
 
     def forward(self, query, key, value, mask):
-        """Computes Longformer Self-Attention with masking.
+        """Compute Longformer Self-Attention with masking.
 
         Expects `len(hidden_states)` to be multiple of `attention_window`.
         Padding to `attention_window` happens in :meth:`encoder.forward`
