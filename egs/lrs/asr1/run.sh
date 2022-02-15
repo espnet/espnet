@@ -47,7 +47,7 @@ use_lm_valbest_average=false # if true, the validation `lm_n_average`-best langu
 
 # The LRS2 Corpus requires vertification. You have to download the 
 # dataset and set your dataset dir here
-datadir=$DATA_DIR	     # e.g. /home/fabian/LRS2
+datadir=		     # The LRS2 dataset directory e.g. /home/foo/LRS2
 
 pretrain=true		     # if use LRS2 pretrain set 
 segment=true  		     # if do segmentation for pretrain set
@@ -86,10 +86,14 @@ recog_set="Val Test"
 
 # Stage -1: Data Download
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    echo "For downloading the data, please visit 'https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html'."
-    echo "You will need to sign a Data Sharing agreement with BBC Research & Development before getting access."
-    echo "Please download the dataset by yourself and save the dataset directory in path.sh file"
-    echo "Thanks!"
+    if [ -f "$datadir" ]; then
+    	echo "Dataset already exists."
+    else
+    	echo "For downloading the data, please visit 'https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html'."
+    	echo "You will need to sign a Data Sharing agreement with BBC Research & Development before getting access."
+    	echo "Please download the dataset by yourself and save the dataset directory in path.sh file"
+    	echo "Thanks!"
+    fi
 fi
 
 # Stage 0: Data preparation
