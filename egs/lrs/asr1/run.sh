@@ -185,17 +185,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     	mv data/lang_char/train_unigram500_units.txt data/lang_char/${train_set}_unigram500_units.txt
   	rm -rf avsrlrs2_3
 	rm -rf model.v1.tar.gz
+    	textfilenames1=data/${train_set}/text
+   	textfilenames2=data/Test/text	
+    	textfilenames3=data/Val/text	
+    	for textfilename in $textfilenames1 $textfilenames2 $textfilenames3
+    	do
+	    sed -r 's/([^ \t]+\s)(.*)/\1\L\2/' $textfilename > ${textfilename}1  || exit 1;
+	    rm -rf $textfilename  || exit 1;
+	    mv ${textfilename}1 $textfilename  || exit 1;
+    	done
     fi
 
-    textfilenames1=data/${train_set}/text
-    textfilenames2=data/Test/text	
-    textfilenames3=data/Val/text	
-    for textfilename in $textfilenames1 $textfilenames2 $textfilenames3
-    do
-	sed -r 's/([^ \t]+\s)(.*)/\1\L\2/' $textfilename > ${textfilename}1  || exit 1;
-	rm -rf $textfilename  || exit 1;
-	mv ${textfilename}1 $textfilename  || exit 1;
-    done
     # make json labels
     data2json.sh --nj ${nj} --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
