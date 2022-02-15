@@ -1,0 +1,5 @@
+# decoding parameters
+batch: 0
+beam-size: 1
+search-type: default
+score-norm: True
