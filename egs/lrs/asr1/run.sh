@@ -86,7 +86,7 @@ recog_set="Val Test"
 
 # Stage -1: Data Download
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    if [ -f "$datadir" ]; then
+    if [ -d "$datadir" ]; then
     	echo "Dataset already exists."
     else
     	echo "For downloading the data, please visit 'https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html'."
