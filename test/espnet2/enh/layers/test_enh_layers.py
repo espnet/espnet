@@ -7,8 +7,8 @@ import torch_complex.functional as FC
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.beamformer import generalized_eigenvalue_decomposition
-from espnet2.enh.layers.beamformer import gev_phase_correction
 from espnet2.enh.layers.beamformer import get_rtf
+from espnet2.enh.layers.beamformer import gev_phase_correction
 from espnet2.enh.layers.beamformer import signal_framing
 from espnet2.enh.layers.complex_utils import solve
 from espnet2.layers.stft import Stft
