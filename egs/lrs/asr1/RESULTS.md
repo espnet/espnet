@@ -6,7 +6,7 @@
   - decoding config file: <code>conf/decode.yaml</code>
   - preprocess config file: <code>conf/specaug.yaml</code>
   - lm config file: <code>conf/lm.yaml</code> 
-  - cmvn file: <code>data/train_960/cmvn.ark</code> and <code>data/pretrain_Train/cmvn.ark</code>
+  - cmvn file: <code>data/pretrain_Train/cmvn.ark</code>
   - e2e file: <code>exp/pretrain_Train_pytorch_train_specaug/results/model.val5.avg.best</code>
   - e2e json file: <code>exp/pretrain_Train_pytorch_train_specaug/results/model.json</code>
   - lm file: <code>exp/pretrainedlm/rnnlm.model.best</code>
