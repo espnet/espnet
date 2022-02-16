@@ -1,6 +1,5 @@
-import os, sys, wave
-import re, string
-import itertools
+import os
+import sys
 import multiprocessing as mp
 
 
@@ -9,7 +8,8 @@ def main(sourcedir, filelistdir, savedir, dset, nj):
 
     Args:
         sourcedir (str): LRS2 dataset dir.
-        filelist (str): The dir of the mp4 file, it should be like '5535415699068794046/00001'
+        filelist (str): The dir of the mp4 file, it should be like
+                        '5535415699068794046/00001'
         savedir (str): The dir save the Kaldi files.
         dset (str): Which set. For this code dset is pretrain set.
         nj (str): Number of multi processes.
@@ -46,7 +46,6 @@ def set(info, s, savedir, sourcedir):
         savedir (str): The dir save the Kaldi files.
         sourcedir (str): LRS2 dataset dir.
     """
-    segdir = savedir + "/segments"
     textdir = savedir + "/text"
     utt2spkdir = savedir + "/utt2spk"
     wavdir = savedir + "/wav.scp"
@@ -82,8 +81,10 @@ def set(info, s, savedir, sourcedir):
 
 
 # hand over parameter overview
-# sys.argv[1] = sourcedir (str): The LRS2 dataset dir (e.g. /LRS2/data/lrs2_v1/mvlrs_v1/main)
-# sys.argv[2] = filelistdir (str): The directory containing the dataset Filelists (METADATA)
+# sys.argv[1] = sourcedir (str): The LRS2 dataset dir
+#                                (e.g. /LRS2/data/lrs2_v1/mvlrs_v1/main)
+# sys.argv[2] = filelistdir (str): The directory containing the dataset
+#                                 Filelists (METADATA)
 # sys.argv[3] = savedir (str): Save directory, datadir of the clean audio dataset
 # sys.argv[4] = dset (str): Which set. There are pretrain, Train, Val, Test set.
 # sys.argv[5] = nj (str): Number of multi processes.

@@ -1,12 +1,15 @@
-import os, sys
+import os
+import sys
 import multiprocessing as mp
 
 
 def main(sourcedir, filelistdir, savedir, dset, nj, segment):
     """Prepare the Kaldi files.
+
     Args:
         sourcedir (str): LRS2 dataset dir.
-        filelist (str): The dir of the mp4 file, it should be like '5535415699068794046/00001'
+        filelist (str): The dir of the mp4 file, it should be like
+                        '5535415699068794046/00001'
         savedir (str): The dir save the Kaldi files.
         dset (str): Which set. For this code dset is pretrain set.
         nj (str): Number of multi processes.
@@ -45,7 +48,9 @@ def remove(sub, s):
 
 
 def segmentation(textfiledir, file, segment=True):
-    """Make segment information, in this code, the segment interval is set to 5s.
+    """Make segment information, in this code, the
+       segment interval is set to 5s.
+
     Args:
         textfiledir (str): The Text and Segment File
         file (str): The file name
@@ -108,6 +113,7 @@ def segmentation(textfiledir, file, segment=True):
 
 def set(file, s, savedir, sourcedir, segment):
     """Make the Kaldi files.
+
     Args:
         file (str): The file name.
         s (str): Which set. For this code dset is pretrain set.
@@ -226,8 +232,10 @@ def set(file, s, savedir, sourcedir, segment):
 
 
 # hand over parameter overview
-# sys.argv[1] = sourcedir (str): The LRS2 dataset dir (e.g. /LRS2/data/lrs2_v1/mvlrs_v1/main)
-# sys.argv[2] = filelistdir (str): The directory containing the dataset Filelists (METADATA)
+# sys.argv[1] = sourcedir (str): The LRS2 dataset dir
+#                                (e.g. /LRS2/data/lrs2_v1/mvlrs_v1/main)
+# sys.argv[2] = filelistdir (str): The directory containing the dataset
+#                                 Filelists (METADATA)
 # sys.argv[3] = savedir (str): Save directory, datadir of the clean audio dataset
 # sys.argv[4] = dset (str): Which set. For this code dset is pretrain set.
 # sys.argv[5] = nj (str): Number of multi processes.
