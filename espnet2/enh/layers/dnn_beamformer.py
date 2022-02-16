@@ -214,7 +214,6 @@ class DNN_Beamformer(torch.nn.Module):
                 mask_speech = masks[0]
                 mask_noise = 1 - mask_speech
 
-<<<<<<< HEAD
             if self.beamformer_type in ("lcmv", "lcmp", "wlcmp"):
                 raise NotImplementedError("Single source is not supported yet")
             beamformer_stats = prepare_beamformer_stats(
@@ -235,71 +234,6 @@ class DNN_Beamformer(torch.nn.Module):
                     beamformer_stats["psd_n"],
                     beamformer_stats["psd_speech"],
                     psd_distortion=beamformer_stats["psd_distortion"],
-=======
-            if self.beamformer_type.startswith(
-                "wmpdr"
-            ) or self.beamformer_type.startswith("wpd"):
-                if powers is None:
-                    power_input = data_d.real**2 + data_d.imag**2
-                    # Averaging along the channel axis: (..., C, T) -> (..., T)
-                    powers = (power_input * mask_speech.double()).mean(dim=-2)
-                else:
-                    assert len(powers) == 1, len(powers)
-                    powers = powers[0]
-                inverse_power = 1 / torch.clamp(powers, min=self.eps)
-
-            psd_speech = get_power_spectral_density_matrix(data_d, mask_speech.double())
-            if mask_noise is not None and (
-                self.beamformer_type == "mvdr_souden"
-                or not self.beamformer_type.endswith("_souden")
-            ):
-                # MVDR or other RTF-based formulas
-                psd_noise = get_power_spectral_density_matrix(
-                    data_d, mask_noise.double()
-                )
-            if self.beamformer_type == "mvdr":
-                enhanced, ws = apply_beamforming(
-                    data, ilens, psd_noise, psd_speech, psd_distortion=psd_noise
-                )
-            elif self.beamformer_type == "mvdr_souden":
-                enhanced, ws = apply_beamforming(data, ilens, psd_noise, psd_speech)
-            elif self.beamformer_type == "mpdr":
-                psd_observed = complex_wrapper.einsum(
-                    "...ct,...et->...ce", [data_d, data_d.conj()]
-                )
-                enhanced, ws = apply_beamforming(
-                    data, ilens, psd_observed, psd_speech, psd_distortion=psd_noise
-                )
-            elif self.beamformer_type == "mpdr_souden":
-                psd_observed = complex_wrapper.einsum(
-                    "...ct,...et->...ce", [data_d, data_d.conj()]
-                )
-                enhanced, ws = apply_beamforming(data, ilens, psd_observed, psd_speech)
-            elif self.beamformer_type == "wmpdr":
-                psd_observed = complex_wrapper.einsum(
-                    "...ct,...et->...ce",
-                    [data_d * inverse_power[..., None, :], data_d.conj()],
-                )
-                enhanced, ws = apply_beamforming(
-                    data, ilens, psd_observed, psd_speech, psd_distortion=psd_noise
-                )
-            elif self.beamformer_type == "wmpdr_souden":
-                psd_observed = complex_wrapper.einsum(
-                    "...ct,...et->...ce",
-                    [data_d * inverse_power[..., None, :], data_d.conj()],
-                )
-                enhanced, ws = apply_beamforming(data, ilens, psd_observed, psd_speech)
-            elif self.beamformer_type == "wpd":
-                psd_observed_bar = get_covariances(
-                    data_d, inverse_power, self.bdelay, self.btaps, get_vector=False
-                )
-                enhanced, ws = apply_beamforming(
-                    data, ilens, psd_observed_bar, psd_speech, psd_distortion=psd_noise
-                )
-            elif self.beamformer_type == "wpd_souden":
-                psd_observed_bar = get_covariances(
-                    data_d, inverse_power, self.bdelay, self.btaps, get_vector=False
->>>>>>> a3e1543e96c1088bfed846d5c68c6f444a55aa75
                 )
             elif (
                 self.beamformer_type.endswith("_souden")
@@ -332,7 +266,6 @@ class DNN_Beamformer(torch.nn.Module):
                 mask_speech = list(masks)
                 mask_noise = None
 
-<<<<<<< HEAD
             beamformer_stats = prepare_beamformer_stats(
                 data_d,
                 mask_speech,
@@ -352,36 +285,6 @@ class DNN_Beamformer(torch.nn.Module):
                     rtf_iterations=self.rtf_iterations,
                     use_torch_solver=self.use_torch_solver,
                     diag_eps=self.diag_eps,
-=======
-            if self.beamformer_type.startswith(
-                "wmpdr"
-            ) or self.beamformer_type.startswith("wpd"):
-                if powers is None:
-                    power_input = data_d.real**2 + data_d.imag**2
-                    # Averaging along the channel axis: (..., C, T) -> (..., T)
-                    powers = [
-                        (power_input * m.double()).mean(dim=-2) for m in mask_speech
-                    ]
-                else:
-                    assert len(powers) == self.num_spk, len(powers)
-                inverse_power = [1 / torch.clamp(p, min=self.eps) for p in powers]
-
-            psd_speeches = [
-                get_power_spectral_density_matrix(data_d, mask.double())
-                for mask in mask_speech
-            ]
-            if mask_noise is not None and (
-                self.beamformer_type == "mvdr_souden"
-                or not self.beamformer_type.endswith("_souden")
-            ):
-                # MVDR or other RTF-based formulas
-                psd_noise = get_power_spectral_density_matrix(
-                    data_d, mask_noise.double()
-                )
-            if self.beamformer_type in ("mpdr", "mpdr_souden"):
-                psd_observed = complex_wrapper.einsum(
-                    "...ct,...et->...ce", [data_d, data_d.conj()]
->>>>>>> a3e1543e96c1088bfed846d5c68c6f444a55aa75
                 )
 
             enhanced, ws = [], []
