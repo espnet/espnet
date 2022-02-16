@@ -185,6 +185,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     	mv data/lang_char/train_unigram500_units.txt data/lang_char/${train_set}_unigram500_units.txt
   	rm -rf avsrlrs2_3
 	rm -rf model.v1.tar.gz
+
     fi
 
     textfilenames1=data/${train_set}/text
@@ -364,6 +365,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
+
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     ## print WER results
     echo "Stage 6: Print WER results"
