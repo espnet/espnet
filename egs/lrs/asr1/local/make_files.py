@@ -1,6 +1,6 @@
+import multiprocessing as mp
 import os
 import sys
-import multiprocessing as mp
 
 
 def main(sourcedir, filelistdir, savedir, dset, nj):
