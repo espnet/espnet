@@ -119,12 +119,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
 
-    # remove utt having more than 3000 frames
-    # remove utt having more than 400 characters
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/Train_org data/Train
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/Test_org data/Test
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/Val_org data/Val
-
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
     for x in Train Val Test; do
