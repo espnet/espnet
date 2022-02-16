@@ -86,7 +86,7 @@ recog_set="Val Test"
 
 # Stage -1: Data Download
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    if [ -d "$datadir" ]; then
+    if [ -f "$datadir" ]; then
     	echo "Dataset already exists."
     else
     	echo "For downloading the data, please visit 'https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html'."
@@ -185,19 +185,18 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     	mv data/lang_char/train_unigram500_units.txt data/lang_char/${train_set}_unigram500_units.txt
   	rm -rf avsrlrs2_3
 	rm -rf model.v1.tar.gz
-	
-	##### it is depands on your corpus, if the corpus text transcription is uppercase, use this to convert to lowercase
-    	textfilenames1=data/${train_set}/text
-   	textfilenames2=data/Test/text	
-    	textfilenames3=data/Val/text	
-    	for textfilename in $textfilenames1 $textfilenames2 $textfilenames3
-    	do
-	    sed -r 's/([^ \t]+\s)(.*)/\1\L\2/' $textfilename > ${textfilename}1  || exit 1;
-	    rm -rf $textfilename  || exit 1;
-	    mv ${textfilename}1 $textfilename  || exit 1;
-    	done
+
     fi
 
+    textfilenames1=data/${train_set}/text
+    textfilenames2=data/Test/text	
+    textfilenames3=data/Val/text	
+    for textfilename in $textfilenames1 $textfilenames2 $textfilenames3
+    do
+	sed -r 's/([^ \t]+\s)(.*)/\1\L\2/' $textfilename > ${textfilename}1  || exit 1;
+	rm -rf $textfilename  || exit 1;
+	mv ${textfilename}1 $textfilename  || exit 1;
+    done
     # make json labels
     data2json.sh --nj ${nj} --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
@@ -365,5 +364,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
+fi
+
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    ## print WER results
+    echo "Stage 6: Print WER results"
+    modeldir=${expdir}	# Which model
+    ./local/show_result.sh $modeldir $modeldir/RESULTS.txt
 fi
 exit 0
