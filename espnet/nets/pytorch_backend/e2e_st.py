@@ -9,7 +9,6 @@ import logging
 import math
 import os
 
-import editdistance
 import nltk
 
 import chainer
@@ -290,7 +289,7 @@ class E2E(STInterface, torch.nn.Module):
         # 0. Extract target language ID
         if self.multilingual:
             tgt_lang_ids = ys_pad[:, 0:1]
-            ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
+            ys_pad = ys_pad[:, 1:]  # remove target language ID in the beginning
         else:
             tgt_lang_ids = None
 
@@ -403,6 +402,8 @@ class E2E(STInterface, torch.nn.Module):
         :return: word error rate from attetion decoder prediction
         :rtype: float
         """
+        import editdistance
+
         loss_att, loss_ctc = 0.0, 0.0
         acc = None
         cer, wer = None, None
@@ -618,7 +619,7 @@ class E2E(STInterface, torch.nn.Module):
             # 1. Encoder
             if self.multilingual:
                 tgt_lang_ids = ys_pad[:, 0:1]
-                ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
+                ys_pad = ys_pad[:, 1:]  # remove target language ID in the beginning
             else:
                 tgt_lang_ids = None
             hpad, hlens, _ = self.enc(xs_pad, ilens)

@@ -77,6 +77,13 @@ class E2E(E2ETransformer):
         self.eos = odim - 2
         self.odim = odim
 
+        self.intermediate_ctc_weight = args.intermediate_ctc_weight
+        self.intermediate_ctc_layers = []
+        if args.intermediate_ctc_layer != "":
+            self.intermediate_ctc_layers = [
+                int(i) for i in args.intermediate_ctc_layer.split(",")
+            ]
+
         if args.maskctc_use_conformer_encoder:
             if args.transformer_attn_dropout_rate is None:
                 args.transformer_attn_dropout_rate = args.conformer_dropout_rate
@@ -96,6 +103,8 @@ class E2E(E2ETransformer):
                 macaron_style=args.macaron_style,
                 use_cnn_module=args.use_cnn_module,
                 cnn_module_kernel=args.cnn_module_kernel,
+                stochastic_depth_rate=args.stochastic_depth_rate,
+                intermediate_layers=self.intermediate_ctc_layers,
             )
         self.reset_parameters(args)
 
@@ -115,7 +124,7 @@ class E2E(E2ETransformer):
         # 1. forward encoder
         xs_pad = xs_pad[:, : max(ilens)]  # for data parallel
         src_mask = make_non_pad_mask(ilens.tolist()).to(xs_pad.device).unsqueeze(-2)
-        hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
+        hs_pad, hs_mask, hs_intermediates = self.encoder(xs_pad, src_mask)
         self.hs_pad = hs_pad
 
         # 2. forward decoder
@@ -134,6 +143,7 @@ class E2E(E2ETransformer):
 
         # 4. compute ctc loss
         loss_ctc, cer_ctc = None, None
+        loss_intermediate_ctc = 0.0
         if self.mtlalpha > 0:
             batch_size = xs_pad.size(0)
             hs_len = hs_mask.view(batch_size, -1).sum(1)
@@ -144,6 +154,15 @@ class E2E(E2ETransformer):
             # for visualization
             if not self.training:
                 self.ctc.softmax(hs_pad)
+            if self.intermediate_ctc_weight > 0 and self.intermediate_ctc_layers:
+                for hs_intermediate in hs_intermediates:
+                    # assuming hs_intermediates and hs_pad has same length / padding
+                    loss_inter = self.ctc(
+                        hs_intermediate.view(batch_size, -1, self.adim), hs_len, ys_pad
+                    )
+                    loss_intermediate_ctc += loss_inter
+
+                loss_intermediate_ctc /= len(self.intermediate_ctc_layers)
 
         # 5. compute cer/wer
         if self.training or self.error_calculator is None or self.decoder is None:
@@ -158,7 +177,11 @@ class E2E(E2ETransformer):
             loss_att_data = float(loss_att)
             loss_ctc_data = None
         else:
-            self.loss = alpha * loss_ctc + (1 - alpha) * loss_att
+            self.loss = (
+                alpha * loss_ctc
+                + self.intermediate_ctc_weight * loss_intermediate_ctc
+                + (1 - alpha - self.intermediate_ctc_weight) * loss_att
+            )
             loss_att_data = float(loss_att)
             loss_ctc_data = float(loss_ctc)
 
@@ -193,6 +216,9 @@ class E2E(E2ETransformer):
 
         self.eval()
         h = self.encode(x).unsqueeze(0)
+
+        input_len = h.squeeze(0)
+        logging.info("input lengths: " + str(input_len.size(0)))
 
         # greedy ctc outputs
         ctc_probs, ctc_ids = torch.exp(self.ctc.log_softmax(h)).max(dim=-1)

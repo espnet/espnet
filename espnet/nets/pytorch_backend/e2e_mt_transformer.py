@@ -141,11 +141,11 @@ class E2E(MTInterface, torch.nn.Module):
         """Initialize parameters."""
         initialize(self, args.transformer_init)
         torch.nn.init.normal_(
-            self.encoder.embed[0].weight, mean=0, std=args.adim ** -0.5
+            self.encoder.embed[0].weight, mean=0, std=args.adim**-0.5
         )
         torch.nn.init.constant_(self.encoder.embed[0].weight[self.pad], 0)
         torch.nn.init.normal_(
-            self.decoder.embed[0].weight, mean=0, std=args.adim ** -0.5
+            self.decoder.embed[0].weight, mean=0, std=args.adim**-0.5
         )
         torch.nn.init.constant_(self.decoder.embed[0].weight[self.pad], 0)
 
@@ -331,7 +331,7 @@ class E2E(MTInterface, torch.nn.Module):
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
-                logging.info("adding <eos> in the last postion in the loop")
+                logging.info("adding <eos> in the last position in the loop")
                 for hyp in hyps:
                     hyp["yseq"].append(self.eos)
 

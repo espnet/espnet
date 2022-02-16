@@ -1,0 +1,1 @@
+../../../slue-voxceleb/asr1/local/score.py

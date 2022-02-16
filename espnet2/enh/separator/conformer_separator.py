@@ -49,7 +49,7 @@ class ConformerSeparator(AbsSeparator):
         Args:
             input_dim: input feature dimension
             num_spk: number of speakers
-            adim (int): Dimention of attention.
+            adim (int): Dimension of attention.
             aheads (int): The number of heads of multi head attention.
             linear_units (int): The number of units of position-wise feed forward.
             layers (int): The number of transformer blocks.

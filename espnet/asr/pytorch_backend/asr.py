@@ -4,6 +4,7 @@
 """Training/decoding definition for the speech recognition task."""
 
 import copy
+from distutils.version import LooseVersion
 import itertools
 import json
 import logging
@@ -15,7 +16,6 @@ from chainer import training
 from chainer.training import extensions
 from chainer.training.updater import StandardUpdater
 import numpy as np
-from tensorboardX import SummaryWriter
 import torch
 from torch.nn.parallel import data_parallel
 
@@ -54,10 +54,6 @@ from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
 from espnet.utils.training.train_utils import check_early_stop
 from espnet.utils.training.train_utils import set_early_stop
-
-import matplotlib
-
-matplotlib.use("Agg")
 
 
 def _recursive_to(xs, device):
@@ -514,16 +510,23 @@ def train(args):
     elif args.opt == "noam":
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
-        # For transformer-transducer, adim declaration is within the block definition.
-        # Thus, we need retrieve the most dominant value (d_hidden) for Noam scheduler.
-        if hasattr(args, "enc_block_arch") or hasattr(args, "dec_block_arch"):
-            adim = model.most_dom_dim
+        if "transducer" in mtl_mode:
+            if args.noam_adim > 0:
+                optimizer = get_std_opt(
+                    model_params,
+                    args.noam_adim,
+                    args.optimizer_warmup_steps,
+                    args.noam_lr,
+                )
+            else:
+                raise ValueError("noam-adim option should be set to use Noam scheduler")
         else:
-            adim = args.adim
-
-        optimizer = get_std_opt(
-            model_params, adim, args.transformer_warmup_steps, args.transformer_lr
-        )
+            optimizer = get_std_opt(
+                model_params,
+                args.adim,
+                args.transformer_warmup_steps,
+                args.transformer_lr,
+            )
     else:
         raise NotImplementedError("unknown optimizer: " + args.opt)
 
@@ -742,23 +745,52 @@ def train(args):
             "main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)
         ] + ["validation/main/cer_ctc{}".format(i + 1) for i in range(model.num_encs)]
 
-    if hasattr(model, "is_rnnt"):
+    if hasattr(model, "is_transducer"):
+        trans_keys = [
+            "main/loss",
+            "validation/main/loss",
+            "main/loss_trans",
+            "validation/main/loss_trans",
+        ]
+
+        ctc_keys = (
+            ["main/loss_ctc", "validation/main/loss_ctc"] if args.use_ctc_loss else []
+        )
+
+        aux_trans_keys = (
+            [
+                "main/loss_aux_trans",
+                "validation/main/loss_aux_trans",
+            ]
+            if args.use_aux_transducer_loss
+            else []
+        )
+
+        symm_kl_div_keys = (
+            [
+                "main/loss_symm_kl_div",
+                "validation/main/loss_symm_kl_div",
+            ]
+            if args.use_symm_kl_div_loss
+            else []
+        )
+
+        lm_keys = (
+            [
+                "main/loss_lm",
+                "validation/main/loss_lm",
+            ]
+            if args.use_lm_loss
+            else []
+        )
+
+        transducer_keys = (
+            trans_keys + ctc_keys + aux_trans_keys + symm_kl_div_keys + lm_keys
+        )
+
         trainer.extend(
             extensions.PlotReport(
-                [
-                    "main/loss",
-                    "validation/main/loss",
-                    "main/loss_trans",
-                    "validation/main/loss_trans",
-                    "main/loss_ctc",
-                    "validation/main/loss_ctc",
-                    "main/loss_lm",
-                    "validation/main/loss_lm",
-                    "main/loss_aux_trans",
-                    "validation/main/loss_aux_trans",
-                    "main/loss_aux_symm_kl",
-                    "validation/main/loss_aux_symm_kl",
-                ],
+                transducer_keys,
                 "epoch",
                 file_name="loss.png",
             )
@@ -869,24 +901,15 @@ def train(args):
         extensions.LogReport(trigger=(args.report_interval_iters, "iteration"))
     )
 
-    if hasattr(model, "is_rnnt"):
-        report_keys = [
-            "epoch",
-            "iteration",
-            "main/loss",
-            "main/loss_trans",
-            "main/loss_ctc",
-            "main/loss_lm",
-            "main/loss_aux_trans",
-            "main/loss_aux_symm_kl",
-            "validation/main/loss",
-            "validation/main/loss_trans",
-            "validation/main/loss_ctc",
-            "validation/main/loss_lm",
-            "validation/main/loss_aux_trans",
-            "validation/main/loss_aux_symm_kl",
-            "elapsed_time",
-        ]
+    if hasattr(model, "is_transducer"):
+        report_keys = (
+            [
+                "epoch",
+                "iteration",
+            ]
+            + transducer_keys
+            + ["elapsed_time"]
+        )
     else:
         report_keys = [
             "epoch",
@@ -928,6 +951,8 @@ def train(args):
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        from torch.utils.tensorboard import SummaryWriter
+
         trainer.extend(
             TensorboardLogger(
                 SummaryWriter(args.tensorboard_dir),
@@ -959,12 +984,31 @@ def recog(args):
         q_config = {torch.nn.Linear}
 
     if args.quantize_asr_model:
-        assert (
-            "transducer" not in train_args.model_module
-        ), "Quantization of transducer model is not supported yet."
-        logging.info("Use quantized asr model for decoding")
+        logging.info("Use a quantized ASR model for decoding.")
+
+        # It seems quantized LSTM only supports non-packed sequence before torch 1.4.0.
+        # Reference issue: https://github.com/pytorch/pytorch/issues/27963
+        if (
+            torch.__version__ < LooseVersion("1.4.0")
+            and "lstm" in train_args.etype
+            and torch.nn.LSTM in q_config
+        ):
+            raise ValueError(
+                "Quantized LSTM in ESPnet is only supported with torch 1.4+."
+            )
+
+        # Dunno why but weight_observer from dynamic quantized module must have
+        # dtype=torch.qint8 with torch < 1.5 although dtype=torch.float16 is supported.
+        if args.quantize_dtype == "float16" and torch.__version__ < LooseVersion(
+            "1.5.0"
+        ):
+            raise ValueError(
+                "float16 dtype for dynamic quantization is not supported with torch "
+                "version < 1.5.0. Switching to qint8 dtype instead."
+            )
 
         dtype = getattr(torch, args.quantize_dtype)
+
         model = torch.quantization.quantize_dynamic(model, q_config, dtype=dtype)
 
     if args.streaming_mode and "transformer" in train_args.model_module:
@@ -1049,18 +1093,17 @@ def recog(args):
     )
 
     # load transducer beam search
-    if hasattr(model, "is_rnnt"):
+    if hasattr(model, "is_transducer"):
         if hasattr(model, "dec"):
             trans_decoder = model.dec
         else:
             trans_decoder = model.decoder
-        joint_network = model.joint_network
+        joint_network = model.transducer_tasks.joint_network
 
         beam_search_transducer = BeamSearchTransducer(
             decoder=trans_decoder,
             joint_network=joint_network,
             beam_size=args.beam_size,
-            nbest=args.nbest,
             lm=rnnlm,
             lm_weight=args.lm_weight,
             search_type=args.search_type,
@@ -1068,7 +1111,12 @@ def recog(args):
             u_max=args.u_max,
             nstep=args.nstep,
             prefix_alpha=args.prefix_alpha,
+            expansion_gamma=args.expansion_gamma,
+            expansion_beta=args.expansion_beta,
             score_norm=args.score_norm,
+            softmax_temperature=args.softmax_temperature,
+            nbest=args.nbest,
+            quantization=args.quantize_asr_model,
         )
 
     if args.batchsize == 0:
@@ -1126,7 +1174,7 @@ def recog(args):
                             for n in range(args.nbest):
                                 nbest_hyps[n]["yseq"].extend(hyps[n]["yseq"])
                                 nbest_hyps[n]["score"] += hyps[n]["score"]
-                elif hasattr(model, "is_rnnt"):
+                elif hasattr(model, "is_transducer"):
                     nbest_hyps = model.recognize(feat, beam_search_transducer)
                 else:
                     nbest_hyps = model.recognize(
@@ -1347,6 +1395,9 @@ def enhance(args):
 
             # Plot spectrogram
             if args.image_dir is not None and num_images < args.num_images:
+                import matplotlib
+
+                matplotlib.use("Agg")
                 import matplotlib.pyplot as plt
 
                 num_images += 1

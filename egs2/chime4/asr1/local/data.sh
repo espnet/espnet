@@ -52,13 +52,24 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/clean_wsj0_data_prep.sh ${wsj0_data}
     local/clean_chime4_format_data.sh
 
+    # create data for 1ch and 2ch tracks
+    if [ ! -d ${CHIME4}/data/audio/16kHz/isolated_1ch_track ]; then
+        log "create data for 1ch tracks"
+        python local/sym_channel.py ${CHIME4} 1ch
+    fi
+    
+    if [ ! -d ${CHIME4}/data/audio/16kHz/isolated_2ch_track ]; then
+        log "create data for 2ch tracks"
+        python local/sym_channel.py ${CHIME4} 2ch
+    fi
+
     # beamforming for multich 
     local/run_beamform_2ch_track.sh --cmd "${train_cmd}" --nj 20 \
 	    ${CHIME4}/data/audio/16kHz/isolated_2ch_track enhan/beamformit_2mics
     local/run_beamform_6ch_track.sh --cmd "${train_cmd}" --nj 20 \
 	    ${CHIME4}/data/audio/16kHz/isolated_6ch_track enhan/beamformit_5mics
 
-    # prepartion for chime4 data
+    # preparation for chime4 data
     local/real_noisy_chime4_data_prep.sh ${CHIME4}
     local/simu_noisy_chime4_data_prep.sh ${CHIME4}
 

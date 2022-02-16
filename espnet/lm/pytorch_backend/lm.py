@@ -38,7 +38,6 @@ from espnet.asr.asr_utils import torch_resume
 from espnet.asr.asr_utils import torch_snapshot
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.evaluator import BaseEvaluator
@@ -382,6 +381,8 @@ def train(args):
 
     set_early_stop(trainer, args, is_lm=True)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        from torch.utils.tensorboard import SummaryWriter
+
         writer = SummaryWriter(args.tensorboard_dir)
         trainer.extend(
             TensorboardLogger(writer), trigger=(args.report_interval_iters, "iteration")

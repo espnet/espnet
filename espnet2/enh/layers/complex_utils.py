@@ -67,7 +67,7 @@ def cat(seq: Sequence[Union[ComplexTensor, torch.Tensor]], *args, **kwargs):
 def complex_norm(c: Union[torch.Tensor, ComplexTensor]) -> torch.Tensor:
     if not is_complex(c):
         raise TypeError("Input is not a complex tensor.")
-    return torch.sqrt((c.real ** 2 + c.imag ** 2).sum(dim=-1, keepdim=True) + EPS)
+    return torch.sqrt((c.real**2 + c.imag**2).sum(dim=-1, keepdim=True) + EPS)
 
 
 def einsum(equation, *operands):

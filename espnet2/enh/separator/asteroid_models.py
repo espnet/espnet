@@ -20,7 +20,7 @@ class AsteroidModel_Converter(AbsSeparator):
         """The class to convert the models from asteroid to AbsSeprator.
 
         Args:
-            encoder_output_dim: input feature dimension, deafult=1 after the NullEncoder
+            encoder_output_dim: input feature dimension, default=1 after the NullEncoder
             num_spk: number of speakers
             loss_type: loss type of enhancement
             model_name: Asteroid model names, e.g. ConvTasNet, DPTNet. Refers to

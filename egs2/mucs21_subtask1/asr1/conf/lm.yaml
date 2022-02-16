@@ -1,0 +1,27 @@
+
+# network architecture
+lm: transformer
+lm_conf:
+    pos_enc: null
+    embed_unit: 128
+    att_unit: 512
+    head: 8
+    unit: 2048
+    layer: 16
+    dropout_rate: 0.1
+
+
+
+# minibatch related
+batch_size: 32
+
+# optimization related
+optim: adam
+optim_conf:
+   lr: 0.0001
+scheduler: warmuplr
+scheduler_conf:
+   warmup_steps: 25000
+
+max_epoch: 25
+grad_clip: 1.0

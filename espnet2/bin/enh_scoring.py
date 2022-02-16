@@ -12,10 +12,13 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.enh.espnet_model import ESPnetEnhancementModel
+from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils import config_argparse
+
+
+si_snr_loss = SISNRLoss()
 
 
 def scoring(
@@ -77,7 +80,7 @@ def scoring(
             for i in range(num_spk):
                 stoi_score = stoi(ref[i], inf[int(perm[i])], fs_sig=sample_rate)
                 si_snr_score = -float(
-                    ESPnetEnhancementModel.si_snr_loss(
+                    si_snr_loss(
                         torch.from_numpy(ref[i][None, ...]),
                         torch.from_numpy(inf[int(perm[i])][None, ...]),
                     )

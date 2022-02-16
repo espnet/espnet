@@ -128,11 +128,12 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
             )
 
         xs_pad = enc_outputs["x"]  # (B,T,C),
+        bs = xs_pad.shape[0]
         if enc_outputs["padding_mask"] is not None:
             masks = enc_outputs["padding_mask"]  # (B, T)
             olens = (~masks).sum(dim=1)  # (B)
         else:
-            olens = torch.IntTensor([xs_pad.size(1)]).to(xs_pad.device)
+            olens = torch.IntTensor([xs_pad.shape[1]]).repeat(bs).to(xs_pad.device)
 
         if self.output_layer is not None:
             xs_pad = self.output_layer(xs_pad)

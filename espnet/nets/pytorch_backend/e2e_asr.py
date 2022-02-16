@@ -11,7 +11,6 @@ import os
 
 import chainer
 from chainer import reporter
-import editdistance
 import numpy as np
 import six
 import torch
@@ -218,6 +217,8 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor
         """
+        import editdistance
+
         # 0. Frontend
         if self.frontend is not None:
             hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)

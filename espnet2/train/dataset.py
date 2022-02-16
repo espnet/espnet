@@ -361,7 +361,7 @@ class ESPnetDataset(AbsDataset):
                         name = func.__name__
                     else:
                         name = str(func)
-                    logging.error(f"An error happend with {name}({path})")
+                    logging.error(f"An error happened with {name}({path})")
                     raise
         else:
             raise RuntimeError(f"Not supported: loader_type={loader_type}")

@@ -1,10 +1,11 @@
 """Transducer model arguments."""
 
+from argparse import _ArgumentGroup
 import ast
 from distutils.util import strtobool
 
 
-def add_encoder_general_arguments(group):
+def add_encoder_general_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     """Define general arguments for encoder."""
     group.add_argument(
         "--etype",
@@ -41,7 +42,7 @@ def add_encoder_general_arguments(group):
     return group
 
 
-def add_rnn_encoder_arguments(group):
+def add_rnn_encoder_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     """Define arguments for RNN encoder."""
     group.add_argument(
         "--elayers",
@@ -71,7 +72,7 @@ def add_rnn_encoder_arguments(group):
     return group
 
 
-def add_custom_encoder_arguments(group):
+def add_custom_encoder_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     """Define arguments for Custom encoder."""
     group.add_argument(
         "--enc-block-arch",
@@ -82,7 +83,7 @@ def add_custom_encoder_arguments(group):
     )
     group.add_argument(
         "--enc-block-repeat",
-        default=0,
+        default=1,
         type=int,
         help="Repeat N times the provided encoder blocks if N > 1",
     )
@@ -92,6 +93,18 @@ def add_custom_encoder_arguments(group):
         default="conv2d",
         choices=["conv2d", "vgg2l", "linear", "embed"],
         help="Custom encoder input layer type",
+    )
+    group.add_argument(
+        "--custom-enc-input-dropout-rate",
+        type=float,
+        default=0.0,
+        help="Dropout rate of custom encoder input layer",
+    )
+    group.add_argument(
+        "--custom-enc-input-pos-enc-dropout-rate",
+        type=float,
+        default=0.0,
+        help="Dropout rate of positional encoding in custom encoder input layer",
     )
     group.add_argument(
         "--custom-enc-positional-encoding-type",
@@ -125,7 +138,7 @@ def add_custom_encoder_arguments(group):
     return group
 
 
-def add_decoder_general_arguments(group):
+def add_decoder_general_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     """Define general arguments for encoder."""
     group.add_argument(
         "--dtype",
@@ -150,7 +163,7 @@ def add_decoder_general_arguments(group):
     return group
 
 
-def add_rnn_decoder_arguments(group):
+def add_rnn_decoder_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     """Define arguments for RNN decoder."""
     group.add_argument(
         "--dec-embed-dim",
@@ -168,7 +181,7 @@ def add_rnn_decoder_arguments(group):
     return group
 
 
-def add_custom_decoder_arguments(group):
+def add_custom_decoder_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     """Define arguments for Custom decoder."""
     group.add_argument(
         "--dec-block-arch",
@@ -201,38 +214,58 @@ def add_custom_decoder_arguments(group):
     return group
 
 
-def add_custom_training_arguments(group):
+def add_custom_training_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     """Define arguments for training with Custom architecture."""
     group.add_argument(
-        "--transformer-warmup-steps",
+        "--optimizer-warmup-steps",
         default=25000,
         type=int,
         help="Optimizer warmup steps",
     )
     group.add_argument(
-        "--transformer-lr",
+        "--noam-lr",
         default=10.0,
         type=float,
         help="Initial value of learning rate",
+    )
+    group.add_argument(
+        "--noam-adim",
+        default=0,
+        type=int,
+        help="Most dominant attention dimension for scheduler.",
+    )
+    group.add_argument(
+        "--transformer-warmup-steps",
+        type=int,
+        help="Optimizer warmup steps. The parameter is deprecated, "
+        "please use --optimizer-warmup-steps instead.",
+        dest="optimizer_warmup_steps",
+    )
+    group.add_argument(
+        "--transformer-lr",
+        type=float,
+        help="Initial value of learning rate. The parameter is deprecated, "
+        "please use --noam-lr instead.",
+        dest="noam_lr",
+    )
+    group.add_argument(
+        "--adim",
+        type=int,
+        help="Most dominant attention dimension for scheduler. "
+        "The parameter is deprecated, please use --noam-adim instead.",
+        dest="noam_adim",
     )
 
     return group
 
 
-def add_transducer_arguments(group):
-    """Define general arguments for transducer model."""
-    group.add_argument(
-        "--trans-type",
-        default="warp-transducer",
-        type=str,
-        choices=["warp-transducer", "warp-rnnt"],
-        help="Type of transducer implementation to calculate loss.",
-    )
+def add_transducer_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
+    """Define general arguments for Transducer model."""
     group.add_argument(
         "--transducer-weight",
         default=1.0,
         type=float,
-        help="Weight of transducer loss when auxiliary task is used.",
+        help="Weight of main Transducer loss.",
     )
     group.add_argument(
         "--joint-dim",
@@ -252,70 +285,102 @@ def add_transducer_arguments(group):
         type=strtobool,
         nargs="?",
         default=True,
-        help="Normalize transducer scores by length",
+        help="Normalize Transducer scores by length",
+    )
+    group.add_argument(
+        "--fastemit-lambda",
+        default=0.0,
+        type=float,
+        help="Regularization parameter for FastEmit (https://arxiv.org/abs/2010.11148)",
     )
 
     return group
 
 
-def add_auxiliary_task_arguments(group):
+def add_auxiliary_task_arguments(group: _ArgumentGroup) -> _ArgumentGroup:
     """Add arguments for auxiliary task."""
     group.add_argument(
-        "--aux-task-type",
-        nargs="?",
-        default=None,
-        choices=["default", "symm_kl_div", "both"],
-        help="Type of auxiliary task.",
-    )
-    group.add_argument(
-        "--aux-task-layer-list",
-        default=None,
-        type=ast.literal_eval,
-        help="List of layers to use for auxiliary task.",
-    )
-    group.add_argument(
-        "--aux-task-weight",
-        default=0.3,
-        type=float,
-        help="Weight of auxiliary task loss.",
-    )
-    group.add_argument(
-        "--aux-ctc",
+        "--use-ctc-loss",
         type=strtobool,
         nargs="?",
         default=False,
-        help="Whether to use CTC as auxiliary task.",
+        help="Whether to compute auxiliary CTC loss.",
     )
     group.add_argument(
-        "--aux-ctc-weight",
-        default=1.0,
-        type=float,
-        help="Weight of auxiliary task loss",
-    )
-    group.add_argument(
-        "--aux-ctc-dropout-rate",
-        default=0.0,
-        type=float,
-        help="Dropout rate for auxiliary CTC",
-    )
-    group.add_argument(
-        "--aux-cross-entropy",
-        type=strtobool,
-        nargs="?",
-        default=False,
-        help="Whether to use CE as auxiliary task for the prediction network.",
-    )
-    group.add_argument(
-        "--aux-cross-entropy-smoothing",
-        default=0.0,
-        type=float,
-        help="Smoothing rate for cross-entropy. If > 0, enables label smoothing loss.",
-    )
-    group.add_argument(
-        "--aux-cross-entropy-weight",
+        "--ctc-loss-weight",
         default=0.5,
         type=float,
-        help="Weight of auxiliary task loss",
+        help="Weight of auxiliary CTC loss.",
+    )
+    group.add_argument(
+        "--ctc-loss-dropout-rate",
+        default=0.0,
+        type=float,
+        help="Dropout rate for auxiliary CTC.",
+    )
+    group.add_argument(
+        "--use-lm-loss",
+        type=strtobool,
+        nargs="?",
+        default=False,
+        help="Whether to compute auxiliary LM loss (label smoothing).",
+    )
+    group.add_argument(
+        "--lm-loss-weight",
+        default=0.5,
+        type=float,
+        help="Weight of auxiliary LM loss.",
+    )
+    group.add_argument(
+        "--lm-loss-smoothing-rate",
+        default=0.0,
+        type=float,
+        help="Smoothing rate for LM loss. If > 0, label smoothing is enabled.",
+    )
+    group.add_argument(
+        "--use-aux-transducer-loss",
+        type=strtobool,
+        nargs="?",
+        default=False,
+        help="Whether to compute auxiliary Transducer loss.",
+    )
+    group.add_argument(
+        "--aux-transducer-loss-weight",
+        default=0.2,
+        type=float,
+        help="Weight of auxiliary Transducer loss.",
+    )
+    group.add_argument(
+        "--aux-transducer-loss-enc-output-layers",
+        default=None,
+        type=ast.literal_eval,
+        help="List of intermediate encoder layers for auxiliary "
+        "transducer loss computation.",
+    )
+    group.add_argument(
+        "--aux-transducer-loss-mlp-dim",
+        default=320,
+        type=int,
+        help="Multilayer perceptron hidden dimension for auxiliary Transducer loss.",
+    )
+    group.add_argument(
+        "--aux-transducer-loss-mlp-dropout-rate",
+        default=0.0,
+        type=float,
+        help="Multilayer perceptron dropout rate for auxiliary Transducer loss.",
+    )
+    group.add_argument(
+        "--use-symm-kl-div-loss",
+        type=strtobool,
+        nargs="?",
+        default=False,
+        help="Whether to compute symmetric KL divergence loss.",
+    )
+    group.add_argument(
+        "--symm-kl-div-loss-weight",
+        default=0.2,
+        type=float,
+        help="Weight of symmetric KL divergence loss.",
     )
 
     return group

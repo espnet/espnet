@@ -79,7 +79,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log " Data Formatting"
-     # remove ._ . _1 symboles from text  
+     # remove ._ . _1 symbols from text  
      cp data/train_nodup/text data/train_nodup/text.backup
      cp data/train_dev/text data/train_dev/text.backup
      sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/train_nodup/text
@@ -90,6 +90,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ -n "${fisher_dir}" ]; then
            log "Fisher LM Train Data Preparation"
            local/fisher_data_prep.sh ${fisher_dir}
+           utils/fix_data_dir.sh data/train_fisher
            cp data/train_fisher/text data/train_fisher/text.backup
            sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/train_fisher/text
            cat data/train_fisher/text data/train_nodup/text > data/lm_train.txt

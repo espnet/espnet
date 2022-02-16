@@ -929,7 +929,7 @@ def get_covariances(
         matrix of the framed signal.
 
     Args:
-        Y : Complext STFT signal with shape (B, F, C, T)
+        Y : Complex STFT signal with shape (B, F, C, T)
         inverse_power : Weighting factor with shape (B, F, T)
 
     Returns:
@@ -1038,7 +1038,7 @@ def get_WPD_filter_v2(
 ) -> Union[torch.Tensor, ComplexTensor]:
     """Return the WPD vector (v2).
 
-       This implementaion is more efficient than `get_WPD_filter` as
+       This implementation is more efficient than `get_WPD_filter` as
         it skips unnecessary computation with zeros.
 
     Args:

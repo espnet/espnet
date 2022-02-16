@@ -47,7 +47,7 @@ if "${torch_17_plus}" && "${python_36_plus}"; then
 
     rm -rf s3prl
 
-    # S3PRL Commit id when making this PR: `commit a3318ca43e9cdf0b33cc934b91ed37bdbf883abb`
+    # S3PRL Commit id when making this PR: `commit a9b3ba906f3406c3e00aa65b08fbcefa0ea115ef`
     git clone https://github.com/s3prl/s3prl.git
 
 else

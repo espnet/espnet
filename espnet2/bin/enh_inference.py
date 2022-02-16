@@ -3,6 +3,7 @@ import argparse
 import logging
 from pathlib import Path
 import sys
+from typing import Any
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -16,6 +17,9 @@ from tqdm import trange
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
+from espnet2.enh.loss.criterions.time_domain import SISNRLoss
+from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.fileio.sound_scp import SoundScpWriter
 from espnet2.tasks.enh import EnhancementTask
 from espnet2.torch_utils.device_funcs import to_device
@@ -43,8 +47,8 @@ class SeparateSpeech:
 
     def __init__(
         self,
-        enh_train_config: Union[Path, str],
-        enh_model_file: Union[Path, str] = None,
+        train_config: Union[Path, str] = None,
+        model_file: Union[Path, str] = None,
         segment_size: Optional[float] = None,
         hop_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
@@ -58,7 +62,7 @@ class SeparateSpeech:
 
         # 1. Build Enh model
         enh_model, enh_train_args = EnhancementTask.build_model_from_file(
-            enh_train_config, enh_model_file, device
+            train_config, model_file, device
         )
         enh_model.to(dtype=getattr(torch, dtype)).eval()
 
@@ -121,7 +125,7 @@ class SeparateSpeech:
         assert speech_mix.dim() > 1, speech_mix.size()
         batch_size = speech_mix.size(0)
         speech_mix = speech_mix.to(getattr(torch, self.dtype))
-        # lenghts: (B,)
+        # lengths: (B,)
         lengths = speech_mix.new_full(
             [batch_size], dtype=torch.long, fill_value=speech_mix.size(1)
         )
@@ -169,10 +173,17 @@ class SeparateSpeech:
                     speech_seg_ = speech_seg
 
                 if self.normalize_segment_scale:
-                    # normalize the energy of each separated stream
-                    # to match the input energy
+                    # normalize the scale to match the input mixture scale
+                    mix_energy = torch.sqrt(
+                        torch.mean(speech_seg_[:, :t].pow(2), dim=1, keepdim=True)
+                    )
+                    enh_energy = torch.sqrt(
+                        torch.mean(
+                            sum(processed_wav)[:, :t].pow(2), dim=1, keepdim=True
+                        )
+                    )
                     processed_wav = [
-                        self.normalize_scale(w, speech_seg_) for w in processed_wav
+                        w * (mix_energy / enh_energy) for w in processed_wav
                     ]
                 # List[torch.Tensor(num_spk, B, T)]
                 enh_waves.append(torch.stack(processed_wav, dim=0))
@@ -223,21 +234,6 @@ class SeparateSpeech:
 
         return waves
 
-    @staticmethod
-    @torch.no_grad()
-    def normalize_scale(enh_wav, ref_ch_wav):
-        """Normalize the energy of enh_wav to match that of ref_ch_wav.
-
-        Args:
-            enh_wav (torch.Tensor): (B, Nsamples)
-            ref_ch_wav (torch.Tensor): (B, Nsamples)
-        Returns:
-            enh_wav (torch.Tensor): (B, Nsamples)
-        """
-        ref_energy = torch.sqrt(torch.mean(ref_ch_wav.pow(2), dim=1))
-        enh_energy = torch.sqrt(torch.mean(enh_wav.pow(2), dim=1))
-        return enh_wav * (ref_energy / enh_energy)[:, None]
-
     @torch.no_grad()
     def cal_permumation(self, ref_wavs, enh_wavs, criterion="si_snr"):
         """Calculate the permutation between seaprated streams in two adjacent segments.
@@ -249,17 +245,44 @@ class SeparateSpeech:
         Returns:
             perm (torch.Tensor): permutation for enh_wavs (Batch, num_spk)
         """
-        loss_func = {
-            "si_snr": self.enh_model.si_snr_loss,
-            "mse": lambda enh, ref: torch.mean((enh - ref).pow(2), dim=1),
-            "corr": lambda enh, ref: (
-                (enh * ref).sum(dim=1)
-                / (enh.pow(2).sum(dim=1) * ref.pow(2).sum(dim=1) + EPS)
-            ).clamp(min=EPS, max=1 - EPS),
-        }[criterion]
 
-        _, perm = self.enh_model._permutation_loss(ref_wavs, enh_wavs, loss_func)
+        criterion_class = {"si_snr": SISNRLoss, "mse": FrequencyDomainMSE}[criterion]
+
+        pit_solver = PITSolver(criterion=criterion_class())
+
+        _, _, others = pit_solver(ref_wavs, enh_wavs)
+        perm = others["perm"]
         return perm
+
+    @staticmethod
+    def from_pretrained(
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
+        """Build SeparateSpeech instance from the pretrained model.
+
+        Args:
+            model_tag (Optional[str]): Model tag of the pretrained models.
+                Currently, the tags of espnet_model_zoo are supported.
+
+        Returns:
+            SeparateSpeech: SeparateSpeech instance.
+
+        """
+        if model_tag is not None:
+            try:
+                from espnet_model_zoo.downloader import ModelDownloader
+
+            except ImportError:
+                logging.error(
+                    "`espnet_model_zoo` is not installed. "
+                    "Please install via `pip install -U espnet_model_zoo`."
+                )
+                raise
+            d = ModelDownloader()
+            kwargs.update(**d.download_and_unpack(model_tag))
+
+        return SeparateSpeech(**kwargs)
 
 
 def humanfriendly_or_none(value: str):
@@ -279,8 +302,9 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    enh_train_config: str,
-    enh_model_file: str,
+    train_config: Optional[str],
+    model_file: Optional[str],
+    model_tag: Optional[str],
     allow_variable_data_keys: bool,
     segment_size: Optional[float],
     hop_size: Optional[float],
@@ -309,9 +333,9 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build separate_speech
-    separate_speech = SeparateSpeech(
-        enh_train_config=enh_train_config,
-        enh_model_file=enh_model_file,
+    separate_speech_kwargs = dict(
+        train_config=train_config,
+        model_file=model_file,
         segment_size=segment_size,
         hop_size=hop_size,
         normalize_segment_scale=normalize_segment_scale,
@@ -320,6 +344,10 @@ def inference(
         normalize_output_wav=normalize_output_wav,
         device=device,
         dtype=dtype,
+    )
+    separate_speech = SeparateSpeech.from_pretrained(
+        model_tag=model_tag,
+        **separate_speech_kwargs,
     )
 
     # 3. Build data-iterator
@@ -421,8 +449,22 @@ def get_parser():
     )
 
     group = parser.add_argument_group("The model configuration related")
-    group.add_argument("--enh_train_config", type=str, required=True)
-    group.add_argument("--enh_model_file", type=str, required=True)
+    group.add_argument(
+        "--train_config",
+        type=str,
+        help="Training configuration file",
+    )
+    group.add_argument(
+        "--model_file",
+        type=str,
+        help="Model parameter file",
+    )
+    group.add_argument(
+        "--model_tag",
+        type=str,
+        help="Pretrained model tag. If specify this option, train_config and "
+        "model_file will be overwritten",
+    )
 
     group = parser.add_argument_group("Data loading related")
     group.add_argument(

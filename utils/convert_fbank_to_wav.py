@@ -39,7 +39,9 @@ def logmelspc_to_linearspc(lmspc, fs, n_mels, n_fft, fmin=None, fmax=None):
     fmin = 0 if fmin is None else fmin
     fmax = fs / 2 if fmax is None else fmax
     mspc = np.power(10.0, lmspc)
-    mel_basis = librosa.filters.mel(fs, n_fft, n_mels, fmin, fmax)
+    mel_basis = librosa.filters.mel(
+        sr=fs, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax
+    )
     inv_mel_basis = np.linalg.pinv(mel_basis)
     spc = np.maximum(EPS, np.dot(inv_mel_basis, mspc.T).T)
 
@@ -116,7 +118,7 @@ def get_parser():
         type=int,
         default=None,
         nargs="?",
-        help="Analisys window length in point",
+        help="Analysis window length in point",
     )
     parser.add_argument(
         "--n_mels", type=int, default=None, nargs="?", help="Number of mel basis"

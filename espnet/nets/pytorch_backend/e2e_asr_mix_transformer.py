@@ -124,7 +124,7 @@ class E2E(E2EASR, ASRInterface, torch.nn.Module):
                     hs_len[i // self.num_spkrs],
                     ys_pad[i % self.num_spkrs],
                 )
-                for i in range(self.num_spkrs ** 2)
+                for i in range(self.num_spkrs**2)
             ],
             dim=1,
         )  # (B, num_spkrs^2)
@@ -376,7 +376,7 @@ class E2E(E2EASR, ASRInterface, torch.nn.Module):
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
-                logging.info("adding <eos> in the last postion in the loop")
+                logging.info("adding <eos> in the last position in the loop")
                 for hyp in hyps:
                     hyp["yseq"].append(self.eos)
 
