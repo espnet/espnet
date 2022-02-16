@@ -38,13 +38,19 @@ class JointNetwork(torch.nn.Module):
         self.joint_activation = get_activation(joint_activation_type)
 
     def forward(
-        self, enc_out: torch.Tensor, dec_out: torch.Tensor, is_aux: bool = False
+        self,
+        enc_out: torch.Tensor,
+        dec_out: torch.Tensor,
+        is_aux: bool = False,
+        quantization: bool = False,
     ) -> torch.Tensor:
         """Joint computation of encoder and decoder hidden state sequences.
 
         Args:
             enc_out: Expanded encoder output state sequences (B, T, 1, D_enc)
             dec_out: Expanded decoder output state sequences (B, 1, U, D_dec)
+            is_aux: Whether auxiliary tasks in used.
+            quantization: Whether dynamic quantization is used.
 
         Returns:
             joint_out: Joint output state sequences. (B, T, U, D_out)
@@ -52,6 +58,12 @@ class JointNetwork(torch.nn.Module):
         """
         if is_aux:
             joint_out = self.joint_activation(enc_out + self.lin_dec(dec_out))
+        elif quantization:
+            joint_out = self.joint_activation(
+                self.lin_enc(enc_out.unsqueeze(0)) + self.lin_dec(dec_out.unsqueeze(0))
+            )
+
+            return self.lin_out(joint_out)[0]
         else:
             joint_out = self.joint_activation(
                 self.lin_enc(enc_out) + self.lin_dec(dec_out)

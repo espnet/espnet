@@ -1,9 +1,9 @@
-"""RNN encoder implementation for transducer model.
+"""RNN encoder implementation for Transducer model.
 
 These classes are based on the ones in espnet.nets.pytorch_backend.rnn.encoders,
 and modified to output intermediate representation based given list of layers as input.
 To do so, RNN class rely on a stack of 1-layer LSTM instead of a multi-layer LSTM.
-The additional outputs are intended to be used with transducer auxiliary tasks.
+The additional outputs are intended to be used with Transducer auxiliary tasks.
 
 
 """
@@ -116,7 +116,9 @@ class RNNP(torch.nn.Module):
                 rnn_input, rnn_len.cpu(), batch_first=True
             )
             rnn = getattr(self, ("birnn" if self.bidir else "rnn") + str(layer))
-            rnn.flatten_parameters()
+
+            if isinstance(rnn, (torch.nn.LSTM, torch.nn.GRU)):
+                rnn.flatten_parameters()
 
             if prev_states is not None and rnn.bidirectional:
                 prev_states = reset_backward_rnn_state(prev_states)
@@ -250,7 +252,9 @@ class RNN(torch.nn.Module):
             )
 
             rnn = getattr(self, ("birnn" if self.bidir else "rnn") + str(layer))
-            rnn.flatten_parameters()
+
+            if isinstance(rnn, (torch.nn.LSTM, torch.nn.GRU)):
+                rnn.flatten_parameters()
 
             if prev_states is not None and rnn.bidirectional:
                 prev_states = reset_backward_rnn_state(prev_states)

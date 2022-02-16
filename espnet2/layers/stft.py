@@ -10,6 +10,8 @@ from typeguard import check_argument_types
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.layers.inversible_interface import InversibleInterface
+import librosa
+import numpy as np
 
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
@@ -88,19 +90,64 @@ class Stft(torch.nn.Module, InversibleInterface):
         else:
             window = None
 
-        # use stft_kwargs to flexibly control different PyTorch versions' kwargs
-        stft_kwargs = dict(
-            n_fft=self.n_fft,
-            win_length=self.win_length,
-            hop_length=self.hop_length,
-            center=self.center,
-            window=window,
-            normalized=self.normalized,
-            onesided=self.onesided,
-        )
-        if is_torch_1_7_plus:
-            stft_kwargs["return_complex"] = False
-        output = torch.stft(input, **stft_kwargs)
+        # For the compatibility of ARM devices, which do not support
+        # torch.stft() due to the lake of MKL.
+        if input.is_cuda or torch.backends.mkl.is_available():
+            stft_kwargs = dict(
+                n_fft=self.n_fft,
+                win_length=self.win_length,
+                hop_length=self.hop_length,
+                center=self.center,
+                window=window,
+                normalized=self.normalized,
+                onesided=self.onesided,
+            )
+            if is_torch_1_7_plus:
+                stft_kwargs["return_complex"] = False
+            output = torch.stft(input, **stft_kwargs)
+        else:
+            if self.training:
+                raise NotImplementedError(
+                    "stft is implemented with librosa on this device, which does not "
+                    "support the training mode."
+                )
+
+            # use stft_kwargs to flexibly control different PyTorch versions' kwargs
+            stft_kwargs = dict(
+                n_fft=self.n_fft,
+                win_length=self.win_length,
+                hop_length=self.hop_length,
+                center=self.center,
+                window=window,
+            )
+
+            if window is not None:
+                # pad the given window to n_fft
+                n_pad_left = (self.n_fft - window.shape[0]) // 2
+                n_pad_right = self.n_fft - window.shape[0] - n_pad_left
+                stft_kwargs["window"] = torch.cat(
+                    [torch.zeros(n_pad_left), window, torch.zeros(n_pad_right)], 0
+                ).numpy()
+            else:
+                win_length = (
+                    self.win_length if self.win_length is not None else self.n_fft
+                )
+                stft_kwargs["window"] = torch.ones(win_length)
+
+            output = []
+            # iterate over istances in a batch
+            for i, instance in enumerate(input):
+                stft = librosa.stft(input[i].numpy(), **stft_kwargs)
+                output.append(torch.tensor(np.stack([stft.real, stft.imag], -1)))
+            output = torch.stack(output, 0)
+            if not self.onesided:
+                len_conj = self.n_fft - output.shape[1]
+                conj = output[:, 1 : 1 + len_conj].flip(1)
+                conj[:, :, :, -1].data *= -1
+                output = torch.cat([output, conj], 1)
+            if self.normalized:
+                output = output * (stft_kwargs["window"].shape[0] ** (-0.5))
+
         # output: (Batch, Freq, Frames, 2=real_imag)
         # -> (Batch, Frames, Freq, 2=real_imag)
         output = output.transpose(1, 2)
@@ -113,10 +160,10 @@ class Stft(torch.nn.Module, InversibleInterface):
 
         if ilens is not None:
             if self.center:
-                pad = self.win_length // 2
+                pad = self.n_fft // 2
                 ilens = ilens + 2 * pad
 
-            olens = (ilens - self.win_length) // self.hop_length + 1
+            olens = (ilens - self.n_fft) // self.hop_length + 1
             output.masked_fill_(make_pad_mask(olens, output, 1), 0.0)
         else:
             olens = None

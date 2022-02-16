@@ -7,7 +7,7 @@
 . ./cmd.sh || exit 1;
 
 # general configuration
-backend=pytorch # chainer or pytorch
+backend=pytorch
 stage=0         # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=1          # number of gpus during training ("0" uses cpu, otherwise use gpu)
@@ -187,19 +187,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 
     # update json (add source references)
-    for x in ${train_set} ${train_dev} fisher_dev.en fisher_dev2.en fisher_test.en; do
+    for x in ${train_set} ${train_dev} ${trans_set}; do
         feat_dir=${dumpdir}/${x}/delta${do_delta}
         data_dir=data/$(echo ${x} | cut -f 1 -d ".").es
         update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
             ${feat_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json ${data_dir} ${dict}
-    done
-    for x in fisher_dev.en fisher_dev2.en fisher_test.en; do
-        feat_dir=${dumpdir}/${x}/delta${do_delta}
-        data_dir=data/$(echo ${x} | cut -f 1 -d ".").es
-        for no in 1 2 3; do
-            update_json.sh --text ${data_dir}/text.${src_case} --bpecode ${bpemodel}.model \
-                ${feat_dir}/data_${bpemode}${nbpe}_${no}.${tgt_case}.json ${data_dir} ${dict}
-        done
     done
 fi
 
@@ -305,7 +297,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
         fi
 
-        local/score_bleu.sh --case ${tgt_case} --set ${x} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+        local/score_bleu.sh --case ${tgt_case} --set ${x} --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} ${dict}
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log

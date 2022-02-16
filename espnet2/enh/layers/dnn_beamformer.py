@@ -87,7 +87,9 @@ class DNN_Beamformer(torch.nn.Module):
             nmask=bnmask,
             nonlinear=nonlinear,
         )
-        self.ref = AttentionReference(bidim, badim) if ref_channel < 0 else None
+        self.ref = (
+            AttentionReference(bidim, badim, eps=eps) if ref_channel < 0 else None
+        )
         self.ref_channel = ref_channel
 
         self.use_noise_mask = use_noise_mask
@@ -282,7 +284,7 @@ class DNN_Beamformer(torch.nn.Module):
                 "wmpdr"
             ) or self.beamformer_type.startswith("wpd"):
                 if powers is None:
-                    power_input = data_d.real ** 2 + data_d.imag ** 2
+                    power_input = data_d.real**2 + data_d.imag**2
                     # Averaging along the channel axis: (..., C, T) -> (..., T)
                     powers = (power_input * mask_speech.double()).mean(dim=-2)
                 else:
@@ -366,7 +368,7 @@ class DNN_Beamformer(torch.nn.Module):
                 "wmpdr"
             ) or self.beamformer_type.startswith("wpd"):
                 if powers is None:
-                    power_input = data_d.real ** 2 + data_d.imag ** 2
+                    power_input = data_d.real**2 + data_d.imag**2
                     # Averaging along the channel axis: (..., C, T) -> (..., T)
                     powers = [
                         (power_input * m.double()).mean(dim=-2) for m in mask_speech
@@ -492,10 +494,11 @@ class DNN_Beamformer(torch.nn.Module):
 
 
 class AttentionReference(torch.nn.Module):
-    def __init__(self, bidim, att_dim):
+    def __init__(self, bidim, att_dim, eps=1e-6):
         super().__init__()
         self.mlp_psd = torch.nn.Linear(bidim, att_dim)
         self.gvec = torch.nn.Linear(att_dim, 1)
+        self.eps = eps
 
     def forward(
         self,
@@ -523,7 +526,7 @@ class AttentionReference(torch.nn.Module):
         psd = (psd.sum(dim=-1) / (C - 1)).transpose(-1, -2)
 
         # Calculate amplitude
-        psd_feat = (psd.real ** 2 + psd.imag ** 2) ** 0.5
+        psd_feat = (psd.real**2 + psd.imag**2 + self.eps) ** 0.5
 
         # (B, C, F) -> (B, C, F2)
         mlp_psd = self.mlp_psd(psd_feat)

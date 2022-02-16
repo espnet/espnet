@@ -32,6 +32,7 @@ skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
 skip_upload=true     # Skip packing and uploading stages.
+skip_upload_hf=true # Skip uploading to hugging face stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
@@ -49,7 +50,6 @@ feats_type=raw             # Input feature type.
 audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 min_wav_duration=0.1       # Minimum duration in second.
 max_wav_duration=20        # Maximum duration in second.
-use_xvector=false          # Whether to use x-vector (Require Kaldi).
 use_sid=false              # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 use_lid=false              # Whether to use language id as the inputs (Need utt2lang in data directory).
 feats_extract=fbank        # On-the-fly feature extractor.
@@ -64,6 +64,11 @@ n_mels=80                  # The number of mel basis.
 # Only used for the model using pitch & energy features (e.g. FastSpeech2)
 f0min=80  # Maximum f0 for pitch extraction.
 f0max=400 # Minimum f0 for pitch extraction.
+
+# X-Vector related
+use_xvector=false   # Whether to use x-vector.
+xvector_tool=kaldi  # Toolkit for extracting x-vector (speechbrain, espnet, kaldi)
+xvector_model=speechbrain/spkrec-ecapa-voxceleb  # For only espnet or speechbrain
 
 # Vocabulary related
 oov="<unk>"         # Out of vocabrary symbol.
@@ -109,6 +114,9 @@ lang=noinfo      # The language type of corpus.
 text_fold_length=150   # fold_length for text data.
 speech_fold_length=800 # fold_length for speech data.
 
+# Upload model related
+hf_repo=
+
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>" --srctexts "<srctexts>"
 
@@ -137,7 +145,9 @@ Options:
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
-    --use_xvector      # Whether to use X-vector (Require Kaldi, default="${use_xvector}").
+    --use_xvector      # Whether to use X-vector (default="${use_xvector}").
+    --xvector_tool     # Toolkit for generating the X-vectors (default="${xvector_tool}").
+    --xvector_model    # Pretrained model to generate the X-vectors (default="${xvector_model}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
     --use_lid          # Whether to use language id as the inputs (default="${use_lid}").
     --feats_extract    # On the fly feature extractor (default="${feats_extract}").
@@ -166,7 +176,9 @@ Options:
     --tts_stats_dir # Specify the directory path for statistics.
                     # If empty, automatically decided (default="${tts_stats_dir}").
     --num_splits    # Number of splitting for tts corpus (default="${num_splits}").
+    --teacher_dumpdir       # Directory of teacher outputs (needed if tts=fastspeech, default="${teacher_dumpdir}").
     --write_collected_feats # Whether to dump features in statistics collection (default="${write_collected_feats}").
+    --tts_task              # TTS task {tts or gan_tts} (default="${tts_task}").
 
     # Decoding related
     --inference_config  # Config for decoding (default="${inference_config}").
@@ -330,60 +342,72 @@ if ! "${skip_data_prep}"; then
 
         # Extract X-vector
         if "${use_xvector}"; then
-            log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector (Require Kaldi)"
-            # Download X-vector pretrained model
-            xvector_exp=${expdir}/xvector_nnet_1a
-            if [ ! -e "${xvector_exp}" ]; then
-                log "X-vector model does not exist. Download pre-trained model."
-                wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
-                tar xvf 0008_sitw_v2_1a.tar.gz
-                [ ! -e "${expdir}" ] && mkdir -p "${expdir}"
-                mv 0008_sitw_v2_1a/exp/xvector_nnet_1a "${xvector_exp}"
-                rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
-            fi
-
-            # Generate the MFCC features, VAD decision, and X-vector
-            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-                # 1. Copy datadir and resample to 16k
-                utils/copy_data_dir.sh "data/${dset}" "${dumpdir}/mfcc/${dset}"
-                utils/data/resample_data_dir.sh 16000 "${dumpdir}/mfcc/${dset}"
-
-                # 2. Extract mfcc features
-                _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/utt2spk wc -l)")
-                steps/make_mfcc.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                    --write-utt2num-frames true \
-                    --mfcc-config conf/mfcc.conf \
-                    "${dumpdir}/mfcc/${dset}"
-                utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
-
-                # 3. Compute VAD decision
-                _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/spk2utt wc -l)")
-                sid/compute_vad_decision.sh --nj ${_nj} --cmd "${train_cmd}" \
-                    --vad-config conf/vad.conf \
-                    "${dumpdir}/mfcc/${dset}"
-                utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
-
-                # 4. Extract X-vector
-                sid/nnet3/xvector/extract_xvectors.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                    "${xvector_exp}" \
-                    "${dumpdir}/mfcc/${dset}" \
-                    "${dumpdir}/xvector/${dset}"
-
-                # 5. Filter scp
-                # NOTE(kan-bayashi): Since sometimes mfcc or x-vector extraction is failed,
-                #   the number of utts will be different from the original features (raw or fbank).
-                #   To avoid this mismatch, perform filtering of the original feature scp here.
-                if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                    _suf="/org"
-                else
-                    _suf=""
+            if [ "${xvector_tool}" = "kaldi" ]; then
+                log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector (Require Kaldi)"
+                # Download X-vector pretrained model
+                xvector_exp=${expdir}/xvector_nnet_1a
+                if [ ! -e "${xvector_exp}" ]; then
+                    log "X-vector model does not exist. Download pre-trained model."
+                    wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
+                    tar xvf 0008_sitw_v2_1a.tar.gz
+                    [ ! -e "${expdir}" ] && mkdir -p "${expdir}"
+                    mv 0008_sitw_v2_1a/exp/xvector_nnet_1a "${xvector_exp}"
+                    rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
                 fi
-                cp "${data_feats}${_suf}/${dset}"/wav.{scp,scp.bak}
-                <"${data_feats}${_suf}/${dset}/wav.scp.bak" \
-                    utils/filter_scp.pl "${dumpdir}/xvector/${dset}/xvector.scp" \
-                    >"${data_feats}${_suf}/${dset}/wav.scp"
-                utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
-            done
+
+                # Generate the MFCC features, VAD decision, and X-vector
+                for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                    # 1. Copy datadir and resample to 16k
+                    utils/copy_data_dir.sh "data/${dset}" "${dumpdir}/mfcc/${dset}"
+                    utils/data/resample_data_dir.sh 16000 "${dumpdir}/mfcc/${dset}"
+
+                    # 2. Extract mfcc features
+                    _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/utt2spk wc -l)")
+                    steps/make_mfcc.sh --nj "${_nj}" --cmd "${train_cmd}" \
+                        --write-utt2num-frames true \
+                        --mfcc-config conf/mfcc.conf \
+                        "${dumpdir}/mfcc/${dset}"
+                    utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
+
+                    # 3. Compute VAD decision
+                    _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/spk2utt wc -l)")
+                    sid/compute_vad_decision.sh --nj ${_nj} --cmd "${train_cmd}" \
+                        --vad-config conf/vad.conf \
+                        "${dumpdir}/mfcc/${dset}"
+                    utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
+
+                    # 4. Extract X-vector
+                    sid/nnet3/xvector/extract_xvectors.sh --nj "${_nj}" --cmd "${train_cmd}" \
+                        "${xvector_exp}" \
+                        "${dumpdir}/mfcc/${dset}" \
+                        "${dumpdir}/xvector/${dset}"
+
+                    # 5. Filter scp
+                    # NOTE(kan-bayashi): Since sometimes mfcc or x-vector extraction is failed,
+                    #   the number of utts will be different from the original features (raw or fbank).
+                    #   To avoid this mismatch, perform filtering of the original feature scp here.
+                    if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                        _suf="/org"
+                    else
+                        _suf=""
+                    fi
+                    cp "${data_feats}${_suf}/${dset}"/wav.{scp,scp.bak}
+                    <"${data_feats}${_suf}/${dset}/wav.scp.bak" \
+                        utils/filter_scp.pl "${dumpdir}/xvector/${dset}/xvector.scp" \
+                        >"${data_feats}${_suf}/${dset}/wav.scp"
+                    utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
+                done
+            else
+                # Assume that others toolkits are python-based
+                log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector using python toolkits"
+                for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                    pyscripts/utils/extract_xvectors.py \
+                        --pretrained_model ${xvector_model} \
+                        --toolkit ${xvector_tool} \
+                        ${data_feats}/${dset} \
+                        ${dumpdir}/xvector/${dset}
+                done
+            fi
         fi
 
         # Prepare spk id input
@@ -423,7 +447,7 @@ if ! "${skip_data_prep}"; then
                     # NOTE(kan-bayashi): 0 is reserved for unknown languages
                     echo "<unk> 0" > "${data_feats}${_suf}/${dset}/lang2lid"
                     cut -f 2 -d " " "${data_feats}${_suf}/${dset}/utt2lang" | sort | uniq | \
-                        awk '{print $1 " " NR}' >> "${data_feats}${_suf}/${dset}/utt2lid"
+                        awk '{print $1 " " NR}' >> "${data_feats}${_suf}/${dset}/lang2lid"
                 fi
                 # NOTE(kan-bayashi): We can reuse the same script for making utt2sid
                 pyscripts/utils/utt2spk_to_utt2sid.py \
@@ -486,11 +510,7 @@ if ! "${skip_data_prep}"; then
                     utils/filter_scp.pl "${data_feats}/${dset}/wav.scp"  \
                     >"${dumpdir}/xvector/${dset}/xvector.scp"
             fi
-
         done
-
-        # shellcheck disable=SC2002
-        cat ${srctexts} | awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
     fi
 
 
@@ -500,6 +520,9 @@ if ! "${skip_data_prep}"; then
 
         # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
         # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+
+        # shellcheck disable=SC2002
+        cat ${srctexts} | awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
 
         ${python} -m espnet2.bin.tokenize_text \
               --token_type "${token_type}" -f 2- \
@@ -1044,9 +1067,11 @@ fi
 
 
 packed_model="${tts_exp}/${tts_exp##*/}_${inference_model%.*}.zip"
-if ! "${skip_upload}"; then
+if [ -z "${download_model}" ]; then
+    # Skip pack preparation if using a downloaded model
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         log "Stage 8: Pack model: ${packed_model}"
+        log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         _opts=""
         if [ -e "${tts_stats_dir}/train/feats_stats.npz" ]; then
@@ -1081,8 +1106,9 @@ if ! "${skip_upload}"; then
         #   % unzip ${packed_model}
         #   % ./run.sh --stage 8 --tts_exp $(basename ${packed_model} .zip) --inference_model pretrain.pth
     fi
+fi
 
-
+if ! "${skip_upload}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         log "Stage 9: Upload model to Zenodo: ${packed_model}"
 
@@ -1137,7 +1163,59 @@ EOF
             --publish false
     fi
 else
-    log "Skip the uploading stages"
+    log "Skip the uploading stage"
+fi
+
+if ! "${skip_upload_hf}"; then
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        [ -z "${hf_repo}" ] && \
+            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        log "Stage 10: Upload model to HuggingFace: ${hf_repo}"
+
+        gitlfs=$(git lfs --version 2> /dev/null || true)
+        [ -z "${gitlfs}" ] && \
+            log "ERROR: You need to install git-lfs first" && \
+            exit 1
+
+        dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+        [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/asr1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # copy files in ${dir_repo}
+        unzip -o ${packed_model} -d ${dir_repo}
+        # Generate description file
+        # shellcheck disable=SC2034
+        hf_task=text-to-speech
+        # shellcheck disable=SC2034
+        espnet_task=TTS
+        # shellcheck disable=SC2034
+        task_exp=${tts_exp}
+        eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+        this_folder=${PWD}
+        cd ${dir_repo}
+        if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Update model"
+        fi
+        git push
+        cd ${this_folder}
+    fi
+else
+    log "Skip the uploading to HuggingFace stage"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

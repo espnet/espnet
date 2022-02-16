@@ -27,7 +27,6 @@ import torch.optim
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 from typeguard import check_return_type
-import wandb
 import yaml
 
 from espnet import __version__
@@ -72,6 +71,11 @@ from espnet2.utils.types import str_or_int
 from espnet2.utils.types import str_or_none
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 
+try:
+    import wandb
+except Exception:
+    wandb = None
+
 if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
     from torch.multiprocessing.spawn import ProcessContext
 else:
@@ -90,6 +94,11 @@ optim_classes = dict(
     rmsprop=torch.optim.RMSprop,
     rprop=torch.optim.Rprop,
 )
+if LooseVersion(torch.__version__) >= LooseVersion("1.10.0"):
+    # From 1.10.0, RAdam is officially supported
+    optim_classes.update(
+        radam=torch.optim.RAdam,
+    )
 try:
     import torch_optimizer
 
@@ -104,10 +113,14 @@ try:
         # torch_optimizer<=0.0.1a10 doesn't support
         # qhadam=torch_optimizer.QHAdam,
         qhm=torch_optimizer.QHM,
-        radam=torch_optimizer.RAdam,
         sgdw=torch_optimizer.SGDW,
         yogi=torch_optimizer.Yogi,
     )
+    if LooseVersion(torch_optimizer.__version__) < LooseVersion("0.2.0"):
+        # From 0.2.0, RAdam is dropped
+        optim_classes.update(
+            radam=torch_optimizer.RAdam,
+        )
     del torch_optimizer
 except ImportError:
     pass
@@ -489,6 +502,12 @@ class AbsTask(ABC):
             help="Remove previous snapshots excluding the n-best scored epochs",
         )
         group.add_argument(
+            "--nbest_averaging_interval",
+            type=int,
+            default=0,
+            help="The epoch interval to apply model averaging and save nbest models",
+        )
+        group.add_argument(
             "--grad_clip",
             type=float,
             default=5.0,
@@ -545,6 +564,12 @@ class AbsTask(ABC):
             help="Show the logs every the number iterations in each epochs at the "
             "training phase. If None is given, it is decided according the number "
             "of training samples automatically .",
+        )
+        group.add_argument(
+            "--use_matplotlib",
+            type=str2bool,
+            default=True,
+            help="Enable matplotlib logging",
         )
         group.add_argument(
             "--use_tensorboard",
@@ -1230,6 +1255,10 @@ class AbsTask(ABC):
                 distributed_option=distributed_option,
                 mode="valid",
             )
+            if not args.use_matplotlib and args.num_att_plot != 0:
+                args.num_att_plot = 0
+                logging.info("--use_matplotlib false => Changing --num_att_plot to 0")
+
             if args.num_att_plot != 0:
                 plot_attention_iter_factory = cls.build_iter_factory(
                     args=args,
@@ -1241,6 +1270,9 @@ class AbsTask(ABC):
 
             # 8. Start training
             if args.use_wandb:
+                if wandb is None:
+                    raise RuntimeError("Please install wandb")
+
                 try:
                     wandb.login()
                 except wandb.errors.UsageError:

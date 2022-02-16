@@ -30,6 +30,7 @@ if [ $# != 1 ]; then
 fi
 
 # check speakers
+# shellcheck disable=SC2048
 if ! eval "$(echo ${available_spks[*]} | grep -q ${spk})"; then
     echo "Specified spk (${spk}) is not available or not supported." >&2
     exit 2

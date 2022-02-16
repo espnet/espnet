@@ -29,6 +29,7 @@ skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
 skip_upload=true     # Skip packing and uploading stages.
+skip_upload_hf=true  # Skip uploading to hugging face stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
@@ -89,11 +90,26 @@ asr_stats_dir= # Specify the directory path for ASR statistics.
 asr_config=    # Config for asr model training.
 asr_args=      # Arguments for asr model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in asr config.
+pretrained_model=              # Pretrained model to load
+ignore_init_mismatch=false      # Ignore initial mismatch
 feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_asr=1           # Number of splitting for lm corpus.
 
+# Upload model related
+hf_repo=
+
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
+k2_ctc_decoding=true
+use_nbest_rescoring=true # use transformer-decoder
+                         # and transformer language model for nbest rescoring
+num_paths=1000 # The 3rd argument of k2.random_paths.
+nll_batch_size=100 # Affect GPU memory usage when computing nll
+                   # during nbest rescoring
+k2_config=./conf/decode_asr_transformer_with_k2.yaml
+
+use_streaming=false # Whether to use streaming decoding
+
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -193,6 +209,8 @@ Options:
     --asr_args         # Arguments for asr model training (default="${asr_args}").
                        # e.g., --asr_args "--max_epoch 10"
                        # Note that it will overwrite args in asr config.
+    --pretrained_model=          # Pretrained model to load (default="${pretrained_model}").
+    --ignore_init_mismatch=      # Ignore mismatch parameter init with pretrained model (default="${ignore_init_mismatch}").
     --feats_normalize  # Normalizaton layer type (default="${feats_normalize}").
     --num_splits_asr   # Number of splitting for lm corpus  (default="${num_splits_asr}").
 
@@ -205,6 +223,7 @@ Options:
     --inference_lm        # Language model path for decoding (default="${inference_lm}").
     --inference_asr_model # ASR model path for decoding (default="${inference_asr_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
+    --use_streaming       # Whether to use streaming decoding (default="${use_streaming}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -409,6 +428,8 @@ if [ -z "${inference_tag}" ]; then
 
     if "${use_k2}"; then
       inference_tag+="_use_k2"
+      inference_tag+="_k2_ctc_decoding_${k2_ctc_decoding}"
+      inference_tag+="_use_nbest_rescoring_${use_nbest_rescoring}"
     fi
 fi
 
@@ -873,7 +894,7 @@ if ! "${skip_train}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         if "${use_ngram}"; then
             log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
-            cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
+            cut -f 2- -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
             build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
         else
             log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
@@ -1085,6 +1106,8 @@ if ! "${skip_train}"; then
                 --valid_shape_file "${asr_stats_dir}/valid/speech_shape" \
                 --valid_shape_file "${asr_stats_dir}/valid/text_shape.${token_type}" \
                 --resume true \
+                --init_param ${pretrained_model} \
+                --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${_fold_length}" \
                 --fold_length "${asr_text_fold_length}" \
                 --output_dir "${asr_exp}" \
@@ -1160,6 +1183,22 @@ if ! "${skip_eval}"; then
         # 2. Generate run.sh
         log "Generate '${asr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
         mkdir -p "${asr_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${asr_exp}/${inference_tag}/run.sh"; chmod +x "${asr_exp}/${inference_tag}/run.sh"
+        if "${use_k2}"; then
+          # Now only _nj=1 is verified if using k2
+          asr_inference_tool="espnet2.bin.asr_inference_k2"
+
+          _opts+="--is_ctc_decoding ${k2_ctc_decoding} "
+          _opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
+          _opts+="--num_paths ${num_paths} "
+          _opts+="--nll_batch_size ${nll_batch_size} "
+          _opts+="--k2_config ${k2_config} "
+        else
+          if "${use_streaming}"; then
+              asr_inference_tool="espnet2.bin.asr_inference_streaming"
+          else
+              asr_inference_tool="espnet2.bin.asr_inference"
+          fi
+        fi
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
@@ -1184,12 +1223,10 @@ if ! "${skip_eval}"; then
             key_file=${_data}/${_scp}
             split_scps=""
             if "${use_k2}"; then
-              # Now only _nj=1 is verified
+              # Now only _nj=1 is verified if using k2
               _nj=1
-              asr_inference_tool="espnet2.bin.k2_asr_inference"
             else
               _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-              asr_inference_tool="espnet2.bin.asr_inference"
             fi
 
             for n in $(seq "${_nj}"); do
@@ -1214,9 +1251,11 @@ if ! "${skip_eval}"; then
 
             # 3. Concatenates the output files from each jobs
             for f in token token_int score text; do
-                for i in $(seq "${_nj}"); do
-                    cat "${_logdir}/output.${i}/1best_recog/${f}"
-                done | LC_ALL=C sort -k1 >"${_dir}/${f}"
+                if [ -f "${_logdir}/output.1/1best_recog/${f}" ]; then
+                  for i in $(seq "${_nj}"); do
+                      cat "${_logdir}/output.${i}/1best_recog/${f}"
+                  done | sort -k1 >"${_dir}/${f}"
+                fi
             done
         done
     fi
@@ -1342,7 +1381,8 @@ fi
 
 
 packed_model="${asr_exp}/${asr_exp##*/}_${inference_asr_model%.*}.zip"
-if ! "${skip_upload}"; then
+if [ -z "${download_model}" ]; then
+    # Skip pack preparation if using a downloaded model
     if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
         log "Stage 14: Pack model: ${packed_model}"
 
@@ -1372,10 +1412,12 @@ if ! "${skip_upload}"; then
             --option "${asr_exp}"/images \
             --outpath "${packed_model}"
     fi
+fi
 
-
+if ! "${skip_upload}"; then
     if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
         log "Stage 15: Upload model to Zenodo: ${packed_model}"
+        log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/
@@ -1430,7 +1472,59 @@ EOF
             --publish false
     fi
 else
-    log "Skip the uploading stages"
+    log "Skip the uploading stage"
+fi
+
+if ! "${skip_upload_hf}"; then
+    if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ]; then
+        [ -z "${hf_repo}" ] && \
+            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
+
+        gitlfs=$(git lfs --version 2> /dev/null || true)
+        [ -z "${gitlfs}" ] && \
+            log "ERROR: You need to install git-lfs first" && \
+            exit 1
+
+        dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+        [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/asr1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # copy files in ${dir_repo}
+        unzip -o ${packed_model} -d ${dir_repo}
+        # Generate description file
+        # shellcheck disable=SC2034
+        hf_task=automatic-speech-recognition
+        # shellcheck disable=SC2034
+        espnet_task=ASR
+        # shellcheck disable=SC2034
+        task_exp=${asr_exp}
+        eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+        this_folder=${PWD}
+        cd ${dir_repo}
+        if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Update model"
+        fi
+        git push
+        cd ${this_folder}
+    fi
+else
+    log "Skip the uploading to HuggingFace stage"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

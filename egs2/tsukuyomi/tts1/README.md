@@ -200,7 +200,7 @@ $ ls downloads/f3698edf589206588f58f5ec837fa516/exp/exp/tts_train_vits_raw_phn_j
 config.yaml  images  train.total_count.ave_10best.pth
 ```
 
-Let us replace the `tokens.txt` and `feats_stats.npz` with pretrained model's one.
+Let us replace the `tokens.txt` with pretrained model's one.
 ```sh
 # Make backup (Rename -> *.bak)
 $ mv dump/22k/token_list/phn_jaconv_pyopenjtalk_accent_with_pause/tokens.{txt,txt.bak}
@@ -230,3 +230,50 @@ $ ./run.sh \
     --train_args "--init_param downloads/f3698edf589206588f58f5ec837fa516/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause/train.total_count.ave_10best.pth:tts:tts" \
     --tag finetune_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause
 ```
+
+
+# INITIAL RESULTS
+
+- 44.1 kHz VITS adaptation
+
+## Environments
+
+- date: `Wed Sep 22 22:46:46 JST 2021`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.10.3a2`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `628b46282537ce532d613d6bafb75e826e8455de`
+  - Commit date: `Wed Sep 8 13:30:50 2021 +0900`
+
+## Pretrained Models
+
+### tsukuyomi_tts_finetune_full_band_jsut_vits_raw_phn_jaconv_pyopenjtalk_prosody_latest
+
+<details><summary>Command</summary><div>
+
+```sh
+# assume that finish the stage 5 and replace the token list
+./run.sh \
+    --stage 6 \
+    --min_wav_duration 0.38 \
+    --ngpu 4 \
+    --fs 44100 \
+    --n_fft 2048 \
+    --n_shift 512 \
+    --dumpdir dump/44k \
+    --expdir exp/44k \
+    --win_length null \
+    --tts_task gan_tts \
+    --feats_extract linear_spectrogram \
+    --feats_normalize none \
+    --train_config ./conf/tuning/finetune_full_band_vits.yaml \
+    --tag finetune_full_band_jsut_vits_raw_phn_jaconv_pyopenjtalk_prosody \
+    --train_args " --init_param ../../jsut/tts1/exp/44k/tts_train_full_band_vits_raw_phn_jaconv_pyopenjtalk_prosody/latest.pth:tts:tts" \
+    --g2p pyopenjtalk_prosody \
+    --inference_model latest.pth
+```
+
+</div></details>
+
+- 44.1 kHz / 100k iters / Adaptation from JSUT model
+- https://zenodo.org/record/5521446

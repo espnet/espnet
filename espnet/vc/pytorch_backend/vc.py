@@ -42,12 +42,7 @@ from espnet.utils.training.train_utils import set_early_stop
 
 from espnet.utils.training.iterators import ShufflingEnabler
 
-import matplotlib
-
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
-
-matplotlib.use("Agg")
 
 
 class CustomEvaluator(BaseEvaluator):
@@ -357,7 +352,10 @@ def train(args):
         from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
-            model, args.adim, args.transformer_warmup_steps, args.transformer_lr
+            model.parameters(),
+            args.adim,
+            args.transformer_warmup_steps,
+            args.transformer_lr,
         )
     elif args.opt == "lamb":
         from pytorch_lamb import Lamb
@@ -546,6 +544,8 @@ def train(args):
 
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        from torch.utils.tensorboard import SummaryWriter
+
         writer = SummaryWriter(args.tensorboard_dir)
         trainer.extend(TensorboardLogger(writer, att_reporter), trigger=report_interval)
 
@@ -608,6 +608,9 @@ def decode(args):
 
     # define function for plot prob and att_ws
     def _plot_and_save(array, figname, figsize=(6, 4), dpi=150):
+        import matplotlib
+
+        matplotlib.use("Agg")
         import matplotlib.pyplot as plt
 
         shape = array.shape

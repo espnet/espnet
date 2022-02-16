@@ -50,12 +50,12 @@ class Encoder(torch.nn.Module):
         attention_dim (int): Dimension of attention.
         attention_heads (int): The number of heads of multi head attention.
         conv_wshare (int): The number of kernel of convolution. Only used in
-            self_attention_layer_type == "lightconv*" or "dynamiconv*".
+            selfattention_layer_type == "lightconv*" or "dynamiconv*".
         conv_kernel_length (Union[int, str]): Kernel size str of convolution
-            (e.g. 71_71_71_71_71_71). Only used in self_attention_layer_type
+            (e.g. 71_71_71_71_71_71). Only used in selfattention_layer_type
             == "lightconv*" or "dynamiconv*".
         conv_usebias (bool): Whether to use bias in convolution. Only used in
-            self_attention_layer_type == "lightconv*" or "dynamiconv*".
+            selfattention_layer_type == "lightconv*" or "dynamiconv*".
         linear_units (int): The number of units of position-wise feed forward.
         num_blocks (int): The number of decoder blocks.
         dropout_rate (float): Dropout rate.
@@ -104,6 +104,8 @@ class Encoder(torch.nn.Module):
         padding_idx=-1,
         stochastic_depth_rate=0.0,
         intermediate_layers=None,
+        ctc_softmax=None,
+        conditioning_layer_dim=None,
     ):
         """Construct an Encoder object."""
         super(Encoder, self).__init__()
@@ -256,6 +258,12 @@ class Encoder(torch.nn.Module):
             self.after_norm = LayerNorm(attention_dim)
 
         self.intermediate_layers = intermediate_layers
+        self.use_conditioning = True if ctc_softmax is not None else False
+        if self.use_conditioning:
+            self.ctc_softmax = ctc_softmax
+            self.conditioning_layer = torch.nn.Linear(
+                conditioning_layer_dim, attention_dim
+            )
 
     def get_positionwise_layer(
         self,
@@ -325,6 +333,10 @@ class Encoder(torch.nn.Module):
                     if self.normalize_before:
                         encoder_output = self.after_norm(encoder_output)
                     intermediate_outputs.append(encoder_output)
+
+                    if self.use_conditioning:
+                        intermediate_result = self.ctc_softmax(encoder_output)
+                        xs = xs + self.conditioning_layer(intermediate_result)
 
         if self.normalize_before:
             xs = self.after_norm(xs)
