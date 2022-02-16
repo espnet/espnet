@@ -1,4 +1,6 @@
+from distutils.version import LooseVersion
 from typing import Tuple
+from typing import Union
 
 import numpy as np
 import torch
@@ -8,6 +10,10 @@ from torch_complex.tensor import ComplexTensor
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.rnn.encoders import RNN
 from espnet.nets.pytorch_backend.rnn.encoders import RNNP
+from espnet2.enh.layers.complex_utils import is_complex
+
+
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
 class MaskEstimator(torch.nn.Module):
@@ -35,9 +41,9 @@ class MaskEstimator(torch.nn.Module):
         self.nonlinear = nonlinear
 
     def forward(
-        self, xs: ComplexTensor, ilens: torch.LongTensor
+        self, xs: Union[torch.Tensor, ComplexTensor], ilens: torch.LongTensor
     ) -> Tuple[Tuple[torch.Tensor, ...], torch.LongTensor]:
-        """The forward function
+        """Mask estimator forward function.
 
         Args:
             xs: (B, F, C, T)
@@ -53,7 +59,8 @@ class MaskEstimator(torch.nn.Module):
         xs = xs.permute(0, 2, 3, 1)
 
         # Calculate amplitude: (B, C, T, F) -> (B, C, T, F)
-        xs = (xs.real ** 2 + xs.imag ** 2) ** 0.5
+        if is_complex(xs):
+            xs = (xs.real**2 + xs.imag**2) ** 0.5
         # xs: (B, C, T, F) -> xs: (B * C, T, F)
         xs = xs.contiguous().view(-1, xs.size(-2), xs.size(-1))
         # ilens: (B,) -> ilens_: (B * C)

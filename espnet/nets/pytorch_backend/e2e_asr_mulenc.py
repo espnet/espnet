@@ -12,7 +12,6 @@ import os
 
 import chainer
 from chainer import reporter
-import editdistance
 import numpy as np
 import torch
 
@@ -25,6 +24,7 @@ from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
+from espnet.nets.pytorch_backend.rnn.encoders import Encoder
 from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.utils.cli_utils import strtobool
@@ -310,6 +310,17 @@ class E2E(ASRInterface, torch.nn.Module):
         )
         return parser
 
+    def get_total_subsampling_factor(self):
+        """Get total subsampling factor."""
+        if isinstance(self.enc, Encoder):
+            return self.enc.conv_subsampling_factor * int(
+                np.prod(self.subsample_list[0])
+            )
+        else:
+            return self.enc[0].conv_subsampling_factor * int(
+                np.prod(self.subsample_list[0])
+            )
+
     def __init__(self, idims, odim, args):
         """Initialize this class with python-level args.
 
@@ -481,6 +492,8 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: loss value
         :rtype: torch.Tensor
         """
+        import editdistance
+
         if self.replace_sos:
             tgt_lang_ids = ys_pad[:, 0:1]
             ys_pad = ys_pad[:, 1:]  # remove target language ID in the beginning
@@ -827,7 +840,7 @@ class E2E(ASRInterface, torch.nn.Module):
             # 1. Encoder
             if self.replace_sos:
                 tgt_lang_ids = ys_pad[:, 0:1]
-                ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
+                ys_pad = ys_pad[:, 1:]  # remove target language ID in the beginning
             else:
                 tgt_lang_ids = None
 

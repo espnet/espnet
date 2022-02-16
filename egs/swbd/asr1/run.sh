@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -114,8 +114,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # remove utt having > 2000 frames or < 10 frames or
     # remove utt having > 400 characters or 0 characters
-    remove_longshortdata.sh --maxchars 400 data/train data/train_nodup_trim
-    remove_longshortdata.sh --maxchars 400 data/dev data/${train_dev}
+    remove_longshortdata.sh --maxchars 400 data/train_nodup data/train_nodup_trim
+    remove_longshortdata.sh --maxchars 400 data/train_dev data/${train_dev}
 
     # speed-perturbed
     utils/perturb_data_dir_speed.sh 0.9 data/train_nodup_trim data/temp1
@@ -164,10 +164,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "<unk> 1" > ${dict} # <unk> must be 1, 0 will be used for "blank" in CTC
 
     # map acronym such as p._h._d. to p h d for train_set& dev_set
-    cp data/${train_set}/text data/${train_set}/text.backup
-    cp data/${train_dev}/text data/${train_dev}/text.backup
-    sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/${train_set}/text
-    sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/${train_dev}/text
+    cp data/${train_set}/text data/${train_set}/text.tmp
+    cp data/${train_dev}/text data/${train_dev}/text.tmp
+    sed -i 's/\._/ /g; s/them_1/them/g' data/${train_set}/text.tmp
+    sed -i 's/\._/ /g; s/them_1/them/g' data/${train_dev}/text.tmp
+    # remove . from second columns, skiping first column, which includes sp0.9, sp1.1 etc.
+    awk -F " " '{for(i=2;i<=NF;++i) gsub(/\._|\./,"",$i)}1' data/${train_set}/text.tmp > data/${train_set}/text
+    awk -F " " '{for(i=2;i<=NF;++i) gsub(/\._|\./,"",$i)}1' data/${train_dev}/text.tmp > data/${train_dev}/text
     if [ -n "${fisher_dir}" ]; then
         cp data/train_fisher/text data/train_fisher/text.backup
         sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/train_fisher/text
@@ -193,7 +196,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
 
     echo "make json files"
-    data2json.sh --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
+    data2json.sh --nj ${nj} --feat ${feat_tr_dir}/feats.scp --bpecode ${bpemodel}.model \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
     data2json.sh --feat ${feat_dt_dir}/feats.scp --bpecode ${bpemodel}.model \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.json
@@ -284,8 +287,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     nj=32
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
            [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
-           [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
-           [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then
+           [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
         recog_model=model.last${n_average}.avg.best
         average_checkpoints.py --backend ${backend} \
                     --snapshots ${expdir}/results/snapshot.ep.* \

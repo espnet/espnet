@@ -75,10 +75,56 @@ def test_lm():
     [
         (nn, args, device, dtype)
         for nn, args in (
+            (
+                "default",
+                dict(
+                    type="lstm", layer=2, unit=2, dropout_rate=0.5, emb_dropout_rate=0.3
+                ),
+            ),
+            (
+                "default",
+                dict(type="lstm", layer=2, unit=2, dropout_rate=0.5, tie_weights=True),
+            ),
             ("default", dict(type="lstm", layer=2, unit=2, dropout_rate=0.5)),
             ("default", dict(type="gru", layer=2, unit=2, dropout_rate=0.5)),
             ("seq_rnn", dict(type="lstm", layer=2, unit=2, dropout_rate=0.5)),
             ("seq_rnn", dict(type="gru", layer=2, unit=2, dropout_rate=0.5)),
+            (
+                "transformer",
+                dict(
+                    layer=2,
+                    unit=2,
+                    att_unit=2,
+                    head=2,
+                    dropout_rate=0.5,
+                    embed_unit=2,
+                    tie_weights=True,
+                ),
+            ),
+            (
+                "transformer",
+                dict(
+                    layer=2,
+                    unit=2,
+                    att_unit=2,
+                    head=2,
+                    dropout_rate=0.5,
+                    embed_unit=3,
+                    emb_dropout_rate=0.3,
+                ),
+            ),
+            (
+                "transformer",
+                dict(
+                    layer=2,
+                    unit=2,
+                    att_unit=2,
+                    head=2,
+                    dropout_rate=0.5,
+                    embed_unit=3,
+                    att_dropout_rate=0.3,
+                ),
+            ),
             (
                 "transformer",
                 dict(

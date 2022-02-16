@@ -3,7 +3,7 @@
 # Copyright 2020 Wen-Chin Huang and Tomoki Hayashi
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Evaluate MCD between generated and groundtruth audios."""
+"""Evaluate MCD between generated and groundtruth audios with SPTK-based mcep."""
 
 import argparse
 import fnmatch
@@ -178,23 +178,20 @@ def calculate(
 
 def get_parser() -> argparse.Namespace:
     """Get argument parser."""
-    parser = argparse.ArgumentParser(description="Evaluate Mel-cepstrum distorsion.")
+    parser = argparse.ArgumentParser(description="Evaluate Mel-cepstrum distortion.")
     parser.add_argument(
-        "--wavdir",
-        required=True,
+        "gen_wavdir_or_wavscp",
         type=str,
-        help="Path of directory for generated waveforms.",
+        help="Path of directory or wav.scp for generated waveforms.",
     )
     parser.add_argument(
-        "--gt_wavdir",
-        required=True,
+        "gt_wavdir_or_wavscp",
         type=str,
-        help="Path of directory for ground truth waveforms.",
+        help="Path of directory or wav.scp for ground truth waveforms.",
     )
     parser.add_argument(
         "--outdir",
         type=str,
-        default=None,
         help="Path of directory to write the results.",
     )
 
@@ -218,13 +215,22 @@ def get_parser() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        "--n_fft", default=1024, type=int, help="The number of FFT points."
+        "--n_fft",
+        default=1024,
+        type=int,
+        help="The number of FFT points.",
     )
     parser.add_argument(
-        "--n_shift", default=256, type=int, help="The number of shift points."
+        "--n_shift",
+        default=256,
+        type=int,
+        help="The number of shift points.",
     )
     parser.add_argument(
-        "--n_jobs", default=16, type=int, help="Number of parallel jobs."
+        "--nj",
+        default=16,
+        type=int,
+        help="Number of parallel jobs.",
     )
     parser.add_argument(
         "--verbose",
@@ -258,8 +264,20 @@ def main():
         logging.warning("Skip DEBUG/INFO messages")
 
     # find files
-    gen_files = sorted(find_files(args.wavdir))
-    gt_files = sorted(find_files(args.gt_wavdir))
+    if os.path.isdir(args.gen_wavdir_or_wavscp):
+        gen_files = sorted(find_files(args.gen_wavdir_or_wavscp))
+    else:
+        with open(args.gen_wavdir_or_wavscp) as f:
+            gen_files = [line.strip().split(None, 1)[1] for line in f.readlines()]
+        if gen_files[0].endswith("|"):
+            raise ValueError("Not supported wav.scp format.")
+    if os.path.isdir(args.gt_wavdir_or_wavscp):
+        gt_files = sorted(find_files(args.gt_wavdir_or_wavscp))
+    else:
+        with open(args.gt_wavdir_or_wavscp) as f:
+            gt_files = [line.strip().split(None, 1)[1] for line in f.readlines()]
+        if gt_files[0].endswith("|"):
+            raise ValueError("Not supported wav.scp format.")
 
     # Get and divide list
     if len(gen_files) == 0:
@@ -271,7 +289,7 @@ def main():
             "Please check the groundtruth directory."
         )
     logging.info("The number of utterances = %d" % len(gen_files))
-    file_lists = np.array_split(gen_files, args.n_jobs)
+    file_lists = np.array_split(gen_files, args.nj)
     file_lists = [f_list.tolist() for f_list in file_lists]
 
     # multi processing
@@ -296,15 +314,19 @@ def main():
         logging.info(f"Average: {mean_mcd:.4f} ± {std_mcd:.4f}")
 
     # write results
-    if args.outdir is not None:
-        os.makedirs(args.outdir, exist_ok=True)
-        with open(f"{args.outdir}/utt2mcd", "w") as f:
-            for utt_id in sorted(mcd_dict.keys()):
-                mcd = mcd_dict[utt_id]
-                f.write(f"{utt_id} {mcd:.4f}\n")
-        with open(f"{args.outdir}/resuls.txt", "w") as f:
-            f.write(f"#utterances: {len(gen_files)}\n")
-            f.write(f"Average: {mean_mcd:.4f} ± {std_mcd:.4f}")
+    if args.outdir is None:
+        if os.path.isdir(args.gen_wavdir_or_wavscp):
+            args.outdir = args.gen_wavdir_or_wavscp
+        else:
+            args.outdir = os.path.dirname(args.gen_wavdir_or_wavscp)
+    os.makedirs(args.outdir, exist_ok=True)
+    with open(f"{args.outdir}/utt2mcd", "w") as f:
+        for utt_id in sorted(mcd_dict.keys()):
+            mcd = mcd_dict[utt_id]
+            f.write(f"{utt_id} {mcd:.4f}\n")
+    with open(f"{args.outdir}/mcd_avg_result.txt", "w") as f:
+        f.write(f"#utterances: {len(gen_files)}\n")
+        f.write(f"Average: {mean_mcd:.4f} ± {std_mcd:.4f}")
 
     logging.info("Successfully finished MCD evaluation.")
 

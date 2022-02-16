@@ -50,7 +50,7 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
     Args:
         odim (int): Output diminsion.
         self_attention_layer_type (str): Self-attention layer type.
-        attention_dim (int): Dimention of attention.
+        attention_dim (int): Dimension of attention.
         attention_heads (int): The number of heads of multi head attention.
         conv_wshare (int): The number of kernel of convolution. Only used in
             self_attention_layer_type == "lightconv*" or "dynamiconv*".
@@ -121,125 +121,94 @@ class Decoder(BatchScorerInterface, torch.nn.Module):
         else:
             raise NotImplementedError("only `embed` or torch.nn.Module is supported.")
         self.normalize_before = normalize_before
+
+        # self-attention module definition
         if selfattention_layer_type == "selfattn":
             logging.info("decoder self-attention layer type = self-attention")
-            self.decoders = repeat(
-                num_blocks,
-                lambda lnum: DecoderLayer(
+            decoder_selfattn_layer = MultiHeadedAttention
+            decoder_selfattn_layer_args = [
+                (
+                    attention_heads,
                     attention_dim,
-                    MultiHeadedAttention(
-                        attention_heads, attention_dim, self_attention_dropout_rate
-                    ),
-                    MultiHeadedAttention(
-                        attention_heads, attention_dim, src_attention_dropout_rate
-                    ),
-                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
-                    dropout_rate,
-                    normalize_before,
-                    concat_after,
-                ),
-            )
+                    self_attention_dropout_rate,
+                )
+            ] * num_blocks
         elif selfattention_layer_type == "lightconv":
             logging.info("decoder self-attention layer type = lightweight convolution")
-            self.decoders = repeat(
-                num_blocks,
-                lambda lnum: DecoderLayer(
+            decoder_selfattn_layer = LightweightConvolution
+            decoder_selfattn_layer_args = [
+                (
+                    conv_wshare,
                     attention_dim,
-                    LightweightConvolution(
-                        conv_wshare,
-                        attention_dim,
-                        self_attention_dropout_rate,
-                        conv_kernel_length,
-                        lnum,
-                        use_kernel_mask=True,
-                        use_bias=conv_usebias,
-                    ),
-                    MultiHeadedAttention(
-                        attention_heads, attention_dim, src_attention_dropout_rate
-                    ),
-                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
-                    dropout_rate,
-                    normalize_before,
-                    concat_after,
-                ),
-            )
+                    self_attention_dropout_rate,
+                    int(conv_kernel_length.split("_")[lnum]),
+                    True,
+                    conv_usebias,
+                )
+                for lnum in range(num_blocks)
+            ]
         elif selfattention_layer_type == "lightconv2d":
             logging.info(
                 "decoder self-attention layer "
-                "type = lightweight convolution 2-dimentional"
+                "type = lightweight convolution 2-dimensional"
             )
-            self.decoders = repeat(
-                num_blocks,
-                lambda lnum: DecoderLayer(
+            decoder_selfattn_layer = LightweightConvolution2D
+            decoder_selfattn_layer_args = [
+                (
+                    conv_wshare,
                     attention_dim,
-                    LightweightConvolution2D(
-                        conv_wshare,
-                        attention_dim,
-                        self_attention_dropout_rate,
-                        conv_kernel_length,
-                        lnum,
-                        use_kernel_mask=True,
-                        use_bias=conv_usebias,
-                    ),
-                    MultiHeadedAttention(
-                        attention_heads, attention_dim, src_attention_dropout_rate
-                    ),
-                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
-                    dropout_rate,
-                    normalize_before,
-                    concat_after,
-                ),
-            )
+                    self_attention_dropout_rate,
+                    int(conv_kernel_length.split("_")[lnum]),
+                    True,
+                    conv_usebias,
+                )
+                for lnum in range(num_blocks)
+            ]
         elif selfattention_layer_type == "dynamicconv":
             logging.info("decoder self-attention layer type = dynamic convolution")
-            self.decoders = repeat(
-                num_blocks,
-                lambda lnum: DecoderLayer(
+            decoder_selfattn_layer = DynamicConvolution
+            decoder_selfattn_layer_args = [
+                (
+                    conv_wshare,
                     attention_dim,
-                    DynamicConvolution(
-                        conv_wshare,
-                        attention_dim,
-                        self_attention_dropout_rate,
-                        conv_kernel_length,
-                        lnum,
-                        use_kernel_mask=True,
-                        use_bias=conv_usebias,
-                    ),
-                    MultiHeadedAttention(
-                        attention_heads, attention_dim, src_attention_dropout_rate
-                    ),
-                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
-                    dropout_rate,
-                    normalize_before,
-                    concat_after,
-                ),
-            )
+                    self_attention_dropout_rate,
+                    int(conv_kernel_length.split("_")[lnum]),
+                    True,
+                    conv_usebias,
+                )
+                for lnum in range(num_blocks)
+            ]
         elif selfattention_layer_type == "dynamicconv2d":
             logging.info(
-                "decoder self-attention layer type = dynamic convolution 2-dimentional"
+                "decoder self-attention layer type = dynamic convolution 2-dimensional"
             )
-            self.decoders = repeat(
-                num_blocks,
-                lambda lnum: DecoderLayer(
+            decoder_selfattn_layer = DynamicConvolution2D
+            decoder_selfattn_layer_args = [
+                (
+                    conv_wshare,
                     attention_dim,
-                    DynamicConvolution2D(
-                        conv_wshare,
-                        attention_dim,
-                        self_attention_dropout_rate,
-                        conv_kernel_length,
-                        lnum,
-                        use_kernel_mask=True,
-                        use_bias=conv_usebias,
-                    ),
-                    MultiHeadedAttention(
-                        attention_heads, attention_dim, src_attention_dropout_rate
-                    ),
-                    PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
-                    dropout_rate,
-                    normalize_before,
-                    concat_after,
+                    self_attention_dropout_rate,
+                    int(conv_kernel_length.split("_")[lnum]),
+                    True,
+                    conv_usebias,
+                )
+                for lnum in range(num_blocks)
+            ]
+
+        self.decoders = repeat(
+            num_blocks,
+            lambda lnum: DecoderLayer(
+                attention_dim,
+                decoder_selfattn_layer(*decoder_selfattn_layer_args[lnum]),
+                MultiHeadedAttention(
+                    attention_heads, attention_dim, src_attention_dropout_rate
                 ),
-            )
+                PositionwiseFeedForward(attention_dim, linear_units, dropout_rate),
+                dropout_rate,
+                normalize_before,
+                concat_after,
+            ),
+        )
         self.selfattention_layer_type = selfattention_layer_type
         if self.normalize_before:
             self.after_norm = LayerNorm(attention_dim)

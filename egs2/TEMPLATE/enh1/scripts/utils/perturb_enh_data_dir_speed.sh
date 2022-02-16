@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # 2020 @chenda-li
 # Copied from ./scripts/utils/perturb_data_dir_speed.sh

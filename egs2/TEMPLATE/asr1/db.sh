@@ -1,8 +1,16 @@
 # Set the path of your corpus
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
+AIDATATANG_200ZH=downloads
 AISHELL=downloads
+AISHELL3=downloads
+AISHELL4=downloads
+ALFFA=downloads
 AN4=downloads
+DIRHA_ENGLISH_PHDEV=
+DIRHA_WSJ=
+DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
+DNS=
 WSJ0=
 WSJ1=
 WSJCAM0=
@@ -14,23 +22,44 @@ CSJDATATOP=
 CSJVER=dvd  ## Set your CSJ format (dvd or usb).
             ## Usage    :
             ## Case DVD : We assume CSJ DVDs are copied in this directory with the names dvd1, dvd2,...,dvd17.
-            ##            Neccesary directory is dvd3 - dvd17.
+            ##            Necessary directory is dvd3 - dvd17.
             ##            e.g. $ ls $CSJDATATOP(DVD) => 00README.txt dvd1 dvd2 ... dvd17
             ##
-            ## Case USB : Neccesary directory is MORPH/SDB and WAV
+            ## Case USB : Necessary directory is MORPH/SDB and WAV
             ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
-            ## Case merl :MERL setup. Neccesary directory is WAV and sdb
+            ## Case merl :MERL setup. Necessary directory is WAV and sdb
 CSMSC=downloads
+CSS10=
 HKUST1=
 HKUST2=
+HUI_ACG=downloads
+HUB4_SPANISH=
 LABOROTV=
 TEDXJP=
 LIBRISPEECH=
+LIBRILIGHT_LIMITED=
+FSC=
+SLURP=
+VOXCELEB=
+MINI_LIBRISPEECH=downloads
+MISP2021=
+LIBRIMIX=downloads
+LIBRITTS=
 LJSPEECH=downloads
+NSC=
+JMD=downloads
 JSSS=downloads
 JSUT=downloads
+JTUBESPEECH=downloads
 JVS=downloads
+KSS=
+SNIPS= # smart-light-en-closed-field data path
+SPGISPEECH=
+SWBD=
+SWBD_NXT=
+THCHS30=downloads
 TIMIT=$(realpath ../../../../TIMIT)
+TSUKUYOMI=downloads
 VOXFORGE=downloads
 AMI=
 COMMONVOICE=downloads
@@ -59,18 +88,87 @@ BABEL_401=
 BABEL_402=
 BABEL_403=
 BABEL_404=
+PUEBLA_NAHUATL=downloads
+TEDLIUM2=downloads
 TEDLIUM3=downloads
 VCTK=downloads
 VIVOS=downloads
 YESNO=downloads
+YOLOXOCHITL_MIXTEC=downloads
 HOW2_TEXT=downloads/how2-300h-v1
 HOW2_FEATS=downloads/fbank_pitch_181516
 ZEROTH_KOREAN=downloads
+JAVA=downloads
+RU_OPEN_STT=downloads
+RUSLAN=downloads
+SIWIS=downloads
+GIGASPEECH=
+GOOGLEI18N=downloads
+NOISY_SPEECH=
+NOISY_REVERBERANT_SPEECH=
+LRS2=
+SUNDA=downloads
+CMU_ARCTIC=downloads
+CMU_INDIC=downloads
+INDIC_SPEECH=downloads
+IWSLT22_DIALECT=
+JKAC=
+MUCS_SUBTASK1=downloads
+MUCS_SUBTASK2=downloads
+GAMAYUN=downloads
+IWSLT21LR=downloads/iwslt21
+JDCINAL=downloads
+GRABO=downloads
+WENETSPEECH=
+SPEECHCOMMANDS=downloads
+TOTONAC=downloads
+PRIMEWORDS_CHINESE=downloads
+SEAME=
+
+# For only CMU TIR environment
+if [[ "$(hostname)" == tir* ]]; then
+    BABEL_101=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_BP_101/
+    BABEL_102=/projects/tir5/data/speech_corpora/babel/BABEL_OP1_102/
+    BABEL_103=/projects/tir5/data/speech_corpora/babel/BABEL_OP1_103/
+    BABEL_104=/projects/tir5/data/speech_corpora/babel/BABEL_BP_104/
+    BABEL_105=/projects/tir5/data/speech_corpora/babel/IARPA-babel105b-v0.5-build/BABEL_BP_105/
+    BABEL_106=/projects/tir5/data/speech_corpora/babel/BABEL_BP_106/
+    BABEL_107=/projects/tir5/data/speech_corpora/babel/BABEL_BP_107/
+    BABEL_201=/projects/tir5/data/speech_corpora/babel/IARPA-babel201b-v0.2b.build/BABEL_OP1_201/
+    BABEL_202=/projects/tir5/data/speech_corpora/babel/IARPA-babel202b-v1.0d-build/BABEL_OP2_202/
+    BABEL_203=/projects/tir5/data/speech_corpora/babel/IARPA-babel203b-v3.1a-build/
+    BABEL_204=/projects/tir5/data/speech_corpora/babel/BABEL_OP1_204/
+    BABEL_205=/projects/tir5/data/speech_corpora/babel/IARPA-babel205b-v1.0a-build/BABEL_OP2_205/
+    BABEL_206=/projects/tir5/data/speech_corpora/babel/BABEL_OP1_206/
+    BABEL_207=/projects/tir5/data/speech_corpora/babel/IARPA-babel207b-v1.0e-build/BABEL_OP2_207/
+    BABEL_301=/projects/tir5/data/speech_corpora/babel/IARPA-babel301b-v2.0b-build/BABEL_OP2_301/
+    BABEL_302=/projects/tir5/data/speech_corpora/babel/IARPA-babel302b-v1.0a-build/BABEL_OP2_302/
+    BABEL_303=/projects/tir5/data/speech_corpora/babel/IARPA-babel303b-v1.0a/BABEL_OP2_303/
+    BABEL_304=/projects/tir5/data/speech_corpora/babel/IARPA-babel304b-v1.0b/BABEL_OP2_304/
+    BABEL_305=/projects/tir5/data/speech_corpora/babel/IARPA-babel305b-v1.0c-build/BABEL_OP3_305/
+    BABEL_306=/projects/tir5/data/speech_corpora/babel/IARPA-babel306b-v2.0c-build/BABEL_OP3_306/
+    BABEL_307=/projects/tir5/data/speech_corpora/babel/IARPA-babel307b-v1.0b-build/BABEL_OP3_307/
+    BABEL_401=/projects/tir5/data/speech_corpora/babel/IARPA-babel401b-v2.0b-build/BABEL_OP3_401/
+    BABEL_402=/projects/tir5/data/speech_corpora/babel/IARPA-babel402b-v1.0b-build/BABEL_OP3_402/
+    BABEL_403=/projects/tir5/data/speech_corpora/babel/IARPA-babel403b-v1.0b-build/BABEL_OP3_403/
+    BABEL_404=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_OP3_404/
+    GRABO=/projects/tir5/data/speech_corpora/Grabo
+    IWSLT22_DIALECT=/projects/tir5/data/speech_corpora/LDC2022E01_IWSLT22_Tunisian_Arabic_Shared_Task_Training_Data/
+    PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
+    FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
+fi
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
+    AIDATATANG_200ZH=downloads
     AISHELL=
+    AISHELL3=downloads
+    ALFFA=downloads
     AN4=
+    DIRHA_ENGLISH_PHDEV=
+    DIRHA_WSJ=
+    DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
+    DNS=
     WSJ0=
     WSJ1=
     WSJCAM0=/export/corpora3/LDC/LDC95S24/wsjcam0
@@ -82,23 +180,35 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     CSJVER=usb  ## Set your CSJ format (dvd or usb).
                 ## Usage    :
                 ## Case DVD : We assume CSJ DVDs are copied in this directory with the names dvd1, dvd2,...,dvd17.
-                ##            Neccesary directory is dvd3 - dvd17.
+                ##            Necessary directory is dvd3 - dvd17.
                 ##            e.g. $ ls $CSJDATATOP(DVD) => 00README.txt dvd1 dvd2 ... dvd17
                 ##
-                ## Case USB : Neccesary directory is MORPH/SDB and WAV
+                ## Case USB : Necessary directory is MORPH/SDB and WAV
                 ##            e.g. $ ls $CSJDATATOP(USB) => 00README.txt DOC MORPH ... WAV fileList.csv
-                ## Case merl :MERL setup. Neccesary directory is WAV and sdb
+                ## Case merl :MERL setup. Necessary directory is WAV and sdb
     CSMSC=downloads
+    CSS10=
     HKUST1=
     HKUST2=
+    HUI_ACG=downloads
+    HUB4_SPANISH=
     LABOROTV=
     TEDXJP=
     LIBRISPEECH=
+    FSC=
+    SNIPS= # smart-light-en-closed-field data path
+    SLURP=
+    MINI_LIBRISPEECH=downloads
+    LIBRITTS=
     LJSPEECH=downloads
+    JMD=downloads
     JSSS=downloads
     JSUT=downloads
     JVS=downloads
+    KSS=
+    THCHS30=downloads
     TIMIT=
+    TSUKUYOMI=downloads
     VOXFORGE=
     AMI=/export/corpora4/ami/amicorpus
     COMMONVOICE=downloads
@@ -127,12 +237,29 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     BABEL_402=/export/babel/data/402-javanese/IARPA-babel402b-v1.0b-build/BABEL_OP3_402
     BABEL_403=/export/babel/data/403-dholuo/IARPA-babel403b-v1.0b-build/BABEL_OP3_403
     BABEL_404=/export/corpora/LDC/LDC2016S12/IARPA_BABEL_OP3_404
+    PUEBLA_NAHUATL=
+    TEDLIUM2=downloads
     TEDLIUM3=downloads
     VCTK=downloads
     VIVOS=
     YESNO=
+    YOLOXOCHITL_MIXTEC=downloads
     HOW2_TEXT=
     HOW2_FEATS=
     ZEROTH_KOREAN=downloads
-
+    LRS2=
+    JAVA=
+    RU_OPEN_STT=downloads
+    RUSLAN=downloads
+    SIWIS=downloads
+    SUNDA=
+    CMU_INDIC=
+    INDIC_SPEECH=
+    JKAC=
+    MUCS_SUBTASK1=downloads
+    MUCS_SUBTASK2=downloads
+    GAMAYUN=downloads
+    IWSLT21LR=downloads/iwslt21
+    TOTONAC=downloads
+    GOOGLEI18N=downloads
 fi

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 Johns Hopkins University (Ziyan Jiang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -21,6 +21,7 @@ seed=1
 # feature configuration
 do_delta=false
 
+preprocess_config=
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
@@ -34,6 +35,8 @@ lmtag=              # tag for managing LMs
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 n_average=10
+use_valbest_average=false     # if true, the validation `n_average`-best ASR models will be averaged.
+                             # if false, the last `n_average` ASR models will be averaged.
 
 # data
 aurora4=/export/corpora5/AURORA
@@ -51,7 +54,7 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_mix
+train_set=train_mix_sp
 # Mix train_si84_multi(noisy data) and train_si284(clean data) as training set.
 # You could also just use train_si84_multi. You only need to change train_mix to train_si84_multi and remove line88-89.(combine_data.sh)
 train_dev=dev_0330
@@ -85,7 +88,17 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     echo "combine train_si84 and train_si284"
-    utils/combine_data.sh data/${train_set} data/train_si84_multi data/train_si284
+    utils/combine_data.sh data/train_mix data/train_si84_multi data/train_si284
+
+    # speed-perturbed
+    utils/perturb_data_dir_speed.sh 0.9 data/train_mix data/temp1
+    utils/perturb_data_dir_speed.sh 1.0 data/train_mix data/temp2
+    utils/perturb_data_dir_speed.sh 1.1 data/train_mix data/temp3
+    utils/combine_data.sh --extra-files utt2uniq data/${train_set} data/temp1 data/temp2 data/temp3
+    rm -r data/temp1 data/temp2 data/temp3
+    steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+        data/${train_set} exp/make_fbank/${train_set} ${fbankdir}
+    utils/fix_data_dir.sh data/${train_set}
 
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
@@ -207,6 +220,9 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
+    if [ -n "${preprocess_config}" ]; then
+        expname=${expname}_$(basename ${preprocess_config%.*})
+    fi
 else
     expname=${train_set}_${backend}_${tag}
 fi
@@ -219,6 +235,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -241,10 +258,18 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Decoding"
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
            [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
-           [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
-           [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then
-        recog_model=model.last${n_average}.avg.best
+           [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
+        # Average ASR model
+        if ${use_valbest_average}; then
+            recog_model=model.val${n_average}.avg.best
+            opt="--log ${expdir}/results/log"
+        else
+            recog_model=model.last${n_average}.avg.best
+            opt='--log'
+        fi
         average_checkpoints.py \
+            ${opt} \
             --backend ${backend} \
             --snapshots ${expdir}/results/snapshot.ep.* \
             --out ${expdir}/results/${recog_model} \

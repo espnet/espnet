@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2018 Nagoya University (Takenori Yoshimura), Ryuichi Yamamoto
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -26,7 +26,7 @@ else
     echo "Already exists. Skipped."
 fi
 
-if [ ! -e ${download_dir}/jsut_lab ]; then
+if [ ! -e ${download_dir}/jsut-lab ]; then
     echo "Downloading full-context labels for jsut v1.1..."
     cd ${download_dir}
     git clone https://github.com/r9y9/jsut-lab

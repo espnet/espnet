@@ -1,4 +1,4 @@
-"""Lightweight 2-Dimentional Convolution module."""
+"""Lightweight 2-Dimensional Convolution module."""
 
 import numpy
 import torch
@@ -10,7 +10,7 @@ MIN_VALUE = float(numpy.finfo(numpy.float32).min)
 
 
 class LightweightConvolution2D(nn.Module):
-    """Lightweight 2-Dimentional Convolution layer.
+    """Lightweight 2-Dimensional Convolution layer.
 
     This implementation is based on
     https://github.com/pytorch/fairseq/tree/master/fairseq
@@ -19,8 +19,7 @@ class LightweightConvolution2D(nn.Module):
         wshare (int): the number of kernel of convolution
         n_feat (int): the number of features
         dropout_rate (float): dropout_rate
-        kernel_size_str (str): kernel size (length)
-        lnum (inst): index of layer
+        kernel_size (int): kernel size (length)
         use_kernel_mask (bool): Use causal mask or not for convolution kernel
         use_bias (bool): Use bias term or not.
 
@@ -31,20 +30,19 @@ class LightweightConvolution2D(nn.Module):
         wshare,
         n_feat,
         dropout_rate,
-        kernel_size_str,
-        lnum,
+        kernel_size,
         use_kernel_mask=False,
         use_bias=False,
     ):
-        """Construct Lightweight 2-Dimentional Convolution layer."""
+        """Construct Lightweight 2-Dimensional Convolution layer."""
         super(LightweightConvolution2D, self).__init__()
 
         assert n_feat % wshare == 0
         self.wshare = wshare
         self.use_kernel_mask = use_kernel_mask
         self.dropout_rate = dropout_rate
-        self.kernel_size = int(kernel_size_str.split("_")[lnum])
-        self.padding_size = int(self.kernel_size / 2)
+        self.kernel_size = kernel_size
+        self.padding_size = int(kernel_size / 2)
 
         # linear -> GLU -> lightconv -> linear
         self.linear1 = nn.Linear(n_feat, n_feat * 2)
@@ -53,22 +51,20 @@ class LightweightConvolution2D(nn.Module):
 
         # lightconv related
         self.weight = nn.Parameter(
-            torch.Tensor(self.wshare, 1, self.kernel_size).uniform_(0, 1)
+            torch.Tensor(self.wshare, 1, kernel_size).uniform_(0, 1)
         )
-        self.weight_f = nn.Parameter(
-            torch.Tensor(1, 1, self.kernel_size).uniform_(0, 1)
-        )
+        self.weight_f = nn.Parameter(torch.Tensor(1, 1, kernel_size).uniform_(0, 1))
         self.use_bias = use_bias
         if self.use_bias:
             self.bias = nn.Parameter(torch.Tensor(n_feat))
 
         # mask of kernel
-        kernel_mask0 = torch.zeros(self.wshare, int(self.kernel_size / 2))
-        kernel_mask1 = torch.ones(self.wshare, int(self.kernel_size / 2 + 1))
+        kernel_mask0 = torch.zeros(self.wshare, int(kernel_size / 2))
+        kernel_mask1 = torch.ones(self.wshare, int(kernel_size / 2 + 1))
         self.kernel_mask = torch.cat((kernel_mask1, kernel_mask0), dim=-1).unsqueeze(1)
 
     def forward(self, query, key, value, mask):
-        """Forward of 'Lightweight 2-Dimentional Convolution'.
+        """Forward of 'Lightweight 2-Dimensional Convolution'.
 
         This function takes query, key and value but uses only query.
         This is just for compatibility with self-attention layer (attention.py)
@@ -80,7 +76,7 @@ class LightweightConvolution2D(nn.Module):
             mask (torch.Tensor): (batch, time1, time2) mask
 
         Return:
-            x (torch.Tensor): (batch, time1, d_model) ouput
+            x (torch.Tensor): (batch, time1, d_model) output
 
         """
         # linear -> GLU -> lightconv -> linear

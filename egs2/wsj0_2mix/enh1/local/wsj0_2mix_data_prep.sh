@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 set -u
@@ -49,8 +49,6 @@ for f in $srcdir/mix_2_spk_${min_or_max}_tr_mix $srcdir/mix_2_spk_${min_or_max}_
 done
 
 data=./data
-
-# rm -r ${data}/{${tr},${cv},${tt}} 2>/dev/null
 
 for x in tr cv tt; do
   target_folder=$(eval echo \$$x)

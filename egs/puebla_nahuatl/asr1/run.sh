@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -20,7 +20,7 @@ download_dir=downloads  # download file from openslr
 
 # dataset related
 wavdir=${download_dir}/Sound-files-Puebla-Nahuatl
-annotation_dir=${download_dir}/Transcription-files-Puebla-Nahuatl
+annotation_dir=${download_dir}/Pueble-Nahuatl-Manifest
 annotation_type=eaf
 annotation_id=nahuatl_filesplit
 
@@ -31,8 +31,6 @@ preprocess_config=conf/specaug.yaml
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
-# train_config=conf/tuning/train_rnn.yaml
-# decode_config=conf/tuning/decode_rnn.yaml
 
 # rnnlm related
 lm_resume=        # specify a snapshot file to resume LM training
@@ -66,9 +64,8 @@ recog_set="${train_set} ${train_dev} ${test_set}"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     # Download the Data
-   local/download_and_untar.sh local  http://www.openslr.org/resources/92/Pueble-Nahuatl-Manifest.tgz Pueble-Nahuatl-Manifest.tgz
-   local/download_and_untar.sh ${download_dir} http://www.openslr.org/resources/92/Sound-Files-Pueble-Nahuatl.tgz.part0 Sound-Files-Pueble-Nahuatl.tgz.part0 9
-
+   local/download_and_untar.sh local  https://www.openslr.org/resources/92/Puebla-Nahuatl-Manifest.tgz Puebla-Nahuatl-Manifest.tgz
+   local/download_and_untar.sh ${download_dir} https://www.openslr.org/resources/92/Sound-Files-Puebla-Nahuatl.tgz.part0 Sound-Files-Puebla-Nahuatl.tgz.part0 9
 fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then

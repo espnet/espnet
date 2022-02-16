@@ -1,0 +1,44 @@
+# network architecture
+# encoder related
+encoder: transformer
+encoder_conf:
+    input_layer: "linear"
+    num_blocks: 2
+    linear_units: 512
+    dropout_rate: 0.1
+    output_size: 256  # dimension of attention
+    attention_heads: 4
+    attention_dropout_rate: 0.0
+
+# decoder related
+decoder: linear
+
+# chunk-based training
+iterator_type: chunk
+chunk_length: 200000
+num_cache_chunks: 64
+
+# minibatch related
+batch_type: folded
+batch_size: 16
+
+# optimization related
+optim: adam
+accum_grad: 2
+grad_clip: 5
+patience: 3
+max_epoch: 100
+optim_conf:
+    lr: 0.01
+scheduler: noamlr
+scheduler_conf:
+    warmup_steps: 1000
+
+# others:
+best_model_criterion:
+-  - valid
+   - acc
+   - max
+keep_nbest_models: 3
+
+init: xavier_uniform

@@ -50,16 +50,21 @@ the following packages are installed using Anaconda, so you can skip them.)
 ### Supported Linux distributions and other requirements
 
 We support the following Linux distributions with CI. If you want to build your own Linux by yourself,
-please also check our [CI configurations](https://github.com/espnet/espnet/blob/master/.circleci/config.yml).
+please also check our [CI configurations](https://github.com/espnet/espnet/tree/master/.github/workflows).
 to prepare the appropriate environments
 
 - ubuntu18
-- ubuntu16
 - centos7
 - debian9
 
 
-### Step 1) Install Kaldi
+### Step 1) [Optional] Install Kaldi
+- If you'll use ESPnet1 (under egs/): You need to compile Kaldi.  
+- If you'll use ESPnet2 (under egs2/): You can skip installation of Kaldi.
+
+<details><summary>Click to compile Kaldi...</summary><div>
+
+
 Related links:
 - [Kaldi Github](https://github.com/kaldi-asr/kaldi)
 - [Kaldi Documentation](https://kaldi-asr.org/)
@@ -118,59 +123,50 @@ Kaldi's requirements:
     ```
 We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/master/ci/install_kaldi.sh).
 
+</div></details>
+
 ### Step 2) Installation ESPnet
 1. Git clone ESPnet
     ```sh
     $ cd <any-place>
     $ git clone https://github.com/espnet/espnet
     ```
-1. Put Kaldi at espnet/tools
+1. [Optional] Put compiled Kaldi under espnet/tools
 
-    Create a symbolic link to Kaldi directory.
+    If you have compiled Kaldi at Step1, put it under `tools`.
+
 
     ```sh
     $ cd <espnet-root>/tools
     $ ln -s <kaldi-root> .
     ```
-1. Setup CUDA environment
-
-    Specify your CUDA directory.
-
-    ```sh
-    $ cd <espnet-root>/tools
-    $ . ./setup_cuda_env.sh <cuda-root>  # e.g. <cuda-root> = /usr/local/cuda
-    # If you have NCCL (If you'll install pytorch from anaconda, NCCL is also bundled, so you don't need to give it)
-    # $ . ./setup_cuda_env.sh <cuda-root> <nccl-root> # e.g. <nccl-root> = /usr/local/nccl
-    ```
+    
+    If you don't have `espnet/tools/kaldi` when `make`, Kaldi repository is automatically put without compiling.
 1. Setup Python environment
 
-    The Python interpreter used in espnet recipes is determined by `<espnet-root>/tools/activate_python.sh`,
-    and in this step, you need to create the file.
+    You have to create `<espnet-root>/tools/activate_python.sh` to specify the Python interpreter used in espnet recipes.
+    (To understand how ESPnet specifies Python, see [path.sh](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/path.sh) for example.)
 
-    You must select one of setup scripts for Python environment here.
-    We prepare scripts for `Anaconda`, `venv`, and `System Python` environment, so
-    if you'll use the other Python environment manager, e.g. `pipenv`, `pyenv`, or etc.
-    you need to create `activate_python.sh` by yourself.
-
-    If you don't stick to any Python environments, please select `Anaconda` environment.
+    We also have some scripts to generate `tools/activate_python.sh`.
 
     - Option A) Setup Anaconda environment
 
         ```sh
         $ cd <espnet-root>/tools
-        $ ./setup_anaconda.sh [output-dir-name] [conda-env-name] [python-version]
+        $ ./setup_anaconda.sh [output-dir-name|default=venv] [conda-env-name|default=root] [python-version|default=none]
+        # e.g.
+        $ ./setup_anaconda.sh anaconda espnet 3.8
         ```
-        If `[output-dir-name]` is omitted, `venv` is generated.
-        If `[conda-env-name]` and `[python-version]` are omitted,
-        the root environment and the default Python of Anaconda are selected respectively.
 
-        This script tries to create a new miniconda at `venv` if it doesn't exist.
+        This script tries to create a new miniconda if the output directory doesn't exist.
         If you already have Anaconda and you'll use it then,
 
         ```sh
         $ cd <espnet-root>/tools
         $ CONDA_TOOLS_DIR=$(dirname ${CONDA_EXE})/..
         $ ./setup_anaconda.sh ${CONDA_TOOLS_DIR} [conda-env-name] [python-version]
+        # e.g.
+        $ ./setup_anaconda.sh ${CONDA_TOOLS_DIR} espnet 3.8
         ```
 
     - Option B) Setup venv from system Python
@@ -186,6 +182,14 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ cd <espnet-root>/tools
         $ ./setup_python.sh $(command -v python3)
         ```
+    - Option D) Without setting Python environment.
+    
+        `Option C` and `Option D` are almost same. This option might be suitable for Google colab.
+
+        ```sh
+        $ cd <espnet-root>/tools
+        $ rm -f activate_python.sh && touch activate_python.sh
+        ```
 1. Install ESPnet
 
     ```sh
@@ -200,6 +204,13 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     $ cd <espnet-root>/tools
     $ make TH_VERSION=1.3.1
     ```
+    
+    Note that the CUDA version is derived from `nvcc` command. If you'd like to specify the other CUDA version, you need to give `CUDA_VERSION`.
+    
+    ```sh
+    $ cd <espnet-root>/tools
+    $ make TH_VERSION=1.3.1 CUDA_VERSION=10.1
+    ```
 
     If you don't have `nvcc` command, packages are installed for CPU mode by default.
     If you'll turn it on manually, give `CPU_ONLY` option.
@@ -208,21 +219,43 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     $ cd <espnet-root>/tools
     $ make CPU_ONLY=0
     ```
-### Step 3) [Option] Manual installation
-If you are stuck in some troubles when installation, you can also install them ignoring the Makefile.
 
-Note that the Python interpreter used in ESPnet experiments is written in `<espnet-root>/tools/activate_python.sh`,
-so you need to activate it before installing python packages.
+### Step 3) [Optional] Custom tool installation
+Some packages used only for specific tasks, e.g. Transducer ASR, Japanese TTS, or etc. are not installed by default, 
+so if you meet some installation error when running these recipe, you need to install them optionally.
 
-```sh
-cd <espnet-root>/tools
-. activate_python.sh
-python3 -m pip install <some-package>
-./installers/install_<some-tool>.sh
-```
+
+e.g. 
+
+- To install Warp CTC
+    ```sh
+    cd <espnet-root>/tools
+    . activate_python.sh
+    . ./setup_cuda_env.sh <cuda-root>  # e.g. <cuda-root> = /usr/local/cuda
+    ./installers/install_warp-ctc.sh
+    ```
+- To install Warp Transducer
+    ```sh
+    cd <espnet-root>/tools
+    . activate_python.sh
+    . ./setup_cuda_env.sh <cuda-root>  # e.g. <cuda-root> = /usr/local/cuda
+    ./installers/install_warp-transducer.sh
+    ```
+- To install PyOpenJTalk
+    ```sh
+    cd <espnet-root>/tools
+    . activate_python.sh
+    ./installers/install_pyopenjtalk.sh
+    ```
+- To install a module using pip: e.g. to intstall ipython
+    ```sh
+    cd <espnet-root>/tools
+    . activate_python.sh
+    pip install ipython
+    ```
 
 ### Check installation
-You can check whether your installation is succesfully finished by
+You can check whether your installation is successfully finished by
 ```sh
 cd <espnet-root>/tools
 . ./activate_python.sh; python3 check_install.py

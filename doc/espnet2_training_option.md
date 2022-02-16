@@ -127,6 +127,12 @@ python -m espnet2.bin.asr_train --init_param model.pth:::decoder.embed
 python -m espnet2.bin.asr_train --init_param model.pth:::encoder,decoder.embed
 ```
 
+## Freeze parameters
+
+```sh
+python -m espnet2.bin.asr_train --freeze_param encoder.enc encoder.decoder
+```
+
 ## Change logging interval
 The result in the middle state of the training will be shown by the specified number:
 
@@ -320,7 +326,7 @@ and the shape information is required only when `--batch_type numel`.
 
 ### `--batch_type folded`
 
-**In ESPnet1, this mode is refered as seq.**
+**In ESPnet1, this mode is referred as seq.**
 
 
 This mode creates mini-batch which has the size of `base_batch_size // max_i(1 + L_i // f_i)`. 

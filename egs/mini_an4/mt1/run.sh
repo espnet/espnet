@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2020 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -100,7 +100,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     n=$(($(wc -l < data/train/text) - 2))
     utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
 
-    # add pseudo case infomation
+    # add pseudo case information
     for x in train_nodev train_dev test; do
         cp data/${x}/text data/${x}/text.tc
         cp data/${x}/text data/${x}/text.lc
@@ -213,8 +213,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
-            ${expdir}/${decode_dir} en ${dict}
+        score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
+            ${expdir}/${decode_dir} "en" ${dict}
 
     ) &
     pids+=($!) # store background pids

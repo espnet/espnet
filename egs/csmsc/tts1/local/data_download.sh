@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -14,19 +14,17 @@ fi
 set -euo pipefail
 
 # download dataset
-cwd=$(pwd)
-if [ ! -e ${db}/CSMSC ]; then
-    mkdir -p ${db}
-    cd ${db}
-    wget https://weixinxcxdb.oss-cn-beijing.aliyuncs.com/gwYinPinKu/BZNSYP.rar
-    mkdir CSMSC && cd CSMSC && unrar x ../BZNSYP.rar
-    # convert new line code
-    find ./PhoneLabeling -name "*.interval" | while read -r line; do
-        nkf -Lu -w --overwrite ${line}
-    done
-    rm ../BZNSYP.rar
-    cd ${cwd}
-    echo "Successfully finished download."
+if [ ! -e "${db}/CSMSC" ]; then
+    echo "Now CSMSC is not free, you cannot download it anymore."
+    echo "You need to apply the form: https://www.data-baker.com/open_source.html"
+    echo "After you get the corpus, please locate it as follows and then re-run the recipe:"
+    cat << EOF
+${db}/CSMSC
+├── PhoneLabeling
+├── ProsodyLabeling
+└── Wave
+EOF
+    exit 1;
 else
     echo "Already exists. Skip download."
 fi

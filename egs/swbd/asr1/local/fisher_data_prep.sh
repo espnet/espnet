@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2013  Johns Hopkins University (Author: Daniel Povey)
 # Apache 2.0.
@@ -69,10 +69,10 @@ fi
 
 if [ $stage -le 0 ]; then
 
-  find $links/fe_03_p1_tran/data $links/fe_03_p2_tran/data -iname '*.txt'  > $tmpdir/transcripts.flist
+  find -L $links/fe_03_p1_tran/data $links/fe_03_p2_tran/data -iname '*.txt'  > $tmpdir/transcripts.flist
 
   for dir in fe_03_p{1,2}_sph{1,2,3,4,5,6,7}; do
-    find $links/$dir/ -iname '*.sph'
+    find -L $links/$dir/ -iname '*.sph'
   done > $tmpdir/sph.flist
 
   n=`cat $tmpdir/transcripts.flist | wc -l`

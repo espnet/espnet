@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
@@ -21,5 +21,5 @@ test_sets="tt_${min_or_max}_${sample_rate} "
     --lang en \
     --ngpu 1 \
     --local_data_opts "--sample_rate ${sample_rate} --min_or_max ${min_or_max}" \
-    --enh_config ./conf/tuning/train_enh_PSM.yaml \
+    --enh_config conf/tuning/train_enh_dprnn_tasnet.yaml \
     "$@"

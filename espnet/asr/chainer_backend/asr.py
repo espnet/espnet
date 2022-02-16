@@ -1,8 +1,7 @@
-#!/usr/bin/env python3
-
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+"""Training/decoding definition for the speech recognition task."""
 
 import json
 import logging
@@ -40,13 +39,7 @@ from espnet.utils.training.train_utils import set_early_stop
 import espnet.lm.chainer_backend.extlm as extlm_chainer
 import espnet.lm.chainer_backend.lm as lm_chainer
 
-# numpy related
-import matplotlib
-
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
-
-matplotlib.use("Agg")
 
 
 def train(args):
@@ -92,6 +85,7 @@ def train(args):
     model_class = dynamic_import(args.model_module)
     model = model_class(idim, odim, args, flag_return=False)
     assert isinstance(model, ASRInterface)
+    total_subsampling_factor = model.get_total_subsampling_factor()
 
     # write model config
     if not os.path.exists(args.outdir):
@@ -355,6 +349,7 @@ def train(args):
             converter=converter,
             transform=load_cv,
             device=gpu_id,
+            subsampling_factor=total_subsampling_factor,
         )
         trainer.extend(att_reporter, trigger=(1, "epoch"))
     else:
@@ -465,6 +460,11 @@ def train(args):
 
     set_early_stop(trainer, args)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        try:
+            from tensorboardX import SummaryWriter
+        except Exception:
+            logging.error("Please install tensorboardx")
+            raise
         writer = SummaryWriter(args.tensorboard_dir)
         trainer.extend(
             TensorboardLogger(writer, att_reporter),

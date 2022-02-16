@@ -1,4 +1,4 @@
-from distutils.version import LooseVersion
+"""Noam learning rate scheduler module."""
 from typing import Union
 import warnings
 
@@ -31,8 +31,6 @@ class NoamLR(_LRScheduler, AbsBatchStepScheduler):
         warmup_steps: Union[int, float] = 25000,
         last_epoch: int = -1,
     ):
-        if LooseVersion(torch.__version__) < LooseVersion("1.1.0"):
-            raise NotImplementedError(f"Require PyTorch>=1.1.0: {torch.__version__}")
         assert check_argument_types()
         self.model_size = model_size
         self.warmup_steps = warmup_steps
@@ -49,7 +47,7 @@ class NoamLR(_LRScheduler, AbsBatchStepScheduler):
         super().__init__(optimizer, last_epoch)
 
     def lr_for_WarmupLR(self, lr: float) -> float:
-        return lr / self.model_size ** 0.5 / self.warmup_steps ** 0.5
+        return lr / self.model_size**0.5 / self.warmup_steps**0.5
 
     def __repr__(self):
         return (
@@ -61,7 +59,7 @@ class NoamLR(_LRScheduler, AbsBatchStepScheduler):
         step_num = self.last_epoch + 1
         return [
             lr
-            * self.model_size ** -0.5
-            * min(step_num ** -0.5, step_num * self.warmup_steps ** -1.5)
+            * self.model_size**-0.5
+            * min(step_num**-0.5, step_num * self.warmup_steps**-1.5)
             for lr in self.base_lrs
         ]

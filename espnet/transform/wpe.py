@@ -1,6 +1,3 @@
-from nara_wpe.wpe import wpe
-
-
 class WPE(object):
     def __init__(
         self, taps=10, delay=3, iterations=3, psd_context=0, statistics_mode="full"
@@ -33,6 +30,8 @@ class WPE(object):
         :rtype: np.ndarray
 
         """
+        from nara_wpe.wpe import wpe
+
         # nara_wpe.wpe: (F, C, T)
         xs = wpe(
             xs.transpose((2, 1, 0)),

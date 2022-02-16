@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright   2014  Johns Hopkins University (author: Daniel Povey)
 #             2017  Luminar Technologies, Inc. (author: Daniel Galvez)
@@ -14,7 +14,7 @@ if [ "$1" == --remove-archive ]; then
   shift
 fi
 
-if [ $# -ne 2 ]; then
+if [ $# -le 3 ]; then
   echo "Usage: $0 [--remove-archive] <data-base> <url> <filename> <part>>"
   echo "e.g.: $0 /export/data/ https://common-voice-data-download.s3.amazonaws.com/cv_corpus_v1.tar.gz cv_corpus_v1.tar.gz 0"
   echo "With --remove-archive it will remove the archive after successfully un-tarring it."
@@ -65,17 +65,21 @@ if [ ! -f $filepath ]; then
 
   cd $data
 
+  file_list=""
+
   if [ x$part != x ]; then
-      for x in {0..$part}; do
-          if ! wget --no-check-certificate ${url}${x}; then
+      for x in $(seq 0 $part); do
+          echo "downloading ${url}${x}"
+          if ! wget -N --no-check-certificate ${url}${x}; then
             echo "$0: error executing wget ${url}${x}"
             exit 1;
           fi
+          file_list=${file_list}" ${filename}${x}"
       done
-      cat ${filename}* > ${filename}
+      echo "start combining"
+      cat ${file_list} > ${filename}
   else
-  then
-      if ! wget --no-check-certificate $url; then
+      if ! wget -N --no-check-certificate $url; then
         echo "$0: error executing wget $url"
         exit 1;
       fi

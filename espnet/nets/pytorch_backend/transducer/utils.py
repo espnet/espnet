@@ -1,65 +1,109 @@
-"""Utility functions for transducer models."""
+"""Utility functions for Transducer models."""
+
+import os
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
 
 import numpy as np
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
+from espnet.nets.transducer_decoder_interface import ExtendedHypothesis
+from espnet.nets.transducer_decoder_interface import Hypothesis
 
 
-def prepare_loss_inputs(ys_pad, hlens, blank_id=0, ignore_id=-1):
-    """Prepare tensors for transducer loss computation.
+def get_decoder_input(
+    labels: torch.Tensor, blank_id: int, ignore_id: int
+) -> torch.Tensor:
+    """Prepare decoder input.
 
     Args:
-        ys_pad (torch.Tensor): batch of padded target sequences (B, Lmax)
-        hlens (torch.Tensor): batch of hidden sequence lengthts (B)
-                              or batch of masks (B, 1, Tmax)
-        blank_id (int): index of blank label
-        ignore_id (int): index of initial padding
+        labels: Label ID sequences. (B, L)
 
     Returns:
-        ys_in_pad (torch.Tensor): batch of padded target sequences + blank (B, Lmax + 1)
-        target (torch.Tensor): batch of padded target sequences (B, Lmax)
-        pred_len (torch.Tensor): batch of hidden sequence lengths (B)
-        target_len (torch.Tensor): batch of output sequence lengths (B)
+        decoder_input: Label ID sequences with blank prefix. (B, U)
 
     """
-    device = ys_pad.device
+    device = labels.device
 
-    ys = [y[y != ignore_id] for y in ys_pad]
+    labels_unpad = [label[label != ignore_id] for label in labels]
+    blank = labels[0].new([blank_id])
 
-    blank = ys[0].new([blank_id])
+    decoder_input = pad_list(
+        [torch.cat([blank, label], dim=0) for label in labels_unpad], blank_id
+    ).to(device)
 
-    ys_in = [torch.cat([blank, y], dim=0) for y in ys]
-    ys_in_pad = pad_list(ys_in, blank_id)
-
-    target = pad_list(ys, blank_id).type(torch.int32)
-    target_len = torch.IntTensor([y.size(0) for y in ys])
-
-    if torch.is_tensor(hlens):
-        if hlens.dim() > 1:
-            hs = [h[h != 0] for h in hlens]
-            hlens = list(map(int, [h.size(0) for h in hs]))
-        else:
-            hlens = list(map(int, hlens))
-
-    pred_len = torch.IntTensor(hlens)
-
-    pred_len = pred_len.to(device)
-    target = target.to(device)
-    target_len = target_len.to(device)
-
-    return ys_in_pad, target, pred_len, target_len
+    return decoder_input
 
 
-def is_prefix(x, pref):
-    """Check prefix.
+def valid_aux_encoder_output_layers(
+    aux_layer_id: List[int],
+    enc_num_layers: int,
+    use_symm_kl_div_loss: bool,
+    subsample: List[int],
+) -> List[int]:
+    """Check whether provided auxiliary encoder layer IDs are valid.
+
+    Return the valid list sorted with duplicates removed.
 
     Args:
-        x (list): token id sequence
-        pref (list): token id sequence
+        aux_layer_id: Auxiliary encoder layer IDs.
+        enc_num_layers: Number of encoder layers.
+        use_symm_kl_div_loss: Whether symmetric KL divergence loss is used.
+        subsample: Subsampling rate per layer.
 
     Returns:
-       (boolean): whether pref is a prefix of x.
+        valid: Valid list of auxiliary encoder layers.
+
+    """
+    if (
+        not isinstance(aux_layer_id, list)
+        or not aux_layer_id
+        or not all(isinstance(layer, int) for layer in aux_layer_id)
+    ):
+        raise ValueError(
+            "aux-transducer-loss-enc-output-layers option takes a list of layer IDs."
+            " Correct argument format is: '[0, 1]'"
+        )
+
+    sorted_list = sorted(aux_layer_id, key=int, reverse=False)
+    valid = list(filter(lambda x: 0 <= x < enc_num_layers, sorted_list))
+
+    if sorted_list != valid:
+        raise ValueError(
+            "Provided argument for aux-transducer-loss-enc-output-layers is incorrect."
+            " IDs should be between [0, %d]" % enc_num_layers
+        )
+
+    if use_symm_kl_div_loss:
+        sorted_list += [enc_num_layers]
+
+        for n in range(1, len(sorted_list)):
+            sub_range = subsample[(sorted_list[n - 1] + 1) : sorted_list[n] + 1]
+            valid_shape = [False if n > 1 else True for n in sub_range]
+
+            if False in valid_shape:
+                raise ValueError(
+                    "Encoder layers %d and %d have different shape due to subsampling."
+                    " Symmetric KL divergence loss doesn't cover such case for now."
+                    % (sorted_list[n - 1], sorted_list[n])
+                )
+
+    return valid
+
+
+def is_prefix(x: List[int], pref: List[int]) -> bool:
+    """Check if pref is a prefix of x.
+
+    Args:
+        x: Label ID sequence.
+        pref: Prefix label ID sequence.
+
+    Returns:
+        : Whether pref is a prefix of x.
 
     """
     if len(pref) >= len(x):
@@ -72,15 +116,17 @@ def is_prefix(x, pref):
     return True
 
 
-def substract(x, subset):
-    """Remove elements of subset if corresponding token id sequence exist in x.
+def subtract(
+    x: List[ExtendedHypothesis], subset: List[ExtendedHypothesis]
+) -> List[ExtendedHypothesis]:
+    """Remove elements of subset if corresponding label ID sequence already exist in x.
 
     Args:
-        x (list): set of hypotheses
-        subset (list): subset of hypotheses
+        x: Set of hypotheses.
+        subset: Subset of x.
 
     Returns:
-       final (list): new set
+       final: New set of hypotheses.
 
     """
     final = []
@@ -93,20 +139,65 @@ def substract(x, subset):
     return final
 
 
-def select_lm_state(lm_states, idx, lm_type, lm_layers):
-    """Get LM state from batch for given id.
+def select_k_expansions(
+    hyps: List[ExtendedHypothesis],
+    logps: torch.Tensor,
+    beam_size: int,
+    gamma: float,
+    beta: float,
+) -> List[ExtendedHypothesis]:
+    """Return K hypotheses candidates for expansion from a list of hypothesis.
+
+    K candidates are selected according to the extended hypotheses probabilities
+    and a prune-by-value method. Where K is equal to beam_size + beta.
 
     Args:
-        lm_states (list or dict): batch of LM states
-        idx (int): index to extract state from batch state
-        lm_type (str): type of LM
-        lm_layers (int): number of LM layers
+        hyps: Hypotheses.
+        beam_logp: Log-probabilities for hypotheses expansions.
+        beam_size: Beam size.
+        gamma: Allowed logp difference for prune-by-value method.
+        beta: Number of additional candidates to store.
 
-    Returns:
-       idx_state (dict): LM state for given id
+    Return:
+        k_expansions: Best K expansion hypotheses candidates.
 
     """
-    if lm_type == "wordlm":
+    k_expansions = []
+
+    for i, hyp in enumerate(hyps):
+        hyp_i = [(int(k), hyp.score + float(logp)) for k, logp in enumerate(logps[i])]
+        k_best_exp = max(hyp_i, key=lambda x: x[1])[1]
+
+        k_expansions.append(
+            sorted(
+                filter(lambda x: (k_best_exp - gamma) <= x[1], hyp_i),
+                key=lambda x: x[1],
+                reverse=True,
+            )[: beam_size + beta]
+        )
+
+    return k_expansions
+
+
+def select_lm_state(
+    lm_states: Union[List[Any], Dict[str, Any]],
+    idx: int,
+    lm_layers: int,
+    is_wordlm: bool,
+) -> Union[List[Any], Dict[str, Any]]:
+    """Get ID state from LM hidden states.
+
+    Args:
+        lm_states: LM hidden states.
+        idx: LM state ID to extract.
+        lm_layers: Number of LM layers.
+        is_wordlm: Whether provided LM is a word-level LM.
+
+    Returns:
+       idx_state: LM hidden state for given ID.
+
+    """
+    if is_wordlm:
         idx_state = lm_states[idx]
     else:
         idx_state = {}
@@ -117,43 +208,45 @@ def select_lm_state(lm_states, idx, lm_type, lm_layers):
     return idx_state
 
 
-def create_lm_batch_state(lm_states_list, lm_type, lm_layers):
-    """Create batch of LM states.
+def create_lm_batch_states(
+    lm_states: Union[List[Any], Dict[str, Any]], lm_layers, is_wordlm: bool
+) -> Union[List[Any], Dict[str, Any]]:
+    """Create LM hidden states.
 
     Args:
-        lm_states (list or dict): list of individual LM states
-        lm_type (str): type of LM
-        lm_layers (int): number of LM layers
+        lm_states: LM hidden states.
+        lm_layers: Number of LM layers.
+        is_wordlm: Whether provided LM is a word-level LM.
 
     Returns:
-       batch_states (list): batch of LM states
+        new_states: LM hidden states.
 
     """
-    if lm_type == "wordlm":
-        batch_states = lm_states_list
-    else:
-        batch_states = {}
+    if is_wordlm:
+        return lm_states
 
-        batch_states["c"] = [
-            torch.stack([state["c"][layer] for state in lm_states_list])
-            for layer in range(lm_layers)
-        ]
-        batch_states["h"] = [
-            torch.stack([state["h"][layer] for state in lm_states_list])
-            for layer in range(lm_layers)
-        ]
+    new_states = {}
 
-    return batch_states
+    new_states["c"] = [
+        torch.stack([state["c"][layer] for state in lm_states])
+        for layer in range(lm_layers)
+    ]
+    new_states["h"] = [
+        torch.stack([state["h"][layer] for state in lm_states])
+        for layer in range(lm_layers)
+    ]
+
+    return new_states
 
 
-def init_lm_state(lm_model):
-    """Initialize LM state.
+def init_lm_state(lm_model: torch.nn.Module):
+    """Initialize LM hidden states.
 
     Args:
-        lm_model (torch.nn.Module): LM module
+        lm_model: LM module.
 
     Returns:
-        lm_state (dict): initial LM state
+        lm_state: Initial LM hidden states.
 
     """
     lm_layers = len(lm_model.rnn)
@@ -178,14 +271,14 @@ def init_lm_state(lm_model):
     return lm_state
 
 
-def recombine_hyps(hyps):
-    """Recombine hypotheses with equivalent output sequence.
+def recombine_hyps(hyps: List[Hypothesis]) -> List[Hypothesis]:
+    """Recombine hypotheses with same label ID sequence.
 
     Args:
-        hyps (list): list of hypotheses
+        hyps: Hypotheses.
 
     Returns:
-       final (list): list of recombined hypotheses
+       final: Recombined hypotheses.
 
     """
     final = []
@@ -200,37 +293,39 @@ def recombine_hyps(hyps):
         else:
             final.append(hyp)
 
-    return hyps
+    return final
 
 
-def pad_sequence(seqlist, pad_token):
-    """Left pad list of token id sequences.
+def pad_sequence(labels: List[int], pad_id: int) -> List[int]:
+    """Left pad label ID sequences.
 
     Args:
-        seqlist (list): list of token id sequences
-        pad_token (int): padding token id
+        labels: Label ID sequence.
+        pad_id: Padding symbol ID.
 
     Returns:
-        final (list): list of padded token id sequences
+        final: Padded label ID sequences.
 
     """
-    maxlen = max(len(x) for x in seqlist)
+    maxlen = max(len(x) for x in labels)
 
-    final = [([pad_token] * (maxlen - len(x))) + x for x in seqlist]
+    final = [([pad_id] * (maxlen - len(x))) + x for x in labels]
 
     return final
 
 
-def check_state(state, max_len, pad_token):
-    """Left pad or trim state according to max_len.
+def check_state(
+    state: List[Optional[torch.Tensor]], max_len: int, pad_id: int
+) -> List[Optional[torch.Tensor]]:
+    """Check decoder hidden states and left pad or trim if necessary.
 
     Args:
-        state (list): list of of L decoder states (in_len, dec_dim)
-        max_len (int): maximum length authorized
-        pad_token (int): padding token id
+        state: Decoder hidden states. [N x (?, D_dec)]
+        max_len: maximum sequence length.
+        pad_id: Padding symbol ID.
 
     Returns:
-        final (list): list of L padded decoder states (1, max_len, dec_dim)
+        final: Decoder hidden states. [N x (1, max_len, D_dec)]
 
     """
     if state is None or max_len < 1 or state[0].size(1) == max_len:
@@ -248,7 +343,7 @@ def check_state(state, max_len, pad_token):
         ddim = state[0].size(2)
 
         final_dims = (1, max_len, ddim)
-        final = [state[0].data.new(*final_dims).fill_(pad_token) for _ in range(layers)]
+        final = [state[0].data.new(*final_dims).fill_(pad_id) for _ in range(layers)]
 
         for i, s in enumerate(state):
             final[i][:, (max_len - s.size(1)) : max_len, :] = s
@@ -258,28 +353,58 @@ def check_state(state, max_len, pad_token):
     return state
 
 
-def pad_batch_state(state, pred_length, pad_token):
-    """Left pad batch of states and trim if necessary.
+def check_batch_states(states, max_len, pad_id):
+    """Check decoder hidden states and left pad or trim if necessary.
 
     Args:
-        state (list): list of of L decoder states (B, ?, dec_dim)
-        pred_length (int): maximum length authorized (trimming)
-        pad_token (int): padding token id
+        state: Decoder hidden states. [N x (B, ?, D_dec)]
+        max_len: maximum sequence length.
+        pad_id: Padding symbol ID.
 
     Returns:
-        final (list): list of L padded decoder states (B, pred_length, dec_dim)
+        final: Decoder hidden states. [N x (B, max_len, dec_dim)]
 
     """
-    batch = len(state)
-    maxlen = max([s.size(0) for s in state])
-    ddim = state[0].size(1)
+    final_dims = (len(states), max_len, states[0].size(1))
+    final = states[0].data.new(*final_dims).fill_(pad_id)
 
-    final_dims = (batch, maxlen, ddim)
-    final = state[0].data.new(*final_dims).fill_(pad_token)
+    for i, s in enumerate(states):
+        curr_len = s.size(0)
 
-    for i, s in enumerate(state):
-        final[i, (maxlen - s.size(0)) : maxlen, :] = s
+        if curr_len < max_len:
+            final[i, (max_len - curr_len) : max_len, :] = s
+        else:
+            final[i, :, :] = s[(curr_len - max_len) :, :]
 
-    trim_val = final[0].size(0) - (pred_length - 1)
+    return final
 
-    return final[:, trim_val:, :]
+
+def custom_torch_load(model_path: str, model: torch.nn.Module, training: bool = True):
+    """Load Transducer model with training-only modules and parameters removed.
+
+    Args:
+        model_path: Model path.
+        model: Transducer model.
+
+    """
+    if "snapshot" in os.path.basename(model_path):
+        model_state_dict = torch.load(
+            model_path, map_location=lambda storage, loc: storage
+        )["model"]
+    else:
+        model_state_dict = torch.load(
+            model_path, map_location=lambda storage, loc: storage
+        )
+
+    if not training:
+        task_keys = ("mlp", "ctc_lin", "kl_div", "lm_lin", "error_calculator")
+
+        model_state_dict = {
+            k: v
+            for k, v in model_state_dict.items()
+            if not any(mod in k for mod in task_keys)
+        }
+
+    model.load_state_dict(model_state_dict)
+
+    del model_state_dict

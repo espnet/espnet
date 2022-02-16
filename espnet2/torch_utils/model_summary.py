@@ -35,7 +35,7 @@ def get_human_readable_count(number: int) -> str:
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
-    number = number * (10 ** shift)
+    number = number * (10**shift)
     index = num_groups - 1
     return f"{number:.2f} {labels[index]}"
 
@@ -48,12 +48,17 @@ def to_bytes(dtype) -> int:
 def model_summary(model: torch.nn.Module) -> str:
     message = "Model structure:\n"
     message += str(model)
-    num_params = get_human_readable_count(
-        sum(p.numel() for p in model.parameters() if p.requires_grad)
-    )
+    tot_params = sum(p.numel() for p in model.parameters())
+    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    percent_trainable = "{:.1f}".format(num_params * 100.0 / tot_params)
+    tot_params = get_human_readable_count(tot_params)
+    num_params = get_human_readable_count(num_params)
     message += "\n\nModel summary:\n"
     message += f"    Class Name: {model.__class__.__name__}\n"
-    message += f"    Number of parameters: {num_params}\n"
+    message += f"    Total Number of model parameters: {tot_params}\n"
+    message += (
+        f"    Number of trainable parameters: {num_params} ({percent_trainable}%)\n"
+    )
     num_bytes = humanfriendly.format_size(
         sum(
             p.numel() * to_bytes(p.dtype) for p in model.parameters() if p.requires_grad

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # DIRHA DATA PREPARATION   (Author: Mirco Ravanelli)
 

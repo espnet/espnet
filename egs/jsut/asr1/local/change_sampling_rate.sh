@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #This script is to adjust sampling rate of the wav files and config files.
 
 fs=$1

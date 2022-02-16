@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # check whether bs4 and lxml is installed
 if ! python3 -c "import bs4" 2>/dev/null; then

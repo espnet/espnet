@@ -1,3 +1,4 @@
+"""Reporter module."""
 from collections import defaultdict
 from contextlib import contextmanager
 import dataclasses
@@ -20,12 +21,7 @@ import numpy as np
 import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
-import wandb
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-    from torch.utils.tensorboard import SummaryWriter
-else:
-    from tensorboardX import SummaryWriter
 
 Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 
@@ -95,6 +91,16 @@ def aggregate(values: Sequence["ReportedValue"]) -> Num:
         raise NotImplementedError(f"type={type(values[0])}")
     assert check_return_type(retval)
     return retval
+
+
+def wandb_get_prefix(key: str):
+    if key.startswith("valid"):
+        return "valid/"
+    if key.startswith("train"):
+        return "train/"
+    if key.startswith("attn"):
+        return "attn/"
+    return "metrics/"
 
 
 class ReportedValue:
@@ -220,7 +226,7 @@ class SubReporter:
                 message += f"{key2}={v:.3e}"
         return message
 
-    def tensorboard_add_scalar(self, summary_writer: SummaryWriter, start: int = None):
+    def tensorboard_add_scalar(self, summary_writer, start: int = None):
         if start is None:
             start = 0
         if start < 0:
@@ -231,9 +237,11 @@ class SubReporter:
             # values: List[ReportValue]
             values = stats_list[start:]
             v = aggregate(values)
-            summary_writer.add_scalar(key2, v, self.total_count)
+            summary_writer.add_scalar(f"{key2}", v, self.total_count)
 
-    def wandb_log(self, start: int = None, commit: bool = True):
+    def wandb_log(self, start: int = None):
+        import wandb
+
         if start is None:
             start = 0
         if start < 0:
@@ -245,9 +253,9 @@ class SubReporter:
             # values: List[ReportValue]
             values = stats_list[start:]
             v = aggregate(values)
-            d[key2] = v
+            d[wandb_get_prefix(key2) + key2] = v
         d["iteration"] = self.total_count
-        wandb.log(d, commit=commit)
+        wandb.log(d)
 
     def finished(self) -> None:
         self._finished = True
@@ -349,6 +357,14 @@ class Reporter:
             seconds=time.perf_counter() - sub_reporter.start_time
         )
         stats["total_count"] = sub_reporter.total_count
+        if LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
+            if torch.cuda.is_initialized():
+                stats["gpu_max_cached_mem_GB"] = (
+                    torch.cuda.max_memory_reserved() / 2**30
+                )
+        else:
+            if torch.cuda.is_available() and torch.cuda.max_memory_cached() > 0:
+                stats["gpu_cached_mem_GB"] = torch.cuda.max_memory_cached() / 2**30
 
         self.stats.setdefault(self.epoch, {})[sub_reporter.key] = stats
         sub_reporter.finished()
@@ -528,21 +544,29 @@ class Reporter:
 
         return plt
 
-    def tensorboard_add_scalar(self, summary_writer: SummaryWriter, epoch: int = None):
+    def tensorboard_add_scalar(
+        self, summary_writer, epoch: int = None, key1: str = None
+    ):
         if epoch is None:
             epoch = self.get_epoch()
+            total_count = self.stats[epoch]["train"]["total_count"]
+            if key1 == "train":
+                summary_writer.add_scalar("iter_epoch", epoch, total_count)
 
-        for key1 in self.get_keys(epoch):
-            for key2 in self.stats[epoch][key1]:
-                if key2 in ("time", "total_count"):
-                    continue
+        if key1 is not None:
+            key1_iterator = tuple([key1])
+        else:
+            key1_iterator = self.get_keys(epoch)
+
+        for key1 in key1_iterator:
+            for key2 in self.get_keys2(key1):
                 summary_writer.add_scalar(
-                    f"{key1}_{key2}_epoch",
-                    self.stats[epoch][key1][key2],
-                    epoch,
+                    f"{key2}", self.stats[epoch][key1][key2], total_count
                 )
 
-    def wandb_log(self, epoch: int = None, commit: bool = True):
+    def wandb_log(self, epoch: int = None):
+        import wandb
+
         if epoch is None:
             epoch = self.get_epoch()
 
@@ -551,9 +575,10 @@ class Reporter:
             for key2 in self.stats[epoch][key1]:
                 if key2 in ("time", "total_count"):
                     continue
-                d[f"{key1}_{key2}_epoch"] = self.stats[epoch][key1][key2]
+                key = f"{key1}_{key2}_epoch"
+                d[wandb_get_prefix(key) + key] = self.stats[epoch][key1][key2]
         d["epoch"] = epoch
-        wandb.log(d, commit=commit)
+        wandb.log(d)
 
     def state_dict(self):
         return {"stats": self.stats, "epoch": self.epoch}

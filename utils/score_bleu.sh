@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -8,12 +8,12 @@ export LC_ALL=C
 . ./path.sh
 
 nlsyms=""
-bpe=""
 bpemodel=""
 filter=""
-case=lc
+case=tc
 set=""
 remove_nonverbal=true
+character_level=false
 
 . utils/parse_options.sh
 
@@ -35,24 +35,25 @@ json2trn_mt.py ${dir}/data.json ${dic_tgt} --refs ${dir}/ref.trn.org \
 perl -pe 's/\([^\)]+\)\n/\n/g;' ${dir}/ref.trn.org > ${dir}/ref.trn
 perl -pe 's/\([^\)]+\)\n/\n/g;' ${dir}/hyp.trn.org > ${dir}/hyp.trn
 perl -pe 's/\([^\)]+\)\n/\n/g;' ${dir}/src.trn.org > ${dir}/src.trn
+perl -pe 's/.+\s\(([^\)]+)\)\n/\($1\)\n/g;' ${dir}/ref.trn.org > ${dir}/utt_id
 
 # remove non-verbal labels (optional)
 perl -pe 's/\([^\)]+\)//g;' ${dir}/ref.trn > ${dir}/ref.rm.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/hyp.trn > ${dir}/hyp.rm.trn
 perl -pe 's/\([^\)]+\)//g;' ${dir}/src.trn > ${dir}/src.rm.trn
 
-if [ -n "$bpe" ]; then
-    if [ ${remove_nonverbal} ]; then
-        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref.rm.trn | sed -e "s/▁/ /g" > ${dir}/ref.wrd.trn
+if [ -n "${bpemodel}" ]; then
+    if [ ${remove_nonverbal} = true ]; then
+        cat ${dir}/ref.rm.trn > ${dir}/ref.wrd.trn
         spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.rm.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
         spm_decode --model=${bpemodel} --input_format=piece < ${dir}/src.rm.trn | sed -e "s/▁/ /g" > ${dir}/src.wrd.trn
     else
-        spm_decode --model=${bpemodel} --input_format=piece < ${dir}/ref.trn | sed -e "s/▁/ /g" > ${dir}/ref.wrd.trn
+        cat ${dir}/ref.trn > ${dir}/ref.wrd.trn
         spm_decode --model=${bpemodel} --input_format=piece < ${dir}/hyp.trn | sed -e "s/▁/ /g" > ${dir}/hyp.wrd.trn
         spm_decode --model=${bpemodel} --input_format=piece < ${dir}/src.trn | sed -e "s/▁/ /g" > ${dir}/src.wrd.trn
     fi
 else
-    if [ ${remove_nonverbal} ]; then
+    if [ ${remove_nonverbal} = true ]; then
         sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/ref.rm.trn > ${dir}/ref.wrd.trn
         sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/hyp.rm.trn > ${dir}/hyp.wrd.trn
         sed -e "s/ //g" -e "s/(/ (/" -e "s/<space>/ /g" -e "s/>/> /g" ${dir}/src.rm.trn > ${dir}/src.wrd.trn
@@ -84,16 +85,33 @@ if [ -n "${filter}" ]; then
 fi
 # NOTE: this must be performed after detokenization so that punctuation marks are not removed
 
-if [ ${case} = tc ]; then
-    echo ${set} > ${dir}/result.tc.txt
-    multi-bleu-detok.perl ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok >> ${dir}/result.tc.txt
-    echo "write a case-sensitive BLEU result in ${dir}/result.tc.txt"
-    cat ${dir}/result.tc.txt
-else
-    echo ${set} > ${dir}/result.lc.txt
-    multi-bleu-detok.perl -lc ${dir}/ref.wrd.trn.detok < ${dir}/hyp.wrd.trn.detok > ${dir}/result.lc.txt
-    echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
-    cat ${dir}/result.lc.txt
+if [ ${character_level} = true ]; then
+    # for Japanese/Chinese
+    cp ${dir}/ref.wrd.trn.detok ${dir}/ref.wrd.trn.detok.tmp
+    cp ${dir}/hyp.wrd.trn.detok ${dir}/hyp.wrd.trn.detok.tmp
+    cp ${dir}/src.wrd.trn.detok ${dir}/src.wrd.trn.detok.tmp
+    LC_ALL=en_US.UTF-8 sed -e 's/\(.\)/ \1/g' ${dir}/ref.wrd.trn.detok.tmp > ${dir}/ref.wrd.trn.detok
+    LC_ALL=en_US.UTF-8 sed -e 's/\(.\)/ \1/g' ${dir}/hyp.wrd.trn.detok.tmp > ${dir}/hyp.wrd.trn.detok
+    LC_ALL=en_US.UTF-8 sed -e 's/\(.\)/ \1/g' ${dir}/src.wrd.trn.detok.tmp > ${dir}/src.wrd.trn.detok
 fi
 
-# TODO(hirofumi): add TER & METEOR metrics here
+if [ -f ${dir}/result.${case}.txt ]; then
+    rm ${dir}/result.${case}.txt
+    touch ${dir}/result.${case}.txt
+fi
+if [ -n "${set}" ]; then
+    echo ${set} > ${dir}/result.${case}.txt
+fi
+echo "########################################################################################################################" >> ${dir}/result.${case}.txt
+echo "sacleBLEU" >> ${dir}/result.${case}.txt
+if [ ${case} = tc ]; then
+    sacrebleu ${dir}/ref.wrd.trn.detok -i ${dir}/hyp.wrd.trn.detok -m bleu chrf ter >> ${dir}/result.${case}.txt
+    echo "write a case-sensitive BLEU result in ${dir}/result.tc.txt"
+else
+    sacrebleu -lc ${dir}/ref.wrd.trn.detok -i ${dir}/hyp.wrd.trn.detok -m bleu chrf ter >> ${dir}/result.${case}.txt
+    echo "write a case-insensitive BLEU result in ${dir}/result.lc.txt"
+fi
+echo "########################################################################################################################" >> ${dir}/result.${case}.txt
+cat ${dir}/result.${case}.txt
+
+# TODO(hirofumi): add METEOR, BERTscore here

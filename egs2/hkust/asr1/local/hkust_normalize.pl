@@ -1,0 +1,1 @@
+../../../../egs/hkust/asr1/local/hkust_normalize.pl

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Installs pb_chime5
 git clone https://github.com/fgnt/pb_chime5.git
@@ -8,7 +8,7 @@ cd pb_chime5
 git submodule init  
 git submodule update
 
-# sudo apt install libopenmpi-dev -- if you have problem with mpi4py instalation
+# sudo apt install libopenmpi-dev -- if you have problem with mpi4py installation
 
 python -m pip install cython
 python -m pip install pymongo

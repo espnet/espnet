@@ -1,0 +1,3 @@
+fs: 8000
+segment_size: 10
+# num_spk: 2 # The number of speakers will be estimated if "num_spk" is "None" (model_type "eda")

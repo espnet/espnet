@@ -125,7 +125,9 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         tgt_mask = tgt_mask & m
 
         memory = hs_pad
-        memory_mask = (~make_pad_mask(hlens))[:, None, :].to(memory.device)
+        memory_mask = (~make_pad_mask(hlens, maxlen=memory.size(1)))[:, None, :].to(
+            memory.device
+        )
 
         x = self.embed(tgt)
         x, tgt_mask, memory, memory_mask = self.decoders(
@@ -320,8 +322,7 @@ class LightweightConvolutionTransformerDecoder(BaseTransformerDecoder):
                     wshare=conv_wshare,
                     n_feat=attention_dim,
                     dropout_rate=self_attention_dropout_rate,
-                    kernel_size_str="_".join(map(str, conv_kernel_length)),
-                    lnum=lnum,
+                    kernel_size=conv_kernel_length[lnum],
                     use_kernel_mask=True,
                     use_bias=conv_usebias,
                 ),
@@ -383,8 +384,7 @@ class LightweightConvolution2DTransformerDecoder(BaseTransformerDecoder):
                     wshare=conv_wshare,
                     n_feat=attention_dim,
                     dropout_rate=self_attention_dropout_rate,
-                    kernel_size_str="_".join(map(str, conv_kernel_length)),
-                    lnum=lnum,
+                    kernel_size=conv_kernel_length[lnum],
                     use_kernel_mask=True,
                     use_bias=conv_usebias,
                 ),
@@ -446,8 +446,7 @@ class DynamicConvolutionTransformerDecoder(BaseTransformerDecoder):
                     wshare=conv_wshare,
                     n_feat=attention_dim,
                     dropout_rate=self_attention_dropout_rate,
-                    kernel_size_str="_".join(map(str, conv_kernel_length)),
-                    lnum=lnum,
+                    kernel_size=conv_kernel_length[lnum],
                     use_kernel_mask=True,
                     use_bias=conv_usebias,
                 ),
@@ -509,8 +508,7 @@ class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
                     wshare=conv_wshare,
                     n_feat=attention_dim,
                     dropout_rate=self_attention_dropout_rate,
-                    kernel_size_str="_".join(map(str, conv_kernel_length)),
-                    lnum=lnum,
+                    kernel_size=conv_kernel_length[lnum],
                     use_kernel_mask=True,
                     use_bias=conv_usebias,
                 ),

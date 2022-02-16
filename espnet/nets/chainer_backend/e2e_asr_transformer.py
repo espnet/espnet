@@ -20,7 +20,6 @@ from espnet.nets.chainer_backend.transformer.encoder import Encoder
 from espnet.nets.chainer_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,  # noqa: H301
 )
-from espnet.nets.chainer_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.chainer_backend.transformer.training import CustomConverter
 from espnet.nets.chainer_backend.transformer.training import CustomUpdater
 from espnet.nets.chainer_backend.transformer.training import (
@@ -30,6 +29,8 @@ from espnet.nets.ctc_prefix_score import CTCPrefixScore
 from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
+from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
+
 
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5
@@ -138,6 +139,10 @@ class E2E(ChainerASRInterface):
         )
         return parser
 
+    def get_total_subsampling_factor(self):
+        """Get total subsampling factor."""
+        return self.encoder.conv_subsampling_factor * int(np.prod(self.subsample))
+
     def __init__(self, idim, odim, args, ignore_id=-1, flag_return=True):
         """Initialize the transformer."""
         chainer.Chain.__init__(self)
@@ -149,7 +154,7 @@ class E2E(ChainerASRInterface):
         self.char_list = args.char_list
         self.space = args.sym_space
         self.blank = args.sym_blank
-        self.scale_emb = args.adim ** 0.5
+        self.scale_emb = args.adim**0.5
         self.sos = odim - 1
         self.eos = odim - 1
         self.subsample = get_subsample(args, mode="asr", arch="transformer")
@@ -247,7 +252,7 @@ class E2E(ChainerASRInterface):
         """E2E forward propagation.
 
         Args:
-            xs (chainer.Variable): Batch of padded charactor ids. (B, Tmax)
+            xs (chainer.Variable): Batch of padded character ids. (B, Tmax)
             ilens (chainer.Variable): Batch of length of each input batch. (B,)
             ys (chainer.Variable): Batch of padded target features. (B, Lmax, odim)
             calculate_attentions (bool): If true, return value is the output of encoder.
@@ -376,7 +381,7 @@ class E2E(ChainerASRInterface):
         """E2E beam search.
 
         Args:
-            h (ndarray): Encoder ouput features (B, T, D) or (T, D).
+            h (ndarray): Encoder output features (B, T, D) or (T, D).
             lpz (ndarray): Log probabilities from CTC.
             recog_args (Namespace): Argment namespace contraining options.
             char_list (List[str]): List of characters.
@@ -501,7 +506,7 @@ class E2E(ChainerASRInterface):
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
-                logging.info("adding <eos> in the last postion in the loop")
+                logging.info("adding <eos> in the last position in the loop")
                 for hyp in hyps:
                     hyp["yseq"].append(self.eos)
 
@@ -569,7 +574,7 @@ class E2E(ChainerASRInterface):
         """E2E attention calculation.
 
         Args:
-            xs_pad (List[tuple()]): List of padded input sequences.
+            xs (List[tuple()]): List of padded input sequences.
                 [(T1, idim), (T2, idim), ...]
             ilens (ndarray): Batch of lengths of input sequences. (B)
             ys (List): List of character id sequence tensor. [(L1), (L2), (L3), ...]

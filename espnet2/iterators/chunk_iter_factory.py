@@ -106,13 +106,14 @@ class ChunkIterFactory(AbsIterFactory):
 
         # NOTE(kamo):
         #   This iterator supports multiple chunk lengths and
-        #   keep chunks for each lenghts here until collecting specified numbers
+        #   keep chunks for each lengths here until collecting specified numbers
         cache_chunks_dict = {}
         cache_id_list_dict = {}
         for ids, batch in per_sample_loader:
             # Must be per-sample-loader
             assert len(ids) == 1, f"Must be per-sample-loader: {len(ids)}"
             assert all(len(x) == 1 for x in batch.values())
+
             # Get keys of sequence data
             sequence_keys = []
             for key in batch:
@@ -144,7 +145,7 @@ class ChunkIterFactory(AbsIterFactory):
             cache_chunks = cache_chunks_dict.setdefault(W, {})
 
             # Shift width to the next chunk
-            S = int(L * self.chunk_shift_ratio)
+            S = int(W * self.chunk_shift_ratio)
             # Number of chunks
             N = (L - W) // S + 1
             if shuffle:
@@ -210,4 +211,5 @@ class ChunkIterFactory(AbsIterFactory):
             )
             id_list = id_list[bs:]
             batches = {k: v[bs:] for k, v in batches.items()}
+
         return id_list, batches

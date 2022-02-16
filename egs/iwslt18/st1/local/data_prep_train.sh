@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -43,9 +43,14 @@ segments=${dst}/segments; [[ -f "${segments}" ]] && rm ${segments}
 n=$(cat ${yml} | grep duration | wc -l)
 n_en=$(cat ${en} | wc -l)
 n_de=$(cat ${de} | wc -l)
-[ ${n} -ne ${n_en} ] && echo "Warning: expected ${n} data data files, found ${n_en}" && exit 1;
-[ ${n} -ne ${n_de} ] && echo "Warning: expected ${n} data data files, found ${n_de}" && exit 1;
+[ ${n} -ne ${n_en} ] && echo "Warning: expected ${n} data files, found ${n_en}" && exit 1;
+[ ${n} -ne ${n_de} ] && echo "Warning: expected ${n} data files, found ${n_de}" && exit 1;
 
+
+# downloads reclist (for removing noisy training utterances)
+if [ ! -d data/local/downloads ]; then
+    download_from_google_drive.sh https://drive.google.com/open?id=1agQOUEm47LIeLZAFF8RTZ5qx6OsOFGTM data/local
+fi
 
 # (1a) Transcriptions and translations preparation
 # make basic transcription file (add segments info)
@@ -80,7 +85,7 @@ for lang in en de; do
     cp ${dst}/${lang}.norm ${dst}/${lang}.norm.tc
 
     # remove punctuation
-    local/remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
+    remove_punctuation.pl < ${dst}/${lang}.norm.lc > ${dst}/${lang}.norm.lc.rm
 
     # tokenization
     tokenizer.perl -l ${lang} -q < ${dst}/${lang}.norm.tc > ${dst}/${lang}.norm.tc.tok
@@ -110,8 +115,8 @@ done
 n=$(cat ${dst}/.yaml2 | wc -l)
 n_en=$(cat ${dst}/en.norm.tc.tok | wc -l)
 n_de=$(cat ${dst}/de.norm.tc.tok | wc -l)
-[ ${n} -ne ${n_en} ] && echo "Warning: expected ${n} data data files, found ${n_en}" && exit 1;
-[ ${n} -ne ${n_de} ] && echo "Warning: expected ${n} data data files, found ${n_de}" && exit 1;
+[ ${n} -ne ${n_en} ] && echo "Warning: expected ${n} data files, found ${n_en}" && exit 1;
+[ ${n} -ne ${n_de} ] && echo "Warning: expected ${n} data files, found ${n_de}" && exit 1;
 
 
 # (1c) Make segments files from transcript
@@ -148,10 +153,10 @@ mv ${dst}/text.tc.en.tmp ${dst}/text.tc.en
 # error check
 n_en=$(cat ${dst}/text.tc.en | wc -l)
 n_de=$(cat ${dst}/text.tc.de | wc -l)
-[ ${n_en} -ne ${n_de} ] && echo "Warning: expected ${n_en} data data files, found ${n_de}" && exit 1;
+[ ${n_en} -ne ${n_de} ] && echo "Warning: expected ${n_en} data files, found ${n_de}" && exit 1;
 
 
-# Copy stuff intoc its final locations [this has been moved from the format_data script]
+# Copy stuff into its final locations [this has been moved from the format_data script]
 mkdir -p data/train
 for f in spk2utt utt2spk wav.scp segments; do
     cp ${dst}/${f} data/train/${f}

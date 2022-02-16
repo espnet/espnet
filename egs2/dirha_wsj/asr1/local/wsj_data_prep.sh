@@ -1,1 +1,1 @@
-../../../../egs/dirha_wsj/asr1/local/wsj_data_prep.sh
+../../../wsj/asr1/local/wsj_data_prep.sh

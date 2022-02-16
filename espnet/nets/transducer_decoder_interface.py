@@ -1,106 +1,159 @@
 """Transducer decoder interface module."""
 
+from dataclasses import dataclass
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 from typing import Union
 
 import torch
 
-from espnet.nets.beam_search_transducer import Hypothesis
+
+@dataclass
+class Hypothesis:
+    """Default hypothesis definition for Transducer search algorithms."""
+
+    score: float
+    yseq: List[int]
+    dec_state: Union[
+        Tuple[torch.Tensor, Optional[torch.Tensor]],
+        List[Optional[torch.Tensor]],
+        torch.Tensor,
+    ]
+    lm_state: Union[Dict[str, Any], List[Any]] = None
+
+
+@dataclass
+class ExtendedHypothesis(Hypothesis):
+    """Extended hypothesis definition for NSC beam search and mAES."""
+
+    dec_out: List[torch.Tensor] = None
+    lm_scores: torch.Tensor = None
 
 
 class TransducerDecoderInterface:
-    """Decoder interface for transducer models."""
+    """Decoder interface for Transducer models."""
 
     def init_state(
-        self, init_tensor: torch.Tensor = None
-    ) -> Union[Tuple[Any], torch.Tensor]:
-        """Initialize decoder (and optionnally attention states).
+        self,
+        batch_size: int,
+    ) -> Union[
+        Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
+    ]:
+        """Initialize decoder states.
 
         Args:
-            init_tensor: input features
+            batch_size: Batch size.
 
         Returns:
-            state: initial state
+            state: Initial decoder hidden states.
 
         """
-        raise NotImplementedError("zero_state method is not implemented")
+        raise NotImplementedError("init_state(...) is not implemented")
 
     def score(
         self,
         hyp: Hypothesis,
         cache: Dict[str, Any],
-        init_tensor: torch.Tensor = None,
-    ) -> Union[Tuple[Any], List[torch.Tensor], torch.Tensor]:
-        """Forward one step.
+    ) -> Tuple[
+        torch.Tensor,
+        Union[
+            Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
+        ],
+        torch.Tensor,
+    ]:
+        """One-step forward hypothesis.
 
         Args:
-            hyp: hypothese
-            cache: pairs of (y, state) for each token sequence (key)
-            init_tensor: initial tensor for attention decoder
+            hyp: Hypothesis.
+            cache: Pairs of (dec_out, dec_state) for each token sequence. (key)
 
         Returns:
-            y: decoder outputs
-            new_state: decoder and attention states
-            lm_tokens: token id for LM
+            dec_out: Decoder output sequence.
+            new_state: Decoder hidden states.
+            lm_tokens: Label ID for LM.
 
         """
-        raise NotImplementedError("forward_one_step method is not implemented")
+        raise NotImplementedError("score(...) is not implemented")
 
     def batch_score(
         self,
-        hyps: List[Hypothesis],
-        batch_states: Union[Tuple[Any], List[torch.Tensor]],
+        hyps: Union[List[Hypothesis], List[ExtendedHypothesis]],
+        dec_states: Union[
+            Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
+        ],
         cache: Dict[str, Any],
-    ) -> Union[Tuple[Any], List[torch.Tensor], torch.Tensor]:
-        """Forward batch one step.
+        use_lm: bool,
+    ) -> Tuple[
+        torch.Tensor,
+        Union[
+            Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
+        ],
+        torch.Tensor,
+    ]:
+        """One-step forward hypotheses.
 
         Args:
-            hyps: batch of hypothesis
-            batch_states: batch of decoder states (and optionnally attention states)
-            cache: pairs of (y, state) for each token sequence (key)
-            init_tensor: initial tensor for attention decoder
+            hyps: Hypotheses.
+            dec_states: Decoder hidden states.
+            cache: Pairs of (dec_out, dec_states) for each label sequence. (key)
+            use_lm: Whether to compute label ID sequences for LM.
 
         Returns:
-            batch_y: decoder outputs
-            batch_states: batch of decoder states (and optionnally attention states)
-            lm_tokens: batch of token ids for LM
+            dec_out: Decoder output sequences.
+            dec_states: Decoder hidden states.
+            lm_labels: Label ID sequences for LM.
 
         """
-        raise NotImplementedError("forward_batch_one_step method is not implemented")
+        raise NotImplementedError("batch_score(...) is not implemented")
 
     def select_state(
-        self, batch_states: Union[Tuple[Any], List[torch.Tensor]], idx: int
-    ) -> Union[Tuple[Any], List[torch.Tensor]]:
-        """Get decoder state from batch for given id.
+        self,
+        batch_states: Union[
+            Tuple[torch.Tensor, Optional[torch.Tensor]], List[torch.Tensor]
+        ],
+        idx: int,
+    ) -> Union[
+        Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
+    ]:
+        """Get specified ID state from decoder hidden states.
 
         Args:
-            batch_states: batch of decoder and optionnally attention states
-            idx: index to extract state from batch of states
+            batch_states: Decoder hidden states.
+            idx: State ID to extract.
 
         Returns:
-            state_idx: decoder states (and optionnally attention states) for given id
+            state_idx: Decoder hidden state for given ID.
 
         """
-        raise NotImplementedError("get_idx_dec_state method is not implemented")
+        raise NotImplementedError("select_state(...) is not implemented")
 
     def create_batch_states(
         self,
-        batch_states: Union[Tuple[Any], List[torch.Tensor]],
-        l_states: Union[List[Tuple[Any]], List[List[torch.Tensor]]],
-        l_tokens: List[List[int]] = None,
-    ) -> Union[Tuple[Any], List[torch.Tensor]]:
-        """Create batch of decoder states.
+        states: Union[
+            Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
+        ],
+        new_states: List[
+            Union[
+                Tuple[torch.Tensor, Optional[torch.Tensor]],
+                List[Optional[torch.Tensor]],
+            ]
+        ],
+        l_tokens: List[List[int]],
+    ) -> Union[
+        Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]]
+    ]:
+        """Create decoder hidden states.
 
         Args:
-            batch_states: batch of decoder (and optionnally attention states)
-            l_states: list of decoder states (and optionnally attention states)
-            l_tokens: list of token sequences for batch
+            batch_states: Batch of decoder states
+            l_states: List of decoder states
+            l_tokens: List of token sequences for input batch
 
         Returns:
-            batch_states: batch of decoder and attention states
+            batch_states: Batch of decoder states
 
         """
-        raise NotImplementedError("create_batch_states method is not implemented")
+        raise NotImplementedError("create_batch_states(...) is not implemented")

@@ -6,6 +6,7 @@
 from argparse import Namespace
 import logging
 import math
+import numpy
 
 import torch
 
@@ -57,6 +58,10 @@ class E2E(STInterface, torch.nn.Module):
     def attention_plot_class(self):
         """Return PlotAttentionReport."""
         return PlotAttentionReport
+
+    def get_total_subsampling_factor(self):
+        """Get total subsampling factor."""
+        return self.encoder.conv_subsampling_factor * int(numpy.prod(self.subsample))
 
     def __init__(self, idim, odim, args, ignore_id=-1):
         """Construct an E2E object.
@@ -180,7 +185,7 @@ class E2E(STInterface, torch.nn.Module):
         initialize(self, args.transformer_init)
         if self.mt_weight > 0:
             torch.nn.init.normal_(
-                self.encoder_mt.embed[0].weight, mean=0, std=args.adim ** -0.5
+                self.encoder_mt.embed[0].weight, mean=0, std=args.adim**-0.5
             )
             torch.nn.init.constant_(self.encoder_mt.embed[0].weight[self.pad], 0)
 
@@ -202,7 +207,7 @@ class E2E(STInterface, torch.nn.Module):
         tgt_lang_ids = None
         if self.multilingual:
             tgt_lang_ids = ys_pad[:, 0:1]
-            ys_pad = ys_pad[:, 1:]  # remove target language ID in the beggining
+            ys_pad = ys_pad[:, 1:]  # remove target language ID in the beginning
 
         # 1. forward encoder
         xs_pad = xs_pad[:, : max(ilens)]  # for data parallel
@@ -473,7 +478,7 @@ class E2E(STInterface, torch.nn.Module):
 
             # add eos in the final loop to avoid that there are no ended hyps
             if i == maxlen - 1:
-                logging.info("adding <eos> in the last postion in the loop")
+                logging.info("adding <eos> in the last position in the loop")
                 for hyp in hyps:
                     hyp["yseq"].append(self.eos)
 

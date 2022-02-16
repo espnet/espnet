@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -20,6 +20,7 @@ resume=        # Resume the training from snapshot
 # feature configuration
 do_delta=false
 
+preprocess_config=
 train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
@@ -33,6 +34,7 @@ lmtag=              # tag for managing LMs
 # decoding parameter
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 n_average=10
+use_valbest_average=false
 
 # data
 chime4_data=/export/corpora4/CHiME4/CHiME3 # JHU setup
@@ -70,7 +72,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         ${chime4_data}/data/audio/16kHz/isolated_2ch_track enhan/beamformit_2mics
     local/run_beamform_6ch_track.sh --cmd "${train_cmd}" --nj 20 \
         ${chime4_data}/data/audio/16kHz/isolated_6ch_track enhan/beamformit_5mics
-    echo "prepartion for chime4 data"
+    echo "preparation for chime4 data"
     local/real_noisy_chime4_data_prep.sh ${chime4_data}
     local/simu_noisy_chime4_data_prep.sh ${chime4_data}
     echo "test data for 1ch track"
@@ -222,6 +224,9 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
+    if [ -n "${preprocess_config}" ]; then
+        expname=${expname}_$(basename ${preprocess_config%.*})
+    fi
 else
     expname=${train_set}_${backend}_${tag}
 fi
@@ -233,6 +238,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
         asr_train.py \
         --config ${train_config} \
+        --preprocess-conf ${preprocess_config} \
         --ngpu ${ngpu} \
         --backend ${backend} \
         --outdir ${expdir}/results \
@@ -252,10 +258,18 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     nj=32
     if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]] || \
            [[ $(get_yaml.py ${train_config} model-module) = *conformer* ]] || \
-           [[ $(get_yaml.py ${train_config} etype) = transformer ]] || \
-           [[ $(get_yaml.py ${train_config} dtype) = transformer ]]; then
-        recog_model=model.last${n_average}.avg.best
-        average_checkpoints.py --backend ${backend} \
+           [[ $(get_yaml.py ${train_config} etype) = custom ]] || \
+           [[ $(get_yaml.py ${train_config} dtype) = custom ]]; then
+        if ${use_valbest_average}; then
+            recog_model=model.val${n_average}.avg.best
+            opt="--log ${expdir}/results/log"
+        else
+            recog_model=model.last${n_average}.avg.best
+            opt="--log"
+        fi
+        average_checkpoints.py \
+                    ${opt} \
+                    --backend ${backend} \
                     --snapshots ${expdir}/results/snapshot.ep.* \
                     --out ${expdir}/results/${recog_model} \
                     --num ${n_average}

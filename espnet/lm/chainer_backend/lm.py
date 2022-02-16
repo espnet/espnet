@@ -38,7 +38,6 @@ from espnet.scheduler.chainer import ChainerScheduler
 from espnet.scheduler.scheduler import dynamic_import_scheduler
 
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from tensorboardX import SummaryWriter
 
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.training.evaluator import BaseEvaluator
@@ -456,6 +455,11 @@ def train(args):
 
     set_early_stop(trainer, args, is_lm=True)
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        try:
+            from tensorboardX import SummaryWriter
+        except Exception:
+            logging.error("Please install tensorboardx")
+            raise
         writer = SummaryWriter(args.tensorboard_dir)
         trainer.extend(
             TensorboardLogger(writer), trigger=(args.report_interval_iters, "iteration")

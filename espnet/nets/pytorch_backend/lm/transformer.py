@@ -4,6 +4,7 @@ from typing import Any
 from typing import List
 from typing import Tuple
 
+import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,6 +14,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet.utils.cli_utils import strtobool
 
 
 class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
@@ -49,6 +51,24 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
             "--dropout-rate", type=float, default=0.5, help="dropout probability"
         )
         parser.add_argument(
+            "--att-dropout-rate",
+            type=float,
+            default=0.0,
+            help="att dropout probability",
+        )
+        parser.add_argument(
+            "--emb-dropout-rate",
+            type=float,
+            default=0.0,
+            help="emb dropout probability",
+        )
+        parser.add_argument(
+            "--tie-weights",
+            type=strtobool,
+            default=False,
+            help="Tie input and output embeddings",
+        )
+        parser.add_argument(
             "--pos-enc",
             default="sinusoidal",
             choices=["sinusoidal", "none"],
@@ -65,6 +85,14 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
 
         """
         nn.Module.__init__(self)
+
+        # NOTE: for a compatibility with less than 0.9.7 version models
+        emb_dropout_rate = getattr(args, "emb_dropout_rate", 0.0)
+        # NOTE: for a compatibility with less than 0.9.7 version models
+        tie_weights = getattr(args, "tie_weights", False)
+        # NOTE: for a compatibility with less than 0.9.7 version models
+        att_dropout_rate = getattr(args, "att_dropout_rate", 0.0)
+
         if args.pos_enc == "sinusoidal":
             pos_enc_class = PositionalEncoding
         elif args.pos_enc == "none":
@@ -76,6 +104,12 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
             raise ValueError(f"unknown pos-enc option: {args.pos_enc}")
 
         self.embed = nn.Embedding(n_vocab, args.embed_unit)
+
+        if emb_dropout_rate == 0.0:
+            self.embed_drop = None
+        else:
+            self.embed_drop = nn.Dropout(emb_dropout_rate)
+
         self.encoder = Encoder(
             idim=args.embed_unit,
             attention_dim=args.att_unit,
@@ -83,10 +117,22 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
             linear_units=args.unit,
             num_blocks=args.layer,
             dropout_rate=args.dropout_rate,
+            attention_dropout_rate=att_dropout_rate,
             input_layer="linear",
             pos_enc_class=pos_enc_class,
         )
         self.decoder = nn.Linear(args.att_unit, n_vocab)
+
+        logging.info("Tie weights set to {}".format(tie_weights))
+        logging.info("Dropout set to {}".format(args.dropout_rate))
+        logging.info("Emb Dropout set to {}".format(emb_dropout_rate))
+        logging.info("Att Dropout set to {}".format(att_dropout_rate))
+
+        if tie_weights:
+            assert (
+                args.att_unit == args.embed_unit
+            ), "Tie Weights: True need embedding and final dimensions to match"
+            self.decoder.weight = self.embed.weight
 
     def _target_mask(self, ys_in_pad):
         ys_mask = ys_in_pad != 0
@@ -114,7 +160,13 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
 
         """
         xm = x != 0
-        h, _ = self.encoder(self.embed(x), self._target_mask(x))
+
+        if self.embed_drop is not None:
+            emb = self.embed_drop(self.embed(x))
+        else:
+            emb = self.embed(x)
+
+        h, _ = self.encoder(emb, self._target_mask(x))
         y = self.decoder(h)
         loss = F.cross_entropy(y.view(-1, y.shape[-1]), t.view(-1), reduction="none")
         mask = xm.to(dtype=loss.dtype)
@@ -140,8 +192,14 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
 
         """
         y = y.unsqueeze(0)
+
+        if self.embed_drop is not None:
+            emb = self.embed_drop(self.embed(y))
+        else:
+            emb = self.embed(y)
+
         h, _, cache = self.encoder.forward_one_step(
-            self.embed(y), self._target_mask(y), cache=state
+            emb, self._target_mask(y), cache=state
         )
         h = self.decoder(h[:, -1])
         logp = h.log_softmax(dim=-1).squeeze(0)
@@ -177,9 +235,14 @@ class TransformerLM(nn.Module, LMInterface, BatchScorerInterface):
                 for i in range(n_layers)
             ]
 
+        if self.embed_drop is not None:
+            emb = self.embed_drop(self.embed(ys))
+        else:
+            emb = self.embed(ys)
+
         # batch decoding
         h, _, states = self.encoder.forward_one_step(
-            self.embed(ys), self._target_mask(ys), cache=batch_state
+            emb, self._target_mask(ys), cache=batch_state
         )
         h = self.decoder(h[:, -1])
         logp = h.log_softmax(dim=-1)

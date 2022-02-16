@@ -17,6 +17,7 @@ import sys
 import configargparse
 import numpy as np
 
+from espnet import __version__
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.optimizer.factory import dynamic_import_optimizer
 from espnet.scheduler.scheduler import dynamic_import_scheduler
@@ -212,6 +213,9 @@ def main(cmd_args):
     opt_class.add_arguments(parser)
 
     args = parser.parse_args(cmd_args)
+
+    # add version info in args
+    args.version = __version__
 
     # logging info
     if args.verbose > 0:

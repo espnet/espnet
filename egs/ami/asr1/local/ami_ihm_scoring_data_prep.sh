@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 
 # Copyright 2014  University of Edinburgh (Author: Pawel Swietojanski)
@@ -88,7 +88,7 @@ awk '{print $1}' $dir/segments | \
 sort -k 2 $dir/utt2spk | utils/utt2spk_to_spk2utt.pl > $dir/spk2utt || exit 1;
 
 #check and correct the case when segment timings for given speaker overlap themself
-#(important for simulatenous asclite scoring to proceed).
+#(important for simultaneous asclite scoring to proceed).
 #There is actually only one such case for devset and automatic segmentetions
 join $dir/utt2spk $dir/segments | \
    perl -ne '{BEGIN{$pu=""; $pt=0.0;} split;

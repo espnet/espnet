@@ -4,7 +4,7 @@
 # Copyright 2019 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Utility funcitons for the text translation task."""
+"""Utility functions for the text translation task."""
 
 import logging
 

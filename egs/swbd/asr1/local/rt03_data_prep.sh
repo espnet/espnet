@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # RT-03 data preparation (conversational telephone speech part only)
 # Adapted from Arnab Ghoshal's script for Hub-5 Eval 2000 by Peng Qi
@@ -29,7 +29,7 @@ rtroot=$sdir
 tdir=$sdir/data/references/eval03/english/cts
 sdir=$sdir/data/audio/eval03/english/cts
 
-find $sdir -iname '*.sph' | sort > $dir/sph.flist
+find -L $sdir -iname '*.sph' | sort > $dir/sph.flist
 sed -e 's?.*/??' -e 's?.sph??' $dir/sph.flist | paste - $dir/sph.flist \
   > $dir/sph.scp
 

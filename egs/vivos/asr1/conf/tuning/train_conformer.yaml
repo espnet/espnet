@@ -1,0 +1,45 @@
+# minibatch related
+batch-size: 30
+maxlen-in: 512
+maxlen-out: 150
+
+# optimization related
+sortagrad: 0
+opt: noam
+epochs: 30
+patience: 0
+accum-grad: 4
+grad-clip: 5.0
+
+# MTL related
+mtlalpha: 0.3
+
+# network architecture
+dropout-rate: 0.1
+## encoder related
+elayers: 8
+eunits: 320
+## decoder related
+dlayers: 2
+dunits: 300
+
+# transformer architecture related
+adim: 320
+aheads: 4
+transformer-attn-dropout-rate: 0.1
+transformer-input-layer: conv2d
+
+# transformer training related
+transformer-init: pytorch
+transformer-length-normalized-loss: false
+transformer-lr: 10.0
+transformer-warmup-steps: 8000
+
+# conformer architecture related
+transformer-encoder-pos-enc-layer-type: rel_pos
+transformer-encoder-selfattn-layer-type: rel_selfattn
+macaron-style: true
+use-cnn-module: true
+cnn-module-kernel: 15
+
+model-module: espnet.nets.pytorch_backend.e2e_asr_conformer:E2E

@@ -1,27 +1,27 @@
 name: debian9
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
-  check_skip:
-    runs-on: ubuntu-latest
-    if: "! contains(github.event.head_commit.message, '[ci skip]')"
-    steps:
-      - run: echo "${{ github.event.head_commit.message }}"
-  linter_and_test:
+  test_debian9:
     runs-on: ubuntu-latest
     container:
       image: debian:9
       env:
-        ESPNET_PYTHON_VERSION: 3.6
-        TH_VERSION: 1.7.0
+        ESPNET_PYTHON_VERSION: 3.7
+        TH_VERSION: 1.10.1
         CHAINER_VERSION: 6.0.0
         USE_CONDA: true
         CC: gcc-6
         CXX: g++-6
         # To avoid UnicodeEncodeError for python<=3.6
         LC_ALL: en_US.UTF-8
-    needs: check_skip
     steps:
       - uses: actions/checkout@master
       - name: check OS
@@ -30,7 +30,9 @@ jobs:
         run: |
           apt-get update -qq
           # NOTE(kamo): cmake sndfile will be download using anacond:
-          apt-get install -qq -y build-essential git g++-6 unzip bzip2 wget curl bc locales make
+          apt-get install -qq -y \
+            build-essential git g++-6 unzip bzip2 wget curl bc locales make sox \
+            libncurses5-dev automake libtool pkg-config
           localedef -f UTF-8 -i en_US en_US
       - name: install espnet
         run: ./ci/install.sh
@@ -40,6 +42,9 @@ jobs:
         run: ./ci/test_python.sh
       - name: install kaldi
         run: ./ci/install_kaldi.sh
-      - name: test integration
-        run: ./ci/test_integration.sh
-      - uses: codecov/codecov-action@v1
+      - name: test utils
+        run: ./ci/test_utils.sh
+      - name: test espnet1 integration
+        run: ./ci/test_integration_espnet1.sh
+      - name: test espnet2 integration
+        run: ./ci/test_integration_espnet2.sh

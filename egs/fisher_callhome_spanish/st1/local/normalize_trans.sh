@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright 2018 Kyoto University (Hirofumi Inaguma)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -14,7 +14,8 @@ if [ $# -lt 2 ]; then
 fi
 
 # download data preparation scripts for transcriptions
-[ ! -d data/local/fisher-callhome-corpus ] && git clone https://github.com/joshua-decoder/fisher-callhome-corpus.git data/local/fisher-callhome-corpus
+# Note uses fork because of utf-8 issues in iconv - https://github.com/joshua-decoder/fisher-callhome-corpus/pull/3
+[ ! -d data/local/fisher-callhome-corpus ] && git clone https://github.com/siddalmia/fisher-callhome-corpus.git data/local/fisher-callhome-corpus
 
 # create symbolic links
 cur_dir=$(pwd)
@@ -56,10 +57,10 @@ for set in fisher_train fisher_dev fisher_dev2 fisher_test callhome_train callho
     cp data/local/fisher-callhome-corpus/corpus/ldc/${set}.es data/${set}/es.joshua.org
     normalize-punctuation.perl -l es < data/${set}/es.joshua.org  | local/normalize_punctuation.pl > data/${set}/es.joshua.norm.tc
     lowercase.perl < data/${set}/es.joshua.norm.tc > data/${set}/es.joshua.norm.lc
-    local/remove_punctuation.pl < data/${set}/es.joshua.norm.lc > data/${set}/es.joshua.norm.lc.rm
-    tokenizer.perl -l es -q < data/${set}/es.joshua.norm.tc > data/${set}/es.joshua.norm.tc.tok
-    tokenizer.perl -l es -q < data/${set}/es.joshua.norm.lc > data/${set}/es.joshua.norm.lc.tok
-    tokenizer.perl -l es -q < data/${set}/es.joshua.norm.lc.rm > data/${set}/es.joshua.norm.lc.rm.tok
+    remove_punctuation.pl < data/${set}/es.joshua.norm.lc > data/${set}/es.joshua.norm.lc.rm
+    for case in lc.rm lc tc; do
+        tokenizer.perl -l es -q < data/${set}/es.joshua.norm.${case} > data/${set}/es.joshua.norm.${case}.tok
+    done
 
     # Now checking these Es transcriptions are matching (double check)
     cp data/${set}/text data/${set}/text.tmp
@@ -70,12 +71,10 @@ for set in fisher_train fisher_dev fisher_dev2 fisher_test callhome_train callho
     tokenizer.perl -l es -q < data/${set}/es.kaldi.norm.lc > data/${set}/es.kaldi.norm.lc.tok
 
     # use references from joshua-decoder/fisher-callhome-corpus
-    paste -d " " <(awk '{print $1}' data/${set}/text.tmp) <(cat data/${set}/es.joshua.norm.tc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
-        > data/${set}/text.tc.es
-    paste -d " " <(awk '{print $1}' data/${set}/text.tmp) <(cat data/${set}/es.joshua.norm.lc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
-        > data/${set}/text.lc.es
-    paste -d " " <(awk '{print $1}' data/${set}/text.tmp) <(cat data/${set}/es.joshua.norm.lc.rm.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
-        > data/${set}/text.lc.rm.es
+    for case in lc.rm lc tc; do
+        paste -d " " <(awk '{print $1}' data/${set}/text.tmp) <(cat data/${set}/es.joshua.norm.${case}.tok | awk '{if(NF>0) {print $0;} else {print "emptyutterance";}}') \
+            > data/${set}/text.${case}.es
+    done
 
     # save original and cleaned punctuation
     text2token.py -s 0 -n 1 data/${set}/es.joshua.org | tr " " "\n" | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/${set}/punctuation.es
@@ -89,16 +88,12 @@ for set in fisher_train callhome_train callhome_devtest callhome_evltest; do
     cp data/local/fisher-callhome-corpus/corpus/ldc/${set}.en data/${set}/en.org
     normalize-punctuation.perl -l en < data/${set}/en.org | sed -e "s/¿//g" | local/normalize_punctuation.pl > data/${set}/en.norm.tc
     lowercase.perl < data/${set}/en.norm.tc > data/${set}/en.norm.lc
-    local/remove_punctuation.pl < data/${set}/en.norm.lc > data/${set}/en.norm.lc.rm
-    tokenizer.perl -l en -q < data/${set}/en.norm.tc > data/${set}/en.norm.tc.tok
-    tokenizer.perl -l en -q < data/${set}/en.norm.lc > data/${set}/en.norm.lc.tok
-    tokenizer.perl -l en -q < data/${set}/en.norm.lc.rm > data/${set}/en.norm.lc.rm.tok
-    paste -d " " <(awk '{print $1}' data/${set}/text.tc.es) <(cat data/${set}/en.norm.tc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
-        > data/${set}/text.tc.en
-    paste -d " " <(awk '{print $1}' data/${set}/text.lc.es) <(cat data/${set}/en.norm.lc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
-        > data/${set}/text.lc.en
-    paste -d " " <(awk '{print $1}' data/${set}/text.lc.rm.es) <(cat data/${set}/en.norm.lc.rm.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
-        > data/${set}/text.lc.rm.en
+    remove_punctuation.pl < data/${set}/en.norm.lc > data/${set}/en.norm.lc.rm
+    for case in lc.rm lc tc; do
+        tokenizer.perl -l en -q < data/${set}/en.norm.${case} > data/${set}/en.norm.${case}.tok
+        paste -d " " <(awk '{print $1}' data/${set}/text.${case}.es) <(cat data/${set}/en.norm.${case}.tok | awk '{if(NF>0) {print $0;} else {print "emptyutterance";}}') \
+            > data/${set}/text.${case}.en
+    done
 
     # save original and cleaned punctuation
     text2token.py -s 0 -n 1 data/${set}/en.org | tr " " "\n" | sort | uniq | grep -v -e '^\s*$' | awk '{print $0 " " NR+1}' > data/${set}/punctuation.en
@@ -110,16 +105,12 @@ for set in fisher_dev fisher_dev2 fisher_test; do
         cp data/local/fisher-callhome-corpus/corpus/ldc/${set}.en.${no} data/${set}/en.${no}.org
         normalize-punctuation.perl -l en < data/${set}/en.${no}.org | sed -e "s/¿//g"| local/normalize_punctuation.pl > data/${set}/en.${no}.norm.tc
         lowercase.perl < data/${set}/en.${no}.norm.tc > data/${set}/en.${no}.norm.lc
-        local/remove_punctuation.pl < data/${set}/en.${no}.norm.lc > data/${set}/en.${no}.norm.lc.rm
-        tokenizer.perl -l en -q < data/${set}/en.${no}.norm.tc > data/${set}/en.${no}.norm.tc.tok
-        tokenizer.perl -l en -q < data/${set}/en.${no}.norm.lc > data/${set}/en.${no}.norm.lc.tok
-        tokenizer.perl -l en -q < data/${set}/en.${no}.norm.lc.rm > data/${set}/en.${no}.norm.lc.rm.tok
-        paste -d " " <(awk '{print $1}' data/${set}/text.tc.es) <(cat data/${set}/en.${no}.norm.tc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
-            > data/${set}/text.tc.en.${no}
-        paste -d " " <(awk '{print $1}' data/${set}/text.lc.es) <(cat data/${set}/en.${no}.norm.lc.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
-            > data/${set}/text.lc.en.${no}
-        paste -d " " <(awk '{print $1}' data/${set}/text.lc.rm.es) <(cat data/${set}/en.${no}.norm.lc.rm.tok | awk '{if(NF>0) {print $0;} else {print "emptyuttrance";}}') \
-            > data/${set}/text.lc.rm.en.${no}
+        remove_punctuation.pl < data/${set}/en.${no}.norm.lc > data/${set}/en.${no}.norm.lc.rm
+        for case in lc.rm lc tc; do
+            tokenizer.perl -l en -q < data/${set}/en.${no}.norm.${case} > data/${set}/en.${no}.norm.${case}.tok
+            paste -d " " <(awk '{print $1}' data/${set}/text.${case}.es) <(cat data/${set}/en.${no}.norm.${case}.tok | awk '{if(NF>0) {print $0;} else {print "emptyutterance";}}') \
+                > data/${set}/text.${case}.en.${no}
+        done
     done
 
     # save original and cleaned punctuation
@@ -132,13 +123,13 @@ done
 for set in fisher_train callhome_train callhome_devtest callhome_evltest; do
     n_es=$(cat data/${set}/text.tc.es | wc -l)
     n_en=$(cat data/${set}/text.tc.en | wc -l)
-    [ ${n_es} -ne ${n_en} ] && echo "Warning: expected ${n_es} data data files, found ${n_en}" && exit 1;
+    [ ${n_es} -ne ${n_en} ] && echo "Warning: expected ${n_es} data files, found ${n_en}" && exit 1;
 done
 for set in fisher_dev fisher_dev2 fisher_test; do
     n_es=$(cat data/${set}/text.tc.es | wc -l)
     for no in 0 1 2 3; do
         n_en=$(cat data/${set}/text.tc.en.${no} | wc -l)
-        [ ${n_es} -ne ${n_en} ] && echo "Warning: expected ${n_es} data data files, found ${n_en}" && exit 1;
+        [ ${n_es} -ne ${n_en} ] && echo "Warning: expected ${n_es} data files, found ${n_en}" && exit 1;
     done
 done
 # NOTE: the number of orignial utterances is as follow:
@@ -154,14 +145,13 @@ done
 # remove empty and short utterances
 for set in fisher_train fisher_dev fisher_dev2 fisher_test callhome_train callhome_devtest callhome_evltest; do
     cp -rf data/${set} data/${set}.tmp
-    grep -v emptyuttrance data/${set}/text.tc.es | cut -f 1 -d " " | sort > data/${set}/reclist.es
+    grep -v emptyutterance data/${set}/text.tc.es | cut -f 1 -d " " | sort > data/${set}/reclist.es
     if [ -f data/${set}/text.tc.en ]; then
-        grep -v emptyuttrance data/${set}/text.tc.en | cut -f 1 -d " " | sort > data/${set}/reclist.en
+        grep -v emptyutterance data/${set}/text.tc.en | cut -f 1 -d " " | sort > data/${set}/reclist.en
     else
-        grep -v emptyuttrance data/${set}/text.tc.en.0 | cut -f 1 -d " " | sort > data/${set}/reclist.en.0
-        grep -v emptyuttrance data/${set}/text.tc.en.1 | cut -f 1 -d " " | sort > data/${set}/reclist.en.1
-        grep -v emptyuttrance data/${set}/text.tc.en.2 | cut -f 1 -d " " | sort > data/${set}/reclist.en.2
-        grep -v emptyuttrance data/${set}/text.tc.en.3 | cut -f 1 -d " " | sort > data/${set}/reclist.en.3
+        for no in 0 1 2 3; do
+            grep -v emptyutterance data/${set}/text.tc.en.${no} | cut -f 1 -d " " | sort > data/${set}/reclist.en.${no}
+        done
         comm -12 data/${set}/reclist.en.0 data/${set}/reclist.en.1 > data/${set}/reclist.en
         cp data/${set}/reclist.en data/${set}/reclist.en.tmp
         comm -12 data/${set}/reclist.en.tmp data/${set}/reclist.en.2 > data/${set}/reclist.en

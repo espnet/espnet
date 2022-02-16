@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright   2019   David Snyder
 #             2020   Desh Raj
 # Copyright   2020   University of Stuttgart (Author: Pavel Denisov)

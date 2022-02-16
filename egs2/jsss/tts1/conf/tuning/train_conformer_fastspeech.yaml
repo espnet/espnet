@@ -1,6 +1,6 @@
 # This configuration is for ESPnet2 to train Conformer-based
 # FastSpeech. It requires only a single GPU with 12 GB memory
-# and it takes ~2 days to finish the training on Titan V.
+# and it takes ~3 days to finish the training on Titan V.
 
 # As a default, we assume that the training is based on knowledge
 # distillation, i.e., using teacher model outputs as the target.
@@ -64,7 +64,7 @@ scheduler_conf:        # keyword arguments for selected scheduler
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-num_iters_per_epoch: 500  # number of iterations per epoch
+num_iters_per_epoch: 600  # number of iterations per epoch
 max_epoch: 1000           # number of epochs
 grad_clip: 1.0            # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection

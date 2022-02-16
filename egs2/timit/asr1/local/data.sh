@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright IIIT-Bangalore (Shreekantha Nadig)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 set -euo pipefail
