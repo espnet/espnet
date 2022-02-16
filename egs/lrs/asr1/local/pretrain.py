@@ -4,8 +4,9 @@ import multiprocessing as mp
 
 
 def main(sourcedir, filelistdir, savedir, dset, nj, segment):
-    """Prepare the Kaldi files.
+    """
 
+    Prepare the Kaldi files.
     Args:
         sourcedir (str): LRS2 dataset dir.
         filelist (str): The dir of the mp4 file, it should be like
@@ -14,6 +15,7 @@ def main(sourcedir, filelistdir, savedir, dset, nj, segment):
         dset (str): Which set. For this code dset is pretrain set.
         nj (str): Number of multi processes.
         segment (str): If use segmentation
+
     """
     nj = int(nj)
     if nj > 1:
@@ -48,13 +50,15 @@ def remove(sub, s):
 
 
 def segmentation(textfiledir, file, segment=True):
-    """Make segment information, in this code, the
+    """
+    Make segment information, in this code, the
        segment interval is set to 5s.
-
     Args:
         textfiledir (str): The Text and Segment File
         file (str): The file name
+
     """
+
     with open(textfiledir) as filelists:
         info = filelists.readlines()
     info[0] = remove("Text:  ", info[0])
@@ -112,14 +116,16 @@ def segmentation(textfiledir, file, segment=True):
 
 
 def set(file, s, savedir, sourcedir, segment):
-    """Make the Kaldi files.
-
+    """
+    Make the Kaldi files.
     Args:
         file (str): The file name.
         s (str): Which set. For this code dset is pretrain set.
         sourcedir: LRS2 dataset dir.
         savedir (str): The dir save the Kaldi files.
+        
     """
+
     textdir = os.path.join(savedir, "text")
     utt2spkdir = os.path.join(savedir, "utt2spk")
     wavdir = os.path.join(savedir, "wav.scp")

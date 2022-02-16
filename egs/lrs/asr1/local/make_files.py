@@ -4,8 +4,8 @@ import multiprocessing as mp
 
 
 def main(sourcedir, filelistdir, savedir, dset, nj):
-    """Prepare the Kaldi files.
-
+    """
+    Prepare the Kaldi files.
     Args:
         sourcedir (str): LRS2 dataset dir.
         filelist (str): The dir of the mp4 file, it should be like
@@ -13,6 +13,7 @@ def main(sourcedir, filelistdir, savedir, dset, nj):
         savedir (str): The dir save the Kaldi files.
         dset (str): Which set. For this code dset is pretrain set.
         nj (str): Number of multi processes.
+
     """
     nj = int(nj)
     if nj > 1:
@@ -38,13 +39,14 @@ def product_helper(args):
 
 
 def set(info, s, savedir, sourcedir):
-    """Make the Kaldi files.
-
+    """
+    Make the Kaldi files.
     Args:
         info (str): The file name.
         s (str): Which set. For this code dset is pretrain set.
         savedir (str): The dir save the Kaldi files.
         sourcedir (str): LRS2 dataset dir.
+
     """
     textdir = savedir + "/text"
     utt2spkdir = savedir + "/utt2spk"
