@@ -13,6 +13,16 @@
   - lm JSON file: <code>exp/pretrainedlm/model.json</code>
   - dict file: <code>data/lang_char/pretrain_Train_unigram5000_units.txt</code>
 
+## Environments
+- date: `Wed Feb 16 09:06:58 CET 2022`
+- python version: `3.8.5 (default, Sep  4 2020, 07:30:14)  [GCC 7.3.0]`
+- espnet version: `espnet 0.9.8`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.4.0`
+- Git hash: `19aabb415657c05a45467f9d8bb612db4764f6a1`
+  - Commit date: `Tue Oct 19 12:00:34 2021 +0200`
+
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
