@@ -24,8 +24,7 @@ train_lm=false
 do_delta=false
 
 preprocess_config=conf/specaug.yaml
-train_config=conf/train.yaml # current default recipe requires 4 gpus.
-                             # if you do not have 4 gpus, please reconfigure the `batch-bins` and `accum-grad` parameters in config.
+train_config=conf/train.yaml 
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
@@ -56,8 +55,7 @@ segment=true  		     # if do segmentation for pretrain set
 nbpe=500
 bpemode=unigram
 
-## train_lm=false, we have to download pretrained Librispeech language model from 
-## https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6
+## train_lm=false, we have to download pretrained language model
 function gdrive_download () {
   CONFIRM=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate "https://docs.google.com/uc?export=download&id=$1" -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')
   wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$CONFIRM&id=$1" -O $2
