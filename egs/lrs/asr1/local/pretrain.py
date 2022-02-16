@@ -51,6 +51,7 @@ def remove(sub, s):
 
 def segmentation(textfiledir, file, segment=True):
     """
+
     Make segment information, in this code, the
        segment interval is set to 5s.
     Args:
@@ -117,6 +118,7 @@ def segmentation(textfiledir, file, segment=True):
 
 def set(file, s, savedir, sourcedir, segment):
     """
+
     Make the Kaldi files.
     Args:
         file (str): The file name.
