@@ -9,6 +9,7 @@ from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import cat
+from espnet2.enh.layers.complex_utils import complex_norm
 from espnet2.enh.layers.complex_utils import einsum
 from espnet2.enh.layers.complex_utils import inverse
 from espnet2.enh.layers.complex_utils import is_complex
@@ -72,7 +73,7 @@ def prepare_beamformer_stats(
         or beamformer_type == "wmwf"
     ):
         if powers is None:
-            power_input = signal.real ** 2 + signal.imag ** 2
+            power_input = signal.real**2 + signal.imag**2
             # Averaging along the channel axis: (..., C, T) -> (..., T)
             powers = [(power_input * m).mean(dim=-2) for m in masks_speech]
         else:
@@ -244,7 +245,7 @@ def get_rtf(
         )
         for _ in range(iterations - 2):
             rtf = matmul(phi, rtf)
-            # rtf = rtf / complex_norm(rtf)
+            # rtf = rtf / complex_norm(rtf, dim=-1, keepdim=True)
         rtf = matmul(psd_speech, rtf)
     elif mode == "evd":
         assert (
@@ -722,14 +723,17 @@ def gev_phase_correction(vector):
         w: Phase corrected beamforming vectors
     """
     B, F, C = vector.shape
-    correction = torch.empty_like(vector)
+    correction = torch.empty_like(vector.real)
     for f in range(F):
         correction[:, f, :] = torch.exp(
-            -1j
-            * (vector[:, f, :] * vector[:, f - 1, :].conj())
+            (vector[:, f, :] * vector[:, f - 1, :].conj())
             .sum(dim=-1, keepdim=True)
             .angle()
         )
+    if isinstance(vector, ComplexTensor):
+        correction = ComplexTensor(torch.cos(correction), -torch.sin(correction))
+    else:
+        correction = torch.exp(-1j * correction)
     return vector * correction
 
 
@@ -803,7 +807,7 @@ def get_gev_vector(
         )
         for _ in range(iterations - 1):
             e_vec = matmul(phi, e_vec)
-            # e_vec = e_vec / complex_norm(e_vec)
+            # e_vec = e_vec / complex_norm(e_vec, dim=-1, keepdim=True)
         e_vec = e_vec.squeeze(-1)
     elif mode == "evd":
         assert (
@@ -833,7 +837,7 @@ def get_gev_vector(
     else:
         raise ValueError("Unknown mode: %s" % mode)
 
-    beamforming_vector = e_vec / torch.norm(e_vec, dim=-1, keepdim=True)
+    beamforming_vector = e_vec / complex_norm(e_vec, dim=-1, keepdim=True)
     beamforming_vector = gev_phase_correction(beamforming_vector)
     return beamforming_vector
 

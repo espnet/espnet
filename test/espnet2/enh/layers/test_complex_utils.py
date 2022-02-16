@@ -7,6 +7,7 @@ import torch_complex.functional as FC
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import cat
+from espnet2.enh.layers.complex_utils import complex_norm
 from espnet2.enh.layers.complex_utils import einsum
 from espnet2.enh.layers.complex_utils import inverse
 from espnet2.enh.layers.complex_utils import matmul
@@ -49,6 +50,20 @@ def test_cat(dim):
         ret = cat([mat1, mat2], dim=dim)
         ret2 = complex_module.cat([mat1, mat2], dim=dim)
         assert complex_module.allclose(ret, ret2)
+
+
+@pytest.mark.parametrize("dim", [0, 1, 2])
+@pytest.mark.skipif(not is_torch_1_9_plus, reason="Require torch 1.9.0+")
+def test_complex_norm(dim):
+    mat = ComplexTensor(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
+    mat_th = torch.complex(mat.real, mat.imag)
+    norm = complex_norm(mat, dim=dim, keepdim=True)
+    norm_th = complex_norm(mat_th, dim=dim, keepdim=True)
+    assert (
+        torch.allclose(norm, norm_th)
+        and norm.ndim == mat.ndim
+        and mat.numel() == norm.numel() * mat.size(dim)
+    )
 
 
 @pytest.mark.parametrize("real_vec", [True, False])

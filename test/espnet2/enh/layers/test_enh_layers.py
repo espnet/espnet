@@ -7,6 +7,7 @@ import torch_complex.functional as FC
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.beamformer import generalized_eigenvalue_decomposition
+from espnet2.enh.layers.beamformer import gev_phase_correction
 from espnet2.enh.layers.beamformer import get_rtf
 from espnet2.enh.layers.beamformer import signal_framing
 from espnet2.enh.layers.complex_utils import solve
@@ -172,3 +173,12 @@ def test_gevd(ch):
         torch.matmul(Phi_X, e_vec),
         torch.matmul(torch.matmul(Phi_N, e_vec), e_val.diag_embed()),
     )
+
+
+@pytest.mark.skipif(not is_torch_1_9_plus, reason="Require torch 1.9.0+")
+def test_gev_phase_correction():
+    mat = ComplexTensor(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
+    mat_th = torch.complex(mat.real, mat.imag)
+    norm = gev_phase_correction(mat)
+    norm_th = gev_phase_correction(mat_th)
+    assert np.allclose(norm.numpy(), norm_th.numpy())
