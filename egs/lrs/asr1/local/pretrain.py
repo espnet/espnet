@@ -49,8 +49,7 @@ def remove(sub, s):
 
 
 def segmentation(textfiledir, file, segment=True):
-    """Make segment information, in this code, the
-       segment interval is set to 5s.
+    """Make segment information with segment interval 5s.
 
     Args:
         textfiledir (str): The Text and Segment File
