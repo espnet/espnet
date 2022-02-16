@@ -24,8 +24,7 @@ train_lm=false
 do_delta=false
 
 preprocess_config=conf/specaug.yaml
-train_config=conf/train.yaml # current default recipe requires 4 gpus.
-                             # if you do not have 4 gpus, please reconfigure the `batch-bins` and `accum-grad` parameters in config.
+train_config=conf/train.yaml 
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
@@ -56,8 +55,7 @@ segment=true  		     # if do segmentation for pretrain set
 nbpe=500
 bpemode=unigram
 
-## train_lm=false, we have to download pretrained Librispeech language model from 
-## https://drive.google.com/open?id=1BtQvAnsFvVi-dp_qsaFP7n4A_5cwnlR6
+## train_lm=false, we have to download pretrained language model
 function gdrive_download () {
   CONFIRM=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate "https://docs.google.com/uc?export=download&id=$1" -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')
   wget --load-cookies /tmp/cookies.txt "https://docs.google.com/uc?export=download&confirm=$CONFIRM&id=$1" -O $2
@@ -120,12 +118,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to design training and dev sets by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 1: Feature Generation"
-
-    # remove utt having more than 3000 frames
-    # remove utt having more than 400 characters
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/Train_org data/Train
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/Test_org data/Test
-    remove_longshortdata.sh --maxframes 3000 --maxchars 400 data/Val_org data/Val
 
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
@@ -366,4 +358,5 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
+
 exit 0
