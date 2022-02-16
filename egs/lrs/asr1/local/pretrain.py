@@ -123,7 +123,7 @@ def set(file, s, savedir, sourcedir, segment):
         s (str): Which set. For this code dset is pretrain set.
         sourcedir: LRS2 dataset dir.
         savedir (str): The dir save the Kaldi files.
-        
+
     """
 
     textdir = os.path.join(savedir, "text")
