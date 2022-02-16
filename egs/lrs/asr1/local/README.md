@@ -49,7 +49,4 @@ The documentation for the listed files is given below:
 | <code>sys.argv[5]</code>, nj (str) | Number of multi processes | 
 | <code>sys.argv[6]</code>, segment (str) |  If do segmentation | 
 
-**Explanation:**
-- o
 
----
