@@ -138,11 +138,7 @@ def set(file, s, savedir, sourcedir, segment):
             starttime = float(segmentinfo[file][str(0)]["segmenttime"][0])
             endtime = float(segmentinfo[file][str(0)]["segmenttime"][1])
             command1 = "ffmpeg -y -i"
-<<<<<<< HEAD
             command2 = "-vn -ac 1 -ar 16000 -ab 320k -f wav /tmp/tmp.$$; cat /tmp/tmp.$$ |\n"
-=======
-            command2 = "-vn -ac 2 -ar 16000 -ab 320k -f wav /tmp/tmp.$$; cat /tmp/tmp.$$ |\n"
->>>>>>> b8994be165bb951b6bed5289bf69b6a7b2f47dfb
             splitname = file.split("/")
             Title = '_'.join(['LRS2', splitname[0], splitname[1] + 'p', str(int(starttime * 100)).zfill(7),
                                 str(int(endtime * 100)).zfill(7)])
@@ -155,11 +151,7 @@ def set(file, s, savedir, sourcedir, segment):
         else:
             splitname = file.split("/")
             command1 = "ffmpeg -y -i"
-<<<<<<< HEAD
             command2 = "-vn -ac 1 -ar 16000 -ab 320k -f wav /tmp/tmp.$$; cat /tmp/tmp.$$ |\n"
-=======
-            command2 = "-vn -ac 2 -ar 16000 -ab 320k -f wav /tmp/tmp.$$; cat /tmp/tmp.$$ |\n"
->>>>>>> b8994be165bb951b6bed5289bf69b6a7b2f47dfb
             spkerid = '_'.join(['LRS2', splitname[0], splitname[1] + 'p'])
             wavtxt = [" ".join([spkerid, command1, mp4dir, command2])]
             texttxt = []

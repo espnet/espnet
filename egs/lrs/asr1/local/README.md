@@ -5,8 +5,6 @@ The documentation for the listed files is given below:
 - [data_preparation.sh](#data_preparation)
 - [make_files.py](#make_files)
 - [pretrain.py](#pretrain)
-- [remake_dict.py](#remake_dict)
-- [show_result.sh](#show_result)
 
 ---
 
@@ -51,24 +49,4 @@ The documentation for the listed files is given below:
 | <code>sys.argv[5]</code>, nj (str) | Number of multi processes | 
 | <code>sys.argv[6]</code>, segment (str) |  If do segmentation | 
 
-**Explanation:**
-- o
 
----
-
-### remake_dict.py
-**Short description:** Change out the dictionaries of two language models. The dictionary (dict) can usually be found in your language model folder in the model.json file under the object  "char_list_dict"<br>
-**Parameters:**
-
-| Parameter Name | Function |
-|----------------|----------|
-| <code>input_file</code> | Input JSON file with the dict beeing used|  
-| <code>output_file</code> | Output JSON file with the dict beeing replaced by the dict of the input file|
-
-
----
-
-### show_result.sh
-**Short description:** Get the results of the e2e model<br>
-
----
