@@ -6,9 +6,9 @@
 
 """Longformer based Local Attention Definition."""
 
-from torch import nn
 from longformer.longformer import LongformerConfig
 from longformer.longformer import LongformerSelfAttention
+from torch import nn
 
 
 class LongformerAttention(nn.Module):
