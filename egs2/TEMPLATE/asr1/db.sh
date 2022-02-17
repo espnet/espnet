@@ -107,6 +107,7 @@ GOOGLEI18N=downloads
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
+LRS3=downloads
 SUNDA=downloads
 CMU_ARCTIC=downloads
 CMU_INDIC=downloads
