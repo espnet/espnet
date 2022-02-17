@@ -24,6 +24,7 @@ from espnet2.enh.layers.beamformer import get_WPD_filter_v2
 from espnet2.enh.layers.beamformer import get_WPD_filter_with_rtf
 from espnet2.enh.layers.beamformer import perform_WPD_filtering
 from espnet2.enh.layers.beamformer import prepare_beamformer_stats
+from espnet2.enh.layers.complex_utils import stack
 from espnet2.enh.layers.complex_utils import to_double
 from espnet2.enh.layers.complex_utils import to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
@@ -438,13 +439,11 @@ class DNN_Beamformer(torch.nn.Module):
                 )
                 for psd_n_i in psd_n
             ]
-            enhanced = torch.stack(
-                [apply_beamforming_vector(w, to_double(data)) for w in ws]
-            )
+            enhanced = stack([apply_beamforming_vector(w, to_double(data)) for w in ws])
             with torch.no_grad():
                 index = enhanced.abs().argmin(dim=0, keepdims=True)
-            enhanced = torch.gather(enhanced, 0, index).squeeze(0)
-            ws = torch.stack(ws, dim=0)
+            enhanced = enhanced.gather(0, index).squeeze(0)
+            ws = stack(ws, dim=0)
         elif self.beamformer_type in (
             "mpdr_souden",
             "mvdr_souden",
@@ -472,13 +471,11 @@ class DNN_Beamformer(torch.nn.Module):
                 )
                 for psd_n_i in psd_n
             ]
-            enhanced = torch.stack(
-                [apply_beamforming_vector(w, to_double(data)) for w in ws]
-            )
+            enhanced = stack([apply_beamforming_vector(w, to_double(data)) for w in ws])
             with torch.no_grad():
                 index = enhanced.abs().argmin(dim=0, keepdims=True)
-            enhanced = torch.gather(enhanced, 0, index).squeeze(0)
-            ws = torch.stack(ws, dim=0)
+            enhanced = enhanced.gather(0, index).squeeze(0)
+            ws = stack(ws, dim=0)
         elif self.beamformer_type == "wpd":
             ws = get_WPD_filter_with_rtf(
                 to_double(psd_n),
@@ -551,7 +548,7 @@ class DNN_Beamformer(torch.nn.Module):
             ws = get_gev_vector(
                 to_double(psd_n),
                 to_double(psd_speech),
-                mode="evd",
+                mode="power",
                 diagonal_loading=self.diagonal_loading,
                 diag_eps=self.diag_eps,
             )
