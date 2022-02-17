@@ -364,5 +364,4 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
     echo "Finished"
 fi
-
 exit 0
