@@ -2,7 +2,6 @@
 
 # Copyright 2021 Ruhr-University Bochum (Wentao Yu)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-#########################should we change Apache line?###########################################
 
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
