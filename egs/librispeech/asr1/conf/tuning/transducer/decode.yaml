@@ -1,6 +1,4 @@
-batchsize: 0
-beam-size: 60
-ctc-weight: 0
-penalty: 0.0
-search-type: maes #"nsc", "tsd", "alsd", "maes"
-
+batch: 0
+beam-size: 10
+search-type: default
+score-norm: True
