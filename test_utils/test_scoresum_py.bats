@@ -2,6 +2,7 @@
 
 setup() {
     . tools/activate_python.sh 
+    tools/installers/install_longformer.sh 
     utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/egs2/TEMPLATE/asr1/pyscripts/utils/
     export LC_ALL="en_US.UTF-8"
     tmpdir=$(mktemp -d testXXXXXX)/
