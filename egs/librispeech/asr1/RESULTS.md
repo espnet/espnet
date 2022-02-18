@@ -7,7 +7,7 @@
   - pytorch version: `pytorch 1.10.0`
 
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: ([pretrained model](https://drive.google.com/file/d/1LiJ8VYNHWyYocapBbjnQsKy5GuBLRSP-/view?usp=sharing))
+    - model link: ([pretrained model](https://drive.google.com/file/d/1fdadICi2w_b6lqb9_7J3wfRJc3LTnnSq/view?usp=sharing))
     - training config file: `conf/tuning/transducer/train_conformer-rnn_transducer.yaml`
     - decoding config file: `conf/decode.yaml`
     - cmvn file: `data/train_sp/cmvn.ark`
@@ -36,7 +36,7 @@ We used the same LM model in the previous report.
   - Model files (archived to model.tar.gz by `$ pack_model.sh`)
     - model link: ([pretrained model](https://drive.google.com/drive/folders/1GFaqEKsI6M_dBbxHD7s84J3yi5WGeNNC?usp=sharing))
     - training config file: `conf/tuning/conformer/train_pytorch_conformer_large.yaml`
-    - decoding config file: `conf/decode.yaml`
+    - decoding config file: `conf/tuning/transducer/decode.yaml`
     - cmvn file: `data/train_sp/cmvn.ark`
     - e2e file: `exp/train_960_pytorch_train_pytorch_conformer_transfer_specaug/results/model.val10.avg.best`
     - e2e JSON file: `exp/train_960_pytorch_train_pytorch_conformer_transfer_specaug/results/model.json`
