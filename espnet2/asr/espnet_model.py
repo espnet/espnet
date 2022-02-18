@@ -77,7 +77,7 @@ class ESPnetASRModel(AbsESPnetModel):
         self.vocab_size = vocab_size
         self.ignore_id = ignore_id
         self.ctc_weight = ctc_weight
-        self.interctc_weight = ctc_weight
+        self.interctc_weight = interctc_weight
         self.token_list = token_list.copy()
 
         self.frontend = frontend
