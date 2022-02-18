@@ -1,0 +1,6 @@
+batchsize: 0
+beam-size: 10
+ctc-weight: 0
+penalty: 0.0
+search-type: nsc #"nsc", "tsd", "alsd", "maes"
+
