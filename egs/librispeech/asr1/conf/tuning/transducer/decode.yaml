@@ -1,6 +1,6 @@
 batchsize: 0
-beam-size: 10
+beam-size: 60
 ctc-weight: 0
 penalty: 0.0
-search-type: nsc #"nsc", "tsd", "alsd", "maes"
+search-type: maes #"nsc", "tsd", "alsd", "maes"
 
