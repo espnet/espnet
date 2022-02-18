@@ -401,10 +401,15 @@ if ! "${skip_data_prep}"; then
                 # Assume that others toolkits are python-based
                 log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector using python toolkits"
                 for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                    if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                        _suf="/org"
+                    else
+                        _suf=""
+                    fi
                     pyscripts/utils/extract_xvectors.py \
                         --pretrained_model ${xvector_model} \
                         --toolkit ${xvector_tool} \
-                        ${data_feats}/${dset} \
+                        ${data_feats}${_suf}/${dset} \
                         ${dumpdir}/xvector/${dset}
                 done
             fi
