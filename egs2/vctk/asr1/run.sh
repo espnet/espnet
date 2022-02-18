@@ -13,7 +13,6 @@ token_type=char
 
 asr_config=conf/train_asr_transformer.yaml
 inference_config=conf/decode_asr.yaml
-lm_config=conf/train_lm_transformer.yaml
 
 # speed perturbation related
 # (train_set will be "${train_set}_sp" if speed_perturb_factors is specified)
@@ -28,7 +27,6 @@ speed_perturb_factors="1.1 0.9 1.0"
     --test_sets "${test_sets}" \
     --use_lm false \
     --asr_config "${asr_config}" \
-    --lm_config "${lm_config}" \
     --inference_config "${inference_config}" \
     --speed_perturb_factors "${speed_perturb_factors}" \
     --lm_train_text "data/${train_set}/text" "$@"
