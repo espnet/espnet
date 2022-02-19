@@ -92,7 +92,7 @@ def collect_stats(
                             seq = seq[None]
                         # Accumulate value, its square, and count
                         sum_dict[key] += seq.sum(0)
-                        sq_dict[key] += (seq ** 2).sum(0)
+                        sq_dict[key] += (seq**2).sum(0)
                         count_dict[key] += len(seq)
 
                         # 4. [Option] Write derived features as npy format file.
