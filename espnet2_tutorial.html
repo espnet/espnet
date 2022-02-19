@@ -370,7 +370,7 @@ run.sh --skip_upload <span class="nb">false</span>    <span class="c1"># Enable 
 <p>Please keep in mind that <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> is a wrapper script of several tools including DNN training command.
 You need to do one of the following two ways to change the training configuration.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Give a configuration file</span>
-./run.sh --asr_train_config conf/train_asr.yaml
+./run.sh --asr_config conf/train_asr.yaml
 <span class="c1"># Give arguments to &quot;espnet2/bin/asr_train.py&quot; directly</span>
 ./run.sh --asr_args <span class="s2">&quot;--foo arg --bar arg2&quot;</span>
 </pre></div>
@@ -465,7 +465,7 @@ Then, execute <code class="docutils literal notranslate"><span class="pre">run.s
 <ol>
 <li><p>To reduce the time used in <code class="docutils literal notranslate"><span class="pre">collect_stats</span></code> step, please specify <code class="docutils literal notranslate"><span class="pre">--feats_normalize</span> <span class="pre">uttmvn</span></code> in <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> and pass it as arguments to <code class="docutils literal notranslate"><span class="pre">asr.sh</span></code> or other task-specific scripts. (Recommended)</p></li>
 <li><p>In the configuration file, specify the <code class="docutils literal notranslate"><span class="pre">frontend</span></code> and <code class="docutils literal notranslate"><span class="pre">preencoder</span></code>. Taking <code class="docutils literal notranslate"><span class="pre">HuBERT</span></code> as an example:
-The <code class="docutils literal notranslate"><span class="pre">upsteam</span></code> name can be whatever supported in S3PRL. <code class="docutils literal notranslate"><span class="pre">multilayer-feature=True</span></code> means the final representation is a weighted-sum of all layers’ hidden states from SSLR model.</p>
+The <code class="docutils literal notranslate"><span class="pre">upstream</span></code> name can be whatever supported in S3PRL. <code class="docutils literal notranslate"><span class="pre">multilayer-feature=True</span></code> means the final representation is a weighted-sum of all layers’ hidden states from SSLR model.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">frontend</span><span class="p">:</span> <span class="n">s3prl</span>
 <span class="n">frontend_conf</span><span class="p">:</span>
    <span class="n">frontend_conf</span><span class="p">:</span>
