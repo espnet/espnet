@@ -1398,28 +1398,55 @@ registered hooks while the latter silently ignores them.</p>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="espnet2.enh.layers.beamformer.filter_minimum_gain_like">
-<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">filter_minimum_gain_like</code><span class="sig-paren">(</span><em class="sig-param">G_min</em>, <em class="sig-param">w</em>, <em class="sig-param">y</em>, <em class="sig-param">alpha=None</em>, <em class="sig-param">k: float = 10.0</em>, <em class="sig-param">eps: float = 2.220446049250313e-16</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#filter_minimum_gain_like"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.filter_minimum_gain_like" title="Permalink to this definition">¶</a></dt>
-<dd><p>Approximate a minimum gain operation.</p>
-<p>speech_estimate = alpha w^H y + (1 - alpha) G_min Y,
-where alpha = 1 / (1 + exp(-2 k x)), x = w^H y - G_min Y</p>
+<dt id="espnet2.enh.layers.beamformer.blind_analytic_normalization">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">blind_analytic_normalization</code><span class="sig-paren">(</span><em class="sig-param">ws</em>, <em class="sig-param">psd_noise</em>, <em class="sig-param">eps=1e-08</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#blind_analytic_normalization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.blind_analytic_normalization" title="Permalink to this definition">¶</a></dt>
+<dd><p>Blind analytic normalization (BAN) for post-filtering</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>G_min</strong> (<em>float</em>) – minimum gain</p></li>
-<li><p><strong>w</strong> (<em>torch.complex64/ComplexTensor</em>) – filter coefficients (…, L, N)</p></li>
-<li><p><strong>y</strong> (<em>torch.complex64/ComplexTensor</em>) – buffered and stacked input (…, L, N)</p></li>
-<li><p><strong>alpha</strong> – mixing factor</p></li>
-<li><p><strong>k</strong> (<em>float</em>) – scaling in tanh-like function</p></li>
-<li><p><strong>esp</strong> (<em>float</em>) – </p></li>
+<li><p><strong>ws</strong> (<em>torch.complex64/ComplexTensor</em>) – beamformer vector (…, F, C)</p></li>
+<li><p><strong>psd_noise</strong> (<em>torch.complex64/ComplexTensor</em>) – noise PSD matrix (…, F, C, C)</p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>minimum gain-filtered output
-alpha (float): optional</p>
+<dd class="field-even"><p>normalized beamformer vector (…, F)</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>output (torch.complex64/ComplexTensor)</p>
+<dd class="field-odd"><p>ws_ban (torch.complex64/ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.generalized_eigenvalue_decomposition">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">generalized_eigenvalue_decomposition</code><span class="sig-paren">(</span><em class="sig-param">a: torch.Tensor</em>, <em class="sig-param">b: torch.Tensor</em>, <em class="sig-param">eps=1e-06</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#generalized_eigenvalue_decomposition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.generalized_eigenvalue_decomposition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Solves the generalized eigenvalue decomposition through Cholesky decomposition.</p>
+<p>ported from <a class="reference external" href="https://github.com/asteroid-team/asteroid/blob/master/asteroid/dsp/beamforming.py#L464">https://github.com/asteroid-team/asteroid/blob/master/asteroid/dsp/beamforming.py#L464</a></p>
+<p>a &#64; e_vec = e_val * b &#64; e_vec
+|
+|   Cholesky decomposition on <cite>b</cite>:
+|       b = L &#64; L^H, where <cite>L</cite> is a lower triangular matrix
+|
+|   Let C = L^-1 &#64; a &#64; L^-H, it is Hermitian.
+|
+=&gt; C &#64; y = lambda * y
+=&gt; e_vec = L^-H &#64; y</p>
+<p>Reference: <a class="reference external" href="https://www.netlib.org/lapack/lug/node54.html">https://www.netlib.org/lapack/lug/node54.html</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> – A complex Hermitian or real symmetric matrix whose eigenvalues and
+eigenvectors will be computed. (…, C, C)</p></li>
+<li><p><strong>b</strong> – A complex Hermitian or real symmetric definite positive matrix. (…, C, C)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>generalized eigenvalues (ascending order)
+e_vec: generalized eigenvectors</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>e_val</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1540,50 +1567,6 @@ Processing Letters, vol. 26, no. 6, pp. 903-907, June 2019, doi:
 </dd></dl>
 
 <dl class="function">
-<dt id="espnet2.enh.layers.beamformer.get_adjacent">
-<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_adjacent</code><span class="sig-paren">(</span><em class="sig-param">spec</em>, <em class="sig-param">filter_length: int = 5</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_adjacent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_adjacent" title="Permalink to this definition">¶</a></dt>
-<dd><p>Zero-pad and unfold stft, i.e.,</p>
-<p>add zeros to the beginning so that, using the multi-frame signal model,
-there will be as many output frames as input frames.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>spec</strong> (<em>torch.complex64/ComplexTensor</em>) – input spectrum (B, F, T)</p></li>
-<li><p><strong>filter_length</strong> (<em>int</em>) – length for frame extension</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>output spectrum (B, F, T, filter_length)</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>ret (torch.complex64/ComplexTensor)</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="espnet2.enh.layers.beamformer.get_adjacent_th">
-<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_adjacent_th</code><span class="sig-paren">(</span><em class="sig-param">spec: torch.Tensor</em>, <em class="sig-param">filter_length: int = 5</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_adjacent_th"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_adjacent_th" title="Permalink to this definition">¶</a></dt>
-<dd><p>Zero-pad and unfold stft, i.e.,</p>
-<p>add zeros to the beginning so that, using the multi-frame signal model,
-there will be as many output frames as input frames.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>spec</strong> (<em>torch.Tensor</em>) – input spectrum (B, F, T, 2)</p></li>
-<li><p><strong>filter_length</strong> (<em>int</em>) – length for frame extension</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>output spectrum (B, F, T, filter_length, 2)</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>ret (torch.Tensor)</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
 <dt id="espnet2.enh.layers.beamformer.get_covariances">
 <code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_covariances</code><span class="sig-paren">(</span><em class="sig-param">Y: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], inverse_power: torch.Tensor, bdelay: int, btaps: int, get_vector: bool = False</em><span class="sig-paren">)</span> &#x2192; Union[torch.Tensor, torch_complex.tensor.ComplexTensor]<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_covariances"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_covariances" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="simple">
@@ -1608,23 +1591,70 @@ Correlation vector: (B, F, btaps + 1, C, C)</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="espnet2.enh.layers.beamformer.get_mfmvdr_vector">
-<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_mfmvdr_vector</code><span class="sig-paren">(</span><em class="sig-param">gammax</em>, <em class="sig-param">Phi</em>, <em class="sig-param">use_torch_solver: bool = True</em>, <em class="sig-param">eps: float = 2.220446049250313e-16</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_mfmvdr_vector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_mfmvdr_vector" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute conventional MFMPDR/MFMVDR filter.</p>
+<dt id="espnet2.enh.layers.beamformer.get_gev_vector">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_gev_vector</code><span class="sig-paren">(</span><em class="sig-param">psd_noise: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], psd_speech: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], mode='power', reference_vector: Union[int, torch.Tensor] = 0, iterations: int = 3, use_torch_solver: bool = True, diagonal_loading: bool = True, diag_eps: float = 1e-07, eps: float = 1e-08</em><span class="sig-paren">)</span> &#x2192; Union[torch.Tensor, torch_complex.tensor.ComplexTensor]<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_gev_vector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_gev_vector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the generalized eigenvalue (GEV) beamformer vector:</p>
+<blockquote>
+<div><p>psd_speech &#64; h = lambda * psd_noise &#64; h</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Reference:</dt><dd><p>Blind acoustic beamforming based on generalized eigenvalue decomposition;
+E. Warsitz and R. Haeb-Umbach, 2007.</p>
+</dd>
+</dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>gammax</strong> (<em>torch.complex64/ComplexTensor</em>) – (…, L, N)</p></li>
-<li><p><strong>Phi</strong> (<em>torch.complex64/ComplexTensor</em>) – (…, L, N, N)</p></li>
+<li><p><strong>psd_noise</strong> (<em>torch.complex64/ComplexTensor</em>) – noise covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>psd_speech</strong> (<em>torch.complex64/ComplexTensor</em>) – speech covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – one of (“power”, “evd”)
+“power”: power method
+“evd”: eigenvalue decomposition (only for torch builtin complex tensors)</p></li>
+<li><p><strong>reference_vector</strong> (<em>torch.Tensor</em><em> or </em><em>int</em>) – (…, C) or scalar</p></li>
+<li><p><strong>iterations</strong> (<em>int</em>) – number of iterations in power method</p></li>
 <li><p><strong>use_torch_solver</strong> (<em>bool</em>) – Whether to use <cite>solve</cite> instead of <cite>inverse</cite></p></li>
+<li><p><strong>diagonal_loading</strong> (<em>bool</em>) – Whether to add a tiny term to the diagonal of psd_n</p></li>
+<li><p><strong>diag_eps</strong> (<em>float</em>) – </p></li>
 <li><p><strong>eps</strong> (<em>float</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>(…, L, N)</p>
+<dd class="field-even"><p>(…, F, C)</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>beamforming_vector (torch.complex64/ComplexTensor)</p>
+<dd class="field-odd"><p>beamform_vector (torch.complex64/ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_lcmv_vector_with_rtf">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_lcmv_vector_with_rtf</code><span class="sig-paren">(</span><em class="sig-param">psd_n: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], rtf_mat: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], reference_vector: Union[int, torch.Tensor, None] = None, use_torch_solver: bool = True, diagonal_loading: bool = True, diag_eps: float = 1e-07, eps: float = 1e-08</em><span class="sig-paren">)</span> &#x2192; Union[torch.Tensor, torch_complex.tensor.ComplexTensor]<a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_lcmv_vector_with_rtf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_lcmv_vector_with_rtf" title="Permalink to this definition">¶</a></dt>
+<dd><dl>
+<dt>Return the LCMV (Linearly Constrained Minimum Variance) vector</dt><dd><p>calculated with RTF:</p>
+<p>h = (Npsd^-1 &#64; rtf_mat) &#64; (rtf_mat^H &#64; Npsd^-1 &#64; rtf_mat)^-1 &#64; p</p>
+</dd>
+<dt>Reference:</dt><dd><p>H. L. Van Trees, “Optimum array processing: Part IV of detection, estimation,
+and modulation theory,” John Wiley &amp; Sons, 2004. (Chapter 6.7)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psd_n</strong> (<em>torch.complex64/ComplexTensor</em>) – observation/noise covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>rtf_mat</strong> (<em>torch.complex64/ComplexTensor</em>) – RTF matrix (…, F, C, num_spk)</p></li>
+<li><p><strong>reference_vector</strong> (<em>torch.Tensor</em><em> or </em><em>int</em>) – (…, num_spk) or scalar</p></li>
+<li><p><strong>use_torch_solver</strong> (<em>bool</em>) – Whether to use <cite>solve</cite> instead of <cite>inverse</cite></p></li>
+<li><p><strong>diagonal_loading</strong> (<em>bool</em>) – Whether to add a tiny term to the diagonal of psd_n</p></li>
+<li><p><strong>diag_eps</strong> (<em>float</em>) – </p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(…, F, C)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>beamform_vector (torch.complex64/ComplexTensor)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1700,13 +1730,42 @@ for noise reduction; M. Souden et al., 2010;
 </dd></dl>
 
 <dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_mwf_vector">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_mwf_vector</code><span class="sig-paren">(</span><em class="sig-param">psd_s, psd_n, reference_vector: Union[torch.Tensor, int], use_torch_solver: bool = True, diagonal_loading: bool = True, diag_eps: float = 1e-07, eps: float = 1e-08</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_mwf_vector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_mwf_vector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the MWF (Minimum Multi-channel Wiener Filter) vector:</p>
+<blockquote>
+<div><p>h = (Npsd^-1 &#64; Spsd) &#64; u</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psd_s</strong> (<em>torch.complex64/ComplexTensor</em>) – speech covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>psd_n</strong> (<em>torch.complex64/ComplexTensor</em>) – power-normalized observation covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>reference_vector</strong> (<em>torch.Tensor</em><em> or </em><em>int</em>) – (…, C) or scalar</p></li>
+<li><p><strong>use_torch_solver</strong> (<em>bool</em>) – Whether to use <cite>solve</cite> instead of <cite>inverse</cite></p></li>
+<li><p><strong>diagonal_loading</strong> (<em>bool</em>) – Whether to add a tiny term to the diagonal of psd_n</p></li>
+<li><p><strong>diag_eps</strong> (<em>float</em>) – </p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(…, F, C)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>beamform_vector (torch.complex64/ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="espnet2.enh.layers.beamformer.get_power_spectral_density_matrix">
-<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_power_spectral_density_matrix</code><span class="sig-paren">(</span><em class="sig-param">xs</em>, <em class="sig-param">mask: torch.Tensor</em>, <em class="sig-param">normalization=True</em>, <em class="sig-param">eps: float = 1e-15</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_power_spectral_density_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_power_spectral_density_matrix" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_power_spectral_density_matrix</code><span class="sig-paren">(</span><em class="sig-param">xs</em>, <em class="sig-param">mask</em>, <em class="sig-param">normalization=True</em>, <em class="sig-param">reduction='mean'</em>, <em class="sig-param">eps: float = 1e-15</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_power_spectral_density_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_power_spectral_density_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return cross-channel power spectral density (PSD) matrix</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>xs</strong> (<em>torch.complex64/ComplexTensor</em>) – (…, F, C, T)</p></li>
+<li><p><strong>reduction</strong> (<em>str</em>) – “mean” or “median”</p></li>
 <li><p><strong>mask</strong> (<em>torch.Tensor</em>) – (…, F, C, T)</p></li>
 <li><p><strong>normalization</strong> (<em>bool</em>) – </p></li>
 <li><p><strong>eps</strong> (<em>float</em>) – </p></li>
@@ -1720,11 +1779,57 @@ for noise reduction; M. Souden et al., 2010;
 </dd></dl>
 
 <dl class="function">
-<dt id="espnet2.enh.layers.beamformer.get_rtf">
-<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_rtf</code><span class="sig-paren">(</span><em class="sig-param">psd_speech</em>, <em class="sig-param">psd_noise</em>, <em class="sig-param">reference_vector: Union[int</em>, <em class="sig-param">torch.Tensor</em>, <em class="sig-param">None] = None</em>, <em class="sig-param">iterations: int = 3</em>, <em class="sig-param">use_torch_solver: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_rtf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_rtf" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate the relative transfer function (RTF) using the power method.</p>
+<dt id="espnet2.enh.layers.beamformer.get_rank1_mwf_vector">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_rank1_mwf_vector</code><span class="sig-paren">(</span><em class="sig-param">psd_speech, psd_noise, reference_vector: Union[torch.Tensor, int], denoising_weight: float = 1.0, approx_low_rank_psd_speech: bool = False, iterations: int = 3, use_torch_solver: bool = True, diagonal_loading: bool = True, diag_eps: float = 1e-07, eps: float = 1e-08</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_rank1_mwf_vector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_rank1_mwf_vector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the R1-MWF (Rank-1 Multi-channel Wiener Filter) vector</p>
+<blockquote>
+<div><p>h = (Npsd^-1 &#64; Spsd) / (mu + Tr(Npsd^-1 &#64; Spsd)) &#64; u</p>
+</div></blockquote>
 <dl class="simple">
-<dt>Algorithm:</dt><dd><ol class="arabic simple">
+<dt>Reference:</dt><dd><p>[1] Rank-1 constrained multichannel Wiener filter for speech recognition in
+noisy environments; Z. Wangyou et al, 2018
+<a class="reference external" href="https://hal.inria.fr/hal-01634449/document">https://hal.inria.fr/hal-01634449/document</a>
+[2] Low-rank approximation based multichannel Wiener filter algorithms for
+noise reduction with application in cochlear implants; R. Serizel, 2014
+<a class="reference external" href="https://ieeexplore.ieee.org/document/6730918">https://ieeexplore.ieee.org/document/6730918</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psd_speech</strong> (<em>torch.complex64/ComplexTensor</em>) – speech covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>psd_noise</strong> (<em>torch.complex64/ComplexTensor</em>) – noise covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>reference_vector</strong> (<em>torch.Tensor</em><em> or </em><em>int</em>) – (…, C) or scalar</p></li>
+<li><p><strong>denoising_weight</strong> (<em>float</em>) – a trade-off parameter between noise reduction and
+speech distortion.
+A larger value leads to more noise reduction at the expense of more speech
+distortion.
+When <cite>denoising_weight = 0</cite>, it corresponds to MVDR beamformer.</p></li>
+<li><p><strong>approx_low_rank_psd_speech</strong> (<em>bool</em>) – whether to replace original input psd_speech
+with its low-rank approximation as in [1]</p></li>
+<li><p><strong>iterations</strong> (<em>int</em>) – number of iterations in power method, only used when
+<cite>approx_low_rank_psd_speech = True</cite></p></li>
+<li><p><strong>use_torch_solver</strong> (<em>bool</em>) – Whether to use <cite>solve</cite> instead of <cite>inverse</cite></p></li>
+<li><p><strong>diagonal_loading</strong> (<em>bool</em>) – Whether to add a tiny term to the diagonal of psd_n</p></li>
+<li><p><strong>diag_eps</strong> (<em>float</em>) – </p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(…, F, C)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>beamform_vector (torch.complex64/ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_rtf">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_rtf</code><span class="sig-paren">(</span><em class="sig-param">psd_speech</em>, <em class="sig-param">psd_noise</em>, <em class="sig-param">mode='power'</em>, <em class="sig-param">reference_vector: Union[int</em>, <em class="sig-param">torch.Tensor] = 0</em>, <em class="sig-param">iterations: int = 3</em>, <em class="sig-param">use_torch_solver: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_rtf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_rtf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the relative transfer function (RTF)</p>
+<dl class="simple">
+<dt>Algorithm of power method:</dt><dd><ol class="arabic simple">
 <li><p>rtf = reference_vector</p></li>
 <li><dl class="simple">
 <dt>for i in range(iterations):</dt><dd><p>rtf = (psd_noise^-1 &#64; psd_speech) &#64; rtf
@@ -1743,6 +1848,9 @@ rtf = rtf / ||rtf||_2  # this normalization can be skipped</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>psd_speech</strong> (<em>torch.complex64/ComplexTensor</em>) – speech covariance matrix (…, F, C, C)</p></li>
 <li><p><strong>psd_noise</strong> (<em>torch.complex64/ComplexTensor</em>) – noise covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>mode</strong> (<em>str</em>) – one of (“power”, “evd”)
+“power”: power method
+“evd”: eigenvalue decomposition</p></li>
 <li><p><strong>reference_vector</strong> (<em>torch.Tensor</em><em> or </em><em>int</em>) – (…, C) or scalar</p></li>
 <li><p><strong>iterations</strong> (<em>int</em>) – number of iterations in power method</p></li>
 <li><p><strong>use_torch_solver</strong> (<em>bool</em>) – Whether to use <cite>solve</cite> instead of <cite>inverse</cite></p></li>
@@ -1758,9 +1866,78 @@ rtf = rtf / ||rtf||_2  # this normalization can be skipped</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="espnet2.enh.layers.beamformer.minimum_gain_like">
-<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">minimum_gain_like</code><span class="sig-paren">(</span><em class="sig-param">G_min</em>, <em class="sig-param">Y</em>, <em class="sig-param">filtered_input</em>, <em class="sig-param">alpha=None</em>, <em class="sig-param">k: float = 10.0</em>, <em class="sig-param">eps: float = 2.220446049250313e-16</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#minimum_gain_like"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.minimum_gain_like" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="espnet2.enh.layers.beamformer.get_rtf_matrix">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_rtf_matrix</code><span class="sig-paren">(</span><em class="sig-param">psd_speeches</em>, <em class="sig-param">psd_noises</em>, <em class="sig-param">diagonal_loading: bool = True</em>, <em class="sig-param">ref_channel: int = 0</em>, <em class="sig-param">rtf_iterations: int = 3</em>, <em class="sig-param">use_torch_solver: bool = True</em>, <em class="sig-param">diag_eps: float = 1e-07</em>, <em class="sig-param">eps: float = 1e-08</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_rtf_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_rtf_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the RTF matrix with each column the relative transfer function
+of the corresponding source.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.get_sdw_mwf_vector">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">get_sdw_mwf_vector</code><span class="sig-paren">(</span><em class="sig-param">psd_speech, psd_noise, reference_vector: Union[torch.Tensor, int], denoising_weight: float = 1.0, approx_low_rank_psd_speech: bool = False, iterations: int = 3, use_torch_solver: bool = True, diagonal_loading: bool = True, diag_eps: float = 1e-07, eps: float = 1e-08</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#get_sdw_mwf_vector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.get_sdw_mwf_vector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the SDW-MWF (Speech Distortion Weighted Multi-channel Wiener Filter) vector</p>
+<blockquote>
+<div><p>h = (Spsd + mu * Npsd)^-1 &#64; Spsd &#64; u</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Reference:</dt><dd><p>[1] Spatially pre-processed speech distortion weighted multi-channel Wiener
+filtering for noise reduction; A. Spriet et al, 2004
+<a class="reference external" href="https://dl.acm.org/doi/abs/10.1016/j.sigpro.2004.07.028">https://dl.acm.org/doi/abs/10.1016/j.sigpro.2004.07.028</a>
+[2] Rank-1 constrained multichannel Wiener filter for speech recognition in
+noisy environments; Z. Wangyou et al, 2018
+<a class="reference external" href="https://hal.inria.fr/hal-01634449/document">https://hal.inria.fr/hal-01634449/document</a>
+[3] Low-rank approximation based multichannel Wiener filter algorithms for
+noise reduction with application in cochlear implants; R. Serizel, 2014
+<a class="reference external" href="https://ieeexplore.ieee.org/document/6730918">https://ieeexplore.ieee.org/document/6730918</a></p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psd_speech</strong> (<em>torch.complex64/ComplexTensor</em>) – speech covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>psd_noise</strong> (<em>torch.complex64/ComplexTensor</em>) – noise covariance matrix (…, F, C, C)</p></li>
+<li><p><strong>reference_vector</strong> (<em>torch.Tensor</em><em> or </em><em>int</em>) – (…, C) or scalar</p></li>
+<li><p><strong>denoising_weight</strong> (<em>float</em>) – a trade-off parameter between noise reduction and
+speech distortion.
+A larger value leads to more noise reduction at the expense of more speech
+distortion.
+The plain MWF is obtained with <cite>denoising_weight = 1</cite> (by default).</p></li>
+<li><p><strong>approx_low_rank_psd_speech</strong> (<em>bool</em>) – whether to replace original input psd_speech
+with its low-rank approximation as in [2]</p></li>
+<li><p><strong>iterations</strong> (<em>int</em>) – number of iterations in power method, only used when
+<cite>approx_low_rank_psd_speech = True</cite></p></li>
+<li><p><strong>use_torch_solver</strong> (<em>bool</em>) – Whether to use <cite>solve</cite> instead of <cite>inverse</cite></p></li>
+<li><p><strong>diagonal_loading</strong> (<em>bool</em>) – Whether to add a tiny term to the diagonal of psd_n</p></li>
+<li><p><strong>diag_eps</strong> (<em>float</em>) – </p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(…, F, C)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>beamform_vector (torch.complex64/ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.gev_phase_correction">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">gev_phase_correction</code><span class="sig-paren">(</span><em class="sig-param">vector</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#gev_phase_correction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.gev_phase_correction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Phase correction to reduce distortions due to phase inconsistencies.</p>
+<p>ported from <a class="reference external" href="https://github.com/fgnt/nn-gev/blob/master/fgnt/beamforming.py#L169">https://github.com/fgnt/nn-gev/blob/master/fgnt/beamforming.py#L169</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>vector</strong> – Beamforming vector with shape (…, F, C)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Phase corrected beamforming vectors</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>w</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="function">
 <dt id="espnet2.enh.layers.beamformer.perform_WPD_filtering">
@@ -1778,6 +1955,46 @@ rtf = rtf / ||rtf||_2  # this normalization can be skipped</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>enhanced (torch.complex64/ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.beamformer.prepare_beamformer_stats">
+<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">prepare_beamformer_stats</code><span class="sig-paren">(</span><em class="sig-param">signal</em>, <em class="sig-param">masks_speech</em>, <em class="sig-param">mask_noise</em>, <em class="sig-param">powers=None</em>, <em class="sig-param">beamformer_type='mvdr'</em>, <em class="sig-param">bdelay=3</em>, <em class="sig-param">btaps=5</em>, <em class="sig-param">eps=1e-06</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#prepare_beamformer_stats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.prepare_beamformer_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare necessary statistics for constructing the specified beamformer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>signal</strong> (<em>torch.complex64/ComplexTensor</em>) – (…, F, C, T)</p></li>
+<li><p><strong>masks_speech</strong> (<em>List</em><em>[</em><em>torch.Tensor</em><em>]</em>) – (…, F, C, T) masks for all speech sources</p></li>
+<li><p><strong>mask_noise</strong> (<em>torch.Tensor</em>) – (…, F, C, T) noise mask</p></li>
+<li><p><strong>powers</strong> (<em>List</em><em>[</em><em>torch.Tensor</em><em>]</em>) – powers for all speech sources (…, F, T)
+used for wMPDR or WPD beamformers</p></li>
+<li><p><strong>beamformer_type</strong> (<em>str</em>) – one of the pre-defined beamformer types</p></li>
+<li><p><strong>bdelay</strong> (<em>int</em>) – delay factor, used for WPD beamformser</p></li>
+<li><p><strong>btaps</strong> (<em>int</em>) – number of filter taps, used for WPD beamformser</p></li>
+<li><p><strong>eps</strong> (<em>torch.Tensor</em>) – tiny constant</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl>
+<dt>a dictionary containing all necessary statistics</dt><dd><p>e.g. “psd_n”, “psd_speech”, “psd_distortion”
+Note:
+* When <cite>masks_speech</cite> is a tensor or a single-element list, all returned</p>
+<blockquote>
+<div><p>statistics are tensors;</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>When <cite>masks_speech</cite> is a multi-element list, some returned statistics
+can be a list, e.g., “psd_n” for MVDR, “psd_speech” and “psd_distortion”.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>beamformer_stats (dict)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1829,34 +2046,18 @@ else:          (…, T - bdelay - frame_length + 2, frame_length)</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
-<dt id="espnet2.enh.layers.beamformer.vector_to_Hermitian">
-<code class="sig-prename descclassname">espnet2.enh.layers.beamformer.</code><code class="sig-name descname">vector_to_Hermitian</code><span class="sig-paren">(</span><em class="sig-param">vec</em>, <em class="sig-param">use_builtin_complex=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/beamformer.html#vector_to_Hermitian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.beamformer.vector_to_Hermitian" title="Permalink to this definition">¶</a></dt>
-<dd><p>Construct a Hermitian matrix from a vector of N**2 independent
-real-valued elements.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>vec</strong> (<em>torch.Tensor</em>) – (…, N ** 2)</p></li>
-<li><p><strong>use_builtin_complex</strong> (<em>bool</em>) – Whether to use builtin complex support</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>(…, N, N)</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>mat (torch.complex64/ComplexTensor)</p>
-</dd>
-</dl>
-</dd></dl>
-
 </section>
 <section id="espnet2-enh-layers-complex-utils">
 <span id="id34"></span><h2>espnet2.enh.layers.complex_utils<a class="headerlink" href="#espnet2-enh-layers-complex-utils" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.complex_utils"></span><p>Beamformer module.</p>
 <dl class="function">
+<dt id="espnet2.enh.layers.complex_utils.cat">
+<code class="sig-prename descclassname">espnet2.enh.layers.complex_utils.</code><code class="sig-name descname">cat</code><span class="sig-paren">(</span><em class="sig-param">seq: Sequence[Union[torch_complex.tensor.ComplexTensor, torch.Tensor]], *args, **kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/complex_utils.html#cat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.complex_utils.cat" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="espnet2.enh.layers.complex_utils.complex_norm">
-<code class="sig-prename descclassname">espnet2.enh.layers.complex_utils.</code><code class="sig-name descname">complex_norm</code><span class="sig-paren">(</span><em class="sig-param">c: Union[torch.Tensor, torch_complex.tensor.ComplexTensor]</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/enh/layers/complex_utils.html#complex_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.complex_utils.complex_norm" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">espnet2.enh.layers.complex_utils.</code><code class="sig-name descname">complex_norm</code><span class="sig-paren">(</span><em class="sig-param">c: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], dim=-1, keepdim=False</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/enh/layers/complex_utils.html#complex_norm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.complex_utils.complex_norm" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -1901,6 +2102,11 @@ real-valued elements.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="espnet2.enh.layers.complex_utils.stack">
+<code class="sig-prename descclassname">espnet2.enh.layers.complex_utils.</code><code class="sig-name descname">stack</code><span class="sig-paren">(</span><em class="sig-param">seq: Sequence[Union[torch_complex.tensor.ComplexTensor, torch.Tensor]], *args, **kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/complex_utils.html#stack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.complex_utils.stack" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="espnet2.enh.layers.complex_utils.to_double">
 <code class="sig-prename descclassname">espnet2.enh.layers.complex_utils.</code><code class="sig-name descname">to_double</code><span class="sig-paren">(</span><em class="sig-param">c</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/complex_utils.html#to_double"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.complex_utils.to_double" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -1908,6 +2114,11 @@ real-valued elements.</p>
 <dl class="function">
 <dt id="espnet2.enh.layers.complex_utils.to_float">
 <code class="sig-prename descclassname">espnet2.enh.layers.complex_utils.</code><code class="sig-name descname">to_float</code><span class="sig-paren">(</span><em class="sig-param">c</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/complex_utils.html#to_float"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.complex_utils.to_float" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.complex_utils.trace">
+<code class="sig-prename descclassname">espnet2.enh.layers.complex_utils.</code><code class="sig-name descname">trace</code><span class="sig-paren">(</span><em class="sig-param">a: Union[torch.Tensor, torch_complex.tensor.ComplexTensor]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/complex_utils.html#trace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.complex_utils.trace" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </section>
@@ -2100,7 +2311,7 @@ ilens (torch.Tensor): (B,)</p>
 
 <dl class="class">
 <dt id="espnet2.enh.layers.dnn_beamformer.DNN_Beamformer">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dnn_beamformer.</code><code class="sig-name descname">DNN_Beamformer</code><span class="sig-paren">(</span><em class="sig-param">bidim</em>, <em class="sig-param">btype: str = 'blstmp'</em>, <em class="sig-param">blayers: int = 3</em>, <em class="sig-param">bunits: int = 300</em>, <em class="sig-param">bprojs: int = 320</em>, <em class="sig-param">num_spk: int = 1</em>, <em class="sig-param">use_noise_mask: bool = True</em>, <em class="sig-param">nonlinear: str = 'sigmoid'</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">badim: int = 320</em>, <em class="sig-param">ref_channel: int = -1</em>, <em class="sig-param">beamformer_type: str = 'mvdr_souden'</em>, <em class="sig-param">rtf_iterations: int = 2</em>, <em class="sig-param">eps: float = 1e-06</em>, <em class="sig-param">diagonal_loading: bool = True</em>, <em class="sig-param">diag_eps: float = 1e-07</em>, <em class="sig-param">mask_flooring: bool = False</em>, <em class="sig-param">flooring_thres: float = 1e-06</em>, <em class="sig-param">use_torch_solver: bool = True</em>, <em class="sig-param">btaps: int = 5</em>, <em class="sig-param">bdelay: int = 3</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_beamformer.html#DNN_Beamformer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dnn_beamformer.</code><code class="sig-name descname">DNN_Beamformer</code><span class="sig-paren">(</span><em class="sig-param">bidim</em>, <em class="sig-param">btype: str = 'blstmp'</em>, <em class="sig-param">blayers: int = 3</em>, <em class="sig-param">bunits: int = 300</em>, <em class="sig-param">bprojs: int = 320</em>, <em class="sig-param">num_spk: int = 1</em>, <em class="sig-param">use_noise_mask: bool = True</em>, <em class="sig-param">nonlinear: str = 'sigmoid'</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">badim: int = 320</em>, <em class="sig-param">ref_channel: int = -1</em>, <em class="sig-param">beamformer_type: str = 'mvdr_souden'</em>, <em class="sig-param">rtf_iterations: int = 2</em>, <em class="sig-param">mwf_mu: float = 1.0</em>, <em class="sig-param">eps: float = 1e-06</em>, <em class="sig-param">diagonal_loading: bool = True</em>, <em class="sig-param">diag_eps: float = 1e-07</em>, <em class="sig-param">mask_flooring: bool = False</em>, <em class="sig-param">flooring_thres: float = 1e-06</em>, <em class="sig-param">use_torch_solver: bool = True</em>, <em class="sig-param">btaps: int = 5</em>, <em class="sig-param">bdelay: int = 3</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_beamformer.html#DNN_Beamformer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>DNN mask based Beamformer.</p>
 <dl class="simple">
@@ -2109,8 +2320,36 @@ ilens (torch.Tensor): (B,)</p>
 </dd>
 </dl>
 <dl class="method">
+<dt id="espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.apply_beamforming">
+<code class="sig-name descname">apply_beamforming</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">ilens</em>, <em class="sig-param">psd_n</em>, <em class="sig-param">psd_speech</em>, <em class="sig-param">psd_distortion=None</em>, <em class="sig-param">rtf_mat=None</em>, <em class="sig-param">spk=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_beamformer.html#DNN_Beamformer.apply_beamforming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.apply_beamforming" title="Permalink to this definition">¶</a></dt>
+<dd><p>Beamforming with the provided statistics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>torch.complex64/ComplexTensor</em>) – (B, F, C, T)</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – (B,)</p></li>
+<li><p><strong>psd_n</strong> (<em>torch.complex64/ComplexTensor</em>) – Noise covariance matrix for MVDR (B, F, C, C)
+Observation covariance matrix for MPDR/wMPDR (B, F, C, C)
+Stacked observation covariance for WPD (B,F,(btaps+1)*C,(btaps+1)*C)</p></li>
+<li><p><strong>psd_speech</strong> (<em>torch.complex64/ComplexTensor</em>) – Speech covariance matrix (B, F, C, C)</p></li>
+<li><p><strong>psd_distortion</strong> (<em>torch.complex64/ComplexTensor</em>) – Noise covariance matrix (B, F, C, C)</p></li>
+<li><p><strong>rtf_mat</strong> (<em>torch.complex64/ComplexTensor</em>) – RTF matrix (B, F, C, num_spk)</p></li>
+<li><p><strong>spk</strong> (<em>int</em>) – speaker index</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(B, F, T)
+ws (torch.complex64/ComplexTensor): (B, F) or (B, F, (btaps+1)*C)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>enhanced (torch.complex64/ComplexTensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">data: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], ilens: torch.LongTensor, powers: Optional[List[torch.Tensor]] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[Union[torch.Tensor, torch_complex.tensor.ComplexTensor], torch.LongTensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_beamformer.html#DNN_Beamformer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">data: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], ilens: torch.LongTensor, powers: Optional[List[torch.Tensor]] = None, oracle_masks: Optional[List[torch.Tensor]] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[Union[torch.Tensor, torch_complex.tensor.ComplexTensor], torch.LongTensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_beamformer.html#DNN_Beamformer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>DNN_Beamformer forward function.</p>
 <dl class="simple">
 <dt>Notation:</dt><dd><p>B: Batch
@@ -2125,6 +2364,8 @@ F: Freq</p>
 <li><p><strong>data</strong> (<em>torch.complex64/ComplexTensor</em>) – (B, T, C, F)</p></li>
 <li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – (B,)</p></li>
 <li><p><strong>powers</strong> (<em>List</em><em>[</em><em>torch.Tensor</em><em>] or </em><em>None</em>) – used for wMPDR or WPD (B, F, T)</p></li>
+<li><p><strong>oracle_masks</strong> (<em>List</em><em>[</em><em>torch.Tensor</em><em>] or </em><em>None</em>) – oracle masks (B, F, C, T)
+if not None, oracle_masks will be used instead of self.mask</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

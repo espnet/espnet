@@ -128,23 +128,30 @@
 <span></span><span class="sd">&quot;&quot;&quot;DNN beamformer module.&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
-<span class="kn">from</span> <span class="nn">torch_complex</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">FC</span>
 <span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">apply_beamforming_vector</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_covariances</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">blind_analytic_normalization</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_gev_vector</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_lcmv_vector_with_rtf</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_mvdr_vector</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_mvdr_vector_with_rtf</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_power_spectral_density_matrix</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_mwf_vector</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_rank1_mwf_vector</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_rtf_matrix</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_sdw_mwf_vector</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_WPD_filter_v2</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">get_WPD_filter_with_rtf</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">perform_WPD_filtering</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.beamformer</span> <span class="kn">import</span> <span class="n">prepare_beamformer_stats</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">stack</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">to_double</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">to_float</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.mask_estimator</span> <span class="kn">import</span> <span class="n">MaskEstimator</span>
@@ -165,6 +172,25 @@
     <span class="c1"># Weighted Power minimization Distortionless response beamformer</span>
     <span class="s2">&quot;wpd&quot;</span><span class="p">,</span>  <span class="c1"># RTF-based formula</span>
     <span class="s2">&quot;wpd_souden&quot;</span><span class="p">,</span>  <span class="c1"># Souden&#39;s solution</span>
+    <span class="c1"># Multi-channel Wiener Filter (MWF) and weighted MWF</span>
+    <span class="s2">&quot;mwf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;wmwf&quot;</span><span class="p">,</span>
+    <span class="c1"># Speech Distortion Weighted (SDW) MWF</span>
+    <span class="s2">&quot;sdw_mwf&quot;</span><span class="p">,</span>
+    <span class="c1"># Rank-1 MWF</span>
+    <span class="s2">&quot;r1mwf&quot;</span><span class="p">,</span>
+    <span class="c1"># Linearly Constrained Minimum Variance beamformer</span>
+    <span class="s2">&quot;lcmv&quot;</span><span class="p">,</span>
+    <span class="c1"># Linearly Constrained Minimum Power beamformer</span>
+    <span class="s2">&quot;lcmp&quot;</span><span class="p">,</span>
+    <span class="c1"># weighted Linearly Constrained Minimum Power beamformer</span>
+    <span class="s2">&quot;wlcmp&quot;</span><span class="p">,</span>
+    <span class="c1"># Generalized Eigenvalue beamformer</span>
+    <span class="s2">&quot;gev&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;gev_ban&quot;</span><span class="p">,</span>  <span class="c1"># with blind analytic normalization (BAN) post-filtering</span>
+    <span class="c1"># time-frequency-bin-wise switching (TFS) MVDR beamformer</span>
+    <span class="s2">&quot;mvdr_tfs&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mvdr_tfs_souden&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 
 
@@ -192,6 +218,7 @@
         <span class="n">ref_channel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">beamformer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mvdr_souden&quot;</span><span class="p">,</span>
         <span class="n">rtf_iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">mwf_mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-6</span><span class="p">,</span>
         <span class="n">diagonal_loading</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
@@ -253,6 +280,8 @@
             <span class="k">assert</span> <span class="n">rtf_iterations</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rtf_iterations</span>
         <span class="c1"># number of iterations in power method for estimating the RTF</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rtf_iterations</span> <span class="o">=</span> <span class="n">rtf_iterations</span>
+        <span class="c1"># noise suppression weight in SDW-MWF</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mwf_mu</span> <span class="o">=</span> <span class="n">mwf_mu</span>
 
         <span class="k">assert</span> <span class="n">btaps</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">bdelay</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="n">btaps</span><span class="p">,</span> <span class="n">bdelay</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">btaps</span> <span class="o">=</span> <span class="n">btaps</span>
@@ -268,7 +297,8 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span>
         <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span>
-        <span class="n">powers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">powers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">oracle_masks</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;DNN_Beamformer forward function.</span>
 
@@ -282,117 +312,22 @@
 <span class="sd">            data (torch.complex64/ComplexTensor): (B, T, C, F)</span>
 <span class="sd">            ilens (torch.Tensor): (B,)</span>
 <span class="sd">            powers (List[torch.Tensor] or None): used for wMPDR or WPD (B, F, T)</span>
+<span class="sd">            oracle_masks (List[torch.Tensor] or None): oracle masks (B, F, C, T)</span>
+<span class="sd">                if not None, oracle_masks will be used instead of self.mask</span>
 <span class="sd">        Returns:</span>
 <span class="sd">            enhanced (torch.complex64/ComplexTensor): (B, T, F)</span>
 <span class="sd">            ilens (torch.Tensor): (B,)</span>
 <span class="sd">            masks (torch.Tensor): (B, T, C, F)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="k">def</span> <span class="nf">apply_beamforming</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_n</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_distortion</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Beamforming with the provided statistics.</span>
-
-<span class="sd">            Args:</span>
-<span class="sd">                data (torch.complex64/ComplexTensor): (B, F, C, T)</span>
-<span class="sd">                ilens (torch.Tensor): (B,)</span>
-<span class="sd">                psd_n (torch.complex64/ComplexTensor):</span>
-<span class="sd">                    Noise covariance matrix for MVDR (B, F, C, C)</span>
-<span class="sd">                    Observation covariance matrix for MPDR/wMPDR (B, F, C, C)</span>
-<span class="sd">                    Stacked observation covariance for WPD (B,F,(btaps+1)*C,(btaps+1)*C)</span>
-<span class="sd">                psd_speech (torch.complex64/ComplexTensor):</span>
-<span class="sd">                    Speech covariance matrix (B, F, C, C)</span>
-<span class="sd">                psd_distortion (torch.complex64/ComplexTensor):</span>
-<span class="sd">                    Noise covariance matrix (B, F, C, C)</span>
-<span class="sd">            Return:</span>
-<span class="sd">                enhanced (torch.complex64/ComplexTensor): (B, F, T)</span>
-<span class="sd">                ws (torch.complex64/ComplexTensor): (B, F) or (B, F, (btaps+1)*C)</span>
-<span class="sd">            &quot;&quot;&quot;</span>
-            <span class="c1"># u: (B, C)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">u</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">psd_speech</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">ilens</span><span class="p">)</span>
-                <span class="n">u</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_souden&quot;</span><span class="p">):</span>
-                    <span class="c1"># (optional) Create onehot vector for fixed reference microphone</span>
-                    <span class="n">u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-                        <span class="o">*</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">size</span><span class="p">()[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">),)),</span>
-                        <span class="n">device</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-                        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span>
-                    <span class="p">)</span>
-                    <span class="n">u</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">]</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="c1"># for simplifying computation in RTF-based beamforming</span>
-                    <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span>
-
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mvdr&quot;</span><span class="p">,</span> <span class="s2">&quot;mpdr&quot;</span><span class="p">,</span> <span class="s2">&quot;wmpdr&quot;</span><span class="p">):</span>
-                <span class="n">ws</span> <span class="o">=</span> <span class="n">get_mvdr_vector_with_rtf</span><span class="p">(</span>
-                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
-                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
-                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_distortion</span><span class="p">),</span>
-                    <span class="n">iterations</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rtf_iterations</span><span class="p">,</span>
-                    <span class="n">reference_vector</span><span class="o">=</span><span class="n">u</span><span class="p">,</span>
-                    <span class="n">normalize_ref_channel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">,</span>
-                    <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
-                    <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
-                    <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="n">enhanced</span> <span class="o">=</span> <span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mpdr_souden&quot;</span><span class="p">,</span> <span class="s2">&quot;mvdr_souden&quot;</span><span class="p">,</span> <span class="s2">&quot;wmpdr_souden&quot;</span><span class="p">):</span>
-                <span class="n">ws</span> <span class="o">=</span> <span class="n">get_mvdr_vector</span><span class="p">(</span>
-                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
-                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
-                    <span class="n">u</span><span class="p">,</span>
-                    <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
-                    <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
-                    <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="n">enhanced</span> <span class="o">=</span> <span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wpd&quot;</span><span class="p">:</span>
-                <span class="n">ws</span> <span class="o">=</span> <span class="n">get_WPD_filter_with_rtf</span><span class="p">(</span>
-                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
-                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
-                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_distortion</span><span class="p">),</span>
-                    <span class="n">iterations</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rtf_iterations</span><span class="p">,</span>
-                    <span class="n">reference_vector</span><span class="o">=</span><span class="n">u</span><span class="p">,</span>
-                    <span class="n">normalize_ref_channel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">,</span>
-                    <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
-                    <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
-                    <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="n">enhanced</span> <span class="o">=</span> <span class="n">perform_WPD_filtering</span><span class="p">(</span>
-                    <span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bdelay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">btaps</span>
-                <span class="p">)</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wpd_souden&quot;</span><span class="p">:</span>
-                <span class="n">ws</span> <span class="o">=</span> <span class="n">get_WPD_filter_v2</span><span class="p">(</span>
-                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
-                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
-                    <span class="n">u</span><span class="p">,</span>
-                    <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
-                    <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
-                <span class="p">)</span>
-                <span class="n">enhanced</span> <span class="o">=</span> <span class="n">perform_WPD_filtering</span><span class="p">(</span>
-                    <span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bdelay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">btaps</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;Not supporting beamformer_type=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="p">)</span>
-                <span class="p">)</span>
-
-            <span class="k">return</span> <span class="n">enhanced</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">ws</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">):</span>
-            <span class="n">complex_wrapper</span> <span class="o">=</span> <span class="n">FC</span>
-        <span class="k">elif</span> <span class="n">is_torch_1_9_plus</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_complex</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
-            <span class="n">complex_wrapper</span> <span class="o">=</span> <span class="n">torch</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Please update your PyTorch version to 1.8+ for compelx support.&quot;</span>
-            <span class="p">)</span>
         <span class="c1"># data (B, T, C, F) -&gt; (B, F, C, T)</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">data_d</span> <span class="o">=</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
         <span class="c1"># mask: [(B, F, C, T)]</span>
-        <span class="n">masks</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">oracle_masks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">masks</span> <span class="o">=</span> <span class="n">oracle_masks</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">masks</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">nmask</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">masks</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">masks</span><span class="p">)</span>
         <span class="c1"># floor masks to increase numerical stability</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_flooring</span><span class="p">:</span>
@@ -407,72 +342,40 @@
                 <span class="n">mask_speech</span> <span class="o">=</span> <span class="n">masks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="n">mask_noise</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">mask_speech</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
-                <span class="s2">&quot;wmpdr&quot;</span>
-            <span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;wpd&quot;</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">powers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">power_input</span> <span class="o">=</span> <span class="n">data_d</span><span class="o">.</span><span class="n">real</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">data_d</span><span class="o">.</span><span class="n">imag</span><span class="o">**</span><span class="mi">2</span>
-                    <span class="c1"># Averaging along the channel axis: (..., C, T) -&gt; (..., T)</span>
-                    <span class="n">powers</span> <span class="o">=</span> <span class="p">(</span><span class="n">power_input</span> <span class="o">*</span> <span class="n">mask_speech</span><span class="o">.</span><span class="n">double</span><span class="p">())</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">powers</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">powers</span><span class="p">)</span>
-                    <span class="n">powers</span> <span class="o">=</span> <span class="n">powers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="n">inverse_power</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">powers</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;lcmv&quot;</span><span class="p">,</span> <span class="s2">&quot;lcmp&quot;</span><span class="p">,</span> <span class="s2">&quot;wlcmp&quot;</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Single source is not supported yet&quot;</span><span class="p">)</span>
+            <span class="n">beamformer_stats</span> <span class="o">=</span> <span class="n">prepare_beamformer_stats</span><span class="p">(</span>
+                <span class="n">data_d</span><span class="p">,</span>
+                <span class="p">[</span><span class="n">mask_speech</span><span class="p">],</span>
+                <span class="n">mask_noise</span><span class="p">,</span>
+                <span class="n">powers</span><span class="o">=</span><span class="n">powers</span><span class="p">,</span>
+                <span class="n">beamformer_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="p">,</span>
+                <span class="n">bdelay</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bdelay</span><span class="p">,</span>
+                <span class="n">btaps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">btaps</span><span class="p">,</span>
+                <span class="n">eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">,</span>
+            <span class="p">)</span>
 
-            <span class="n">psd_speech</span> <span class="o">=</span> <span class="n">get_power_spectral_density_matrix</span><span class="p">(</span><span class="n">data_d</span><span class="p">,</span> <span class="n">mask_speech</span><span class="o">.</span><span class="n">double</span><span class="p">())</span>
-            <span class="k">if</span> <span class="n">mask_noise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mvdr_souden&quot;</span>
-                <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_souden&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mvdr&quot;</span><span class="p">,</span> <span class="s2">&quot;mpdr&quot;</span><span class="p">,</span> <span class="s2">&quot;wmpdr&quot;</span><span class="p">,</span> <span class="s2">&quot;wpd&quot;</span><span class="p">):</span>
+                <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_beamforming</span><span class="p">(</span>
+                    <span class="n">data</span><span class="p">,</span>
+                    <span class="n">ilens</span><span class="p">,</span>
+                    <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_n&quot;</span><span class="p">],</span>
+                    <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_speech&quot;</span><span class="p">],</span>
+                    <span class="n">psd_distortion</span><span class="o">=</span><span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_distortion&quot;</span><span class="p">],</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_souden&quot;</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mwf&quot;</span>
+                <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wmwf&quot;</span>
+                <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;sdw_mwf&quot;</span>
+                <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;r1mwf&quot;</span>
+                <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;gev&quot;</span><span class="p">)</span>
             <span class="p">):</span>
-                <span class="c1"># MVDR or other RTF-based formulas</span>
-                <span class="n">psd_noise</span> <span class="o">=</span> <span class="n">get_power_spectral_density_matrix</span><span class="p">(</span>
-                    <span class="n">data_d</span><span class="p">,</span> <span class="n">mask_noise</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
-                <span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mvdr&quot;</span><span class="p">:</span>
-                <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span>
-                    <span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_noise</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_distortion</span><span class="o">=</span><span class="n">psd_noise</span>
-                <span class="p">)</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mvdr_souden&quot;</span><span class="p">:</span>
-                <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_noise</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mpdr&quot;</span><span class="p">:</span>
-                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">complex_wrapper</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
-                    <span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">data_d</span><span class="p">,</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()]</span>
-                <span class="p">)</span>
-                <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span>
-                    <span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_observed</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_distortion</span><span class="o">=</span><span class="n">psd_noise</span>
-                <span class="p">)</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mpdr_souden&quot;</span><span class="p">:</span>
-                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">complex_wrapper</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
-                    <span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">data_d</span><span class="p">,</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()]</span>
-                <span class="p">)</span>
-                <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_observed</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wmpdr&quot;</span><span class="p">:</span>
-                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">complex_wrapper</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
-                    <span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span>
-                    <span class="p">[</span><span class="n">data_d</span> <span class="o">*</span> <span class="n">inverse_power</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span>
-                <span class="p">)</span>
-                <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span>
-                    <span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_observed</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_distortion</span><span class="o">=</span><span class="n">psd_noise</span>
-                <span class="p">)</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wmpdr_souden&quot;</span><span class="p">:</span>
-                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">complex_wrapper</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
-                    <span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span>
-                    <span class="p">[</span><span class="n">data_d</span> <span class="o">*</span> <span class="n">inverse_power</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span>
-                <span class="p">)</span>
-                <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_observed</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wpd&quot;</span><span class="p">:</span>
-                <span class="n">psd_observed_bar</span> <span class="o">=</span> <span class="n">get_covariances</span><span class="p">(</span>
-                    <span class="n">data_d</span><span class="p">,</span> <span class="n">inverse_power</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bdelay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">btaps</span><span class="p">,</span> <span class="n">get_vector</span><span class="o">=</span><span class="kc">False</span>
-                <span class="p">)</span>
-                <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span>
-                    <span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_observed_bar</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_distortion</span><span class="o">=</span><span class="n">psd_noise</span>
-                <span class="p">)</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wpd_souden&quot;</span><span class="p">:</span>
-                <span class="n">psd_observed_bar</span> <span class="o">=</span> <span class="n">get_covariances</span><span class="p">(</span>
-                    <span class="n">data_d</span><span class="p">,</span> <span class="n">inverse_power</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bdelay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">btaps</span><span class="p">,</span> <span class="n">get_vector</span><span class="o">=</span><span class="kc">False</span>
-                <span class="p">)</span>
-                <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span>
-                    <span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_observed_bar</span><span class="p">,</span> <span class="n">psd_speech</span>
+                <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_beamforming</span><span class="p">(</span>
+                    <span class="n">data</span><span class="p">,</span>
+                    <span class="n">ilens</span><span class="p">,</span>
+                    <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_n&quot;</span><span class="p">],</span>
+                    <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_speech&quot;</span><span class="p">],</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -491,107 +394,92 @@
                 <span class="n">mask_speech</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">masks</span><span class="p">)</span>
                 <span class="n">mask_noise</span> <span class="o">=</span> <span class="kc">None</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
-                <span class="s2">&quot;wmpdr&quot;</span>
-            <span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;wpd&quot;</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">powers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">power_input</span> <span class="o">=</span> <span class="n">data_d</span><span class="o">.</span><span class="n">real</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">data_d</span><span class="o">.</span><span class="n">imag</span><span class="o">**</span><span class="mi">2</span>
-                    <span class="c1"># Averaging along the channel axis: (..., C, T) -&gt; (..., T)</span>
-                    <span class="n">powers</span> <span class="o">=</span> <span class="p">[</span>
-                        <span class="p">(</span><span class="n">power_input</span> <span class="o">*</span> <span class="n">m</span><span class="o">.</span><span class="n">double</span><span class="p">())</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">mask_speech</span>
-                    <span class="p">]</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">powers</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">powers</span><span class="p">)</span>
-                <span class="n">inverse_power</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">powers</span><span class="p">]</span>
-
-            <span class="n">psd_speeches</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">get_power_spectral_density_matrix</span><span class="p">(</span><span class="n">data_d</span><span class="p">,</span> <span class="n">mask</span><span class="o">.</span><span class="n">double</span><span class="p">())</span>
-                <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="n">mask_speech</span>
-            <span class="p">]</span>
-            <span class="k">if</span> <span class="n">mask_noise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mvdr_souden&quot;</span>
-                <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_souden&quot;</span><span class="p">)</span>
-            <span class="p">):</span>
-                <span class="c1"># MVDR or other RTF-based formulas</span>
-                <span class="n">psd_noise</span> <span class="o">=</span> <span class="n">get_power_spectral_density_matrix</span><span class="p">(</span>
-                    <span class="n">data_d</span><span class="p">,</span> <span class="n">mask_noise</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
+            <span class="n">beamformer_stats</span> <span class="o">=</span> <span class="n">prepare_beamformer_stats</span><span class="p">(</span>
+                <span class="n">data_d</span><span class="p">,</span>
+                <span class="n">mask_speech</span><span class="p">,</span>
+                <span class="n">mask_noise</span><span class="p">,</span>
+                <span class="n">powers</span><span class="o">=</span><span class="n">powers</span><span class="p">,</span>
+                <span class="n">beamformer_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="p">,</span>
+                <span class="n">bdelay</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bdelay</span><span class="p">,</span>
+                <span class="n">btaps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">btaps</span><span class="p">,</span>
+                <span class="n">eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;lcmv&quot;</span><span class="p">,</span> <span class="s2">&quot;lcmp&quot;</span><span class="p">,</span> <span class="s2">&quot;wlcmp&quot;</span><span class="p">):</span>
+                <span class="n">rtf_mat</span> <span class="o">=</span> <span class="n">get_rtf_matrix</span><span class="p">(</span>
+                    <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_speech&quot;</span><span class="p">],</span>
+                    <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_distortion&quot;</span><span class="p">],</span>
+                    <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
+                    <span class="n">ref_channel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">,</span>
+                    <span class="n">rtf_iterations</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rtf_iterations</span><span class="p">,</span>
+                    <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
+                    <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
                 <span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mpdr&quot;</span><span class="p">,</span> <span class="s2">&quot;mpdr_souden&quot;</span><span class="p">):</span>
-                <span class="n">psd_observed</span> <span class="o">=</span> <span class="n">complex_wrapper</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
-                    <span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">data_d</span><span class="p">,</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()]</span>
-                <span class="p">)</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;wmpdr&quot;</span><span class="p">,</span> <span class="s2">&quot;wmpdr_souden&quot;</span><span class="p">):</span>
-                <span class="n">psd_observed</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="n">complex_wrapper</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
-                        <span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span>
-                        <span class="p">[</span><span class="n">data_d</span> <span class="o">*</span> <span class="n">inv_p</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">data_d</span><span class="o">.</span><span class="n">conj</span><span class="p">()],</span>
-                    <span class="p">)</span>
-                    <span class="k">for</span> <span class="n">inv_p</span> <span class="ow">in</span> <span class="n">inverse_power</span>
-                <span class="p">]</span>
-            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;wpd&quot;</span><span class="p">,</span> <span class="s2">&quot;wpd_souden&quot;</span><span class="p">):</span>
-                <span class="n">psd_observed_bar</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="n">get_covariances</span><span class="p">(</span>
-                        <span class="n">data_d</span><span class="p">,</span> <span class="n">inv_p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bdelay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">btaps</span><span class="p">,</span> <span class="n">get_vector</span><span class="o">=</span><span class="kc">False</span>
-                    <span class="p">)</span>
-                    <span class="k">for</span> <span class="n">inv_p</span> <span class="ow">in</span> <span class="n">inverse_power</span>
-                <span class="p">]</span>
 
             <span class="n">enhanced</span><span class="p">,</span> <span class="n">ws</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">):</span>
-                <span class="n">psd_speech</span> <span class="o">=</span> <span class="n">psd_speeches</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-                <span class="k">if</span> <span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mvdr_souden&quot;</span>
-                    <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_souden&quot;</span><span class="p">)</span>
-                <span class="p">):</span>
-                    <span class="n">psd_noise_i</span> <span class="o">=</span> <span class="p">(</span>
-                        <span class="n">psd_noise</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">psd_speeches</span><span class="p">)</span>
-                        <span class="k">if</span> <span class="n">mask_noise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                        <span class="k">else</span> <span class="nb">sum</span><span class="p">(</span><span class="n">psd_speeches</span><span class="p">)</span>
-                    <span class="p">)</span>
                 <span class="c1"># treat all other speakers&#39; psd_speech as noises</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mvdr&quot;</span><span class="p">:</span>
-                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span>
-                        <span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_noise_i</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_distortion</span><span class="o">=</span><span class="n">psd_noise_i</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mvdr&quot;</span><span class="p">,</span> <span class="s2">&quot;mvdr_tfs&quot;</span><span class="p">,</span> <span class="s2">&quot;wmpdr&quot;</span><span class="p">,</span> <span class="s2">&quot;wpd&quot;</span><span class="p">):</span>
+                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_beamforming</span><span class="p">(</span>
+                        <span class="n">data</span><span class="p">,</span>
+                        <span class="n">ilens</span><span class="p">,</span>
+                        <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_n&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                        <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_speech&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                        <span class="n">psd_distortion</span><span class="o">=</span><span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_distortion&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
                     <span class="p">)</span>
-                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mvdr_souden&quot;</span><span class="p">:</span>
-                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_noise_i</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="s2">&quot;mvdr_souden&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;mvdr_tfs_souden&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;wmpdr_souden&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;wpd_souden&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;wmwf&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;sdw_mwf&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;r1mwf&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;gev&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;gev_ban&quot;</span><span class="p">,</span>
+                <span class="p">):</span>
+                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_beamforming</span><span class="p">(</span>
+                        <span class="n">data</span><span class="p">,</span>
+                        <span class="n">ilens</span><span class="p">,</span>
+                        <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_n&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                        <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_speech&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                    <span class="p">)</span>
                 <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mpdr&quot;</span><span class="p">:</span>
-                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span>
+                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_beamforming</span><span class="p">(</span>
                         <span class="n">data</span><span class="p">,</span>
                         <span class="n">ilens</span><span class="p">,</span>
-                        <span class="n">psd_observed</span><span class="p">,</span>
-                        <span class="n">psd_speech</span><span class="p">,</span>
-                        <span class="n">psd_distortion</span><span class="o">=</span><span class="n">psd_noise_i</span><span class="p">,</span>
+                        <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_n&quot;</span><span class="p">],</span>
+                        <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_speech&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                        <span class="n">psd_distortion</span><span class="o">=</span><span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_distortion&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
                     <span class="p">)</span>
-                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mpdr_souden&quot;</span><span class="p">:</span>
-                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_observed</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wmpdr&quot;</span><span class="p">:</span>
-                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mpdr_souden&quot;</span><span class="p">,</span> <span class="s2">&quot;mwf&quot;</span><span class="p">):</span>
+                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_beamforming</span><span class="p">(</span>
                         <span class="n">data</span><span class="p">,</span>
                         <span class="n">ilens</span><span class="p">,</span>
-                        <span class="n">psd_observed</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                        <span class="n">psd_speech</span><span class="p">,</span>
-                        <span class="n">psd_distortion</span><span class="o">=</span><span class="n">psd_noise_i</span><span class="p">,</span>
+                        <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_n&quot;</span><span class="p">],</span>
+                        <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_speech&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
                     <span class="p">)</span>
-                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wmpdr_souden&quot;</span><span class="p">:</span>
-                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_observed</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">psd_speech</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wpd&quot;</span><span class="p">:</span>
-                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;lcmp&quot;</span><span class="p">:</span>
+                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_beamforming</span><span class="p">(</span>
                         <span class="n">data</span><span class="p">,</span>
                         <span class="n">ilens</span><span class="p">,</span>
-                        <span class="n">psd_observed_bar</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-                        <span class="n">psd_speech</span><span class="p">,</span>
-                        <span class="n">psd_distortion</span><span class="o">=</span><span class="n">psd_noise_i</span><span class="p">,</span>
+                        <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_n&quot;</span><span class="p">],</span>
+                        <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_speech&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                        <span class="n">rtf_mat</span><span class="o">=</span><span class="n">rtf_mat</span><span class="p">,</span>
+                        <span class="n">spk</span><span class="o">=</span><span class="n">i</span><span class="p">,</span>
                     <span class="p">)</span>
-                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wpd_souden&quot;</span><span class="p">:</span>
-                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">apply_beamforming</span><span class="p">(</span>
-                        <span class="n">data</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">psd_observed_bar</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">psd_speech</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;lcmv&quot;</span><span class="p">,</span> <span class="s2">&quot;wlcmp&quot;</span><span class="p">):</span>
+                    <span class="n">enh</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_beamforming</span><span class="p">(</span>
+                        <span class="n">data</span><span class="p">,</span>
+                        <span class="n">ilens</span><span class="p">,</span>
+                        <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_n&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                        <span class="n">beamformer_stats</span><span class="p">[</span><span class="s2">&quot;psd_speech&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>
+                        <span class="n">rtf_mat</span><span class="o">=</span><span class="n">rtf_mat</span><span class="p">,</span>
+                        <span class="n">spk</span><span class="o">=</span><span class="n">i</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                         <span class="s2">&quot;Not supporting beamformer_type=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="p">)</span>
                     <span class="p">)</span>
-                <span class="n">psd_speeches</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">psd_speech</span><span class="p">)</span>
 
                 <span class="c1"># (..., F, T) -&gt; (..., T, F)</span>
                 <span class="n">enh</span> <span class="o">=</span> <span class="n">enh</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
@@ -601,6 +489,206 @@
         <span class="c1"># (..., F, C, T) -&gt; (..., T, C, F)</span>
         <span class="n">masks</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masks</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">enhanced</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">masks</span></div>
+
+<div class="viewcode-block" id="DNN_Beamformer.apply_beamforming"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.apply_beamforming">[docs]</a>    <span class="k">def</span> <span class="nf">apply_beamforming</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">,</span>
+        <span class="n">ilens</span><span class="p">,</span>
+        <span class="n">psd_n</span><span class="p">,</span>
+        <span class="n">psd_speech</span><span class="p">,</span>
+        <span class="n">psd_distortion</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">rtf_mat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">spk</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Beamforming with the provided statistics.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (torch.complex64/ComplexTensor): (B, F, C, T)</span>
+<span class="sd">            ilens (torch.Tensor): (B,)</span>
+<span class="sd">            psd_n (torch.complex64/ComplexTensor):</span>
+<span class="sd">                Noise covariance matrix for MVDR (B, F, C, C)</span>
+<span class="sd">                Observation covariance matrix for MPDR/wMPDR (B, F, C, C)</span>
+<span class="sd">                Stacked observation covariance for WPD (B,F,(btaps+1)*C,(btaps+1)*C)</span>
+<span class="sd">            psd_speech (torch.complex64/ComplexTensor):</span>
+<span class="sd">                Speech covariance matrix (B, F, C, C)</span>
+<span class="sd">            psd_distortion (torch.complex64/ComplexTensor):</span>
+<span class="sd">                Noise covariance matrix (B, F, C, C)</span>
+<span class="sd">            rtf_mat (torch.complex64/ComplexTensor):</span>
+<span class="sd">                RTF matrix (B, F, C, num_spk)</span>
+<span class="sd">            spk (int): speaker index</span>
+<span class="sd">        Return:</span>
+<span class="sd">            enhanced (torch.complex64/ComplexTensor): (B, F, T)</span>
+<span class="sd">            ws (torch.complex64/ComplexTensor): (B, F) or (B, F, (btaps+1)*C)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># u: (B, C)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">u</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref</span><span class="p">(</span><span class="n">psd_speech</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">ilens</span><span class="p">)</span>
+            <span class="n">u</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_souden&quot;</span><span class="p">):</span>
+                <span class="c1"># (optional) Create onehot vector for fixed reference microphone</span>
+                <span class="n">u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+                    <span class="o">*</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">size</span><span class="p">()[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">),)),</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span>
+                <span class="p">)</span>
+                <span class="n">u</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">]</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># for simplifying computation in RTF-based beamforming</span>
+                <span class="n">u</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mvdr&quot;</span><span class="p">,</span> <span class="s2">&quot;mpdr&quot;</span><span class="p">,</span> <span class="s2">&quot;wmpdr&quot;</span><span class="p">):</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">get_mvdr_vector_with_rtf</span><span class="p">(</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_distortion</span><span class="p">),</span>
+                <span class="n">iterations</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rtf_iterations</span><span class="p">,</span>
+                <span class="n">reference_vector</span><span class="o">=</span><span class="n">u</span><span class="p">,</span>
+                <span class="n">normalize_ref_channel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">,</span>
+                <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
+                <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
+                <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mvdr_tfs&quot;</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">psd_n</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">get_mvdr_vector_with_rtf</span><span class="p">(</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n_i</span><span class="p">),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_distortion</span><span class="p">),</span>
+                    <span class="n">iterations</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rtf_iterations</span><span class="p">,</span>
+                    <span class="n">reference_vector</span><span class="o">=</span><span class="n">u</span><span class="p">,</span>
+                    <span class="n">normalize_ref_channel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">,</span>
+                    <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
+                    <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
+                    <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">psd_n_i</span> <span class="ow">in</span> <span class="n">psd_n</span>
+            <span class="p">]</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="n">stack</span><span class="p">([</span><span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">))</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">ws</span><span class="p">])</span>
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="n">enhanced</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="n">enhanced</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">stack</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="s2">&quot;mpdr_souden&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;mvdr_souden&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;wmpdr_souden&quot;</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">get_mvdr_vector</span><span class="p">(</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
+                <span class="n">u</span><span class="p">,</span>
+                <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
+                <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
+                <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mvdr_tfs_souden&quot;</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">psd_n</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">get_mvdr_vector</span><span class="p">(</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                    <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n_i</span><span class="p">),</span>
+                    <span class="n">u</span><span class="p">,</span>
+                    <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
+                    <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
+                    <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">psd_n_i</span> <span class="ow">in</span> <span class="n">psd_n</span>
+            <span class="p">]</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="n">stack</span><span class="p">([</span><span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">))</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">ws</span><span class="p">])</span>
+            <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="n">enhanced</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="n">enhanced</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">stack</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wpd&quot;</span><span class="p">:</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">get_WPD_filter_with_rtf</span><span class="p">(</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_distortion</span><span class="p">),</span>
+                <span class="n">iterations</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rtf_iterations</span><span class="p">,</span>
+                <span class="n">reference_vector</span><span class="o">=</span><span class="n">u</span><span class="p">,</span>
+                <span class="n">normalize_ref_channel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_channel</span><span class="p">,</span>
+                <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
+                <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
+                <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="n">perform_WPD_filtering</span><span class="p">(</span>
+                <span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bdelay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">btaps</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wpd_souden&quot;</span><span class="p">:</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">get_WPD_filter_v2</span><span class="p">(</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
+                <span class="n">u</span><span class="p">,</span>
+                <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
+                <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="n">perform_WPD_filtering</span><span class="p">(</span>
+                <span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bdelay</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">btaps</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mwf&quot;</span><span class="p">,</span> <span class="s2">&quot;wmwf&quot;</span><span class="p">):</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">get_mwf_vector</span><span class="p">(</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
+                <span class="n">u</span><span class="p">,</span>
+                <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
+                <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
+                <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;sdw_mwf&quot;</span><span class="p">:</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">get_sdw_mwf_vector</span><span class="p">(</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
+                <span class="n">u</span><span class="p">,</span>
+                <span class="n">denoising_weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mwf_mu</span><span class="p">,</span>
+                <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
+                <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
+                <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;r1mwf&quot;</span><span class="p">:</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">get_rank1_mwf_vector</span><span class="p">(</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
+                <span class="n">u</span><span class="p">,</span>
+                <span class="n">denoising_weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mwf_mu</span><span class="p">,</span>
+                <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
+                <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
+                <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;lcmp&quot;</span><span class="p">,</span> <span class="s2">&quot;wlcmp&quot;</span><span class="p">,</span> <span class="s2">&quot;lcmv&quot;</span><span class="p">):</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">get_lcmv_vector_with_rtf</span><span class="p">(</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">rtf_mat</span><span class="p">),</span>
+                <span class="n">reference_vector</span><span class="o">=</span><span class="n">spk</span><span class="p">,</span>
+                <span class="n">use_torch_solver</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_torch_solver</span><span class="p">,</span>
+                <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
+                <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;gev&quot;</span><span class="p">):</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">get_gev_vector</span><span class="p">(</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span>
+                <span class="n">to_double</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">),</span>
+                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;power&quot;</span><span class="p">,</span>
+                <span class="n">diagonal_loading</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_loading</span><span class="p">,</span>
+                <span class="n">diag_eps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">diag_eps</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">enhanced</span> <span class="o">=</span> <span class="n">apply_beamforming_vector</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;gev_ban&quot;</span><span class="p">:</span>
+                <span class="n">gain</span> <span class="o">=</span> <span class="n">blind_analytic_normalization</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">psd_n</span><span class="p">))</span>
+                <span class="n">enhanced</span> <span class="o">=</span> <span class="n">enhanced</span> <span class="o">*</span> <span class="n">gain</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Not supporting beamformer_type=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beamformer_type</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">enhanced</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">ws</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DNN_Beamformer.predict_mask"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dnn_beamformer.DNN_Beamformer.predict_mask">[docs]</a>    <span class="k">def</span> <span class="nf">predict_mask</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span>

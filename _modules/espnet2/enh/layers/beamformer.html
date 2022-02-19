@@ -131,11 +131,12 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch_complex</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">FC</span>
 <span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">cat</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">complex_norm</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">einsum</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">inverse</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">is_complex</span>
@@ -143,19 +144,162 @@
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">matmul</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">reverse</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">solve</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">to_double</span>
 
 
 <span class="n">is_torch_1_9_plus</span> <span class="o">=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.9.0&quot;</span><span class="p">)</span>
 <span class="n">EPS</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span>
 
 
+<div class="viewcode-block" id="prepare_beamformer_stats"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.prepare_beamformer_stats">[docs]</a><span class="k">def</span> <span class="nf">prepare_beamformer_stats</span><span class="p">(</span>
+    <span class="n">signal</span><span class="p">,</span>
+    <span class="n">masks_speech</span><span class="p">,</span>
+    <span class="n">mask_noise</span><span class="p">,</span>
+    <span class="n">powers</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">beamformer_type</span><span class="o">=</span><span class="s2">&quot;mvdr&quot;</span><span class="p">,</span>
+    <span class="n">bdelay</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">btaps</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Prepare necessary statistics for constructing the specified beamformer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        signal (torch.complex64/ComplexTensor): (..., F, C, T)</span>
+<span class="sd">        masks_speech (List[torch.Tensor]): (..., F, C, T) masks for all speech sources</span>
+<span class="sd">        mask_noise (torch.Tensor): (..., F, C, T) noise mask</span>
+<span class="sd">        powers (List[torch.Tensor]): powers for all speech sources (..., F, T)</span>
+<span class="sd">                                     used for wMPDR or WPD beamformers</span>
+<span class="sd">        beamformer_type (str): one of the pre-defined beamformer types</span>
+<span class="sd">        bdelay (int): delay factor, used for WPD beamformser</span>
+<span class="sd">        btaps (int): number of filter taps, used for WPD beamformser</span>
+<span class="sd">        eps (torch.Tensor): tiny constant</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        beamformer_stats (dict): a dictionary containing all necessary statistics</span>
+<span class="sd">            e.g. &quot;psd_n&quot;, &quot;psd_speech&quot;, &quot;psd_distortion&quot;</span>
+<span class="sd">            Note:</span>
+<span class="sd">            * When `masks_speech` is a tensor or a single-element list, all returned</span>
+<span class="sd">              statistics are tensors;</span>
+<span class="sd">            * When `masks_speech` is a multi-element list, some returned statistics</span>
+<span class="sd">              can be a list, e.g., &quot;psd_n&quot; for MVDR, &quot;psd_speech&quot; and &quot;psd_distortion&quot;.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">from</span> <span class="nn">espnet2.enh.layers.dnn_beamformer</span> <span class="kn">import</span> <span class="n">BEAMFORMER_TYPES</span>
+
+    <span class="k">assert</span> <span class="n">beamformer_type</span> <span class="ow">in</span> <span class="n">BEAMFORMER_TYPES</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> is not supported yet&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">masks_speech</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">masks_speech</span> <span class="o">=</span> <span class="p">[</span><span class="n">to_double</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masks_speech</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">masks_speech</span> <span class="o">=</span> <span class="p">[</span><span class="n">to_double</span><span class="p">(</span><span class="n">masks_speech</span><span class="p">)]</span>
+    <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">masks_speech</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">beamformer_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;wmpdr&quot;</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">beamformer_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;wpd&quot;</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wlcmp&quot;</span>
+        <span class="ow">or</span> <span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wmwf&quot;</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">powers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">power_input</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">real</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">signal</span><span class="o">.</span><span class="n">imag</span><span class="o">**</span><span class="mi">2</span>
+            <span class="c1"># Averaging along the channel axis: (..., C, T) -&gt; (..., T)</span>
+            <span class="n">powers</span> <span class="o">=</span> <span class="p">[(</span><span class="n">power_input</span> <span class="o">*</span> <span class="n">m</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masks_speech</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">powers</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_spk</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">powers</span><span class="p">),</span> <span class="n">num_spk</span><span class="p">)</span>
+        <span class="n">inverse_powers</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">powers</span><span class="p">]</span>
+
+    <span class="n">psd_speeches</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_power_spectral_density_matrix</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masks_speech</span><span class="p">]</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mvdr_souden&quot;</span>
+        <span class="ow">or</span> <span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;sdw_mwf&quot;</span>
+        <span class="ow">or</span> <span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;r1mwf&quot;</span>
+        <span class="ow">or</span> <span class="n">beamformer_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;mvdr_tfs&quot;</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="ow">not</span> <span class="n">beamformer_type</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_souden&quot;</span><span class="p">)</span>
+    <span class="p">):</span>
+        <span class="c1"># MVDR or other RTF-based formulas</span>
+        <span class="k">if</span> <span class="n">mask_noise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">psd_bg</span> <span class="o">=</span> <span class="n">get_power_spectral_density_matrix</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">to_double</span><span class="p">(</span><span class="n">mask_noise</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">num_spk</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">mask_noise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">psd_noise</span> <span class="o">=</span> <span class="n">psd_bg</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">psd_noise</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">beamformer_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;mvdr_tfs&quot;</span><span class="p">):</span>
+                    <span class="c1"># NOTE: psd_noise is a list only for this beamformer</span>
+                    <span class="n">psd_noise_i</span> <span class="o">=</span> <span class="p">[</span><span class="n">psd</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">psd</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">psd_speeches</span><span class="p">)</span> <span class="k">if</span> <span class="n">j</span> <span class="o">!=</span> <span class="n">i</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">psd_sum</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">psd</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">psd</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">psd_speeches</span><span class="p">)</span> <span class="k">if</span> <span class="n">j</span> <span class="o">!=</span> <span class="n">i</span><span class="p">)</span>
+                    <span class="n">psd_noise_i</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">psd_bg</span> <span class="o">+</span> <span class="n">psd_sum</span> <span class="k">if</span> <span class="n">mask_noise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">psd_sum</span>
+                    <span class="p">)</span>
+                <span class="n">psd_noise</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">psd_noise_i</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="s2">&quot;mvdr&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;mvdr_souden&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;mvdr_tfs_souden&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sdw_mwf&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;r1mwf&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;lcmv&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;gev&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;gev_ban&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">psd_n</span> <span class="o">=</span> <span class="n">psd_noise</span>
+    <span class="k">elif</span> <span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mvdr_tfs&quot;</span><span class="p">:</span>
+        <span class="n">psd_n</span> <span class="o">=</span> <span class="n">psd_noise</span>
+        <span class="n">psd_noise</span> <span class="o">=</span> <span class="p">[</span><span class="nb">sum</span><span class="p">(</span><span class="n">psd_noise_i</span><span class="p">)</span> <span class="k">for</span> <span class="n">psd_noise_i</span> <span class="ow">in</span> <span class="n">psd_noise</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mpdr&quot;</span><span class="p">,</span> <span class="s2">&quot;mpdr_souden&quot;</span><span class="p">,</span> <span class="s2">&quot;lcmp&quot;</span><span class="p">,</span> <span class="s2">&quot;mwf&quot;</span><span class="p">):</span>
+        <span class="n">psd_n</span> <span class="o">=</span> <span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span> <span class="n">signal</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+    <span class="k">elif</span> <span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;wmpdr&quot;</span><span class="p">,</span> <span class="s2">&quot;wmpdr_souden&quot;</span><span class="p">,</span> <span class="s2">&quot;wlcmp&quot;</span><span class="p">,</span> <span class="s2">&quot;wmwf&quot;</span><span class="p">):</span>
+        <span class="n">psd_n</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">einsum</span><span class="p">(</span>
+                <span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span>
+                <span class="n">signal</span> <span class="o">*</span> <span class="n">inv_p</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span>
+                <span class="n">signal</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">inv_p</span> <span class="ow">in</span> <span class="n">inverse_powers</span>
+        <span class="p">]</span>
+    <span class="k">elif</span> <span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;wpd&quot;</span><span class="p">,</span> <span class="s2">&quot;wpd_souden&quot;</span><span class="p">):</span>
+        <span class="n">psd_n</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">get_covariances</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">inv_p</span><span class="p">,</span> <span class="n">bdelay</span><span class="p">,</span> <span class="n">btaps</span><span class="p">,</span> <span class="n">get_vector</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">inv_p</span> <span class="ow">in</span> <span class="n">inverse_powers</span>
+        <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">num_spk</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">psd_speeches</span> <span class="o">=</span> <span class="n">psd_speeches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">psd_n</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">psd_n</span> <span class="o">=</span> <span class="n">psd_n</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">beamformer_type</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="s2">&quot;mvdr&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;mpdr&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;wmpdr&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;wpd&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;lcmp&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;wlcmp&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;lcmv&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;mvdr_tfs&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;psd_n&quot;</span><span class="p">:</span> <span class="n">psd_n</span><span class="p">,</span> <span class="s2">&quot;psd_speech&quot;</span><span class="p">:</span> <span class="n">psd_speeches</span><span class="p">,</span> <span class="s2">&quot;psd_distortion&quot;</span><span class="p">:</span> <span class="n">psd_noise</span><span class="p">}</span>
+    <span class="k">elif</span> <span class="p">(</span>
+        <span class="n">beamformer_type</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_souden&quot;</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">beamformer_type</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;gev&quot;</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;mwf&quot;</span>
+        <span class="ow">or</span> <span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;wmwf&quot;</span>
+        <span class="ow">or</span> <span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;sdw_mwf&quot;</span>
+        <span class="ow">or</span> <span class="n">beamformer_type</span> <span class="o">==</span> <span class="s2">&quot;r1mwf&quot;</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;psd_n&quot;</span><span class="p">:</span> <span class="n">psd_n</span><span class="p">,</span> <span class="s2">&quot;psd_speech&quot;</span><span class="p">:</span> <span class="n">psd_speeches</span><span class="p">}</span></div>
+
+
 <div class="viewcode-block" id="get_power_spectral_density_matrix"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.get_power_spectral_density_matrix">[docs]</a><span class="k">def</span> <span class="nf">get_power_spectral_density_matrix</span><span class="p">(</span>
-    <span class="n">xs</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-15</span>
+    <span class="n">xs</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">normalization</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-15</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return cross-channel power spectral density (PSD) matrix</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        xs (torch.complex64/ComplexTensor): (..., F, C, T)</span>
+<span class="sd">        reduction (str): &quot;mean&quot; or &quot;median&quot;</span>
 <span class="sd">        mask (torch.Tensor): (..., F, C, T)</span>
 <span class="sd">        normalization (bool):</span>
 <span class="sd">        eps (float):</span>
@@ -163,11 +307,13 @@
 <span class="sd">        psd (torch.complex64/ComplexTensor): (..., F, C, C)</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># outer product: (..., C_1, T) x (..., C_2, T) -&gt; (..., T, C, C_2)</span>
-    <span class="n">psd_Y</span> <span class="o">=</span> <span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...ct,...et-&gt;...tce&quot;</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">xs</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
-
-    <span class="c1"># Averaging mask along C: (..., C, T) -&gt; (..., T)</span>
-    <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s2">&quot;mean&quot;</span><span class="p">:</span>
+        <span class="c1"># Averaging mask along C: (..., C, T) -&gt; (..., 1, T)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s2">&quot;median&quot;</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown reduction mode: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">reduction</span><span class="p">)</span>
 
     <span class="c1"># Normalized mask along T: (..., T)</span>
     <span class="k">if</span> <span class="n">normalization</span><span class="p">:</span>
@@ -175,10 +321,8 @@
         <span class="c1"># the time axis is same regardless of the padding length.</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">/</span> <span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
 
-    <span class="c1"># psd: (..., T, C, C)</span>
-    <span class="n">psd</span> <span class="o">=</span> <span class="n">psd_Y</span> <span class="o">*</span> <span class="n">mask</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
-    <span class="c1"># (..., T, C, C) -&gt; (..., C, C)</span>
-    <span class="n">psd</span> <span class="o">=</span> <span class="n">psd</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">3</span><span class="p">)</span>
+    <span class="c1"># outer product: (..., C_1, T) x (..., C_2, T) -&gt; (..., C, C_2)</span>
+    <span class="n">psd</span> <span class="o">=</span> <span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...ct,...et-&gt;...ce&quot;</span><span class="p">,</span> <span class="n">xs</span> <span class="o">*</span> <span class="n">mask</span><span class="p">,</span> <span class="n">xs</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
 
     <span class="k">return</span> <span class="n">psd</span></div>
 
@@ -186,13 +330,14 @@
 <div class="viewcode-block" id="get_rtf"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.get_rtf">[docs]</a><span class="k">def</span> <span class="nf">get_rtf</span><span class="p">(</span>
     <span class="n">psd_speech</span><span class="p">,</span>
     <span class="n">psd_noise</span><span class="p">,</span>
-    <span class="n">reference_vector</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;power&quot;</span><span class="p">,</span>
+    <span class="n">reference_vector</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
     <span class="n">use_torch_solver</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate the relative transfer function (RTF) using the power method.</span>
+    <span class="sd">&quot;&quot;&quot;Calculate the relative transfer function (RTF)</span>
 
-<span class="sd">    Algorithm:</span>
+<span class="sd">    Algorithm of power method:</span>
 <span class="sd">        1) rtf = reference_vector</span>
 <span class="sd">        2) for i in range(iterations):</span>
 <span class="sd">             rtf = (psd_noise^-1 @ psd_speech) @ rtf</span>
@@ -206,25 +351,39 @@
 <span class="sd">            speech covariance matrix (..., F, C, C)</span>
 <span class="sd">        psd_noise (torch.complex64/ComplexTensor):</span>
 <span class="sd">            noise covariance matrix (..., F, C, C)</span>
+<span class="sd">        mode (str): one of (&quot;power&quot;, &quot;evd&quot;)</span>
+<span class="sd">            &quot;power&quot;: power method</span>
+<span class="sd">            &quot;evd&quot;: eigenvalue decomposition</span>
 <span class="sd">        reference_vector (torch.Tensor or int): (..., C) or scalar</span>
 <span class="sd">        iterations (int): number of iterations in power method</span>
 <span class="sd">        use_torch_solver (bool): Whether to use `solve` instead of `inverse`</span>
 <span class="sd">    Returns:</span>
 <span class="sd">        rtf (torch.complex64/ComplexTensor): (..., F, C, 1)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
-        <span class="n">phi</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_noise</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;power&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_noise</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">inverse</span><span class="p">(</span><span class="n">psd_noise</span><span class="p">),</span> <span class="n">psd_speech</span><span class="p">)</span>
+        <span class="n">rtf</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">phi</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">reference_vector</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reference_vector</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">matmul</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">reference_vector</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span> <span class="o">-</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">rtf</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">rtf</span><span class="p">)</span>
+            <span class="c1"># rtf = rtf / complex_norm(rtf, dim=-1, keepdim=True)</span>
+        <span class="n">rtf</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">,</span> <span class="n">rtf</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;evd&quot;</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">is_torch_1_9_plus</span>
+            <span class="ow">and</span> <span class="n">is_torch_complex_tensor</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">is_torch_complex_tensor</span><span class="p">(</span><span class="n">psd_noise</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">e_vec</span> <span class="o">=</span> <span class="n">generalized_eigenvalue_decomposition</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_noise</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">rtf</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">psd_noise</span><span class="p">,</span> <span class="n">e_vec</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">phi</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">inverse</span><span class="p">(</span><span class="n">psd_noise</span><span class="p">),</span> <span class="n">psd_speech</span><span class="p">)</span>
-    <span class="n">rtf</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">phi</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">reference_vector</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reference_vector</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
-        <span class="k">else</span> <span class="n">matmul</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">reference_vector</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">])</span>
-    <span class="p">)</span>
-    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span> <span class="o">-</span> <span class="mi">2</span><span class="p">):</span>
-        <span class="n">rtf</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">rtf</span><span class="p">)</span>
-        <span class="c1"># rtf = rtf / complex_norm(rtf)</span>
-    <span class="n">rtf</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">,</span> <span class="n">rtf</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown mode: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">mode</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">rtf</span></div>
 
 
@@ -321,7 +480,7 @@
     <span class="n">rtf</span> <span class="o">=</span> <span class="n">get_rtf</span><span class="p">(</span>
         <span class="n">psd_speech</span><span class="p">,</span>
         <span class="n">psd_noise</span><span class="p">,</span>
-        <span class="n">reference_vector</span><span class="p">,</span>
+        <span class="n">reference_vector</span><span class="o">=</span><span class="n">reference_vector</span><span class="p">,</span>
         <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">,</span>
         <span class="n">use_torch_solver</span><span class="o">=</span><span class="n">use_torch_solver</span><span class="p">,</span>
     <span class="p">)</span>
@@ -347,6 +506,467 @@
     <span class="c1"># (..., C) x (..., C, T) -&gt; (..., T)</span>
     <span class="n">es</span> <span class="o">=</span> <span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...c,...ct-&gt;...t&quot;</span><span class="p">,</span> <span class="n">beamform_vector</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">mix</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">es</span></div>
+
+
+<div class="viewcode-block" id="get_mwf_vector"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.get_mwf_vector">[docs]</a><span class="k">def</span> <span class="nf">get_mwf_vector</span><span class="p">(</span>
+    <span class="n">psd_s</span><span class="p">,</span>
+    <span class="n">psd_n</span><span class="p">,</span>
+    <span class="n">reference_vector</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">use_torch_solver</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">diagonal_loading</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the MWF (Minimum Multi-channel Wiener Filter) vector:</span>
+
+<span class="sd">        h = (Npsd^-1 @ Spsd) @ u</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        psd_s (torch.complex64/ComplexTensor):</span>
+<span class="sd">            speech covariance matrix (..., F, C, C)</span>
+<span class="sd">        psd_n (torch.complex64/ComplexTensor):</span>
+<span class="sd">            power-normalized observation covariance matrix (..., F, C, C)</span>
+<span class="sd">        reference_vector (torch.Tensor or int): (..., C) or scalar</span>
+<span class="sd">        use_torch_solver (bool): Whether to use `solve` instead of `inverse`</span>
+<span class="sd">        diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n</span>
+<span class="sd">        diag_eps (float):</span>
+<span class="sd">        eps (float):</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        beamform_vector (torch.complex64/ComplexTensor): (..., F, C)</span>
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: D400</span>
+    <span class="k">if</span> <span class="n">diagonal_loading</span><span class="p">:</span>
+        <span class="n">psd_n</span> <span class="o">=</span> <span class="n">tik_reg</span><span class="p">(</span><span class="n">psd_n</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">diag_eps</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">psd_s</span><span class="p">,</span> <span class="n">psd_n</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">inverse</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span> <span class="n">psd_s</span><span class="p">)</span>
+    <span class="c1"># h: (..., F, C_1, C_2) x (..., C_2) -&gt; (..., F, C_1)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reference_vector</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">beamform_vector</span> <span class="o">=</span> <span class="n">ws</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">reference_vector</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">beamform_vector</span> <span class="o">=</span> <span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...fec,...c-&gt;...fe&quot;</span><span class="p">,</span> <span class="n">ws</span><span class="p">,</span> <span class="n">reference_vector</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">beamform_vector</span></div>
+
+
+<div class="viewcode-block" id="get_sdw_mwf_vector"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.get_sdw_mwf_vector">[docs]</a><span class="k">def</span> <span class="nf">get_sdw_mwf_vector</span><span class="p">(</span>
+    <span class="n">psd_speech</span><span class="p">,</span>
+    <span class="n">psd_noise</span><span class="p">,</span>
+    <span class="n">reference_vector</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">denoising_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">approx_low_rank_psd_speech</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="n">use_torch_solver</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">diagonal_loading</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the SDW-MWF (Speech Distortion Weighted Multi-channel Wiener Filter) vector</span>
+
+<span class="sd">        h = (Spsd + mu * Npsd)^-1 @ Spsd @ u</span>
+
+<span class="sd">    Reference:</span>
+<span class="sd">        [1] Spatially pre-processed speech distortion weighted multi-channel Wiener</span>
+<span class="sd">        filtering for noise reduction; A. Spriet et al, 2004</span>
+<span class="sd">        https://dl.acm.org/doi/abs/10.1016/j.sigpro.2004.07.028</span>
+<span class="sd">        [2] Rank-1 constrained multichannel Wiener filter for speech recognition in</span>
+<span class="sd">        noisy environments; Z. Wangyou et al, 2018</span>
+<span class="sd">        https://hal.inria.fr/hal-01634449/document</span>
+<span class="sd">        [3] Low-rank approximation based multichannel Wiener filter algorithms for</span>
+<span class="sd">        noise reduction with application in cochlear implants; R. Serizel, 2014</span>
+<span class="sd">        https://ieeexplore.ieee.org/document/6730918</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        psd_speech (torch.complex64/ComplexTensor):</span>
+<span class="sd">            speech covariance matrix (..., F, C, C)</span>
+<span class="sd">        psd_noise (torch.complex64/ComplexTensor):</span>
+<span class="sd">            noise covariance matrix (..., F, C, C)</span>
+<span class="sd">        reference_vector (torch.Tensor or int): (..., C) or scalar</span>
+<span class="sd">        denoising_weight (float): a trade-off parameter between noise reduction and</span>
+<span class="sd">            speech distortion.</span>
+<span class="sd">            A larger value leads to more noise reduction at the expense of more speech</span>
+<span class="sd">            distortion.</span>
+<span class="sd">            The plain MWF is obtained with `denoising_weight = 1` (by default).</span>
+<span class="sd">        approx_low_rank_psd_speech (bool): whether to replace original input psd_speech</span>
+<span class="sd">            with its low-rank approximation as in [2]</span>
+<span class="sd">        iterations (int): number of iterations in power method, only used when</span>
+<span class="sd">            `approx_low_rank_psd_speech = True`</span>
+<span class="sd">        use_torch_solver (bool): Whether to use `solve` instead of `inverse`</span>
+<span class="sd">        diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n</span>
+<span class="sd">        diag_eps (float):</span>
+<span class="sd">        eps (float):</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        beamform_vector (torch.complex64/ComplexTensor): (..., F, C)</span>
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: H405, D205, D400</span>
+    <span class="k">if</span> <span class="n">approx_low_rank_psd_speech</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">diagonal_loading</span><span class="p">:</span>
+            <span class="n">psd_noise</span> <span class="o">=</span> <span class="n">tik_reg</span><span class="p">(</span><span class="n">psd_noise</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">diag_eps</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+
+        <span class="c1"># (B, F, C, 1)</span>
+        <span class="n">recon_vec</span> <span class="o">=</span> <span class="n">get_rtf</span><span class="p">(</span>
+            <span class="n">psd_speech</span><span class="p">,</span>
+            <span class="n">psd_noise</span><span class="p">,</span>
+            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;power&quot;</span><span class="p">,</span>
+            <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">,</span>
+            <span class="n">reference_vector</span><span class="o">=</span><span class="n">reference_vector</span><span class="p">,</span>
+            <span class="n">use_torch_solver</span><span class="o">=</span><span class="n">use_torch_solver</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Eq. (25) in Ref[2]</span>
+        <span class="n">psd_speech_r1</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">recon_vec</span><span class="p">,</span> <span class="n">recon_vec</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+        <span class="n">sigma_speech</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">FC</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">psd_speech_r1</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+        <span class="n">psd_speech_r1</span> <span class="o">=</span> <span class="n">psd_speech_r1</span> <span class="o">*</span> <span class="n">sigma_speech</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="c1"># c.f. Eq. (62) in Ref[3]</span>
+        <span class="n">psd_speech</span> <span class="o">=</span> <span class="n">psd_speech_r1</span>
+
+    <span class="n">psd_n</span> <span class="o">=</span> <span class="n">psd_speech</span> <span class="o">+</span> <span class="n">denoising_weight</span> <span class="o">*</span> <span class="n">psd_noise</span>
+    <span class="k">if</span> <span class="n">diagonal_loading</span><span class="p">:</span>
+        <span class="n">psd_n</span> <span class="o">=</span> <span class="n">tik_reg</span><span class="p">(</span><span class="n">psd_n</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">diag_eps</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_n</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">inverse</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span> <span class="n">psd_speech</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reference_vector</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">beamform_vector</span> <span class="o">=</span> <span class="n">ws</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">reference_vector</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">beamform_vector</span> <span class="o">=</span> <span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...fec,...c-&gt;...fe&quot;</span><span class="p">,</span> <span class="n">ws</span><span class="p">,</span> <span class="n">reference_vector</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">beamform_vector</span></div>
+
+
+<div class="viewcode-block" id="get_rank1_mwf_vector"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.get_rank1_mwf_vector">[docs]</a><span class="k">def</span> <span class="nf">get_rank1_mwf_vector</span><span class="p">(</span>
+    <span class="n">psd_speech</span><span class="p">,</span>
+    <span class="n">psd_noise</span><span class="p">,</span>
+    <span class="n">reference_vector</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">denoising_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">approx_low_rank_psd_speech</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="n">use_torch_solver</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">diagonal_loading</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the R1-MWF (Rank-1 Multi-channel Wiener Filter) vector</span>
+
+<span class="sd">        h = (Npsd^-1 @ Spsd) / (mu + Tr(Npsd^-1 @ Spsd)) @ u</span>
+
+<span class="sd">    Reference:</span>
+<span class="sd">        [1] Rank-1 constrained multichannel Wiener filter for speech recognition in</span>
+<span class="sd">        noisy environments; Z. Wangyou et al, 2018</span>
+<span class="sd">        https://hal.inria.fr/hal-01634449/document</span>
+<span class="sd">        [2] Low-rank approximation based multichannel Wiener filter algorithms for</span>
+<span class="sd">        noise reduction with application in cochlear implants; R. Serizel, 2014</span>
+<span class="sd">        https://ieeexplore.ieee.org/document/6730918</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        psd_speech (torch.complex64/ComplexTensor):</span>
+<span class="sd">            speech covariance matrix (..., F, C, C)</span>
+<span class="sd">        psd_noise (torch.complex64/ComplexTensor):</span>
+<span class="sd">            noise covariance matrix (..., F, C, C)</span>
+<span class="sd">        reference_vector (torch.Tensor or int): (..., C) or scalar</span>
+<span class="sd">        denoising_weight (float): a trade-off parameter between noise reduction and</span>
+<span class="sd">            speech distortion.</span>
+<span class="sd">            A larger value leads to more noise reduction at the expense of more speech</span>
+<span class="sd">            distortion.</span>
+<span class="sd">            When `denoising_weight = 0`, it corresponds to MVDR beamformer.</span>
+<span class="sd">        approx_low_rank_psd_speech (bool): whether to replace original input psd_speech</span>
+<span class="sd">            with its low-rank approximation as in [1]</span>
+<span class="sd">        iterations (int): number of iterations in power method, only used when</span>
+<span class="sd">            `approx_low_rank_psd_speech = True`</span>
+<span class="sd">        use_torch_solver (bool): Whether to use `solve` instead of `inverse`</span>
+<span class="sd">        diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n</span>
+<span class="sd">        diag_eps (float):</span>
+<span class="sd">        eps (float):</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        beamform_vector (torch.complex64/ComplexTensor): (..., F, C)</span>
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: H405, D205, D400</span>
+    <span class="k">if</span> <span class="n">approx_low_rank_psd_speech</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">diagonal_loading</span><span class="p">:</span>
+            <span class="n">psd_noise</span> <span class="o">=</span> <span class="n">tik_reg</span><span class="p">(</span><span class="n">psd_noise</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">diag_eps</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+
+        <span class="c1"># (B, F, C, 1)</span>
+        <span class="n">recon_vec</span> <span class="o">=</span> <span class="n">get_rtf</span><span class="p">(</span>
+            <span class="n">psd_speech</span><span class="p">,</span>
+            <span class="n">psd_noise</span><span class="p">,</span>
+            <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;power&quot;</span><span class="p">,</span>
+            <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">,</span>
+            <span class="n">reference_vector</span><span class="o">=</span><span class="n">reference_vector</span><span class="p">,</span>
+            <span class="n">use_torch_solver</span><span class="o">=</span><span class="n">use_torch_solver</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Eq. (25) in Ref[1]</span>
+        <span class="n">psd_speech_r1</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">recon_vec</span><span class="p">,</span> <span class="n">recon_vec</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+        <span class="n">sigma_speech</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">FC</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">psd_speech_r1</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+        <span class="n">psd_speech_r1</span> <span class="o">=</span> <span class="n">psd_speech_r1</span> <span class="o">*</span> <span class="n">sigma_speech</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="c1"># c.f. Eq. (62) in Ref[2]</span>
+        <span class="n">psd_speech</span> <span class="o">=</span> <span class="n">psd_speech_r1</span>
+    <span class="k">elif</span> <span class="n">diagonal_loading</span><span class="p">:</span>
+        <span class="n">psd_noise</span> <span class="o">=</span> <span class="n">tik_reg</span><span class="p">(</span><span class="n">psd_noise</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">diag_eps</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
+        <span class="n">numerator</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_noise</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">numerator</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">inverse</span><span class="p">(</span><span class="n">psd_noise</span><span class="p">),</span> <span class="n">psd_speech</span><span class="p">)</span>
+
+    <span class="c1"># NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not</span>
+    <span class="c1"># support bacth processing. Use FC.trace() as fallback.</span>
+    <span class="c1"># ws: (..., C, C) / (...,) -&gt; (..., C, C)</span>
+    <span class="n">ws</span> <span class="o">=</span> <span class="n">numerator</span> <span class="o">/</span> <span class="p">(</span><span class="n">denoising_weight</span> <span class="o">+</span> <span class="n">FC</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">numerator</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+
+    <span class="c1"># h: (..., F, C_1, C_2) x (..., C_2) -&gt; (..., F, C_1)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reference_vector</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">beamform_vector</span> <span class="o">=</span> <span class="n">ws</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">reference_vector</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">beamform_vector</span> <span class="o">=</span> <span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...fec,...c-&gt;...fe&quot;</span><span class="p">,</span> <span class="n">ws</span><span class="p">,</span> <span class="n">reference_vector</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">beamform_vector</span></div>
+
+
+<div class="viewcode-block" id="get_rtf_matrix"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.get_rtf_matrix">[docs]</a><span class="k">def</span> <span class="nf">get_rtf_matrix</span><span class="p">(</span>
+    <span class="n">psd_speeches</span><span class="p">,</span>
+    <span class="n">psd_noises</span><span class="p">,</span>
+    <span class="n">diagonal_loading</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">ref_channel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">rtf_iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="n">use_torch_solver</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculate the RTF matrix with each column the relative transfer function</span>
+<span class="sd">    of the corresponding source.</span>
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: H405</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">psd_speeches</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">psd_noises</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+    <span class="n">rtf_mat</span> <span class="o">=</span> <span class="n">cat</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">get_rtf</span><span class="p">(</span>
+                <span class="n">psd_speeches</span><span class="p">[</span><span class="n">spk</span><span class="p">],</span>
+                <span class="n">tik_reg</span><span class="p">(</span><span class="n">psd_n</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">diag_eps</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span> <span class="k">if</span> <span class="n">diagonal_loading</span> <span class="k">else</span> <span class="n">psd_n</span><span class="p">,</span>
+                <span class="n">reference_vector</span><span class="o">=</span><span class="n">ref_channel</span><span class="p">,</span>
+                <span class="n">iterations</span><span class="o">=</span><span class="n">rtf_iterations</span><span class="p">,</span>
+                <span class="n">use_torch_solver</span><span class="o">=</span><span class="n">use_torch_solver</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">spk</span><span class="p">,</span> <span class="n">psd_n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">psd_noises</span><span class="p">)</span>
+        <span class="p">],</span>
+        <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># normalize at the reference channel</span>
+    <span class="k">return</span> <span class="n">rtf_mat</span> <span class="o">/</span> <span class="n">rtf_mat</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">ref_channel</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span></div>
+
+
+<div class="viewcode-block" id="get_lcmv_vector_with_rtf"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.get_lcmv_vector_with_rtf">[docs]</a><span class="k">def</span> <span class="nf">get_lcmv_vector_with_rtf</span><span class="p">(</span>
+    <span class="n">psd_n</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span>
+    <span class="n">rtf_mat</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span>
+    <span class="n">reference_vector</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">use_torch_solver</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">diagonal_loading</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Return the LCMV (Linearly Constrained Minimum Variance) vector</span>
+<span class="sd">        calculated with RTF:</span>
+
+<span class="sd">        h = (Npsd^-1 @ rtf_mat) @ (rtf_mat^H @ Npsd^-1 @ rtf_mat)^-1 @ p</span>
+
+<span class="sd">    Reference:</span>
+<span class="sd">        H. L. Van Trees, “Optimum array processing: Part IV of detection, estimation,</span>
+<span class="sd">        and modulation theory,” John Wiley &amp; Sons, 2004. (Chapter 6.7)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        psd_n (torch.complex64/ComplexTensor):</span>
+<span class="sd">            observation/noise covariance matrix (..., F, C, C)</span>
+<span class="sd">        rtf_mat (torch.complex64/ComplexTensor):</span>
+<span class="sd">            RTF matrix (..., F, C, num_spk)</span>
+<span class="sd">        reference_vector (torch.Tensor or int): (..., num_spk) or scalar</span>
+<span class="sd">        use_torch_solver (bool): Whether to use `solve` instead of `inverse`</span>
+<span class="sd">        diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n</span>
+<span class="sd">        diag_eps (float):</span>
+<span class="sd">        eps (float):</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        beamform_vector (torch.complex64/ComplexTensor): (..., F, C)</span>
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: H405, D205, D400</span>
+    <span class="k">if</span> <span class="n">diagonal_loading</span><span class="p">:</span>
+        <span class="n">psd_n</span> <span class="o">=</span> <span class="n">tik_reg</span><span class="p">(</span><span class="n">psd_n</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">diag_eps</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+
+    <span class="c1"># numerator: (..., C_1, C_2) x (..., C_2, num_spk) -&gt; (..., C_1, num_spk)</span>
+    <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
+        <span class="n">numerator</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">rtf_mat</span><span class="p">,</span> <span class="n">psd_n</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">numerator</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">inverse</span><span class="p">(</span><span class="n">psd_n</span><span class="p">),</span> <span class="n">rtf_mat</span><span class="p">)</span>
+    <span class="n">denominator</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">rtf_mat</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="n">numerator</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reference_vector</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">inverse</span><span class="p">(</span><span class="n">denominator</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="n">reference_vector</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">reference_vector</span><span class="p">,</span> <span class="n">denominator</span><span class="p">)</span>
+    <span class="n">beamforming_vector</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">numerator</span><span class="p">,</span> <span class="n">ws</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">beamforming_vector</span></div>
+
+
+<div class="viewcode-block" id="generalized_eigenvalue_decomposition"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.generalized_eigenvalue_decomposition">[docs]</a><span class="k">def</span> <span class="nf">generalized_eigenvalue_decomposition</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Solves the generalized eigenvalue decomposition through Cholesky decomposition.</span>
+
+<span class="sd">    ported from https://github.com/asteroid-team/asteroid/blob/master/asteroid/dsp/beamforming.py#L464</span>
+
+<span class="sd">    a @ e_vec = e_val * b @ e_vec</span>
+<span class="sd">    |</span>
+<span class="sd">    |   Cholesky decomposition on `b`:</span>
+<span class="sd">    |       b = L @ L^H, where `L` is a lower triangular matrix</span>
+<span class="sd">    |</span>
+<span class="sd">    |   Let C = L^-1 @ a @ L^-H, it is Hermitian.</span>
+<span class="sd">    |</span>
+<span class="sd">    =&gt; C @ y = lambda * y</span>
+<span class="sd">    =&gt; e_vec = L^-H @ y</span>
+
+<span class="sd">    Reference: https://www.netlib.org/lapack/lug/node54.html</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        a: A complex Hermitian or real symmetric matrix whose eigenvalues and</span>
+<span class="sd">            eigenvectors will be computed. (..., C, C)</span>
+<span class="sd">        b: A complex Hermitian or real symmetric definite positive matrix. (..., C, C)</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        e_val: generalized eigenvalues (ascending order)</span>
+<span class="sd">        e_vec: generalized eigenvectors</span>
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: H405, E501</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cholesky</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">tik_reg</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+        <span class="n">cholesky</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="n">inv_cholesky</span> <span class="o">=</span> <span class="n">cholesky</span><span class="o">.</span><span class="n">inverse</span><span class="p">()</span>
+    <span class="c1"># Compute C matrix L⁻1 a L^-H</span>
+    <span class="n">cmat</span> <span class="o">=</span> <span class="n">inv_cholesky</span> <span class="o">@</span> <span class="n">a</span> <span class="o">@</span> <span class="n">inv_cholesky</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+    <span class="c1"># Performing the eigenvalue decomposition</span>
+    <span class="n">e_val</span><span class="p">,</span> <span class="n">e_vec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">cmat</span><span class="p">)</span>
+    <span class="c1"># Collecting the eigenvectors</span>
+    <span class="n">e_vec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">inv_cholesky</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="n">e_vec</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">e_val</span><span class="p">,</span> <span class="n">e_vec</span></div>
+
+
+<div class="viewcode-block" id="gev_phase_correction"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.gev_phase_correction">[docs]</a><span class="k">def</span> <span class="nf">gev_phase_correction</span><span class="p">(</span><span class="n">vector</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Phase correction to reduce distortions due to phase inconsistencies.</span>
+
+<span class="sd">    ported from https://github.com/fgnt/nn-gev/blob/master/fgnt/beamforming.py#L169</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        vector: Beamforming vector with shape (..., F, C)</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        w: Phase corrected beamforming vectors</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">B</span><span class="p">,</span> <span class="n">F</span><span class="p">,</span> <span class="n">C</span> <span class="o">=</span> <span class="n">vector</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">correction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">vector</span><span class="o">.</span><span class="n">real</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">F</span><span class="p">):</span>
+        <span class="n">correction</span><span class="p">[:,</span> <span class="n">f</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">vector</span><span class="p">[:,</span> <span class="n">f</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">vector</span><span class="p">[:,</span> <span class="n">f</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+            <span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">angle</span><span class="p">()</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vector</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">):</span>
+        <span class="n">correction</span> <span class="o">=</span> <span class="n">ComplexTensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">correction</span><span class="p">),</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">correction</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">correction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">correction</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">vector</span> <span class="o">*</span> <span class="n">correction</span></div>
+
+
+<div class="viewcode-block" id="blind_analytic_normalization"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.blind_analytic_normalization">[docs]</a><span class="k">def</span> <span class="nf">blind_analytic_normalization</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">psd_noise</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Blind analytic normalization (BAN) for post-filtering</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ws (torch.complex64/ComplexTensor): beamformer vector (..., F, C)</span>
+<span class="sd">        psd_noise (torch.complex64/ComplexTensor): noise PSD matrix (..., F, C, C)</span>
+<span class="sd">        eps (float)</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        ws_ban (torch.complex64/ComplexTensor): normalized beamformer vector (..., F)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">C2</span> <span class="o">=</span> <span class="n">psd_noise</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">denominator</span> <span class="o">=</span> <span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...c,...ce,...e-&gt;...&quot;</span><span class="p">,</span> <span class="n">ws</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">psd_noise</span><span class="p">,</span> <span class="n">ws</span><span class="p">)</span>
+    <span class="n">numerator</span> <span class="o">=</span> <span class="n">einsum</span><span class="p">(</span>
+        <span class="s2">&quot;...c,...ce,...eo,...o-&gt;...&quot;</span><span class="p">,</span> <span class="n">ws</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">psd_noise</span><span class="p">,</span> <span class="n">psd_noise</span><span class="p">,</span> <span class="n">ws</span>
+    <span class="p">)</span>
+    <span class="n">gain</span> <span class="o">=</span> <span class="p">(</span><span class="n">numerator</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="n">denominator</span> <span class="o">*</span> <span class="n">C2</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">gain</span></div>
+
+
+<div class="viewcode-block" id="get_gev_vector"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.get_gev_vector">[docs]</a><span class="k">def</span> <span class="nf">get_gev_vector</span><span class="p">(</span>
+    <span class="n">psd_noise</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span>
+    <span class="n">psd_speech</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span>
+    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;power&quot;</span><span class="p">,</span>
+    <span class="n">reference_vector</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="n">use_torch_solver</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">diagonal_loading</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">diag_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-8</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Return the generalized eigenvalue (GEV) beamformer vector:</span>
+
+<span class="sd">        psd_speech @ h = lambda * psd_noise @ h</span>
+
+<span class="sd">    Reference:</span>
+<span class="sd">        Blind acoustic beamforming based on generalized eigenvalue decomposition;</span>
+<span class="sd">        E. Warsitz and R. Haeb-Umbach, 2007.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        psd_noise (torch.complex64/ComplexTensor):</span>
+<span class="sd">            noise covariance matrix (..., F, C, C)</span>
+<span class="sd">        psd_speech (torch.complex64/ComplexTensor):</span>
+<span class="sd">            speech covariance matrix (..., F, C, C)</span>
+<span class="sd">        mode (str): one of (&quot;power&quot;, &quot;evd&quot;)</span>
+<span class="sd">            &quot;power&quot;: power method</span>
+<span class="sd">            &quot;evd&quot;: eigenvalue decomposition (only for torch builtin complex tensors)</span>
+<span class="sd">        reference_vector (torch.Tensor or int): (..., C) or scalar</span>
+<span class="sd">        iterations (int): number of iterations in power method</span>
+<span class="sd">        use_torch_solver (bool): Whether to use `solve` instead of `inverse`</span>
+<span class="sd">        diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n</span>
+<span class="sd">        diag_eps (float):</span>
+<span class="sd">        eps (float):</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        beamform_vector (torch.complex64/ComplexTensor): (..., F, C)</span>
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: H405, D205, D400</span>
+    <span class="k">if</span> <span class="n">diagonal_loading</span><span class="p">:</span>
+        <span class="n">psd_noise</span> <span class="o">=</span> <span class="n">tik_reg</span><span class="p">(</span><span class="n">psd_noise</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">diag_eps</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;power&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">,</span> <span class="n">psd_noise</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">phi</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">inverse</span><span class="p">(</span><span class="n">psd_noise</span><span class="p">),</span> <span class="n">psd_speech</span><span class="p">)</span>
+        <span class="n">e_vec</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">phi</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">reference_vector</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reference_vector</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">matmul</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">reference_vector</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">e_vec</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">e_vec</span><span class="p">)</span>
+            <span class="c1"># e_vec = e_vec / complex_norm(e_vec, dim=-1, keepdim=True)</span>
+        <span class="n">e_vec</span> <span class="o">=</span> <span class="n">e_vec</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;evd&quot;</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">is_torch_1_9_plus</span>
+            <span class="ow">and</span> <span class="n">is_torch_complex_tensor</span><span class="p">(</span><span class="n">psd_speech</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">is_torch_complex_tensor</span><span class="p">(</span><span class="n">psd_noise</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># e_vec = generalized_eigenvalue_decomposition(psd_speech, psd_noise)[1][...,-1]</span>
+        <span class="n">e_vec</span> <span class="o">=</span> <span class="n">psd_noise</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="n">psd_noise</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">psd_noise</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">e_vec</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">generalized_eigenvalue_decomposition</span><span class="p">(</span>
+                    <span class="n">psd_speech</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:],</span> <span class="n">psd_noise</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+                <span class="p">)[</span><span class="mi">1</span><span class="p">][</span><span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span>
+                <span class="c1"># port from github.com/fgnt/nn-gev/blob/master/fgnt/beamforming.py#L106</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s2">&quot;GEV beamformer: LinAlg error for frequency </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f</span><span class="p">),</span>
+                    <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">C</span> <span class="o">=</span> <span class="n">psd_noise</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">e_vec</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">psd_noise</span><span class="o">.</span><span class="n">new_ones</span><span class="p">(</span><span class="n">e_vec</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                    <span class="o">/</span> <span class="n">FC</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">psd_noise</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:])</span>
+                    <span class="o">*</span> <span class="n">C</span>
+                <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown mode: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">mode</span><span class="p">)</span>
+
+    <span class="n">beamforming_vector</span> <span class="o">=</span> <span class="n">e_vec</span> <span class="o">/</span> <span class="n">complex_norm</span><span class="p">(</span><span class="n">e_vec</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">beamforming_vector</span> <span class="o">=</span> <span class="n">gev_phase_correction</span><span class="p">(</span><span class="n">beamforming_vector</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">beamforming_vector</span></div>
 
 
 <div class="viewcode-block" id="signal_framing"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.signal_framing">[docs]</a><span class="k">def</span> <span class="nf">signal_framing</span><span class="p">(</span>
@@ -648,7 +1268,7 @@
     <span class="n">rtf</span> <span class="o">=</span> <span class="n">get_rtf</span><span class="p">(</span>
         <span class="n">psd_speech</span><span class="p">,</span>
         <span class="n">psd_noise</span><span class="p">,</span>
-        <span class="n">reference_vector</span><span class="p">,</span>
+        <span class="n">reference_vector</span><span class="o">=</span><span class="n">reference_vector</span><span class="p">,</span>
         <span class="n">iterations</span><span class="o">=</span><span class="n">iterations</span><span class="p">,</span>
         <span class="n">use_torch_solver</span><span class="o">=</span><span class="n">use_torch_solver</span><span class="p">,</span>
     <span class="p">)</span>
@@ -717,156 +1337,6 @@
         <span class="n">epsilon</span> <span class="o">=</span> <span class="n">epsilon</span> <span class="o">+</span> <span class="n">eps</span>
     <span class="n">mat</span> <span class="o">=</span> <span class="n">mat</span> <span class="o">+</span> <span class="n">epsilon</span> <span class="o">*</span> <span class="n">eye</span>
     <span class="k">return</span> <span class="n">mat</span></div>
-
-
-<span class="c1">##############################################</span>
-<span class="c1"># Below are for Multi-Frame MVDR beamforming #</span>
-<span class="c1">##############################################</span>
-<span class="c1"># modified from https://gitlab.uni-oldenburg.de/hura4843/deep-mfmvdr/-/blob/master/deep_mfmvdr (# noqa: E501)</span>
-<div class="viewcode-block" id="get_adjacent"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.get_adjacent">[docs]</a><span class="k">def</span> <span class="nf">get_adjacent</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">filter_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Zero-pad and unfold stft, i.e.,</span>
-
-<span class="sd">    add zeros to the beginning so that, using the multi-frame signal model,</span>
-<span class="sd">    there will be as many output frames as input frames.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        spec (torch.complex64/ComplexTensor): input spectrum (B, F, T)</span>
-<span class="sd">        filter_length (int): length for frame extension</span>
-<span class="sd">    Returns:</span>
-<span class="sd">        ret (torch.complex64/ComplexTensor): output spectrum (B, F, T, filter_length)</span>
-<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: D400</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">):</span>
-        <span class="n">pad_func</span> <span class="o">=</span> <span class="n">FC</span><span class="o">.</span><span class="n">pad</span>
-    <span class="k">elif</span> <span class="n">is_torch_complex_tensor</span><span class="p">(</span><span class="n">spec</span><span class="p">):</span>
-        <span class="n">pad_func</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;Please update your PyTorch version to 1.9+ for complex support.&quot;</span>
-        <span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span>
-        <span class="n">pad_func</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="p">[</span><span class="n">filter_length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-        <span class="o">.</span><span class="n">unfold</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">filter_length</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
-    <span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="get_adjacent_th"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.get_adjacent_th">[docs]</a><span class="k">def</span> <span class="nf">get_adjacent_th</span><span class="p">(</span><span class="n">spec</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">filter_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Zero-pad and unfold stft, i.e.,</span>
-
-<span class="sd">    add zeros to the beginning so that, using the multi-frame signal model,</span>
-<span class="sd">    there will be as many output frames as input frames.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        spec (torch.Tensor): input spectrum (B, F, T, 2)</span>
-<span class="sd">        filter_length (int): length for frame extension</span>
-<span class="sd">    Returns:</span>
-<span class="sd">        ret (torch.Tensor): output spectrum (B, F, T, filter_length, 2)</span>
-<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: D400</span>
-    <span class="k">return</span> <span class="p">(</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">filter_length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-        <span class="o">.</span><span class="n">unfold</span><span class="p">(</span><span class="n">dimension</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">filter_length</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
-    <span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="vector_to_Hermitian"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.vector_to_Hermitian">[docs]</a><span class="k">def</span> <span class="nf">vector_to_Hermitian</span><span class="p">(</span><span class="n">vec</span><span class="p">,</span> <span class="n">use_builtin_complex</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Construct a Hermitian matrix from a vector of N**2 independent</span>
-<span class="sd">    real-valued elements.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        vec (torch.Tensor): (..., N ** 2)</span>
-<span class="sd">        use_builtin_complex (bool): Whether to use builtin complex support</span>
-<span class="sd">    Returns:</span>
-<span class="sd">        mat (torch.complex64/ComplexTensor): (..., N, N)</span>
-<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: H405, D205, D400</span>
-    <span class="n">N</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
-    <span class="n">mat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">vec</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">vec</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-
-    <span class="c1"># real component</span>
-    <span class="n">triu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">triu2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># above main diagonal</span>
-    <span class="n">tril</span> <span class="o">=</span> <span class="p">(</span><span class="n">triu2</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">triu2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>  <span class="c1"># below main diagonal; for symmetry</span>
-    <span class="n">mat</span><span class="p">[(</span><span class="o">...</span><span class="p">,)</span> <span class="o">+</span> <span class="n">triu</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">triu</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),)]</span> <span class="o">=</span> <span class="n">vec</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span> <span class="n">triu</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
-    <span class="n">start</span> <span class="o">=</span> <span class="n">triu</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">mat</span><span class="p">[(</span><span class="o">...</span><span class="p">,)</span> <span class="o">+</span> <span class="n">tril</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">tril</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),)]</span> <span class="o">=</span> <span class="n">mat</span><span class="p">[</span>
-        <span class="p">(</span><span class="o">...</span><span class="p">,)</span> <span class="o">+</span> <span class="n">triu2</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">triu2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),)</span>
-    <span class="p">]</span>
-
-    <span class="c1"># imaginary component</span>
-    <span class="n">mat</span><span class="p">[(</span><span class="o">...</span><span class="p">,)</span> <span class="o">+</span> <span class="n">triu2</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">triu2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),)]</span> <span class="o">=</span> <span class="n">vec</span><span class="p">[</span>
-        <span class="o">...</span><span class="p">,</span> <span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">triu2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="p">]</span>
-    <span class="n">mat</span><span class="p">[(</span><span class="o">...</span><span class="p">,)</span> <span class="o">+</span> <span class="n">tril</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">tril</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),)]</span> <span class="o">=</span> <span class="o">-</span><span class="n">mat</span><span class="p">[</span>
-        <span class="p">(</span><span class="o">...</span><span class="p">,)</span> <span class="o">+</span> <span class="n">triu2</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">triu2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),)</span>
-    <span class="p">]</span>
-
-    <span class="k">if</span> <span class="n">is_torch_1_9_plus</span> <span class="ow">and</span> <span class="n">use_builtin_complex</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">complex</span><span class="p">(</span><span class="n">mat</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">mat</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">ComplexTensor</span><span class="p">(</span><span class="n">mat</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">mat</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span></div>
-
-
-<div class="viewcode-block" id="get_mfmvdr_vector"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.get_mfmvdr_vector">[docs]</a><span class="k">def</span> <span class="nf">get_mfmvdr_vector</span><span class="p">(</span><span class="n">gammax</span><span class="p">,</span> <span class="n">Phi</span><span class="p">,</span> <span class="n">use_torch_solver</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">EPS</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Compute conventional MFMPDR/MFMVDR filter.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        gammax (torch.complex64/ComplexTensor): (..., L, N)</span>
-<span class="sd">        Phi (torch.complex64/ComplexTensor): (..., L, N, N)</span>
-<span class="sd">        use_torch_solver (bool): Whether to use `solve` instead of `inverse`</span>
-<span class="sd">        eps (float)</span>
-<span class="sd">    Returns:</span>
-<span class="sd">        beamforming_vector (torch.complex64/ComplexTensor): (..., L, N)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># (..., L, N)</span>
-    <span class="k">if</span> <span class="n">use_torch_solver</span><span class="p">:</span>
-        <span class="n">numerator</span> <span class="o">=</span> <span class="n">solve</span><span class="p">(</span><span class="n">gammax</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">Phi</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">numerator</span> <span class="o">=</span> <span class="n">matmul</span><span class="p">(</span><span class="n">inverse</span><span class="p">(</span><span class="n">Phi</span><span class="p">),</span> <span class="n">gammax</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">denominator</span> <span class="o">=</span> <span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...d,...d-&gt;...&quot;</span><span class="p">,</span> <span class="n">gammax</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">numerator</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">numerator</span> <span class="o">/</span> <span class="p">(</span><span class="n">denominator</span><span class="o">.</span><span class="n">real</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="filter_minimum_gain_like"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.filter_minimum_gain_like">[docs]</a><span class="k">def</span> <span class="nf">filter_minimum_gain_like</span><span class="p">(</span>
-    <span class="n">G_min</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">EPS</span>
-<span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Approximate a minimum gain operation.</span>
-
-<span class="sd">    speech_estimate = alpha w^H y + (1 - alpha) G_min Y,</span>
-<span class="sd">    where alpha = 1 / (1 + exp(-2 k x)), x = w^H y - G_min Y</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        G_min (float): minimum gain</span>
-<span class="sd">        w (torch.complex64/ComplexTensor): filter coefficients (..., L, N)</span>
-<span class="sd">        y (torch.complex64/ComplexTensor): buffered and stacked input (..., L, N)</span>
-<span class="sd">        alpha: mixing factor</span>
-<span class="sd">        k (float): scaling in tanh-like function</span>
-<span class="sd">        esp (float)</span>
-<span class="sd">    Returns:</span>
-<span class="sd">        output (torch.complex64/ComplexTensor): minimum gain-filtered output</span>
-<span class="sd">        alpha (float): optional</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># (..., L)</span>
-    <span class="n">filtered_input</span> <span class="o">=</span> <span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...d,...d-&gt;...&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">y</span><span class="p">])</span>
-    <span class="c1"># (..., L)</span>
-    <span class="n">Y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">minimum_gain_like</span><span class="p">(</span><span class="n">G_min</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">filtered_input</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">eps</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="minimum_gain_like"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.beamformer.minimum_gain_like">[docs]</a><span class="k">def</span> <span class="nf">minimum_gain_like</span><span class="p">(</span>
-    <span class="n">G_min</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">filtered_input</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">EPS</span>
-<span class="p">):</span>
-    <span class="k">if</span> <span class="n">alpha</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">diff</span> <span class="o">=</span> <span class="p">(</span><span class="n">filtered_input</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">-</span> <span class="p">(</span><span class="n">G_min</span> <span class="o">*</span> <span class="n">Y</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span>
-        <span class="n">alpha</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">k</span> <span class="o">*</span> <span class="n">diff</span><span class="p">))</span>
-        <span class="n">return_alpha</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">return_alpha</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">output</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">filtered_input</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">G_min</span> <span class="o">*</span> <span class="n">Y</span>
-    <span class="k">if</span> <span class="n">return_alpha</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">alpha</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">output</span></div>
 </pre></div>
 
            </div>
