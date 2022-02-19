@@ -9,7 +9,7 @@
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
     - model link: ([pretrained model](https://drive.google.com/file/d/1fdadICi2w_b6lqb9_7J3wfRJc3LTnnSq/view?usp=sharing))
     - training config file: `conf/tuning/transducer/train_conformer-rnn_transducer.yaml`
-    - decoding config file: `conf/decode.yaml`
+    - decoding config file: `conf/tuning/transducer/decode.yaml`
     - cmvn file: `data/train_sp/cmvn.ark`
     - e2e file: `exp/train_960_pytorch_transducer_train_conformer-rnn_transducer/results/model.last10.avg.best`
     - e2e JSON file: `exp/train_960_pytorch_transducer_train_conformer-rnn_transducer/results/model.json`
