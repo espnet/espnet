@@ -125,6 +125,7 @@ TOTONAC=downloads
 PRIMEWORDS_CHINESE=downloads
 SEAME=
 BENGALI=downloads
+IWSLT14=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
@@ -154,6 +155,7 @@ if [[ "$(hostname)" == tir* ]]; then
     BABEL_403=/projects/tir5/data/speech_corpora/babel/IARPA-babel403b-v1.0b-build/BABEL_OP3_403/
     BABEL_404=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_OP3_404/
     GRABO=/projects/tir5/data/speech_corpora/Grabo
+    IWSLT14=/projects/tir5/data/iwslt14
     IWSLT22_DIALECT=/projects/tir5/data/speech_corpora/LDC2022E01_IWSLT22_Tunisian_Arabic_Shared_Task_Training_Data/
     PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
     FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish

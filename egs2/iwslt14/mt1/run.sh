@@ -5,14 +5,14 @@ set -e
 set -u
 set -o pipefail
 
-src_lang=ta
+src_lang=de
 tgt_lang=en
 
 train_set=train
-train_dev=dev
-test_set=test1
+train_dev=valid
+test_set=test
 
-st_config=conf/train_st_conformer.yaml
+mt_config=conf/train_mt_conformer.yaml
 inference_config=conf/decode_st.yaml
 
 src_nbpe=1000
@@ -22,19 +22,17 @@ tgt_nbpe=1000
 # lc: lowercase
 # lc.rm: lowercase with punctuation removal
 # Note, it is best to keep tgt_case as tc to match IWSLT22 eval
-src_case=tc.rm
+src_case=tc
 tgt_case=tc
 
-./st.sh \
+./mt.sh \
     --ignore_init_mismatch true \
     --stage 1 \
     --stop_stage 13 \
     --use_lm false \
     --token_joint false \
-    --audio_format "flac.ark" \
     --nj 40 \
     --inference_nj 40 \
-    --audio_format "flac.ark" \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
     --src_token_type "bpe" \
@@ -44,8 +42,7 @@ tgt_case=tc
     --src_case ${src_case} \
     --tgt_case ${tgt_case} \
     --feats_type raw \
-    --speed_perturb_factors "0.9 1.0 1.1" \
-    --st_config "${st_config}" \
+    --mt_config "${mt_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \

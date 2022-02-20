@@ -70,9 +70,6 @@ class ESPnetSTModel(AbsESPnetModel):
         extract_feats_in_collect_stats: bool = True,
     ):
         assert check_argument_types()
-        assert 0.0 <= asr_weight < 1.0, "asr_weight should be [0.0, 1.0)"
-        assert 0.0 <= mt_weight < 1.0, "mt_weight should be [0.0, 1.0)"
-        assert 0.0 <= mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
@@ -159,8 +156,6 @@ class ESPnetSTModel(AbsESPnetModel):
 
     def forward(
         self,
-        speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
         src_text: Optional[torch.Tensor],
@@ -169,8 +164,6 @@ class ESPnetSTModel(AbsESPnetModel):
         """Frontend + Encoder + Decoder + Calc loss
 
         Args:
-            speech: (Batch, Length, ...)
-            speech_lengths: (Batch,)
             text: (Batch, Length)
             text_lengths: (Batch,)
             src_text: (Batch, length)
