@@ -76,9 +76,9 @@ class ConformerEncoder(AbsEncoder):
         padding_idx (int): Padding idx for input_layer=embed.
         attention_windows (list): Layer-wise attention window sizes
             for longformer self-attn
-        attention_dilation(list): Layer-wise attention dilation sizes 
+        attention_dilation(list): Layer-wise attention dilation sizes
             for longformer self-attn
-        attention_mode(str): Implementation for longformer self-attn. 
+        attention_mode(str): Implementation for longformer self-attn.
             Default="tvm"
             Choose 'n2', 'tvm' or 'sliding_chunks'. More details in
             https://github.com/allenai/longformer
