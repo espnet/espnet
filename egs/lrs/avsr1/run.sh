@@ -92,6 +92,7 @@ DEEPXI_VENVDIR=local/installations/venv/DeepXi/bin/activate 				# DeepXi virtual
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 # Install required softwares
     conda install -n espnet_venv tensorflow tqdm pysoundfile
+    conda install -c esri tensorflow-addons
     while true
     do
         read -r -p "For this recipe you will need sudo right to install OpenFace, do you want to continue? [Y/n] " input
