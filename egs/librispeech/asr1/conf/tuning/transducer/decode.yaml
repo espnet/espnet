@@ -1,0 +1,4 @@
+batch: 0
+beam-size: 10
+search-type: default
+score-norm: True
