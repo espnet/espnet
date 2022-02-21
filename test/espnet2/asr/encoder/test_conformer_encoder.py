@@ -15,7 +15,6 @@ from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
         ("latest", "rel_pos", "rel_selfattn"),
         ("legacy", "rel_pos", "rel_selfattn"),
         ("legacy", "legacy_rel_pos", "legacy_rel_selfattn"),
-        ("legacy", "abs_pos", "lf_selfattn"),
     ],
 )
 def test_encoder_forward_backward(
