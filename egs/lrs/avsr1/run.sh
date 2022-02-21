@@ -1,4 +1,3 @@
-########################### language model correct
 #!/usr/bin/env bash
 
 # Copyright 2020 Ruhr-University (Wentao Yu)
@@ -284,7 +283,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ "$ifpretrain" = false ] && [ "$iflrs3pretrain" = false ] ; then
         for part in Test Val Train; do
 	    echo "Run audioaugwav frames for ${part} set!" 
- 	    mkdir -p $mp3files/$part
+ 	    mkdir -p ${mp3files}/$part
             local/audioaugwav.sh data/audio/augment/${part}_aug $mp3files/$part || exit 1;
         done
 
@@ -297,15 +296,15 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
 	part=pretrain
         python3 local/segaugaudio.py $mp3files data/audio/augment $part $ifmulticore
-	rm -rf $mp3files/${part}
-	mv $mp3files/${part}_aug $mp3files/${part}
+	rm -rf ${mp3files}/${part}
+	mv ${mp3files}/${part}_aug $mp3files/${part}
     fi
     nameambient=noise
     namemusic=music
     name_list="${nameambient} ${namemusic}"
     for name in ${name_list};do
         dset=Test
-     	mkdir -p $mp3files/${dset}_${name}  || exit 1;
+     	mkdir -p ${mp3files}/${dset}_${name}  || exit 1;
 	local/audioaugwav.sh data/audio/augment/LRS2_decode/${dset}_aug_${name} $mp3files/${dset}_${name} || exit 1;
     done
     echo "stage 3.1: Make augmented mp3 files finished"
@@ -476,9 +475,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     	##### it is depands on your corpus, if the corpus text transcription is uppercase, use this to convert to lowercase
 
-    	textfilenames=./data/audio/augment/*/text
-    	textdecodefilenames=./data/audio/augment/LRS2_decode/*/text
-    	textcleanfilenames=./data/audio/clean/*/*/text
+    	textfilenames=data/audio/augment/*/text
+    	textdecodefilenames=data/audio/augment/LRS2_decode/*/text
+    	textcleanfilenames=data/audio/clean/*/*/text
 	for textname in $textfilenames $textdecodefilenames $textcleanfilenames; do
     	    for textfilename in $textname
     	    do
@@ -791,9 +790,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 		part=pretrain
  	        if [[ "$ifpretrain" = true && "$iflrs3pretrain" = false ]] || [[ "$ifpretrain" = false && "$iflrs3pretrain" = true ]]; then
 		    if [[ "$ifpretrain" = true && "$iflrs3pretrain" = false ]] ; then
-		    	dataset = LRS2
+		    	dataset=LRS2
 		    elif [[ "$ifpretrain" = false && "$iflrs3pretrain" = true ]] ; then
-			dataset = LRS3
+			dataset=LRS3
 		    fi
 		    echo "Make video dump files for ${dataset} ${part} set!"
 		    mkdir -p data/video/${part}
@@ -940,7 +939,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
 	    echo "Prepare LM data"
             mkdir -p ${lmdatadir}
 	    # build gzip archive for language data out of the utterances in the LRS dataset
-            cat data/lang_char/input.txt | gzip -c > data/local/lm_train/${train_set}_text.gz
+            cut -f 2- -d" " data/${train_set}/text | gzip -c > data/local/lm_train/${train_set}_text.gz
             # combine external text and transcriptions and shuffle them with seed 777
             zcat data/local/lm_train/librispeech-lm-norm.txt.gz data/local/lm_train/${train_set}_text.gz |\
                 spm_encode \
