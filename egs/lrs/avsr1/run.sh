@@ -296,7 +296,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
 	part=pretrain
         python3 local/segaugaudio.py $mp3files data/audio/augment $part $ifmulticore
-	rm -rf ${mp3files}/${part}
+	rm -rf $mp3files/$part
 	mv ${mp3files}/${part}_aug $mp3files/${part}
     fi
     nameambient=noise
@@ -475,9 +475,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
     	##### it is depands on your corpus, if the corpus text transcription is uppercase, use this to convert to lowercase
 
-    	textfilenames=data/audio/augment/*/text
-    	textdecodefilenames=data/audio/augment/LRS2_decode/*/text
-    	textcleanfilenames=data/audio/clean/*/*/text
+    	textfilenames="data/audio/augment/*/text"
+    	textdecodefilenames="data/audio/augment/LRS2_decode/*/text"
+    	textcleanfilenames="data/audio/clean/*/*/text"
 	for textname in $textfilenames $textdecodefilenames $textcleanfilenames; do
     	    for textfilename in $textname
     	    do
@@ -682,7 +682,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	    rm -rf DeepXi/deepxi/se_batch.py
 	    #cp local/mhanet-1.1c_inp_tgt.p DeepXi/data
 	    cp local/se_batch.py DeepXi/deepxi	
-	    source $DEEPXI_VENVDIR
+	    #source $DEEPXI_VENVDIR
             if [ "$ifpretrain" = false ] && [ "$iflrs3pretrain" = false ] ; then
 	        for part in Test Val Train; do
 		    echo "Extract SNR for ${part} set!"
@@ -710,7 +710,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             done
 
 	    # Clean Up DeepXi: Deactivate DeepXi venv and return to espnet venv, unlink and rm
-	    deactivate
+	    #deactivate
             unlink ./DeepXi
 	    rm -rf $SNRdir
 	fi

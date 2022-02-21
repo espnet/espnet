@@ -6,22 +6,22 @@
 
 
 # general configuration
-backend=pytorch			# set backend type
-ngpu=1         			# number of gpus ("0" uses cpu, otherwise use gpu)
-debugmode=1
-N=0            			# number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
-verbose=0      			# verbose option
-nbpe=5000
-bpemode=unigram
-nj=32
-do_delta=false
+backend=			# set backend type
+ngpu=         			# number of gpus ("0" uses cpu, otherwise use gpu)
+debugmode=
+N=            			# number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
+verbose=      			# verbose option
+nbpe=
+bpemode=
+nj=
+do_delta=
 train_set=pretrain_Train
 train_dev=Val
-preprocess_config=conf/specaug.yaml
+preprocess_config=
 # audio model does not use ESPnet default code: 6 layer self-attention is added block before calculating ctc loss
-train_config=conf/train.yaml  	      	 
-lm_config=conf/lm.yaml
-decode_config=conf/decode.yaml
+train_config=  	      	 
+lm_config=
+decode_config=
 
 
 . ./cmd.sh
