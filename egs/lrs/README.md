@@ -9,10 +9,8 @@ In addition, this project also contains an audio-only model for comparison.
   * [Requirements](#requirements)
 - [Project Structure](#project-structure)
   * [Basics](#project-structure)
-  * [ASR1](#detailed-description-of-asr1)
   * [AVSR1](#detailed-description-of-avsr1)
 - [Usage of the scripts](#running-the-script)
-  + [Path variables](#setting-path-variables)
   + [Notes](#notes)
 
 
@@ -20,7 +18,7 @@ In addition, this project also contains an audio-only model for comparison.
 
 ### Requirements
 
-For installation, approximately 40GB of free disk space are needed. avsr1/run.sh stage 0 installs all required packages in avsr1/local/installations:
+For installation, approximately 40GB of free disk space is needed. avsr1/run.sh stage 0 installs all required packages in avsr1/local/installations:
     
 **Required Packages:**
 1. ESPNet: https://github.com/espnet/espnet
@@ -185,8 +183,8 @@ foo@bar:~$ source ~/venv/DeepXi/bin/activate
 Now, rerun the DeepXi installation procedure (e.g. via install_deepxi.sh script)-->
 
 ## Project structure
-The main folder <code>avsr1/</code>, contains the code for the audio-visual speech recognition system, also trained on the LRS2 [[2]](#literature) dataset together with the LRS3 dataset (https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs3.html) [[3]](#literature) . It follow the basic ESPnet structure. 
-The main code for recognition system is the <code>run.sh</code> script. In the script, the workflow of the systems is performed in multiple stages:
+The main folder <code>avsr1/</code>, contains the code for the audio-visual speech recognition system, also trained on the LRS2 [[2]](#literature) dataset together with the LRS3 dataset (https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs3.html) [[3]](#literature). It follows the basic ESPnet structure. 
+The main code for the recognition system is the <code>run.sh</code> script. In the script, the workflow of the systems is performed in multiple stages:
 
 |                                  AVSR                       |
 |-------------------------------------------------------------|
@@ -200,15 +198,15 @@ The main code for recognition system is the <code>run.sh</code> script. In the s
 | Stage 7: Training of the E2E-AVSR model and Decoding        |
 
 
-The folder structure for both systems is basically:
+<!--The folder structure for both systems is basically:
 * <code>conf/</code>: contains configuration files for the training, decoding, and feature extraction 
 * <code>data/</code>: directory for storing data
 * <code>exp/</code>: log files, model parameters, training results
 * <code>fbank/</code>: speech feature binary files, e.g., ark, scp
-* <code>dump*/</code> : ESPnet meta data for tranining, e.g., json, hdf5
+* <code>dump*/</code> : ESPnet meta data for tranining, e.g., json, hdf5 
 * <code>local/</code>: Contains local runtime scripts for data processing, data augmentation and own written functions (e.g. face recognition in the AVSR system) that are not part of the ESPnet standard processing scripts. During the training stage, a symbolic link is built to the ESPnet. After training, the link will be deleted.  
 * <code>steps/</code>: helper scripts from ESPnet (Kaldi)
-* <code>utils/</code>: helper scripts from ESPnet (Kaldi)
+* <code>utils/</code>: helper scripts from ESPnet (Kaldi) -->
   
 <!-- ### Detailed description of ASR1:
 ##### Stage -1: Data Download
@@ -246,11 +244,11 @@ The folder structure for both systems is basically:
   * Install the required packages: ESPNet, OpenFace, DeepXi, Vidaug in avsr1/local/installations. To install OpenFace, you will need sudo right.
 
 ##### Stage 1: Data preparation
-  * The data set LRS2 [2] must be downloaded in advance by yourself. For downloading the dataset, please visit https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html/ [2]. You will need to sign a data sharing agreement with BBC Research & Development before getting access. After downloading, please edit <code>path.sh</code> file and assign the dataset directory path to the <code>DATA_DIR</code> variable
+  * The data set LRS2 [2] must be downloaded in advance by yourself. For downloading the dataset, please visit https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html/ [2]. You will need to sign a data-sharing agreement with BBC Research & Development before getting access. After downloading, please edit <code>path.sh</code> file and assign the dataset directory path to the <code>DATA_DIR</code> variable
   * The same applies to the LRS3 dataset https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs3.html [3]. After downloading, please edit <code>path.sh</code> file and assign the dataset directory path to the <code>DATALRS3_DIR</code> variable
   * Download the Musan dataset for audio data augmentation and save it under <code>${MUSAN_DIR}</code> directory
-  * Donwload Room Impulse Response and Noise Database (RIRS-Noises) and save it under <code>RIRS_NOISES/</code> directory
-  * Run <code>audio_data_prep.sh</code> script: Create filelists for the given part of the Dataset, prepare the kaldi files
+  * Download Room Impulse Response and Noise Database (RIRS-Noises) and save it under <code>RIRS_NOISES/</code> directory
+  * Run <code>audio_data_prep.sh</code> script: Create file lists for the given part of the Dataset, prepare the Kaldi files
   * Dump useful data for training 
   
 ##### Stage 2: Audio Augmentation
@@ -261,7 +259,7 @@ The folder structure for both systems is basically:
 ##### Stage 3: Feature Generation
   * Make augmented MP3 files
   * Generate the fbank and mfcc features for the audio signals. By default, 80-dimensional filterbanks with pitch on each frame are used
-  * Compute global Cepstral mean and variance normalization (CMVN). This computes goodness of pronunciation (GOP) and extracts phone-level pronunciation feature for mispronunciations detection tasks (https://kaldi-asr.org/doc/compute-cmvn-stats_8cc.html).
+  * Compute global Cepstral mean and variance normalization (CMVN). This computes goodness of pronunciation (GOP) and extracts phone-level pronunciation features for mispronunciations detection tasks (https://kaldi-asr.org/doc/compute-cmvn-stats_8cc.html).
   
 ##### Stage 4: Dictionary and JSON data preparation
   * Build Dictionary and JSON Data Preparation
@@ -280,7 +278,7 @@ The folder structure for both systems is basically:
   
 ##### Stage 6: Language Model Training
   * Train your own language model on the librispeech dataset (https://www.openslr.org/11/) or use a pretrained language model
-  * It is possible to skip the language model and use the system without an external language model. For this, just remove the rnnlm from the decoding stage (5)
+  * It is possible to skip the language model and use the system without an external language model. 
   
 ##### Stage 7: Network Training
   * Train audio model
@@ -296,7 +294,6 @@ The folder structure for both systems is basically:
 ## Running the script 
 The runtime script is the script **run.sh**. It can be found in <code>avsr1/</code> directory.
 > Before running the script, please download the LRS2 (https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) [[2]](#literature) and LRS3 (https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs3.html) [[3]](#literature) datasets by yourself and save the download paths to the variables <code>DATA_DIR</code> (LRS2 path) and <code>DATALRS3_DIR</code> (LRS3 path) inside <code>run.sh</code> file.
-You will need to sign a data sharing agreement with BBC Research & Development before getting access.
   
 ### Notes
 Due to the long runtime, it could be useful to run the script using screen command in combination with monitoring in a terminal window and also redirect the output to a log file. 
@@ -310,7 +307,7 @@ As an example, to redirect the output into a file named "log_run_sh.txt", the sc
 ```console
 foo@bar:~/avsr1$ screen bash -c 'bash run.sh |& tee -a log_run_sh.txt'
 ```
-This will start  a virtual terminal session which is executing and monitoring the run.sh file. The output is printed to this session as well as saved into the file "log_run_sh.txt". You can leave the monitoring session by simply pressing <code>ctrl+A+D</code>. If you want to return to the process, simply type 
+This will start a virtual terminal session, which is executing and monitoring the run.sh file. The output is printed to this session as well as saved into the file "log_run_sh.txt". You can leave the monitoring session by simply pressing <code>ctrl+A+D</code>. If you want to return to the process, simply type 
 ```console
 foo@bar:~$ screen -ls
 ```
