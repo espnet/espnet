@@ -20,20 +20,13 @@ In addition, this project also contains an audio-only model for comparison.
 
 ### Requirements
 
-For installation, approximately 40GB of free disk space are needed.
-The required packes are listed below:
-
-**Optional, if Cuda capable grafic card:**
-1. Cuda (Version 10.0): https://developer.nvidia.com/cuda-toolkit
-2. CudaNN (Cudnn >= 7.6) : https://developer.nvidia.com/cudnn
+For installation, approximately 40GB of free disk space are needed. avsr1/run.sh stage 0 installs all required packages in avsr1/local/installations:
     
 **Required Packages:**
 1. ESPNet: https://github.com/espnet/espnet
 1. OpenFace: https://github.com/TadasBaltrusaitis/OpenFace
 2. DeepXi: https://github.com/anicolson/DeepXi
 3. Vidaug: https://github.com/okankop/vidaug
-
-**After installations are completed, please set path variables for OpenFace, DeepXi, and Vidaug in avsr1/path.sh!**
 
 <!-- **Prerequirements:**
 The following packages needs to be installed in advance to be able to run the scripts:
@@ -192,18 +185,19 @@ foo@bar:~$ source ~/venv/DeepXi/bin/activate
 Now, rerun the DeepXi installation procedure (e.g. via install_deepxi.sh script)-->
 
 ## Project structure
-The project is divided into two main folders. The first one <code>asr1/</code> which contains an audio-only speech recognition model trained on the LRS2 dataset (https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) [[2]](#literature). The other main folder <code>avsr1/</code>, contains the code for the audio-visual speech recognition system, also trained on the LRS2 [[2]](#literature) dataset together with the LRS3 dataset (https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs3.html) [[3]](#literature) . Both systems follow the basic ESPnet structure. 
-The main code for every recognition system is the <code>run.sh</code> script. In those scripts, the workflow of the systems is performed in multiple stages:
+The main folder <code>avsr1/</code>, contains the code for the audio-visual speech recognition system, also trained on the LRS2 [[2]](#literature) dataset together with the LRS3 dataset (https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs3.html) [[3]](#literature) . It follow the basic ESPnet structure. 
+The main code for recognition system is the <code>run.sh</code> script. In the script, the workflow of the systems is performed in multiple stages:
 
-| ASR                                               |                                  AVSR                       |
-|---------------------------------------------------|-------------------------------------------------------------|
-| Stage -1: Data Download                           | Stage -1: Data Download and preparation                     |
-| Stage 0: Data Preparation in Kaldi-style          | Stage 0: Audio augmentation                                 | 
-| Stage 1: Feature Generation                       | Stage 1: MP3 files and Feature Generation                                 |
-| Stage 2: Dictionary and JSON data preparation     | Stage 2: Dictionary and JSON data preparation               | 
-| Stage 3: Language model training                  | Stage 3: Reliability measures generation                    |
-| Stage 4: Training of the E2E-ASR model            | Stage 4: Language model trainin                             |
-| Stage 5: Decoding                                 | Stage 5: Training of the E2E-AVSR model and Decoding        |
+|                                  AVSR                       |
+|-------------------------------------------------------------|
+| Stage 0: Install required packages                     |
+| Stage 1: Data Download and preparation                     |
+| Stage 2: Audio augmentation                                 | 
+| Stage 3: MP3 files and Feature Generation                   |
+| Stage 4: Dictionary and JSON data preparation               | 
+| Stage 5: Reliability measures generation                    |
+| Stage 6: Language model trainin                             |
+| Stage 7: Training of the E2E-AVSR model and Decoding        |
 
 
 The folder structure for both systems is basically:
@@ -212,11 +206,11 @@ The folder structure for both systems is basically:
 * <code>exp/</code>: log files, model parameters, training results
 * <code>fbank/</code>: speech feature binary files, e.g., ark, scp
 * <code>dump*/</code> : ESPnet meta data for tranining, e.g., json, hdf5
-* <code>local/</code>: Contains local runtime scripts for data processing, data augmentation and own written fucntions (e.g. face recoginiton in the AVSR system) that are not part of the ESPnet standard processing scripts 
+* <code>local/</code>: Contains local runtime scripts for data processing, data augmentation and own written functions (e.g. face recognition in the AVSR system) that are not part of the ESPnet standard processing scripts. During the training stage, a symbolic link is built to the ESPnet. After training, the link will be deleted.  
 * <code>steps/</code>: helper scripts from ESPnet (Kaldi)
 * <code>utils/</code>: helper scripts from ESPnet (Kaldi)
   
-### Detailed description of ASR1:
+<!-- ### Detailed description of ASR1:
 ##### Stage -1: Data Download
   * Strictly considered not a separate stage, since the data set must be downloaded in advance by yourself. For downloading the dataset, please visit 'https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html/' [[2]](#literature)
   * You will need to sign a data sharing agreement with BBC Research & Development before getting access
@@ -244,11 +238,14 @@ The folder structure for both systems is basically:
   * Training of the ASR E2E system by using pretrain and train set
 
 ##### Stage 5: Decoding
-  * Decoding of the test and validation set
+  * Decoding of the test and validation set-->
   
 ### Detailed description of AVSR1:
 
-##### Stage -1: Data preparation
+##### Stage 0: Packages installations
+  * Install the required packages: ESPNet, OpenFace, DeepXi, Vidaug in avsr1/local/installations. To install OpenFace, you will need sudo right.
+
+##### Stage 1: Data preparation
   * The data set LRS2 [2] must be downloaded in advance by yourself. For downloading the dataset, please visit https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html/ [2]. You will need to sign a data sharing agreement with BBC Research & Development before getting access. After downloading, please edit <code>path.sh</code> file and assign the dataset directory path to the <code>DATA_DIR</code> variable
   * The same applies to the LRS3 dataset https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs3.html [3]. After downloading, please edit <code>path.sh</code> file and assign the dataset directory path to the <code>DATALRS3_DIR</code> variable
   * Download the Musan dataset for audio data augmentation and save it under <code>${MUSAN_DIR}</code> directory
@@ -256,65 +253,50 @@ The folder structure for both systems is basically:
   * Run <code>audio_data_prep.sh</code> script: Create filelists for the given part of the Dataset, prepare the kaldi files
   * Dump useful data for training 
   
-##### Stage 0: Audio Augmentation
+##### Stage 2: Audio Augmentation
   * Augment the audio data with RIRS Noise
   * Augment the audio data with Musan Noise
   * The augmented files are saved under data/audio/augment whereas the clear audio files can be found in data/audio/clear for all the used datasets (Test, Validation(Val), Train and optional Pretrain)
   
-##### Stage 1: Feature Generation
+##### Stage 3: Feature Generation
   * Make augmented MP3 files
   * Generate the fbank and mfcc features for the audio signals. By default, 80-dimensional filterbanks with pitch on each frame are used
   * Compute global Cepstral mean and variance normalization (CMVN). This computes goodness of pronunciation (GOP) and extracts phone-level pronunciation feature for mispronunciations detection tasks (https://kaldi-asr.org/doc/compute-cmvn-stats_8cc.html).
   
-##### Stage 2: Dictionary and JSON data preparation
+##### Stage 4: Dictionary and JSON data preparation
   * Build Dictionary and JSON Data Preparation
   * Build a tokenizer using Sentencepiece: https://github.com/google/sentencepiece
 
-##### Stage 3: Reliability measures generation
-  * Stage 3.0: Creat dump file for MFCC features
-  * Stage 3.1: Video augmentation with Gaussian blur and salt&pepper noise
-  * Stage 3.2: OpenFace face recognition for facial recognition (especially the mouth region, for further details see documentation in avsr1/local folder )
-  * Stage 3.3: Extract video frames
-  * Stage 3.4: Estimate SNRs using DeepXi framework
-  * Stage 3.5: Extract video features by pretrained video feature extractor [[4]](#literature)
-  * Stage 3.6: Make video .ark files
-  * Stage 3.7: Remake audio and video dump files
-  * Stage 3.8: Split test decode dump files by different signal-to-noise ratios
+##### Stage 5: Reliability measures generation
+  * Stage 5.0: Creat dump file for MFCC features
+  * Stage 5.1: Video augmentation with Gaussian blur and salt&pepper noise
+  * Stage 5.2: OpenFace face recognition for facial recognition (especially the mouth region, for further details see documentation in avsr1/local folder )
+  * Stage 5.3: Extract video frames
+  * Stage 5.4: Estimate SNRs using DeepXi framework
+  * Stage 5.5: Extract video features by pretrained video feature extractor [[4]](#literature)
+  * Stage 5.6: Make video .ark files
+  * Stage 5.7: Remake audio and video dump files
+  * Stage 5.8: Split test decode dump files by different signal-to-noise ratios
   
-##### Stage 4: Language Model Training
+##### Stage 6: Language Model Training
   * Train your own language model on the librispeech dataset (https://www.openslr.org/11/) or use a pretrained language model
   * It is possible to skip the language model and use the system without an external language model. For this, just remove the rnnlm from the decoding stage (5)
   
-##### Stage 5: Network Training
+##### Stage 7: Network Training
   * Train audio model
   * Pretrain video model
   * Finetune video model
   * Pretrain av model
   * Finetune av model (model used for decoding)
   
-##### Stage 6: Decoding
-
 ##### Other important references:
   * Explanation of the CSV-file for OpenFace: https://github.com/TadasBaltrusaitis/OpenFace/wiki/Output-Format#featureextraction
 
 
 ## Running the script 
 The runtime script is the script **run.sh**. It can be found in <code>avsr1/</code> directory.
-> Before running the script, please download the LRS2 (https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) [[2]](#literature) and LRS3 (https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs3.html) [[3]](#literature) datasets by yourself and save the download paths to the variables <code>DATA_DIR</code> (LRS2 path) and <code>DATALRS3_DIR</code> (LRS3 path) inside <code>path.sh</code> file.
+> Before running the script, please download the LRS2 (https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs2.html) [[2]](#literature) and LRS3 (https://www.robots.ox.ac.uk/~vgg/data/lip_reading/lrs3.html) [[3]](#literature) datasets by yourself and save the download paths to the variables <code>DATA_DIR</code> (LRS2 path) and <code>DATALRS3_DIR</code> (LRS3 path) inside <code>run.sh</code> file.
 You will need to sign a data sharing agreement with BBC Research & Development before getting access.
-
-### Setting Path Variables
-The following path variables need to be set in path.sh file in advance before running the script (not all are necessary for audio-only system):
-  * **MAIN_ROOT:** this is the directory where ESPnet is installed (e.g /home/foo/AVSR/ESPnet)
-  * **ESPNET_VENV:** if the name of the virtual environment for ESPnet is not venv, change the variable ESPNET_VENV to the name of the environment
-  * **DATA_DIR:** the LRS2 dataset directory (e.g. /home/foo/LSR2)
-  * **DATALRS3_DIR** the LRS3 dataset directory (e.g. /home/foo/LRS3), used for pretraining
-  * **OPENFACE_DIR:** OpenFace build directory (e.g. /home/foo/AVSR/OpenFace/build/bin)
-  * **VIDAUG_DIR**: Path to vidaug directory if it is not installed in espnet virtual environment
-  * **DEEPXI_DIR:** DeepXi directory (e.g. /home/foo/AVSR/DeepXi)
-  * **DEEPXI_VENVDIR:** DeepXi virtual environment directory (e.g. /home/foo/AVSR/DeepXi/bin/activate)
-  * **MUSAN_DIR:** The noise dataset directory (e.g. musan)
-  * **PRETRAINEDMODEL**: Path to pretrained video model
   
 ### Notes
 Due to the long runtime, it could be useful to run the script using screen command in combination with monitoring in a terminal window and also redirect the output to a log file. 
