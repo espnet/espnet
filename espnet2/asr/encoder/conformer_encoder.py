@@ -74,6 +74,11 @@ class ConformerEncoder(AbsEncoder):
         zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
         cnn_module_kernel (int): Kernerl size of convolution module.
         padding_idx (int): Padding idx for input_layer=embed.
+        attention_windows (list): Layer-wise attention window sizes for longformer self-attn
+        attention_dilation(list): Layer-wise attention dilation sizes for longformer self-attn
+        attention_mode(str): Implementation for longformer self-attn. Default="tvm"
+                    Choose 'n2', 'tvm' or 'sliding_chunks'. More details in
+                    https://github.com/allenai/longformer
 
     """
 
@@ -95,7 +100,7 @@ class ConformerEncoder(AbsEncoder):
         macaron_style: bool = False,
         rel_pos_type: str = "legacy",
         pos_enc_layer_type: str = "rel_pos",
-        selfattention_layer_type: str = "rel_selfattn",
+        selfattention_layer_type: str = "legacy_rel_selfattn",
         activation_type: str = "swish",
         use_cnn_module: bool = True,
         zero_triu: bool = False,

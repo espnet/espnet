@@ -118,16 +118,6 @@ conformer_selfconditioned_ctc = dict(
     self_conditioning=True,
 )
 
-conformer_longformer = dict(
-    transformer_encoder_pos_enc_layer_type="abs_pos",
-    transformer_encoder_selfattn_layer_type="lf_selfattn",
-    macaron_style=True,
-    use_cnn_module=True,
-    attention_windows=[40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40],
-    attention_mode="tvm",
-)
-
-
 def _savefn(*args, **kwargs):
     return
 
@@ -142,7 +132,6 @@ def _savefn(*args, **kwargs):
         conformer_ctc,
         conformer_intermediate_ctc,
         conformer_selfconditioned_ctc,
-        conformer_longformer,
     ],
 )
 def test_transformer_trainable_and_decodable(model_dict):
