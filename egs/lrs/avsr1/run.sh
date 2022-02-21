@@ -296,7 +296,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
 	part=pretrain
         python3 local/segaugaudio.py $mp3files data/audio/augment $part $ifmulticore
-	rm -rf "${mp3files}/${part}"
+	rm ${mp3files}/${part}
 	mv ${mp3files}/${part}_aug $mp3files/${part}
     fi
     nameambient=noise
