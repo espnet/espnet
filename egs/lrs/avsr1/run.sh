@@ -33,7 +33,7 @@ train_lm=false			# true: Train own language model, false: use pretrained librisp
 # Change this variables and adapt it to your Folder structure
 DATA_DIR=					# The LRS2 dataset directory e.g. "/home/foo/LRS2"
 DATALRS3_DIR=				# The LRS3 dataset directory e.g. "/home/foo/LRS3"
-PRETRAINEDMODEL=./pretrainedvideomodel/Video_only_model.pt 				        # Path to pretrained video model e.g. "pretrainedvideomodel/Video_only_model.pt"
+PRETRAINEDMODEL=pretrainedvideomodel/Video_only_model.pt 				        # Path to pretrained video model e.g. "pretrainedvideomodel/Video_only_model.pt"
 MUSAN_DIR="musan"   					              	#  The noise dataset directory e.g. "musan" 
 
 # feature configuration
@@ -138,7 +138,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "stage 1: Data preparation"
 
     echo "Download pretrained video feature extractor and check directory configuration"
-    if [ -d "$PRETRAINEDMODEL" ] ; then
+    if [ -f "$PRETRAINEDMODEL" ] ; then
 	echo "pretrained video feature extractor already exists"
     else
         gdrive_download '1ZXXCXSbbFS2PDlrs9kbJL9pE6-5nPPxi' 'model.v1.tar.gz'  || exit 1;
@@ -296,7 +296,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
 	part=pretrain
         python3 local/segaugaudio.py $mp3files data/audio/augment $part $ifmulticore
-	rm -rf $mp3files/$part
+	rm -rf "$mp3files/$part"
 	mv ${mp3files}/${part}_aug $mp3files/${part}
     fi
     nameambient=noise
