@@ -26,9 +26,4 @@ if [ -d "DeepXi" ]; then
 else
     git clone https://github.com/anicolson/DeepXi.git	
 fi
-python3 -m venv --system-site-packages venv/DeepXi
-source venv/DeepXi/bin/activate
-cd DeepXi
-pip install -r requirements.txt
-cd ..
 echo "DeepXi installed"
