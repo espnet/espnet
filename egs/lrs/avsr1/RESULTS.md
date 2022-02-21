@@ -13,6 +13,12 @@
   - lm JSON file: <code>exp/train_rnnlm_pytorch_lm_unigram500/model.json</code>
   - dict file: <code>data/lang_char/train_unigram500_units.txt</code>
 
+## Environments
+- date: `Mon Feb 21 11:52:07 UTC 2022`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.6.0`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1.post2`
 
 ### CER
 
@@ -81,6 +87,13 @@
   - lm file: <code>exp/train_rnnlm_pytorch_lm_unigram500/rnnlm.model.best</code>
   - lm JSON file: <code>exp/train_rnnlm_pytorch_lm_unigram500/model.json</code>
   - dict file: <code>data/lang_char/train_unigram500_units.txt</code>
+
+## Environments
+- date: `Mon Feb 21 11:52:07 UTC 2022`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.6.0`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1.post2`
 
 
 ### CER
@@ -173,6 +186,13 @@
   - lm file: <code>exp/train_rnnlm_pytorch_lm_unigram500/rnnlm.model.best</code>
   - lm JSON file: <code>exp/train_rnnlm_pytorch_lm_unigram500/model.json</code>
   - dict file: <code>data/lang_char/train_unigram500_units.txt</code>
+
+## Environments
+- date: `Mon Feb 21 11:52:07 UTC 2022`
+- python version: `3.7.3 (default, Mar 27 2019, 22:11:17)  [GCC 7.3.0]`
+- espnet version: `espnet 0.6.0`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.0.1.post2`
 
 
 ### CER
