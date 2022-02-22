@@ -1,6 +1,5 @@
 import multiprocessing as mp
 import os
-import pydub
 from pydub import AudioSegment
 import sys
 
@@ -16,7 +15,6 @@ def seg(filelist, sourcedir, dset, savedir):
     finalsave = os.path.join(savedir, filename + ".wav")
 
     Audio = AudioSegment.from_wav(audiodir)
-    fs = Audio.frame_rate
     startpoint = int(float(starttime) * 1000)
     endpoint = int(float(endtime) * 1000)
 

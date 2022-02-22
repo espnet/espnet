@@ -1,5 +1,4 @@
 import math
-import multiprocessing as mp
 import numpy as np
 import os
 import random
@@ -89,7 +88,8 @@ class LoadInput(Dataset):
         self.preprocessing_func = preprocessing_func
 
     def _get_paths(self, root_path, filelist):
-        """Return absolute paths to all utterances, transcriptions and phoneme labels in the required subset."""
+        """Return absolute paths to all utterances, transcriptions and phoneme
+        labels in the required subset."""
         datalist = []
         for speaker_id in filelist:
 
@@ -282,8 +282,7 @@ class CenterCrop(object):
         self.size = size
 
     def __call__(self, frames):
-        """
-        Args:
+        """Args:
             img (numpy.ndarray): Images to be cropped.
         Returns:
             numpy.ndarray: Cropped image.
@@ -303,9 +302,7 @@ class RandomCrop(object):
         self.size = size
 
     def __call__(self, frames):
-        """
-
-        Args:
+        """Args:
             img (numpy.ndarray): Images to be cropped.
         Returns:
             numpy.ndarray: Cropped image.
@@ -329,9 +326,7 @@ class HorizontalFlip(object):
         self.flip_ratio = flip_ratio
 
     def __call__(self, frames):
-        """
-
-        Args:
+        """Args:
             img (numpy.ndarray): Images to be flipped with a probability flip_ratio
         Returns:
             numpy.ndarray: Cropped image.
@@ -391,7 +386,7 @@ def main(filedir, savedir, pretrainedmodel, dset, ifcuda, debug=False):
                     savedir + "/" + name[i],
                     _use_new_zipfile_serialization=False,
                 )
-                if debug == True:
+                if debug is True:
                     print("Makefeatures for " + name[i])
         except Exception as e:
             print(e)

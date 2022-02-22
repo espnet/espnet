@@ -71,9 +71,9 @@ def splitsnr(srcdir, noisecombination, snrdir):
             outdict["clean"]["utts"].update({utts: data["utts"][utts]})
     for snr in snrlist:
         snrfiledir = os.path.join(snrsdir, "Test_" + snr)
-        with open(snrfiledir, "r") as l:
-            snrfilelist = l.readlines()
-            l.close()
+        with open(snrfiledir, "r") as f:
+            snrfilelist = f.readlines()
+            f.close()
         for j in snrfilelist:
             splitname = j.split(" ")[0]
             outdict[snr]["utts"].update({splitname: data["utts"][splitname]})
@@ -89,7 +89,8 @@ def splitsnr(srcdir, noisecombination, snrdir):
 
 # hand over parameter overview
 # sys.argv[1] = srcdir (str), Source directoy
-# sys.argv[2] = noisecombination(str), Noise combination (noise_None' 'music_None' 'noise_blur' 'noise_saltandpepper)
+# sys.argv[2] = noisecombination(str), Noise combination
+#               (noise_None' 'music_None' 'noise_blur' 'noise_saltandpepper)
 # sys.argv[3] = snrdir(str)
 
 

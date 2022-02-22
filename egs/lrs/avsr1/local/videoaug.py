@@ -25,7 +25,7 @@ def videoaugmentation(filelist, srcdir, savedir, noisetype):
         frames = []
         while cap.isOpened():
             ret, frame = cap.read()
-            if ret == True:
+            if ret is True:
                 frames.append(frame)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
@@ -37,7 +37,6 @@ def videoaugmentation(filelist, srcdir, savedir, noisetype):
         cv2.destroyAllWindows()
         frames = np.asarray(frames)
 
-        # sometimes = lambda aug: va.Sometimes(0.5, aug) # Used to apply augmentor with 50% probability
         if noisetype == "blur":
             seq = va.Sequential([va.GaussianBlur(1.2), va.Add()])
         else:
@@ -59,7 +58,8 @@ def videoaugmentation(filelist, srcdir, savedir, noisetype):
 
 
 # hand over parameter overview
-# sys.argv[1] = filelist (str), Directory to save the file list, which are files augmentated
+# sys.argv[1] = filelist (str), Directory to save the file list,
+#               which are files augmentated
 # sys.argv[2] = srcdir (str), Directory where save the dataset
 # sys.argv[3] = savedir (str), Directory to save augmented files
 # sys.argv[4] = noisetype (str), Video feature directory

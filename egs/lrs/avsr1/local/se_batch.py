@@ -1,16 +1,14 @@
-## AUTHOR:         Aaron Nicolson
-## AFFILIATION:    Signal Processing Laboratory, Griffith University.
-##
-## This Source Code Form is subject to the terms of the Mozilla Public
-## License, v. 2.0. If a copy of the MPL was not distributed with this
-## file, You can obtain one at http://mozilla.org/MPL/2.0/.
+""" AUTHOR:         Aaron Nicolson
+AFFILIATION:    Signal Processing Laboratory, Griffith University.
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/."""
 
 from deepxi.utils import read_wav
 import glob
 import numpy as np
 import os
-import sys
-import wave
 
 
 def Batch(fdir, snr_l=[]):
@@ -50,7 +48,7 @@ def Batch(fdir, snr_l=[]):
                 wav = wav[:, 0]
             if np.isnan(wav).any() or np.isinf(wav).any():
                 raise ValueError(
-                    "Error: NaN or Inf value. File path: %s." % (file_path)
+                    "Error: NaN or Inf value."
                 )
             wav_l.append(wav)  # append.
             fname_l.append(os.path.basename(os.path.splitext(fpath)[0]))  # append name.

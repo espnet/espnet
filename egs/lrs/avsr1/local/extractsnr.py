@@ -20,9 +20,9 @@ def product_helper(args):
 def extractsnr(srcdir, noisetype):
     if not os.path.exists(os.path.join(srcdir, noisetype)):
         os.makedirs(os.path.join(srcdir, noisetype))
-    with open(os.path.join(srcdir, "Testfbank_aug_" + noisetype, "wav.scp"), "r") as l:
-        wav = l.readlines()
-        l.close()
+    with open(os.path.join(srcdir, "Testfbank_aug_" + noisetype, "wav.scp"), "r") as f:
+        wav = f.readlines()
+        f.close()
     snrdict = {}
     snrlist = ["-12", "-9", "-6", "-3", "0", "3", "6", "9", "12"]
     for snr in snrlist:

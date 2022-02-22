@@ -219,8 +219,10 @@ def set(file, s, savedir, sourcedir, savewavdir, ifsegment):
 
 
 # hand over parameter overview
-# sys.argv[1] = sourcedir (str): The LRS2 dataset dir (e.g. /LRS2/data/lrs2_v1/mvlrs_v1/main)
-# sys.argv[2] = filelistdir (str): The directory containing the dataset Filelists (METADATA)
+# sys.argv[1] = sourcedir (str): The LRS2 dataset dir
+#                                (e.g. /LRS2/data/lrs2_v1/mvlrs_v1/main)
+# sys.argv[2] = filelistdir (str): The directory containing the dataset
+#                                Filelists (METADATA)
 # sys.argv[3] = savedir (str): Save directory, datadir of the clean audio dataset
 # sys.argv[4] = dset (str): Which set. For this code dset is pretrain set.
 # sys.argv[5] = savewavdir (str): If use multi processes.

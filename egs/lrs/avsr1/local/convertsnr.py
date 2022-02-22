@@ -18,8 +18,9 @@ def meansnr(filename, savedir, srcdir):
             os.path.join(savedir, filename + ".pt"),
             _use_new_zipfile_serialization=False,
         )
-    except:
-        pass
+    except AssertionError as error:
+        print(error)
+        print('Pass this file')
 
 
 def product_helper(args):

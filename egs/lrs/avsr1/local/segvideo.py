@@ -3,7 +3,6 @@ import multiprocessing as mp
 import numpy as np
 import os
 import pandas as pd
-from PIL import Image
 import sys
 import torch
 
@@ -279,7 +278,8 @@ def segvideo(sourcedir, filelist, savedir, csvdir, dset):
 
     Args:
         sourcedir (str): The LRS2 dataset dir.
-        filelist (str): The dir of the mp4 file, it should be like '5535415699068794046/00001'
+        filelist (str): The dir of the mp4 file, it should be
+                        like '5535415699068794046/00001'
         savedir (str): Save the segmented video files.
         csvdir (str): The dir of csv File, which contain Face recognition information
 
@@ -438,7 +438,8 @@ def main(sourcedir, savedir, csvdir, audiorefdir, dset, corpus, ifsegment, ifmul
 # hand over parameter overview
 # sys.argv[1] = sourcedir (str): The dataset dir
 # sys.argv[2] = savedir (str): Save the segmented video data.
-# sys.argv[3] = csvdir (str): The dir of csv File, which contain Face recognition information
+# sys.argv[3] = csvdir (str): The dir of csv File, which contain
+#                             Face recognition information
 # sys.argv[4] = audiorefdir (str): The dir which saves the audio Info
 # sys.argv[5] = dset (str): Which set. There are pretrain, Train, Val, Test set.
 # sys.argv[6] = corpus (str): Corpus name, LRS2 or LRS3
