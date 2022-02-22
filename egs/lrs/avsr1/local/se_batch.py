@@ -47,9 +47,7 @@ def Batch(fdir, snr_l=[]):
             if len(wav.shape) == 2:
                 wav = wav[:, 0]
             if np.isnan(wav).any() or np.isinf(wav).any():
-                raise ValueError(
-                    "Error: NaN or Inf value."
-                )
+                raise ValueError("Error: NaN or Inf value.")
             wav_l.append(wav)  # append.
             fname_l.append(os.path.basename(os.path.splitext(fpath)[0]))  # append name.
     len_l = []  # list of the waveform lengths.

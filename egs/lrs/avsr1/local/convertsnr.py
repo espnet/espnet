@@ -20,7 +20,7 @@ def meansnr(filename, savedir, srcdir):
         )
     except AssertionError as error:
         print(error)
-        print('Pass this file')
+        print("Pass this file")
 
 
 def product_helper(args):
