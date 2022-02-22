@@ -3,7 +3,8 @@
 # Copyright 2021 Ruhr University Bochum (Wentao Yu)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
+echo "$0 $*" >&2 # Print the command line for logging
+. ./path.sh
 
 # general configuration
 backend=			# set backend type
@@ -35,8 +36,9 @@ n_average=10
 tag="" 				# tag for managing experiments.
 recog_evalset="-12 -9 -6 -3 0 3 6 9 12 clean reverb"
 
-[ -f path.sh ] && . ./path.sh # source the path.
 . utils/parse_options.sh || exit 1;
+
+set -euo pipefail
 
 # parameter handover
 expdir=$1
@@ -47,11 +49,6 @@ noisetype=$5
 dict=$6
 bpemodel=$7
 
-# Set bash to 'debug' mode, it will exit on :
-# -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
-set -e
-set -u
-set -o pipefail
 
 #### The features should already extracted and the language model should be already trained
 if [ ! -d $expdir ]; then
