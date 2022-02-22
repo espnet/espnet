@@ -1007,7 +1007,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 
         # train audio model
 	noisetype=noise 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-        (local/training/train_audio.sh --backend $backend \
+        local/training/train_audio.sh --backend $backend \
 				--ngpu $ngpu \
 				--debugmode $debugmode \
 				--N $N \
@@ -1022,7 +1022,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				--train_config $train_config\
 				--lm_config $lm_config \
 				--decode_config $decode_config\
-				$expdirapretrain dump/audio dump/avpretraindecode $lmexpdir $noisetype $dict $bpemodel || exit 1;)
+				$expdirapretrain dump/audio dump/avpretraindecode $lmexpdir $noisetype $dict $bpemodel || exit 1;
 
         # pretrain video model
 	noisetype=blur 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper

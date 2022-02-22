@@ -1,170 +1,149 @@
 #!/usr/bin/env bash
 
-# Copyright 2017 Johns Hopkins University (Shinji Watanabe)
+# Copyright 2021 Ruhr University Bochum (Wentao Yu)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-echo "$0 $*" >&2 # Print the command line for logging
 . ./path.sh
 
-nj=1
-cmd=run.pl
-nlsyms=""
-lang=""
-feat="" # feat.scp
-oov="<unk>"
-bpecode=""
-allow_one_column=false
-verbose=0
-trans_type=char
-filetype=""
-preprocess_conf=""
-category=""
-out="" # If omitted, write in stdout
+# general configuration
+backend=			# set backend type
+ngpu=         			# number of gpus ("0" uses cpu, otherwise use gpu)
+debugmode=
+N=            			# number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
+verbose=      			# verbose option
+nbpe=
+bpemode=
+nj=
+do_delta=
+train_set=pretrain_Train
+train_dev=Val
+preprocess_config=
+# audio model does not use ESPnet default code: 6 layer self-attention is added block before calculating ctc loss
+train_config=  	      	 
+lm_config=
+decode_config=
+stage=0				# stage 0 for training and stage 1 for decoding
+stop_stage=100			# stage at which to stop 
+resume=        			# Resume the training from snapshot
+# rnnlm related
+lm_resume=        		# specify a snapshot file to resume LM training
+lmtag=            		# tag for managing LMs
+# decoding parameter
+recog_model=model.acc.best 	# set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+n_average=10
+# exp tag
+tag="" 				# tag for managing experiments.
+recog_evalset="-12 -9 -6 -3 0 3 6 9 12 clean reverb"
 
-text=""
-multilingual=false
-
-help_message=$(cat << EOF
-Usage: $0 <data-dir> <dict>
-e.g. $0 data/train data/lang_1char/train_units.txt
-Options:
-  --nj <nj>                                        # number of parallel jobs
-  --cmd (utils/run.pl|utils/queue.pl <queue opts>) # how to run jobs.
-  --feat <feat-scp>                                # feat.scp or feat1.scp,feat2.scp,...
-  --oov <oov-word>                                 # Default: <unk>
-  --out <outputfile>                               # If omitted, write in stdout
-  --filetype <mat|hdf5|sound.hdf5>                 # Specify the format of feats file
-  --preprocess-conf <json>                         # Apply preprocess to feats when creating shape.scp
-  --verbose <num>                                  # Default: 0
-EOF
-)
-. utils/parse_options.sh
-
-if [ $# != 2 ]; then
-    echo "${help_message}" 1>&2
-    exit 1;
-fi
+. utils/parse_options.sh || exit 1;
 
 set -euo pipefail
 
-dir=$1
-dic=$2
-tmpdir=$(mktemp -d ${dir}/tmp-XXXXX)
-trap 'rm -rf ${tmpdir}' EXIT
+# parameter handover
+expdir=$1
+dumptraindir=$2
+dumpdecodedir=$3
+lmexpdir=$4
+noisetype=$5
+dict=$6
+bpemodel=$7
 
-if [ -z ${text} ]; then
-    text=${dir}/text
+
+#### The features should already extracted and the language model should be already trained
+if [ ! -d $expdir ]; then
+    mkdir -p ${expdir}
 fi
 
-# 1. Create scp files for inputs
-#   These are not necessary for decoding mode, and make it as an option
-input=
-if [ -n "${feat}" ]; then
-    _feat_scps=$(echo "${feat}" | tr ',' ' ' )
-    read -r -a feat_scps <<< $_feat_scps
-    num_feats=${#feat_scps[@]}
+feat_tr_dir=$dumptraindir/${train_set}/delta${do_delta}
+feat_dt_dir=$dumptraindir/${train_dev}/delta${do_delta}
 
-    for (( i=1; i<=num_feats; i++ )); do
-        feat=${feat_scps[$((i-1))]}
-        mkdir -p ${tmpdir}/input_${i}
-        input+="input_${i} "
-        cat ${feat} > ${tmpdir}/input_${i}/feat.scp
+# Tag name
+if [ -z ${tag} ]; then
+    expname=${train_set}_${backend}_$(basename ${train_config%.*})
+    if ${do_delta}; then
+        expname=${expname}_delta
+    fi
+    if [ -n "${preprocess_config}" ]; then 
+	expname=${expname}_$(basename ${preprocess_config%.*}) 
+    fi
+else
+    expname=${train_set}_${backend}_${tag}
+fi
 
-        # Dump in the "legacy" style JSON format
-        if [ -n "${filetype}" ]; then
-            awk -v filetype=${filetype} '{print $1 " " filetype}' ${feat} \
-                > ${tmpdir}/input_${i}/filetype.scp
-        fi
+# Replace files with custom files
+rm -rf $MAIN_ROOT/espnet/trainaudio  || exit 1;
+ln -rsf  local/training/trainaudio ${MAIN_ROOT}/espnet/trainaudio  || exit 1;
+rm -rf $MAIN_ROOT/espnet/bin/asr_train_audio.py   || exit 1;
+ln -rsf  local/training/trainaudio/asr_train_audio.py $MAIN_ROOT/espnet/bin/asr_train_audio.py   || exit 1;
+rm -rf $MAIN_ROOT/espnet/bin/asr_recog_audio.py  || exit 1;
+ln -rsf  local/training/trainaudio/asr_recog_audio.py $MAIN_ROOT/espnet/bin/asr_recog_audio.py  || exit 1;
 
-        feat_to_shape.sh --cmd "${cmd}" --nj ${nj} \
-            --filetype "${filetype}" \
-            --preprocess-conf "${preprocess_conf}" \
-            --verbose ${verbose} ${feat} ${tmpdir}/input_${i}/shape.scp
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    echo "Network training stage 0: Audio-only Network Training"
+    ${cuda_cmd} --gpu ${ngpu} ${expdir}/train.log \
+        asr_train_audio.py \
+        --ngpu ${ngpu} \
+        --preprocess-conf ${preprocess_config} \
+        --config ${train_config} \
+        --backend ${backend} \
+        --outdir ${expdir}/results \
+        --tensorboard-dir tensorboard/${expname}_a \
+        --debugmode ${debugmode} \
+        --dict ${dict} \
+        --debugdir ${expdir} \
+        --minibatches ${N} \
+        --verbose ${verbose} \
+        --resume ${resume} \
+        --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.json \
+        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.json
+fi
+
+rm -rf ${expdir}/$noisetype
+mkdir ${expdir}/$noisetype
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    if [[ $(get_yaml.py ${train_config} model-module) = *transformer* ]]; then
+	recog_model=model.last${n_average}.avg.best
+	average_checkpoints.py --backend ${backend} \
+			       --snapshots ${expdir}/results/snapshot.ep.* \
+			       --out ${expdir}/results/${recog_model} \
+			       --num ${n_average}
+    fi
+    echo "stage 1: Decoding"
+    for rtask in $recog_evalset; do
+        pids=() # initialize pids
+        (decode_dir=decode_${rtask}_$(basename ${decode_config%.*})
+        feat_recog_dir=$dumpdecodedir/Test_${noisetype}/${rtask}/delta${do_delta}
+
+        # split data
+        splitjson.py --parts ${nj} ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+
+        #### use CPU for decoding
+        ngpu=0
+        ${decode_cmd} JOB=1:${nj} ${expdir}/${decode_dir}/log/decode.JOB.log \
+            asr_recog_audio.py \
+                --config ${decode_config} \
+                --ngpu ${ngpu} \
+                --backend ${backend} \
+                --debugmode ${debugmode} \
+                --verbose 1 \
+                --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
+                --result-label ${expdir}/${decode_dir}/data.JOB.json \
+                --model ${expdir}/results/${recog_model}  \
+                --rnnlm ${lmexpdir}/rnnlm.model.best
+
+        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
+         mv ${expdir}/${decode_dir} ${expdir}/$noisetype/${decode_dir}
+        ) &
+        pids+=($!) # store background pids
+
+        
+        i=0; for pid in "${pids[@]}"; do wait ${pid} || ((++i)); done
+        [ ${i} -gt 0 ] && echo "$0: ${i} background jobs are failed." && false
+        
+        echo "Finished"
     done
 fi
-
-# 2. Create scp files for outputs
-mkdir -p ${tmpdir}/output
-if [ -n "${bpecode}" ]; then
-    if [ ${multilingual} = true ]; then
-        # remove a space before the language ID
-        paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} \
-            | spm_encode --model=${bpecode} --output_format=piece | cut -f 2- -d" ") \
-            > ${tmpdir}/output/token.scp
-    else
-        paste -d " " <(awk '{print $1}' ${text}) <(cut -f 2- -d" " ${text} \
-            | spm_encode --model=${bpecode} --output_format=piece) \
-            > ${tmpdir}/output/token.scp
-    fi
-elif [ -n "${nlsyms}" ]; then
-    text2token.py -s 1 -n 1 -l ${nlsyms} ${text} --trans_type ${trans_type} > ${tmpdir}/output/token.scp
-else
-    text2token.py -s 1 -n 1 ${text} --trans_type ${trans_type} > ${tmpdir}/output/token.scp
-fi
-< ${tmpdir}/output/token.scp utils/sym2int.pl --map-oov ${oov} -f 2- ${dic} > ${tmpdir}/output/tokenid.scp
-# +2 comes from CTC blank and EOS
-vocsize=$(tail -n 1 ${dic} | awk '{print $2}')
-odim=$(echo "$vocsize + 2" | bc)
-< ${tmpdir}/output/tokenid.scp awk -v odim=${odim} '{print $1 " " NF-1 "," odim}' > ${tmpdir}/output/shape.scp
-
-cat ${text} > ${tmpdir}/output/text.scp
-
-
-# 3. Create scp files for the others
-mkdir -p ${tmpdir}/other
-if [ ${multilingual} == true ]; then
-    awk '{
-        n = split($1,S,"[-]");
-        lang=S[n];
-        print $1 " " lang
-    }' ${text} > ${tmpdir}/other/lang.scp
-elif [ -n "${lang}" ]; then
-    awk -v lang=${lang} '{print $1 " " lang}' ${text} > ${tmpdir}/other/lang.scp
-fi
-
-if [ -n "${category}" ]; then
-    awk -v category=${category} '{print $1 " " category}' ${dir}/text \
-        > ${tmpdir}/other/category.scp
-fi
-cat ${dir}/utt2spk > ${tmpdir}/other/utt2spk.scp
-
-# 4. Merge scp files into a JSON file
-opts=""
-if [ -n "${feat}" ]; then
-    intypes="${input} output other"
-else
-    intypes="output other"
-fi
-for intype in ${intypes}; do
-    if [ -z "$(find "${tmpdir}/${intype}" -name "*.scp")" ]; then
-        continue
-    fi
-
-    if [ ${intype} != other ]; then
-        opts+="--${intype%_*}-scps "
-    else
-        opts+="--scps "
-    fi
-
-    for x in "${tmpdir}/${intype}"/*.scp; do
-        k=$(basename ${x} .scp)
-        if [ ${k} = shape ]; then
-            opts+="shape:${x}:shape "
-        else
-            opts+="${k}:${x} "
-        fi
-    done
-done
-
-if ${allow_one_column}; then
-    opts+="--allow-one-column true "
-else
-    opts+="--allow-one-column false "
-fi
-
-if [ -n "${out}" ]; then
-    opts+="-O ${out}"
-fi
-merge_scp2json.py --verbose ${verbose} ${opts}
-
-rm -fr ${tmpdir}
+# remove custom files
+rm -rf $MAIN_ROOT/espnet/trainaudio  || exit 1;
+rm -rf $MAIN_ROOT/espnet/bin/asr_train_audio.py   || exit 1;
+rm -rf $MAIN_ROOT/espnet/bin/asr_recog_audio.py  || exit 1;
