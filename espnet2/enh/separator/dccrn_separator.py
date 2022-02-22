@@ -19,7 +19,7 @@ is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 EPS = torch.finfo(torch.double).eps
 
 
-class DCCRNSeparatorTest(AbsSeparator):
+class DCCRNSeparator(AbsSeparator):
     def __init__(
         self,
         idim: int,
