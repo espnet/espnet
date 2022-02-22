@@ -1,4 +1,3 @@
-# this is modified from https://github.com/huyanxin/DeepComplexCRN/blob/master/dc_crn.py
 from collections import OrderedDict
 from distutils.version import LooseVersion
 from typing import List, Tuple, Union
@@ -20,49 +19,50 @@ is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 EPS = torch.finfo(torch.double).eps
 
 
-class DCCRNSeparator(AbsSeparator):
+class DCCRNSeparatorTest(AbsSeparator):
     def __init__(
         self,
-        idim,
-        rnn_layer=2,
-        rnn_units=256,
-        fft_len=512,
-        masking_mode="E",
-        use_clstm=True,
-        bidirectional=False,
-        use_cbn=False,
-        kernel_size=5,
-        kernel_num=[32, 64, 128, 256, 256, 256],
+        idim: int,
+        num_spk: int = 1,
+        rnn_layer: int = 2,
+        rnn_units: int = 256,
+        masking_mode: str = "E",
+        use_clstm: bool = True,
+        bidirectional: bool = False,
+        use_cbn: bool = False,
+        kernel_size: int = 5,
+        kernel_num: List[int] = [32, 64, 128, 256, 256, 256],
         use_builtin_complex: bool = True,
+        use_noise_mask: bool = False,
     ):
         """DCCRN separator
 
         Args:
+            idim (int): input dimension。
             num_spk (int, optional): number of speakers. Defaults to 1.
             rnn_layer (int, optional): number of lstm layers in the crn. Defaults to 2.
-            rnn_units (int, optional): number of features in the hidden state,
-                                       for complex-lstm, rnn_units = real+imag. Defaults to 128.
-            fft_len (int, optional): n_fft. Defaults to 512.
+            rnn_units (int, optional): number of features in the hidden state, for complex-lstm, rnn_units = real+imag. Defaults to 128.
             masking_mode (str, optional): decide how to use the estimated mask. Defaults to "E".
             use_clstm (bool, optional): whether to use complex LSTM or not. Defaults to False.
             bidirectional (bool, optional): whether to use bidirectional LSTM or not. Defaults to False.
             use_cbn (bool, optional): whether to use complex batch normalization. Defaults to False.
             kernel_size (int, optional): convolution kernel size. Defaults to 5.
-            kernel_num (list, optional): output dimension of each convolution layer of the encoder(decoder).
-                                         Defaults to [16, 32, 64, 128, 256, 256].
+            kernel_num (list, optional): output dimension of each convolution layer of the encoder(decoder). Defaults to [16, 32, 64, 128, 256, 256].
             use_builtin_complex (bool, optional): use torch.complex if True, else use ComplexTensor.
+            use_noise_mask (bool, optional): whether to estimate the mask of noise signal.
 
         References
         - [1] : "DCCRN: Deep Complex Convolution Recurrent Network for Phase-Aware Speech Enhancement",
-                Yanxin Hu et al. https://arxiv.org/abs/2008.00264
+          Yanxin Hu et al. https://arxiv.org/abs/2008.00264
         - [2] : https://github.com/huyanxin/DeepComplexCRN
         """
         super().__init__()
         self.use_builtin_complex = use_builtin_complex
+        self._num_spk = num_spk
+        self.use_noise_mask = use_noise_mask
 
         # Network config
         self.rnn_units = rnn_units
-        self.fft_len = fft_len
         self.hidden_layers = rnn_layer
         self.kernel_size = kernel_size
         self.kernel_num = [2] + kernel_num
@@ -89,7 +89,7 @@ class DCCRNSeparator(AbsSeparator):
                     nn.PReLU(),
                 )
             )
-        hidden_dim = self.fft_len // (2 ** (len(self.kernel_num)))
+        hidden_dim = (idim - 1) // (2 ** (len(self.kernel_num) - 1))
 
         if self.use_clstm:
             rnns = []
@@ -144,7 +144,9 @@ class DCCRNSeparator(AbsSeparator):
                     nn.Sequential(
                         ComplexConvTranspose2d(
                             self.kernel_num[idx] * 2,
-                            self.kernel_num[idx - 1],
+                            self.kernel_num[idx - 1] * (self._num_spk + 1)
+                            if self.use_noise_mask
+                            else self.kernel_num[idx - 1] * self._num_spk,
                             kernel_size=(self.kernel_size, 2),
                             stride=(2, 1),
                             padding=(2, 0),
@@ -237,60 +239,17 @@ class DCCRNSeparator(AbsSeparator):
             out = complex_cat([out, encoder_out[-1 - idx]], 1)
             out = self.decoder[idx](out)
             out = out[..., 1:]
-        # out shape (B, 2, F, T)
+        # out shape = (B, 2*num_spk, F-1, T) if self.use_noise_mask == False else (B, 2*(num_spk+1), F-1, T)
 
-        # shape (B, F-1, T)
-        mask_real = out[:, 0]
-        # shape (B, F-1, T)
-        mask_imag = out[:, 1]
-        # shape (B, F, T)
-        mask_real = F.pad(mask_real, [0, 0, 1, 0])
-        # shape (B, F, T)
-        mask_imag = F.pad(mask_imag, [0, 0, 1, 0])
-
-        # mask shape (B, T, F)
-        if is_torch_1_9_plus and self.use_builtin_complex:
-            complex_mask = torch.complex(
-                mask_real.permute(0, 2, 1), mask_imag.permute(0, 2, 1)
-            )
-        else:
-            complex_mask = ComplexTensor(
-                mask_real.permute(0, 2, 1), mask_imag.permute(0, 2, 1)
-            )
-
+        masks = self.create_masks(out)
+        masked = self.apply_masks(masks, spec_mags, spec_phase)
         others = OrderedDict(
-            zip(
-                ["mask_spk{}".format(i + 1) for i in range(self.num_spk)],
-                [complex_mask],
-            )
+            zip(["mask_spk{}".format(i + 1) for i in range(self.num_spk)], masks,)
         )
 
-        if self.masking_mode == "E":
-            mask_mags = (mask_real ** 2 + mask_imag ** 2) ** 0.5
-            # mask_mags = (mask_real ** 2 + mask_imag ** 2 + EPS) ** 0.5
-            real_phase = mask_real / (mask_mags + EPS)
-            imag_phase = mask_imag / (mask_mags + EPS)
-            # mask_phase = torch.atan2(imag_phase + EPS, real_phase + EPS)
-            mask_phase = torch.atan2(imag_phase, real_phase)
-            mask_mags = torch.tanh(mask_mags)
-            est_mags = mask_mags * spec_mags
-            est_phase = spec_phase + mask_phase
-            real = est_mags * torch.cos(est_phase)
-            imag = est_mags * torch.sin(est_phase)
-        elif self.masking_mode == "C":
-            real, imag = (
-                real * mask_real - imag * mask_imag,
-                real * mask_imag + imag * mask_real,
-            )
-        elif self.masking_mode == "R":
-            real, imag = real * mask_real, imag * mask_imag
-
-        masked = []
-        # shape (B, T, F)
-        if is_torch_1_9_plus and self.use_builtin_complex:
-            masked.append(torch.complex(real.permute(0, 2, 1), imag.permute(0, 2, 1)))
-        else:
-            masked.append(ComplexTensor(real.permute(0, 2, 1), imag.permute(0, 2, 1)))
+        if self.use_noise_mask:
+            others["mask_noise1"] = masks[-1]
+            others["noise1"] = masked.pop(-1)
 
         return (masked, ilens, others)
 
@@ -298,6 +257,94 @@ class DCCRNSeparator(AbsSeparator):
         if isinstance(self.enhance, nn.LSTM):
             self.enhance.flatten_parameters()
 
+    def create_masks(self, mask_tensor: torch.Tensor):
+        """create estimated mask for each speaker
+
+        Args:
+            mask_tensor (torch.Tensor): the output of the decoder, shape(B, 2*num_spk, F-1, T)
+        """
+        if self.use_noise_mask:
+            assert mask_tensor.shape[1] == 2 * (self._num_spk + 1), mask_tensor.shape[1]
+        else:
+            assert mask_tensor.shape[1] == 2 * self._num_spk, mask_tensor.shape[1]
+
+        masks = []
+        for idx in range(mask_tensor.shape[1] // 2):
+            # shape (B, F-1, T)
+            mask_real = mask_tensor[:, idx * 2]
+            # shape (B, F-1, T)
+            mask_imag = mask_tensor[:, idx * 2 + 1]
+            # shape (B, F, T)
+            mask_real = F.pad(mask_real, [0, 0, 1, 0])
+            # shape (B, F, T)
+            mask_imag = F.pad(mask_imag, [0, 0, 1, 0])
+
+            # mask shape (B, T, F)
+            if is_torch_1_9_plus and self.use_builtin_complex:
+                complex_mask = torch.complex(
+                    mask_real.permute(0, 2, 1), mask_imag.permute(0, 2, 1)
+                )
+            else:
+                complex_mask = ComplexTensor(
+                    mask_real.permute(0, 2, 1), mask_imag.permute(0, 2, 1)
+                )
+
+            masks.append(complex_mask)
+
+        return masks
+
+    def apply_masks(
+        self,
+        masks: List[Union[torch.Tensor, ComplexTensor]],
+        spec_mags: torch.Tensor,
+        spec_phase: torch.Tensor,
+    ):
+        """apply masks
+
+        Args:
+            masks (List[Union[torch.Tensor, ComplexTensor]]): estimated masks, [(B, T, F), ...]
+            spec_mags (torch.Tensor): magnitude of the noisy spectrum, (B, F, T)
+            spec_phase (torch.Tensor): phase of the noisy spectrum, (B, F, T)
+
+        Returns:
+            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, F), ...]
+        """
+        masked = []
+        for i in range(len(masks)):
+            # shape (B, T, F) --> (B, F, T)
+            mask_real = masks[i].real.permute(0, 2, 1)
+            mask_imag = masks[i].imag.permute(0, 2, 1)
+            if self.masking_mode == "E":
+                mask_mags = (mask_real ** 2 + mask_imag ** 2) ** 0.5
+                # mask_mags = (mask_real ** 2 + mask_imag ** 2 + EPS) ** 0.5
+                real_phase = mask_real / (mask_mags + EPS)
+                imag_phase = mask_imag / (mask_mags + EPS)
+                # mask_phase = torch.atan2(imag_phase + EPS, real_phase + EPS)
+                mask_phase = torch.atan2(imag_phase, real_phase)
+                mask_mags = torch.tanh(mask_mags)
+                est_mags = mask_mags * spec_mags
+                est_phase = spec_phase + mask_phase
+                real = est_mags * torch.cos(est_phase)
+                imag = est_mags * torch.sin(est_phase)
+            elif self.masking_mode == "C":
+                real, imag = (
+                    real * mask_real - imag * mask_imag,
+                    real * mask_imag + imag * mask_real,
+                )
+            elif self.masking_mode == "R":
+                real, imag = real * mask_real, imag * mask_imag
+
+            # shape (B, F, T) --> (B, T, F)
+            if is_torch_1_9_plus and self.use_builtin_complex:
+                masked.append(
+                    torch.complex(real.permute(0, 2, 1), imag.permute(0, 2, 1))
+                )
+            else:
+                masked.append(
+                    ComplexTensor(real.permute(0, 2, 1), imag.permute(0, 2, 1))
+                )
+        return masked
+
     @property
     def num_spk(self):
-        return 1
+        return self._num_spk
