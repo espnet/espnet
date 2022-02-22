@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 # Copyright 2021 Ruhr University Bochum (Wentao Yu)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
