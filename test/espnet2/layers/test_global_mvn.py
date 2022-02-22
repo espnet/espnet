@@ -17,7 +17,7 @@ def stats_file(tmp_path: Path):
     x = np.random.randn(count, 80)
     s = x.sum(0)
     s = np.pad(s, [0, 1], mode="constant", constant_values=count)
-    s2 = (x**2).sum(0)
+    s2 = (x ** 2).sum(0)
     s2 = np.pad(s2, [0, 1], mode="constant", constant_values=0.0)
 
     stats = np.stack([s, s2])
@@ -34,7 +34,7 @@ def stats_file2(tmp_path: Path):
     np.random.seed(0)
     x = np.random.randn(count, 80)
     s = x.sum(0)
-    s2 = (x**2).sum(0)
+    s2 = (x ** 2).sum(0)
 
     np.savez(p, sum=s, sum_square=s2, count=count)
     return p
