@@ -3,41 +3,30 @@
 # Copyright 2021 Ruhr University Bochum (Wentao Yu)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-. ./path.sh
+
 
 # general configuration
-backend=			# set backend type
-ngpu=         			# number of gpus ("0" uses cpu, otherwise use gpu)
-debugmode=
-N=            			# number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
-verbose=      			# verbose option
-nbpe=
-bpemode=
-nj=
-do_delta=
+backend=pytorch			# set backend type
+ngpu=1         			# number of gpus ("0" uses cpu, otherwise use gpu)
+debugmode=1
+N=0            			# number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
+verbose=0      			# verbose option
+nbpe=5000
+bpemode=unigram
+nj=32
+do_delta=false
 train_set=pretrain_Train
 train_dev=Val
-preprocess_config=
+preprocess_config=conf/specaug.yaml
 # audio model does not use ESPnet default code: 6 layer self-attention is added block before calculating ctc loss
-train_config=  	      	 
-lm_config=
-decode_config=
-stage=0				# stage 0 for training and stage 1 for decoding
-stop_stage=100			# stage at which to stop 
-resume=        			# Resume the training from snapshot
-# rnnlm related
-lm_resume=        		# specify a snapshot file to resume LM training
-lmtag=            		# tag for managing LMs
-# decoding parameter
-recog_model=model.acc.best 	# set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-n_average=10
-# exp tag
-tag="" 				# tag for managing experiments.
-recog_evalset="-12 -9 -6 -3 0 3 6 9 12 clean reverb"
+train_config=conf/train.yaml  	      	 
+lm_config=conf/lm.yaml
+decode_config=conf/decode.yaml
 
-. utils/parse_options.sh || exit 1;
 
-set -euo pipefail
+. ./cmd.sh
+. ./path.sh
+. utils/parse_options.sh
 
 # parameter handover
 expdir=$1
@@ -47,6 +36,35 @@ lmexpdir=$4
 noisetype=$5
 dict=$6
 bpemodel=$7
+
+
+stage=0				# stage 0 for training and stage 1 for decoding
+stop_stage=100			# stage at which to stop 
+resume=        			# Resume the training from snapshot
+
+
+# rnnlm related
+lm_resume=        		# specify a snapshot file to resume LM training
+lmtag=            		# tag for managing LMs
+
+# decoding parameter
+recog_model=model.acc.best 	# set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+n_average=10
+
+
+
+# exp tag
+tag="" 				# tag for managing experiments.
+
+
+
+# Set bash to 'debug' mode, it will exit on :
+# -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
+set -e
+set -u
+set -o pipefail
+
+recog_evalset="-12 -9 -6 -3 0 3 6 9 12 clean reverb"
 
 
 #### The features should already extracted and the language model should be already trained
