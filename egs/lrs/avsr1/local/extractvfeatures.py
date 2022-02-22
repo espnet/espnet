@@ -88,8 +88,6 @@ class LoadInput(Dataset):
         self.preprocessing_func = preprocessing_func
 
     def _get_paths(self, root_path, filelist):
-        """Return absolute paths to all utterances, transcriptions and phoneme
-        labels in the required subset."""
         datalist = []
         for speaker_id in filelist:
 
@@ -276,16 +274,17 @@ class Lipreading(nn.Module):
 
 
 class CenterCrop(object):
-    """Crop the given image at the center"""
-
     def __init__(self, size):
         self.size = size
 
     def __call__(self, frames):
-        """Args:
+        """Crop the given image at the center
+
+        Args:
             img (numpy.ndarray): Images to be cropped.
         Returns:
             numpy.ndarray: Cropped image.
+
         """
         t, h, w = frames.shape
         th, tw = self.size
@@ -296,13 +295,13 @@ class CenterCrop(object):
 
 
 class RandomCrop(object):
-    """Crop the given image at the center"""
-
     def __init__(self, size):
         self.size = size
 
     def __call__(self, frames):
-        """Args:
+        """Crop the given image at the center
+
+        Args:
             img (numpy.ndarray): Images to be cropped.
         Returns:
             numpy.ndarray: Cropped image.
@@ -320,13 +319,13 @@ class RandomCrop(object):
 
 
 class HorizontalFlip(object):
-    """Flip image horizontally."""
-
     def __init__(self, flip_ratio):
         self.flip_ratio = flip_ratio
 
     def __call__(self, frames):
-        """Args:
+        """Flip image horizontally.
+
+        Args:
             img (numpy.ndarray): Images to be flipped with a probability flip_ratio
         Returns:
             numpy.ndarray: Cropped image.
