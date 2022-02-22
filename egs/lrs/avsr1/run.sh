@@ -14,7 +14,6 @@ ifcuda=true  			# if use cuda
 ifmulticore=true        	# if multi cpu processing, default is true in all scripts
 num=  			# this variable is related with next variable. Only applies when ifdebug=true
 ifdebug=false	   		# with debug, we only use $num Utts from pretrain and $num Utts from Train set
-modeltype=AV    		# model selection: A=audio-only model, V=video-only model, AV=audio-visual 
 backend=pytorch
 stage=0			# start from -1 if you need to start from data download
 stop_stage=100			# stage at which to stop
@@ -210,7 +209,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     	python3 -m venv --system-site-packages ./LRS3-env
     	source ./LRS3-env/bin/activate
     	pip3 install pydub
-    	local/LRS3dataprocessing.sh $DATALRS3_DIR pretrain $ifmulticore $ifsegment $modeltype $ifdebug $num
+    	local/LRS3dataprocessing.sh $DATALRS3_DIR pretrain $ifmulticore $ifsegment $ifdebug $num
     	deactivate
     	rm -rf ./LRS3-env
         mkdir -p data/audio/clean/LRS3/pretrain
@@ -526,96 +525,95 @@ SNRptdir=Dataset_processing/SNRs
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     echo "stage 5: Extract reliability measures"
-    if [ "$modeltype" = AV ] || [ "$modeltype" = V ]; then
-	if [ ${dataprocessingstage} -le 0 ] && [ ${stop_dataprocessingstage} -ge 0 ]; then
-		#make mfcc dump file
-		mkdir -p ${dumpdir}/mfcc/${train_set}/delta${do_delta}/  || exit 1;
-        	cp data/audio/augment/${train_set}mfccs_aug/feats.scp ${dumpdir}/mfcc/${train_set}/delta${do_delta}/  || exit 1;
-    		data2json.sh --feat ${dumpdir}/mfcc/${train_set}/delta${do_delta}/feats.scp \
-	   	    --bpecode ${bpemodel}.model data/audio/augment/${train_set}mfccs_aug ${dict} \
-	     	    > ${dumpdir}/mfcc/${train_set}/delta${do_delta}/data_${bpemode}${nbpe}.json  || exit 1;
-    		for rtask in ${recog_set} Train pretrain; do
-           	    feat_recog_dir=${dumpdir}/mfcc/${rtask}/delta${do_delta}
-     	    	    mkdir -p $feat_recog_dir  || exit 1;
-	    	    cp data/audio/augment/${rtask}mfccs_aug/feats.scp ${dumpdir}/mfcc/${rtask}/delta${do_delta}/  || exit 1;
-            	    data2json.sh --feat ${feat_recog_dir}/feats.scp \
-			--bpecode ${bpemodel}.model data/audio/augment/${rtask}mfccs_aug ${dict} \
-		  	> ${dumpdir}/mfcc/${rtask}/delta${do_delta}/data_${bpemode}${nbpe}.json  || exit 1;
-        	done
+    if [ ${dataprocessingstage} -le 0 ] && [ ${stop_dataprocessingstage} -ge 0 ]; then
+	#make mfcc dump file
+	mkdir -p ${dumpdir}/mfcc/${train_set}/delta${do_delta}/  || exit 1;
+        cp data/audio/augment/${train_set}mfccs_aug/feats.scp ${dumpdir}/mfcc/${train_set}/delta${do_delta}/  || exit 1;
+    	data2json.sh --feat ${dumpdir}/mfcc/${train_set}/delta${do_delta}/feats.scp \
+	   --bpecode ${bpemodel}.model data/audio/augment/${train_set}mfccs_aug ${dict} \
+	   > ${dumpdir}/mfcc/${train_set}/delta${do_delta}/data_${bpemode}${nbpe}.json  || exit 1;
+    	for rtask in ${recog_set} Train pretrain; do
+            feat_recog_dir=${dumpdir}/mfcc/${rtask}/delta${do_delta}
+     	    mkdir -p $feat_recog_dir  || exit 1;
+	    cp data/audio/augment/${rtask}mfccs_aug/feats.scp ${dumpdir}/mfcc/${rtask}/delta${do_delta}/  || exit 1;
+            data2json.sh --feat ${feat_recog_dir}/feats.scp \
+	        --bpecode ${bpemodel}.model data/audio/augment/${rtask}mfccs_aug ${dict} \
+		  > ${dumpdir}/mfcc/${rtask}/delta${do_delta}/data_${bpemode}${nbpe}.json  || exit 1;
+        done
 
-        	nameambient=noise
-        	namemusic=music
-        	name_list="${nameambient} ${namemusic}"
-        	for name in ${name_list};do
-    	    	   dset=Test
-            	   feat_recog_dir=${dumpdir}/mfcc/Test_decode_${name}/delta${do_delta}
-     	    	   mkdir -p $feat_recog_dir  || exit 1;
-	    	   cp data/audio/augment/LRS2_decode/Testmfccs_aug_${name}/feats.scp ${dumpdir}/mfcc/Test_decode_${name}/delta${do_delta}/  || exit 1;
-            	   data2json.sh --feat ${feat_recog_dir}/feats.scp \
-			--bpecode ${bpemodel}.model data/audio/augment/LRS2_decode/Testmfccs_aug_${name} ${dict} \
-		  	> ${dumpdir}/mfcc/Test_decode_${name}/delta${do_delta}/data_${bpemode}${nbpe}.json  || exit 1;
+        nameambient=noise
+        namemusic=music
+        name_list="${nameambient} ${namemusic}"
+        for name in ${name_list};do
+    	    dset=Test
+            feat_recog_dir=${dumpdir}/mfcc/Test_decode_${name}/delta${do_delta}
+     	    mkdir -p $feat_recog_dir  || exit 1;
+	    cp data/audio/augment/LRS2_decode/Testmfccs_aug_${name}/feats.scp ${dumpdir}/mfcc/Test_decode_${name}/delta${do_delta}/  || exit 1;
+            data2json.sh --feat ${feat_recog_dir}/feats.scp \
+	 	--bpecode ${bpemodel}.model data/audio/augment/LRS2_decode/Testmfccs_aug_${name} ${dict} \
+		  > ${dumpdir}/mfcc/Test_decode_${name}/delta${do_delta}/data_${bpemode}${nbpe}.json  || exit 1;
 
-        	done
+            done
+    fi
+
+    if [ ${dataprocessingstage} -le 1 ] && [ ${stop_dataprocessingstage} -ge 1 ]; then
+	#Stage 5.1: Video augmentation with Gaussian blur and salt&pepper noise
+	if [ -d vidaug ]; then
+  	    echo "vidaug already exist..."
+	else
+  	    ln -s $VIDAUG_DIR vidaug
+	    ln -rsf local/videoaug.py  vidaug/videoaug.py  
 	fi
+	python3 vidaug/videoaug.py data/METADATA/Filelist_Test $DATA_DIR $videoaug blur	# video augmentation with Gaussian blur
+	python3 vidaug/videoaug.py data/METADATA/Filelist_Test $DATA_DIR $videoaug saltandpepper # video augmentation with salt and pepper noise
+	unlink ./vidaug
+    fi
 
-	if [ ${dataprocessingstage} -le 1 ] && [ ${stop_dataprocessingstage} -ge 1 ]; then
-		#Stage 5.1: Video augmentation with Gaussian blur and salt&pepper noise
-		if [ -d vidaug ]; then
-  	    	    echo "vidaug already exist..."
-		else
-  	    	    ln -s $VIDAUG_DIR vidaug
-		    ln -rsf local/videoaug.py  vidaug/videoaug.py  
-		fi
-		python3 vidaug/videoaug.py data/METADATA/Filelist_Test $DATA_DIR $videoaug blur	# video augmentation with Gaussian blur
-		python3 vidaug/videoaug.py data/METADATA/Filelist_Test $DATA_DIR $videoaug saltandpepper # video augmentation with salt and pepper noise
-		unlink ./vidaug
-	fi
+    if [ ${dataprocessingstage} -le 2 ] && [ ${stop_dataprocessingstage} -ge 2 ]; then
+	#Stage 5.2: Video stream processing, using OpenFace for face recognition
+    	echo "stage 5.2: OpenFace face recognition"
+	mkdir -p $facerecog
+    	for part in Test Val Train; do  #
+	    echo "Starting OpenFace background processes for ${part} set!"  
+ 	    mkdir -p $facerecog/LRS2${part}
+            local/Openface.sh $DATA_DIR $facerecog/LRS2${part} $part $OPENFACE_DIR \
+				LRS2 $nj $ifdebug || exit 1;
+    	done
+    	if [ "$ifpretrain" = true ] ; then
+    	    part=pretrain
+    	    echo "Starting OpenFace background processes for ${part} set!"  
+	    mkdir -p $facerecog/LRS2${part}
+    	    local/Openface.sh $DATA_DIR $facerecog/LRS2${part} $part $OPENFACE_DIR \
+				LRS2 $nj $ifdebug || exit 1;
+   	fi
+    	if [ "$iflrs3pretrain" = true ] ; then
+    	    part=pretrain
+    	    echo "Starting OpenFace background processes for LRS3 ${part} set!"  
+	    mkdir -p $facerecog/LRS3${part}
+    	    local/Openface.sh $DATALRS3_DIR $facerecog/LRS3${part} $part $OPENFACE_DIR \
+				LRS3 $nj $ifdebug || exit 1;
+   	fi
+	part=Test
+    	for noisetype in blur saltandpepper; do 
+	    echo "Starting OpenFace background processes for ${part} set!"  
+ 	    mkdir -p $facerecog/LRS2${part}_$noisetype
+            local/Openface_vidaug.sh $videoaug $facerecog/LRS2${part}_$noisetype \
+				$part $OPENFACE_DIR LRS2 $noisetype $nj $ifdebug || exit 1;
+    	done
 
-	if [ ${dataprocessingstage} -le 2 ] && [ ${stop_dataprocessingstage} -ge 2 ]; then
-		#Stage 5.2: Video stream processing, using OpenFace for face recognition
-    		echo "stage 5.2: OpenFace face recognition"
-		mkdir -p $facerecog
-    		for part in Test Val Train; do  #
-	    	    echo "Starting OpenFace background processes for ${part} set!"  
- 	    	    mkdir -p $facerecog/LRS2${part}
-           	    local/Openface.sh $DATA_DIR $facerecog/LRS2${part} $part $OPENFACE_DIR \
-					 LRS2 $nj $ifdebug || exit 1;
-    		done
-    		if [ "$ifpretrain" = true ] ; then
-    	    	    part=pretrain
-    	    	    echo "Starting OpenFace background processes for ${part} set!"  
-	    	    mkdir -p $facerecog/LRS2${part}
-    	    	    local/Openface.sh $DATA_DIR $facerecog/LRS2${part} $part $OPENFACE_DIR \
-						LRS2 $nj $ifdebug || exit 1;
-   		fi
-    		if [ "$iflrs3pretrain" = true ] ; then
-    	    	    part=pretrain
-    	    	    echo "Starting OpenFace background processes for LRS3 ${part} set!"  
-	   	    mkdir -p $facerecog/LRS3${part}
-    	    	    local/Openface.sh $DATALRS3_DIR $facerecog/LRS3${part} $part $OPENFACE_DIR \
-					LRS3 $nj $ifdebug || exit 1;
-   		fi
-	 	part=Test
-    		for noisetype in blur saltandpepper; do 
-	    	    echo "Starting OpenFace background processes for ${part} set!"  
- 	    	    mkdir -p $facerecog/LRS2${part}_$noisetype
-           	    local/Openface_vidaug.sh $videoaug $facerecog/LRS2${part}_$noisetype \
-						$part $OPENFACE_DIR LRS2 $noisetype $nj $ifdebug || exit 1;
-    		done
+	echo "All OpenFace background processes for all sets are done!"
+    fi
 
-		echo "All OpenFace background processes for all sets are done!"
-	fi
+    if [ ${dataprocessingstage} -le 3 ] && [ ${stop_dataprocessingstage} -ge 3 ]; then	
+	# Stage 5.3: Extract Video frames from the MP4 File by using OpenFace results
+	echo "stage 5.3: Extract Frames"
+	mkdir -p $videoframe
 
-	if [ ${dataprocessingstage} -le 3 ] && [ ${stop_dataprocessingstage} -ge 3 ]; then	
-	    # Stage 5.3: Extract Video frames from the MP4 File by using OpenFace results
-	    echo "stage 5.3: Extract Frames"
-	    mkdir -p $videoframe
-
-    	    if [ "$ifpretrain" = true ] ; then
-    	        part=pretrain
-	        echo "Extracting frames for ${part} set!" 
-	        mkdir -p $videoframe/LRS2${part}
-    	        local/extractframs.sh $DATA_DIR \
+    	if [ "$ifpretrain" = true ] ; then
+    	    part=pretrain
+	    echo "Extracting frames for ${part} set!" 
+	    mkdir -p $videoframe/LRS2${part}
+    	    local/extractframs.sh $DATA_DIR \
 			$videoframe \
 			$facerecog \
 			data/audio/clean/LRS2 \
@@ -623,13 +621,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 			LRS2 \
 			$ifsegment \
 			$ifmulticore || exit 1;
-   	    fi
+   	fi
 
-    	    if [ "$iflrs3pretrain" = true ] ; then
-    	        part=pretrain
-	        echo "Extracting frames for ${part} set!" 
-	        mkdir -p $videoframe/LRS3${part}
-    	        local/extractframs.sh $DATALRS3_DIR \
+    	if [ "$iflrs3pretrain" = true ] ; then
+    	    part=pretrain
+	    echo "Extracting frames for ${part} set!" 
+	    mkdir -p $videoframe/LRS3${part}
+    	    local/extractframs.sh $DATALRS3_DIR \
 			$videoframe \
 			$facerecog \
 			data/audio/clean/LRS3 \
@@ -637,12 +635,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 			LRS3 \
 			$ifsegment \
 			$ifmulticore || exit 1;
-   	    fi
+   	fi
 
-	    for part in Test Val Train; do  # Test 
-    	        echo "Extracting frames for ${part} set!"  	
- 	        mkdir -p $videoframe/LRS2${part}
-                local/extractframs.sh $DATA_DIR \
+	for part in Test Val Train; do  # Test 
+    	    echo "Extracting frames for ${part} set!"  	
+ 	    mkdir -p $videoframe/LRS2${part}
+            local/extractframs.sh $DATA_DIR \
 			$videoframe \
 			$facerecog \
 			data/audio/clean/LRS2 \
@@ -650,12 +648,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 			LRS2 \
 			$ifsegment \
 			$ifmulticore || exit 1;
-    	    done
-	    part=Test
-    	    for noisetype in blur saltandpepper; do 
-	    	echo "Extracting frames for augumented ${part} set!" 
-	       	mkdir -p $videoframe/LRS2${part}_$noisetype
-    	        local/extractframs.sh $videoaug \
+    	done
+	part=Test
+    	for noisetype in blur saltandpepper; do 
+	    echo "Extracting frames for augumented ${part} set!" 
+	    mkdir -p $videoframe/LRS2${part}_$noisetype
+    	    local/extractframs.sh $videoaug \
 			$videoframe \
 			$facerecog \
 			data/audio/clean/LRS2 \
@@ -664,245 +662,236 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 			$ifsegment \
 			$ifmulticore \
 			$noisetype || exit 1;
+	done
+	echo "Extract Frames finished"	
+    fi
+
+    if [ ${dataprocessingstage} -le 4 ] && [ ${stop_dataprocessingstage} -ge 4 ]; then
+        # Stage 5.4: Use DeepXi to estimate SNR
+        echo "stage 5.4: Estimate SNRs using DeepXi framework"
+	if [ -d DeepXi ]; then
+  	    echo "Deepxi already exist..."
+	else
+  	    ln -s $DEEPXI_DIR DeepXi
+	fi
+	rm -rf DeepXi/set/test_noisy_speech
+	rm -rf DeepXi/deepxi/se_batch.py
+	cp local/se_batch.py DeepXi/deepxi
+        if [ "$ifpretrain" = false ] && [ "$iflrs3pretrain" = false ] ; then
+	    for part in Test Val Train; do
+		echo "Extract SNR for ${part} set!"
+ 		mkdir -p $SNRdir/$part
+                mkdir -p $SNRptdir/$part
+        	local/extractsnr.sh $SNRdir $SNRptdir $mp3files $part $ifmulticore || exit 1;
+    	    done
+    	else	
+	    for part in Train pretrain Test Val; do  
+		echo "Extract SNR for ${part} set!" 
+		mkdir -p $SNRdir/$part
+                mkdir -p $SNRptdir/$part
+    		local/extractsnr.sh $SNRdir $SNRptdir $mp3files $part $ifmulticore || exit 1;
 	    done
+   	fi
+	nameambient=noise
+        namemusic=music
+        name_list="${nameambient} ${namemusic}"
+        for name in ${name_list};do
+    	    dset=Test
+ 	    mkdir -p $SNRdir/${dset}_${name}
+     	    mkdir -p $SNRptdir/${dset}_${name}  || exit 1;
+	    local/extractsnr.sh $SNRdir $SNRptdir $mp3files ${dset}_${name} $ifmulticore || exit 1;
+        done
 
-	    echo "Extract Frames finished"	
+	# Clean Up DeepXi: unlink and rm DeepXi
+        unlink ./DeepXi
+	rm -rf $SNRdir
+    fi
 
-	fi
-
-	if [ ${dataprocessingstage} -le 4 ] && [ ${stop_dataprocessingstage} -ge 4 ]; then
-            # Stage 5.4: Use DeepXi to estimate SNR
-            echo "stage 5.4: Estimate SNRs using DeepXi framework"
-	    if [ -d DeepXi ]; then
-  	        echo "Deepxi already exist..."
-	    else
-  	        ln -s $DEEPXI_DIR DeepXi
-	    fi
-	    #rm -rf DeepXi/data/mhanet-1.1c_inp_tgt.p
-	    rm -rf DeepXi/set/test_noisy_speech
-	    rm -rf DeepXi/deepxi/se_batch.py
-	    #cp local/mhanet-1.1c_inp_tgt.p DeepXi/data
-	    cp local/se_batch.py DeepXi/deepxi	
-	    #source $DEEPXI_VENVDIR
-            if [ "$ifpretrain" = false ] && [ "$iflrs3pretrain" = false ] ; then
-	        for part in Test Val Train; do
-		    echo "Extract SNR for ${part} set!"
- 		    mkdir -p $SNRdir/$part
-                    mkdir -p $SNRptdir/$part
-        	    local/extractsnr.sh $SNRdir $SNRptdir $mp3files $part $ifmulticore || exit 1;
-    	        done
-    	    else	
-	         for part in Train pretrain Test Val; do  
-		    echo "Extract SNR for ${part} set!" 
-		    mkdir -p $SNRdir/$part
-                    mkdir -p $SNRptdir/$part
-    		    local/extractsnr.sh $SNRdir $SNRptdir $mp3files $part $ifmulticore || exit 1;
-	        done
-   	    fi
-	    nameambient=noise
-            namemusic=music
-            name_list="${nameambient} ${namemusic}"
-            for name in ${name_list};do
-    	        dset=Test
- 	        mkdir -p $SNRdir/${dset}_${name}
-     	    	mkdir -p $SNRptdir/${dset}_${name}  || exit 1;
-	    	local/extractsnr.sh $SNRdir $SNRptdir $mp3files ${dset}_${name} $ifmulticore || exit 1;
-
-            done
-
-	    # Clean Up DeepXi: Deactivate DeepXi venv and return to espnet venv, unlink and rm
-	    #deactivate
-            unlink ./DeepXi
-	    rm -rf $SNRdir
-	fi
-
-	if [ ${dataprocessingstage} -le 5 ] && [ ${stop_dataprocessingstage} -ge 5 ]; then
-	    # Extract video features from video frames, if it is necessary
-	    echo "stage 5.5: Extract video features"
-	    mkdir -p $videofeature
-	    for part in Test Val; do
-	        echo "Extract video features for ${part} set!"
-	        mkdir -p $videofeature/LRS2${part}
-	        local/extractfeatures.sh $videoframe/LRS2${part}/Pics \
+    if [ ${dataprocessingstage} -le 5 ] && [ ${stop_dataprocessingstage} -ge 5 ]; then
+	# Extract video features from video frames, if it is necessary
+	echo "stage 5.5: Extract video features"
+	mkdir -p $videofeature
+	for part in Test Val; do
+	    echo "Extract video features for ${part} set!"
+	    mkdir -p $videofeature/LRS2${part}
+	    local/extractfeatures.sh $videoframe/LRS2${part}/Pics \
 				$videofeature/LRS2${part} \
 				$PRETRAINEDMODEL \
 				$part \
 				$ifcuda \
 				$ifdebug || exit 1;
-	    done
+	done
 
-    	    if [ "$ifpretrain" = true ] ; then
-	        part=pretrain
-	        echo "Extract video features for ${part} set!"
-	        mkdir -p $videofeature/LRS2${part}
-	        local/extractfeatures.sh $videoframe/LRS2${part}/Pics \
+    	if [ "$ifpretrain" = true ] ; then
+	    part=pretrain
+	    echo "Extract video features for ${part} set!"
+	    mkdir -p $videofeature/LRS2${part}
+	    local/extractfeatures.sh $videoframe/LRS2${part}/Pics \
 				$videofeature/LRS2${part} \
 				$PRETRAINEDMODEL \
 				$part \
 				$ifcuda \
 				$ifdebug || exit 1;
-   	    fi
+   	fi
 
-    	    if [ "$iflrs3pretrain" = true ] ; then
-	        part=pretrain
-	        echo "Extract video features for ${part} set!"
-	        mkdir -p $videofeature/LRS3${part}
-	        local/extractfeatures.sh $videoframe/LRS3${part}/Pics \
+    	if [ "$iflrs3pretrain" = true ] ; then
+	    part=pretrain
+	    echo "Extract video features for ${part} set!"
+	    mkdir -p $videofeature/LRS3${part}
+	    local/extractfeatures.sh $videoframe/LRS3${part}/Pics \
 				$videofeature/LRS3${part} \
 				$PRETRAINEDMODEL \
 				$part \
 				$ifcuda \
 				$ifdebug || exit 1;
-   	    fi
-	    part=Test
-    	    for noisetype in blur saltandpepper; do 
-	        echo "Extract video features for augmented ${part} set!"
-	       	mkdir -p $videofeature/LRS2${part}_$noisetype
-    	        local/extractfeatures.sh $videoframe/LRS2${part}_$noisetype/Pics \
+   	fi
+	part=Test
+    	for noisetype in blur saltandpepper; do 
+	    echo "Extract video features for augmented ${part} set!"
+	    mkdir -p $videofeature/LRS2${part}_$noisetype
+    	    local/extractfeatures.sh $videoframe/LRS2${part}_$noisetype/Pics \
 			$videofeature/LRS2${part}_$noisetype \
 			$PRETRAINEDMODEL \
 			$part \
 			$ifcuda \
 			$ifdebug || exit 1;
+	done
+    fi
+
+    if [ ${dataprocessingstage} -le 6 ] && [ ${stop_dataprocessingstage} -ge 6 ]; then	
+	# Make video ark files 
+	echo "stage 5.6: Make video ark files"
+
+	rm -rf data/video
+	python3 local/make_video.py $videofeature data/video $nj
+	for part in Test Val; do
+	    echo "Make video dump files for LRS2 ${part} set!"
+	    cat data/video/LRS2${part}/feats_*.scp > data/video/LRS2${part}/feats.scp || exit 1;
+            sort data/video/LRS2${part}/feats.scp -o data/video/LRS2${part}/feats.scp
+   	    mkdir -p ${dumpdir}/video/${part} || exit 1;
+	    for files in text wav.scp utt2spk; do
+		cp data/audio/clean/LRS2/${part}/${files} data/video/LRS2${part} || exit 1;
 	    done
-	fi
+	    utils/fix_data_dir.sh data/video/LRS2${part}  || exit 1;
+	    cp data/video/LRS2${part}/feats.scp ${dumpdir}/video/${part} || exit 1;
+	    data2json.sh --feat ${dumpdir}/video/${part}/feats.scp --bpecode ${bpemodel}.model \
+         			data/video/LRS2${part} ${dict} > ${dumpdir}/video/${part}/data_${bpemode}${nbpe}.json  || exit 1;
+	done
 
-	if [ ${dataprocessingstage} -le 6 ] && [ ${stop_dataprocessingstage} -ge 6 ]; then	
-	    # Make video ark files 
-	    echo "stage 5.6: Make video ark files"
-
-	    rm -rf data/video
-	    python3 local/make_video.py $videofeature data/video $nj
-	    for part in Test Val; do
-		echo "Make video dump files for LRS2 ${part} set!"
+	if [[ "$ifpretrain" = true || "$iflrs3pretrain" = true ]] ; then
+	    part=pretrain
+ 	    if [[ "$ifpretrain" = true && "$iflrs3pretrain" = false ]] || [[ "$ifpretrain" = false && "$iflrs3pretrain" = true ]]; then
+		if [[ "$ifpretrain" = true && "$iflrs3pretrain" = false ]] ; then
+		    dataset=LRS2
+		elif [[ "$ifpretrain" = false && "$iflrs3pretrain" = true ]] ; then
+		    dataset=LRS3
+		fi
+		echo "Make video dump files for ${dataset} ${part} set!"
+		mkdir -p data/video/${part}
+	        cat data/video/${part}/feats_*.scp > data/video/${part}/feats.scp || exit 1;
+		sort data/video/${part}/feats.scp -o data/video/${part}/feats.scp
+   	        mkdir -p ${dumpdir}/video/${part} || exit 1;
+		for files in text wav.scp utt2spk; do
+		    cp data/audio/clean/${dataset}/${part}/${files} data/video/${part} || exit 1;
+		done
+		utils/fix_data_dir.sh data/video/${part}  || exit 1;
+		cp data/video/${part}/${part}/feats.scp ${dumpdir}/video/${part} || exit 1;
+	    elif [[ "$ifpretrain" = true && "$iflrs3pretrain" = true ]] ; then
+		echo "Make video dump files for LRS2 and LRS3 ${part} set!"
 	        cat data/video/LRS2${part}/feats_*.scp > data/video/LRS2${part}/feats.scp || exit 1;
-		sort data/video/LRS2${part}/feats.scp -o data/video/LRS2${part}/feats.scp
+	        cat data/video/LRS3${part}/feats_*.scp > data/video/LRS3${part}/feats.scp || exit 1;
+		mkdir -p data/video/${part}
    		mkdir -p ${dumpdir}/video/${part} || exit 1;
 		for files in text wav.scp utt2spk; do
-		    cp data/audio/clean/LRS2/${part}/${files} data/video/LRS2${part} || exit 1;
-		done
-		    utils/fix_data_dir.sh data/video/LRS2${part}  || exit 1;
-		cp data/video/LRS2${part}/feats.scp ${dumpdir}/video/${part} || exit 1;
-		data2json.sh --feat ${dumpdir}/video/${part}/feats.scp --bpecode ${bpemodel}.model \
-         			data/video/LRS2${part} ${dict} > ${dumpdir}/video/${part}/data_${bpemode}${nbpe}.json  || exit 1;
-	    done
-
-	    if [[ "$ifpretrain" = true || "$iflrs3pretrain" = true ]] ; then
-		part=pretrain
- 	        if [[ "$ifpretrain" = true && "$iflrs3pretrain" = false ]] || [[ "$ifpretrain" = false && "$iflrs3pretrain" = true ]]; then
-		    if [[ "$ifpretrain" = true && "$iflrs3pretrain" = false ]] ; then
-		    	dataset=LRS2
-		    elif [[ "$ifpretrain" = false && "$iflrs3pretrain" = true ]] ; then
-			dataset=LRS3
-		    fi
-		    echo "Make video dump files for ${dataset} ${part} set!"
-		    mkdir -p data/video/${part}
-	            cat data/video/${part}/feats_*.scp > data/video/${part}/feats.scp || exit 1;
-		    sort data/video/${part}/feats.scp -o data/video/${part}/feats.scp
-   		    mkdir -p ${dumpdir}/video/${part} || exit 1;
-		    for files in text wav.scp utt2spk; do
-		        cp data/audio/clean/${dataset}/${part}/${files} data/video/${part} || exit 1;
-		    done
-		    utils/fix_data_dir.sh data/video/${part}  || exit 1;
-		    cp data/video/${part}/${part}/feats.scp ${dumpdir}/video/${part} || exit 1;
-	        elif [[ "$ifpretrain" = true && "$iflrs3pretrain" = true ]] ; then
-		    echo "Make video dump files for LRS2 and LRS3 ${part} set!"
-	            cat data/video/LRS2${part}/feats_*.scp > data/video/LRS2${part}/feats.scp || exit 1;
-	            cat data/video/LRS3${part}/feats_*.scp > data/video/LRS3${part}/feats.scp || exit 1;
-		    mkdir -p data/video/${part}
-   		    mkdir -p ${dumpdir}/video/${part} || exit 1;
-		    for files in text wav.scp utt2spk; do
-		        cat data/audio/clean/LRS2/${part}/${files} data/audio/clean/LRS3/${part}/${files} > data/video/${part}/${files} || exit 1;
-		        sort data/video/${part}/${files} -o data/video/${part}/${files}
-  		    done
-		    utils/fix_data_dir.sh data/video/${part}  || exit 1;
-		    cat data/video/LRS2${part}/feats.scp data/video/LRS3${part}/feats.scp > ${dumpdir}/video/${part}/feats.scp || exit 1;
-		    sort ${dumpdir}/video/${part}/feats.scp -o ${dumpdir}/video/${part}/feats.scp
-		fi
-
-		data2json.sh --feat ${dumpdir}/video/${part}/feats.scp --bpecode ${bpemodel}.model \
-         			data/video/${part} ${dict} > ${dumpdir}/video/${part}/data_${bpemode}${nbpe}.json || exit 1;
-
+		    cat data/audio/clean/LRS2/${part}/${files} data/audio/clean/LRS3/${part}/${files} > data/video/${part}/${files} || exit 1;
+		    sort data/video/${part}/${files} -o data/video/${part}/${files}
+  		done
+		utils/fix_data_dir.sh data/video/${part}  || exit 1;
+		cat data/video/LRS2${part}/feats.scp data/video/LRS3${part}/feats.scp > ${dumpdir}/video/${part}/feats.scp || exit 1;
+		sort ${dumpdir}/video/${part}/feats.scp -o ${dumpdir}/video/${part}/feats.scp
 	    fi
 
-	    part=Test
-    	    for noisetype in blur saltandpepper; do 
-	        echo "Make video dump files for augmented ${part} set!"
-	        cat data/video/LRS2${part}_${noisetype}/feats_*.scp > data/video/LRS2${part}_${noisetype}/feats.scp || exit 1;
-		sort data/video/LRS2${part}_${noisetype}/feats.scp -o data/video/LRS2${part}_${noisetype}/feats.scp
-   		mkdir -p ${dumpdir}/video/${part}_decode_${noisetype} || exit 1;
-		for files in text wav.scp utt2spk; do
-		    cp data/audio/clean/LRS2/${part}/${files} data/video/LRS2${part}_${noisetype} || exit 1;
-		done
-		utils/fix_data_dir.sh data/video/LRS2${part}_${noisetype}  || exit 1;
-		cp data/video/LRS2${part}_${noisetype}/feats.scp ${dumpdir}/video/${part}_decode_${noisetype} || exit 1;
-		data2json.sh --feat ${dumpdir}/video/${part}_decode_${noisetype}/feats.scp --bpecode ${bpemodel}.model \
+	    data2json.sh --feat ${dumpdir}/video/${part}/feats.scp --bpecode ${bpemodel}.model \
+         			data/video/${part} ${dict} > ${dumpdir}/video/${part}/data_${bpemode}${nbpe}.json || exit 1;
+
+	fi
+
+	part=Test
+    	for noisetype in blur saltandpepper; do 
+	    echo "Make video dump files for augmented ${part} set!"
+	    cat data/video/LRS2${part}_${noisetype}/feats_*.scp > data/video/LRS2${part}_${noisetype}/feats.scp || exit 1;
+ 	    sort data/video/LRS2${part}_${noisetype}/feats.scp -o data/video/LRS2${part}_${noisetype}/feats.scp
+   	    mkdir -p ${dumpdir}/video/${part}_decode_${noisetype} || exit 1;
+	    for files in text wav.scp utt2spk; do
+		cp data/audio/clean/LRS2/${part}/${files} data/video/LRS2${part}_${noisetype} || exit 1;
+	    done
+	    utils/fix_data_dir.sh data/video/LRS2${part}_${noisetype}  || exit 1;
+	    cp data/video/LRS2${part}_${noisetype}/feats.scp ${dumpdir}/video/${part}_decode_${noisetype} || exit 1;
+	    data2json.sh --feat ${dumpdir}/video/${part}_decode_${noisetype}/feats.scp --bpecode ${bpemodel}.model \
          			data/video/LRS2${part}_${noisetype} ${dict} > ${dumpdir}/video/${part}_decode_${noisetype}/data_${bpemode}${nbpe}.json \
                                 || exit 1;
-	    done
-	fi
+	done
+    fi
 
+    if [ ${dataprocessingstage} -le 7 ] && [ ${stop_dataprocessingstage} -ge 7 ]; then
+	# Remake dump files
+	echo "stage 5.7: Remake audio and video dump files"
 
-	if [ ${dataprocessingstage} -le 7 ] && [ ${stop_dataprocessingstage} -ge 7 ]; then
-	    # Remake dump files
-	    echo "stage 5.7: Remake audio and video dump files"
+	for dset in pretrain_Train Val Test Test_decode_music Test_decode_noise; do 
+            rm -rf dump/audio/$dset
+	    python3 local/dumpcreate/audiodump.py dump/audio dump/audio_org $dset $ifmulticore || exit 1;
+        done
 
-	    for dset in pretrain_Train Val Test Test_decode_music Test_decode_noise; do 
-     		rm -rf dump/audio/$dset
-	        python3 local/dumpcreate/audiodump.py dump/audio dump/audio_org $dset $ifmulticore || exit 1;
-            done
-
-	    for dset in pretrain Val Test; do 
- 		rm -rf dump/avpretrain/$dset
-	        python3 local/dumpcreate/avpretraindump.py dump/avpretrain dump/audio_org dump/video \
+	for dset in pretrain Val Test; do 
+ 	    rm -rf dump/avpretrain/$dset
+	    python3 local/dumpcreate/avpretraindump.py dump/avpretrain dump/audio_org dump/video \
 						$SNRptdir $videoframe dump/mfcc \
 						$dset $ifmulticore || exit 1;
-            done
+        done
 
-	    for dset in Train Val Test; do 
-		rm -rf dump/avtrain/$dset
-	        python3 local/dumpcreate/avtraindump.py dump/avtrain dump/audio_org $videofeature \
+	for dset in Train Val Test; do 
+            rm -rf dump/avtrain/$dset
+	    python3 local/dumpcreate/avtraindump.py dump/avtrain dump/audio_org $videofeature \
 						$SNRptdir $videoframe dump/mfcc \
 						$dset $ifmulticore || exit 1;
-            done
+        done
 
-	    # Creat video dump file
-	    for dset in pretrain Val Test; do 
-		rm -rf dump/videopretrain/$dset
-	        python3 local/dumpcreate/videodump.py dump/avpretrain dump/videopretrain $dset || exit 1;
-            done
+	# Creat video dump file
+	for dset in pretrain Val Test; do 
+	    rm -rf dump/videopretrain/$dset
+	    python3 local/dumpcreate/videodump.py dump/avpretrain dump/videopretrain $dset || exit 1;
+        done
 
-	    for dset in Train Val Test; do 
-		rm -rf dump/videotrain/$dset
-	        python3 local/dumpcreate/videodump.py dump/avtrain dump/videotrain $dset || exit 1;
-            done
+	for dset in Train Val Test; do 
+	    rm -rf dump/videotrain/$dset
+	    python3 local/dumpcreate/videodump.py dump/avtrain dump/videotrain $dset || exit 1;
+        done
 
-	    dset=Test
-	    rm -rf dump/avpretraindecode
-	    rm -rf dump/avtraindecode
-	    for noisecombination in 'noise_None' 'music_None' 'noise_blur' 'noise_saltandpepper'; do 
-	        python3 local/dumpcreate/avpretraindecodedump.py dump/avpretraindecode dump/audio_org dump/video \
+	dset=Test
+	rm -rf dump/avpretraindecode
+	rm -rf dump/avtraindecode
+	for noisecombination in 'noise_None' 'music_None' 'noise_blur' 'noise_saltandpepper'; do 
+	    python3 local/dumpcreate/avpretraindecodedump.py dump/avpretraindecode dump/audio_org dump/video \
 				$SNRptdir $videoframe dump/mfcc \
 				$dset $noisecombination $ifmulticore || exit 1;
-		python3 local/dumpcreate/avtraindecodedump.py dump/avtraindecode dump/audio_org dump/video \
+	    python3 local/dumpcreate/avtraindecodedump.py dump/avtraindecode dump/audio_org dump/video \
 				$videofeature $SNRptdir $videoframe dump/mfcc \
 				$dset $noisecombination $ifmulticore || exit 1;
-	    done
+	done
 
-	fi
-
-	if [ ${dataprocessingstage} -le 8 ] && [ ${stop_dataprocessingstage} -ge 8 ]; then
-	    echo "stage 5.8: Split Test decode dump files"
-	    for audionoise in noise music; do
-	        python3 local/extractsnr.py data/audio/augment/LRS2_decode $audionoise $ifmulticore || exit 1;
-            done
-	    for noisecombination in 'noise_None' 'music_None' 'noise_blur' 'noise_saltandpepper'; do 
-	        python3 local/splitsnr.py dump/avpretraindecode $noisecombination data/audio/augment/LRS2_decode || exit 1;
-	        python3 local/splitsnr.py dump/avtraindecode $noisecombination data/audio/augment/LRS2_decode || exit 1;
-	    done
-	fi
-	
     fi
+
+    if [ ${dataprocessingstage} -le 8 ] && [ ${stop_dataprocessingstage} -ge 8 ]; then
+	echo "stage 5.8: Split Test decode dump files"
+	for audionoise in noise music; do
+	    python3 local/extractsnr.py data/audio/augment/LRS2_decode $audionoise $ifmulticore || exit 1;
+        done
+	for noisecombination in 'noise_None' 'music_None' 'noise_blur' 'noise_saltandpepper'; do 
+	    python3 local/splitsnr.py dump/avpretraindecode $noisecombination data/audio/augment/LRS2_decode || exit 1;
+	    python3 local/splitsnr.py dump/avtraindecode $noisecombination data/audio/augment/LRS2_decode || exit 1;
+	done
+    fi
+	
     echo "stage 5: Reliability measures generation finished"
 fi
 
@@ -987,27 +976,12 @@ fi
 # ToDo: Hand over parameters for subscripts
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     echo "Stage 7: Network Training"
-    if [ "$modeltype" = AV ]; then
-        expdirapretrain=exp/pretrain/A
-        mkdir -p ${expdirapretrain}
-        echo ${expdirapretrain}
-        expdirvpretrain=exp/pretrain/V
-        mkdir -p ${expdirvpretrain}
-        echo ${expdirvpretrain}
-        expdirvfine=exp/fine/V
-        mkdir -p ${expdirvfine}
-        echo ${expdirvfine}
-        expdiravpretrain=exp/pretrain/AV
-        mkdir -p ${expdiravpretrain}
-        echo ${expdiravpretrain}
-        expdiravfine=exp/fine/AV
-        mkdir -p ${expdiravfine}
-        echo ${expdiravfine}
-
-
-        # train audio model
-	noisetype=noise 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-        (local/training/train_audio.sh --backend $backend \
+    # train audio model
+    expdirapretrain=exp/pretrain/A
+    mkdir -p ${expdirapretrain}
+    echo ${expdirapretrain}
+    noisetype=noise 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
+    (local/training/train_audio.sh --backend $backend \
 				--ngpu $ngpu \
 				--debugmode $debugmode \
 				--N $N \
@@ -1024,9 +998,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				--decode_config $decode_config\
 				$expdirapretrain dump/audio dump/avpretraindecode $lmexpdir $noisetype $dict $bpemodel || exit 1;)
 
-        # pretrain video model
-	noisetype=blur 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-        (. local/training/pretrain_video.sh --backend $backend \
+    # pretrain video model
+    expdirvpretrain=exp/pretrain/V
+    mkdir -p ${expdirvpretrain}
+    echo ${expdirvpretrain}
+    noisetype=blur 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
+    (. local/training/pretrain_video.sh --backend $backend \
 				--ngpu $ngpu \
 				--debugmode $debugmode \
 				--N $N \
@@ -1041,9 +1018,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				--decode_config $decode_config\
 				 $expdirvpretrain dump/videopretrain dump/avpretraindecode $lmexpdir $noisetype $dict $bpemodel  || exit 1;)
 
-	# finetune video model
-	noisetype=blur 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-        (. local/training/finetune_video.sh --backend $backend \
+    # finetune video model
+    expdirvfine=exp/fine/V
+    mkdir -p ${expdirvfine}
+    echo ${expdirvfine}
+    noisetype=blur 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
+    (. local/training/finetune_video.sh --backend $backend \
 				--ngpu $ngpu \
 				--debugmode $debugmode \
 				--N $N \
@@ -1058,9 +1038,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				--decode_config $decode_config\
 				 $expdirvfine $expdirvpretrain dump/videotrain dump/avtraindecode $lmexpdir $noisetype $dict $bpemodel  || exit 1;)
 
-        # pretrain audio-visual model
-	noisetype=noise 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-        (. local/training/pretrain_av.sh --backend $backend \
+    # pretrain audio-visual model
+    expdiravpretrain=exp/pretrain/AV
+    mkdir -p ${expdiravpretrain}
+    echo ${expdiravpretrain}
+    noisetype=noise 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
+    (. local/training/pretrain_av.sh --backend $backend \
 				--ngpu $ngpu \
 				--debugmode $debugmode \
 				--N $N \
@@ -1076,9 +1059,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 			        $expdiravpretrain dump/avpretrain dump/avpretraindecode $lmexpdir \
  				$noisetype $dict $bpemodel $expdirapretrain $expdirvpretrain|| exit 1;)
 
-        # finetune audio-visual model (final network used for decoding)
-	noisetype=noise 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-        (. local/training/finetune_av.sh --backend $backend \
+    # finetune audio-visual model (final network used for decoding)
+    expdiravfine=exp/fine/AV
+    mkdir -p ${expdiravfine}
+    echo ${expdiravfine}
+    noisetype=noise 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
+    (. local/training/finetune_av.sh --backend $backend \
 				--ngpu $ngpu \
 				--debugmode $debugmode \
 				--N $N \
@@ -1094,73 +1080,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				$expdiravfine dump/avtrain dump/avtraindecode $lmexpdir \
  				$noisetype $dict $bpemodel $expdiravpretrain|| exit 1;)
 
-    elif [ "$modeltype" = A ]; then
- 
-	expdirapretrain=exp/pretrain/A
-        mkdir -p ${expdirapretrain}
-        echo ${expdirapretrain}
-
-        # train audio model
-	noisetype=noise 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-        (local/training/train_audio.sh --backend $backend \
-				--ngpu $ngpu \
-				--debugmode $debugmode \
-				--N $N \
- 				--verbose $verbose \
-				--nbpe $nbpe \
-				--bpemode $bpemode \
-				--nj $nj \
-				--do_delta $do_delta \
-				--preprocess_config $preprocess_config \
-				--train_config $train_config\
-				--lm_config $lm_config \
-				--decode_config $decode_config\
-				$expdirapretrain dump/audio dump/avpretraindecode $lmexpdir $noisetype $dict $bpemodel || exit 1;)
-
-    elif [ "$modeltype" = V ]; then
-
-        expdirvpretrain=exp/pretrain/V
-        mkdir -p ${expdirvpretrain}
-        echo ${expdirvpretrain}
-        expdirvfine=exp/fine/V
-        mkdir -p ${expdirvfine}
-        echo ${expdirvfine}
-
-        # pretrain video model
-	noisetype=blur 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-        (. local/training/pretrain_video.sh --backend $backend \
-				--ngpu $ngpu \
-				--debugmode $debugmode \
-				--N $N \
- 				--verbose $verbose \
-				--nbpe $nbpe \
-				--bpemode $bpemode \
-				--nj $nj \
-				--do_delta $do_delta \
-				--preprocess_config $preprocess_config \
-				--train_config $train_config\
-				--lm_config $lm_config \
-				--decode_config $decode_config\
-				 $expdirvpretrain dump/videopretrain dump/avpretraindecode $lmexpdir $noisetype $dict $bpemodel  || exit 1;)
-  
-
-	# finetune video model
-	noisetype=blur 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-        (. local/training/finetune_video.sh --backend $backend \
-				--ngpu $ngpu \
-				--debugmode $debugmode \
-				--N $N \
- 				--verbose $verbose \
-				--nbpe $nbpe \
-				--bpemode $bpemode \
-				--nj $nj \
-				--do_delta $do_delta \
-				--preprocess_config $preprocess_config \
-				--train_config $train_config\
-				--lm_config $lm_config \
-				--decode_config $decode_config\
-				 $expdirvfine $expdirvpretrain dump/videotrain dump/avtraindecode $lmexpdir $noisetype $dict $bpemodel  || exit 1;)
-    fi
+    
 
 fi 
 

@@ -7,9 +7,8 @@ filename=Filelist_$dset			# Name of Filelist
 ifmulticore=$3				# if multi cpu processing, default is true in all scripts
 ifsegpretrain=$4 			# if we segment pretrain set
 sourcedir=$videodir			# set sourcedir for some scripts
-modeltype=$5				# extract video features if the modeltype is AV or V
-ifdebug=$6				# with debug, we only use $num utterances from pretrain and $num Utts from Train set
-num=$7					# number of utterances used from pretrain and Train set
+ifdebug=$5				# with debug, we only use $num utterances from pretrain and $num Utts from Train set
+num=$6					# number of utterances used from pretrain and Train set
 
 
 # Make folders
