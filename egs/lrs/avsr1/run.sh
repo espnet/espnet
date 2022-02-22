@@ -25,7 +25,6 @@ debugmode=1
 dumpdir=dump   			# directory to dump full features
 N=0            			# number of minibatches to be used (mainly for debugging). "0" uses all minibatches.
 verbose=0      			# verbose option
-resume=     			# Resume the training from snapshot
 train_lm=false			# true: Train own language model, false: use pretrained librispeech LM model
 
 # Setting path variables for dataset, OpenFace, DeepXi, pretrained model and musan
@@ -46,10 +45,6 @@ decode_config=conf/decode.yaml
 # rnnlm related
 lm_resume=        # specify a snapshot file to resume LM training
 lmtag=            # tag for managing LMs
-
-# decoding parameter
-recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-n_average=10
 
 # bpemode (unigram or bpe)
 nbpe=500
