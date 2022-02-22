@@ -88,7 +88,6 @@ recog_set="Val Test"
 OPENFACE_DIR=local/installations/OpenFace/build/bin	# Path to OpenFace build directory
 VIDAUG_DIR=local/installations/vidaug 		 	# Path to vidaug directory
 DEEPXI_DIR=local/installations/DeepXi 			# DeepXi directory
-DEEPXI_VENVDIR=local/installations/venv/DeepXi/bin/activate 				# DeepXi virtual environment directory
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 # Install required softwares
     conda install -n espnet_venv tensorflow tqdm pysoundfile
@@ -298,7 +297,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
 	part=pretrain
         python3 local/segaugaudio.py $mp3files data/audio/augment $part $ifmulticore
-	rm -r ${mp3files}/${part}
+	rm -r ${mp3files:?}/${part:?}
 	mv ${mp3files}/${part}_aug $mp3files/${part}
     fi
     nameambient=noise
