@@ -22,6 +22,18 @@ preprocess_config=
 train_config=  	      	 
 lm_config=
 decode_config=
+stage=0				# stage 0 for training and stage 1 for decoding
+stop_stage=100			# stage at which to stop 
+resume=        			# Resume the training from snapshot
+# rnnlm related
+lm_resume=        		# specify a snapshot file to resume LM training
+lmtag=            		# tag for managing LMs
+# decoding parameter
+recog_model=model.acc.best 	# set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
+n_average=10
+# exp tag
+tag="" 				# tag for managing experiments.
+recog_evalset="-12 -9 -6 -3 0 3 6 9 12 clean reverb"
 
 [ -f path.sh ] && . ./path.sh # source the path.
 . utils/parse_options.sh || exit 1;
@@ -35,35 +47,11 @@ noisetype=$5
 dict=$6
 bpemodel=$7
 
-
-stage=0				# stage 0 for training and stage 1 for decoding
-stop_stage=100			# stage at which to stop 
-resume=        			# Resume the training from snapshot
-
-
-# rnnlm related
-lm_resume=        		# specify a snapshot file to resume LM training
-lmtag=            		# tag for managing LMs
-
-# decoding parameter
-recog_model=model.acc.best 	# set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
-n_average=10
-
-
-
-# exp tag
-tag="" 				# tag for managing experiments.
-
-
-
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
 set -u
 set -o pipefail
-
-recog_evalset="-12 -9 -6 -3 0 3 6 9 12 clean reverb"
-
 
 #### The features should already extracted and the language model should be already trained
 if [ ! -d $expdir ]; then
