@@ -23,10 +23,8 @@ train_config=
 lm_config=
 decode_config=
 
-
-. ./cmd.sh
-. ./path.sh
-. utils/parse_options.sh
+[ -f path.sh ] && . ./path.sh # source the path.
+. utils/parse_options.sh || exit 1;
 
 # parameter handover
 expdir=$1
