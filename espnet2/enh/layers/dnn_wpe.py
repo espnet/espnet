@@ -97,7 +97,7 @@ class DNN_WPE(torch.nn.Module):
 
         for i in range(self.iterations):
             # Calculate power: (..., C, T)
-            power = [enh.real ** 2 + enh.imag ** 2 for enh in enhanced]
+            power = [enh.real**2 + enh.imag**2 for enh in enhanced]
             if i == 0 and self.use_dnn_mask:
                 # mask: (B, F, C, T)
                 masks, _ = self.mask_est(data, ilens)
