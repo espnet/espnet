@@ -56,3 +56,47 @@ Model: https://huggingface.co/pyf98/librispeech_100h_conformer
 |beam20_ctc0.3/test_clean|2620|66983|92.0|5.0|3.0|0.6|8.6|57.0|
 |beam20_ctc0.3/test_other|2939|66650|81.2|13.0|5.8|2.0|20.9|81.6|
 
+
+
+## Environments
+- date: `Fri Feb 18 16:00:45 EST 2022`
+- python version: `3.9.7 (default, Sep 16 2021, 13:09:58)  [GCC 7.5.0]`
+- espnet version: `espnet 0.10.7a1`
+- pytorch version: `pytorch 1.10.1`
+- Git hash: `f6779876103be2116de158a44757f8979eff0ab0`
+  - Commit date: `Fri Feb 18 15:57:13 2022 -0500`
+
+## asr_transformer_win400_hop160_ctc0.3_lr2e-3_warmup15k_timemask5_amp_no-deterministic
+
+GPU: a single V100-32GB
+
+Training Time: 42834 seconds
+
+Model: https://huggingface.co/pyf98/librispeech_100h_transformer
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam20_ctc0.3/dev_clean|2703|54402|93.0|6.4|0.5|1.1|8.1|63.1|
+|beam20_ctc0.3/dev_other|2864|50948|82.5|15.9|1.6|2.7|20.2|83.8|
+|beam20_ctc0.3/test_clean|2620|52576|92.8|6.5|0.7|1.2|8.4|63.3|
+|beam20_ctc0.3/test_other|2939|52343|82.1|16.0|1.9|2.6|20.5|84.8|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam20_ctc0.3/dev_clean|2703|288456|97.5|1.4|1.1|0.9|3.4|63.1|
+|beam20_ctc0.3/dev_other|2864|265951|92.1|4.8|3.1|2.4|10.3|83.8|
+|beam20_ctc0.3/test_clean|2620|281530|97.4|1.4|1.2|0.9|3.5|63.3|
+|beam20_ctc0.3/test_other|2939|272758|92.0|4.7|3.2|2.3|10.2|84.8|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam20_ctc0.3/dev_clean|2703|69558|89.9|6.1|4.0|0.8|10.9|63.1|
+|beam20_ctc0.3/dev_other|2864|64524|78.5|15.3|6.2|2.8|24.3|83.8|
+|beam20_ctc0.3/test_clean|2620|66983|90.0|6.2|3.9|0.8|10.9|63.3|
+|beam20_ctc0.3/test_other|2939|66650|77.9|15.2|6.9|2.5|24.6|84.8|
