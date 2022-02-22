@@ -981,7 +981,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     mkdir -p ${expdirapretrain}
     echo ${expdirapretrain}
     noisetype=noise 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-    (local/training/train_audio.sh --backend $backend \
+    local/training/train_audio.sh --backend $backend \
 				--ngpu $ngpu \
 				--debugmode $debugmode \
 				--N $N \
@@ -996,14 +996,14 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				--train_config $train_config\
 				--lm_config $lm_config \
 				--decode_config $decode_config\
-				$expdirapretrain dump/audio dump/avpretraindecode $lmexpdir $noisetype $dict $bpemodel || exit 1;)
+				$expdirapretrain dump/audio dump/avpretraindecode $lmexpdir $noisetype $dict $bpemodel || exit 1;
 
     # pretrain video model
     expdirvpretrain=exp/pretrain/V
     mkdir -p ${expdirvpretrain}
     echo ${expdirvpretrain}
     noisetype=blur 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-    (. local/training/pretrain_video.sh --backend $backend \
+    local/training/pretrain_video.sh --backend $backend \
 				--ngpu $ngpu \
 				--debugmode $debugmode \
 				--N $N \
@@ -1016,14 +1016,14 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				--train_config $train_config\
 				--lm_config $lm_config \
 				--decode_config $decode_config\
-				 $expdirvpretrain dump/videopretrain dump/avpretraindecode $lmexpdir $noisetype $dict $bpemodel  || exit 1;)
+				 $expdirvpretrain dump/videopretrain dump/avpretraindecode $lmexpdir $noisetype $dict $bpemodel  || exit 1;
 
     # finetune video model
     expdirvfine=exp/fine/V
     mkdir -p ${expdirvfine}
     echo ${expdirvfine}
     noisetype=blur 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-    (. local/training/finetune_video.sh --backend $backend \
+    local/training/finetune_video.sh --backend $backend \
 				--ngpu $ngpu \
 				--debugmode $debugmode \
 				--N $N \
@@ -1036,14 +1036,14 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				--train_config $train_config\
 				--lm_config $lm_config \
 				--decode_config $decode_config\
-				 $expdirvfine $expdirvpretrain dump/videotrain dump/avtraindecode $lmexpdir $noisetype $dict $bpemodel  || exit 1;)
+				 $expdirvfine $expdirvpretrain dump/videotrain dump/avtraindecode $lmexpdir $noisetype $dict $bpemodel  || exit 1;
 
     # pretrain audio-visual model
     expdiravpretrain=exp/pretrain/AV
     mkdir -p ${expdiravpretrain}
     echo ${expdiravpretrain}
     noisetype=noise 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-    (. local/training/pretrain_av.sh --backend $backend \
+    local/training/pretrain_av.sh --backend $backend \
 				--ngpu $ngpu \
 				--debugmode $debugmode \
 				--N $N \
@@ -1057,14 +1057,14 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				--lm_config $lm_config \
 				--decode_config $decode_config\
 			        $expdiravpretrain dump/avpretrain dump/avpretraindecode $lmexpdir \
- 				$noisetype $dict $bpemodel $expdirapretrain $expdirvpretrain|| exit 1;)
+ 				$noisetype $dict $bpemodel $expdirapretrain $expdirvpretrain|| exit 1;
 
     # finetune audio-visual model (final network used for decoding)
     expdiravfine=exp/fine/AV
     mkdir -p ${expdiravfine}
     echo ${expdiravfine}
     noisetype=noise 	# Which noise type data is used for decoding, possible noisetype: noise music blur and saltandpepper
-    (. local/training/finetune_av.sh --backend $backend \
+    local/training/finetune_av.sh --backend $backend \
 				--ngpu $ngpu \
 				--debugmode $debugmode \
 				--N $N \
@@ -1078,7 +1078,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				--lm_config $lm_config \
 				--decode_config $decode_config\
 				$expdiravfine dump/avtrain dump/avtraindecode $lmexpdir \
- 				$noisetype $dict $bpemodel $expdiravpretrain|| exit 1;)
+ 				$noisetype $dict $bpemodel $expdiravpretrain|| exit 1;
 
     
 
