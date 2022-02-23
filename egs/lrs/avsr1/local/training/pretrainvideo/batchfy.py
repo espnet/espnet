@@ -478,7 +478,8 @@ def make_batchset(
         )
     if batch_sort_key not in BATCH_SORT_KEY_CHOICES:
         raise ValueError(
-            f"arg 'batch_sort_key' ({batch_sort_key}) should be one of {BATCH_SORT_KEY_CHOICES}"
+            f"arg 'batch_sort_key' ({batch_sort_key}) should be \
+            one of {BATCH_SORT_KEY_CHOICES}"
         )
 
     # TODO(karita): remove this by creating converter from ASR to TTS json format

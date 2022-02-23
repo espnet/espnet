@@ -23,8 +23,8 @@ def batchfy_by_seq(
     :param int max_length_in: maximum length of input to decide adaptive batch size
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int min_batch_size: mininum batch size (for multi-gpu)
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true,
-                                otherwise reverse
+    :param bool shortest_first: Sort from batch with shortest samples to longest
+                                if true, otherwise reverse
 
     :param str ikey: key to access input (for ASR ikey="input",
                         for TTS, MT ikey="output".)
@@ -105,8 +105,8 @@ def batchfy_by_bin(
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: minimum batch size (for multi-gpu)
     :param int test: Return only every `test` batches
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true,
-                                otherwise reverse
+    :param bool shortest_first: Sort from batch with shortest samples to longest
+                                if true, otherwise reverse
 
     :param str ikey: key to access input (for ASR ikey="input", for TTS ikey="output".)
     :param str okey: key to access output (for ASR okey="output". for TTS okey="input".)
@@ -199,8 +199,8 @@ def batchfy_by_frame(
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: minimum batch size (for multi-gpu)
     :param int test: Return only every `test` batches
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true,
-                                otherwise reverse
+    :param bool shortest_first: Sort from batch with shortest samples to longest
+                                if true, otherwise reverse
 
     :param str ikey: key to access input (for ASR ikey="input", for TTS ikey="output".)
     :param str okey: key to access output (for ASR okey="output". for TTS okey="input".)
@@ -373,8 +373,8 @@ def make_batchset(
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: minimum batch size (for multi-gpu)
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true,
-                                otherwise reverse
+    :param bool shortest_first: Sort from batch with shortest samples to longest
+                                if true, otherwise reverse
         :return: List[List[Tuple[str, dict]]] list of batches
     :param str batch_sort_key: how to sort data before creating minibatches
                                 ["input", "output", "shuffle"]
