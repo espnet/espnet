@@ -775,7 +775,7 @@ asr_train.py
       --joint_net_conf JOINT_NET_CONF
                             The keyword arguments for joint network class. (default: None)
       --model_conf MODEL_CONF
-                            The keyword arguments for model class. (default: {'ctc_weight': 0.5, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'extract_feats_in_collect_stats': True})
+                            The keyword arguments for model class. (default: {'ctc_weight': 0.5, 'interctc_weight': 0.0, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'extract_feats_in_collect_stats': True})
     
       Preprocess related
     
