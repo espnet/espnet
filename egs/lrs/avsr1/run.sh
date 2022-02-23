@@ -83,47 +83,8 @@ OPENFACE_DIR=local/installations/OpenFace/build/bin	# Path to OpenFace build dir
 VIDAUG_DIR=local/installations/vidaug 		 	# Path to vidaug directory
 DEEPXI_DIR=local/installations/DeepXi 			# DeepXi directory
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-# Install required softwares
-    conda install -n espnet_venv tensorflow tqdm pysoundfile
-    conda install -c esri tensorflow-addons
-    while true
-    do
-        read -r -p "For this recipe you will need sudo right to install OpenFace, do you want to continue? [Y/n] " input
-        case $input in 
-	    [yY][eE][sS]|[yY])
-		mkdir -p local/installations
-    	        if [ -d "$OPENFACE_DIR" ] ; then
-		    echo "OpenFace already installed."
-    	        else
-		    cd local/installations
-		    $MAIN_ROOT/tools/installers/install_openface.sh || exit 1;
-		    cd ../..
-    	        fi
-    	        if [ -d "$VIDAUG_DIR" ] ; then
-		    echo "Vidaug already installed."
-    	        else
-		    cd local/installations
-		    $MAIN_ROOT/tools/installers/install_vidaug.sh || exit 1;
-		    cd ../..
-    	        fi
-    	        if [ -d "$DEEPXI_DIR" ] ; then
-		    echo "DeepXi already installed."
-    	        else
-		    cd local/installations
-		    $MAIN_ROOT/tools/installers/install_deepxi.sh || exit 1;
-		    cd ../..
-    	        fi
-	        break
-	        ;;
-            [nN][oO]|[nN])
-                exit 1;
-	        ;;
-            *)
-                echo "Invalid choice..."
-                exit 1;
-                ;;
-        esac      
-    done
+    # Install required softwares
+    local/installpackage.sh $OPENFACE_DIR $VIDAUG_DIR $DEEPXI_DIR
 fi
 
 # Stage 1: Data preparation
