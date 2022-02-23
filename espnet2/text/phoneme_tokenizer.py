@@ -356,6 +356,23 @@ class Phonemizer:
             # TODO(kan-bayashi): space replacement should be dealt in PhonemeTokenizer
             return [c.replace(" ", "<space>") for c in tokens]
 
+class is_g2p:
+    def __init__(self, no_space: bool = False, dialect: str = 'standard', syllabify: bool = True, word_sep: str = ",", use_dict: bool = True):
+        self.dialect = dialect
+        self.syllabify = syllabify
+        self.word_sep = word_sep
+        self.use_dict = use_dict
+        from ice_g2p.transcriber import Transcriber
+        self.transcriber = Transcriber(use_dict=self.use_dict, use_syll=self.syllabify)
+
+    def process_string(self, input_str: str) -> str:
+        transcribed = self.transcriber.transcribe(input_str, use_syll=self.syllabify, use_dict=self.use_dict, word_sep=self.word_sep).split()
+        return transcribed
+
+
+    def __call__(self, text) -> List[str]:
+        phones = self.process_string(input_str=text)
+        return phones
 
 class PhonemeTokenizer(AbsTokenizer):
     def __init__(
@@ -477,6 +494,11 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = Jaso(space_symbol=space_symbol, no_space=False)
         elif g2p_type == "korean_jaso_no_space":
             self.g2p = Jaso(no_space=True)
+        elif g2p_type == "g2p_is":
+            self.g2p = is_g2p(no_space=False)
+        # TODO implement north dialect on dependency
+        # elif g2p_type == "g2p_is_north":
+        #     self.g2p = FairseqG2P(no_space=False, dialect="north")
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 
