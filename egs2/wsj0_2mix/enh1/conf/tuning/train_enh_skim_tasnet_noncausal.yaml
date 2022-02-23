@@ -10,7 +10,7 @@ optim_conf:
     lr: 1.0e-03
     eps: 1.0e-08
     weight_decay: 0
-patience: 4
+patience: 20
 val_scheduler_criterion:
 - valid
 - loss
@@ -48,7 +48,7 @@ separator_conf:
     segment_size: 250
     dropout: 0.1
     mem_type: hc 
-    seg_overlap: False
+    seg_overlap: True
 
 # A list for criterions
 # The overlall loss in the multi-task learning will be:
