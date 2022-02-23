@@ -115,7 +115,7 @@ JDCINAL=downloads
 GRABO=downloads
 WENETSPEECH=
 SPEECHCOMMANDS=downloads
-TALROMUR=/work/gunnar/talromur
+TALROMUR=downloads
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
