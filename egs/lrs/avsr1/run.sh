@@ -992,7 +992,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				--train_config $train_config\
 				--lm_config $lm_config \
 				--decode_config $decode_config\
-				 $expdirvfine $expdirvpretrain dump/videotrain dump/avtraindecode $lmexpdir $noisetype $dict $bpemodel  || exit 1;
+				 $expdirvfine $expdirvpretrain dump/videotrain dump/avtraindecode $PRETRAINEDMODEL $lmexpdir $noisetype $dict $bpemodel  || exit 1;
 
     # pretrain audio-visual model
     expdiravpretrain=exp/pretrain/AV
@@ -1033,7 +1033,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				--train_config $train_config\
 				--lm_config $lm_config \
 				--decode_config $decode_config\
-				$expdiravfine dump/avtrain dump/avtraindecode $lmexpdir \
+				$expdiravfine dump/avtrain dump/avtraindecode $PRETRAINEDMODEL $lmexpdir \
  				$noisetype $dict $bpemodel $expdiravpretrain|| exit 1;
 
     

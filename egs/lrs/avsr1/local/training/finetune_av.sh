@@ -29,11 +29,12 @@ decode_config=conf/decode.yaml
 expdir=$1
 dumptraindir=$2
 dumpdecodedir=$3
-lmexpdir=$4
-noisetype=$5
-dict=$6
-bpemodel=$7
-pretrainedav=$8
+PRETRAINEDMODEL=$4
+lmexpdir=$5
+noisetype=$6
+dict=$7
+bpemodel=$8
+pretrainedav=$9
 
 
 stage=0       # start from -1 if you need to start from data download

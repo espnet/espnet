@@ -30,10 +30,11 @@ expdir=$1
 pretrainexp=$2
 dumptraindir=$3
 dumpdecodedir=$4
-lmexpdir=$5
-noisetype=$6
-dict=$7
-bpemodel=$8
+PRETRAINEDMODEL=$5
+lmexpdir=$6
+noisetype=$7
+dict=$8
+bpemodel=$9
 
 
 stage=0       			# start from -1 if you need to start from data download
