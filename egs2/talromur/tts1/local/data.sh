@@ -43,7 +43,7 @@ train_set=train_${speaker_id}
 train_dev=dev_${speaker_id}
 eval_set=eval1_${speaker_id}
 
-# TODO implement local/data_download.sh
+# TODO(G-Thor) implement local/data_download.sh
 # if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
 #     log "stage -1: Data Download"
 #     local/data_download.sh "${db_root}"
