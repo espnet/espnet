@@ -510,7 +510,7 @@ class PhonemeTokenizer(AbsTokenizer):
             self.g2p = Jaso(no_space=True)
         elif g2p_type == "g2p_is":
             self.g2p = is_g2p(no_space=False)
-        # TODO implement north dialect on dependency
+        # TODO(G-Thor) update once ice-g2p dependency supports north dialect
         # elif g2p_type == "g2p_is_north":
         #     self.g2p = FairseqG2P(no_space=False, dialect="north")
         else:
