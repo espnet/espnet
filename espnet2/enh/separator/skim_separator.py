@@ -6,6 +6,7 @@ from typing import Union
 import torch
 from torch_complex.tensor import ComplexTensor
 
+from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.layers.skim import SkiM
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
@@ -99,7 +100,7 @@ class SkiMSeparator(AbsSeparator):
         """
 
         # if complex spectrum,
-        if isinstance(input, ComplexTensor):
+        if is_complex(input):
             feature = abs(input)
         else:
             feature = input

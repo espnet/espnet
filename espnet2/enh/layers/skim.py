@@ -9,7 +9,7 @@ import torch.nn as nn
 from espnet2.enh.layers.dprnn import merge_feature
 from espnet2.enh.layers.dprnn import SingleRNN
 from espnet2.enh.layers.dprnn import split_feature
-from espnet2.enh.layers.tcn import chose_norm
+from espnet2.enh.layers.tcn import choose_norm
 
 
 class MemLSTM(nn.Module):
@@ -57,7 +57,7 @@ class MemLSTM(nn.Module):
                 dropout=dropout,
                 bidirectional=bidirectional,
             )
-            self.h_norm = chose_norm(
+            self.h_norm = choose_norm(
                 norm_type=norm_type, channel_size=self.input_size, shape="BTD"
             )
         if mem_type in ["hc", "c"]:
@@ -68,7 +68,7 @@ class MemLSTM(nn.Module):
                 dropout=dropout,
                 bidirectional=bidirectional,
             )
-            self.c_norm = chose_norm(
+            self.c_norm = choose_norm(
                 norm_type=norm_type, channel_size=self.input_size, shape="BTD"
             )
 
@@ -146,7 +146,7 @@ class SegLSTM(nn.Module):
         )
         self.dropout = nn.Dropout(p=dropout)
         self.proj = nn.Linear(hidden_size * self.num_direction, input_size)
-        self.norm = chose_norm(
+        self.norm = choose_norm(
             norm_type=norm_type, channel_size=input_size, shape="BTD"
         )
 
@@ -294,8 +294,7 @@ class SkiM(nn.Module):
         rest = self.segment_size - T % self.segment_size
 
         if rest > 0:
-            pad = torch.zeros(B, rest, D, device=input.device)
-            input = torch.cat([input, pad], dim=1)
+            input = torch.nn.functional.pad(input, (0, 0, 0, rest))
         return input, rest
 
 

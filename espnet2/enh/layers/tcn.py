@@ -111,7 +111,7 @@ class TemporalBlock(nn.Module):
         # [M, B, K] -> [M, H, K]
         conv1x1 = nn.Conv1d(in_channels, out_channels, 1, bias=False)
         prelu = nn.PReLU()
-        norm = chose_norm(norm_type, out_channels)
+        norm = choose_norm(norm_type, out_channels)
         # [M, H, K] -> [M, B, K]
         dsconv = DepthwiseSeparableConv(
             out_channels,
@@ -170,7 +170,7 @@ class DepthwiseSeparableConv(nn.Module):
         if causal:
             chomp = Chomp1d(padding)
         prelu = nn.PReLU()
-        norm = chose_norm(norm_type, in_channels)
+        norm = choose_norm(norm_type, in_channels)
         # [M, H, K] -> [M, B, K]
         pointwise_conv = nn.Conv1d(in_channels, out_channels, 1, bias=False)
         # Put together
@@ -215,7 +215,7 @@ def check_nonlinear(nolinear_type):
         raise ValueError("Unsupported nonlinear type")
 
 
-def chose_norm(norm_type, channel_size, shape="BDT"):
+def choose_norm(norm_type, channel_size, shape="BDT"):
     """The input of normalization will be (M, C, K), where M is batch size.
 
     C is channel size and K is sequence length.
@@ -258,11 +258,8 @@ class ChannelwiseLayerNorm(nn.Module):
         Returns:
             cLN_y: [M, N, K]
         """
-        dim = 3
-        if y.dim() == 4:
-            dim = 4
-            M, N, K, L = y.shape
-            y = y.view(M, N, K * L)
+
+        assert y.dim() == 3
 
         if self.shape == "BTD":
             y = y.transpose(1, 2).contiguous()
@@ -274,8 +271,6 @@ class ChannelwiseLayerNorm(nn.Module):
         if self.shape == "BTD":
             cLN_y = cLN_y.transpose(1, 2).contiguous()
 
-        if dim == 4:
-            cLN_y = cLN_y.view(M, N, K, L)
         return cLN_y
 
 
@@ -306,10 +301,8 @@ class GlobalLayerNorm(nn.Module):
         if self.shape == "BTD":
             y = y.transpose(1, 2).contiguous()
 
-        mean = y.mean(dim=1, keepdim=True).mean(dim=2, keepdim=True)  # [M, 1, 1]
-        var = (
-            (torch.pow(y - mean, 2)).mean(dim=1, keepdim=True).mean(dim=2, keepdim=True)
-        )
+        mean = y.mean(dim=(1, 2), keepdim=True)  # [M, 1, 1]
+        var = (torch.pow(y - mean, 2)).mean(dim=(1, 2), keepdim=True)
         gLN_y = self.gamma * (y - mean) / torch.pow(var + EPS, 0.5) + self.beta
 
         if self.shape == "BTD":
