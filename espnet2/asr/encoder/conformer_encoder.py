@@ -105,7 +105,7 @@ class ConformerEncoder(AbsEncoder):
         macaron_style: bool = False,
         rel_pos_type: str = "legacy",
         pos_enc_layer_type: str = "rel_pos",
-        selfattention_layer_type: str = "legacy_rel_selfattn",
+        selfattention_layer_type: str = "rel_selfattn",
         activation_type: str = "swish",
         use_cnn_module: bool = True,
         zero_triu: bool = False,
