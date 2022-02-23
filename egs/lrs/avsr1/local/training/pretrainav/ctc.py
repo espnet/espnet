@@ -59,7 +59,8 @@ class CTC(torch.nn.Module):
 
         :param torch.Tensor hs_pad: batch of padded hidden state sequences (B, Tmax, D)
         :param torch.Tensor hlens: batch of lengths of hidden state sequences (B)
-        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad: batch of padded character id
+                                    sequence tensor (B, Lmax)
         :return: ctc loss value
         :rtype: torch.Tensor
         """
@@ -106,8 +107,8 @@ class CTC(torch.nn.Module):
             dtype=dtype
         )
         if self.reduce:
-            # NOTE: sum() is needed to keep consistency since warpctc return as tensor w/ shape (1,)
-            # but builtin return as tensor w/o shape (scalar).
+            # NOTE: sum() is needed to keep consistency since warpctc return
+            # as tensor w/ shape (1,) but builtin return as tensor w/o shape (scalar).
             self.loss = self.loss.sum()
             logging.info("ctc loss:" + str(float(self.loss)))
 

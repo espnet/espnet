@@ -1,10 +1,10 @@
-import torch
-import math, os
+import math
 import numpy as np
-import torch
+import os
 import random
-import torch.nn as nn
+import torch
 from torch.autograd import Variable
+import torch.nn as nn
 from torch.utils.data import Dataset
 
 

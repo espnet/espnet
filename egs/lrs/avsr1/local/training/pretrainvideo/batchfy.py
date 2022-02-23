@@ -23,13 +23,17 @@ def batchfy_by_seq(
     :param int max_length_in: maximum length of input to decide adaptive batch size
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int min_batch_size: mininum batch size (for multi-gpu)
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+    :param bool shortest_first: Sort from batch with shortest samples
+                                to longest if true, otherwise reverse
 
-    :param str ikey: key to access input (for ASR ikey="input", for TTS, MT ikey="output".)
-    :param int iaxis: dimension to access input (for ASR, TTS iaxis=0, for MT iaxis="1".)
-    :param str okey: key to access output (for ASR, MT okey="output". for TTS okey="input".)
-    :param int oaxis: dimension to access output (for ASR, TTS, MT oaxis=0, reserved for future research,
-                      -1 means all axis.)
+    :param str ikey: key to access input (for ASR ikey="input", for TTS,
+                     MT ikey="output".)
+    :param int iaxis: dimension to access input (for ASR, TTS iaxis=0,
+                     for MT iaxis="1".)
+    :param str okey: key to access output (for ASR, MT okey="output".
+                     for TTS okey="input".)
+    :param int oaxis: dimension to access output (for ASR, TTS, MT oaxis=0,
+                      reserved for future research, -1 means all axis.)
 
     :return: List[List[Tuple[str, dict]]] list of batches
     """
@@ -102,13 +106,17 @@ def avbatchfy_by_seq(
     :param int max_length_in: maximum length of input to decide adaptive batch size
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int min_batch_size: mininum batch size (for multi-gpu)
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+    :param bool shortest_first: Sort from batch with shortest samples to longest if
+                                true, otherwise reverse
 
-    :param str ikey: key to access input (for ASR ikey="input", for TTS, MT ikey="output".)
-    :param int iaxis: dimension to access input (for ASR, TTS iaxis=0, for MT iaxis="1".)
-    :param str okey: key to access output (for ASR, MT okey="output". for TTS okey="input".)
-    :param int oaxis: dimension to access output (for ASR, TTS, MT oaxis=0, reserved for future research,
-                      -1 means all axis.)
+    :param str ikey: key to access input (for ASR ikey="input", for TTS,
+                     MT ikey="output".)
+    :param int iaxis: dimension to access input (for ASR, TTS iaxis=0,
+                    for MT iaxis="1".)
+    :param str okey: key to access output (for ASR, MT okey="output".
+                    for TTS okey="input".)
+    :param int oaxis: dimension to access output (for ASR, TTS, MT oaxis=0,
+                    reserved for future research, -1 means all axis.)
 
     :return: List[List[Tuple[str, dict]]] list of batches
     """
@@ -172,14 +180,16 @@ def batchfy_by_bin(
     ikey="input",
     okey="output",
 ):
-    """Make variably sized batch set, which maximizes the number of bins up to `batch_bins`.
+    """Make variably sized batch set, which maximizes the number of
+       bins up to `batch_bins`.
 
     :param Dict[str, Dict[str, Any]] sorted_data: dictionary loaded from data.json
     :param int batch_bins: Maximum frames of a batch
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: minimum batch size (for multi-gpu)
     :param int test: Return only every `test` batches
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+    :param bool shortest_first: Sort from batch with shortest samples
+                                to longest if true, otherwise reverse
 
     :param str ikey: key to access input (for ASR ikey="input", for TTS ikey="output".)
     :param str okey: key to access output (for ASR okey="output". for TTS okey="input".)
@@ -210,7 +220,8 @@ def batchfy_by_bin(
                 b += 1
             elif next_size == 0:
                 raise ValueError(
-                    f"Can't fit one sample in batch_bins ({batch_bins}): Please increase the value"
+                    f"Can't fit one sample in batch_bins ({batch_bins}): \
+                    Please increase the value"
                 )
         end = min(length, start + max(min_batch_size, b))
         batch = sorted_data[start:end]
@@ -261,7 +272,8 @@ def batchfy_by_frame(
     ikey="input",
     okey="output",
 ):
-    """Make variably sized batch set, which maximizes the number of frames to max_batch_frame.
+    """Make variably sized batch set, which maximizes the
+       number of frames to max_batch_frame.
 
     :param Dict[str, Dict[str, Any]] sorteddata: dictionary loaded from data.json
     :param int max_frames_in: Maximum input frames of a batch
@@ -270,7 +282,8 @@ def batchfy_by_frame(
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: minimum batch size (for multi-gpu)
     :param int test: Return only every `test` batches
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+    :param bool shortest_first: Sort from batch with shortest samples to
+                                longest if true, otherwise reverse
 
     :param str ikey: key to access input (for ASR ikey="input", for TTS ikey="output".)
     :param str okey: key to access output (for ASR okey="output". for TTS okey="input".)
@@ -279,7 +292,8 @@ def batchfy_by_frame(
     """
     if max_frames_in <= 0 and max_frames_out <= 0 and max_frames_inout <= 0:
         raise ValueError(
-            f"At least, one of `--batch-frames-in`, `--batch-frames-out` or `--batch-frames-inout` should be > 0"
+            f"At least, one of `--batch-frames-in`, `--batch-frames-out` or \
+             `--batch-frames-inout` should be > 0"
         )
     length = len(sorted_data)
     minibatches = []
@@ -294,16 +308,19 @@ def batchfy_by_frame(
             ilen = int(sorted_data[start + b][1][ikey][0]["ashape"][0])
             if ilen > max_frames_in and max_frames_in != 0:
                 raise ValueError(
-                    f"Can't fit one sample in --batch-frames-in ({max_frames_in}): Please increase the value"
+                    f"Can't fit one sample in --batch-frames-in \
+                     ({max_frames_in}): Please increase the value"
                 )
             olen = int(sorted_data[start + b][1][okey][0]["shape"][0])
             if olen > max_frames_out and max_frames_out != 0:
                 raise ValueError(
-                    f"Can't fit one sample in --batch-frames-out ({max_frames_out}): Please increase the value"
+                    f"Can't fit one sample in --batch-frames-out \
+                    ({max_frames_out}): Please increase the value"
                 )
             if ilen + olen > max_frames_inout and max_frames_inout != 0:
                 raise ValueError(
-                    f"Can't fit one sample in --batch-frames-out ({max_frames_inout}): Please increase the value"
+                    f"Can't fit one sample in --batch-frames-out \
+                    ({max_frames_inout}): Please increase the value"
                 )
             max_olen = max(max_olen, olen)
             max_ilen = max(max_ilen, ilen)
@@ -439,14 +456,19 @@ def make_batchset(
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: minimum batch size (for multi-gpu)
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+    :param bool shortest_first: Sort from batch with shortest samples to longest
+                                if true, otherwise reverse
         :return: List[List[Tuple[str, dict]]] list of batches
-    :param str batch_sort_key: how to sort data before creating minibatches ["input", "output", "shuffle"]
-    :param bool swap_io: if True, use "input" as output and "output" as input in `data` dict
-    :param bool mt: if True, use 0-axis of "output" as output and 1-axis of "output" as input in `data` dict
-    :param int iaxis: dimension to access input (for ASR, TTS iaxis=0, for MT iaxis="1".)
-    :param int oaxis: dimension to access output (for ASR, TTS, MT oaxis=0, reserved for future research,
-                      -1 means all axis.)
+    :param str batch_sort_key: how to sort data before creating
+                                minibatches ["input", "output", "shuffle"]
+    :param bool swap_io: if True, use "input" as output and "output" as
+                            input in `data` dict
+    :param bool mt: if True, use 0-axis of "output" as output and 1-axis of
+                    "output" as input in `data` dict
+    :param int iaxis: dimension to access input (for ASR, TTS iaxis=0,
+                        for MT iaxis="1".)
+    :param int oaxis: dimension to access output (for ASR, TTS, MT oaxis=0,
+                        reserved for future research, -1 means all axis.)
     """
 
     # check args
@@ -614,14 +636,19 @@ def make_videobatchset(
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: minimum batch size (for multi-gpu)
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+    :param bool shortest_first: Sort from batch with shortest samples to longest
+                                if true, otherwise reverse
         :return: List[List[Tuple[str, dict]]] list of batches
-    :param str batch_sort_key: how to sort data before creating minibatches ["input", "output", "shuffle"]
-    :param bool swap_io: if True, use "input" as output and "output" as input in `data` dict
-    :param bool mt: if True, use 0-axis of "output" as output and 1-axis of "output" as input in `data` dict
-    :param int iaxis: dimension to access input (for ASR, TTS iaxis=0, for MT iaxis="1".)
-    :param int oaxis: dimension to access output (for ASR, TTS, MT oaxis=0, reserved for future research,
-                      -1 means all axis.)
+    :param str batch_sort_key: how to sort data before creating
+                                minibatches ["input", "output", "shuffle"]
+    :param bool swap_io: if True, use "input" as output and "output" as input
+                        in `data` dict
+    :param bool mt: if True, use 0-axis of "output" as output and 1-axis of
+                    "output" as input in `data` dict
+    :param int iaxis: dimension to access input (for ASR, TTS iaxis=0,
+                    for MT iaxis="1".)
+    :param int oaxis: dimension to access output (for ASR, TTS, MT oaxis=0,
+                    reserved for future research, -1 means all axis.)
     """
 
     # check args
@@ -631,7 +658,8 @@ def make_videobatchset(
         )
     if batch_sort_key not in BATCH_SORT_KEY_CHOICES:
         raise ValueError(
-            f"arg 'batch_sort_key' ({batch_sort_key}) should be one of {BATCH_SORT_KEY_CHOICES}"
+            f"arg 'batch_sort_key' ({batch_sort_key}) should be \
+            one of {BATCH_SORT_KEY_CHOICES}"
         )
 
     # TODO(karita): remove this by creating converter from ASR to TTS json format
@@ -789,14 +817,19 @@ def make_avbatchset(
     :param int max_length_out: maximum length of output to decide adaptive batch size
     :param int num_batches: # number of batches to use (for debug)
     :param int min_batch_size: minimum batch size (for multi-gpu)
-    :param bool shortest_first: Sort from batch with shortest samples to longest if true, otherwise reverse
+    :param bool shortest_first: Sort from batch with shortest samples to longest
+                                if true, otherwise reverse
         :return: List[List[Tuple[str, dict]]] list of batches
-    :param str batch_sort_key: how to sort data before creating minibatches ["input", "output", "shuffle"]
-    :param bool swap_io: if True, use "input" as output and "output" as input in `data` dict
-    :param bool mt: if True, use 0-axis of "output" as output and 1-axis of "output" as input in `data` dict
-    :param int iaxis: dimension to access input (for ASR, TTS iaxis=0, for MT iaxis="1".)
-    :param int oaxis: dimension to access output (for ASR, TTS, MT oaxis=0, reserved for future research,
-                      -1 means all axis.)
+    :param str batch_sort_key: how to sort data before creating minibatches
+                                ["input", "output", "shuffle"]
+    :param bool swap_io: if True, use "input" as output and "output" as
+                        input in `data` dict
+    :param bool mt: if True, use 0-axis of "output" as output and 1-axis of "output"
+                    as input in `data` dict
+    :param int iaxis: dimension to access input (for ASR, TTS iaxis=0,
+                        for MT iaxis="1".)
+    :param int oaxis: dimension to access output (for ASR, TTS, MT oaxis=0,
+                        reserved for future research, -1 means all axis.)
     """
 
     # check args
@@ -806,7 +839,8 @@ def make_avbatchset(
         )
     if batch_sort_key not in BATCH_SORT_KEY_CHOICES:
         raise ValueError(
-            f"arg 'batch_sort_key' ({batch_sort_key}) should be one of {BATCH_SORT_KEY_CHOICES}"
+            f"arg 'batch_sort_key' ({batch_sort_key}) should be \
+            one of {BATCH_SORT_KEY_CHOICES}"
         )
 
     # TODO(karita): remove this by creating converter from ASR to TTS json format

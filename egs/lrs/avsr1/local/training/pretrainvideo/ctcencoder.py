@@ -27,7 +27,8 @@ class Encoder(torch.nn.Module):
     :param class pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
     :param bool normalize_before: whether to use layer_norm before the first block
     :param bool concat_after: whether to concat attention layer's input and output
-        if True, additional linear will be applied. i.e. x -> x + linear(concat(x, att(x)))
+        if True, additional linear will be applied.
+                i.e. x -> x + linear(concat(x, att(x)))
         if False, no additional linear will be applied. i.e. x -> x + att(x)
     :param str positionwise_layer_type: linear of conv1d
     :param int positionwise_conv_kernel_size: kernel size of positionwise conv1d layer

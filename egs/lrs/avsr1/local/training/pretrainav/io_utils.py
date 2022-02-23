@@ -154,7 +154,8 @@ class LoadInputsAndTargets(object):
                     vx_feats_dict.setdefault(inp["name"], []).append(vnew)
                     rms_feats_dict.setdefault(inp["name"], []).append(rms)
 
-            # FIXME(kamo): Dirty way to load only speaker_embedding without the other inputs
+            # FIXME(kamo): Dirty way to load only speaker_embedding
+            #  without the other inputs
             elif self.mode == "tts" and self.use_speaker_embedding:
                 for idx, inp in enumerate(info["input"]):
                     if idx != 1 and len(info["input"]) > 1:

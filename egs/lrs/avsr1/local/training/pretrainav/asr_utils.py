@@ -203,7 +203,8 @@ class PlotAttentionReport(extension.Extension):
         Returns:
             numpy.ndarray: attention weights.float. Its shape would be
                 differ from backend.
-                * pytorch-> 1) multi-head case => (B, H, Lmax, Tmax), 2) other case => (B, Lmax, Tmax).
+                * pytorch-> 1) multi-head case => (B, H, Lmax, Tmax), 2) other
+                            case => (B, Lmax, Tmax).
                 * chainer-> (B, Lmax, Tmax)
         """
         batch = self.converter([self.transform(self.data)], self.device)
@@ -526,7 +527,8 @@ def add_gradient_noise(model, iteration, duration=100, eta=1.0, scale_factor=0.5
     Args:
         model (torch.nn.model): Model.
         iteration (int): Number of iterations.
-        duration (int) {100, 1000}: Number of durations to control the interval of the `sigma` change.
+        duration (int) {100, 1000}: Number of durations to control the interval
+                                    of the `sigma` change.
         eta (float) {0.01, 0.3, 1.0}: The magnitude of `sigma`.
         scale_factor (float) {0.55}: The scale of `sigma`.
     """
@@ -693,7 +695,8 @@ def add_results_to_json(js, nbest_hyps, char_list):
     """Add N-best results to json.
     Args:
         js (dict[str, Any]): Groundtruth utterance dict.
-        nbest_hyps_sd (list[dict[str, Any]]): List of hypothesis for multi_speakers: nutts x nspkrs.
+        nbest_hyps_sd (list[dict[str, Any]]): List of hypothesis for
+                                            multi_speakers: nutts x nspkrs.
         char_list (list[str]): List of characters.
     Returns:
         dict[str, Any]: N-best results added utterance dict.

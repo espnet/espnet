@@ -30,7 +30,8 @@ class Decoder(ScorerInterface, torch.nn.Module):
     :param class pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
     :param bool normalize_before: whether to use layer_norm before the first block
     :param bool concat_after: whether to concat attention layer's input and output
-        if True, additional linear will be applied. i.e. x -> x + linear(concat(x, att(x)))
+        if True, additional linear will be applied.
+                i.e. x -> x + linear(concat(x, att(x)))
         if False, no additional linear will be applied. i.e. x -> x + att(x)
     """
 
@@ -99,13 +100,17 @@ class Decoder(ScorerInterface, torch.nn.Module):
     def forward(self, tgt, tgt_mask, memory, memory_mask, rmmemory):
         """forward decoder
 
-        :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out) if input_layer == "embed"
-                                 input tensor (batch, maxlen_out, #mels) in the other cases
+        :param torch.Tensor tgt: input token ids, int64 (batch, maxlen_out)
+                                 if input_layer == "embed"
+                                 input tensor (batch, maxlen_out, #mels) in the
+                                 other cases
         :param torch.Tensor tgt_mask: input token mask, uint8  (batch, maxlen_out)
         :param torch.Tensor memory: encoded memory, float32  (batch, maxlen_in, feat)
         :param torch.Tensor memory_mask: encoded memory mask, uint8  (batch, maxlen_in)
-        :return x: decoded token score before softmax (batch, maxlen_out, token) if use_output_layer is True,
-                   final block outputs (batch, maxlen_out, attention_dim) in the other cases
+        :return x: decoded token score before softmax (batch, maxlen_out, token)
+                    if use_output_layer is True,
+                   final block outputs (batch, maxlen_out, attention_dim) in the
+                   other cases
         :rtype: torch.Tensor
         :return tgt_mask: score mask before softmax (batch, maxlen_out)
         :rtype: torch.Tensor

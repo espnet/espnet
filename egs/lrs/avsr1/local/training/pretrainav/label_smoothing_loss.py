@@ -33,7 +33,8 @@ class LabelSmoothingLoss(nn.Module):
         """Compute loss between x and target
 
         :param torch.Tensor x: prediction (batch, seqlen, class)
-        :param torch.Tensor target: target signal masked with self.padding_id (batch, seqlen)
+        :param torch.Tensor target: target signal masked with
+                                    self.padding_id (batch, seqlen)
         :return: scalar float value
         :rtype torch.Tensor
         """

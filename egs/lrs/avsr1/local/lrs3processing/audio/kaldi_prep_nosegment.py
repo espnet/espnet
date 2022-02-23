@@ -63,7 +63,8 @@ def remove(sub, s):
 # hand over parameter overview
 # sys.argv[1] = filelist (str): Path to filelist
 # sys.argv[2] = savedir (str): Directoy where to store the kaldi files
-# sys.argv[3] = audiodir (str): Directory of the audio files (seperated from video files)
+# sys.argv[3] = audiodir (str): Directory of the audio files
+#               (seperated from video files)
 # sys.argv[4] = sourcedir (str): LRS3 save directory
 # sys.argv[5] = dset (str): Which set. For this code dset is pretrain set.
 # sys.argv[6] = ifmulticore (str): If use multi processes.

@@ -48,7 +48,6 @@ class transformerNet(torch.nn.Module):
         return output
 
 
-######blstm
 class ctcNet(torch.nn.Module):
     def __init__(self, adim, odim):
         super(ctcNet, self).__init__()

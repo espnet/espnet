@@ -57,7 +57,7 @@ def seg(seginfodir, filelist, savedir, dset):
         for j in range(len(cuttimesplit) - 1):
             timeseg.append(" ".join((cuttimesplit[j], cuttimesplit[j + 1])))
 
-        if ifseg == True:
+        if ifseg is True:
             for s in range(len(textseg)):
                 if textseg[s] == "":
                     w = 1

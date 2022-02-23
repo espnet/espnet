@@ -88,7 +88,8 @@ class E2E(ASRInterface, torch.nn.Module):
             "--elayers",
             default=4,
             type=int,
-            help="Number of encoder layers (for shared recognition part in multi-speaker asr mode)",
+            help="Number of encoder layers (for shared recognition part "
+            "in multi-speaker asr mode)",
         )
         group.add_argument(
             "--eunits",
@@ -509,7 +510,8 @@ class E2E(ASRInterface, torch.nn.Module):
         # check number of hypotheis
         if len(nbest_hyps) == 0:
             logging.warning(
-                "there is no N-best results, perform recognition again with smaller minlenratio."
+                "there is no N-best results, perform recognition again "
+                "with smaller minlenratio."
             )
             # should copy becasuse Namespace will be overwritten globally
             recog_args = Namespace(**vars(recog_args))
@@ -528,7 +530,8 @@ class E2E(ASRInterface, torch.nn.Module):
 
         :param torch.Tensor xs_pad: batch of padded input sequences (B, Tmax, idim)
         :param torch.Tensor ilens: batch of lengths of input sequences (B)
-        :param torch.Tensor ys_pad: batch of padded character id sequence tensor (B, Lmax)
+        :param torch.Tensor ys_pad: batch of padded character id sequence
+                                    tensor (B, Lmax)
         :return: attention weights with the following shape,
             1) multi-head case => attention weights (B, H, Lmax, Tmax),
             2) other case => attention weights (B, Lmax, Tmax).

@@ -57,8 +57,10 @@ def make_pad_mask(lengths, xs=None, length_dim=-1):
 
     Args:
         lengths (LongTensor or List): Batch of lengths (B,).
-        xs (Tensor, optional): The reference tensor. If set, masks will be the same shape as this tensor.
-        length_dim (int, optional): Dimension indicator of the above tensor. See the example.
+        xs (Tensor, optional): The reference tensor. If set, masks will be
+                                the same shape as this tensor.
+        length_dim (int, optional): Dimension indicator of the above
+                                tensor. See the example.
 
     Returns:
         Tensor: Mask tensor containing indices of padded part.
@@ -168,8 +170,10 @@ def make_non_pad_mask(lengths, xs=None, length_dim=-1):
 
     Args:
         lengths (LongTensor or List): Batch of lengths (B,).
-        xs (Tensor, optional): The reference tensor. If set, masks will be the same shape as this tensor.
-        length_dim (int, optional): Dimension indicator of the above tensor. See the example.
+        xs (Tensor, optional): The reference tensor. If set, masks will be
+                                the same shape as this tensor.
+        length_dim (int, optional): Dimension indicator of the above
+                                tensor. See the example.
 
     Returns:
         ByteTensor: mask tensor containing indices of padded part.

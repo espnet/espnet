@@ -12,21 +12,14 @@ import random
 import sys
 
 import numpy as np
-import numpy as np
-import inspect
-
-current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parent_dir = os.path.dirname(current_dir)
-parent_dir = os.path.dirname(parent_dir)
-sys.path.insert(0, parent_dir)
-import espnet
 from espnet.utils.cli_utils import strtobool
 
 
 # NOTE: you need this func to generate our sphinx doc
 def get_parser():
     parser = configargparse.ArgumentParser(
-        description="Transcribe text from speech using a speech recognition model on one CPU or GPU",
+        description="Transcribe text from speech using a speech recognition model "
+        "on one CPU or GPU",
         config_file_parser_class=configargparse.YAMLConfigFileParser,
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
     )
@@ -40,7 +33,8 @@ def get_parser():
     parser.add(
         "--config3",
         is_config_file=True,
-        help="Third config file path that overwrites the settings in `--config` and `--config2`",
+        help="Third config file path that overwrites the settings in"
+        " `--config` and `--config2`",
     )
 
     parser.add_argument("--ngpu", type=int, default=0, help="Number of GPUs")
@@ -135,7 +129,8 @@ v2: Experimental API. It supports any models that implements ScorerInterface."""
         "--weights-ctc-dec",
         type=float,
         action="append",
-        help="ctc weight assigned to each encoder during decoding.[in multi-encoder mode only]",
+        help="ctc weight assigned to each encoder during decoding."
+        "[in multi-encoder mode only]",
     )
     parser.add_argument(
         "--ctc-window-margin",
@@ -254,7 +249,8 @@ def main(args):
     # validate rnn options
     if args.rnnlm is not None and args.word_rnnlm is not None:
         logging.error(
-            "It seems that both --rnnlm and --word-rnnlm are specified. Please use either option."
+            "It seems that both --rnnlm and --word-rnnlm are specified. "
+            "Please use either option."
         )
         sys.exit(1)
 

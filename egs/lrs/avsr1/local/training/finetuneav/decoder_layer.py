@@ -9,14 +9,17 @@ class DecoderLayer(nn.Module):
     """Single decoder layer module
 
     :param int size: input dim
-    :param espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention self_attn: self attention module
-    :param espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention src_attn: source attention module
-    :param espnet.nets.pytorch_backend.transformer.positionwise_feed_forward.PositionwiseFeedForward feed_forward:
-        feed forward layer module
+    :param espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention
+                self_attn: self attention module
+    :param espnet.nets.pytorch_backend.transformer.attention.MultiHeadedAttention
+                src_attn: source attention module
+    :param espnet.nets.pytorch_backend.transformer.positionwise_feed_forward.
+                PositionwiseFeedForward feed_forward: feed forward layer module
     :param float dropout_rate: dropout rate
     :param bool normalize_before: whether to use layer_norm before the first block
     :param bool concat_after: whether to concat attention layer's input and output
-        if True, additional linear will be applied. i.e. x -> x + linear(concat(x, att(x)))
+        if True, additional linear will be applied.
+                i.e. x -> x + linear(concat(x, att(x)))
         if False, no additional linear will be applied. i.e. x -> x + att(x)
     """
 
@@ -48,7 +51,8 @@ class DecoderLayer(nn.Module):
     def forward(self, tgt, tgt_mask, memory, memory_mask, rmmemory, rmx):
         """Compute decoded features
 
-        :param torch.Tensor tgt: decoded previous target features (batch, max_time_out, size)
+        :param torch.Tensor tgt: decoded previous target features
+                                (batch, max_time_out, size)
         :param torch.Tensor tgt_mask: mask for x (batch, max_time_out)
         :param torch.Tensor memory: encoded source features (batch, max_time_in, size)
         :param torch.Tensor memory_mask: mask for memory (batch, max_time_in)

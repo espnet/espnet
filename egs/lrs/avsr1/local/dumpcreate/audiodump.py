@@ -52,7 +52,7 @@ def audiojson(dumpfile, dumpsrcfile, dset, ifmulticore):
             results.append(processing(i, audiodata))
 
     for i in range(len(results)):
-        if results[i] == None:
+        if results[i] is None:
             pass
         else:
             output["utts"].update(results[i])

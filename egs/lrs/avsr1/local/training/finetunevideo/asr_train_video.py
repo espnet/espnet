@@ -16,16 +16,7 @@ import sys
 import configargparse
 import numpy as np
 
-#####################################################################################
-import inspect
 
-current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parent_dir = os.path.dirname(current_dir)
-parent_dir = os.path.dirname(parent_dir)
-sys.path.insert(0, parent_dir)
-import espnet
-
-#####################################################################################
 from espnet.utils.cli_utils import strtobool
 from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 
@@ -35,7 +26,8 @@ from espnet.utils.training.batchfy import BATCH_COUNT_CHOICES
 def get_parser(parser=None, required=True):
     if parser is None:
         parser = configargparse.ArgumentParser(
-            description="Train an automatic speech recognition (ASR) model on one CPU, one or multiple GPUs",
+            description="Train an automatic speech recognition (ASR) model on one CPU, \
+                        one or multiple GPUs",
             config_file_parser_class=configargparse.YAMLConfigFileParser,
             formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
         )
@@ -58,7 +50,8 @@ def get_parser(parser=None, required=True):
     parser.add(
         "--config3",
         is_config_file=True,
-        help="third config file path that overwrites the settings in `--config` and `--config2`.",
+        help="third config file path that overwrites the settings in `--config` \
+            and `--config2`.",
     )
     ##############################################################################
     parser.add_argument(
@@ -73,7 +66,8 @@ def get_parser(parser=None, required=True):
         default="float32",
         choices=["float16", "float32", "float64", "O0", "O1", "O2", "O3"],
         help="Data type for training (only pytorch backend). "
-        "O0,O1,.. flags require apex. See https://nvidia.github.io/apex/amp.html#opt-levels",
+        "O0,O1,.. flags require apex. See "
+        "https://nvidia.github.io/apex/amp.html#opt-levels",
     )
     ##############################################################################
     parser.add_argument(
@@ -166,7 +160,8 @@ def get_parser(parser=None, required=True):
         "--mtlalpha",
         default=0.5,
         type=float,
-        help="Multitask learning coefficient, alpha: alpha*ctc_loss + (1-alpha)*att_loss ",
+        help="Multitask learning coefficient, "
+        "alpha: alpha*ctc_loss + (1-alpha)*att_loss ",
     )
     parser.add_argument(
         "--lsm-type",
@@ -234,7 +229,8 @@ def get_parser(parser=None, required=True):
         "--batch-count",
         default="auto",
         choices=BATCH_COUNT_CHOICES,
-        help="How to count batch_size. The default (auto) will find how to count by args.",
+        help="How to count batch_size. The default (auto) will "
+        "find how to count by args.",
     )
     parser.add_argument(
         "--batch-size",
@@ -274,7 +270,8 @@ def get_parser(parser=None, required=True):
         default=800,
         type=int,
         metavar="ML",
-        help="When --batch-count=seq, batch size is reduced if the input sequence length > ML.",
+        help="When --batch-count=seq, batch size is reduced "
+        "if the input sequence length > ML.",
     )
     parser.add_argument(
         "--maxlen-out",
@@ -282,7 +279,8 @@ def get_parser(parser=None, required=True):
         default=150,
         type=int,
         metavar="ML",
-        help="When --batch-count=seq, batch size is reduced if the output sequence length > ML",
+        help="When --batch-count=seq, batch size is reduced "
+        "if the output sequence length > ML",
     )
     parser.add_argument(
         "--n-iter-processes",
@@ -342,7 +340,8 @@ def get_parser(parser=None, required=True):
         default=3,
         type=int,
         nargs="?",
-        help="Number of epochs to wait without improvement before stopping the training",
+        help="Number of epochs to wait without improvement before "
+        "stopping the training",
     )
     parser.add_argument(
         "--grad-clip", default=5, type=float, help="Gradient norm threshold to clip"
@@ -365,7 +364,8 @@ def get_parser(parser=None, required=True):
         default=1,
         type=int,
         choices=[1, 2],
-        help="Maximum number of speakers in the speech for multi-speaker speech recognition task.",
+        help="Maximum number of speakers in the speech for "
+        "multi-speaker speech recognition task.",
     )
     # speech translation related
     parser.add_argument(

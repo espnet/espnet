@@ -9,7 +9,7 @@ def cal_weights(attlogp, ctclogp, beam):
     suminteratt = []
     suminterctc = []
 
-    ####entropy
+    # Calculate entropy
     attent = 0
     ctcent = 0
     for k in range(beam):
@@ -21,16 +21,16 @@ def cal_weights(attlogp, ctclogp, beam):
     entattw = attent / sument
     entctcw = ctcent / sument
 
-    ####dispersion
+    # Calculate dispersion
     K = 15
-    for l in range(K):
+    for s in range(K):
         sumtemp = 0
-        for m in range(l + 1, K - 1):
-            sumtemp = sumtemp + (attlogp[:, l] - attlogp[:, m])
+        for m in range(s + 1, K - 1):
+            sumtemp = sumtemp + (attlogp[:, s] - attlogp[:, m])
         suminteratt.append(sumtemp)
         sumtemp = 0
-        for m in range(l + 1, K - 1):
-            sumtemp = sumtemp + (ctclogp[l] - ctclogp[m])
+        for m in range(s + 1, K - 1):
+            sumtemp = sumtemp + (ctclogp[s] - ctclogp[m])
         suminterctc.append(sumtemp)
     scale = 2 / (K * (K - 1))
     attdis = scale * sum(suminteratt)
@@ -39,7 +39,7 @@ def cal_weights(attlogp, ctclogp, beam):
     disattw = attdis / sumdis
     disctcw = ctcdis / sumdis
 
-    ####difference
+    # Calculate difference
     maxatt = max(attlogp[0, :])
     maxctc = max(ctclogp)
     attdiff = 0
