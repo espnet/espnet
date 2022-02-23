@@ -40,7 +40,6 @@ db_root=${TALROMUR}
 
 full_set=full_${speaker_id}
 train_set=train_${speaker_id}
-deveval_set=deveval_${speaker_id}
 train_dev=dev_${speaker_id}
 eval_set=eval1_${speaker_id}
 
@@ -67,7 +66,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     # make scp, utt2spk, and spk2utt
     find ${db_root}/${speaker_id} -follow -name "*.wav" | sort | while read -r filename;do
-        spk_id=$(basename $(dirname $(dirname ${filename})))
         id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
         echo "${id} ${filename}" >> ${scp}
         echo "${id} ${speaker_id}" >> ${utt2spk}
