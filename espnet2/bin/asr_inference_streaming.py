@@ -41,6 +41,9 @@ from typing import Union
 class Speech2TextStreaming:
     """Speech2TextStreaming class
 
+    Details in "Streaming Transformer ASR with Blockwise Synchronous Beam Search"
+    (https://arxiv.org/abs/2006.14941)
+
     Examples:
         >>> import soundfile
         >>> speech2text = Speech2TextStreaming("asr_config.yml", "asr.pth")
@@ -263,7 +266,11 @@ class Speech2TextStreaming:
             speech, self.frontend_states, is_final=is_final
         )
         enc, _, self.encoder_states = self.asr_model.encoder(
-            feats, feats_lengths, self.encoder_states, is_final=is_final
+            feats,
+            feats_lengths,
+            self.encoder_states,
+            is_final=is_final,
+            infer_mode=True,
         )
         nbest_hyps = self.beam_search(
             x=enc[0],

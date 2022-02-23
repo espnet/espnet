@@ -50,7 +50,6 @@ feats_type=raw             # Input feature type.
 audio_format=flac          # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 min_wav_duration=0.1       # Minimum duration in second.
 max_wav_duration=20        # Maximum duration in second.
-use_xvector=false          # Whether to use x-vector (Require Kaldi).
 use_sid=false              # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 use_lid=false              # Whether to use language id as the inputs (Need utt2lang in data directory).
 feats_extract=fbank        # On-the-fly feature extractor.
@@ -65,6 +64,11 @@ n_mels=80                  # The number of mel basis.
 # Only used for the model using pitch & energy features (e.g. FastSpeech2)
 f0min=80  # Maximum f0 for pitch extraction.
 f0max=400 # Minimum f0 for pitch extraction.
+
+# X-Vector related
+use_xvector=false   # Whether to use x-vector.
+xvector_tool=kaldi  # Toolkit for extracting x-vector (speechbrain, espnet, kaldi)
+xvector_model=speechbrain/spkrec-ecapa-voxceleb  # For only espnet or speechbrain
 
 # Vocabulary related
 oov="<unk>"         # Out of vocabrary symbol.
@@ -141,7 +145,9 @@ Options:
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
-    --use_xvector      # Whether to use X-vector (Require Kaldi, default="${use_xvector}").
+    --use_xvector      # Whether to use X-vector (default="${use_xvector}").
+    --xvector_tool     # Toolkit for generating the X-vectors (default="${xvector_tool}").
+    --xvector_model    # Pretrained model to generate the X-vectors (default="${xvector_model}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
     --use_lid          # Whether to use language id as the inputs (default="${use_lid}").
     --feats_extract    # On the fly feature extractor (default="${feats_extract}").
@@ -336,60 +342,77 @@ if ! "${skip_data_prep}"; then
 
         # Extract X-vector
         if "${use_xvector}"; then
-            log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector (Require Kaldi)"
-            # Download X-vector pretrained model
-            xvector_exp=${expdir}/xvector_nnet_1a
-            if [ ! -e "${xvector_exp}" ]; then
-                log "X-vector model does not exist. Download pre-trained model."
-                wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
-                tar xvf 0008_sitw_v2_1a.tar.gz
-                [ ! -e "${expdir}" ] && mkdir -p "${expdir}"
-                mv 0008_sitw_v2_1a/exp/xvector_nnet_1a "${xvector_exp}"
-                rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
-            fi
-
-            # Generate the MFCC features, VAD decision, and X-vector
-            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-                # 1. Copy datadir and resample to 16k
-                utils/copy_data_dir.sh "data/${dset}" "${dumpdir}/mfcc/${dset}"
-                utils/data/resample_data_dir.sh 16000 "${dumpdir}/mfcc/${dset}"
-
-                # 2. Extract mfcc features
-                _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/utt2spk wc -l)")
-                steps/make_mfcc.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                    --write-utt2num-frames true \
-                    --mfcc-config conf/mfcc.conf \
-                    "${dumpdir}/mfcc/${dset}"
-                utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
-
-                # 3. Compute VAD decision
-                _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/spk2utt wc -l)")
-                sid/compute_vad_decision.sh --nj ${_nj} --cmd "${train_cmd}" \
-                    --vad-config conf/vad.conf \
-                    "${dumpdir}/mfcc/${dset}"
-                utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
-
-                # 4. Extract X-vector
-                sid/nnet3/xvector/extract_xvectors.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                    "${xvector_exp}" \
-                    "${dumpdir}/mfcc/${dset}" \
-                    "${dumpdir}/xvector/${dset}"
-
-                # 5. Filter scp
-                # NOTE(kan-bayashi): Since sometimes mfcc or x-vector extraction is failed,
-                #   the number of utts will be different from the original features (raw or fbank).
-                #   To avoid this mismatch, perform filtering of the original feature scp here.
-                if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                    _suf="/org"
-                else
-                    _suf=""
+            if [ "${xvector_tool}" = "kaldi" ]; then
+                log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector (Require Kaldi)"
+                # Download X-vector pretrained model
+                xvector_exp=${expdir}/xvector_nnet_1a
+                if [ ! -e "${xvector_exp}" ]; then
+                    log "X-vector model does not exist. Download pre-trained model."
+                    wget http://kaldi-asr.org/models/8/0008_sitw_v2_1a.tar.gz
+                    tar xvf 0008_sitw_v2_1a.tar.gz
+                    [ ! -e "${expdir}" ] && mkdir -p "${expdir}"
+                    mv 0008_sitw_v2_1a/exp/xvector_nnet_1a "${xvector_exp}"
+                    rm -rf 0008_sitw_v2_1a.tar.gz 0008_sitw_v2_1a
                 fi
-                cp "${data_feats}${_suf}/${dset}"/wav.{scp,scp.bak}
-                <"${data_feats}${_suf}/${dset}/wav.scp.bak" \
-                    utils/filter_scp.pl "${dumpdir}/xvector/${dset}/xvector.scp" \
-                    >"${data_feats}${_suf}/${dset}/wav.scp"
-                utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
-            done
+
+                # Generate the MFCC features, VAD decision, and X-vector
+                for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                    # 1. Copy datadir and resample to 16k
+                    utils/copy_data_dir.sh "data/${dset}" "${dumpdir}/mfcc/${dset}"
+                    utils/data/resample_data_dir.sh 16000 "${dumpdir}/mfcc/${dset}"
+
+                    # 2. Extract mfcc features
+                    _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/utt2spk wc -l)")
+                    steps/make_mfcc.sh --nj "${_nj}" --cmd "${train_cmd}" \
+                        --write-utt2num-frames true \
+                        --mfcc-config conf/mfcc.conf \
+                        "${dumpdir}/mfcc/${dset}"
+                    utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
+
+                    # 3. Compute VAD decision
+                    _nj=$(min "${nj}" "$(<${dumpdir}/mfcc/${dset}/spk2utt wc -l)")
+                    sid/compute_vad_decision.sh --nj ${_nj} --cmd "${train_cmd}" \
+                        --vad-config conf/vad.conf \
+                        "${dumpdir}/mfcc/${dset}"
+                    utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
+
+                    # 4. Extract X-vector
+                    sid/nnet3/xvector/extract_xvectors.sh --nj "${_nj}" --cmd "${train_cmd}" \
+                        "${xvector_exp}" \
+                        "${dumpdir}/mfcc/${dset}" \
+                        "${dumpdir}/xvector/${dset}"
+
+                    # 5. Filter scp
+                    # NOTE(kan-bayashi): Since sometimes mfcc or x-vector extraction is failed,
+                    #   the number of utts will be different from the original features (raw or fbank).
+                    #   To avoid this mismatch, perform filtering of the original feature scp here.
+                    if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                        _suf="/org"
+                    else
+                        _suf=""
+                    fi
+                    cp "${data_feats}${_suf}/${dset}"/wav.{scp,scp.bak}
+                    <"${data_feats}${_suf}/${dset}/wav.scp.bak" \
+                        utils/filter_scp.pl "${dumpdir}/xvector/${dset}/xvector.scp" \
+                        >"${data_feats}${_suf}/${dset}/wav.scp"
+                    utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
+                done
+            else
+                # Assume that others toolkits are python-based
+                log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector using python toolkits"
+                for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                    if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                        _suf="/org"
+                    else
+                        _suf=""
+                    fi
+                    pyscripts/utils/extract_xvectors.py \
+                        --pretrained_model ${xvector_model} \
+                        --toolkit ${xvector_tool} \
+                        ${data_feats}${_suf}/${dset} \
+                        ${dumpdir}/xvector/${dset}
+                done
+            fi
         fi
 
         # Prepare spk id input
@@ -429,7 +452,7 @@ if ! "${skip_data_prep}"; then
                     # NOTE(kan-bayashi): 0 is reserved for unknown languages
                     echo "<unk> 0" > "${data_feats}${_suf}/${dset}/lang2lid"
                     cut -f 2 -d " " "${data_feats}${_suf}/${dset}/utt2lang" | sort | uniq | \
-                        awk '{print $1 " " NR}' >> "${data_feats}${_suf}/${dset}/utt2lid"
+                        awk '{print $1 " " NR}' >> "${data_feats}${_suf}/${dset}/lang2lid"
                 fi
                 # NOTE(kan-bayashi): We can reuse the same script for making utt2sid
                 pyscripts/utils/utt2spk_to_utt2sid.py \

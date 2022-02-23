@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import re
 from typing import Iterable
@@ -160,7 +161,7 @@ def pyopenjtalk_g2p_prosody(text: str, drop_unvoiced_vowels: bool = True) -> Lis
 
         a2_next = _numeric_feature_by_regex(r"\+(\d+)\+", labels[n + 1])
         # accent phrase border
-        if a3 == 1 and a2_next == 1:
+        if a3 == 1 and a2_next == 1 and p3 in "aeiouAEIOUNcl":
             phones.append("#")
         # pitch falling
         elif a1 == 0 and a2_next == a2 + 1 and a2 != f1:
@@ -313,31 +314,41 @@ class Phonemizer:
 
     def __init__(
         self,
+        backend,
         word_separator: Optional[str] = None,
         syllable_separator: Optional[str] = None,
         phone_separator: Optional[str] = " ",
+        strip=False,
         split_by_single_token: bool = False,
-        **phonemize_kwargs,
+        **phonemizer_kwargs,
     ):
         # delayed import
-        from phonemizer import phonemize
+        from phonemizer.backend import BACKENDS
         from phonemizer.separator import Separator
 
-        self.phonemize = phonemize
         self.separator = Separator(
             word=word_separator,
             syllable=syllable_separator,
             phone=phone_separator,
         )
+
+        # define logger to suppress the warning in phonemizer
+        logger = logging.getLogger("phonemizer")
+        logger.setLevel(logging.ERROR)
+        self.phonemizer = BACKENDS[backend](
+            **phonemizer_kwargs,
+            logger=logger,
+        )
+        self.strip = strip
         self.split_by_single_token = split_by_single_token
-        self.phonemize_kwargs = phonemize_kwargs
 
     def __call__(self, text) -> List[str]:
-        tokens = self.phonemize(
-            text,
+        tokens = self.phonemizer.phonemize(
+            [text],
             separator=self.separator,
-            **self.phonemize_kwargs,
-        )
+            strip=self.strip,
+            njobs=1,
+        )[0]
         if not self.split_by_single_token:
             return tokens.split()
         else:
@@ -513,7 +524,7 @@ class PhonemeTokenizer(AbsTokenizer):
             f'g2p_type="{self.g2p_type}", '
             f'space_symbol="{self.space_symbol}", '
             f'non_linguistic_symbols="{self.non_linguistic_symbols}"'
-            f")"
+            ")"
         )
 
     def text2tokens(self, line: str) -> List[str]:

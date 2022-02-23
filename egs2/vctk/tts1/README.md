@@ -69,7 +69,7 @@ done
     --tts_task gan_tts \
     --feats_extract linear_spectrogram \
     --feats_normalize none \
-    --train_config ./conf/tuning/train_full_band_multi_spk_vits.yaml \
+    --train_config ./conf/tuning/train_multi_spk_vits.yaml \
     --inference_model train.total_count.ave.pth
 ```
 
@@ -117,7 +117,7 @@ done
     --tts_task gan_tts \
     --feats_extract linear_spectrogram \
     --feats_normalize none \
-    --train_config ./conf/tuning/train_full_band_multi_spk_vits.yaml \
+    --train_config ./conf/tuning/train_xvector_vits.yaml \
     --inference_model train.total_count.ave.pth
 ```
 
@@ -208,7 +208,7 @@ done
     --tts_task gan_tts \
     --feats_extract linear_spectrogram \
     --feats_normalize none \
-    --train_config ./conf/tuning/train_full_band_multi_spk_vits.yaml \
+    --train_config ./conf/tuning/train_multi_spk_vits.yaml \
     --inference_model train.total_count.ave.pth
 ```
 

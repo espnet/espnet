@@ -40,7 +40,7 @@ if [ -z ${GRABO} ]; then
     exit 1
 fi
 
-
+cur_path=$(pwd)
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Download Data to ${GRABO}"
     if [ ! -d ${GRABO} ]; then
@@ -92,7 +92,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    cd ${GRABO}/..
+    cd ${cur_path}
     mkdir -p data/{train,dev,test}
     python3 local/data_prep.py \
         --data_path ${GRABO}/grabo/grabo/speakers \

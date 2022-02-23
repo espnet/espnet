@@ -1,6 +1,6 @@
 batch_type: folded
 batch_size: 64
-accum_grad: 2
+accum_grad: 1
 max_epoch: 200
 patience: none
 # The initialization method for model parameters
@@ -40,7 +40,7 @@ model_conf:
 
 optim: adam
 optim_conf:
-    lr: 0.005
+    lr: 0.001
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 20000
+    warmup_steps: 2500

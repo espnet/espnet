@@ -180,7 +180,7 @@ You need to do one of the following two ways to change the training configuratio
 
 ```sh
 # Give a configuration file
-./run.sh --asr_train_config conf/train_asr.yaml
+./run.sh --asr_config conf/train_asr.yaml
 # Give arguments to "espnet2/bin/asr_train.py" directly
 ./run.sh --asr_args "--foo arg --bar arg2"
 ```
@@ -291,7 +291,7 @@ To use SSLRs in your task, you need to make several modifications.
 ### Usage
 1. To reduce the time used in `collect_stats` step, please specify `--feats_normalize uttmvn` in `run.sh` and pass it as arguments to `asr.sh` or other task-specific scripts. (Recommended)
 2. In the configuration file, specify the `frontend` and `preencoder`. Taking `HuBERT` as an example:
-   The `upsteam` name can be whatever supported in S3PRL. `multilayer-feature=True` means the final representation is a weighted-sum of all layers' hidden states from SSLR model.
+   The `upstream` name can be whatever supported in S3PRL. `multilayer-feature=True` means the final representation is a weighted-sum of all layers' hidden states from SSLR model.
    ```
    frontend: s3prl
    frontend_conf:
@@ -308,3 +308,35 @@ To use SSLRs in your task, you need to make several modifications.
       output_size: 80
    ```
 3. Because the shift sizes of different `upstream` models are different, e.g. `HuBERT` and `Wav2Vec2.0` have `20ms` frameshift. Sometimes, the downsampling rate (`input_layer`) in the `encoder` configuration need to be changed. For example, using `input_layer: conv2d2` will results in a total frameshift of `40ms`, which is enough for some tasks.
+
+## Streaming ASR
+ESPnet supports streaming Transformer/Conformer ASR with blockwise synchronous beam search.
+
+For more details, please refer to the [paper](https://arxiv.org/pdf/2006.14941.pdf).
+
+### Training
+
+To achieve streaming ASR, please employ blockwise Transformer/Conformer encoder in the configuration file. Taking `blockwise Transformer` as an example:
+The `encoder` name can be `contextual_block_transformer` or `contextual_block_conformer`. 
+
+```sh
+encoder: contextual_block_transformer
+encoder_conf:
+    block_size: 40         # block size for block processing
+    hop_size: 16           # hop size for block processing
+    look_ahead: 16         # look-ahead size for block processing
+    init_average: true     # whether to use average input as initial context 
+    ctx_pos_enc: true      # whether to use positional encoding for the context vectors 
+```
+   
+### Decoding
+
+To enable online decoding, the argument `--use_streaming true` should be added to `run.sh`.
+
+```sh
+./run.sh --stage 12 --use_streaming true
+```
+
+### FAQ
+1. Issue about `'NoneType' object has no attribute 'max'` during training: Please make sure you employ `forward_train` function during traininig, check more details [here](https://github.com/espnet/espnet/issues/3803).
+3. I successfully trained the model, but encountered the above issue during decoding: You may forget to specify `--use_streaming true` to select streaming inference.

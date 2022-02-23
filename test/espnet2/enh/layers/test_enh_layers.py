@@ -1,15 +1,20 @@
 from distutils.version import LooseVersion
 
+import numpy as np
 import pytest
 import torch
 import torch_complex.functional as FC
 from torch_complex.tensor import ComplexTensor
 
+from espnet2.enh.layers.beamformer import generalized_eigenvalue_decomposition
 from espnet2.enh.layers.beamformer import get_rtf
+from espnet2.enh.layers.beamformer import gev_phase_correction
 from espnet2.enh.layers.beamformer import signal_framing
+from espnet2.enh.layers.complex_utils import solve
 from espnet2.layers.stft import Stft
 
 is_torch_1_1_plus = LooseVersion(torch.__version__) >= LooseVersion("1.1.0")
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
 random_speech = torch.tensor(
@@ -56,7 +61,17 @@ random_speech = torch.tensor(
 
 
 @pytest.mark.parametrize("ch", [2, 4, 6, 8])
-def test_get_rtf(ch):
+@pytest.mark.parametrize("mode", ["power", "evd"])
+def test_get_rtf(ch, mode):
+    if not is_torch_1_9_plus and mode == "evd":
+        # torch 1.9.0+ is required for "evd" mode
+        return
+    if mode == "evd":
+        complex_wrapper = torch.complex
+        complex_module = torch
+    else:
+        complex_wrapper = ComplexTensor
+        complex_module = FC
     stft = Stft(
         n_fft=8,
         win_length=None,
@@ -68,16 +83,20 @@ def test_get_rtf(ch):
     )
     torch.random.manual_seed(0)
     x = random_speech[..., :ch]
-    n = torch.rand(2, 16, ch, dtype=torch.double)
     ilens = torch.LongTensor([16, 12])
     # (B, T, C, F) -> (B, F, C, T)
-    X = ComplexTensor(*torch.unbind(stft(x, ilens)[0], dim=-1)).transpose(-1, -3)
-    N = ComplexTensor(*torch.unbind(stft(n, ilens)[0], dim=-1)).transpose(-1, -3)
+    X = complex_wrapper(*torch.unbind(stft(x, ilens)[0], dim=-1)).transpose(-1, -3)
     # (B, F, C, C)
-    Phi_X = FC.einsum("...ct,...et->...ce", [X, X.conj()])
-    Phi_N = FC.einsum("...ct,...et->...ce", [N, N.conj()])
+    Phi_X = complex_module.einsum("...ct,...et->...ce", [X, X.conj()])
+
+    is_singular = True
+    while is_singular:
+        N = complex_wrapper(torch.randn_like(X.real), torch.randn_like(X.imag))
+        Phi_N = complex_module.einsum("...ct,...et->...ce", [N, N.conj()])
+        is_singular = not np.all(np.linalg.matrix_rank(Phi_N.numpy()) == ch)
+
     # (B, F, C, 1)
-    rtf = get_rtf(Phi_X, Phi_N, reference_vector=0, iterations=20)
+    rtf = get_rtf(Phi_X, Phi_N, mode=mode, reference_vector=0, iterations=20)
     if is_torch_1_1_plus:
         rtf = rtf / (rtf.abs().max(dim=-2, keepdim=True).values + 1e-15)
     else:
@@ -85,15 +104,15 @@ def test_get_rtf(ch):
     # rtf \approx Phi_N MaxEigVec(Phi_N^-1 @ Phi_X)
     if is_torch_1_1_plus:
         # torch.solve is required, which is only available after pytorch 1.1.0+
-        mat = FC.solve(Phi_X, Phi_N)[0]
-        max_eigenvec = FC.solve(rtf, Phi_N)[0]
+        mat = solve(Phi_X, Phi_N)[0]
+        max_eigenvec = solve(rtf, Phi_N)[0]
     else:
-        mat = FC.matmul(Phi_N.inverse2(), Phi_X)
-        max_eigenvec = FC.matmul(Phi_N.inverse2(), rtf)
-    factor = FC.matmul(mat, max_eigenvec)
-    assert FC.allclose(
-        FC.matmul(max_eigenvec, factor.transpose(-1, -2)),
-        FC.matmul(factor, max_eigenvec.transpose(-1, -2)),
+        mat = complex_module.matmul(Phi_N.inverse2(), Phi_X)
+        max_eigenvec = complex_module.matmul(Phi_N.inverse2(), rtf)
+    factor = complex_module.matmul(mat, max_eigenvec)
+    assert complex_module.allclose(
+        complex_module.matmul(max_eigenvec, factor.transpose(-1, -2)),
+        complex_module.matmul(factor, max_eigenvec.transpose(-1, -2)),
     )
 
 
@@ -117,3 +136,49 @@ def test_signal_framing():
     X2 = signal_framing(X, taps + 1, 1, delay, do_padding=True)
     assert X2.shape == torch.Size([2, 10, 6, 20, taps + 1])
     assert FC.allclose(X2[..., -1], X)
+
+
+@pytest.mark.skipif(not is_torch_1_9_plus, reason="Require torch 1.9.0+")
+@pytest.mark.parametrize("ch", [2, 4, 6, 8])
+def test_gevd(ch):
+    stft = Stft(
+        n_fft=8,
+        win_length=None,
+        hop_length=2,
+        center=True,
+        window="hann",
+        normalized=False,
+        onesided=True,
+    )
+    torch.random.manual_seed(0)
+    x = random_speech[..., :ch]
+    ilens = torch.LongTensor([16, 12])
+    # (B, T, C, F) -> (B, F, C, T)
+    X = torch.complex(*torch.unbind(stft(x, ilens)[0], dim=-1)).transpose(-1, -3)
+    # (B, F, C, C)
+    Phi_X = torch.einsum("...ct,...et->...ce", [X, X.conj()])
+
+    is_singular = True
+    while is_singular:
+        N = torch.randn_like(X)
+        Phi_N = torch.einsum("...ct,...et->...ce", [N, N.conj()])
+        is_singular = not torch.linalg.matrix_rank(Phi_N).eq(ch).all()
+    # Phi_N = torch.eye(ch, dtype=Phi_X.dtype).view(1, 1, ch, ch).expand_as(Phi_X)
+
+    # e_val: (B, F, C)
+    # e_vec: (B, F, C, C)
+    e_val, e_vec = generalized_eigenvalue_decomposition(Phi_X, Phi_N)
+    e_val = e_val.to(dtype=e_vec.dtype)
+    assert torch.allclose(
+        torch.matmul(Phi_X, e_vec),
+        torch.matmul(torch.matmul(Phi_N, e_vec), e_val.diag_embed()),
+    )
+
+
+@pytest.mark.skipif(not is_torch_1_9_plus, reason="Require torch 1.9.0+")
+def test_gev_phase_correction():
+    mat = ComplexTensor(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
+    mat_th = torch.complex(mat.real, mat.imag)
+    norm = gev_phase_correction(mat)
+    norm_th = gev_phase_correction(mat_th)
+    assert np.allclose(norm.numpy(), norm_th.numpy())

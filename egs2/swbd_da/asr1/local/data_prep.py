@@ -3,23 +3,31 @@
 # Copyright 2021 University of Stuttgart (Pavel Denisov)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import argparse
 import glob
 import os
-import sys
+import subprocess
 import xml.etree.ElementTree as ET
 
-if len(sys.argv) != 3:
-    print("Usage: python data_prep.py <LDC97S62 path> <LDC2009T26 path>")
-    sys.exit(1)
+parser = argparse.ArgumentParser(
+    description="Prepare Switchboard Dialogue Act dataset."
+)
 
-audio_root = sys.argv[1]
-nxt_root = os.path.join(sys.argv[2], "nxt_switchboard_ann", "xml")
+parser.add_argument("audio_path", type=str, help="Path to audio (LDC97S62)")
+parser.add_argument("nxt_path", type=str, help="Path to NXT annotation (LDC2009T26)")
+parser.add_argument(
+    "--context", type=int, default=0, help="Number of utterances in the context"
+)
+
+args = parser.parse_args()
+
+xml_path = os.path.join(args.nxt_path, "nxt_switchboard_ann", "xml")
 
 channel = {"A": 1, "B": 2}
 speaker = {}
 
 corpus_resources_root = ET.parse(
-    os.path.join(nxt_root, "corpus-resources", "dialogues.xml")
+    os.path.join(xml_path, "corpus-resources", "dialogues.xml")
 ).getroot()
 for dialogue in corpus_resources_root.findall(".//dialogue"):
     dialogue_id = "sw" + dialogue.attrib["swbdid"]
@@ -31,7 +39,7 @@ for dialogue in corpus_resources_root.findall(".//dialogue"):
 
 sph = {}
 
-for sph_file in glob.glob(os.path.join(audio_root, "*/swb1/sw*.sph")):
+for sph_file in glob.glob(os.path.join(args.audio_path, "*/swb1/sw*.sph")):
     dialogue_id = sph_file[-10:-4]
     sph[dialogue_id] = sph_file
 
@@ -41,21 +49,29 @@ for sph_file in glob.glob(os.path.join(audio_root, "*/swb1/sw*.sph")):
 # NAACL 2016. (* indicates equal contribution)
 
 for subset in ["train", "valid", "test"]:
-    with open(os.path.join("data", subset, "text"), "w") as text_f, open(
-        os.path.join("data", subset, "wav.scp"), "w"
-    ) as wav_scp_f, open(
-        os.path.join("data", subset, "utt2spk"), "w"
-    ) as utt2spk_f, open(
+    subset_dir = subset
+
+    if args.context > 0:
+        subset_dir += "_context" + str(args.context)
+
+    odir = os.path.join("data", subset_dir)
+    os.makedirs(odir, exist_ok=True)
+
+    with open(os.path.join(odir, "text"), "w") as text_f, open(
+        os.path.join(odir, "wav.scp"), "w"
+    ) as wav_scp_f, open(os.path.join(odir, "utt2spk"), "w") as utt2spk_f, open(
         os.path.join("local", subset + ".lst")
     ) as dialogues_f:
         for line in dialogues_f:
             dialogue_id = line.strip()
 
+            dial_acts = {}
+
             for role in ["A", "B"]:
                 terminals = {}
 
                 terminals_file = os.path.join(
-                    nxt_root, "terminals", f"{dialogue_id}.{role}.terminals.xml"
+                    xml_path, "terminals", f"{dialogue_id}.{role}.terminals.xml"
                 )
 
                 if not os.path.exists(terminals_file):
@@ -80,7 +96,7 @@ for subset in ["train", "valid", "test"]:
 
                 dial_act_root = ET.parse(
                     os.path.join(
-                        nxt_root, "dialAct", f"{dialogue_id}.{role}.dialAct.xml"
+                        xml_path, "dialAct", f"{dialogue_id}.{role}.dialAct.xml"
                     )
                 ).getroot()
 
@@ -89,12 +105,16 @@ for subset in ["train", "valid", "test"]:
                     if words == "excluded":
                         continue
 
+                    dial_act_id = dial_act.attrib["{http://nite.sourceforge.net/}id"][
+                        2:
+                    ]
+
                     utt_id = (
                         speaker[dialogue_id][role]
                         + "_"
                         + dialogue_id
                         + "_"
-                        + dial_act.attrib["{http://nite.sourceforge.net/}id"][2:]
+                        + dial_act_id
                     )
 
                     dial_act_children = dial_act.findall(
@@ -116,15 +136,53 @@ for subset in ["train", "valid", "test"]:
 
                     start = terminals[start_terminal_id]["start"]
                     end = terminals[end_terminal_id]["end"]
+                    dur = end - start
 
-                    text_f.write(utt_id + " " + words + "\n")
+                    if dur < 0.005:
+                        continue
 
-                    wav_scp_f.write(
-                        "{} sox {} -r 16k -t wav -c 1 -b 16 -e signed - ".format(
-                            utt_id, sph[dialogue_id]
-                        )
-                        + "trim {} {} remix {} |\n".format(
-                            start, end - start, channel[role]
-                        )
-                    )
-                    utt2spk_f.write(utt_id + " " + speaker[dialogue_id][role] + "\n")
+                    dial_acts[dial_act_id] = {
+                        "utt": utt_id,
+                        "start": start,
+                        "dur": dur,
+                        "channel": channel[role],
+                        "text": words,
+                        "spk": speaker[dialogue_id][role],
+                    }
+
+            for dial_act_id in dial_acts:
+                context = [dial_act_id]
+
+                for i in range(1, args.context + 1):
+                    context_dial_act_id = str(int(dial_act_id) - i)
+                    if context_dial_act_id in dial_acts:
+                        context.append(context_dial_act_id)
+
+                context.reverse()
+
+                wav = " ".join(
+                    [
+                        f'"| sox {sph[dialogue_id]} -r 16k -t wav'
+                        + " -c 1 -b 16 -e signed - "
+                        + f'trim {dial_acts[c]["start"]} {dial_acts[c]["dur"]}'
+                        + f' remix {dial_acts[c]["channel"]}"'
+                        for c in context
+                    ]
+                )
+
+                wav_scp_f.write(
+                    "{} sox {} -t wav - |\n".format(dial_acts[dial_act_id]["utt"], wav)
+                )
+                text_f.write(
+                    dial_acts[dial_act_id]["utt"]
+                    + " "
+                    + dial_acts[dial_act_id]["text"]
+                    + "\n"
+                )
+                utt2spk_f.write(
+                    dial_acts[dial_act_id]["utt"]
+                    + " "
+                    + dial_acts[dial_act_id]["spk"]
+                    + "\n"
+                )
+    subprocess.call("utils/fix_data_dir.sh {}".format(odir), shell=True)

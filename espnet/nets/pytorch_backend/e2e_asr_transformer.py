@@ -86,6 +86,16 @@ class E2E(ASRInterface, torch.nn.Module):
         if args.transformer_attn_dropout_rate is None:
             args.transformer_attn_dropout_rate = args.dropout_rate
 
+        self.adim = args.adim  # used for CTC (equal to d_model)
+        self.mtlalpha = args.mtlalpha
+
+        if args.mtlalpha > 0.0:
+            self.ctc = CTC(
+                odim, args.adim, args.dropout_rate, ctc_type=args.ctc_type, reduce=True
+            )
+        else:
+            self.ctc = None
+
         self.intermediate_ctc_weight = args.intermediate_ctc_weight
         self.intermediate_ctc_layers = []
         if args.intermediate_ctc_layer != "":
@@ -109,6 +119,8 @@ class E2E(ASRInterface, torch.nn.Module):
             attention_dropout_rate=args.transformer_attn_dropout_rate,
             stochastic_depth_rate=args.stochastic_depth_rate,
             intermediate_layers=self.intermediate_ctc_layers,
+            ctc_softmax=self.ctc.softmax if args.self_conditioning else None,
+            conditioning_layer_dim=odim,
         )
         if args.mtlalpha < 1:
             self.decoder = Decoder(
@@ -144,15 +156,6 @@ class E2E(ASRInterface, torch.nn.Module):
         self.reporter = Reporter()
 
         self.reset_parameters(args)
-        self.adim = args.adim  # used for CTC (equal to d_model)
-        self.mtlalpha = args.mtlalpha
-
-        if args.mtlalpha > 0.0:
-            self.ctc = CTC(
-                odim, args.adim, args.dropout_rate, ctc_type=args.ctc_type, reduce=True
-            )
-        else:
-            self.ctc = None
 
         if args.report_cer or args.report_wer:
             self.error_calculator = ErrorCalculator(

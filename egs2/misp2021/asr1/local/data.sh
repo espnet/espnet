@@ -41,8 +41,10 @@ enhancement_dir=data/misp2021_far_WPE
 ###########################################################################
 # use nara-wpe and beamformit to enhance multichannel misp data
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    log "stage 0: Nara-wpe and Beamformit"
-    local/enhancement.sh $MISP2021 $enhancement_dir || exit 1;
+  log "stage 0: Nara-wpe and Beamformit"
+  for x in dev train ; do
+    local/enhancement.sh $MISP2021/audio/$x ${enhancement_dir}/audio/$x  || exit 1;
+  done
 fi
 
 ###########################################################################
@@ -50,7 +52,7 @@ fi
 ###########################################################################
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-  for x in dev test train ; do
+  for x in dev train ; do
     if [[ ! -f data/${x}_far/.done ]]; then
       local/prepare_data.sh $MISP2021 $enhancement_dir $x data/${x}_far || exit 1;
     fi
