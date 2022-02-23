@@ -52,7 +52,10 @@ def main():
 
 @contextlib.contextmanager
 def tqdm_joblib(tqdm_object):
-    """Context manager to patch joblib to report into tqdm progress bar given as argument"""
+    """
+    Context manager to patch joblib to report
+    into tqdm progress bar given as argument
+    """
 
     class TqdmBatchCompletionCallback(parallel.BatchCompletionCallBack):
         def __call__(self, *args, **kwargs):

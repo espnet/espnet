@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import os, sys
+import os
+import sys
 from dataclasses import dataclass
 import zipfile
 import tempfile
