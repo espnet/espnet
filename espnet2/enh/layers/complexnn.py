@@ -48,7 +48,7 @@ class NavieComplexLSTM(nn.Module):
         batch_first=False,
     ):
         super(NavieComplexLSTM, self).__init__()
-
+        self.bidirectional = bidirectional
         self.input_dim = input_size // 2
         self.rnn_units = hidden_size // 2
         self.real_lstm = nn.LSTM(
@@ -94,7 +94,6 @@ class NavieComplexLSTM(nn.Module):
         if self.projection_dim is not None:
             real_out = self.r_trans(real_out)
             imag_out = self.i_trans(imag_out)
-        # print(real_out.shape,imag_out.shape)
         return [real_out, imag_out]
 
     def flatten_parameters(self):
@@ -129,12 +128,12 @@ class ComplexConv2d(nn.Module):
         complex_axis=1,
     ):
         """
-            in_channels: real+imag
-            out_channels: real+imag
-            kernel_size : input [B,C,D,T] kernel size in [D,T]
-            padding : input [B,C,D,T] padding in [D,T]
-            causal: if causal, will padding time dimension's left side,
-                    otherwise both
+        in_channels: real+imag
+        out_channels: real+imag
+        kernel_size : input [B,C,D,T] kernel size in [D,T]
+        padding : input [B,C,D,T] padding in [D,T]
+        causal: if causal, will padding time dimension's left side,
+                otherwise both
         """
         super(ComplexConv2d, self).__init__()
         self.in_channels = in_channels // 2
@@ -186,8 +185,12 @@ class ComplexConv2d(nn.Module):
             if isinstance(inputs, torch.Tensor):
                 real, imag = torch.chunk(inputs, 2, self.complex_axis)
 
-            real2real = self.real_conv(real,)
-            imag2imag = self.imag_conv(imag,)
+            real2real = self.real_conv(
+                real,
+            )
+            imag2imag = self.imag_conv(
+                imag,
+            )
 
             real2imag = self.imag_conv(real)
             imag2real = self.real_conv(imag)
@@ -213,8 +216,8 @@ class ComplexConvTranspose2d(nn.Module):
         groups=1,
     ):
         """
-            in_channels: real+imag
-            out_channels: real+imag
+        in_channels: real+imag
+        out_channels: real+imag
         """
         super(ComplexConvTranspose2d, self).__init__()
         self.in_channels = in_channels // 2
@@ -251,7 +254,6 @@ class ComplexConvTranspose2d(nn.Module):
         nn.init.constant_(self.imag_conv.bias, 0.0)
 
     def forward(self, inputs):
-
         if isinstance(inputs, torch.Tensor):
             real, imag = torch.chunk(inputs, 2, self.complex_axis)
         elif isinstance(inputs, tuple) or isinstance(inputs, list):
@@ -267,21 +269,22 @@ class ComplexConvTranspose2d(nn.Module):
             if isinstance(inputs, torch.Tensor):
                 real, imag = torch.chunk(inputs, 2, self.complex_axis)
 
-            real2real = self.real_conv(real,)
-            imag2imag = self.imag_conv(imag,)
+            real2real = self.real_conv(
+                real,
+            )
+            imag2imag = self.imag_conv(
+                imag,
+            )
 
             real2imag = self.imag_conv(real)
             imag2real = self.real_conv(imag)
 
         real = real2real - imag2imag
         imag = real2imag + imag2real
+
         out = torch.cat([real, imag], self.complex_axis)
 
         return out
-
-
-# Source: https://github.com/ChihebTrabelsi/deep_complex_networks/tree/pytorch
-# from https://github.com/IMLHF/SE_DCUNet/blob/f28bf1661121c8901ad38149ea827693f1830715/models/layers/complexnn.py#L55
 
 
 class ComplexBatchNorm(torch.nn.Module):
@@ -486,8 +489,7 @@ if __name__ == "__main__":
     onet1 = dc_crn7.ComplexConv2d(12, 12, kernel_size=(3, 2), padding=(2, 1))
     onet2 = dc_crn7.ComplexConvTranspose2d(12, 12, kernel_size=(3, 2), padding=(2, 1))
     inputs = torch.randn([1, 12, 12, 10])
-    #    print(onet1.real_kernel[0,0,0,0])
+
     nnet1 = ComplexConv2d(12, 12, kernel_size=(3, 2), padding=(2, 1), causal=True)
-    #    print(nnet1.real_conv.weight[0,0,0,0])
+
     nnet2 = ComplexConvTranspose2d(12, 12, kernel_size=(3, 2), padding=(2, 1))
-    print(torch.mean(nnet1(inputs) - onet1(inputs)))
