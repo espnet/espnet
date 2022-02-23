@@ -1,5 +1,0 @@
-# python ./local/data_prep.py --train_val_path downloads/trainval --test_path downloads/test 
-# Started at Wed Feb 16 19:36:49 EST 2022
-#
-# Accounting: time=1 threads=1
-# Ended (code 0) at Wed Feb 16 19:36:50 EST 2022, elapsed time 1 seconds

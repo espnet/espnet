@@ -15,6 +15,9 @@ log() {
 . ./cmd.sh
 
 download_and_untar=true
+mp4_to_wav=true
+
+# Manually fill the lrs3_username, lrs3_password
 lrs3_username=lrs531
 lrs3_password=49hfP4Rz
 
@@ -25,12 +28,12 @@ nj=1
 
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
-    # exit 2
+    exit 1
 fi
 
 if [ -z "${LRS3}" ]; then
     log "Fill the value of 'LRS3' of db.sh"
-    # exit 1
+    exit 1
 fi
 
 if $download_and_untar; then
@@ -39,32 +42,33 @@ if $download_and_untar; then
     local/download_and_untar.sh --remove-archive ${LRS3} ${lrs3_username} ${lrs3_password}
 fi
 
+if $mp4_to_wav; then
+    log "Extacting .wav files from .mp4 files and storing it under the same directory"
+    chmod 777 local/mp4_to_wav.sh
+    local/mp4_to_wav.sh ${LRS3}
+fi
 
+# Make the Folders where ESPNet data-prep files will be stored
+for dataset in train dev test; do
+    log "Creating the ./data/${dataset} folders"
+    mkdir -p ./data/${dataset}
+done
 
+# generate the utt2spk, wav.scp and text files
+log "Generating the utt2spk, wav.scp and text files"
+$cmd JOB=1:$nj ${log_dir}.JOB.log python ./local/data_prep.py --train_val_path ${LRS3}/trainval --test_path ${LRS3}/test 
 
-# for dataset in trainval test; do
-#     for mp4_path in ${LRS3}/${dataset}/*/*.mp4; do
-#         wav_path=${mp4_path//.mp4/.wav}
-#         ffmpeg -y -i ${mp4_path} -loglevel panic -ar 16000 -ac 1 ${wav_path} 
-#     done
-# done
+log "Generating the spk2utt files"
+utils/utt2spk_to_spk2utt.pl data/train/utt2spk > data/train/spk2utt
+utils/utt2spk_to_spk2utt.pl data/dev/utt2spk > data/dev/spk2utt
+utils/utt2spk_to_spk2utt.pl data/test/utt2spk > data/test/spk2utt
 
-# Make the Folders where ESPNet essential files will be stored
-# for dataset in train dev test; do
-#     mkdir -p ./data/${dataset}
-# done
+log "Fix sorting issues by calling fix_data_dir.sh"
+utils/fix_data_dir.sh data/train
+utils/fix_data_dir.sh data/test
+utils/fix_data_dir.sh data/dev
 
-# $cmd JOB=1:$nj ${log_dir}.JOB.log python ./local/data_prep.py --train_val_path ${LRS3}/trainval --test_path ${LRS3}/test 
-
-# utils/utt2spk_to_spk2utt.pl data/train/utt2spk > data/train/spk2utt
-# utils/utt2spk_to_spk2utt.pl data/dev/utt2spk > data/dev/spk2utt
-# utils/utt2spk_to_spk2utt.pl data/test/utt2spk > data/test/spk2utt
-
-# utils/fix_data_dir.sh data/train
-# utils/fix_data_dir.sh data/test
-# utils/fix_data_dir.sh data/dev
-
-# utils/validate_data_dir.sh data/train --no-feats
-# utils/validate_data_dir.sh data/test --no-feats
-# utils/validate_data_dir.sh data/dev --no-feats
-
+log "Validate the data directory"
+utils/validate_data_dir.sh data/train --no-feats
+utils/validate_data_dir.sh data/test --no-feats
+utils/validate_data_dir.sh data/dev --no-feats

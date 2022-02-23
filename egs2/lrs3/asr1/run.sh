@@ -12,8 +12,9 @@ test_set="test "
 test_sets="test dev"
 
 
-asr_tag=librspeech_config
-asr_config=conf/train_asr_conformer_lr2e-3_warmup15k_amp_nondeterministic.yaml
+asr_tag=train_asr_transformer
+asr_config=conf/train_asr_transformer.yaml
+lm_config=conf/train_lm.yaml
 
 ./asr.sh \
     --skip_data_prep false \
@@ -30,6 +31,7 @@ asr_config=conf/train_asr_conformer_lr2e-3_warmup15k_amp_nondeterministic.yaml
     --feats_type raw \
     --use_lm false \
     --asr_tag "${asr_tag}" \
+    --lm_config ${lm_config} \
     --asr_config "${asr_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \

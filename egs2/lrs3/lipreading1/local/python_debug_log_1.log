@@ -1,7 +1,0 @@
-# python ./local/data_prep.py --train_val_path downloads/trainval --test_path downloads/test 
-# Started at Wed Feb 16 19:45:16 EST 2022
-#
-2022-02-16 19:45:17,936 (data_prep:28) INFO: debayan
-2022-02-16 19:45:17,936 (data_prep:30) INFO: Namespace(test_path='downloads/test', train_val_path='downloads/trainval')
-# Accounting: time=1 threads=1
-# Ended (code 0) at Wed Feb 16 19:45:17 EST 2022, elapsed time 1 seconds
