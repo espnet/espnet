@@ -110,7 +110,7 @@ rm -r dlib-19.13.tar.bz2
 echo "dlib installed"
 
 # OpenFace installation
-echo "Downloading dlib"
+echo "Downloading OpenFace"
 git clone https://github.com/TadasBaltrusaitis/OpenFace.git
 cd OpenFace
 echo "Installing OpenFace..."
