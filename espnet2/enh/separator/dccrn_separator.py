@@ -1,19 +1,20 @@
 from collections import OrderedDict
 from distutils.version import LooseVersion
-from typing import List, Tuple, Union
+from typing import List
+from typing import Tuple
+from typing import Union
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from espnet2.enh.layers.complexnn import (
-    ComplexBatchNorm,
-    ComplexConv2d,
-    ComplexConvTranspose2d,
-    NavieComplexLSTM,
-    complex_cat,
-)
-from espnet2.enh.separator.abs_separator import AbsSeparator
 from torch_complex.tensor import ComplexTensor
+
+from espnet2.enh.layers.complexnn import complex_cat
+from espnet2.enh.layers.complexnn import ComplexBatchNorm
+from espnet2.enh.layers.complexnn import ComplexConv2d
+from espnet2.enh.layers.complexnn import ComplexConvTranspose2d
+from espnet2.enh.layers.complexnn import NavieComplexLSTM
+from espnet2.enh.separator.abs_separator import AbsSeparator
 
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 EPS = torch.finfo(torch.double).eps
@@ -35,7 +36,7 @@ class DCCRNSeparator(AbsSeparator):
         use_builtin_complex: bool = True,
         use_noise_mask: bool = False,
     ):
-        """DCCRN separator
+        """DCCRN separator.
 
         Args:
             input_dim (int): input dimension。

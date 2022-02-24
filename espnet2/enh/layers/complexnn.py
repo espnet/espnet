@@ -1,16 +1,3 @@
-# Copyright 2020 huyanxin
-
-#    Licensed under the Apache License, Version 2.0 (the "License");
-#    you may not use this file except in compliance with the License.
-#    You may obtain a copy of the License at
-
-#        http://www.apache.org/licenses/LICENSE-2.0
-
-#    Unless required by applicable law or agreed to in writing, software
-#    distributed under the License is distributed on an "AS IS" BASIS,
-#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#    See the License for the specific language governing permissions and
-#    limitations under the License.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -105,7 +92,8 @@ class ComplexConv2d(nn.Module):
         causal=True,
         complex_axis=1,
     ):
-        """
+        """ComplexConv2d.
+
         in_channels: real+imag
         out_channels: real+imag
         kernel_size : input [B,C,D,T] kernel size in [D,T]
@@ -193,7 +181,8 @@ class ComplexConvTranspose2d(nn.Module):
         complex_axis=1,
         groups=1,
     ):
-        """
+        """ComplexConvTranspose2d.
+
         in_channels: real+imag
         out_channels: real+imag
         """
@@ -338,7 +327,6 @@ class ComplexBatchNorm(torch.nn.Module):
         assert xr.size(1) == self.num_features
 
     def forward(self, inputs):
-        # self._check_input_dim(xr, xi)
 
         xr, xi = torch.chunk(inputs, 2, axis=self.complex_axis)
         exponential_average_factor = 0.0
@@ -350,22 +338,17 @@ class ComplexBatchNorm(torch.nn.Module):
             else:  # use exponential moving average
                 exponential_average_factor = self.momentum
 
-        #
         # NOTE: The precise meaning of the "training flag" is:
         #       True:  Normalize using batch   statistics, update running statistics
         #              if they are being collected.
         #       False: Normalize using running statistics, ignore batch   statistics.
-        #
         training = self.training or not self.track_running_stats
         redux = [i for i in reversed(range(xr.dim())) if i != 1]
         vdim = [1] * xr.dim()
         vdim[1] = xr.size(1)
 
-        #
         # Mean M Computation and Centering
-        #
         # Includes running mean update if training and running.
-        #
         if training:
             Mr, Mi = xr, xi
             for d in redux:
@@ -379,12 +362,9 @@ class ComplexBatchNorm(torch.nn.Module):
             Mi = self.RMi.view(vdim)
         xr, xi = xr - Mr, xi - Mi
 
-        #
         # Variance Matrix V Computation
-        #
         # Includes epsilon numerical stabilizer/Tikhonov regularizer.
         # Includes running variance update if training and running.
-        #
         if training:
             Vrr = xr * xr
             Vri = xr * xi
@@ -405,9 +385,7 @@ class ComplexBatchNorm(torch.nn.Module):
         Vri = Vri
         Vii = Vii + self.eps
 
-        #
         # Matrix Inverse Square Root U = V^-0.5
-        #
         # sqrt of a 2x2 matrix,
         # - https://en.wikipedia.org/wiki/Square_root_of_a_2_by_2_matrix
         tau = Vrr + Vii
@@ -421,7 +399,6 @@ class ComplexBatchNorm(torch.nn.Module):
         Uii = (s + Vrr) * rst
         Uri = (-Vri) * rst
 
-        #
         # Optionally left-multiply U by affine weights W to produce combined
         # weights Z, left-multiply the inputs by Z, then optionally bias them.
         #
@@ -429,7 +406,6 @@ class ComplexBatchNorm(torch.nn.Module):
         # y = WUx + B
         # y = [Wrr Wri][Urr Uri] [xr] + [Br]
         #     [Wir Wii][Uir Uii] [xi]   [Bi]
-        #
         if self.affine:
             Wrr, Wri, Wii = (
                 self.Wrr.view(vdim),
@@ -458,16 +434,3 @@ class ComplexBatchNorm(torch.nn.Module):
             "{num_features}, eps={eps}, momentum={momentum}, affine={affine}, "
             "track_running_stats={track_running_stats}".format(**self.__dict__)
         )
-
-
-if __name__ == "__main__":
-    import dc_crn7
-
-    torch.manual_seed(20)
-    onet1 = dc_crn7.ComplexConv2d(12, 12, kernel_size=(3, 2), padding=(2, 1))
-    onet2 = dc_crn7.ComplexConvTranspose2d(12, 12, kernel_size=(3, 2), padding=(2, 1))
-    inputs = torch.randn([1, 12, 12, 10])
-
-    nnet1 = ComplexConv2d(12, 12, kernel_size=(3, 2), padding=(2, 1), causal=True)
-
-    nnet2 = ComplexConvTranspose2d(12, 12, kernel_size=(3, 2), padding=(2, 1))

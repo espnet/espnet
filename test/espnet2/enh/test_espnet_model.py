@@ -13,8 +13,8 @@ from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
-from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
+from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
