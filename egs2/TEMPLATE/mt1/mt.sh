@@ -558,7 +558,7 @@ if ! "${skip_data_prep}"; then
             cat ${tgt_bpe_train_text} | cut -f 2- -d" "  > "${data_feats}"/token_train.txt
 
             # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-            # 0 is reserved for CTC-blank for ST and also used as ignore-index in the other task
+            # 0 is reserved for CTC-blank for MT and also used as ignore-index in the other task
             ${python} -m espnet2.bin.tokenize_text  \
                 --token_type "${tgt_token_type}" \
                 --input "${data_feats}/token_train.txt" --output "${tgt_token_list}" ${_opts} \
@@ -634,7 +634,7 @@ if ! "${skip_data_prep}"; then
                 cat ${src_bpe_train_text} | cut -f 2- -d" "  > "${data_feats}"/token_train.txt
 
                 # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-                # 0 is reserved for CTC-blank for ST and also used as ignore-index in the other task
+                # 0 is reserved for CTC-blank for MT and also used as ignore-index in the other task
                 ${python} -m espnet2.bin.tokenize_text  \
                     --token_type "${src_token_type}" \
                     --input "${data_feats}/token_train.txt" --output "${src_token_list}" ${_opts} \
@@ -872,6 +872,8 @@ if ! "${skip_train}"; then
         _logdir="${mt_stats_dir}/logdir"
         mkdir -p "${_logdir}"
 
+        _scp=text.${src_case}.${src_lang}
+
         # Get the minimum number among ${nj} and the number lines of input files
         _nj=$(min "${nj}" "$(<${_mt_train_dir}/${_scp} wc -l)" "$(<${_mt_valid_dir}/${_scp} wc -l)")
 
@@ -896,7 +898,7 @@ if ! "${skip_train}"; then
         mkdir -p "${mt_stats_dir}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${mt_stats_dir}/run.sh"; chmod +x "${mt_stats_dir}/run.sh"
 
         # 3. Submit jobs
-        log "ST collect-stats started... log: '${_logdir}/stats.*.log'"
+        log "MT collect-stats started... log: '${_logdir}/stats.*.log'"
 
         # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
         #       but it's used only for deciding the sample ids.
@@ -916,10 +918,8 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --train_data_path_and_name_and_type "${_mt_train_dir}/${_scp},speech,${_type}" \
                 --train_data_path_and_name_and_type "${_mt_train_dir}/text.${tgt_case}.${tgt_lang},text,text" \
                 --train_data_path_and_name_and_type "${_mt_train_dir}/text.${src_case}.${src_lang},src_text,text" \
-                --valid_data_path_and_name_and_type "${_mt_valid_dir}/${_scp},speech,${_type}" \
                 --valid_data_path_and_name_and_type "${_mt_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
                 --valid_data_path_and_name_and_type "${_mt_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
@@ -967,24 +967,7 @@ if ! "${skip_train}"; then
         fi
 
         _feats_type="$(<${_mt_train_dir}/feats_type)"
-        if [ "${_feats_type}" = raw ]; then
-            _scp=wav.scp
-            # "sound" supports "wav", "flac", etc.
-            if [[ "${audio_format}" == *ark* ]]; then
-                _type=kaldi_ark
-            else
-                _type=sound
-            fi
-            _fold_length="$((mt_speech_fold_length * 100))"
-            _opts+="--frontend_conf fs=${fs} "
-        else
-            _scp=feats.scp
-            _type=kaldi_ark
-            _fold_length="${mt_speech_fold_length}"
-            _input_size="$(<${_mt_train_dir}/feats_dim)"
-            _opts+="--input_size=${_input_size} "
 
-        fi
         if [ "${feats_normalize}" = global_mvn ]; then
             # Default normalization is utterance_mvn and changes to global_mvn
             _opts+="--normalize=global_mvn --normalize_conf stats_file=${mt_stats_dir}/train/feats_stats.npz "
@@ -1033,7 +1016,7 @@ if ! "${skip_train}"; then
         mkdir -p "${mt_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${mt_exp}/run.sh"; chmod +x "${mt_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
-        log "ST training started... log: '${mt_exp}/train.log'"
+        log "MT training started... log: '${mt_exp}/train.log'"
         if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
             # SGE can't include "/" in a job name
             jobname="$(basename ${mt_exp})"
@@ -1388,7 +1371,7 @@ cd $(pwd | rev | cut -d/ -f1-3 | rev)
 ./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
 </pre></li>
 <li><strong>Results</strong><pre><code>$(cat "${st_exp}"/RESULTS.md)</code></pre></li>
-<li><strong>ST config</strong><pre><code>$(cat "${st_exp}"/config.yaml)</code></pre></li>
+<li><strong>MT config</strong><pre><code>$(cat "${st_exp}"/config.yaml)</code></pre></li>
 <li><strong>LM config</strong><pre><code>$(if ${use_lm}; then cat "${lm_exp}"/config.yaml; else echo NONE; fi)</code></pre></li>
 </ul>
 EOF

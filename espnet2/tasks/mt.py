@@ -53,7 +53,8 @@ from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
-from espnet2.st.espnet_model import ESPnetSTModel
+from espnet2.mt.frontend.embedding import Embedding
+from espnet2.mt.espnet_model import ESPnetMTModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -71,12 +72,10 @@ from espnet2.utils.types import str_or_none
 frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(
-        default=DefaultFrontend,
-        sliding_window=SlidingWindow,
-        s3prl=S3prlFrontend,
+        embed=Embedding,
     ),
     type_check=AbsFrontend,
-    default="default",
+    default="embed",
 )
 specaug_choices = ClassChoices(
     name="specaug",
@@ -251,7 +250,7 @@ class MTTask(AbsTask):
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ESPnetSTModel),
+            default=get_default_kwargs(ESPnetMTModel),
             help="The keyword arguments for model class.",
         )
 
@@ -350,7 +349,7 @@ class MTTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("speech", "text")
+            retval = ("src_text", "text")
         else:
             # Recognition mode
             retval = ("speech",)
@@ -361,14 +360,14 @@ class MTTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("src_text",)
+            retval = ()
         else:
             retval = ()
         assert check_return_type(retval)
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetSTModel:
+    def build_model(cls, args: argparse.Namespace) -> ESPnetMTModel:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -403,7 +402,9 @@ class MTTask(AbsTask):
         if args.input_size is None:
             # Extract features in the model
             frontend_class = frontend_choices.get_class(args.frontend)
-            frontend = frontend_class(**args.frontend_conf)
+            frontend = frontend_class(
+                input_size=src_vocab_size, **args.frontend_conf
+            )
             input_size = frontend.output_size()
         else:
             # Give features from data-loader
@@ -412,21 +413,14 @@ class MTTask(AbsTask):
             frontend = None
             input_size = args.input_size
 
-        # 2. Data augmentation for spectrogram
-        if args.specaug is not None:
-            specaug_class = specaug_choices.get_class(args.specaug)
-            specaug = specaug_class(**args.specaug_conf)
-        else:
-            specaug = None
+        # 2. Normalization layer
+        # if args.normalize is not None:
+        #     normalize_class = normalize_choices.get_class(args.normalize)
+        #     normalize = normalize_class(**args.normalize_conf)
+        # else:
+        #     normalize = None
 
-        # 3. Normalization layer
-        if args.normalize is not None:
-            normalize_class = normalize_choices.get_class(args.normalize)
-            normalize = normalize_class(**args.normalize_conf)
-        else:
-            normalize = None
-
-        # 4. Pre-encoder input block
+        # 3. Pre-encoder input block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
         if getattr(args, "preencoder", None) is not None:
             preencoder_class = preencoder_choices.get_class(args.preencoder)
@@ -461,58 +455,53 @@ class MTTask(AbsTask):
         )
 
         # 6. CTC
-        if src_token_list is not None:
-            ctc = CTC(
-                odim=src_vocab_size,
-                encoder_output_sizse=encoder_output_size,
-                **args.ctc_conf,
-            )
-        else:
-            ctc = None
+        # if src_token_list is not None:
+        #     ctc = CTC(
+        #         odim=src_vocab_size,
+        #         encoder_output_sizse=encoder_output_size,
+        #         **args.ctc_conf,
+        #     )
+        # else:
+        #     ctc = None
 
         # 7. ASR extra decoder
-        if (
-            getattr(args, "extra_asr_decoder", None) is not None
-            and src_token_list is not None
-        ):
-            extra_asr_decoder_class = extra_asr_decoder_choices.get_class(
-                args.extra_asr_decoder
-            )
-            extra_asr_decoder = extra_asr_decoder_class(
-                vocab_size=src_vocab_size,
-                encoder_output_size=encoder_output_size,
-                **args.extra_asr_decoder_conf,
-            )
-        else:
-            extra_asr_decoder = None
+        # if (
+        #     getattr(args, "extra_asr_decoder", None) is not None
+        #     and src_token_list is not None
+        # ):
+        #     extra_asr_decoder_class = extra_asr_decoder_choices.get_class(
+        #         args.extra_asr_decoder
+        #     )
+        #     extra_asr_decoder = extra_asr_decoder_class(
+        #         vocab_size=src_vocab_size,
+        #         encoder_output_size=encoder_output_size,
+        #         **args.extra_asr_decoder_conf,
+        #     )
+        # else:
+        #     extra_asr_decoder = None
 
-        # 8. MT extra decoder
-        if getattr(args, "extra_mt_decoder", None) is not None:
-            extra_mt_decoder_class = extra_mt_decoder_choices.get_class(
-                args.extra_mt_decoder
-            )
-            extra_mt_decoder = extra_mt_decoder_class(
-                vocab_size=vocab_size,
-                encoder_output_size=encoder_output_size,
-                **args.extra_mt_decoder_conf,
-            )
-        else:
-            extra_asr_decoder = None
+        # # 8. MT extra decoder
+        # if getattr(args, "extra_mt_decoder", None) is not None:
+        #     extra_mt_decoder_class = extra_mt_decoder_choices.get_class(
+        #         args.extra_mt_decoder
+        #     )
+        #     extra_mt_decoder = extra_mt_decoder_class(
+        #         vocab_size=vocab_size,
+        #         encoder_output_size=encoder_output_size,
+        #         **args.extra_mt_decoder_conf,
+        #     )
+        # else:
+        #     extra_asr_decoder = None
 
         # 8. Build model
-        model = ESPnetSTModel(
+        model = ESPnetMTModel(
             vocab_size=vocab_size,
             src_vocab_size=src_vocab_size,
             frontend=frontend,
-            specaug=specaug,
-            normalize=normalize,
             preencoder=preencoder,
             encoder=encoder,
             postencoder=postencoder,
             decoder=decoder,
-            ctc=ctc,
-            extra_asr_decoder=extra_asr_decoder,
-            extra_mt_decoder=extra_mt_decoder,
             token_list=token_list,
             src_token_list=src_token_list,
             **args.model_conf,
