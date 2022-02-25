@@ -142,12 +142,14 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # for data-parallel
         speech_ref = speech_ref[..., : speech_lengths.max()]
         speech_ref = speech_ref.unbind(dim=1)
+        sep_others = {}
+        sep_others["feature_ref"] = [self.encoder(r, speech_lengths)[0] for r in speech_ref]
 
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
         # model forward
         feature_mix, flens = self.encoder(speech_mix, speech_lengths)
-        feature_pre, flens, others = self.separator(feature_mix, flens)
+        feature_pre, flens, others = self.separator(feature_mix, flens, sep_others)
         if feature_pre is not None:
             speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
         else:
@@ -166,7 +168,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     # only select one channel as the reference
                     speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
                 # for the time domain criterions
-                l, s, o = loss_wrapper(speech_ref, speech_pre, o)
+                l, s, o = loss_wrapper(speech_ref, speech_pre, others)
             elif isinstance(criterion, FrequencyDomainLoss):
                 # for the time-frequency domain criterions
                 if criterion.compute_on_mask:
@@ -188,7 +190,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     tf_ref = [self.encoder(sr, speech_lengths)[0] for sr in speech_ref]
                     tf_pre = feature_pre
 
-                l, s, o = loss_wrapper(tf_ref, tf_pre, o)
+                l, s, o = loss_wrapper(tf_ref, tf_pre, others)
             loss += l * loss_wrapper.weight
             stats.update(s)
 
