@@ -241,7 +241,7 @@ class ESPnetMTModel(AbsESPnetModel):
         )
 
         # 2. Compute attention loss
-        loss_att = self.criterion_st(decoder_out, ys_out_pad)
+        loss_att = self.criterion_mt(decoder_out, ys_out_pad)
         acc_att = th_accuracy(
             decoder_out.view(-1, self.vocab_size),
             ys_out_pad,

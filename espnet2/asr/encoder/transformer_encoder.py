@@ -97,9 +97,10 @@ class TransformerEncoder(AbsEncoder):
                 pos_enc_class(output_size, positional_dropout_rate),
             )
         elif input_layer is None:
-            self.embed = torch.nn.Sequential(
-                pos_enc_class(output_size, positional_dropout_rate)
-            )
+            if input_size == output_size:
+                self.embed = None
+            else:
+                self.embed = torch.nn.Linear(input_size, output_size)
         else:
             raise ValueError("unknown input_layer: " + input_layer)
         self.normalize_before = normalize_before
@@ -164,7 +165,9 @@ class TransformerEncoder(AbsEncoder):
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
-        if (
+        if self.embed is None:
+            xs_pad = xs_pad
+        elif (
             isinstance(self.embed, Conv2dSubsampling)
             or isinstance(self.embed, Conv2dSubsampling2)
             or isinstance(self.embed, Conv2dSubsampling6)

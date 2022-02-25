@@ -12,7 +12,6 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.transformer_decoder import (
@@ -28,18 +27,14 @@ from espnet2.asr.decoder.transformer_decoder import (
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
-from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
-from espnet2.asr.encoder.hubert_encoder import FairseqHubertPretrainEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
     ContextualBlockTransformerEncoder,  # noqa: H301
 )
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
-from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
@@ -48,11 +43,6 @@ from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
-from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-from espnet2.asr.specaug.specaug import SpecAug
-from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.layers.global_mvn import GlobalMVN
-from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.mt.frontend.embedding import Embedding
 from espnet2.mt.espnet_model import ESPnetMTModel
 from espnet2.tasks.abs_task import AbsTask
@@ -77,23 +67,6 @@ frontend_choices = ClassChoices(
     type_check=AbsFrontend,
     default="embed",
 )
-specaug_choices = ClassChoices(
-    name="specaug",
-    classes=dict(specaug=SpecAug),
-    type_check=AbsSpecAug,
-    default=None,
-    optional=True,
-)
-normalize_choices = ClassChoices(
-    "normalize",
-    classes=dict(
-        global_mvn=GlobalMVN,
-        utterance_mvn=UtteranceMVN,
-    ),
-    type_check=AbsNormalize,
-    default="utterance_mvn",
-    optional=True,
-)
 preencoder_choices = ClassChoices(
     name="preencoder",
     classes=dict(
@@ -112,9 +85,6 @@ encoder_choices = ClassChoices(
         contextual_block_transformer=ContextualBlockTransformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
-        wav2vec2=FairSeqWav2Vec2Encoder,
-        hubert=FairseqHubertEncoder,
-        hubert_pretrain=FairseqHubertPretrainEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
@@ -141,32 +111,6 @@ decoder_choices = ClassChoices(
     type_check=AbsDecoder,
     default="rnn",
 )
-extra_asr_decoder_choices = ClassChoices(
-    "extra_asr_decoder",
-    classes=dict(
-        transformer=TransformerDecoder,
-        lightweight_conv=LightweightConvolutionTransformerDecoder,
-        lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
-        dynamic_conv=DynamicConvolutionTransformerDecoder,
-        dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
-        rnn=RNNDecoder,
-    ),
-    type_check=AbsDecoder,
-    default="rnn",
-)
-extra_mt_decoder_choices = ClassChoices(
-    "extra_mt_decoder",
-    classes=dict(
-        transformer=TransformerDecoder,
-        lightweight_conv=LightweightConvolutionTransformerDecoder,
-        lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
-        dynamic_conv=DynamicConvolutionTransformerDecoder,
-        dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
-        rnn=RNNDecoder,
-    ),
-    type_check=AbsDecoder,
-    default="rnn",
-)
 
 
 class MTTask(AbsTask):
@@ -177,10 +121,6 @@ class MTTask(AbsTask):
     class_choices_list = [
         # --frontend and --frontend_conf
         frontend_choices,
-        # --specaug and --specaug_conf
-        specaug_choices,
-        # --normalize and --normalize_conf
-        normalize_choices,
         # --preencoder and --preencoder_conf
         preencoder_choices,
         # --encoder and --encoder_conf
@@ -189,10 +129,6 @@ class MTTask(AbsTask):
         postencoder_choices,
         # --decoder and --decoder_conf
         decoder_choices,
-        # --extra_asr_decoder and --extra_asr_decoder_conf
-        extra_asr_decoder_choices,
-        # --extra_mt_decoder and --extra_mt_decoder_conf
-        extra_mt_decoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -241,12 +177,6 @@ class MTTask(AbsTask):
             help="The number of input dimension of the feature",
         )
 
-        group.add_argument(
-            "--ctc_conf",
-            action=NestedDictAction,
-            default=get_default_kwargs(CTC),
-            help="The keyword arguments for CTC class.",
-        )
         group.add_argument(
             "--model_conf",
             action=NestedDictAction,
@@ -352,7 +282,7 @@ class MTTask(AbsTask):
             retval = ("src_text", "text")
         else:
             # Recognition mode
-            retval = ("speech",)
+            retval = ("src_text",)
         return retval
 
     @classmethod
@@ -413,13 +343,6 @@ class MTTask(AbsTask):
             frontend = None
             input_size = args.input_size
 
-        # 2. Normalization layer
-        # if args.normalize is not None:
-        #     normalize_class = normalize_choices.get_class(args.normalize)
-        #     normalize = normalize_class(**args.normalize_conf)
-        # else:
-        #     normalize = None
-
         # 3. Pre-encoder input block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
         if getattr(args, "preencoder", None) is not None:
@@ -454,44 +377,6 @@ class MTTask(AbsTask):
             **args.decoder_conf,
         )
 
-        # 6. CTC
-        # if src_token_list is not None:
-        #     ctc = CTC(
-        #         odim=src_vocab_size,
-        #         encoder_output_sizse=encoder_output_size,
-        #         **args.ctc_conf,
-        #     )
-        # else:
-        #     ctc = None
-
-        # 7. ASR extra decoder
-        # if (
-        #     getattr(args, "extra_asr_decoder", None) is not None
-        #     and src_token_list is not None
-        # ):
-        #     extra_asr_decoder_class = extra_asr_decoder_choices.get_class(
-        #         args.extra_asr_decoder
-        #     )
-        #     extra_asr_decoder = extra_asr_decoder_class(
-        #         vocab_size=src_vocab_size,
-        #         encoder_output_size=encoder_output_size,
-        #         **args.extra_asr_decoder_conf,
-        #     )
-        # else:
-        #     extra_asr_decoder = None
-
-        # # 8. MT extra decoder
-        # if getattr(args, "extra_mt_decoder", None) is not None:
-        #     extra_mt_decoder_class = extra_mt_decoder_choices.get_class(
-        #         args.extra_mt_decoder
-        #     )
-        #     extra_mt_decoder = extra_mt_decoder_class(
-        #         vocab_size=vocab_size,
-        #         encoder_output_size=encoder_output_size,
-        #         **args.extra_mt_decoder_conf,
-        #     )
-        # else:
-        #     extra_asr_decoder = None
 
         # 8. Build model
         model = ESPnetMTModel(

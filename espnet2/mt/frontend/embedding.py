@@ -6,6 +6,7 @@
 
 import math
 
+from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 import torch
 from typeguard import check_argument_types
@@ -20,21 +21,25 @@ class Embedding(AbsFrontend):
         self,
         input_size: int = 400,
         embed_dim: int = 400,
-        no_embed_scale: bool = False,
+        pos_enc_class=PositionalEncoding,
+        positional_dropout_rate: float = 0.1,
     ):
         """Initialize.
 
         Args:
             input_size: Number of input tokens.
             embed_dim: Embedding Size.
-            no_embed_scale: Whether to scale the embeddings or not.
-            padding: Padding.
+            pos_enc_class: PositionalEncoding or ScaledPositionalEncoding
+            positional_dropout_rate: dropout rate after adding positional encoding
         """
         assert check_argument_types()
         super().__init__()
         self.embed_dim = embed_dim
-        self.embed_scale = 1.0 if no_embed_scale else math.sqrt(embed_dim)
-        self.embed = torch.nn.Embedding(input_size, embed_dim)
+        #TODO (sdalmia): check for padding idx
+        self.embed = torch.nn.Sequential(
+            torch.nn.Embedding(input_size, embed_dim),
+            pos_enc_class(embed_dim, positional_dropout_rate),
+        )
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
@@ -49,8 +54,7 @@ class Embedding(AbsFrontend):
             Tensor: Output with dimensions (B, T, D).
             Tensor: Output lengths within batch.
         """
-        token_embedding = self.embed(input)
-        x = self.embed_scale * token_embedding
+        x = self.embed(input)
 
         return x, input_lengths
 

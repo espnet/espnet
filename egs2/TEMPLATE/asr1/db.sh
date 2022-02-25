@@ -125,7 +125,7 @@ TOTONAC=downloads
 PRIMEWORDS_CHINESE=downloads
 SEAME=
 BENGALI=downloads
-IWSLT14=~/Documents/work/data/IWSLT14
+IWSLT14=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

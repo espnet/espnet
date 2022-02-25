@@ -968,17 +968,12 @@ if ! "${skip_train}"; then
 
         _feats_type="$(<${_mt_train_dir}/feats_type)"
 
-        if [ "${feats_normalize}" = global_mvn ]; then
-            # Default normalization is utterance_mvn and changes to global_mvn
-            _opts+="--normalize=global_mvn --normalize_conf stats_file=${mt_stats_dir}/train/feats_stats.npz "
-        fi
-
-        if [ "${num_splits_st}" -gt 1 ]; then
+        if [ "${num_splits_mt}" -gt 1 ]; then
             # If you met a memory error when parsing text files, this option may help you.
             # The corpus is split into subsets and each subset is used for training one by one in order,
             # so the memory footprint can be limited to the memory required for each dataset.
 
-            _split_dir="${mt_stats_dir}/splits${num_splits_st}"
+            _split_dir="${mt_stats_dir}/splits${num_splits_mt}"
             if [ ! -f "${_split_dir}/.done" ]; then
                 rm -f "${_split_dir}/.done"
                 ${python} -m espnet2.bin.split_scps \
@@ -986,28 +981,23 @@ if ! "${skip_train}"; then
                       "${_mt_train_dir}/${_scp}" \
                       "${_mt_train_dir}/text.${tgt_case}.${tgt_lang}" \
                       "${_mt_train_dir}/text.${src_case}.${src_lang}" \
-                      "${mt_stats_dir}/train/speech_shape" \
                       "${mt_stats_dir}/train/text_shape.${tgt_token_type}" \
                       "${mt_stats_dir}/train/src_text_shape.${src_token_type}" \
-                  --num_splits "${num_splits_st}" \
+                  --num_splits "${num_splits_mt}" \
                   --output_dir "${_split_dir}"
                 touch "${_split_dir}/.done"
             else
                 log "${_split_dir}/.done exists. Spliting is skipped"
             fi
 
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
             _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text "
             _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
-            _opts+="--train_shape_file ${_split_dir}/speech_shape "
             _opts+="--train_shape_file ${_split_dir}/text_shape.${tgt_token_type} "
             _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
             _opts+="--multiple_iterator true "
         else
-            _opts+="--train_data_path_and_name_and_type ${_mt_train_dir}/${_scp},speech,${_type} "
             _opts+="--train_data_path_and_name_and_type ${_mt_train_dir}/text.${tgt_case}.${tgt_lang},text,text "
             _opts+="--train_data_path_and_name_and_type ${_mt_train_dir}/text.${src_case}.${src_lang},src_text,text "
-            _opts+="--train_shape_file ${mt_stats_dir}/train/speech_shape "
             _opts+="--train_shape_file ${mt_stats_dir}/train/text_shape.${tgt_token_type} "
             _opts+="--train_shape_file ${mt_stats_dir}/train/src_text_shape.${src_token_type} "
         fi
@@ -1044,16 +1034,12 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --valid_data_path_and_name_and_type "${_mt_valid_dir}/${_scp},speech,${_type}" \
                 --valid_data_path_and_name_and_type "${_mt_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
                 --valid_data_path_and_name_and_type "${_mt_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
-                --valid_shape_file "${mt_stats_dir}/valid/speech_shape" \
                 --valid_shape_file "${mt_stats_dir}/valid/text_shape.${tgt_token_type}" \
                 --valid_shape_file "${mt_stats_dir}/valid/src_text_shape.${src_token_type}" \
                 --resume true \
-                --init_param ${pretrained_asr} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
-                --fold_length "${_fold_length}" \
                 --fold_length "${mt_text_fold_length}" \
                 --fold_length "${mt_text_fold_length}" \
                 --output_dir "${mt_exp}" \
