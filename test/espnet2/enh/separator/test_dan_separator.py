@@ -42,7 +42,7 @@ def test_dan_separator_forward_backward_complex(
     sep_others = {}
     sep_others["feature_ref"] = o
 
-    masked, flens, others = model(x, ilens=x_lens, o=sep_others)
+    masked, flens, others = model(x, ilens=x_lens, additional=sep_others)
 
     assert isinstance(masked[0], ComplexTensor)
     assert len(masked) == num_spk
@@ -83,7 +83,7 @@ def test_dan_separator_forward_backward_real(
     sep_others = {}
     sep_others["feature_ref"] = o
 
-    masked, flens, others = model(x, ilens=x_lens, o=sep_others)
+    masked, flens, others = model(x, ilens=x_lens, additional=sep_others)
 
     assert isinstance(masked[0], Tensor)
     assert len(masked) == num_spk
