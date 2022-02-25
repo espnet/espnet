@@ -402,7 +402,9 @@ class MTTask(AbsTask):
         if args.input_size is None:
             # Extract features in the model
             frontend_class = frontend_choices.get_class(args.frontend)
-            frontend = frontend_class(**args.frontend_conf)
+            frontend = frontend_class(
+                input_size=src_vocab_size, **args.frontend_conf
+            )
             input_size = frontend.output_size()
         else:
             # Give features from data-loader

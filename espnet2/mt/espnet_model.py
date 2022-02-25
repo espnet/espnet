@@ -212,6 +212,8 @@ class ESPnetMTModel(AbsESPnetModel):
 
         # for data-parallel
         src_text = src_text[:, : src_text_lengths.max()]
+        src_text, _ = add_sos_eos(src_text, self.sos, self.eos, self.ignore_id)
+        src_text_lengths = src_text_lengths + 1
 
         if self.frontend is not None:
             # Frontend

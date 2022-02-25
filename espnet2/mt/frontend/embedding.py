@@ -21,7 +21,6 @@ class Embedding(AbsFrontend):
         input_size: int = 400,
         embed_dim: int = 400,
         no_embed_scale: bool = False,
-        padding: int = -1,
     ):
         """Initialize.
 
@@ -34,9 +33,8 @@ class Embedding(AbsFrontend):
         assert check_argument_types()
         super().__init__()
         self.embed_dim = embed_dim
-        self.padding = padding
         self.embed_scale = 1.0 if no_embed_scale else math.sqrt(embed_dim)
-        self.embed = torch.nn.Embedding(input_size, embed_dim, padding_idx=padding)
+        self.embed = torch.nn.Embedding(input_size, embed_dim)
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor

@@ -967,24 +967,7 @@ if ! "${skip_train}"; then
         fi
 
         _feats_type="$(<${_mt_train_dir}/feats_type)"
-        if [ "${_feats_type}" = raw ]; then
-            _scp=wav.scp
-            # "sound" supports "wav", "flac", etc.
-            if [[ "${audio_format}" == *ark* ]]; then
-                _type=kaldi_ark
-            else
-                _type=sound
-            fi
-            _fold_length="$((mt_speech_fold_length * 100))"
-            _opts+="--frontend_conf fs=${fs} "
-        else
-            _scp=feats.scp
-            _type=kaldi_ark
-            _fold_length="${mt_speech_fold_length}"
-            _input_size="$(<${_mt_train_dir}/feats_dim)"
-            _opts+="--input_size=${_input_size} "
 
-        fi
         if [ "${feats_normalize}" = global_mvn ]; then
             # Default normalization is utterance_mvn and changes to global_mvn
             _opts+="--normalize=global_mvn --normalize_conf stats_file=${mt_stats_dir}/train/feats_stats.npz "
