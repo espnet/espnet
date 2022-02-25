@@ -1,4 +1,3 @@
-# This configuration requires TITAN RTX (12GB) x 4 GPUs It takes about XX days.
 batch_type: numel
 batch_bins: 15000000
 accum_grad: 8
@@ -20,7 +19,7 @@ encoder_conf:
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
-    input_layer: none
+    input_layer: null
     normalize_before: true
 
 decoder: transformer
@@ -43,7 +42,3 @@ optim_conf:
 scheduler: warmuplr
 scheduler_conf:
     warmup_steps: 25000
-
-frontend_conf:
-  n_fft: 512
-  hop_length: 256

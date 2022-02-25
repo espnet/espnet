@@ -4,6 +4,8 @@
 
 """Embedding Frontend for text based inputs."""
 
+import math
+
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 import torch
 from typeguard import check_argument_types
