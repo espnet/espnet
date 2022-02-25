@@ -70,7 +70,7 @@ class DANSeparator(AbsSeparator):
         self.D = emb_D
 
     def forward(
-        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor, o: Dict
+        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor, o=None
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """Forward.
 
