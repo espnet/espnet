@@ -23,12 +23,14 @@ from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainDPCL
 from espnet2.enh.loss.criterions.time_domain import CISDRLoss
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.criterions.time_domain import SNRLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
+from espnet2.enh.loss.wrappers.dpcl_solver import DPCLSolver
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.separator.asteroid_models import AsteroidModel_Converter
 from espnet2.enh.separator.conformer_separator import ConformerSeparator
@@ -37,6 +39,8 @@ from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
+from espnet2.enh.separator.dpcl_separator import DPCLSeparator
+from espnet2.enh.separator.dan_separator import DANSeparator
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -62,6 +66,8 @@ separator_choices = ClassChoices(
         dprnn=DPRNNSeparator,
         transformer=TransformerSeparator,
         conformer=ConformerSeparator,
+        dpcl=DPCLSeparator,
+        dan=DANSeparator,
         wpe_beamformer=NeuralBeamformer,
         asteroid=AsteroidModel_Converter,
     ),
@@ -78,7 +84,7 @@ decoder_choices = ClassChoices(
 
 loss_wrapper_choices = ClassChoices(
     name="loss_wrappers",
-    classes=dict(pit=PITSolver, fixed_order=FixedOrderSolver),
+    classes=dict(pit=PITSolver, fixed_order=FixedOrderSolver, dpcl=DPCLSolver),
     type_check=AbsLossWrapper,
     default=None,
 )
@@ -91,6 +97,7 @@ criterion_choices = ClassChoices(
         si_snr=SISNRLoss,
         mse=FrequencyDomainMSE,
         l1=FrequencyDomainL1,
+        dpcl=FrequencyDomainDPCL,
     ),
     type_check=AbsEnhLoss,
     default=None,
