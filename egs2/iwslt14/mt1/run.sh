@@ -12,8 +12,8 @@ train_set=train
 train_dev=valid
 test_set=test
 
-mt_config=conf/train_mt_conformer.yaml
-inference_config=conf/decode_st.yaml
+mt_config=conf/train_mt_transformer.yaml
+inference_config=conf/decode_mt.yaml
 
 src_nbpe=1000
 tgt_nbpe=1000
