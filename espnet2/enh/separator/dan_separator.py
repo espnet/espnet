@@ -1,8 +1,10 @@
 from collections import OrderedDict
-from typing import Dict, List
+from functools import reduce
+from typing import Dict
+from typing import List
+from typing import Optional
 from typing import Tuple
 from typing import Union
-from functools import reduce
 
 import torch
 import torch.nn.functional as Fun
@@ -25,7 +27,7 @@ class DANSeparator(AbsSeparator):
         dropout: float = 0.0,
     ):
         """Deep Attractor Network Separator
-        
+
         Reference:
             DEEP ATTRACTOR NETWORK FOR SINGLE-MICROPHONE SPEAKER SEPARATION;
             Zhuo Chen. et al., 2017;
@@ -40,7 +42,7 @@ class DANSeparator(AbsSeparator):
                        select from 'relu', 'tanh', 'sigmoid'
             layer: int, number of stacked RNN layers. Default is 3.
             unit: int, dimension of the hidden state.
-            emb_D: int, dimension of the attribute vector for one tf-bin. 
+            emb_D: int, dimension of the attribute vector for one tf-bin.
             dropout: float, dropout ratio. Default is 0.
         """
         super().__init__()
@@ -70,14 +72,17 @@ class DANSeparator(AbsSeparator):
         self.D = emb_D
 
     def forward(
-        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor, o=None
+        self,
+        input: Union[torch.Tensor, ComplexTensor],
+        ilens: torch.Tensor,
+        additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
             input (torch.Tensor or ComplexTensor): Encoded feature [B, T, F]
             ilens (torch.Tensor): input lengths [Batch]
-            origin List[ComplexTensor(B, T, [C,] F), ...]: Origin data
+            additional (Dict or None): other data included in model
 
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
@@ -100,19 +105,25 @@ class DANSeparator(AbsSeparator):
         # x:(B, T, F*D)
         x = self.nonlinear(x)
         # V:(B, T*F, D)
-        V = x.contiguous().view(B, T*F, -1)
+        V = x.contiguous().view(B, T * F, -1)
 
         # Compute the attractors
         if self.training:
-            assert o is not None and "feature_ref" in o
-            origin = o["feature_ref"]
+            assert additional is not None and "feature_ref" in additional
+            origin = additional["feature_ref"]
             Y_t = torch.zeros(B, T, F, device=origin[0].device)
             for i in range(self._num_spk):
                 flags = [abs(origin[i]) >= abs(n) for n in origin]
                 Y = reduce(lambda x, y: x * y, flags)
                 Y = Y.int() * i
                 Y_t += Y
-            Y_t = Y_t.contiguous().view(-1,).long()
+            Y_t = (
+                Y_t.contiguous()
+                .view(
+                    -1,
+                )
+                .long()
+            )
             Y = Fun.one_hot(Y_t, num_classes=self._num_spk)
             Y = Y.contiguous().view(B, -1, self._num_spk).float()
 
@@ -122,31 +133,33 @@ class DANSeparator(AbsSeparator):
             sum_y = torch.sum(Y, 1, keepdim=True).expand_as(v_y)
             # attractor:(B, D, spks)
             attractor = v_y / (sum_y + 1e-8)
-        else:            
+        else:
             # K-means for batch
-            centers = V[:,:self._num_spk,:].detach()
-            dist = torch.empty(B, T*F, self._num_spk).to(V.device)
-            last_label = torch.zeros(B, T*F).to(V.device)
+            centers = V[:, : self._num_spk, :].detach()
+            dist = torch.empty(B, T * F, self._num_spk).to(V.device)
+            last_label = torch.zeros(B, T * F).to(V.device)
             while True:
                 for i in range(self._num_spk):
-                    dist[:,:,i] = torch.sum((V-centers[:,i,:].unsqueeze(1))**2, dim=2)
+                    dist[:, :, i] = torch.sum(
+                        (V - centers[:, i, :].unsqueeze(1)) ** 2, dim=2
+                    )
                 label = dist.argmin(dim=2)
                 if torch.sum(label != last_label) == 0:
                     break
                 last_label = label
                 for b in range(B):
                     for i in range(self._num_spk):
-                        centers[b,i] = V[b, label[b]==i].mean(dim=0)
-            attractor = centers.permute(0,2,1)
-            
-        # calculate the distance between embeddings and attractors and generate the masks
+                        centers[b, i] = V[b, label[b] == i].mean(dim=0)
+            attractor = centers.permute(0, 2, 1)
+
+        # calculate the distance between embeddings and attractors
         # dist:(B, T*F, spks)
         dist = torch.bmm(V, attractor)
-        masks = torch.softmax(dist,dim=2)
+        masks = torch.softmax(dist, dim=2)
         masks = masks.contiguous().view(B, T, F, self._num_spk).unbind(dim=3)
 
         masked = [input * m for m in masks]
-        
+
         others = OrderedDict(
             zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
         )

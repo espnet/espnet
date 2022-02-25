@@ -1,5 +1,7 @@
 from collections import OrderedDict
-from typing import Dict, List
+from typing import Dict
+from typing import List
+from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -22,14 +24,14 @@ class DPCLSeparator(AbsSeparator):
         emb_D: int = 40,
         dropout: float = 0.0,
     ):
-        """Deep Clustering Separator
+        """Deep Clustering Separator.
 
         References:
-            [1] Deep clustering: Discriminative embeddings for segmentation and separation;
-                John R. Hershey. et al., 2016;
+            [1] Deep clustering: Discriminative embeddings for segmentation and
+                separation; John R. Hershey. et al., 2016;
                 https://ieeexplore.ieee.org/document/7471631
-            [2] Manifold-Aware Deep Clustering: Maximizing Angles Between Embedding Vectors Based on Regular Simplex; 
-                Tanaka, K. et al., 2021;
+            [2] Manifold-Aware Deep Clustering: Maximizing Angles Between Embedding
+                Vectors Based on Regular Simplex; Tanaka, K. et al., 2021;
                 https://www.isca-speech.org/archive/interspeech_2021/tanaka21_interspeech.html
 
         Args:
@@ -41,9 +43,9 @@ class DPCLSeparator(AbsSeparator):
                        select from 'relu', 'tanh', 'sigmoid'
             layer: int, number of stacked RNN layers. Default is 3.
             unit: int, dimension of the hidden state.
-            emb_D: int, dimension of the feature vector for a tf-bin. 
+            emb_D: int, dimension of the feature vector for a tf-bin.
             dropout: float, dropout ratio. Default is 0.
-        """
+        """  # noqa: E501
         super().__init__()
 
         self._num_spk = num_spk
@@ -71,13 +73,17 @@ class DPCLSeparator(AbsSeparator):
         self.D = emb_D
 
     def forward(
-        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor, o=None
+        self,
+        input: Union[torch.Tensor, ComplexTensor],
+        ilens: torch.Tensor,
+        additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
             input (torch.Tensor or ComplexTensor): Encoded feature [B, T, F]
             ilens (torch.Tensor): input lengths [Batch]
+            additional (Dict or None): other data included in model
 
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
@@ -125,7 +131,9 @@ class DPCLSeparator(AbsSeparator):
             for i in range(self._num_spk):
                 masked.append(input * (label == i))
 
-        others = OrderedDict({"V": V},)
+        others = OrderedDict(
+            {"V": V},
+        )
 
         return masked, ilens, others
 

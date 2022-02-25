@@ -132,14 +132,16 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # for data-parallel
         speech_ref = speech_ref[..., : speech_lengths.max()]
         speech_ref = speech_ref.unbind(dim=1)
-        sep_others = {}
-        sep_others["feature_ref"] = [self.encoder(r, speech_lengths)[0] for r in speech_ref]
+        additional = {}
+        additional["feature_ref"] = [
+            self.encoder(r, speech_lengths)[0] for r in speech_ref
+        ]
 
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
         # model forward
         feature_mix, flens = self.encoder(speech_mix, speech_lengths)
-        feature_pre, flens, others = self.separator(feature_mix, flens, sep_others)
+        feature_pre, flens, others = self.separator(feature_mix, flens, additional)
         if feature_pre is not None:
             speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
         else:

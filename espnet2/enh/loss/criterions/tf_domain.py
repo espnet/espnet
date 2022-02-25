@@ -2,10 +2,10 @@ from abc import ABC
 from abc import abstractmethod
 from distutils.version import LooseVersion
 from functools import reduce
+import math
 
 import torch
 import torch.nn.functional as F
-import math
 
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
@@ -212,11 +212,11 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
         """time-frequency Deep Clustering loss.
 
         References:
-            [1] Deep clustering: Discriminative embeddings for segmentation and separation;
-                John R. Hershey. et al., 2016;
+            [1] Deep clustering: Discriminative embeddings for segmentation and
+                separation; John R. Hershey. et al., 2016;
                 https://ieeexplore.ieee.org/document/7471631
-            [2] Manifold-Aware Deep Clustering: Maximizing Angles Between Embedding Vectors Based on Regular Simplex; 
-                Tanaka, K. et al., 2021;
+            [2] Manifold-Aware Deep Clustering: Maximizing Angles Between Embedding
+                Vectors Based on Regular Simplex; Tanaka, K. et al., 2021;
                 https://www.isca-speech.org/archive/interspeech_2021/tanaka21_interspeech.html
 
         Args:
@@ -224,7 +224,7 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
             inf: (Batch, T*F, D)
         Returns:
             loss: (Batch,)
-        """
+        """  # noqa: E501
         assert len(ref) > 0
         num_spk = len(ref)
 
@@ -237,7 +237,13 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
                 mask = reduce(lambda x, y: x * y, flags)
                 mask = mask.int() * i
                 r += mask
-            r = r.contiguous().view(-1,).long()
+            r = (
+                r.contiguous()
+                .view(
+                    -1,
+                )
+                .long()
+            )
             re = F.one_hot(r, num_classes=num_spk)
             re = re.contiguous().view(B, -1, num_spk)
         elif self._loss_type == "mdc":
@@ -263,9 +269,8 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
             re = re.contiguous().view(B, -1, num_spk)
         else:
             raise ValueError(
-                'Invalid loss type error: {}, the loss type must be "dpcl" or "mdc"'.format(
-                    self._loss_type
-                )
+                f"Invalid loss type error: {self._loss_type}, "
+                'the loss type must be "dpcl" or "mdc"'
             )
 
         V2 = torch.matmul(torch.transpose(inf, 2, 1), inf).pow(2).sum(dim=(1, 2))

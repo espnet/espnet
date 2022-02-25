@@ -9,7 +9,7 @@ from espnet2.enh.loss.wrappers.dpcl_solver import DPCLSolver
 def test_DPCLSolver_forward(num_spk):
 
     batch = 2
-    o={'V': torch.rand(batch, 10*200, 40)}
+    o = {"V": torch.rand(batch, 10 * 200, 40)}
     inf = [torch.rand(batch, 10, 200) for spk in range(num_spk)]
     ref = [inf[num_spk - spk - 1] for spk in range(num_spk)]  # reverse inf as ref
     solver = DPCLSolver(FrequencyDomainDPCL())

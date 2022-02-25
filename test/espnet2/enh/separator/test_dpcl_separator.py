@@ -1,7 +1,6 @@
 import pytest
 
 import torch
-from torch import Tensor
 from torch_complex import ComplexTensor
 
 from espnet2.enh.separator.dpcl_separator import DPCLSeparator
@@ -37,9 +36,9 @@ def test_dpcl_separator_forward_backward_complex(
 
     masked, flens, others = model(x, ilens=x_lens)
 
-    assert 'V' in others
+    assert "V" in others
 
-    others['V'].abs().mean().backward()
+    others["V"].abs().mean().backward()
 
 
 @pytest.mark.parametrize("input_dim", [5])
@@ -70,9 +69,9 @@ def test_dpcl_separator_forward_backward_real(
 
     masked, flens, others = model(x, ilens=x_lens)
 
-    assert 'V' in others
+    assert "V" in others
 
-    others['V'].abs().mean().backward()
+    others["V"].abs().mean().backward()
 
 
 def test_dpcl_separator_invalid_type():

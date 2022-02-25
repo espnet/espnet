@@ -39,7 +39,7 @@ def test_dan_separator_forward_backward_complex(
     for i in range(num_spk):
         o.append(ComplexTensor(real, imag))
 
-    sep_others={}
+    sep_others = {}
     sep_others["feature_ref"] = o
 
     masked, flens, others = model(x, ilens=x_lens, o=sep_others)
@@ -80,7 +80,7 @@ def test_dan_separator_forward_backward_real(
     for i in range(num_spk):
         o.append(ComplexTensor(x, x))
 
-    sep_others={}
+    sep_others = {}
     sep_others["feature_ref"] = o
 
     masked, flens, others = model(x, ilens=x_lens, o=sep_others)
