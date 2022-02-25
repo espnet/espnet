@@ -245,6 +245,8 @@ class Speech2Text:
 
         # b. Forward Encoder
         enc, _ = self.asr_model.encode(**batch)
+        if isinstance(enc, tuple):
+            enc = enc[0]
         assert len(enc) == 1, len(enc)
 
         # c. Passed the encoder result and the beam search
