@@ -59,8 +59,6 @@ def test_dccrn_separator_forward_backward_complex(
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     masked, flens, others = model(x, ilens=x_lens)
-    print("type masked[0]: ", type(masked[0]))
-    print("masked[0]: ", masked[0])
 
     if use_builtin_complex and is_torch_1_9_plus:
         assert isinstance(masked[0], torch.Tensor)
