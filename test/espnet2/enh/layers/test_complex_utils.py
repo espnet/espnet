@@ -162,7 +162,10 @@ def test_solve(real_vec):
             vec = torch.rand(2, 3, 1)
             vec2 = complex_wrapper(vec, torch.zeros_like(vec))
         ret = solve(vec, mat)
-        ret2 = complex_module.solve(vec2, mat)[0]
+        if isinstance(vec2, ComplexTensor):
+            ret2 = FC.solve(vec2, mat, return_LU=False)
+        else:
+            return torch.linalg.solve(mat, vec2)
         assert complex_module.allclose(ret, ret2)
 
 
