@@ -894,8 +894,8 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${mt_stats_dir}/run.sh'. You can resume the process from stage 10 using this script"
-        mkdir -p "${mt_stats_dir}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${mt_stats_dir}/run.sh"; chmod +x "${mt_stats_dir}/run.sh"
+        log "Generate '${mt_stats_dir}/run.sh'. You can resume the process from stage 9 using this script"
+        mkdir -p "${mt_stats_dir}"; echo "${run_args} --stage 9 \"\$@\"; exit \$?" > "${mt_stats_dir}/run.sh"; chmod +x "${mt_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "MT collect-stats started... log: '${_logdir}/stats.*.log'"
@@ -966,8 +966,6 @@ if ! "${skip_train}"; then
             _opts+="--config ${mt_config} "
         fi
 
-        _feats_type="$(<${_mt_train_dir}/feats_type)"
-
         if [ "${num_splits_mt}" -gt 1 ]; then
             # If you met a memory error when parsing text files, this option may help you.
             # The corpus is split into subsets and each subset is used for training one by one in order,
@@ -1002,8 +1000,8 @@ if ! "${skip_train}"; then
             _opts+="--train_shape_file ${mt_stats_dir}/train/src_text_shape.${src_token_type} "
         fi
 
-        log "Generate '${mt_exp}/run.sh'. You can resume the process from stage 11 using this script"
-        mkdir -p "${mt_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${mt_exp}/run.sh"; chmod +x "${mt_exp}/run.sh"
+        log "Generate '${mt_exp}/run.sh'. You can resume the process from stage 10 using this script"
+        mkdir -p "${mt_exp}"; echo "${run_args} --stage 10 \"\$@\"; exit \$?" > "${mt_exp}/run.sh"; chmod +x "${mt_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
         log "MT training started... log: '${mt_exp}/train.log'"
@@ -1084,8 +1082,8 @@ fi
 
 
 if ! "${skip_eval}"; then
-    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
-        log "Stage 12: Decoding: training_dir=${st_exp}"
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+        log "Stage 11: Decoding: training_dir=${mt_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -1113,33 +1111,22 @@ if ! "${skip_eval}"; then
         fi
 
         # 2. Generate run.sh
-        log "Generate '${st_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
-        mkdir -p "${st_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${st_exp}/${inference_tag}/run.sh"; chmod +x "${st_exp}/${inference_tag}/run.sh"
+        log "Generate '${mt_exp}/${inference_tag}/run.sh'. You can resume the process from stage 11 using this script"
+        mkdir -p "${mt_exp}/${inference_tag}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${mt_exp}/${inference_tag}/run.sh"; chmod +x "${mt_exp}/${inference_tag}/run.sh"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${st_exp}/${inference_tag}/${dset}"
+            _dir="${mt_exp}/${inference_tag}/${dset}"
             _logdir="${_dir}/logdir"
             mkdir -p "${_logdir}"
 
-            _feats_type="$(<${_data}/feats_type)"
-            if [ "${_feats_type}" = raw ]; then
-                _scp=wav.scp
-                if [[ "${audio_format}" == *ark* ]]; then
-                    _type=kaldi_ark
-                else
-                    _type=sound
-                fi
-            else
-                _scp=feats.scp
-                _type=kaldi_ark
-            fi
+            _scp=text.${src_case}.${src_lang}
 
             # 1. Split the key file
             key_file=${_data}/${_scp}
             split_scps=""
             _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-            st_inference_tool="espnet2.bin.st_inference"
+            mt_inference_tool="espnet2.bin.mt_inference"
 
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
@@ -1148,16 +1135,16 @@ if ! "${skip_eval}"; then
             utils/split_scp.pl "${key_file}" ${split_scps}
 
             # 2. Submit decoding jobs
-            log "Decoding started... log: '${_logdir}/st_inference.*.log'"
+            log "Decoding started... log: '${_logdir}/mt_inference.*.log'"
             # shellcheck disable=SC2086
-            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/st_inference.JOB.log \
-                ${python} -m ${st_inference_tool} \
+            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/mt_inference.JOB.log \
+                ${python} -m ${mt_inference_tool} \
                     --batch_size ${batch_size} \
                     --ngpu "${_ngpu}" \
-                    --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
+                    --data_path_and_name_and_type "${_data}/${_scp},src_text,text" \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --st_train_config "${st_exp}"/config.yaml \
-                    --st_model_file "${st_exp}"/"${inference_st_model}" \
+                    --mt_train_config "${mt_exp}"/config.yaml \
+                    --mt_model_file "${mt_exp}"/"${inference_mt_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${inference_args}
 
@@ -1170,12 +1157,12 @@ if ! "${skip_eval}"; then
         done
     fi
 
-    if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
-        log "Stage 13: Scoring"
+    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
+        log "Stage 12: Scoring"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${st_exp}/${inference_tag}/${dset}"
+            _dir="${mt_exp}/${inference_tag}/${dset}"
 
             # TODO(jiatong): add asr scoring and inference
 
@@ -1191,7 +1178,7 @@ if ! "${skip_eval}"; then
                         --remove_non_linguistic_symbols true \
                         --cleaner "${cleaner}" \
                         ) \
-                <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
                     >"${_scoredir}/ref.trn.org"
 
             # NOTE(kamo): Don't use cleaner for hyp
@@ -1203,7 +1190,7 @@ if ! "${skip_eval}"; then
                             --non_linguistic_symbols "${nlsyms_txt}" \
                             --remove_non_linguistic_symbols true \
                             ) \
-                <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
                     >"${_scoredir}/hyp.trn.org"
             
             # remove utterance id
@@ -1250,7 +1237,7 @@ if ! "${skip_eval}"; then
                                 --remove_non_linguistic_symbols true \
                                 --cleaner "${cleaner}" \
                                 ) \
-                        <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn.org.${ref_idx}"
                     
                     # 
@@ -1278,7 +1265,7 @@ if ! "${skip_eval}"; then
         done
 
         # Show results in Markdown syntax
-        scripts/utils/show_st_result.sh --case $tgt_case "${st_exp}" > "${st_exp}"/RESULTS.md
+        scripts/utils/show_translation_result.sh --case $tgt_case "${mt_exp}" > "${mt_exp}"/RESULTS.md
         cat "${cat_exp}"/RESULTS.md
     fi
 else
@@ -1286,10 +1273,10 @@ else
 fi
 
 
-packed_model="${st_exp}/${st_exp##*/}_${inference_st_model%.*}.zip"
+packed_model="${mt_exp}/${mt_exp##*/}_${inference_mt_model%.*}.zip"
 if ! "${skip_upload}"; then
-    if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
-        log "Stage 14: Pack model: ${packed_model}"
+    if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ]; then
+        log "Stage 13: Pack model: ${packed_model}"
 
         _opts=
         if "${use_lm}"; then
@@ -1297,9 +1284,6 @@ if ! "${skip_upload}"; then
             _opts+="--lm_file ${lm_exp}/${inference_lm} "
             _opts+="--option ${lm_exp}/perplexity_test/ppl "
             _opts+="--option ${lm_exp}/images "
-        fi
-        if [ "${feats_normalize}" = global_mvn ]; then
-            _opts+="--option ${st_stats_dir}/train/feats_stats.npz "
         fi
         if [ "${tgt_token_type}" = bpe ]; then
             _opts+="--option ${tgt_bpemodel} "
@@ -1309,19 +1293,19 @@ if ! "${skip_upload}"; then
             _opts+="--option ${nlsyms_txt} "
         fi
         # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.pack st \
-            --st_train_config "${st_exp}"/config.yaml \
-            --st_model_file "${st_exp}"/"${inference_st_model}" \
+        ${python} -m espnet2.bin.pack mt \
+            --mt_train_config "${mt_exp}"/config.yaml \
+            --mt_model_file "${mt_exp}"/"${inference_mt_model}" \
             ${_opts} \
-            --option "${st_exp}"/RESULTS.md \
-            --option "${st_exp}"/RESULTS.md \
-            --option "${st_exp}"/images \
+            --option "${mt_exp}"/RESULTS.md \
+            --option "${mt_exp}"/RESULTS.md \
+            --option "${mt_exp}"/images \
             --outpath "${packed_model}"
     fi
 
 
-    if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
-        log "Stage 15: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ]; then
+        log "Stage 14: Upload model to Zenodo: ${packed_model}"
 
         # To upload your model, you need to do:
         #   1. Sign up to Zenodo: https://zenodo.org/
@@ -1344,7 +1328,7 @@ git checkout $(git show -s --format=%H)"
         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
         # Generate description file
-        cat << EOF > "${st_exp}"/description
+        cat << EOF > "${mt_exp}"/description
 This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
 <p>&nbsp;</p>
 <ul>
@@ -1356,8 +1340,8 @@ pip install -e .
 cd $(pwd | rev | cut -d/ -f1-3 | rev)
 ./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
 </pre></li>
-<li><strong>Results</strong><pre><code>$(cat "${st_exp}"/RESULTS.md)</code></pre></li>
-<li><strong>MT config</strong><pre><code>$(cat "${st_exp}"/config.yaml)</code></pre></li>
+<li><strong>Results</strong><pre><code>$(cat "${mt_exp}"/RESULTS.md)</code></pre></li>
+<li><strong>MT config</strong><pre><code>$(cat "${mt_exp}"/config.yaml)</code></pre></li>
 <li><strong>LM config</strong><pre><code>$(if ${use_lm}; then cat "${lm_exp}"/config.yaml; else echo NONE; fi)</code></pre></li>
 </ul>
 EOF
@@ -1369,7 +1353,7 @@ EOF
         espnet_model_zoo_upload \
             --file "${packed_model}" \
             --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
-            --description_file "${st_exp}"/description \
+            --description_file "${mt_exp}"/description \
             --creator_name "${_creator_name}" \
             --license "CC-BY-4.0" \
             --use_sandbox false \
@@ -1380,11 +1364,11 @@ else
 fi
 
 if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ]; then
+    if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
-        log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
+        log "Stage 15: Upload model to HuggingFace: ${hf_repo}"
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \

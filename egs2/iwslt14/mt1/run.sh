@@ -31,8 +31,8 @@ tgt_case=tc
     --stop_stage 13 \
     --use_lm false \
     --token_joint false \
-    --nj 40 \
-    --inference_nj 40 \
+    --nj 20 \
+    --inference_nj 20 \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
     --src_token_type "bpe" \
