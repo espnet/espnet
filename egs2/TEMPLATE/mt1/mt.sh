@@ -486,7 +486,7 @@ if ! "${skip_data_prep}"; then
 
 
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-        log "Stage 4: Remove long/short data: ${data_feats}/org -> ${data_feats}"
+        log "Stage 3: Data filtering: ${data_feats}/org -> ${data_feats}"
 
         # NOTE(kamo): Not applying to test_sets to keep original data
         for dset in "${train_set}" "${valid_set}"; do
@@ -791,7 +791,6 @@ if ! "${skip_train}"; then
                 jobname="${lm_exp}/train.log"
             fi
 
-            # TODO(jiatong): fix bpe
             # shellcheck disable=SC2086
             ${python} -m espnet2.bin.launch \
                 --cmd "${cuda_cmd} --name ${jobname}" \
