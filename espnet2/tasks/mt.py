@@ -332,9 +332,7 @@ class MTTask(AbsTask):
         if args.input_size is None:
             # Extract features in the model
             frontend_class = frontend_choices.get_class(args.frontend)
-            frontend = frontend_class(
-                input_size=src_vocab_size, **args.frontend_conf
-            )
+            frontend = frontend_class(input_size=src_vocab_size, **args.frontend_conf)
             input_size = frontend.output_size()
         else:
             # Give features from data-loader
@@ -376,7 +374,6 @@ class MTTask(AbsTask):
             encoder_output_size=encoder_output_size,
             **args.decoder_conf,
         )
-
 
         # 8. Build model
         model = ESPnetMTModel(

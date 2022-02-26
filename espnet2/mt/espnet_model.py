@@ -88,9 +88,7 @@ class ESPnetMTModel(AbsESPnetModel):
         else:
             self.mt_error_calculator = None
 
-
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
-
 
     def forward(
         self,

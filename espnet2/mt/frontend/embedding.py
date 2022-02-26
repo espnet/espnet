@@ -14,8 +14,7 @@ from typing import Tuple
 
 
 class Embedding(AbsFrontend):
-    """Embedding Frontend for text based inputs.
-    """
+    """Embedding Frontend for text based inputs."""
 
     def __init__(
         self,
@@ -35,7 +34,7 @@ class Embedding(AbsFrontend):
         assert check_argument_types()
         super().__init__()
         self.embed_dim = embed_dim
-        #TODO (sdalmia): check for padding idx
+        # TODO (sdalmia): check for padding idx
         self.embed = torch.nn.Sequential(
             torch.nn.Embedding(input_size, embed_dim),
             pos_enc_class(embed_dim, positional_dropout_rate),
