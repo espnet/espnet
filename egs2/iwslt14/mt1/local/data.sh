@@ -73,7 +73,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "preparing test and valid data"
 
     for l in $src $tgt; do
-        for o in $IWSLT14/$lang/IWSLT14.TED*.$l.xml; do
+        for o in "${IWSLT14}/${lang}"/IWSLT14.TED*."${l}".xml; do
             fname=${o##*/}
             f=$tmp/${fname%.*}
             echo $o $f
