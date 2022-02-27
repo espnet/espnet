@@ -77,7 +77,7 @@ def main(argv):
 
         # TODO(nelson): The model inference can be moved into functon.
         classifier = EncoderClassifier.from_hparams(
-            source=args.pretrained, run_opts={"device": device}
+            source=args.pretrained_model, run_opts={"device": device}
         )
         audio_norm = AudioNormalizer()
 
