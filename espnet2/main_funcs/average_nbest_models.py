@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import Optional
 from typing import Sequence
 from typing import Union
 import warnings
@@ -17,6 +18,7 @@ def average_nbest_models(
     reporter: Reporter,
     best_model_criterion: Sequence[Sequence[str]],
     nbest: Union[Collection[int], int],
+    suffix: Optional[str] = None,
 ) -> None:
     """Generate averaged model from n-best models
 
@@ -25,7 +27,8 @@ def average_nbest_models(
         reporter: Reporter instance
         best_model_criterion: Give criterions to decide the best model.
             e.g. [("valid", "loss", "min"), ("train", "acc", "max")]
-        nbest:
+        nbest: Number of best model files to be averaged
+        suffix: A suffix added to the averaged model file name
     """
     assert check_argument_types()
     if isinstance(nbest, int):
@@ -35,6 +38,11 @@ def average_nbest_models(
     if len(nbests) == 0:
         warnings.warn("At least 1 nbest values are required")
         nbests = [1]
+    if suffix is not None:
+        suffix = suffix + "."
+    else:
+        suffix = ""
+
     # 1. Get nbests: List[Tuple[str, str, List[Tuple[epoch, value]]]]
     nbest_epochs = [
         (ph, k, reporter.sort_epochs_and_values(ph, k, m)[: max(nbests)])
@@ -55,12 +63,12 @@ def average_nbest_models(
                 # The averaged model is same as the best model
                 e, _ = epoch_and_values[0]
                 op = output_dir / f"{e}epoch.pth"
-                sym_op = output_dir / f"{ph}.{cr}.ave_1best.pth"
+                sym_op = output_dir / f"{ph}.{cr}.ave_1best.{suffix}pth"
                 if sym_op.is_symlink() or sym_op.exists():
                     sym_op.unlink()
                 sym_op.symlink_to(op.name)
             else:
-                op = output_dir / f"{ph}.{cr}.ave_{n}best.pth"
+                op = output_dir / f"{ph}.{cr}.ave_{n}best.{suffix}pth"
                 logging.info(
                     f"Averaging {n}best models: " f'criterion="{ph}.{cr}": {op}'
                 )
@@ -96,8 +104,8 @@ def average_nbest_models(
                 torch.save(avg, op)
 
         # 3. *.*.ave.pth is a symlink to the max ave model
-        op = output_dir / f"{ph}.{cr}.ave_{max(_nbests)}best.pth"
-        sym_op = output_dir / f"{ph}.{cr}.ave.pth"
+        op = output_dir / f"{ph}.{cr}.ave_{max(_nbests)}best.{suffix}pth"
+        sym_op = output_dir / f"{ph}.{cr}.ave.{suffix}pth"
         if sym_op.is_symlink() or sym_op.exists():
             sym_op.unlink()
         sym_op.symlink_to(op.name)

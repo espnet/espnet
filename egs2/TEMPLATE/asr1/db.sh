@@ -124,9 +124,10 @@ SPEECHCOMMANDS=downloads
 TOTONAC=downloads
 PRIMEWORDS_CHINESE=downloads
 SEAME=
+BENGALI=downloads
 
-# For only CMU environment
-if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
+# For only CMU TIR environment
+if [[ "$(hostname)" == tir* ]]; then
     BABEL_101=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_BP_101/
     BABEL_102=/projects/tir5/data/speech_corpora/babel/BABEL_OP1_102/
     BABEL_103=/projects/tir5/data/speech_corpora/babel/BABEL_OP1_103/
@@ -155,12 +156,7 @@ if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
     GRABO=/projects/tir5/data/speech_corpora/Grabo
     IWSLT22_DIALECT=/projects/tir5/data/speech_corpora/LDC2022E01_IWSLT22_Tunisian_Arabic_Shared_Task_Training_Data/
     PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
-fi
-
-# For CMU TIR cluster
-if [[ "$(hostname -d)" == lti.cs.cmu.edu ]]; then
     FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
-
 fi
 
 # For only JHU environment
@@ -254,6 +250,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     ZEROTH_KOREAN=downloads
     LRS2=
     JAVA=
+    BENGALI=
     RU_OPEN_STT=downloads
     RUSLAN=downloads
     SIWIS=downloads

@@ -69,7 +69,11 @@ while IFS= read -r expdir; do
             line="|${dset}|"
             for ((i=0; i<${#metrics[@]}; i++)); do
                 type=${metrics[$i]}
-                score=$(head -n1 "${expdir}"/${dset}/scoring/result_${type}.txt)
+                if [ -f "${expdir}"/${dset}/scoring/result_${type}.txt ]; then
+                    score=$(head -n1 "${expdir}"/${dset}/scoring/result_${type}.txt)
+                else
+                    score=""
+                fi
                 line+="${score}|"
             done
             echo $line

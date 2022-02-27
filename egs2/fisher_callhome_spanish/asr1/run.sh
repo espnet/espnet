@@ -6,23 +6,22 @@ set -u
 set -o pipefail
 
 train_set=train
-train_dev="dev_all"
-test_set="dev_all test"
+train_dev=dev
+test_set="fisher_dev fisher_dev2 fisher_test callhome_evltest callhome_devtest"
 
 asr_config=conf/train_asr.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
-fs=8k
 nbpe=1000
 
 ./asr.sh \
     --ngpu 1 \
+    --fs 8k \
     --audio_format "flac.ark" \
     --local_data_opts "--stage 0" \
     --use_lm false \
     --lm_config "${lm_config}" \
-    --fs ${fs} \
     --token_type bpe \
     --nbpe $nbpe \
     --feats_type raw \
@@ -32,7 +31,5 @@ nbpe=1000
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
     --test_sets "${test_set}" \
-    --gpu_inference true \
-    --inference_nj 10 \
     --bpe_train_text "data/${train_set}/text" \
     --lm_train_text "data/${train_set}/text" "$@"
