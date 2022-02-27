@@ -370,12 +370,12 @@ $ make
 <p>The Makefile tries to install ESPnet and all dependencies including PyTorch.
 You can also specify PyTorch version, for example:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;espnet-root&gt;/tools
-$ make <span class="nv">TH_VERSION</span><span class="o">=</span><span class="m">1</span>.3.1
+$ make <span class="nv">TH_VERSION</span><span class="o">=</span><span class="m">1</span>.10.1
 </pre></div>
 </div>
 <p>Note that the CUDA version is derived from <code class="docutils literal notranslate"><span class="pre">nvcc</span></code> command. If you’d like to specify the other CUDA version, you need to give <code class="docutils literal notranslate"><span class="pre">CUDA_VERSION</span></code>.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> &lt;espnet-root&gt;/tools
-$ make <span class="nv">TH_VERSION</span><span class="o">=</span><span class="m">1</span>.3.1 <span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">10</span>.1
+$ make <span class="nv">TH_VERSION</span><span class="o">=</span><span class="m">1</span>.10.1 <span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="m">11</span>.3
 </pre></div>
 </div>
 <p>If you don’t have <code class="docutils literal notranslate"><span class="pre">nvcc</span></code> command, packages are installed for CPU mode by default.
