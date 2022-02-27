@@ -34,8 +34,6 @@ from espnet2.asr.encoder.contextual_block_transformer_encoder import (
 )
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
-from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,  # noqa: H301
@@ -43,8 +41,8 @@ from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
-from espnet2.mt.frontend.embedding import Embedding
 from espnet2.mt.espnet_model import ESPnetMTModel
+from espnet2.mt.frontend.embedding import Embedding
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -54,7 +52,6 @@ from espnet2.train.preprocessor import MutliTokenizerCommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import float_or_none
 from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none

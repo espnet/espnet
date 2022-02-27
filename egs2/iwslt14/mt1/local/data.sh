@@ -37,10 +37,11 @@ fi
 if [ -f "${IWSLT14}/${GZ}" ]; then
     log "Data already downloaded"
 else
-    cd ${IWSLT14}
-    wget "$URL"
-    tar zxvf $GZ
-    cd -
+    (
+        cd ${IWSLT14}
+        wget "$URL"
+        tar zxvf $GZ
+    )
     log "Data downloaded and extracted"
 fi
 
@@ -51,9 +52,10 @@ prep=iwslt14.tokenized.de-en
 tmp=data/$prep/tmp
 
 if [ ! -d "${IWSLT14}/${lang}" ]; then
-    cd ${IWSLT14}
-    tar zxvf $GZ
-    cd -
+    (
+        cd ${IWSLT14}
+        tar zxvf $GZ
+    )
     log "Data extracted"
 fi
 
@@ -94,7 +96,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         f=train.tags.$lang.$l
         tok=train.tags.$lang.tok.$l
 
-        cat $IWSLT14/$lang/$f | \
+        < $IWSLT14/$lang/$f \
         grep -v '<url>' | \
         grep -v '<talkid>' | \
         grep -v '<keywords>' | \

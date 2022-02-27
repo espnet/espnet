@@ -4,8 +4,6 @@
 
 """Embedding Frontend for text based inputs."""
 
-import math
-
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 import torch
@@ -34,7 +32,7 @@ class Embedding(AbsFrontend):
         assert check_argument_types()
         super().__init__()
         self.embed_dim = embed_dim
-        # TODO (sdalmia): check for padding idx
+        # TODO(sdalmia): check for padding idx
         self.embed = torch.nn.Sequential(
             torch.nn.Embedding(input_size, embed_dim),
             pos_enc_class(embed_dim, positional_dropout_rate),
