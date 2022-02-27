@@ -24,7 +24,7 @@ from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
-from espnet2.tasks.st import STTask
+from espnet2.tasks.mt import MTTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
@@ -35,22 +35,20 @@ from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 
 
-class Speech2Text:
-    """Speech2Text class
+class Text2Text:
+    """Text2Text class
 
     Examples:
-        >>> import soundfile
-        >>> speech2text = Speech2Text("st_config.yml", "st.pth")
-        >>> audio, rate = soundfile.read("speech.wav")
-        >>> speech2text(audio)
+        >>> text2text = Text2Text("mt_config.yml", "mt.pth")
+        >>> text2text(audio)
         [(text, token, token_int, hypothesis object), ...]
 
     """
 
     def __init__(
         self,
-        st_train_config: Union[Path, str] = None,
-        st_model_file: Union[Path, str] = None,
+        mt_train_config: Union[Path, str] = None,
+        mt_model_file: Union[Path, str] = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
         ngram_scorer: str = "full",
@@ -70,15 +68,15 @@ class Speech2Text:
     ):
         assert check_argument_types()
 
-        # 1. Build ST model
+        # 1. Build MT model
         scorers = {}
-        st_model, st_train_args = STTask.build_model_from_file(
-            st_train_config, st_model_file, device
+        mt_model, mt_train_args = MTTask.build_model_from_file(
+            mt_train_config, mt_model_file, device
         )
-        st_model.to(dtype=getattr(torch, dtype)).eval()
+        mt_model.to(dtype=getattr(torch, dtype)).eval()
 
-        decoder = st_model.decoder
-        token_list = st_model.token_list
+        decoder = mt_model.decoder
+        token_list = mt_model.token_list
         scorers.update(
             decoder=decoder,
             length_bonus=LengthBonus(len(token_list)),
@@ -116,8 +114,8 @@ class Speech2Text:
             beam_size=beam_size,
             weights=weights,
             scorers=scorers,
-            sos=st_model.sos,
-            eos=st_model.eos,
+            sos=mt_model.sos,
+            eos=mt_model.eos,
             vocab_size=len(token_list),
             token_list=token_list,
             pre_beam_score_key="full",
@@ -146,9 +144,9 @@ class Speech2Text:
 
         # 4. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
-            token_type = st_train_args.token_type
+            token_type = mt_train_args.token_type
         if bpemodel is None:
-            bpemodel = st_train_args.bpemodel
+            bpemodel = mt_train_args.bpemodel
 
         if token_type is None:
             tokenizer = None
@@ -162,8 +160,8 @@ class Speech2Text:
         converter = TokenIDConverter(token_list=token_list)
         logging.info(f"Text tokenizer: {tokenizer}")
 
-        self.st_model = st_model
-        self.st_train_args = st_train_args
+        self.mt_model = mt_model
+        self.mt_train_args = mt_train_args
         self.converter = converter
         self.tokenizer = tokenizer
         self.beam_search = beam_search
@@ -175,12 +173,12 @@ class Speech2Text:
 
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
+        self, src_text: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
         """Inference
 
         Args:
-            data: Input speech data
+            data: Input text data
         Returns:
             text, token, token_int, hyp
 
@@ -188,20 +186,20 @@ class Speech2Text:
         assert check_argument_types()
 
         # Input as audio signal
-        if isinstance(speech, np.ndarray):
-            speech = torch.tensor(speech)
+        if isinstance(src_text, np.ndarray):
+            src_text = torch.tensor(src_text)
 
         # data: (Nsamples,) -> (1, Nsamples)
-        speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
+        src_text = src_text.unsqueeze(0).to(torch.long)
         # lengths: (1,)
-        lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
-        batch = {"speech": speech, "speech_lengths": lengths}
+        lengths = src_text.new_full([1], dtype=torch.long, fill_value=src_text.size(1))
+        batch = {"src_text": src_text, "src_text_lengths": lengths}
 
         # a. To device
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
-        enc, _ = self.st_model.encode(**batch)
+        enc, _ = self.mt_model.encode(**batch)
         assert len(enc) == 1, len(enc)
 
         # c. Passed the encoder result and the beam search
@@ -237,13 +235,13 @@ class Speech2Text:
         model_tag: Optional[str] = None,
         **kwargs: Optional[Any],
     ):
-        """Build Speech2Text instance from the pretrained model.
+        """Build Text2Text instance from the pretrained model.
 
         Args:
             model_tag (Optional[str]): Model tag of the pretrained models.
                 Currently, the tags of espnet_model_zoo are supported.
         Returns:
-            Speech2Text: Speech2Text instance.
+            Text2Text: Text2Text instance.
 
         """
         if model_tag is not None:
@@ -259,7 +257,7 @@ class Speech2Text:
             d = ModelDownloader()
             kwargs.update(**d.download_and_unpack(model_tag))
 
-        return Speech2Text(**kwargs)
+        return Text2Text(**kwargs)
 
 
 def inference(
@@ -279,8 +277,8 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    st_train_config: Optional[str],
-    st_model_file: Optional[str],
+    mt_train_config: Optional[str],
+    mt_model_file: Optional[str],
     lm_train_config: Optional[str],
     lm_file: Optional[str],
     word_lm_train_config: Optional[str],
@@ -312,10 +310,10 @@ def inference(
     # 1. Set random-seed
     set_all_random_seed(seed)
 
-    # 2. Build speech2text
-    speech2text_kwargs = dict(
-        st_train_config=st_train_config,
-        st_model_file=st_model_file,
+    # 2. Build text2text
+    text2text_kwargs = dict(
+        mt_train_config=mt_train_config,
+        mt_model_file=mt_model_file,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
         ngram_file=ngram_file,
@@ -331,20 +329,20 @@ def inference(
         penalty=penalty,
         nbest=nbest,
     )
-    speech2text = Speech2Text.from_pretrained(
+    text2text = Text2Text.from_pretrained(
         model_tag=model_tag,
-        **speech2text_kwargs,
+        **text2text_kwargs,
     )
 
     # 3. Build data-iterator
-    loader = STTask.build_streaming_iterator(
+    loader = MTTask.build_streaming_iterator(
         data_path_and_name_and_type,
         dtype=dtype,
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=STTask.build_preprocess_fn(speech2text.st_train_args, False),
-        collate_fn=STTask.build_collate_fn(speech2text.st_train_args, False),
+        preprocess_fn=MTTask.build_preprocess_fn(text2text.mt_train_args, False),
+        collate_fn=MTTask.build_collate_fn(text2text.mt_train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
@@ -361,7 +359,7 @@ def inference(
 
             # N-best list of (text, token, token_int, hyp_object)
             try:
-                results = speech2text(**batch)
+                results = text2text(**batch)
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
@@ -384,7 +382,7 @@ def inference(
 
 def get_parser():
     parser = config_argparse.ArgumentParser(
-        description="ST Decoding",
+        description="MT Decoding",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -431,14 +429,14 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--st_train_config",
+        "--mt_train_config",
         type=str,
         help="ST training configuration",
     )
     group.add_argument(
-        "--st_model_file",
+        "--mt_model_file",
         type=str,
-        help="ST model parameter file",
+        help="MT model parameter file",
     )
     group.add_argument(
         "--lm_train_config",
