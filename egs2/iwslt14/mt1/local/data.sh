@@ -17,7 +17,6 @@ SECONDS=0
 
 stage=1
 stop_stage=100000
-splits_dir=data/iwslt22_splits
 URL="http://dl.fbaipublicfiles.com/fairseq/data/iwslt14/de-en.tgz"
 GZ=de-en.tgz
 
@@ -74,7 +73,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "preparing test and valid data"
 
     for l in $src $tgt; do
-        for o in `ls $IWSLT14/$lang/IWSLT14.TED*.$l.xml`; do
+        for o in $IWSLT14/$lang/IWSLT14.TED*.$l.xml; do
             fname=${o##*/}
             f=$tmp/${fname%.*}
             echo $o $f

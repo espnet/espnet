@@ -10,7 +10,7 @@ tgt_lang=en
 
 train_set=train
 train_dev=valid
-test_set=test
+test_set="test"
 
 mt_config=conf/train_mt_transformer.yaml
 inference_config=conf/decode_mt.yaml
