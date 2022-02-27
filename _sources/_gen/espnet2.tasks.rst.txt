@@ -48,6 +48,17 @@ espnet2.tasks.gan_tts
     :show-inheritance:
 
 
+.. _espnet2.tasks.mt:
+
+espnet2.tasks.mt
+----------------
+
+.. automodule:: espnet2.tasks.mt
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tasks.asr:
 
 espnet2.tasks.asr

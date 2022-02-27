@@ -81,6 +81,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.mt.html">espnet2.mt package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
@@ -107,7 +108,9 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-gan-tts-train">espnet2.bin.gan_tts_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-enh-scoring">espnet2.bin.enh_scoring</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-st-train">espnet2.bin.st_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-mt-train">espnet2.bin.mt_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-inference-streaming">espnet2.bin.asr_inference_streaming</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-mt-inference">espnet2.bin.mt_inference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-tokenize-text">espnet2.bin.tokenize_text</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-hubert-train">espnet2.bin.hubert_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-train">espnet2.bin.asr_train</a></li>
@@ -1272,8 +1275,28 @@ start with the prefix “parallel_wavegan/”.</p></li>
 </dd></dl>
 
 </section>
+<section id="espnet2-bin-mt-train">
+<span id="id21"></span><h2>espnet2.bin.mt_train<a class="headerlink" href="#espnet2-bin-mt-train" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.mt_train"></span><dl class="function">
+<dt id="espnet2.bin.mt_train.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.mt_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/mt_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.mt_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.mt_train.main">
+<code class="sig-prename descclassname">espnet2.bin.mt_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/mt_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.mt_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>MT training.</p>
+<p class="rubric">Example</p>
+<dl class="simple">
+<dt>% python mt_train.py st –print_config –optim adadelta </dt><dd><p>&gt; conf/train_mt.yaml</p>
+</dd>
+</dl>
+<p>% python mt_train.py –config conf/train_mt.yaml</p>
+</dd></dl>
+
+</section>
 <section id="espnet2-bin-asr-inference-streaming">
-<span id="id21"></span><h2>espnet2.bin.asr_inference_streaming<a class="headerlink" href="#espnet2-bin-asr-inference-streaming" title="Permalink to this headline">¶</a></h2>
+<span id="id22"></span><h2>espnet2.bin.asr_inference_streaming<a class="headerlink" href="#espnet2-bin-asr-inference-streaming" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.asr_inference_streaming"></span><dl class="class">
 <dt id="espnet2.bin.asr_inference_streaming.Speech2TextStreaming">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.asr_inference_streaming.</code><code class="sig-name descname">Speech2TextStreaming</code><span class="sig-paren">(</span><em class="sig-param">asr_train_config: Union[pathlib.Path, str], asr_model_file: Union[pathlib.Path, str] = None, lm_train_config: Union[pathlib.Path, str] = None, lm_file: Union[pathlib.Path, str] = None, token_type: str = None, bpemodel: str = None, device: str = 'cpu', maxlenratio: float = 0.0, minlenratio: float = 0.0, batch_size: int = 1, dtype: str = 'float32', beam_size: int = 20, ctc_weight: float = 0.5, lm_weight: float = 1.0, penalty: float = 0.0, nbest: int = 1, disable_repetition_detection=False, decoder_text_length_limit=0, encoded_feat_length_limit=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_inference_streaming.html#Speech2TextStreaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_inference_streaming.Speech2TextStreaming" title="Permalink to this definition">¶</a></dt>
@@ -1322,8 +1345,57 @@ start with the prefix “parallel_wavegan/”.</p></li>
 <dd></dd></dl>
 
 </section>
+<section id="espnet2-bin-mt-inference">
+<span id="id23"></span><h2>espnet2.bin.mt_inference<a class="headerlink" href="#espnet2-bin-mt-inference" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.mt_inference"></span><dl class="class">
+<dt id="espnet2.bin.mt_inference.Text2Text">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.mt_inference.</code><code class="sig-name descname">Text2Text</code><span class="sig-paren">(</span><em class="sig-param">mt_train_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">mt_model_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">lm_train_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">lm_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">ngram_scorer: str = 'full'</em>, <em class="sig-param">ngram_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">token_type: str = None</em>, <em class="sig-param">bpemodel: str = None</em>, <em class="sig-param">device: str = 'cpu'</em>, <em class="sig-param">maxlenratio: float = 0.0</em>, <em class="sig-param">minlenratio: float = 0.0</em>, <em class="sig-param">batch_size: int = 1</em>, <em class="sig-param">dtype: str = 'float32'</em>, <em class="sig-param">beam_size: int = 20</em>, <em class="sig-param">lm_weight: float = 1.0</em>, <em class="sig-param">ngram_weight: float = 0.9</em>, <em class="sig-param">penalty: float = 0.0</em>, <em class="sig-param">nbest: int = 1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/mt_inference.html#Text2Text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.mt_inference.Text2Text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Text2Text class</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">text2text</span> <span class="o">=</span> <span class="n">Text2Text</span><span class="p">(</span><span class="s2">&quot;mt_config.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;mt.pth&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">text2text</span><span class="p">(</span><span class="n">audio</span><span class="p">)</span>
+<span class="go">[(text, token, token_int, hypothesis object), ...]</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.bin.mt_inference.Text2Text.from_pretrained">
+<em class="property">static </em><code class="sig-name descname">from_pretrained</code><span class="sig-paren">(</span><em class="sig-param">model_tag: Optional[str] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/mt_inference.html#Text2Text.from_pretrained"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.mt_inference.Text2Text.from_pretrained" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build Text2Text instance from the pretrained model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model_tag</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Model tag of the pretrained models.
+Currently, the tags of espnet_model_zoo are supported.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Text2Text instance.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet2.bin.mt_inference.Text2Text" title="espnet2.bin.mt_inference.Text2Text">Text2Text</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.mt_inference.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.mt_inference.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/mt_inference.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.mt_inference.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.mt_inference.inference">
+<code class="sig-prename descclassname">espnet2.bin.mt_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, maxlenratio: float, minlenratio: float, batch_size: int, dtype: str, beam_size: int, ngpu: int, seed: int, lm_weight: float, ngram_weight: float, penalty: float, nbest: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], mt_train_config: Optional[str], mt_model_file: Optional[str], lm_train_config: Optional[str], lm_file: Optional[str], word_lm_train_config: Optional[str], word_lm_file: Optional[str], ngram_file: Optional[str], model_tag: Optional[str], token_type: Optional[str], bpemodel: Optional[str], allow_variable_data_keys: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/mt_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.mt_inference.inference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.mt_inference.main">
+<code class="sig-prename descclassname">espnet2.bin.mt_inference.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/mt_inference.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.mt_inference.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
 <section id="espnet2-bin-tokenize-text">
-<span id="id22"></span><h2>espnet2.bin.tokenize_text<a class="headerlink" href="#espnet2-bin-tokenize-text" title="Permalink to this headline">¶</a></h2>
+<span id="id24"></span><h2>espnet2.bin.tokenize_text<a class="headerlink" href="#espnet2-bin-tokenize-text" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.tokenize_text"></span><dl class="function">
 <dt id="espnet2.bin.tokenize_text.field2slice">
 <code class="sig-prename descclassname">espnet2.bin.tokenize_text.</code><code class="sig-name descname">field2slice</code><span class="sig-paren">(</span><em class="sig-param">field: Optional[str]</em><span class="sig-paren">)</span> &#x2192; slice<a class="reference internal" href="../_modules/espnet2/bin/tokenize_text.html#field2slice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.tokenize_text.field2slice" title="Permalink to this definition">¶</a></dt>
@@ -1357,7 +1429,7 @@ start with the prefix “parallel_wavegan/”.</p></li>
 
 </section>
 <section id="espnet2-bin-hubert-train">
-<span id="id23"></span><h2>espnet2.bin.hubert_train<a class="headerlink" href="#espnet2-bin-hubert-train" title="Permalink to this headline">¶</a></h2>
+<span id="id25"></span><h2>espnet2.bin.hubert_train<a class="headerlink" href="#espnet2-bin-hubert-train" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.hubert_train"></span><dl class="function">
 <dt id="espnet2.bin.hubert_train.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.hubert_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/hubert_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.hubert_train.get_parser" title="Permalink to this definition">¶</a></dt>
@@ -1374,7 +1446,7 @@ start with the prefix “parallel_wavegan/”.</p></li>
 
 </section>
 <section id="espnet2-bin-asr-train">
-<span id="id24"></span><h2>espnet2.bin.asr_train<a class="headerlink" href="#espnet2-bin-asr-train" title="Permalink to this headline">¶</a></h2>
+<span id="id26"></span><h2>espnet2.bin.asr_train<a class="headerlink" href="#espnet2-bin-asr-train" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.asr_train"></span><dl class="function">
 <dt id="espnet2.bin.asr_train.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.asr_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_train.get_parser" title="Permalink to this definition">¶</a></dt>

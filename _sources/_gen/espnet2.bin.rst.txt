@@ -224,12 +224,34 @@ espnet2.bin.st_train
     :show-inheritance:
 
 
+.. _espnet2.bin.mt_train:
+
+espnet2.bin.mt_train
+--------------------
+
+.. automodule:: espnet2.bin.mt_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.asr_inference_streaming:
 
 espnet2.bin.asr_inference_streaming
 -----------------------------------
 
 .. automodule:: espnet2.bin.asr_inference_streaming
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.mt_inference:
+
+espnet2.bin.mt_inference
+------------------------
+
+.. automodule:: espnet2.bin.mt_inference
     :members:
     :undoc-members:
     :show-inheritance:
