@@ -1,4 +1,5 @@
 optim: adam
+init: null   # do not set init method here because DCCRN has its own initialization
 max_epoch: 100
 batch_type: folded
 batch_size: 32
