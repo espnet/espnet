@@ -164,7 +164,7 @@ def solve(b: Union[torch.Tensor, ComplexTensor], a: Union[torch.Tensor, ComplexT
     # mixed input with complex and real tensors.
     if isinstance(a, ComplexTensor) or isinstance(b, ComplexTensor):
         if isinstance(a, ComplexTensor) and isinstance(b, ComplexTensor):
-            return FC.solve(b, a)[0]
+            return FC.solve(b, a, return_LU=False)
         else:
             return matmul(inverse(a), b)
     elif is_torch_1_9_plus and (torch.is_complex(a) or torch.is_complex(b)):
