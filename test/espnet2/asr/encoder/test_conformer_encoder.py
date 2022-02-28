@@ -44,7 +44,7 @@ def test_encoder_forward_backward(
         use_cnn_module=True,
         cnn_module_kernel=3,
         positionwise_layer_type=positionwise_layer_type,
-        interctc_layer_idx=interctc_layer_idx
+        interctc_layer_idx=interctc_layer_idx,
         interctc_use_conditioning=interctc_use_conditioning,
     )
     if input_layer == "embed":
