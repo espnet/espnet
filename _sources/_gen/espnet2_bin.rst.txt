@@ -1512,7 +1512,7 @@ enh_train.py
                         [--model_conf MODEL_CONF] [--criterions CRITERIONS]
                         [--use_preprocessor USE_PREPROCESSOR]
                         [--encoder {stft,conv,same}] [--encoder_conf ENCODER_CONF]
-                        [--separator {rnn,tcn,dprnn,transformer,conformer,wpe_beamformer,asteroid}]
+                        [--separator {rnn,skim,tcn,dprnn,transformer,conformer,wpe_beamformer,asteroid}]
                         [--separator_conf SEPARATOR_CONF]
                         [--decoder {stft,conv,same}] [--decoder_conf DECODER_CONF]
     
@@ -1846,7 +1846,7 @@ enh_train.py
                             The encoder type (default: stft)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})
-      --separator {rnn,tcn,dprnn,transformer,conformer,wpe_beamformer,asteroid}
+      --separator {rnn,skim,tcn,dprnn,transformer,conformer,wpe_beamformer,asteroid}
                             The separator type (default: rnn)
       --separator_conf SEPARATOR_CONF
                             The keyword arguments for separator (default: {})

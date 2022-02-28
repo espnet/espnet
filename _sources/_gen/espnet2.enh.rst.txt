@@ -246,6 +246,17 @@ espnet2.enh.separator.rnn_separator
     :show-inheritance:
 
 
+.. _espnet2.enh.separator.skim_separator:
+
+espnet2.enh.separator.skim_separator
+------------------------------------
+
+.. automodule:: espnet2.enh.separator.skim_separator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.loss.__init__:
 
 espnet2.enh.loss.__init__
@@ -406,6 +417,17 @@ espnet2.enh.layers.dnn_beamformer
 ---------------------------------
 
 .. automodule:: espnet2.enh.layers.dnn_beamformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.skim:
+
+espnet2.enh.layers.skim
+-----------------------
+
+.. automodule:: espnet2.enh.layers.skim
     :members:
     :undoc-members:
     :show-inheritance:

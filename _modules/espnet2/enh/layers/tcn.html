@@ -132,6 +132,7 @@
 <span class="c1">#</span>
 <span class="c1"># The code is based on:</span>
 <span class="c1"># https://github.com/kaituoxu/Conv-TasNet/blob/master/src/conv_tasnet.py</span>
+<span class="c1"># Licensed under MIT.</span>
 <span class="c1">#</span>
 
 
@@ -214,9 +215,9 @@
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;relu&quot;</span><span class="p">:</span>
             <span class="n">est_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;sigmoid&quot;</span><span class="p">:</span>
-            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;tanh&quot;</span><span class="p">:</span>
-            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+            <span class="n">est_mask</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported mask non-linear function&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">est_mask</span></div></div>
@@ -238,7 +239,7 @@
         <span class="c1"># [M, B, K] -&gt; [M, H, K]</span>
         <span class="n">conv1x1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">prelu</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">PReLU</span><span class="p">()</span>
-        <span class="n">norm</span> <span class="o">=</span> <span class="n">chose_norm</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">)</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">choose_norm</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">)</span>
         <span class="c1"># [M, H, K] -&gt; [M, B, K]</span>
         <span class="n">dsconv</span> <span class="o">=</span> <span class="n">DepthwiseSeparableConv</span><span class="p">(</span>
             <span class="n">out_channels</span><span class="p">,</span>
@@ -297,7 +298,7 @@
         <span class="k">if</span> <span class="n">causal</span><span class="p">:</span>
             <span class="n">chomp</span> <span class="o">=</span> <span class="n">Chomp1d</span><span class="p">(</span><span class="n">padding</span><span class="p">)</span>
         <span class="n">prelu</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">PReLU</span><span class="p">()</span>
-        <span class="n">norm</span> <span class="o">=</span> <span class="n">chose_norm</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">)</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">choose_norm</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">)</span>
         <span class="c1"># [M, H, K] -&gt; [M, B, K]</span>
         <span class="n">pointwise_conv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="c1"># Put together</span>
@@ -342,19 +343,21 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported nonlinear type&quot;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="chose_norm"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.chose_norm">[docs]</a><span class="k">def</span> <span class="nf">chose_norm</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">):</span>
+<div class="viewcode-block" id="choose_norm"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.choose_norm">[docs]</a><span class="k">def</span> <span class="nf">choose_norm</span><span class="p">(</span><span class="n">norm_type</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;BDT&quot;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The input of normalization will be (M, C, K), where M is batch size.</span>
 
 <span class="sd">    C is channel size and K is sequence length.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;gLN&quot;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">GlobalLayerNorm</span><span class="p">(</span><span class="n">channel_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">GlobalLayerNorm</span><span class="p">(</span><span class="n">channel_size</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;cLN&quot;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">ChannelwiseLayerNorm</span><span class="p">(</span><span class="n">channel_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ChannelwiseLayerNorm</span><span class="p">(</span><span class="n">channel_size</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;BN&quot;</span><span class="p">:</span>
         <span class="c1"># Given input (M, C, K), nn.BatchNorm1d(C) will accumulate statics</span>
         <span class="c1"># along M and K, so this BN usage is right.</span>
         <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm1d</span><span class="p">(</span><span class="n">channel_size</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s2">&quot;GN&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unsupported normalization type&quot;</span><span class="p">)</span></div>
 
@@ -362,11 +365,13 @@
 <div class="viewcode-block" id="ChannelwiseLayerNorm"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.ChannelwiseLayerNorm">[docs]</a><span class="k">class</span> <span class="nc">ChannelwiseLayerNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Channel-wise Layer Normalization (cLN).&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;BDT&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># [1, N, 1]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># [1, N, 1]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_parameters</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">shape</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;BDT&quot;</span><span class="p">,</span> <span class="s2">&quot;BTD&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">shape</span>
 
 <div class="viewcode-block" id="ChannelwiseLayerNorm.reset_parameters"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.ChannelwiseLayerNorm.reset_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reset_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
@@ -381,20 +386,32 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            cLN_y: [M, N, K]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="n">y</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="s2">&quot;BTD&quot;</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+
         <span class="n">mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># [M, 1, K]</span>
         <span class="n">var</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">unbiased</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># [M, 1, K]</span>
         <span class="n">cLN_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">var</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="s2">&quot;BTD&quot;</span><span class="p">:</span>
+            <span class="n">cLN_y</span> <span class="o">=</span> <span class="n">cLN_y</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+
         <span class="k">return</span> <span class="n">cLN_y</span></div></div>
 
 
 <div class="viewcode-block" id="GlobalLayerNorm"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.GlobalLayerNorm">[docs]</a><span class="k">class</span> <span class="nc">GlobalLayerNorm</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Global Layer Normalization (gLN).&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s2">&quot;BDT&quot;</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># [1, N, 1]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">channel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># [1, N, 1]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_parameters</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">shape</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;BDT&quot;</span><span class="p">,</span> <span class="s2">&quot;BTD&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">shape</span>
 
 <div class="viewcode-block" id="GlobalLayerNorm.reset_parameters"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.GlobalLayerNorm.reset_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reset_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
@@ -409,11 +426,15 @@
 <span class="sd">        Returns:</span>
 <span class="sd">            gLN_y: [M, N, K]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">mean</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># [M, 1, 1]</span>
-        <span class="n">var</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">mean</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="s2">&quot;BTD&quot;</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># [M, 1, 1]</span>
+        <span class="n">var</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">mean</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">gLN_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gamma</span> <span class="o">*</span> <span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">var</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="s2">&quot;BTD&quot;</span><span class="p">:</span>
+            <span class="n">gLN_y</span> <span class="o">=</span> <span class="n">gLN_y</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">gLN_y</span></div></div>
 </pre></div>
 

@@ -1038,7 +1038,7 @@
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.tcn.Chomp1d">Chomp1d (class in espnet2.enh.layers.tcn)</a>
 </li>
-      <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.tcn.chose_norm">chose_norm() (in module espnet2.enh.layers.tcn)</a>
+      <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.tcn.choose_norm">choose_norm() (in module espnet2.enh.layers.tcn)</a>
 </li>
       <li><a href="_gen/espnet2.iterators.html#espnet2.iterators.chunk_iter_factory.ChunkIterFactory">ChunkIterFactory (class in espnet2.iterators.chunk_iter_factory)</a>
 </li>
@@ -2220,12 +2220,12 @@
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.encoder.conformer_encoder">espnet2.asr.encoder.conformer_encoder (module)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.encoder.contextual_block_conformer_encoder">espnet2.asr.encoder.contextual_block_conformer_encoder (module)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.encoder.contextual_block_transformer_encoder">espnet2.asr.encoder.contextual_block_transformer_encoder (module)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.encoder.hubert_encoder">espnet2.asr.encoder.hubert_encoder (module)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#module-espnet2.asr.encoder.rnn_encoder">espnet2.asr.encoder.rnn_encoder (module)</a>
@@ -2392,6 +2392,8 @@
 </li>
       <li><a href="_gen/espnet2.enh.html#module-espnet2.enh.layers.mask_estimator">espnet2.enh.layers.mask_estimator (module)</a>
 </li>
+      <li><a href="_gen/espnet2.enh.html#module-espnet2.enh.layers.skim">espnet2.enh.layers.skim (module)</a>
+</li>
       <li><a href="_gen/espnet2.enh.html#module-espnet2.enh.layers.tcn">espnet2.enh.layers.tcn (module)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#module-espnet2.enh.layers.wpe">espnet2.enh.layers.wpe (module)</a>
@@ -2427,6 +2429,8 @@
       <li><a href="_gen/espnet2.enh.html#module-espnet2.enh.separator.neural_beamformer">espnet2.enh.separator.neural_beamformer (module)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#module-espnet2.enh.separator.rnn_separator">espnet2.enh.separator.rnn_separator (module)</a>
+</li>
+      <li><a href="_gen/espnet2.enh.html#module-espnet2.enh.separator.skim_separator">espnet2.enh.separator.skim_separator (module)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#module-espnet2.enh.separator.tcn_separator">espnet2.enh.separator.tcn_separator (module)</a>
 </li>
@@ -2842,6 +2846,8 @@
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.frontends.feature_transform.LogMel.extra_repr">(espnet.nets.pytorch_backend.frontends.feature_transform.LogMel method)</a>
 </li>
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.frontends.feature_transform.UtteranceMVN.extra_repr">(espnet.nets.pytorch_backend.frontends.feature_transform.UtteranceMVN method)</a>
+</li>
+        <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.skim.MemLSTM.extra_repr">(espnet2.enh.layers.skim.MemLSTM method)</a>
 </li>
         <li><a href="_gen/espnet2.layers.html#espnet2.layers.global_mvn.GlobalMVN.extra_repr">(espnet2.layers.global_mvn.GlobalMVN method)</a>
 </li>
@@ -3357,6 +3363,12 @@
 </li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.mask_estimator.MaskEstimator.forward">(espnet2.enh.layers.mask_estimator.MaskEstimator method)</a>
 </li>
+        <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.skim.MemLSTM.forward">(espnet2.enh.layers.skim.MemLSTM method)</a>
+</li>
+        <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.skim.SegLSTM.forward">(espnet2.enh.layers.skim.SegLSTM method)</a>
+</li>
+        <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.skim.SkiM.forward">(espnet2.enh.layers.skim.SkiM method)</a>
+</li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.tcn.ChannelwiseLayerNorm.forward">(espnet2.enh.layers.tcn.ChannelwiseLayerNorm method)</a>
 </li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.tcn.Chomp1d.forward">(espnet2.enh.layers.tcn.Chomp1d method)</a>
@@ -3398,6 +3410,8 @@
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.neural_beamformer.NeuralBeamformer.forward">(espnet2.enh.separator.neural_beamformer.NeuralBeamformer method)</a>
 </li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.rnn_separator.RNNSeparator.forward">(espnet2.enh.separator.rnn_separator.RNNSeparator method)</a>
+</li>
+        <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.skim_separator.SkiMSeparator.forward">(espnet2.enh.separator.skim_separator.SkiMSeparator method)</a>
 </li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.tcn_separator.TCNSeparator.forward">(espnet2.enh.separator.tcn_separator.TCNSeparator method)</a>
 </li>
@@ -4698,6 +4712,8 @@
 </li>
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.hifigan.loss.MelSpectrogramLoss">MelSpectrogramLoss (class in espnet2.gan_tts.hifigan.loss)</a>
 </li>
+      <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.skim.MemLSTM">MemLSTM (class in espnet2.enh.layers.skim)</a>
+</li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.dprnn.merge_feature">merge_feature() (in module espnet2.enh.layers.dprnn)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.beam_search.BeamSearch.merge_scores">merge_scores() (espnet.nets.beam_search.BeamSearch static method)</a>
@@ -4878,6 +4894,8 @@
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.neural_beamformer.NeuralBeamformer.num_spk">(espnet2.enh.separator.neural_beamformer.NeuralBeamformer property)</a>
 </li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.rnn_separator.RNNSeparator.num_spk">(espnet2.enh.separator.rnn_separator.RNNSeparator property)</a>
+</li>
+        <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.skim_separator.SkiMSeparator.num_spk">(espnet2.enh.separator.skim_separator.SkiMSeparator property)</a>
 </li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.tcn_separator.TCNSeparator.num_spk">(espnet2.enh.separator.tcn_separator.TCNSeparator property)</a>
 </li>
@@ -5638,6 +5656,8 @@
         <li><a href="_gen/espnet.nets.html#espnet.nets.beam_search.BeamSearch.search">(espnet.nets.beam_search.BeamSearch method)</a>
 </li>
       </ul></li>
+      <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.skim.SegLSTM">SegLSTM (class in espnet2.enh.layers.skim)</a>
+</li>
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_align.CTCSegmentationTask.segments">segments (espnet2.bin.asr_align.CTCSegmentationTask attribute)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.streaming.segment.SegmentStreamingE2E">SegmentStreamingE2E (class in espnet.nets.pytorch_backend.streaming.segment)</a>
@@ -5742,11 +5762,15 @@
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.dprnn.SingleRNN">SingleRNN (class in espnet2.enh.layers.dprnn)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SISNRLoss">SISNRLoss (class in espnet2.enh.loss.criterions.time_domain)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.utils.html#espnet2.utils.sized_dict.SizedDict">SizedDict (class in espnet2.utils.sized_dict)</a>
+</li>
+      <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.skim.SkiM">SkiM (class in espnet2.enh.layers.skim)</a>
+</li>
+      <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.skim_separator.SkiMSeparator">SkiMSeparator (class in espnet2.enh.separator.skim_separator)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.frontend.windowing.SlidingWindow">SlidingWindow (class in espnet2.asr.frontend.windowing)</a>
 </li>
