@@ -37,14 +37,12 @@ def test_Encoder_forward_backward(
         x = torch.randn(2, 10, 20, requires_grad=True)
     x_lens = torch.LongTensor([10, 8])
     if len(interctc_layer_idx) > 0:
-        ctc=None
+        ctc = None
         if interctc_use_conditioning:
             vocab_size = 5
             output_size = encoder.output_size()
             ctc = CTC(odim=vocab_size, encoder_output_size=output_size)
-            encoder.conditioning_layer = torch.nn.Linear(
-                vocab_size, output_size
-            )
+            encoder.conditioning_layer = torch.nn.Linear(vocab_size, output_size)
         y, _, _ = encoder(x, x_lens, ctc=ctc)
         y = y[0]
     else:
