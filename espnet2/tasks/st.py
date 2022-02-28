@@ -54,6 +54,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.st.espnet_model import ESPnetSTModel
+from espnet2.st.espnet_model_md import ESPnetSTMDModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -168,6 +169,31 @@ extra_mt_decoder_choices = ClassChoices(
     type_check=AbsDecoder,
     default="rnn",
 )
+asr_decoder_choices = ClassChoices(
+    "asr_decoder",
+    classes=dict(
+        transformer=TransformerDecoder,
+        lightweight_conv=LightweightConvolutionTransformerDecoder,
+        lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
+        dynamic_conv=DynamicConvolutionTransformerDecoder,
+        dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
+        rnn=RNNDecoder,
+    ),
+    type_check=AbsDecoder,
+    default="rnn",
+)
+encoder_mt_choices = ClassChoices(
+    "encoder_mt",
+    classes=dict(
+        conformer=ConformerEncoder,
+        transformer=TransformerEncoder,
+        contextual_block_transformer=ContextualBlockTransformerEncoder,
+        vgg_rnn=VGGRNNEncoder,
+        rnn=RNNEncoder,
+    ),
+    type_check=AbsEncoder,
+    default="rnn",
+)
 
 
 class STTask(AbsTask):
@@ -194,6 +220,10 @@ class STTask(AbsTask):
         extra_asr_decoder_choices,
         # --extra_mt_decoder and --extra_mt_decoder_conf
         extra_mt_decoder_choices,
+        # --asr_decoder and --asr_decoder_conf
+        asr_decoder_choices,
+        # --encoder_mt and --encoder_mt_conf
+        encoder_mt_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -219,6 +249,12 @@ class STTask(AbsTask):
             type=str_or_none,
             default=None,
             help="A text mapping int-id to token (for source language)",
+        )
+        group.add_argument(
+            "--use_multidecoder",
+            type=str2bool,
+            default=False,
+            help="Use multidecoder model",
         )
         group.add_argument(
             "--init",
@@ -522,53 +558,89 @@ class STTask(AbsTask):
         else:
             ctc = None
 
-        # 7. ASR extra decoder
-        if (
-            getattr(args, "extra_asr_decoder", None) is not None
-            and src_token_list is not None
-        ):
-            extra_asr_decoder_class = extra_asr_decoder_choices.get_class(
-                args.extra_asr_decoder
+        use_md_model = getattr(args, "use_multidecoder", False)
+        if use_md_model:
+            # 7. ASR decoder
+            asr_decoder_class = asr_decoder_choices.get_class(
+                args.asr_decoder
             )
-            extra_asr_decoder = extra_asr_decoder_class(
+            asr_decoder = asr_decoder_class(
                 vocab_size=src_vocab_size,
                 encoder_output_size=encoder_output_size,
-                **args.extra_asr_decoder_conf,
+                **args.asr_decoder_conf,
             )
-        else:
-            extra_asr_decoder = None
 
-        # 8. MT extra decoder
-        if getattr(args, "extra_mt_decoder", None) is not None:
-            extra_mt_decoder_class = extra_mt_decoder_choices.get_class(
-                args.extra_mt_decoder
-            )
-            extra_mt_decoder = extra_mt_decoder_class(
+            # 8. Encoder MT
+            encoder_mt_class = encoder_mt_choices.get_class(args.encoder_mt)
+            encoder_mt = encoder_mt_class(input_size=input_size, **args.encoder_mt_conf)
+
+            # 8. Build model
+            model = ESPnetSTMDModel(
                 vocab_size=vocab_size,
-                encoder_output_size=encoder_output_size,
-                **args.extra_mt_decoder_conf,
+                src_vocab_size=src_vocab_size,
+                frontend=frontend,
+                specaug=specaug,
+                normalize=normalize,
+                preencoder=preencoder,
+                encoder=encoder,
+                postencoder=postencoder,
+                decoder=decoder,
+                ctc=ctc,
+                asr_decoder=asr_decoder,
+                encoder_mt_decoder=encoder_mt,
+                token_list=token_list,
+                src_token_list=src_token_list,
+                **args.model_conf,
             )
-        else:
-            extra_asr_decoder = None
 
-        # 8. Build model
-        model = ESPnetSTModel(
-            vocab_size=vocab_size,
-            src_vocab_size=src_vocab_size,
-            frontend=frontend,
-            specaug=specaug,
-            normalize=normalize,
-            preencoder=preencoder,
-            encoder=encoder,
-            postencoder=postencoder,
-            decoder=decoder,
-            ctc=ctc,
-            extra_asr_decoder=extra_asr_decoder,
-            extra_mt_decoder=extra_mt_decoder,
-            token_list=token_list,
-            src_token_list=src_token_list,
-            **args.model_conf,
-        )
+        else:
+            # 7. ASR extra decoder
+            if (
+                getattr(args, "extra_asr_decoder", None) is not None
+                and src_token_list is not None
+            ):
+                extra_asr_decoder_class = extra_asr_decoder_choices.get_class(
+                    args.extra_asr_decoder
+                )
+                extra_asr_decoder = extra_asr_decoder_class(
+                    vocab_size=src_vocab_size,
+                    encoder_output_size=encoder_output_size,
+                    **args.extra_asr_decoder_conf,
+                )
+            else:
+                extra_asr_decoder = None
+
+            # 8. MT extra decoder
+            if getattr(args, "extra_mt_decoder", None) is not None:
+                extra_mt_decoder_class = extra_mt_decoder_choices.get_class(
+                    args.extra_mt_decoder
+                )
+                extra_mt_decoder = extra_mt_decoder_class(
+                    vocab_size=vocab_size,
+                    encoder_output_size=encoder_output_size,
+                    **args.extra_mt_decoder_conf,
+                )
+            else:
+                extra_asr_decoder = None
+
+            # 8. Build model
+            model = ESPnetSTModel(
+                vocab_size=vocab_size,
+                src_vocab_size=src_vocab_size,
+                frontend=frontend,
+                specaug=specaug,
+                normalize=normalize,
+                preencoder=preencoder,
+                encoder=encoder,
+                postencoder=postencoder,
+                decoder=decoder,
+                ctc=ctc,
+                extra_asr_decoder=extra_asr_decoder,
+                extra_mt_decoder=extra_mt_decoder,
+                token_list=token_list,
+                src_token_list=src_token_list,
+                **args.model_conf,
+            )
 
         # FIXME(kamo): Should be done in model?
         # 9. Initialize

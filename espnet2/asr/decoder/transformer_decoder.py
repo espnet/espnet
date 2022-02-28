@@ -98,6 +98,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         hlens: torch.Tensor,
         ys_in_pad: torch.Tensor,
         ys_in_lens: torch.Tensor,
+        return_hidden: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward decoder.
 
@@ -135,10 +136,16 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         )
         if self.normalize_before:
             x = self.after_norm(x)
+            if return_hidden:
+                hs_asr = x
         if self.output_layer is not None:
             x = self.output_layer(x)
 
         olens = tgt_mask.sum(1)
+
+        if return_hidden:
+            return x, olens, hs_asr
+
         return x, olens
 
     def forward_one_step(
@@ -147,6 +154,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         tgt_mask: torch.Tensor,
         memory: torch.Tensor,
         cache: List[torch.Tensor] = None,
+        return_hidden: bool = False,
     ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
         """Forward one step.
 
@@ -175,9 +183,15 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             y = self.after_norm(x[:, -1])
         else:
             y = x[:, -1]
+
+        if return_hidden:
+            h_asr = y
+
         if self.output_layer is not None:
             y = torch.log_softmax(self.output_layer(y), dim=-1)
 
+        if return_hidden:
+            return y, h_asr, new_cache
         return y, new_cache
 
     def score(self, ys, state, x):
