@@ -477,7 +477,7 @@ class ASRTask(AbsTask):
 
         # 6. CTC
         ctc = CTC(
-            odim=vocab_size, encoder_output_sizse=encoder_output_size, **args.ctc_conf
+            odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
         )
 
         # 8. Build model
