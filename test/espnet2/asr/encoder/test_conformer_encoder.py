@@ -1,6 +1,7 @@
 import pytest
 import torch
 
+from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 
 
@@ -18,7 +19,12 @@ from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
     ],
 )
 @pytest.mark.parametrize(
-    "interctc_layer_idx, interctc_use_conditioning", [([1], False), ([1], True)]
+    "interctc_layer_idx, interctc_use_conditioning",
+    [
+        ([], False),
+        ([1], False),
+        ([1], True),
+    ],
 )
 def test_encoder_forward_backward(
     input_layer,
@@ -52,7 +58,19 @@ def test_encoder_forward_backward(
     else:
         x = torch.randn(2, 32, 20, requires_grad=True)
     x_lens = torch.LongTensor([32, 28])
-    y, _, _ = encoder(x, x_lens)
+    if len(interctc_layer_idx) > 0:
+        ctc=None
+        if interctc_use_conditioning:
+            vocab_size = 5
+            output_size = encoder.output_size()
+            ctc = CTC(odim=vocab_size, encoder_output_size=output_size)
+            encoder.conditioning_layer = torch.nn.Linear(
+                vocab_size, output_size
+            )
+        y, _, _ = encoder(x, x_lens, ctc=ctc)
+        y = y[0]
+    else:
+        y, _, _ = encoder(x, x_lens)
     y.sum().backward()
 
 
@@ -99,7 +117,7 @@ def test_encoder_invalid_interctc_layer_idx():
     with pytest.raises(AssertionError):
         ConformerEncoder(
             20,
-            num_blocks=6,
+            num_blocks=2,
             interctc_layer_idx=[1, 2],
         )
 
