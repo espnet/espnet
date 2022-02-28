@@ -10,13 +10,13 @@ tgt_lang=en
 
 train_set=train
 train_dev=valid
-test_set="test"
+test_set="test valid"
 
 mt_config=conf/train_mt_transformer.yaml
 inference_config=conf/decode_mt.yaml
 
 src_nbpe=1000
-tgt_nbpe=1000
+tgt_nbpe=1000   # if token_joint is True, then only tgt_nbpe is used
 
 # tc: truecase
 # lc: lowercase
@@ -27,8 +27,6 @@ tgt_case=tc
 
 ./mt.sh \
     --ignore_init_mismatch true \
-    --stage 1 \
-    --stop_stage 13 \
     --use_lm false \
     --token_joint false \
     --nj 20 \
@@ -49,4 +47,4 @@ tgt_case=tc
     --test_sets "${test_set}" \
     --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
-    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}"  "$@"
+    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" "$@"
