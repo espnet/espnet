@@ -456,7 +456,7 @@ class STTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetSTModel:
+    def build_model(cls, args: argparse.Namespace) -> ESPnetSTMDModel:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -569,10 +569,11 @@ class STTask(AbsTask):
                 encoder_output_size=encoder_output_size,
                 **args.asr_decoder_conf,
             )
+            asr_decoder_output_size_bf_softmax = asr_decoder.output_size_bf_softmax()
 
             # 8. Encoder MT
             encoder_mt_class = encoder_mt_choices.get_class(args.encoder_mt)
-            encoder_mt = encoder_mt_class(input_size=input_size, **args.encoder_mt_conf)
+            encoder_mt = encoder_mt_class(input_size=asr_decoder_output_size_bf_softmax, **args.encoder_mt_conf)
 
             # 8. Build model
             model = ESPnetSTMDModel(

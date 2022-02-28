@@ -207,7 +207,7 @@ class ESPnetSTMDModel(AbsESPnetModel):
 
         # 3a. MT Encoder
         dec_asr_lengths = src_text_lengths + 1
-        encoder_mt_out, encoder_mt_out_lens = self.encoder_mt(hs_dec_asr, dec_asr_lengths)
+        encoder_mt_out, encoder_mt_out_lens, _ = self.encoder_mt(hs_dec_asr, dec_asr_lengths)
 
         # 2a. Attention-decoder branch (ST)
         loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
@@ -375,7 +375,7 @@ class ESPnetSTMDModel(AbsESPnetModel):
 
         # 1. Forward decoder
         decoder_out, _, hs_dec_asr = self.decoder(
-            encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
+            encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens, return_hidden=True
         )
 
         # 2. Compute attention loss

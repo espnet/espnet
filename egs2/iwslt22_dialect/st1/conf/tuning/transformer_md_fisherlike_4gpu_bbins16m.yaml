@@ -61,7 +61,7 @@ scheduler_conf:
 
 # minibatch related
 batch_type: numel
-batch_bins: 16000000
+batch_bins: 6000000
 
 best_model_criterion:
 -   - valid

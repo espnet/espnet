@@ -89,6 +89,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         else:
             self.output_layer = None
 
+        self._output_size_bf_softmax = attention_dim
         # Must set by the inheritance
         self.decoders = None
 
@@ -147,6 +148,9 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             return x, olens, hs_asr
 
         return x, olens
+
+    def output_size_bf_softmax(self) -> int:
+        return self._output_size_bf_softmax
 
     def forward_one_step(
         self,
