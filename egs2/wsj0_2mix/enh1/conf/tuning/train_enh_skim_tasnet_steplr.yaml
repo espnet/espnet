@@ -1,0 +1,71 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 150
+batch_type: folded
+batch_size: 8
+iterator_type: chunk
+chunk_length: 16000
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 0
+patience: 50
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: steplr
+scheduler_conf:
+    step_size: 2
+    gamma: 0.98
+
+encoder: conv
+encoder_conf:
+    channel: 64
+    kernel_size: 2
+    stride: 1
+decoder: conv
+decoder_conf:
+    channel: 64
+    kernel_size: 2
+    stride: 1
+separator: skim
+separator_conf:
+    causal: False
+    num_spk: 2
+    layer: 6
+    nonlinear: relu
+    unit: 128
+    segment_size: 250
+    dropout: 0.1
+    mem_type: hc 
+    seg_overlap: True
+
+# A list for criterions
+# The overlall loss in the multi-task learning will be:
+# loss = weight_1 * loss_1 + ... + weight_N * loss_N
+# The default `weight` for each sub-loss is 1.0
+criterions: 
+  # The first criterion
+  - name: si_snr 
+    conf:
+      eps: 1.0e-7
+    wrapper: pit
+    wrapper_conf:
+      weight: 1.0
+      independent_perm: True
+
+
+
+
+  
+    
+

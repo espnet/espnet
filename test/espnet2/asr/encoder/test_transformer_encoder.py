@@ -15,8 +15,6 @@ def test_Encoder_forward_backward(input_layer, positionwise_layer_type):
     )
     if input_layer == "embed":
         x = torch.randint(0, 10, [2, 10])
-    elif input_layer is None:
-        x = torch.randn(2, 10, 40, requires_grad=True)
     else:
         x = torch.randn(2, 10, 20, requires_grad=True)
     x_lens = torch.LongTensor([10, 8])
