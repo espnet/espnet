@@ -156,6 +156,16 @@ class CTC(torch.nn.Module):
 
         return loss
 
+    def softmax(self, hs_pad):
+        """softmax of frame activations
+
+        Args:
+            Tensor hs_pad: 3d tensor (B, Tmax, eprojs)
+        Returns:
+            torch.Tensor: softmax applied 3d tensor (B, Tmax, odim)
+        """
+        return F.softmax(self.ctc_lo(hs_pad), dim=2)
+
     def log_softmax(self, hs_pad):
         """log_softmax of frame activations
 
