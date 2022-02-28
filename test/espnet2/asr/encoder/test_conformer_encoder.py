@@ -17,12 +17,17 @@ from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
         ("legacy", "legacy_rel_pos", "legacy_rel_selfattn"),
     ],
 )
+@pytest.mark.parametrize(
+    "interctc_layer_idx, interctc_use_conditioning", [([1], False), ([1], True)]
+)
 def test_encoder_forward_backward(
     input_layer,
     positionwise_layer_type,
     rel_pos_type,
     pos_enc_layer_type,
     selfattention_layer_type,
+    interctc_layer_idx,
+    interctc_use_conditioning,
 ):
     encoder = ConformerEncoder(
         20,
@@ -39,6 +44,8 @@ def test_encoder_forward_backward(
         use_cnn_module=True,
         cnn_module_kernel=3,
         positionwise_layer_type=positionwise_layer_type,
+        interctc_layer_idx=interctc_layer_idx
+        interctc_use_conditioning=interctc_use_conditioning,
     )
     if input_layer == "embed":
         x = torch.randint(0, 10, [2, 32])
@@ -79,6 +86,21 @@ def test_encoder_invalid_rel_pos_combination():
             20,
             pos_enc_layer_type="legacy_rel_pos",
             selfattention_layer_type="rel_sselfattn",
+        )
+
+
+def test_encoder_invalid_interctc_layer_idx():
+    with pytest.raises(AssertionError):
+        ConformerEncoder(
+            20,
+            num_blocks=2,
+            interctc_layer_idx=[0, 1],
+        )
+    with pytest.raises(AssertionError):
+        ConformerEncoder(
+            20,
+            num_blocks=6,
+            interctc_layer_idx=[1, 2],
         )
 
 

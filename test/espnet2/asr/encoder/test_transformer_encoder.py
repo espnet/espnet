@@ -6,12 +6,22 @@ from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 
 @pytest.mark.parametrize("input_layer", ["linear", "conv2d", "embed", None])
 @pytest.mark.parametrize("positionwise_layer_type", ["conv1d", "conv1d-linear"])
-def test_Encoder_forward_backward(input_layer, positionwise_layer_type):
+@pytest.mark.parametrize(
+    "interctc_layer_idx, interctc_use_conditioning", [([1], False), ([1], True)]
+)
+def test_Encoder_forward_backward(
+    input_layer,
+    positionwise_layer_type,
+    interctc_layer_idx,
+    interctc_use_conditioning,
+):
     encoder = TransformerEncoder(
         20,
         output_size=40,
         input_layer=input_layer,
         positionwise_layer_type=positionwise_layer_type,
+        interctc_layer_idx=interctc_layer_idx,
+        interctc_use_conditioning=interctc_use_conditioning,
     )
     if input_layer == "embed":
         x = torch.randint(0, 10, [2, 10])

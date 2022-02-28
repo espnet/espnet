@@ -23,6 +23,14 @@ def test_ctc_forward_backward(ctc_type, ctc_args):
 
 
 @pytest.mark.parametrize("ctc_type", ["builtin", "warpctc", "gtnctc"])
+def test_ctc_softmax(ctc_type, ctc_args):
+    if ctc_type == "warpctc":
+        pytest.importorskip("warpctc_pytorch")
+    ctc = CTC(encoder_output_sizse=10, odim=5, ctc_type=ctc_type)
+    ctc.softmax(ctc_args[0])
+
+
+@pytest.mark.parametrize("ctc_type", ["builtin", "warpctc", "gtnctc"])
 def test_ctc_log_softmax(ctc_type, ctc_args):
     if ctc_type == "warpctc":
         pytest.importorskip("warpctc_pytorch")
