@@ -587,7 +587,7 @@ class STTask(AbsTask):
                 decoder=decoder,
                 ctc=ctc,
                 asr_decoder=asr_decoder,
-                encoder_mt_decoder=encoder_mt,
+                encoder_mt=encoder_mt,
                 token_list=token_list,
                 src_token_list=src_token_list,
                 **args.model_conf,

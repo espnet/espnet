@@ -12,7 +12,8 @@ train_set=train
 train_dev=dev
 test_set=test1
 
-st_config=conf/train_st_conformer.yaml
+#st_config=conf/train_st_conformer.yaml
+st_config=conf/tuning/transformer_md_fisherlike_4gpu_bbins16m.yaml
 inference_config=conf/decode_st.yaml
 
 src_nbpe=1000

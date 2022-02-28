@@ -105,6 +105,7 @@ feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_st=1            # Number of splitting for lm corpus.
 src_lang=es                # source language abbrev. id (e.g., es)
 tgt_lang=en                # target language abbrev. id (e.g., en)
+use_multidecoder=false
 
 # Upload model related
 hf_repo=
@@ -1294,6 +1295,7 @@ if ! "${skip_train}"; then
             --multiprocessing_distributed true -- \
             ${python} -m espnet2.bin.st_train \
                 --use_preprocessor true \
+                --use_multidecoder ${use_multidecoder} \
                 --bpemodel "${tgt_bpemodel}" \
                 --token_type "${tgt_token_type}" \
                 --token_list "${tgt_token_list}" \
