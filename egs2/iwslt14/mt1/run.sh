@@ -16,7 +16,7 @@ mt_config=conf/train_mt_transformer.yaml
 inference_config=conf/decode_mt.yaml
 
 src_nbpe=1000
-tgt_nbpe=1000   # if token_joint is True, then only tgt_nbpe is used
+tgt_nbpe=10000   # if token_joint is True, then only tgt_nbpe is used
 
 # tc: truecase
 # lc: lowercase
@@ -28,9 +28,10 @@ tgt_case=tc
 ./mt.sh \
     --ignore_init_mismatch true \
     --use_lm false \
-    --token_joint false \
-    --nj 20 \
-    --inference_nj 20 \
+    --token_joint true \
+    --ngpu 1 \
+    --nj 16 \
+    --inference_nj 32 \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
     --src_token_type "bpe" \
