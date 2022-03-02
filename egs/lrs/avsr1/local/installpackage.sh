@@ -51,7 +51,7 @@ else
 	        ;;
             [nN][oO]|[nN])
 		cd local/installations
-		$MAIN_ROOT/tools/installers/install_vidaug.sh || exit 1;
+		$MAIN_ROOT/tools/installers/install_vidaug.sh $MAIN_ROOT || exit 1;
 		cd ../..
      		break
 		;;
