@@ -27,6 +27,7 @@ if [ `lsb_release -d` != "18.04" ] || [ `lsb_release -d` != "20.04" ]; then
     exit 1
 fi
 
+
 # OpenFace installation
 echo "Downloading OpenFace"
 git clone https://github.com/TadasBaltrusaitis/OpenFace.git
