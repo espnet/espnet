@@ -4,6 +4,7 @@
 #
 # The code is based on:
 # https://github.com/yluo42/TAC/blob/master/utility/models.py
+# Licensed under CC BY-NC-SA 3.0 US.
 #
 
 

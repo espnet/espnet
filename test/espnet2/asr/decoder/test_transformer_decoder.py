@@ -217,7 +217,7 @@ def test_TransformerDecoder_batch_beam_search_online(
         use_output_layer=use_output_layer,
         linear_units=10,
     )
-    ctc = CTC(odim=vocab_size, encoder_output_sizse=encoder_output_size)
+    ctc = CTC(odim=vocab_size, encoder_output_size=encoder_output_size)
     ctc.to(dtype)
     ctc_scorer = CTCPrefixScorer(ctc=ctc, eos=vocab_size - 1)
     beam = BatchBeamSearchOnlineSim(
