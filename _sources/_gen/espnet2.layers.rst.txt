@@ -15,34 +15,12 @@ espnet2.layers.global_mvn
     :show-inheritance:
 
 
-.. _espnet2.layers.log_mel:
-
-espnet2.layers.log_mel
-----------------------
-
-.. automodule:: espnet2.layers.log_mel
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.layers.sinc_conv:
 
 espnet2.layers.sinc_conv
 ------------------------
 
 .. automodule:: espnet2.layers.sinc_conv
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.layers.inversible_interface:
-
-espnet2.layers.inversible_interface
------------------------------------
-
-.. automodule:: espnet2.layers.inversible_interface
     :members:
     :undoc-members:
     :show-inheritance:
@@ -59,12 +37,45 @@ espnet2.layers.time_warp
     :show-inheritance:
 
 
+.. _espnet2.layers.utterance_mvn:
+
+espnet2.layers.utterance_mvn
+----------------------------
+
+.. automodule:: espnet2.layers.utterance_mvn
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.layers.inversible_interface:
+
+espnet2.layers.inversible_interface
+-----------------------------------
+
+.. automodule:: espnet2.layers.inversible_interface
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.layers.__init__:
 
 espnet2.layers.__init__
 -----------------------
 
 .. automodule:: espnet2.layers.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.layers.log_mel:
+
+espnet2.layers.log_mel
+----------------------
+
+.. automodule:: espnet2.layers.log_mel
     :members:
     :undoc-members:
     :show-inheritance:
@@ -92,12 +103,12 @@ espnet2.layers.label_aggregation
     :show-inheritance:
 
 
-.. _espnet2.layers.utterance_mvn:
+.. _espnet2.layers.abs_normalize:
 
-espnet2.layers.utterance_mvn
+espnet2.layers.abs_normalize
 ----------------------------
 
-.. automodule:: espnet2.layers.utterance_mvn
+.. automodule:: espnet2.layers.abs_normalize
     :members:
     :undoc-members:
     :show-inheritance:
@@ -109,17 +120,6 @@ espnet2.layers.mask_along_axis
 ------------------------------
 
 .. automodule:: espnet2.layers.mask_along_axis
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.layers.abs_normalize:
-
-espnet2.layers.abs_normalize
-----------------------------
-
-.. automodule:: espnet2.layers.abs_normalize
     :members:
     :undoc-members:
     :show-inheritance:
