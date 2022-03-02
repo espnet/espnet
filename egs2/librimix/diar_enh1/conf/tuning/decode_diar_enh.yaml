@@ -1,0 +1,5 @@
+fs: 8000
+segment_size: 3.0
+hop_size: 2.0
+normalize_output_wav: True
+num_spk: 2 # The number of speakers will be estimated if "num_spk" is "None"
