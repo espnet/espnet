@@ -3,6 +3,7 @@
 
 """Conformer encoder definition."""
 
+from typing import List
 from typing import Optional
 from typing import Tuple
 
@@ -39,6 +40,7 @@ from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsamplin
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
@@ -101,6 +103,8 @@ class ConformerEncoder(AbsEncoder):
         zero_triu: bool = False,
         cnn_module_kernel: int = 31,
         padding_idx: int = -1,
+        interctc_layer_idx: List[int] = [],
+        interctc_use_conditioning: bool = False,
     ):
         assert check_argument_types()
         super().__init__()
@@ -262,6 +266,12 @@ class ConformerEncoder(AbsEncoder):
         if self.normalize_before:
             self.after_norm = LayerNorm(output_size)
 
+        self.interctc_layer_idx = interctc_layer_idx
+        if len(interctc_layer_idx) > 0:
+            assert 0 < min(interctc_layer_idx) and max(interctc_layer_idx) < num_blocks
+        self.interctc_use_conditioning = interctc_use_conditioning
+        self.conditioning_layer = None
+
     def output_size(self) -> int:
         return self._output_size
 
@@ -270,6 +280,7 @@ class ConformerEncoder(AbsEncoder):
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
+        ctc: CTC = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
 
@@ -303,11 +314,41 @@ class ConformerEncoder(AbsEncoder):
             xs_pad, masks = self.embed(xs_pad, masks)
         else:
             xs_pad = self.embed(xs_pad)
-        xs_pad, masks = self.encoders(xs_pad, masks)
+
+        intermediate_outs = []
+        if len(self.interctc_layer_idx) == 0:
+            xs_pad, masks = self.encoders(xs_pad, masks)
+        else:
+            for layer_idx, encoder_layer in enumerate(self.encoders):
+                xs_pad, masks = encoder_layer(xs_pad, masks)
+
+                if layer_idx + 1 in self.interctc_layer_idx:
+                    encoder_out = xs_pad
+                    if isinstance(encoder_out, tuple):
+                        encoder_out = encoder_out[0]
+
+                    # intermediate outputs are also normalized
+                    if self.normalize_before:
+                        encoder_out = self.after_norm(encoder_out)
+
+                    intermediate_outs.append((layer_idx + 1, encoder_out))
+
+                    if self.interctc_use_conditioning:
+                        ctc_out = ctc.softmax(encoder_out)
+
+                        if isinstance(xs_pad, tuple):
+                            x, pos_emb = xs_pad
+                            x = x + self.conditioning_layer(ctc_out)
+                            xs_pad = (x, pos_emb)
+                        else:
+                            xs_pad = xs_pad + self.conditioning_layer(ctc_out)
+
         if isinstance(xs_pad, tuple):
             xs_pad = xs_pad[0]
         if self.normalize_before:
             xs_pad = self.after_norm(xs_pad)
 
         olens = masks.squeeze(1).sum(1)
+        if len(intermediate_outs) > 0:
+            return (xs_pad, intermediate_outs), olens, None
         return xs_pad, olens, None

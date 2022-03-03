@@ -36,6 +36,7 @@ from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
+from espnet2.enh.separator.skim_separator import SkiMSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.tasks.abs_task import AbsTask
@@ -59,6 +60,7 @@ separator_choices = ClassChoices(
     name="separator",
     classes=dict(
         rnn=RNNSeparator,
+        skim=SkiMSeparator,
         tcn=TCNSeparator,
         dc_crn=DC_CRNSeparator,
         dprnn=DPRNNSeparator,
