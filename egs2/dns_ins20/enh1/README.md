@@ -34,6 +34,7 @@
 ## enh_train_enh_dccrn_raw
 
 - config: ./conf/tuning/train_enh_dccrn.yaml
+- download_model: https://huggingface.co/Johnson-Lsx/Shaoxiong_Lin_dns_ins20_enh_enh_train_enh_dccrn_raw
 
 | dataset                           | PESQ | STOI | SAR   | SDR   | SIR  | SI_SNR |
 | --------------------------------- | ---- | ---- | ----- | ----- | ---- | ------ |
