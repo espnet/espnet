@@ -39,13 +39,13 @@ class ApplyKmeans(object):
     def __init__(self, km_path):
         self.km_model = joblib.load(km_path)
         self.nc = self.km_model.cluster_centers_.transpose()
-        self.nc_norm = (self.nc ** 2).sum(0, keepdims=True)
+        self.nc_norm = (self.nc**2).sum(0, keepdims=True)
 
     def __call__(self, x):
         if isinstance(x, torch.Tensor):
             x = x.cpu().numpy()
         probs = (
-            (x ** 2).sum(1, keepdims=True) - 2 * np.matmul(x, self.nc) + self.nc_norm
+            (x**2).sum(1, keepdims=True) - 2 * np.matmul(x, self.nc) + self.nc_norm
         )
         return np.argmin(probs, axis=1)
 

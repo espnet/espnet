@@ -23,13 +23,17 @@ class DataSet:
         arrangement, performance, country, gender, user = recording[:-4].split("-")
 
         # the following mapping is necessary for errors in gender in country IN
-        insensitive_none = re.compile(re.escape('none'), re.IGNORECASE)
+        insensitive_none = re.compile(re.escape("none"), re.IGNORECASE)
 
-        gender = insensitive_none.sub('', utt["gender"])
-        spk = "{}{}".format(insensitive_none.sub('', gender).upper(), insensitive_none.sub('', user))
+        gender = insensitive_none.sub("", utt["gender"])
+        spk = "{}{}".format(
+            insensitive_none.sub("", gender).upper(), insensitive_none.sub("", user)
+        )
 
         rec_id = recording[:-4]
-        utt_id = "{}-{}-{}-{}-{}-{:03}".format(spk, arrangement, performance, country, gender.upper(), utt["index"])
+        utt_id = "{}-{}-{}-{}-{}-{:03}".format(
+            spk, arrangement, performance, country, gender.upper(), utt["index"]
+        )
 
         start = utt["start"]
         end = utt["end"]
@@ -55,7 +59,9 @@ class DataSet:
         self.utt2spk.append("{} {}".format(utt_id, spk))
 
     def _add_wavscp(self, rec_id, wavpath):
-        self.wavscp.append("{} sox wav/{} -G -t wav -r 16000 -c 1 - remix 1 | ".format(rec_id, wavpath))
+        self.wavscp.append(
+            "{} sox wav/{} -G -t wav -r 16000 -c 1 - remix 1 | ".format(rec_id, wavpath)
+        )
 
     def list2file(self, outfile, list_data):
         list_data = list(set(list_data))
@@ -71,6 +77,7 @@ class DataSet:
         self.list2file(join(self.workspace, "wav.scp"), sorted(self.wavscp))
         self.list2file(join(self.workspace, "utt2spk"), sorted(self.utt2spk))
         self.list2file(join(self.workspace, "segments"), sorted(self.segments))
+
 
 def read_json(filepath):
     try:  # Read the json
@@ -90,9 +97,19 @@ def map_rec2chec(db_path, countries):
     """
     rec2chec = {}
     for country in countries:
-        recordings = [f for f in listdir(join(db_path, country, country + "Vocals")) if f.endswith(".m4a")]
+        recordings = [
+            f
+            for f in listdir(join(db_path, country, country + "Vocals"))
+            if f.endswith(".m4a")
+        ]
         for record in recordings:
-            rec2chec[hashlib.md5(open(join(db_path, country, country + "Vocals", record), 'rb').read()).hexdigest()] = record
+            rec2chec[
+                hashlib.md5(
+                    open(
+                        join(db_path, country, country + "Vocals", record), "rb"
+                    ).read()
+                ).hexdigest()
+            ] = record
 
     return rec2chec
 
@@ -105,9 +122,39 @@ def main(args):
 
     countries = ["GB"]
     countries += ["US", "AU"] if dset in ["train3", "train30"] else []
-    countries += ['AE', 'AR', 'BR', 'CL', 'CN', 'DE', 'ES', 'FR', 'HU',
-                  'ID', 'IN', 'IQ', 'IR', 'IT', 'JP', 'KR', 'MX', 'MY',
-                  'NO', 'PH', 'PT', 'RU', 'SA', 'SG', 'TH', 'VN', 'ZA'] if dset in ["train30"] else []
+    countries += (
+        [
+            "AE",
+            "AR",
+            "BR",
+            "CL",
+            "CN",
+            "DE",
+            "ES",
+            "FR",
+            "HU",
+            "ID",
+            "IN",
+            "IQ",
+            "IR",
+            "IT",
+            "JP",
+            "KR",
+            "MX",
+            "MY",
+            "NO",
+            "PH",
+            "PT",
+            "RU",
+            "SA",
+            "SG",
+            "TH",
+            "VN",
+            "ZA",
+        ]
+        if dset in ["train30"]
+        else []
+    )
 
     performances = map_rec2chec(db_path, countries)
     utterances = read_json(utts_path)
@@ -119,12 +166,18 @@ def main(args):
     dataset.save()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("workspace", type=str, help="Path where the output files will be saved")
+    parser.add_argument(
+        "workspace", type=str, help="Path where the output files will be saved"
+    )
     parser.add_argument("db_path", type=str, help="Path to DAMP 300x30x2 database")
-    parser.add_argument("utterances", type=str, help="Path to utterance details in json format",
-                        default="metadata.json")
+    parser.add_argument(
+        "utterances",
+        type=str,
+        help="Path to utterance details in json format",
+        default="metadata.json",
+    )
     parser.add_argument("dset", type=str, help="Name of the dataset")
 
     args = parser.parse_args()
