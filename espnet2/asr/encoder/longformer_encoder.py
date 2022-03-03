@@ -7,7 +7,6 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-import logging
 import torch
 
 from typeguard import check_argument_types
