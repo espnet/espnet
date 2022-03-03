@@ -57,7 +57,7 @@ def test_dc_crn_separator_forward_backward_complex(
 
     real = torch.rand(2, 10, input_dim)
     imag = torch.rand(2, 10, input_dim)
-    x = ComplexTensor(real, imag) if is_torch_1_9_plus else torch.complex(real, imag)
+    x = torch.complex(real, imag) if is_torch_1_9_plus else ComplexTensor(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     masked, flens, others = model(x, ilens=x_lens)
@@ -114,7 +114,7 @@ def test_dc_crn_separator_multich_input(
 
     real = torch.rand(2, 10, input_channels[0] // 2, 33)
     imag = torch.rand(2, 10, input_channels[0] // 2, 33)
-    x = ComplexTensor(real, imag) if is_torch_1_9_plus else torch.complex(real, imag)
+    x = torch.complex(real, imag) if is_torch_1_9_plus else ComplexTensor(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     masked, flens, others = model(x, ilens=x_lens)
@@ -146,7 +146,7 @@ def test_dc_crn_separator_invalid_type():
 def test_dc_crn_separator_output():
     real = torch.rand(2, 10, 17)
     imag = torch.rand(2, 10, 17)
-    x = ComplexTensor(real, imag) if is_torch_1_9_plus else torch.complex(real, imag)
+    x = torch.complex(real, imag) if is_torch_1_9_plus else ComplexTensor(real, imag)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     for num_spk in range(1, 3):
