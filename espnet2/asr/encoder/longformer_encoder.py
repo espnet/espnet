@@ -33,10 +33,10 @@ from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsamplin
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet2.asr.ctc import CTC
-from espnet2.asr.encoder.conformer_encoder import ComformerEncoder
+from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 
 
-class LongformerEncoder(ComformerEncoder):
+class LongformerEncoder(ConformerEncoder):
     """Longformer SA Conformer encoder module.
 
     Args:
