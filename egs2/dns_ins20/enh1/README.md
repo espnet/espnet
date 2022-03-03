@@ -35,8 +35,11 @@
 
 - config: ./conf/tuning/train_enh_dccrn.yaml
 
-| dataset                           | STOI | SAR   | SDR   | SIR  |
-| --------------------------------- | ---- | ----- | ----- | ---- |
-| enhanced_cv_synthetic             | 0.98 | 24.69 | 24.69 | 0.00 |
-| enhanced_tt_synthetic_no_reverb   | 0.96 | 17.69 | 17.69 | 0.00 |
-| enhanced_tt_synthetic_with_reverb | 0.81 | 10.45 | 10.45 | 0.00 |
+| dataset                           | PESQ | STOI | SAR   | SDR   | SIR  | SI_SNR |
+| --------------------------------- | ---- | ---- | ----- | ----- | ---- | ------ |
+| enhanced_cv_synthetic             | 3.72 | 0.98 | 24.69 | 24.69 | 0.00 | 24.22  |
+| enhanced_tt_synthetic_no_reverb   | 3.29 | 0.96 | 17.69 | 17.69 | 0.00 | 17.50  |
+| enhanced_tt_synthetic_with_reverb | 2.54 | 0.81 | 10.45 | 10.45 | 0.00 | 9.72   |
+
+Note: Here, the model is only trained on data without reverberation.
+Note: Here, the PESQ score is calculated based on https://github.com/vBaiCai/python-pesq.
