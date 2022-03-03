@@ -8,6 +8,7 @@ setup() {
     tmpdir=$(mktemp -d testXXXXXX)/
     mkdir -p $tmpdir/valid/ $tmpdir/test
     echo $tmpdir
+
     cat <<EOF > $tmpdir/valid/hyp
 BAGGY EYES CAN HELP INCREASE THE CIRCULATION AND REDUCE THE SWELLING . FIND OUT HOW TO TREAT BAGGY EYES WITH TIPS FROM A PROFESSIONAL MAKEUP ARTIST IN THIS FREE VIDEO ON SKIN CARE .
 KICKBOXERS USE A POINTED TOE TO DEFEND AGAINST A LOW KICK . LEARN HOW TO DO A LOW KICK IN THIS FREE VIDEO ON WOMEN'S KICKBOXING TECHNIQUES .
@@ -42,7 +43,7 @@ teardown() {
 }
 
 @test "score_summarization.py" {
-    python ${utils}/score_summarization.py ${tmpdir}/ref $tmpdir/valid/hyp > ${tmpdir}/output.txt
+    python ${utils}/score_summarization.py ${tmpdir}/valid/ref $tmpdir/valid/hyp > ${tmpdir}/output.txt
     diff ${tmpdir}/result_dev.txt ${tmpdir}/output.txt
     python ${utils}/score_summarization.py ${tmpdir}/test/ref ${tmpdir}test/hyp > ${tmpdir}/output.txt
     diff ${tmpdir}/result_test.txt ${tmpdir}/output.txt

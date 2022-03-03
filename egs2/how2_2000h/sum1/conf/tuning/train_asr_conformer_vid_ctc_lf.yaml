@@ -11,7 +11,7 @@ best_model_criterion:
     - max
 keep_nbest_models: 10
 log_interval: 5000
-encoder: conformer
+encoder: longformer
 encoder_conf:
     output_size: 512
     attention_heads: 8
