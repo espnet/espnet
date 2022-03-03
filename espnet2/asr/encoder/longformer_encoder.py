@@ -16,16 +16,8 @@ from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention,  # noqa: H301
-    RelPositionMultiHeadedAttention,  # noqa: H301
-    LegacyRelPositionMultiHeadedAttention,  # noqa: H301
-)
 from espnet.nets.pytorch_backend.transformer.embedding import (
     PositionalEncoding,  # noqa: H301
-    ScaledPositionalEncoding,  # noqa: H301
-    RelPositionalEncoding,  # noqa: H301
-    LegacyRelPositionalEncoding,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
@@ -41,11 +33,11 @@ from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsamplin
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet2.asr.ctc import CTC
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.conformer_encoder import ComformerEncoder
 
 
-class ConformerEncoder(AbsEncoder):
-    """Conformer encoder module.
+class LongformerEncoder(ComformerEncoder):
+    """Longformer SA Conformer encoder module.
 
     Args:
         input_size (int): Input dimension.
@@ -76,6 +68,15 @@ class ConformerEncoder(AbsEncoder):
         zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
         cnn_module_kernel (int): Kernerl size of convolution module.
         padding_idx (int): Padding idx for input_layer=embed.
+        attention_windows (list): Layer-wise attention window sizes
+            for longformer self-attn
+        attention_dilation(list): Layer-wise attention dilation sizes
+            for longformer self-attn
+        attention_mode(str): Implementation for longformer self-attn.
+            Default="tvm"
+            Choose 'n2', 'tvm' or 'sliding_chunks'. More details in
+            https://github.com/allenai/longformer
+
     """
 
     def __init__(
@@ -95,8 +96,8 @@ class ConformerEncoder(AbsEncoder):
         positionwise_conv_kernel_size: int = 3,
         macaron_style: bool = False,
         rel_pos_type: str = "legacy",
-        pos_enc_layer_type: str = "rel_pos",
-        selfattention_layer_type: str = "rel_selfattn",
+        pos_enc_layer_type: str = "abs_pos",
+        selfattention_layer_type: str = "lf_selfattn",
         activation_type: str = "swish",
         use_cnn_module: bool = True,
         zero_triu: bool = False,
@@ -104,38 +105,23 @@ class ConformerEncoder(AbsEncoder):
         padding_idx: int = -1,
         interctc_layer_idx: List[int] = [],
         interctc_use_conditioning: bool = False,
+        attention_windows: list = None,
+        attention_dilation: list = None,
+        attention_mode: str = "tvm",
     ):
         assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 
-        if rel_pos_type == "legacy":
-            if pos_enc_layer_type == "rel_pos":
-                pos_enc_layer_type = "legacy_rel_pos"
-            if selfattention_layer_type == "rel_selfattn":
-                selfattention_layer_type = "legacy_rel_selfattn"
-        elif rel_pos_type == "latest":
-            assert selfattention_layer_type != "legacy_rel_selfattn"
-            assert pos_enc_layer_type != "legacy_rel_pos"
-        else:
-            raise ValueError("unknown rel_pos_type: " + rel_pos_type)
-
         activation = get_activation(activation_type)
+        assert pos_enc_layer_type == "abs_pos"
+        assert selfattention_layer_type == "lf_selfattn"
         if pos_enc_layer_type == "abs_pos":
             pos_enc_class = PositionalEncoding
-        elif pos_enc_layer_type == "scaled_abs_pos":
-            pos_enc_class = ScaledPositionalEncoding
-        elif pos_enc_layer_type == "rel_pos":
-            assert selfattention_layer_type == "rel_selfattn"
-            pos_enc_class = RelPositionalEncoding
-        elif pos_enc_layer_type == "legacy_rel_pos":
-            assert selfattention_layer_type == "legacy_rel_selfattn"
-            pos_enc_class = LegacyRelPositionalEncoding
-            logging.warning(
-                "Using legacy_rel_pos and it will be deprecated in the future."
-            )
         else:
-            raise ValueError("unknown pos_enc_layer: " + pos_enc_layer_type)
+            raise ValueError(
+                "incorrect or unknown pos_enc_layer: " + pos_enc_layer_type
+            )
 
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
@@ -179,8 +165,7 @@ class ConformerEncoder(AbsEncoder):
             )
         elif isinstance(input_layer, torch.nn.Module):
             self.embed = torch.nn.Sequential(
-                input_layer,
-                pos_enc_class(output_size, positional_dropout_rate),
+                input_layer, pos_enc_class(output_size, positional_dropout_rate),
             )
         elif input_layer is None:
             self.embed = torch.nn.Sequential(
@@ -216,44 +201,39 @@ class ConformerEncoder(AbsEncoder):
         else:
             raise NotImplementedError("Support only linear or conv1d.")
         self.selfattention_layer_type = selfattention_layer_type
-        if selfattention_layer_type == "selfattn":
-            encoder_selfattn_layer = MultiHeadedAttention
-            encoder_selfattn_layer_args = (
-                attention_heads,
-                output_size,
-                attention_dropout_rate,
+        if selfattention_layer_type == "lf_selfattn":
+            assert pos_enc_layer_type == "abs_pos"
+            from espnet.nets.pytorch_backend.transformer.longformer_attention import (
+                LongformerAttention,  # noqa: H301
             )
-        elif selfattention_layer_type == "legacy_rel_selfattn":
-            assert pos_enc_layer_type == "legacy_rel_pos"
-            encoder_selfattn_layer = LegacyRelPositionMultiHeadedAttention
-            encoder_selfattn_layer_args = (
-                attention_heads,
-                output_size,
-                attention_dropout_rate,
+            from longformer.longformer import LongformerConfig
+
+            encoder_selfattn_layer = LongformerAttention
+
+            config = LongformerConfig(
+                attention_window=attention_windows,
+                attention_dilation=attention_dilation,
+                autoregressive=False,
+                num_attention_heads=attention_heads,
+                hidden_size=output_size,
+                attention_probs_dropout_prob=dropout_rate,
+                attention_mode=attention_mode,
             )
-            logging.warning(
-                "Using legacy_rel_selfattn and it will be deprecated in the future."
-            )
-        elif selfattention_layer_type == "rel_selfattn":
-            assert pos_enc_layer_type == "rel_pos"
-            encoder_selfattn_layer = RelPositionMultiHeadedAttention
-            encoder_selfattn_layer_args = (
-                attention_heads,
-                output_size,
-                attention_dropout_rate,
-                zero_triu,
-            )
+            encoder_selfattn_layer_args = (config,)
         else:
-            raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)
+            raise ValueError(
+                "incompatible or unknown encoder_attn_layer: "
+                + selfattention_layer_type
+            )
 
         convolution_layer = ConvolutionModule
         convolution_layer_args = (output_size, cnn_module_kernel, activation)
 
         self.encoders = repeat(
             num_blocks,
-            EncoderLayer(
+            lambda layer_id: EncoderLayer(
                 output_size,
-                encoder_selfattn_layer(*encoder_selfattn_layer_args),
+                encoder_selfattn_layer(*(encoder_selfattn_layer_args + (layer_id,))),
                 positionwise_layer(*positionwise_layer_args),
                 positionwise_layer(*positionwise_layer_args) if macaron_style else None,
                 convolution_layer(*convolution_layer_args) if use_cnn_module else None,
@@ -262,6 +242,7 @@ class ConformerEncoder(AbsEncoder):
                 concat_after,
             ),
         )
+
         if self.normalize_before:
             self.after_norm = LayerNorm(output_size)
 
@@ -313,6 +294,19 @@ class ConformerEncoder(AbsEncoder):
             xs_pad, masks = self.embed(xs_pad, masks)
         else:
             xs_pad = self.embed(xs_pad)
+
+        if self.selfattention_layer_type == "lf_selfattn":
+            seq_len = xs_pad.shape[1]
+            attention_window = (
+                max([x.self_attn.attention_window for x in self.encoders]) * 2
+            )
+            padding_len = (
+                attention_window - seq_len % attention_window
+            ) % attention_window
+            xs_pad = torch.nn.functional.pad(
+                xs_pad, (0, 0, 0, padding_len), "constant", 0
+            )
+            masks = torch.nn.functional.pad(masks, (0, padding_len), "constant", False)
 
         xs_pad, masks = self.encoders(xs_pad, masks)
         intermediate_outs = []

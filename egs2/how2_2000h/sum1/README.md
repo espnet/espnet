@@ -7,7 +7,7 @@ HowTo 2000h fbank-pitch features have been released to enable reproduction of th
 Training is done in two stages, (a) ASR Pretraining, and (b) Summarization fine-tuning
 
 First run ASR pretraining as follows:
-
+The recipe is based on asr1
 ```bash
 local/run_asr.sh --asr_tag asr_pretrain
 ``` 
@@ -21,6 +21,7 @@ Then run the finetuning on summarization using the previously trained model as t
 
 
 ## asr_base_conformer_lf_mix
+
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
