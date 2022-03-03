@@ -83,7 +83,8 @@ def read_json(filepath):
     try:  # Read the json
         with open(filepath) as data_file:
             data = json.load(data_file)
-    except json.decoder.JSONDecodeError:  # Json has an extra first line. Error when was created
+    except json.decoder.JSONDecodeError:  
+        # Json has an extra first line. Error when was created
         data = []
 
     return data
@@ -91,7 +92,8 @@ def read_json(filepath):
 
 def map_rec2chec(db_path, countries):
     """
-    Method read all the original audio tracks and create a dict  {<checksum>: <recording>}
+    Method read all the original audio tracks and create a dict
+            {<checksum>: <recording>}
     :param db_path: string, path to root of DAMP Sing!
     :return: dict
     """
