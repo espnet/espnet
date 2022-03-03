@@ -9,13 +9,14 @@ import hashlib
 
 
 class DataSet:
-    def __init__(self, name, workspace):
+    def __init__(self, name, workspace, db_path):
         self.segments = []
         self.spk2gender = []
         self.text = []
         self.utt2spk = []
         self.wavscp = []
         self.workspace = join(workspace, name)
+        self.db_path = db_path
 
     def add_utterance(self, utt, recording):
 
@@ -60,7 +61,9 @@ class DataSet:
 
     def _add_wavscp(self, rec_id, wavpath):
         self.wavscp.append(
-            "{} sox wav/{} -G -t wav -r 16000 -c 1 - remix 1 | ".format(rec_id, wavpath)
+            "{} sox {}/{} -G -t wav -r 16000 -c 1 - remix 1 | ".format(
+                rec_id, db_path, wavpath
+            )
         )
 
     def list2file(self, outfile, list_data):
@@ -83,7 +86,7 @@ def read_json(filepath):
     try:  # Read the json
         with open(filepath) as data_file:
             data = json.load(data_file)
-    except json.decoder.JSONDecodeError:  
+    except json.decoder.JSONDecodeError:
         # Json has an extra first line. Error when was created
         data = []
 
@@ -160,7 +163,7 @@ def main(args):
 
     performances = map_rec2chec(db_path, countries)
     utterances = read_json(utts_path)
-    dataset = DataSet(dset, workspace)
+    dataset = DataSet(dset, workspace, db_path)
 
     for utt in utterances:
         dataset.add_utterance(utt, performances[utt["wavfile"]])
