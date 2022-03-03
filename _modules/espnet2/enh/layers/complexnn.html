@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>espnet2.enh.layers.complexnn &mdash; ESPnet 0.10.7a1 documentation</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> ESPnet
+          </a>
+              <div class="version">
+                0.10.7a1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>espnet2.enh.layers.complexnn</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for espnet2.enh.layers.complexnn</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+
+
+<div class="viewcode-block" id="NavieComplexLSTM"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.NavieComplexLSTM">[docs]</a><span class="k">class</span> <span class="nc">NavieComplexLSTM</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_size</span><span class="p">,</span>
+        <span class="n">hidden_size</span><span class="p">,</span>
+        <span class="n">projection_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">bidirectional</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">batch_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NavieComplexLSTM</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bidirectional</span> <span class="o">=</span> <span class="n">bidirectional</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">input_size</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rnn_units</span> <span class="o">=</span> <span class="n">hidden_size</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">real_lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rnn_units</span><span class="p">,</span>
+            <span class="n">num_layers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">bidirectional</span><span class="o">=</span><span class="n">bidirectional</span><span class="p">,</span>
+            <span class="n">batch_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imag_lstm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rnn_units</span><span class="p">,</span>
+            <span class="n">num_layers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">bidirectional</span><span class="o">=</span><span class="n">bidirectional</span><span class="p">,</span>
+            <span class="n">batch_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">bidirectional</span><span class="p">:</span>
+            <span class="n">bidirectional</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bidirectional</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">projection_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">projection_dim</span> <span class="o">=</span> <span class="n">projection_dim</span> <span class="o">//</span> <span class="mi">2</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">r_trans</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rnn_units</span> <span class="o">*</span> <span class="n">bidirectional</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_dim</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">i_trans</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rnn_units</span> <span class="o">*</span> <span class="n">bidirectional</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_dim</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">projection_dim</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="NavieComplexLSTM.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.NavieComplexLSTM.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">real</span><span class="p">,</span> <span class="n">imag</span> <span class="o">=</span> <span class="n">inputs</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">real</span><span class="p">,</span> <span class="n">imag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">r2r_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">real_lstm</span><span class="p">(</span><span class="n">real</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">r2i_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag_lstm</span><span class="p">(</span><span class="n">real</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">i2r_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">real_lstm</span><span class="p">(</span><span class="n">imag</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">i2i_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag_lstm</span><span class="p">(</span><span class="n">imag</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">real_out</span> <span class="o">=</span> <span class="n">r2r_out</span> <span class="o">-</span> <span class="n">i2i_out</span>
+        <span class="n">imag_out</span> <span class="o">=</span> <span class="n">i2r_out</span> <span class="o">+</span> <span class="n">r2i_out</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">real_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_trans</span><span class="p">(</span><span class="n">real_out</span><span class="p">)</span>
+            <span class="n">imag_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">i_trans</span><span class="p">(</span><span class="n">imag_out</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">real_out</span><span class="p">,</span> <span class="n">imag_out</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="NavieComplexLSTM.flatten_parameters"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.NavieComplexLSTM.flatten_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">flatten_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imag_lstm</span><span class="o">.</span><span class="n">flatten_parameters</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">real_lstm</span><span class="o">.</span><span class="n">flatten_parameters</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="complex_cat"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.complex_cat">[docs]</a><span class="k">def</span> <span class="nf">complex_cat</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>
+
+    <span class="n">real</span><span class="p">,</span> <span class="n">imag</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+        <span class="n">r</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+        <span class="n">real</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        <span class="n">imag</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">real</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+    <span class="n">imag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">imag</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">real</span><span class="p">,</span> <span class="n">imag</span><span class="p">],</span> <span class="n">axis</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">outputs</span></div>
+
+
+<div class="viewcode-block" id="ComplexConv2d"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexConv2d">[docs]</a><span class="k">class</span> <span class="nc">ComplexConv2d</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">in_channels</span><span class="p">,</span>
+        <span class="n">out_channels</span><span class="p">,</span>
+        <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">stride</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">dilation</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">groups</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">causal</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">complex_axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;ComplexConv2d.</span>
+
+<span class="sd">        in_channels: real+imag</span>
+<span class="sd">        out_channels: real+imag</span>
+<span class="sd">        kernel_size : input [B,C,D,T] kernel size in [D,T]</span>
+<span class="sd">        padding : input [B,C,D,T] padding in [D,T]</span>
+<span class="sd">        causal: if causal, will padding time dimension&#39;s left side,</span>
+<span class="sd">                otherwise both</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ComplexConv2d</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_channels</span> <span class="o">=</span> <span class="n">in_channels</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span> <span class="o">=</span> <span class="n">out_channels</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span> <span class="o">=</span> <span class="n">kernel_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">stride</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">=</span> <span class="n">padding</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">causal</span> <span class="o">=</span> <span class="n">causal</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span> <span class="o">=</span> <span class="n">groups</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dilation</span> <span class="o">=</span> <span class="n">dilation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span> <span class="o">=</span> <span class="n">complex_axis</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">real_conv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">in_channels</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="n">dilation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dilation</span><span class="p">,</span>
+            <span class="n">groups</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imag_conv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">in_channels</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="n">dilation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dilation</span><span class="p">,</span>
+            <span class="n">groups</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">real_conv</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imag_conv</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">real_conv</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imag_conv</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ComplexConv2d.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexConv2d.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal</span><span class="p">:</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">inputs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">real</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">real_conv</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+            <span class="n">imag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag_conv</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+            <span class="n">real2real</span><span class="p">,</span> <span class="n">imag2real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">real</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span><span class="p">)</span>
+            <span class="n">real2imag</span><span class="p">,</span> <span class="n">imag2imag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">imag</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="n">real</span><span class="p">,</span> <span class="n">imag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span><span class="p">)</span>
+
+            <span class="n">real2real</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">real_conv</span><span class="p">(</span>
+                <span class="n">real</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">imag2imag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag_conv</span><span class="p">(</span>
+                <span class="n">imag</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">real2imag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag_conv</span><span class="p">(</span><span class="n">real</span><span class="p">)</span>
+            <span class="n">imag2real</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">real_conv</span><span class="p">(</span><span class="n">imag</span><span class="p">)</span>
+
+        <span class="n">real</span> <span class="o">=</span> <span class="n">real2real</span> <span class="o">-</span> <span class="n">imag2imag</span>
+        <span class="n">imag</span> <span class="o">=</span> <span class="n">real2imag</span> <span class="o">+</span> <span class="n">imag2real</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">real</span><span class="p">,</span> <span class="n">imag</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span></div></div>
+
+
+<div class="viewcode-block" id="ComplexConvTranspose2d"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexConvTranspose2d">[docs]</a><span class="k">class</span> <span class="nc">ComplexConvTranspose2d</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">in_channels</span><span class="p">,</span>
+        <span class="n">out_channels</span><span class="p">,</span>
+        <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">stride</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">output_padding</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">complex_axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">groups</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;ComplexConvTranspose2d.</span>
+
+<span class="sd">        in_channels: real+imag</span>
+<span class="sd">        out_channels: real+imag</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ComplexConvTranspose2d</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_channels</span> <span class="o">=</span> <span class="n">in_channels</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span> <span class="o">=</span> <span class="n">out_channels</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span> <span class="o">=</span> <span class="n">kernel_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">=</span> <span class="n">stride</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">=</span> <span class="n">padding</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_padding</span> <span class="o">=</span> <span class="n">output_padding</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span> <span class="o">=</span> <span class="n">groups</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">real_conv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">in_channels</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span>
+            <span class="n">output_padding</span><span class="o">=</span><span class="n">output_padding</span><span class="p">,</span>
+            <span class="n">groups</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imag_conv</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">in_channels</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span>
+            <span class="n">output_padding</span><span class="o">=</span><span class="n">output_padding</span><span class="p">,</span>
+            <span class="n">groups</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span> <span class="o">=</span> <span class="n">complex_axis</span>
+
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">real_conv</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imag_conv</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">real_conv</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">constant_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imag_conv</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ComplexConvTranspose2d.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexConvTranspose2d.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">real</span><span class="p">,</span> <span class="n">imag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">real</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">imag</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">real</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">real_conv</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+            <span class="n">imag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag_conv</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+            <span class="n">real2real</span><span class="p">,</span> <span class="n">imag2real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">real</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span><span class="p">)</span>
+            <span class="n">real2imag</span><span class="p">,</span> <span class="n">imag2imag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">imag</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="n">real</span><span class="p">,</span> <span class="n">imag</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span><span class="p">)</span>
+
+            <span class="n">real2real</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">real_conv</span><span class="p">(</span>
+                <span class="n">real</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">imag2imag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag_conv</span><span class="p">(</span>
+                <span class="n">imag</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">real2imag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imag_conv</span><span class="p">(</span><span class="n">real</span><span class="p">)</span>
+            <span class="n">imag2real</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">real_conv</span><span class="p">(</span><span class="n">imag</span><span class="p">)</span>
+
+        <span class="n">real</span> <span class="o">=</span> <span class="n">real2real</span> <span class="o">-</span> <span class="n">imag2imag</span>
+        <span class="n">imag</span> <span class="o">=</span> <span class="n">real2imag</span> <span class="o">+</span> <span class="n">imag2real</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">real</span><span class="p">,</span> <span class="n">imag</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span></div></div>
+
+
+<div class="viewcode-block" id="ComplexBatchNorm"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexBatchNorm">[docs]</a><span class="k">class</span> <span class="nc">ComplexBatchNorm</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">num_features</span><span class="p">,</span>
+        <span class="n">eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+        <span class="n">momentum</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">affine</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">track_running_stats</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">complex_axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ComplexBatchNorm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_features</span> <span class="o">=</span> <span class="n">num_features</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="n">eps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">momentum</span> <span class="o">=</span> <span class="n">momentum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">affine</span> <span class="o">=</span> <span class="n">affine</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">track_running_stats</span> <span class="o">=</span> <span class="n">track_running_stats</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span> <span class="o">=</span> <span class="n">complex_axis</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">affine</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Wrr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_features</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Wri</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_features</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Wii</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_features</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Br</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_features</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Bi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_features</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_parameter</span><span class="p">(</span><span class="s2">&quot;Wrr&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_parameter</span><span class="p">(</span><span class="s2">&quot;Wri&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_parameter</span><span class="p">(</span><span class="s2">&quot;Wii&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_parameter</span><span class="p">(</span><span class="s2">&quot;Br&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_parameter</span><span class="p">(</span><span class="s2">&quot;Bi&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_running_stats</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;RMr&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_features</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;RMi&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_features</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;RVrr&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_features</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;RVri&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_features</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;RVii&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_features</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span>
+                <span class="s2">&quot;num_batches_tracked&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_parameter</span><span class="p">(</span><span class="s2">&quot;RMr&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_parameter</span><span class="p">(</span><span class="s2">&quot;RMi&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_parameter</span><span class="p">(</span><span class="s2">&quot;RVrr&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_parameter</span><span class="p">(</span><span class="s2">&quot;RVri&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_parameter</span><span class="p">(</span><span class="s2">&quot;RVii&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">register_parameter</span><span class="p">(</span><span class="s2">&quot;num_batches_tracked&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_parameters</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ComplexBatchNorm.reset_running_stats"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexBatchNorm.reset_running_stats">[docs]</a>    <span class="k">def</span> <span class="nf">reset_running_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_running_stats</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">RMr</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">RMi</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">RVrr</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">RVri</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">RVii</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_batches_tracked</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ComplexBatchNorm.reset_parameters"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexBatchNorm.reset_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reset_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_running_stats</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">affine</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Br</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Bi</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Wrr</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Wri</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">uniform_</span><span class="p">(</span><span class="o">-</span><span class="mf">0.9</span><span class="p">,</span> <span class="o">+</span><span class="mf">0.9</span><span class="p">)</span>  <span class="c1"># W will be positive-definite</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Wii</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_check_input_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xr</span><span class="p">,</span> <span class="n">xi</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">xr</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">xi</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="n">xr</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_features</span>
+
+<div class="viewcode-block" id="ComplexBatchNorm.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexBatchNorm.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+
+        <span class="n">xr</span><span class="p">,</span> <span class="n">xi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span><span class="p">)</span>
+        <span class="n">exponential_average_factor</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_running_stats</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">num_batches_tracked</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">momentum</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># use cumulative moving average</span>
+                <span class="n">exponential_average_factor</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_batches_tracked</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># use exponential moving average</span>
+                <span class="n">exponential_average_factor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">momentum</span>
+
+        <span class="c1"># NOTE: The precise meaning of the &quot;training flag&quot; is:</span>
+        <span class="c1">#       True:  Normalize using batch   statistics, update running statistics</span>
+        <span class="c1">#              if they are being collected.</span>
+        <span class="c1">#       False: Normalize using running statistics, ignore batch   statistics.</span>
+        <span class="n">training</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_running_stats</span>
+        <span class="n">redux</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">xr</span><span class="o">.</span><span class="n">dim</span><span class="p">()))</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">vdim</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">xr</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span>
+        <span class="n">vdim</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Mean M Computation and Centering</span>
+        <span class="c1"># Includes running mean update if training and running.</span>
+        <span class="k">if</span> <span class="n">training</span><span class="p">:</span>
+            <span class="n">Mr</span><span class="p">,</span> <span class="n">Mi</span> <span class="o">=</span> <span class="n">xr</span><span class="p">,</span> <span class="n">xi</span>
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">redux</span><span class="p">:</span>
+                <span class="n">Mr</span> <span class="o">=</span> <span class="n">Mr</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">Mi</span> <span class="o">=</span> <span class="n">Mi</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_running_stats</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">RMr</span><span class="o">.</span><span class="n">lerp_</span><span class="p">(</span><span class="n">Mr</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">exponential_average_factor</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">RMi</span><span class="o">.</span><span class="n">lerp_</span><span class="p">(</span><span class="n">Mi</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">exponential_average_factor</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Mr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RMr</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">vdim</span><span class="p">)</span>
+            <span class="n">Mi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RMi</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">vdim</span><span class="p">)</span>
+        <span class="n">xr</span><span class="p">,</span> <span class="n">xi</span> <span class="o">=</span> <span class="n">xr</span> <span class="o">-</span> <span class="n">Mr</span><span class="p">,</span> <span class="n">xi</span> <span class="o">-</span> <span class="n">Mi</span>
+
+        <span class="c1"># Variance Matrix V Computation</span>
+        <span class="c1"># Includes epsilon numerical stabilizer/Tikhonov regularizer.</span>
+        <span class="c1"># Includes running variance update if training and running.</span>
+        <span class="k">if</span> <span class="n">training</span><span class="p">:</span>
+            <span class="n">Vrr</span> <span class="o">=</span> <span class="n">xr</span> <span class="o">*</span> <span class="n">xr</span>
+            <span class="n">Vri</span> <span class="o">=</span> <span class="n">xr</span> <span class="o">*</span> <span class="n">xi</span>
+            <span class="n">Vii</span> <span class="o">=</span> <span class="n">xi</span> <span class="o">*</span> <span class="n">xi</span>
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">redux</span><span class="p">:</span>
+                <span class="n">Vrr</span> <span class="o">=</span> <span class="n">Vrr</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">Vri</span> <span class="o">=</span> <span class="n">Vri</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">Vii</span> <span class="o">=</span> <span class="n">Vii</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_running_stats</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">RVrr</span><span class="o">.</span><span class="n">lerp_</span><span class="p">(</span><span class="n">Vrr</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">exponential_average_factor</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">RVri</span><span class="o">.</span><span class="n">lerp_</span><span class="p">(</span><span class="n">Vri</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">exponential_average_factor</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">RVii</span><span class="o">.</span><span class="n">lerp_</span><span class="p">(</span><span class="n">Vii</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">exponential_average_factor</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Vrr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RVrr</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">vdim</span><span class="p">)</span>
+            <span class="n">Vri</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RVri</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">vdim</span><span class="p">)</span>
+            <span class="n">Vii</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RVii</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">vdim</span><span class="p">)</span>
+        <span class="n">Vrr</span> <span class="o">=</span> <span class="n">Vrr</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span>
+        <span class="n">Vri</span> <span class="o">=</span> <span class="n">Vri</span>
+        <span class="n">Vii</span> <span class="o">=</span> <span class="n">Vii</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span>
+
+        <span class="c1"># Matrix Inverse Square Root U = V^-0.5</span>
+        <span class="c1"># sqrt of a 2x2 matrix,</span>
+        <span class="c1"># - https://en.wikipedia.org/wiki/Square_root_of_a_2_by_2_matrix</span>
+        <span class="n">tau</span> <span class="o">=</span> <span class="n">Vrr</span> <span class="o">+</span> <span class="n">Vii</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">addcmul</span><span class="p">(</span><span class="n">Vrr</span> <span class="o">*</span> <span class="n">Vii</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">Vri</span><span class="p">,</span> <span class="n">Vri</span><span class="p">)</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">delta</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="p">(</span><span class="n">tau</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">()</span>
+
+        <span class="c1"># matrix inverse, http://mathworld.wolfram.com/MatrixInverse.html</span>
+        <span class="n">rst</span> <span class="o">=</span> <span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">reciprocal</span><span class="p">()</span>
+        <span class="n">Urr</span> <span class="o">=</span> <span class="p">(</span><span class="n">s</span> <span class="o">+</span> <span class="n">Vii</span><span class="p">)</span> <span class="o">*</span> <span class="n">rst</span>
+        <span class="n">Uii</span> <span class="o">=</span> <span class="p">(</span><span class="n">s</span> <span class="o">+</span> <span class="n">Vrr</span><span class="p">)</span> <span class="o">*</span> <span class="n">rst</span>
+        <span class="n">Uri</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">Vri</span><span class="p">)</span> <span class="o">*</span> <span class="n">rst</span>
+
+        <span class="c1"># Optionally left-multiply U by affine weights W to produce combined</span>
+        <span class="c1"># weights Z, left-multiply the inputs by Z, then optionally bias them.</span>
+        <span class="c1">#</span>
+        <span class="c1"># y = Zx + B</span>
+        <span class="c1"># y = WUx + B</span>
+        <span class="c1"># y = [Wrr Wri][Urr Uri] [xr] + [Br]</span>
+        <span class="c1">#     [Wir Wii][Uir Uii] [xi]   [Bi]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">affine</span><span class="p">:</span>
+            <span class="n">Wrr</span><span class="p">,</span> <span class="n">Wri</span><span class="p">,</span> <span class="n">Wii</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">Wrr</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">vdim</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">Wri</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">vdim</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">Wii</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">vdim</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">Zrr</span> <span class="o">=</span> <span class="p">(</span><span class="n">Wrr</span> <span class="o">*</span> <span class="n">Urr</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">Wri</span> <span class="o">*</span> <span class="n">Uri</span><span class="p">)</span>
+            <span class="n">Zri</span> <span class="o">=</span> <span class="p">(</span><span class="n">Wrr</span> <span class="o">*</span> <span class="n">Uri</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">Wri</span> <span class="o">*</span> <span class="n">Uii</span><span class="p">)</span>
+            <span class="n">Zir</span> <span class="o">=</span> <span class="p">(</span><span class="n">Wri</span> <span class="o">*</span> <span class="n">Urr</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">Wii</span> <span class="o">*</span> <span class="n">Uri</span><span class="p">)</span>
+            <span class="n">Zii</span> <span class="o">=</span> <span class="p">(</span><span class="n">Wri</span> <span class="o">*</span> <span class="n">Uri</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">Wii</span> <span class="o">*</span> <span class="n">Uii</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">Zrr</span><span class="p">,</span> <span class="n">Zri</span><span class="p">,</span> <span class="n">Zir</span><span class="p">,</span> <span class="n">Zii</span> <span class="o">=</span> <span class="n">Urr</span><span class="p">,</span> <span class="n">Uri</span><span class="p">,</span> <span class="n">Uri</span><span class="p">,</span> <span class="n">Uii</span>
+
+        <span class="n">yr</span> <span class="o">=</span> <span class="p">(</span><span class="n">Zrr</span> <span class="o">*</span> <span class="n">xr</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">Zri</span> <span class="o">*</span> <span class="n">xi</span><span class="p">)</span>
+        <span class="n">yi</span> <span class="o">=</span> <span class="p">(</span><span class="n">Zir</span> <span class="o">*</span> <span class="n">xr</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">Zii</span> <span class="o">*</span> <span class="n">xi</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">affine</span><span class="p">:</span>
+            <span class="n">yr</span> <span class="o">=</span> <span class="n">yr</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">Br</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">vdim</span><span class="p">)</span>
+            <span class="n">yi</span> <span class="o">=</span> <span class="n">yi</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">Bi</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">vdim</span><span class="p">)</span>
+
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">yr</span><span class="p">,</span> <span class="n">yi</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">complex_axis</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">outputs</span></div>
+
+<div class="viewcode-block" id="ComplexBatchNorm.extra_repr"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexBatchNorm.extra_repr">[docs]</a>    <span class="k">def</span> <span class="nf">extra_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{num_features}</span><span class="s2">, eps=</span><span class="si">{eps}</span><span class="s2">, momentum=</span><span class="si">{momentum}</span><span class="s2">, affine=</span><span class="si">{affine}</span><span class="s2">, &quot;</span>
+            <span class="s2">&quot;track_running_stats=</span><span class="si">{track_running_stats}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

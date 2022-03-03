@@ -224,6 +224,17 @@ espnet2.enh.separator.asteroid_models
     :show-inheritance:
 
 
+.. _espnet2.enh.separator.dccrn_separator:
+
+espnet2.enh.separator.dccrn_separator
+-------------------------------------
+
+.. automodule:: espnet2.enh.separator.dccrn_separator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.separator.transformer_separator:
 
 espnet2.enh.separator.transformer_separator
@@ -384,6 +395,17 @@ espnet2.enh.layers.__init__
 ---------------------------
 
 .. automodule:: espnet2.enh.layers.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.complexnn:
+
+espnet2.enh.layers.complexnn
+----------------------------
+
+.. automodule:: espnet2.enh.layers.complexnn
     :members:
     :undoc-members:
     :show-inheritance:
