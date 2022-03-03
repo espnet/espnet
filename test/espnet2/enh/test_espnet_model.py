@@ -13,6 +13,7 @@ from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
+from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
@@ -23,43 +24,45 @@ is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
 stft_encoder = STFTEncoder(
-    n_fft=28,
+    n_fft=32,
     hop_length=16,
 )
 
 stft_encoder_bultin_complex = STFTEncoder(
-    n_fft=28,
+    n_fft=32,
     hop_length=16,
     use_builtin_complex=True,
 )
 
 stft_decoder = STFTDecoder(
-    n_fft=28,
+    n_fft=32,
     hop_length=16,
 )
 
 conv_encoder = ConvEncoder(
-    channel=15,
-    kernel_size=32,
-    stride=16,
+    channel=17,
+    kernel_size=36,
+    stride=18,
 )
 
 conv_decoder = ConvDecoder(
-    channel=15,
-    kernel_size=32,
-    stride=16,
+    channel=17,
+    kernel_size=36,
+    stride=18,
 )
 
 rnn_separator = RNNSeparator(
-    input_dim=15,
+    input_dim=17,
     layer=1,
     unit=10,
 )
 
-dprnn_separator = DPRNNSeparator(input_dim=15, layer=1, unit=10, segment_size=4)
+dc_crn_separator = DC_CRNSeparator(input_dim=17, input_channels=[2, 2, 4])
+
+dprnn_separator = DPRNNSeparator(input_dim=17, layer=1, unit=10, segment_size=4)
 
 tcn_separator = TCNSeparator(
-    input_dim=15,
+    input_dim=17,
     layer=2,
     stack=1,
     bottleneck_dim=10,
@@ -68,7 +71,7 @@ tcn_separator = TCNSeparator(
 )
 
 transformer_separator = TransformerSeparator(
-    input_dim=15,
+    input_dim=17,
     adim=8,
     aheads=2,
     layers=2,
@@ -93,11 +96,21 @@ fix_order_solver = FixedOrderSolver(criterion=tf_mse_loss)
     ],
 )
 @pytest.mark.parametrize(
-    "separator", [rnn_separator, dprnn_separator, tcn_separator, transformer_separator]
+    "separator",
+    [
+        rnn_separator,
+        dprnn_separator,
+        dc_crn_separator,
+        tcn_separator,
+        transformer_separator,
+    ],
 )
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper, fix_order_solver]])
 def test_single_channel_model(encoder, decoder, separator, training, loss_wrappers):
+    if not isinstance(encoder, STFTEncoder) and isinstance(separator, DC_CRNSeparator):
+        # skip because DC_CRNSeparator only works for complex spectrum features
+        return
     inputs = torch.randn(2, 300)
     ilens = torch.LongTensor([300, 200])
     speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]

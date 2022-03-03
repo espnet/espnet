@@ -8,7 +8,9 @@ from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 
 
 @pytest.mark.parametrize("criterion_class", [FrequencyDomainL1, FrequencyDomainMSE])
-@pytest.mark.parametrize("mask_type", ["IBM", "IRM", "IAM", "PSM", "NPSM", "PSM^2"])
+@pytest.mark.parametrize(
+    "mask_type", ["IBM", "IRM", "IAM", "PSM", "NPSM", "PSM^2", "CIRM"]
+)
 @pytest.mark.parametrize("compute_on_mask", [True, False])
 def test_tf_domain_criterion_forward(criterion_class, mask_type, compute_on_mask):
 
