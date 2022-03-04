@@ -18,6 +18,8 @@ else:
 EOF
 )
 
+pip install git+https://github.com/roshansh-cmu/longformer.git
 pip install datasets bert-score
+## NLG eval needs Java
+conda install openjdk
 pip install git+https://github.com/Maluuba/nlg-eval.git@master
-pip install git+https://github.com/allenai/longformer.git
