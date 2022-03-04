@@ -74,7 +74,7 @@ def process_data(target_dir, sentiment_file, text_file, wavscp_file, start_linen
                                 # normalize transcript
                                 transcript = normalize_transcript(transcript)
                                 utt2spk_list.append("{} {}".format(utt_id_tf, spk_id_tf))
-                                segments_list.append("{} {:.2f} {:.2f}".format(utt_id_tf, float(start), float(end)))
+                                segments_list.append("{} {} {:.2f} {:.2f}".format(utt_id_tf, spk_id_tf, float(start), float(end)))
                                 text_list.append("{} {} {}".format(utt_id_tf, label, transcript))
 
                                 if prev_spk_id_tf != spk_id_tf:
@@ -112,7 +112,7 @@ args = parser.parse_args()
 # Note that there is no "official" split provided. 
 # Using the proportion of train 90%, dev 5%, test 5% as in
 # https://arxiv.org/pdf/1911.09762.pdf
-print("start train file preparation")
+print("start train file preparation...this may take a while")
 process_data(args.train_dir, args.sentiment_file, args.text_file, args.wavscp_file, 0, 47056)
 print("start dev file preparation")
 process_data(args.dev_dir, args.sentiment_file, args.text_file, args.wavscp_file, 47056, 49673)

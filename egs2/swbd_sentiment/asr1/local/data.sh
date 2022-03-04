@@ -58,11 +58,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log " Concatenate Sentiment with Transcript"
-    # concat sentiment (Positive, Negative, Neutral). 
-    # Using annotation reconciliation strategy based on majority voting as in
+    log " Concatenate Sentiment with Transcription"
+    # Concatenate sentiment (Positive, Negative, Neutral) with transcription. 
+    # Using sentiment annotation reconciliation strategy based on majority voting as in
     # https://catalog.ldc.upenn.edu/docs/LDC2020T14/LREC_2020_Switchboard_Senti.pdf
-    # this stage may take a while
+    # This stage may take a while
     mkdir -p data/local/tmp/
     mv -f data/train/* data/local/tmp/.
     mkdir -p data/dev/
@@ -76,7 +76,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         --wavscp_file data/local/tmp/wav.scp
     for dir in train dev test; do
     utils/utt2spk_to_spk2utt.pl data/$dir/utt2spk > data/$dir/spk2utt
-    utils/validate_data_dir.sh data/$dir
+    utils/fix_data_dir.sh data/$dir
     done
 fi
 
