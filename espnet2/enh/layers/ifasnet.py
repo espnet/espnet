@@ -103,7 +103,7 @@ class FaSNet_base(nn.Module):
         super(FaSNet_base, self).__init__()
 
         # parameters
-        self.window = int(sr * win_len / 1000)
+        self.window = max(int(sr * win_len / 1000), 2)
         self.stride = self.window // 2
         self.context = context_len * 2 // win_len
 

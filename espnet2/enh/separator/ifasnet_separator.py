@@ -5,9 +5,7 @@ from typing import Tuple
 from typing import Union
 
 import torch
-from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.rnn.encoders import RNN
 from espnet2.enh.layers.ifasnet import iFaSNet
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
@@ -32,8 +30,16 @@ class IFaSNetSeparator(AbsSeparator):
         """iFaSNet Separator
 
         Args:
-            input_dim: required by AbsSeparator
-
+            input_dim: required by AbsSeparator. Not used in this model.
+            enc_dim: encoder dimension
+            feature_dim: feature dimension
+            hidden_dim: hidden dimension in DPRNN
+            layer: number of DPRNN blocks in iFaSNet
+            segment_size: dual-path segment size
+            num_spk: number of speakers
+            win_len: window length in millisecond
+            context_len: context length in millisecond
+            sr: samplerate of input audio
         """
         super().__init__()
 
@@ -51,7 +57,6 @@ class IFaSNetSeparator(AbsSeparator):
             sr=sr,
         )
 
-
     def forward(
         self, input: torch.Tensor, ilens: torch.Tensor
     ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
@@ -62,7 +67,7 @@ class IFaSNetSeparator(AbsSeparator):
             ilens (torch.Tensor): input lengths [Batch]
 
         Returns:
-            masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
+            separated (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. masks: OrderedDict[
                 'mask_spk1': torch.Tensor(Batch, Frames, Freq),
@@ -74,14 +79,14 @@ class IFaSNetSeparator(AbsSeparator):
 
         assert input.dim() == 3, "only support input shape: (Batch, samples, channels)"
         # currently only support for fixed-array
-        
+
         input = input.permute(0, 2, 1)
-        
-        none_mic = torch.zeros(1).type(input.type()) 
+
+        none_mic = torch.zeros(1).type(input.type())
 
         separated = self.ifasnet(input, none_mic)
 
-        separated = separated.unbind(dim=1)
+        separated = list(separated.unbind(dim=1))
 
         others = {}
 

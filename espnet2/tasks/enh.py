@@ -70,7 +70,7 @@ separator_choices = ClassChoices(
         conformer=ConformerSeparator,
         wpe_beamformer=NeuralBeamformer,
         asteroid=AsteroidModel_Converter,
-        ifasnet=IFaSNetSeparator
+        ifasnet=IFaSNetSeparator,
     ),
     type_check=AbsSeparator,
     default="rnn",
