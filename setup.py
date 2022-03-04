@@ -71,7 +71,7 @@ requirements = {
         "torch_optimizer",
         "fairscale",
         "transformers",
-        "gtn",
+        "gtn==0.0.0",
     ],
     "setup": [
         "numpy<=1.21.3",
