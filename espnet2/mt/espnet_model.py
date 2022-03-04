@@ -54,6 +54,8 @@ class ESPnetMTModel(AbsESPnetModel):
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
         extract_feats_in_collect_stats: bool = True,
+        share_decoder_input_output_embed: bool = False,
+        share_encoder_decoder_input_embed: bool = False,
     ):
         assert check_argument_types()
 
@@ -65,6 +67,29 @@ class ESPnetMTModel(AbsESPnetModel):
         self.src_vocab_size = src_vocab_size
         self.ignore_id = ignore_id
         self.token_list = token_list.copy()
+
+        if share_decoder_input_output_embed:
+            if decoder.output_layer is not None:
+                decoder.output_layer.weight = decoder.embed[0].weight
+                logging.info(
+                    f"Decoder input embedding and output linear layers are shared"
+                )
+            else:
+                logging.warning(
+                    f"Decoder has no output layer, so it cannot be shared with input embedding"
+                )
+
+        if share_encoder_decoder_input_embed:
+            if src_vocab_size == vocab_size:
+                frontend.embed[0].weight = decoder.embed[0].weight
+                logging.info(
+                    f"The encoder and decoder input embeddings are shared"
+                )
+            else:
+                logging.warning(
+                    f"The src vocab size ({src_vocab_size}) does not equal tgt vocab size ({vocab_size}), "
+                    f"so the encoder and decoder input embeddings cannot be shared"
+                )
 
         self.frontend = frontend
         self.preencoder = preencoder
