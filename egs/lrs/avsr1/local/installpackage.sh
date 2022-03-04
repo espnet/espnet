@@ -79,6 +79,4 @@ else
         esac      
     done
 fi
-
-
 exit 0

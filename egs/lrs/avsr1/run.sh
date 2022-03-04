@@ -1036,7 +1036,6 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				$expdiravfine dump/avtrain dump/avtraindecode $PRETRAINEDMODEL $lmexpdir \
  				$noisetype $dict $bpemodel $expdiravpretrain|| exit 1;
 
-    
 fi 
 
 exit 0
