@@ -20,6 +20,7 @@ from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
+from espnet2.enh.layers import ifasnet
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
@@ -34,6 +35,7 @@ from espnet2.enh.separator.asteroid_models import AsteroidModel_Converter
 from espnet2.enh.separator.conformer_separator import ConformerSeparator
 from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
+from espnet2.enh.separator.ifasnet_separator import IFaSNetSeparator
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.skim_separator import SkiMSeparator
@@ -68,6 +70,7 @@ separator_choices = ClassChoices(
         conformer=ConformerSeparator,
         wpe_beamformer=NeuralBeamformer,
         asteroid=AsteroidModel_Converter,
+        ifasnet=IFaSNetSeparator
     ),
     type_check=AbsSeparator,
     default="rnn",
