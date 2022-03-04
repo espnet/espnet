@@ -76,6 +76,7 @@ class ConformerEncoder(AbsEncoder):
         zero_triu (bool): Whether to zero the upper triangular part of attention matrix.
         cnn_module_kernel (int): Kernerl size of convolution module.
         padding_idx (int): Padding idx for input_layer=embed.
+
     """
 
     def __init__(
@@ -215,7 +216,7 @@ class ConformerEncoder(AbsEncoder):
             )
         else:
             raise NotImplementedError("Support only linear or conv1d.")
-        self.selfattention_layer_type = selfattention_layer_type
+
         if selfattention_layer_type == "selfattn":
             encoder_selfattn_layer = MultiHeadedAttention
             encoder_selfattn_layer_args = (
@@ -251,7 +252,7 @@ class ConformerEncoder(AbsEncoder):
 
         self.encoders = repeat(
             num_blocks,
-            EncoderLayer(
+            lambda lnum: EncoderLayer(
                 output_size,
                 encoder_selfattn_layer(*encoder_selfattn_layer_args),
                 positionwise_layer(*positionwise_layer_args),
@@ -294,8 +295,8 @@ class ConformerEncoder(AbsEncoder):
             torch.Tensor: Not to be used now.
 
         """
-
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+
         if (
             isinstance(self.embed, Conv2dSubsampling)
             or isinstance(self.embed, Conv2dSubsampling2)
@@ -314,7 +315,6 @@ class ConformerEncoder(AbsEncoder):
         else:
             xs_pad = self.embed(xs_pad)
 
-        xs_pad, masks = self.encoders(xs_pad, masks)
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
             xs_pad, masks = self.encoders(xs_pad, masks)

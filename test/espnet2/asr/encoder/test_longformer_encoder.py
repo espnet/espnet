@@ -60,26 +60,6 @@ def test_encoder_invalid_layer_type():
         )
 
 
-def test_encoder_pos_attn_types():
-    with pytest.raises(AssertionError):
-        LongformerEncoder(
-            20,
-            rel_pos_type="latest",
-            pos_enc_layer_type="legacy_rel_pos",
-        )
-    with pytest.raises(AssertionError):
-        LongformerEncoder(
-            20,
-            selfattention_layer_type="legacy_rel_sselfattn",
-        )
-    with pytest.raises(AssertionError):
-        LongformerEncoder(
-            20,
-            pos_enc_layer_type="legacy_rel_pos",
-            selfattention_layer_type="rel_sselfattn",
-        )
-
-
 def test_encoder_output_size():
     encoder = LongformerEncoder(20, output_size=256)
     assert encoder.output_size() == 256

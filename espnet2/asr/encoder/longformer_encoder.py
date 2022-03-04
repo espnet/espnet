@@ -113,13 +113,13 @@ class LongformerEncoder(ConformerEncoder):
         self._output_size = output_size
 
         activation = get_activation(activation_type)
-        assert pos_enc_layer_type == "abs_pos"
-        assert selfattention_layer_type == "lf_selfattn"
         if pos_enc_layer_type == "abs_pos":
             pos_enc_class = PositionalEncoding
         else:
             raise ValueError(
-                "incorrect or unknown pos_enc_layer: " + pos_enc_layer_type
+                "incorrect or unknown pos_enc_layer: "
+                + pos_enc_layer_type
+                + "Use abs_pos"
             )
 
         if input_layer == "linear":
@@ -164,8 +164,7 @@ class LongformerEncoder(ConformerEncoder):
             )
         elif isinstance(input_layer, torch.nn.Module):
             self.embed = torch.nn.Sequential(
-                input_layer,
-                pos_enc_class(output_size, positional_dropout_rate),
+                input_layer, pos_enc_class(output_size, positional_dropout_rate),
             )
         elif input_layer is None:
             self.embed = torch.nn.Sequential(
@@ -224,6 +223,7 @@ class LongformerEncoder(ConformerEncoder):
             raise ValueError(
                 "incompatible or unknown encoder_attn_layer: "
                 + selfattention_layer_type
+                + " Use lf_selfattn"
             )
 
         convolution_layer = ConvolutionModule
