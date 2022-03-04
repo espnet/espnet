@@ -16,14 +16,23 @@ from sklearn.metrics import f1_score
 def get_classification_result(hyp_file, ref_file):
     hyp_lines = [line for line in hyp_file]
     ref_lines = [line for line in ref_file]
-    hyp_list=[]
-    ref_list=[]
+    hyp_list = []
+    ref_list = []
     for line_count in range(len(hyp_lines)):
         hyp_list.append(hyp_lines[line_count].split(" ")[0])
         ref_list.append(ref_lines[line_count].split(" ")[0])
-    macro_f1 = f1_score(ref_list, hyp_list, average='macro', labels=["Positive", "Neutral", "Negative"])
-    weighted_f1 = f1_score(ref_list, hyp_list, average='weighted', labels=["Positive", "Neutral", "Negative"])
-    micro_f1 = f1_score(ref_list, hyp_list, average='micro', labels=["Positive", "Neutral", "Negative"])
+    macro_f1 = f1_score(
+        ref_list, hyp_list, average="macro", labels=["Positive", "Neutral", "Negative"]
+    )
+    weighted_f1 = f1_score(
+        ref_list,
+        hyp_list,
+        average="weighted",
+        labels=["Positive", "Neutral", "Negative"],
+    )
+    micro_f1 = f1_score(
+        ref_list, hyp_list, average="micro", labels=["Positive", "Neutral", "Negative"]
+    )
     return macro_f1, weighted_f1, micro_f1
 
 
@@ -58,9 +67,13 @@ valid_ref_file = open(
     os.path.join(exp_root, valid_inference_folder + "score_wer/ref.trn")
 )
 
-macro_f1, weighted_f1, micro_f1 = get_classification_result(valid_hyp_file, valid_ref_file)
+macro_f1, weighted_f1, micro_f1 = get_classification_result(
+    valid_hyp_file, valid_ref_file
+)
 print("Valid Intent Classification Result")
-print("macro f1:{}, weighted f1:{}, micro f1:{}".format(macro_f1, weighted_f1, micro_f1))
+print(
+    "macro f1:{}, weighted f1:{}, micro f1:{}".format(macro_f1, weighted_f1, micro_f1)
+)
 
 test_hyp_file = open(
     os.path.join(exp_root, test_inference_folder + "score_wer/hyp.trn")
@@ -69,9 +82,13 @@ test_ref_file = open(
     os.path.join(exp_root, test_inference_folder + "score_wer/ref.trn")
 )
 
-macro_f1, weighted_f1, micro_f1 = get_classification_result(test_hyp_file, test_ref_file)
+macro_f1, weighted_f1, micro_f1 = get_classification_result(
+    test_hyp_file, test_ref_file
+)
 print("Test Intent Classification Result")
-print("macro f1:{}, weighted f1:{}, micro f1:{}".format(macro_f1, weighted_f1, micro_f1))
+print(
+    "macro f1:{}, weighted f1:{}, micro f1:{}".format(macro_f1, weighted_f1, micro_f1)
+)
 
 if args.utterance_test_folder is not None:
     utt_test_inference_folder = args.utterance_test_folder
@@ -81,6 +98,12 @@ if args.utterance_test_folder is not None:
     utt_test_ref_file = open(
         os.path.join(exp_root, utt_test_inference_folder + "score_wer/ref.trn")
     )
-    macro_f1, weighted_f1, micro_f1 = get_classification_result(utt_test_hyp_file, utt_test_ref_file)
+    macro_f1, weighted_f1, micro_f1 = get_classification_result(
+        utt_test_hyp_file, utt_test_ref_file
+    )
     print("Unseen Utterance Test Intent Classification Result")
-    print("macro f1:{}, weighted f1:{}, micro f1:{}".format(macro_f1, weighted_f1, micro_f1))
+    print(
+        "macro f1:{}, weighted f1:{}, micro f1:{}".format(
+            macro_f1, weighted_f1, micro_f1
+        )
+    )
