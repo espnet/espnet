@@ -60,7 +60,7 @@ requirements = {
         "mir-eval>=0.6",
         "fastdtw",
         "nara_wpe>=0.0.5",
-        "sacrebleu>=1.5.1"
+        "sacrebleu>=1.5.1",
     ],
     # all: The modules should be optionally installled due to some reason.
     #      Please consider moving them to "install" occasionally
