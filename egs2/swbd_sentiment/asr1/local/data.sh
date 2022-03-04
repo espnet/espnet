@@ -22,9 +22,6 @@ log "$0 $*"
 . ./path.sh
 . ./cmd.sh
 
-# for local usage. Delete when making a PR.
-SWBD="swbd"
-
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
     exit 2
