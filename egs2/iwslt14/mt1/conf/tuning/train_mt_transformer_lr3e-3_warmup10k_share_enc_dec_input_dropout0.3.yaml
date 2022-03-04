@@ -1,7 +1,7 @@
 frontend: embed     # embedding + positional encoding
 frontend_conf:
     embed_dim: 512
-    positional_dropout_rate: 0.1
+    positional_dropout_rate: 0.3
 
 encoder: transformer
 encoder_conf:
@@ -10,8 +10,8 @@ encoder_conf:
     linear_units: 1024
     num_blocks: 6
     dropout_rate: 0.3
-    positional_dropout_rate: 0.1
-    attention_dropout_rate: 0.1
+    positional_dropout_rate: 0.3
+    attention_dropout_rate: 0.3
     input_layer: null
     normalize_before: true
 
@@ -21,19 +21,21 @@ decoder_conf:
     linear_units: 1024
     num_blocks: 6
     dropout_rate: 0.3
-    positional_dropout_rate: 0.1
-    self_attention_dropout_rate: 0.1
-    src_attention_dropout_rate: 0.1
+    positional_dropout_rate: 0.3
+    self_attention_dropout_rate: 0.3
+    src_attention_dropout_rate: 0.3
 
 model_conf:
     lsm_weight: 0.1
     length_normalized_loss: false
+    share_decoder_input_output_embed: false
+    share_encoder_decoder_input_embed: true
 
 num_att_plot: 1
-log_interval: 50
+log_interval: 100
 num_workers: 2
 batch_type: numel
-batch_bins: 40000000
+batch_bins: 400000000
 accum_grad: 1
 max_epoch: 200
 patience: none
@@ -46,7 +48,7 @@ keep_nbest_models: 10
 
 optim: adam
 optim_conf:
-    lr: 0.0005
+    lr: 0.003
     betas:
     - 0.9
     - 0.98
@@ -54,4 +56,4 @@ optim_conf:
     weight_decay: 0.0001
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 4000
+    warmup_steps: 10000
