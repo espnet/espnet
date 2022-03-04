@@ -68,16 +68,20 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     local/normalize_trans.sh ${sfisher_transcripts} ${callhome_transcripts}
 fi
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Combine train and dev set"
-    utils/combine_data.sh \
-        --extra-files "text.lc.en text.lc.es text.lc.rm.en text.lc.rm.es text.tc.en text.tc.es" \
-        data/train \
-        data/fisher_train data/callhome_train/ 
 
+    # skip the combination to have same condition to previous result
+    # utils/combine_data.sh \
+    #     --extra-files "text.lc.en text.lc.es text.lc.rm.en text.lc.rm.es text.tc.en text.tc.es" \
+    #     data/train \
+    #     data/fisher_train data/callhome_train/ 
+
+    cp -r data/fisher_train data/train
     cp -r data/fisher_dev data/dev
+    rm data/dev/text.*.en
     # Use 1 reference as dev set
-    ln -sf text.lc.en.0 data/dev/text.lc.en
-    ln -sf text.tc.en.0 data/dev/text.tc.en
-    ln -sf text.lc.rm.en.0 data/dev/text.lc.rm.en
+    cp data/fisher_dev/text.lc.en.0 data/dev/text.lc.en
+    cp data/fisher_dev/text.tc.en.0 data/dev/text.tc.en
+    cp data/fisher_dev/text.lc.rm.en.0 data/dev/text.lc.rm.en
 fi
