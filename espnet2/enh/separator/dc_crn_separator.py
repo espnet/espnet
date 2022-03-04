@@ -38,6 +38,7 @@ class DC_CRNSeparator(AbsSeparator):
         glstm_bidirectional: bool = False,
         glstm_rearrange: bool = False,
         mode: str = "masking",
+        ref_channel: int = 0,
     ):
         """Densely-Connected Convolutional Recurrent Network (DC-CRN) Separator
 
@@ -82,6 +83,7 @@ class DC_CRNSeparator(AbsSeparator):
             mode (str): one of ("mapping", "masking")
                 "mapping": complex spectral mapping
                 "masking": complex masking
+            ref_channel (int): index of the reference microphone
         """
         super().__init__()
 
@@ -89,6 +91,7 @@ class DC_CRNSeparator(AbsSeparator):
         self.mode = mode
         if mode not in ("mapping", "masking"):
             raise ValueError("mode=%s is not supported" % mode)
+        self.ref_channel = ref_channel
 
         self.dc_crn = DC_CRN(
             input_dim=input_dim,
