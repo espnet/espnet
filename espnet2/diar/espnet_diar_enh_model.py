@@ -269,11 +269,11 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
         # diar loss
         if self.attractor is None:
             loss_att = 0.0
-            loss_diar, perm_idx, perm_list, label_perm = self.pit_loss(
+            loss_diar, _, _, label_perm = self.pit_loss(
                 pred, spk_labels, encoder_out_lens
             )
         else:
-            loss_diar, perm_idx, perm_list, label_perm = self.pit_loss(
+            loss_diar, _, _, label_perm = self.pit_loss(
                 pred, spk_labels, encoder_out_lens
             )
             loss_att = self.attractor_loss(att_prob, spk_labels)
