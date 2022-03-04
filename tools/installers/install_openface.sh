@@ -40,6 +40,8 @@ mkdir -p build
 cd build
 cmake -D CMAKE_CXX_COMPILER=g++-8 -D CMAKE_C_COMPILER=gcc-8 -D CMAKE_BUILD_TYPE=RELEASE ..
 make
+./download_models.sh
+cp lib/local/LandmarkDetector/model/patch_experts/cen_* build/bin/model/patch_experts/
 cd ../..
 echo "OpenFace successfully installed."
 
