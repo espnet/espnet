@@ -173,18 +173,18 @@ class DPRNN(nn.Module):
 
 # dual-path RNN with transform-average-concatenate (TAC)
 class DPRNN_TAC(nn.Module):
-    """
-    Deep duaL-path RNN with transform-average-concatenate (TAC) applied to each layer/block.
+    """Deep duaL-path RNN with TAC applied to each layer/block.
 
     args:
         rnn_type: string, select from 'RNN', 'LSTM' and 'GRU'.
-        input_size: int, dimension of the input feature. The input should have shape
-                    (batch, seq_len, input_size).
+        input_size: int, dimension of the input feature. The input should
+                    have shape (batch, seq_len, input_size).
         hidden_size: int, dimension of the hidden state.
         output_size: int, dimension of the output size.
         dropout: float, dropout ratio. Default is 0.
         num_layers: int, number of stacked RNN layers. Default is 1.
-        bidirectional: bool, whether the RNN layers are bidirectional. Default is False.
+        bidirectional: bool, whether the RNN layers are bidirectional.
+                    Default is False.
     """
 
     def __init__(
@@ -240,7 +240,10 @@ class DPRNN_TAC(nn.Module):
             )
 
             self.row_norm.append(nn.GroupNorm(1, input_size, eps=1e-8))
-            # default is to use noncausal LayerNorm for inter-chunk RNN and TAC modules. For causal setting change them to causal normalization techniques accordingly.
+            # default is to use noncausal LayerNorm for
+            # inter-chunk RNN and TAC modules.
+            # For causal setting change them to causal normalization
+            # techniques accordingly.
             self.col_norm.append(nn.GroupNorm(1, input_size, eps=1e-8))
             self.ch_norm.append(nn.GroupNorm(1, input_size, eps=1e-8))
 
@@ -256,7 +259,7 @@ class DPRNN_TAC(nn.Module):
         output = input
         for i in range(len(self.row_rnn)):
             # intra-segment RNN
-            output = output.view(batch_size * ch, N, dim1, dim2)  # B*ch, N, dim1, dim2
+            output = output.view(batch_size * ch, N, dim1, dim2)
             row_input = (
                 output.permute(0, 3, 2, 1)
                 .contiguous()

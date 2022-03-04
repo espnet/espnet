@@ -7,7 +7,6 @@
 # Licensed under CC BY-NC-SA 3.0 US.
 #
 
-from pyexpat import model
 import torch
 import torch.nn as nn
 
@@ -126,9 +125,8 @@ class FaSNet_base(nn.Module):
         self.enc_LN = nn.GroupNorm(1, self.enc_dim, eps=self.eps)
 
     def pad_input(self, input, window, stride):
-        """
-        Zero-padding input according to window/stride size.
-        """
+        """Zero-padding input according to window/stride size."""
+
         batch_size, nmic, nsample = input.shape
 
         # pad the signals at the end for matching the window/stride size
@@ -142,12 +140,12 @@ class FaSNet_base(nn.Module):
         return input, rest
 
     def signal_context(self, x, context):
-        """
+        """signal context function
+
         Segmenting the signal into chunks with specific context.
         input:
             x: size (B, dim, nframe)
             context: int
-
         """
 
         batch_size, dim, nframe = x.shape
@@ -172,9 +170,11 @@ class FaSNet_base(nn.Module):
         return all_context
 
     def forward(self, input, num_mic):
-        """
+        """abstract forward function
+
         input: shape (batch, max_num_ch, T)
-        num_mic: shape (batch, ), the number of channels for each input. Zero for fixed geometry configuration.
+        num_mic: shape (batch, ), the number of channels for each input.
+                 Zero for fixed geometry configuration.
         """
         pass
 

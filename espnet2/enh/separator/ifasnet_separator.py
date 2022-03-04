@@ -2,7 +2,6 @@ from collections import OrderedDict
 from distutils.version import LooseVersion
 from typing import List
 from typing import Tuple
-from typing import Union
 
 import torch
 
