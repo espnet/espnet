@@ -16,6 +16,7 @@
 - ASR config: [conf/tuning/train_asr_conformer.yaml](conf/tuning/train_asr_conformer.yaml)
 - token_type: word
 - labels: Positive, Neutral, Negative
+- Pre-trained Model: https://huggingface.co/espnet/YushiUeda_swbd_sentiment_asr_train_asr_conformer
 
 |dataset|Snt|Intent Classification Macro F1 (%)| Weighted F1 (%)| Micro F1 (%)|
 |---|---|---|---|---|
@@ -26,6 +27,7 @@
 - ASR config: [conf/tuning/train_asr_conformer_wav2vec2.yaml](conf/tuning/train_asr_conformer_wav2vec2.yaml)
 - token_type: word
 - labels: Positive, Neutral, Negative
+- Pre-trained Model: https://huggingface.co/espnet/YushiUeda_swbd_sentiment_asr_train_asr_conformer_wav2vec2
 
 |dataset|Snt|Intent Classification Macro F1 (%)| Weighted F1 (%)| Micro F1 (%)|
 |---|---|---|---|---|
