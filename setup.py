@@ -72,9 +72,6 @@ requirements = {
         "fairscale",
         "transformers",
         "gtn==0.0.0",
-        "longformer",
-        "nlg-eval",
-        "datasets"
     ],
     "setup": [
         "numpy<=1.21.3",
