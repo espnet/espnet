@@ -72,7 +72,7 @@ class LongformerEncoder(ConformerEncoder):
         attention_dilation(list): Layer-wise attention dilation sizes
             for longformer self-attn
         attention_mode(str): Implementation for longformer self-attn.
-            Default="tvm"
+            Default="sliding_chunks"
             Choose 'n2', 'tvm' or 'sliding_chunks'. More details in
             https://github.com/allenai/longformer
 
@@ -106,7 +106,7 @@ class LongformerEncoder(ConformerEncoder):
         interctc_use_conditioning: bool = False,
         attention_windows: list = None,
         attention_dilation: list = None,
-        attention_mode: str = "tvm",
+        attention_mode: str = "sliding_chunks",
     ):
         assert check_argument_types()
         super().__init__(input_size)
@@ -120,6 +120,13 @@ class LongformerEncoder(ConformerEncoder):
                 "incorrect or unknown pos_enc_layer: "
                 + pos_enc_layer_type
                 + "Use abs_pos"
+            )
+
+        if attention_mode != "tvm" and max(attention_dilation) != 1:
+            raise ValueError(
+                "incorrect attention mode for dilation: "
+                + attention_mode
+                + "Use attention_mode=tvm with Cuda Kernel"
             )
 
         if input_layer == "linear":

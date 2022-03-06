@@ -38,7 +38,7 @@ def test_encoder_forward_backward(
         positionwise_layer_type=positionwise_layer_type,
         attention_windows=[10, 10],
         attention_dilation=[1, 1],
-        attention_mode="tvm",
+        attention_mode="sliding_chunks",
     )
     if input_layer == "embed":
         x = torch.randint(0, 10, [2, 32])
