@@ -23,10 +23,10 @@ def majorityvote(line):
 
 def normalize_transcript(transcript):
     # remove punctuation except apostrophes
-    transcript = re.sub("(\.|\,|\?|\!|\-|\:|\;)", " \\1 ", transcript)
-    transcript = re.sub("\.|\,|\?|\!|\-|\:|\;", "", transcript)
+    transcript = re.sub(r"(\.|\,|\?|\!|\-|\:|\;)", " \\1 ", transcript)
+    transcript = re.sub(r"\.|\,|\?|\!|\-|\:|\;", "", transcript)
     # remove tag (e.g. [LAUGHTER])
-    transcript = re.sub("\[.+\]", "", transcript)
+    transcript = re.sub(r"\[.+\]", "", transcript)
     # Detect valid apostrophe cases and split those into two words
     transcript = re.sub("([a-z])'([a-z])", "\\1 '\\2", transcript)
     # Clean up special cases of standalone apostrophes
@@ -58,7 +58,8 @@ def process_data(
         prev_linenum_wf = 0
         for linenum, line_sf in enumerate(sf):
             if linenum >= start_linenum and linenum < end_linenum:
-                # "sw02005_0[tab]0.0[tab]11.287375[tab]Neutral-{Questioning}#Neutral-{No emotion}#Neutral-{No emotion}"
+                # "sw02005_0[tab]0.0[tab]11.287375[tab]
+                # Neutral-{Questioning}#Neutral-{No emotion}#Neutral-{No emotion}"
                 utt_id_sf, start, end, sentiment = line_sf.strip().split("\t")
                 # "sw02005_0" -> "sw02005"
                 reco_id_sf = utt_id_sf.split("_")[0]
@@ -67,7 +68,8 @@ def process_data(
                     tf.seek(0)
                     for linenum_tf, line_tf in enumerate(tf):
                         if linenum_tf >= prev_linenum_tf:
-                            # "sw02001-A_018732-018950 oh i see uh-huh" -> "sw02001-A_018732-018950" "oh i see uh-huh"
+                            # "sw02001-A_018732-018950 oh i see uh-huh"
+                            # -> "sw02001-A_018732-018950" "oh i see uh-huh"
                             utt_id_tf, transcript = line_tf.strip("\n").split(" ", 1)
                             # "sw02001-A_018732-018950" -> "sw02001-A" "018732-018950"
                             spk_id_tf, time_id = utt_id_tf.split("_")
@@ -75,7 +77,8 @@ def process_data(
                             reco_id_tf = spk_id_tf.split("-")[0]
                             # "018732-018950" -> "018732" "018950"
                             start_time_id, end_time_id = time_id.split("-")
-                            # in case start and end time slightly differ in text and sentiment annotation
+                            # in case start and end time slightly differ
+                            # in text and sentiment annotation
                             eps = 0.05
                             if (
                                 reco_id_tf == reco_id_sf
@@ -84,7 +87,6 @@ def process_data(
                                 and end_time_id >= float2str(float(end) - eps)
                                 and end_time_id <= float2str(float(end) + eps)
                             ):
-                                # print("{} {} {} {}".format(utt_id_tf, reco_id_sf, start_time_id, end_time_id))
                                 # normalize transcript
                                 transcript = normalize_transcript(transcript)
                                 utt2spk_list.append(

@@ -52,6 +52,7 @@ frontend: s3prl
 frontend_conf:
   frontend_conf:
     upstream: wav2vec2_large_ll60k # Note: If the upstream is changed, please change the input_size in the preencoder.
+    # If using hubert, change the above line to "upstream: hubert_large_ll60k"
   download_dir: ./hub
   multilayer_feature: True
 
