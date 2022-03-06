@@ -413,7 +413,7 @@ class ESPnetSTModel(AbsESPnetModel):
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
-        decoder_out, _ = self.decoder(
+        decoder_out, _ = self.extra_asr_decoder(
             encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
         )
 
