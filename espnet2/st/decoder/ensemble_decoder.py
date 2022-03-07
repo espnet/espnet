@@ -2,22 +2,22 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Decoder definition."""
-import logging
 from typing import Any
 from typing import List
-from typing import Sequence
 from typing import Tuple
 from typing import Union
 
 import torch
 from typeguard import check_argument_types
 
+from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 
 
 class EnsembleDecoder(AbsDecoder, BatchScorerInterface):
     """Base class of Transfomer decoder module.
+
     Args:
         decoders: ensemble decoders
     """
@@ -39,6 +39,7 @@ class EnsembleDecoder(AbsDecoder, BatchScorerInterface):
 
     def init_state(self, x: torch.Tensor) -> Any:
         """Get an initial state for decoding (optional).
+
         Args:
             x (torch.Tensor): The encoded feature tensor
         Returns: initial state
@@ -47,6 +48,7 @@ class EnsembleDecoder(AbsDecoder, BatchScorerInterface):
 
     def batch_init_state(self, x: torch.Tensor) -> Any:
         """Get an initial state for decoding (optional).
+
         Args:
             x (torch.Tensor): The encoded feature tensor
         Returns: initial state
@@ -87,6 +89,7 @@ class EnsembleDecoder(AbsDecoder, BatchScorerInterface):
         xs: Union[torch.Tensor, List[torch.Tensor]],
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch.
+
         Args:
             ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
             states (List[Any]): Scorer states for prefix tokens.
@@ -102,7 +105,7 @@ class EnsembleDecoder(AbsDecoder, BatchScorerInterface):
 
         all_state_list = [[]] * n_batch
         logps = []
-        for i in range(len(self.decoders)):
+        for i in range(n_decoders):
             decoder_batch = [states[h][i] for h in range(n_batch)]
             logp, state_list = self.decoders[i].batch_score(ys, decoder_batch, xs[i])
             for j in range(n_batch):

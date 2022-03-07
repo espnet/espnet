@@ -589,7 +589,8 @@ class STTask(AbsTask):
         model_file: Union[List[Path], List[str]] = None,
         device: str = "cpu",
     ) -> Tuple[AbsESPnetModel, argparse.Namespace]:
-        """Build model from the files.
+        """Build model combination from the files.
+
         This method is used for inference with system combination.
         Args:
             config_file: The list of yaml file saved when training.
