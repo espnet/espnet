@@ -51,7 +51,7 @@ def test_encoder_forward_backward(
 
 def test_encoder_invalid_layer_type():
     with pytest.raises(ValueError):
-        LongformerEncoder(20, rel_pos_type="dummy")
+        LongformerEncoder(20, pos_enc_layer_type="abc_pos")
     with pytest.raises(ValueError):
         LongformerEncoder(20, pos_enc_layer_type="dummy")
     with pytest.raises(ValueError):

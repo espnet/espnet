@@ -113,6 +113,7 @@ class LongformerEncoder(ConformerEncoder):
         self._output_size = output_size
 
         activation = get_activation(activation_type)
+
         if pos_enc_layer_type == "abs_pos":
             pos_enc_class = PositionalEncoding
         else:
@@ -124,18 +125,18 @@ class LongformerEncoder(ConformerEncoder):
 
         if len(attention_dilation) != num_blocks:
             raise ValueError(
-                "incorrect attention_dilation parameter "
-                + attention_dilation
+                "incorrect attention_dilation parameter of length"
+                + str(len(attention_dilation))
                 + " does not match num_blocks"
-                + num_blocks
+                + str(num_blocks)
             )
 
         if len(attention_windows) != num_blocks:
             raise ValueError(
-                "incorrect attention_windows parameter "
-                + attention_windows
+                "incorrect attention_windows parameter of length"
+                + str(len(attention_windows))
                 + " does not match num_blocks"
-                + num_blocks
+                + str(num_blocks)
             )
 
         if attention_mode != "tvm" and max(attention_dilation) != 1:
@@ -196,6 +197,7 @@ class LongformerEncoder(ConformerEncoder):
             )
         else:
             raise ValueError("unknown input_layer: " + input_layer)
+
         self.normalize_before = normalize_before
         if positionwise_layer_type == "linear":
             positionwise_layer = PositionwiseFeedForward
