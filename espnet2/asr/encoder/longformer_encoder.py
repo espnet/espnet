@@ -104,8 +104,8 @@ class LongformerEncoder(ConformerEncoder):
         padding_idx: int = -1,
         interctc_layer_idx: List[int] = [],
         interctc_use_conditioning: bool = False,
-        attention_windows: list = None,
-        attention_dilation: list = None,
+        attention_windows: list = [100,100,100,100,100,100],
+        attention_dilation: list = [1,1,1,1,1,1],
         attention_mode: str = "sliding_chunks",
     ):
         assert check_argument_types()
@@ -120,6 +120,22 @@ class LongformerEncoder(ConformerEncoder):
                 "incorrect or unknown pos_enc_layer: "
                 + pos_enc_layer_type
                 + "Use abs_pos"
+            )
+
+        if len(attention_dilation) != num_blocks:
+            raise ValueError(
+                "incorrect attention_dilation parameter "
+                + attention_dilation
+                + " does not match num_blocks"
+                + num_blocks
+            )
+
+        if len(attention_windows) != num_blocks:
+            raise ValueError(
+                "incorrect attention_windows parameter "
+                + attention_windows
+                + " does not match num_blocks"
+                + num_blocks
             )
 
         if attention_mode != "tvm" and max(attention_dilation) != 1:

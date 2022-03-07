@@ -59,6 +59,11 @@ def test_encoder_invalid_layer_type():
             20, pos_enc_layer_type="abc_pos", selfattention_layer_type="dummy"
         )
 
+def test_encoder_invalid_windows_parameter():
+    with pytest.raises(ValueError):
+        LongformerEncoder(20, attention_windows=[1,1],num_blocks=4)
+    with pytest.raises(ValueError):
+        LongformerEncoder(20, attention_dilation=[1,1],num_blocks=4)
 
 def test_encoder_output_size():
     encoder = LongformerEncoder(20, output_size=256)
