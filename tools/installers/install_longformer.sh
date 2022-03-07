@@ -37,12 +37,11 @@ if ! "${python_36_plus}"; then
 else
 
     if $(pt_plus 1.6.1); then
-        pip install fairscale
-    else
-        echo "[WARNING] Longformer requires pytorch>=1.6.1"
         pip install git+https://github.com/roshansh-cmu/longformer.git
         pip install datasets bert-score
-	pip install git+https://github.com/Maluuba/nlg-eval.git@master
+	pip install git+https://github.com/Maluuba/nlg-eval.git@master 
+    else
+        echo "[WARNING] Longformer requires pytorch>=1.6.1"
     fi
 
 fi
