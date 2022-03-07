@@ -743,6 +743,16 @@ if ! "${skip_data_prep}"; then
     fi
 
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+        # Combine source and target texts when using joint tokenization
+        if "${token_joint}"; then
+            log "Merge src and target data if joint BPE"
+
+            cat $tgt_bpe_train_text > ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+            [ ! -z "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >> ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+            # Set the new text as the target text
+            tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
+        fi
+
         # First generate tgt lang
         if [ "${tgt_token_type}" = bpe ]; then
             log "Stage 5a: Generate token_list from ${tgt_bpe_train_text} using BPE for tgt_lang"
