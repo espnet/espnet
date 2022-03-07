@@ -72,7 +72,7 @@ init_param=
 
 # Enhancement related
 inference_args="--normalize_output_wav true"
-inference_model=valid.si_snr.ave.pth
+inference_model=valid.loss.ave.pth
 download_model=
 
 # Evaluation related

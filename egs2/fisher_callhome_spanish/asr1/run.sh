@@ -17,6 +17,7 @@ nbpe=1000
 
 ./asr.sh \
     --ngpu 1 \
+    --fs 8k \
     --audio_format "flac.ark" \
     --local_data_opts "--stage 0" \
     --use_lm false \
@@ -30,7 +31,5 @@ nbpe=1000
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
     --test_sets "${test_set}" \
-    --gpu_inference true \
-    --inference_nj 10 \
     --bpe_train_text "data/${train_set}/text" \
     --lm_train_text "data/${train_set}/text" "$@"

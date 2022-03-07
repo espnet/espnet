@@ -298,8 +298,12 @@ utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for bpe training if not specified.
 if "${token_joint}"; then
     # if token_joint, the bpe training will use both src_lang and tgt_lang to train a single bpe model
-    # TODO (prepare data as text.${src_lang}_${tgt_lang})
-    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
+    [ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
+    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
+
+    # Prepare data as text.${src_lang}_${tgt_lang})
+    cat $src_bpe_train_text $tgt_bpe_train_text > ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+    tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
 else
     [ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
     [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
