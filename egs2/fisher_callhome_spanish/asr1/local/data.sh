@@ -65,13 +65,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # concatenate multiple utterances
     local/normalize_trans.sh ${sfisher_transcripts} ${callhome_transcripts}
 
-    utils/combine_data.sh \
-        --extra-files "text.lc.es text.lc.rm.es text.tc.es" \
-        data/train \
-        data/fisher_train data/callhome_train/ 
+    # skip combination to have same condition of previous result
+    # utils/combine_data.sh \
+    #     --extra-files "text.lc.es text.lc.rm.es text.tc.es" \
+    #     data/train \
+    #     data/fisher_train data/callhome_train/ 
 
+    cp -r data/fisher_train data/train
     cp -r data/fisher_dev data/dev
-
 fi
 
 

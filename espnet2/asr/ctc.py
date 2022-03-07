@@ -10,7 +10,7 @@ class CTC(torch.nn.Module):
 
     Args:
         odim: dimension of outputs
-        encoder_output_sizse: number of encoder projection units
+        encoder_output_size: number of encoder projection units
         dropout_rate: dropout rate (0.0 ~ 1.0)
         ctc_type: builtin or warpctc
         reduce: reduce the CTC loss into a scalar
@@ -19,7 +19,7 @@ class CTC(torch.nn.Module):
     def __init__(
         self,
         odim: int,
-        encoder_output_sizse: int,
+        encoder_output_size: int,
         dropout_rate: float = 0.0,
         ctc_type: str = "builtin",
         reduce: bool = True,
@@ -27,7 +27,7 @@ class CTC(torch.nn.Module):
     ):
         assert check_argument_types()
         super().__init__()
-        eprojs = encoder_output_sizse
+        eprojs = encoder_output_size
         self.dropout_rate = dropout_rate
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
         self.ctc_type = ctc_type
@@ -155,6 +155,16 @@ class CTC(torch.nn.Module):
         )
 
         return loss
+
+    def softmax(self, hs_pad):
+        """softmax of frame activations
+
+        Args:
+            Tensor hs_pad: 3d tensor (B, Tmax, eprojs)
+        Returns:
+            torch.Tensor: softmax applied 3d tensor (B, Tmax, odim)
+        """
+        return F.softmax(self.ctc_lo(hs_pad), dim=2)
 
     def log_softmax(self, hs_pad):
         """log_softmax of frame activations
