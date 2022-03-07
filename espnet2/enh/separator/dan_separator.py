@@ -95,7 +95,6 @@ class DANSeparator(AbsSeparator):
                 'mask_spkn': torch.Tensor(Batch, Frames, Freq),
             ]
         """
-
         # if complex spectrum,
         if isinstance(input, ComplexTensor):
             feature = abs(input)
@@ -122,7 +121,7 @@ class DANSeparator(AbsSeparator):
                 Y = reduce(lambda x, y: x * y, flags)
                 Y = Y.int() * i
                 Y_t += Y
-            Y_t = Y_t.contiguous().view(-1,).long()
+            Y_t = Y_t.contiguous().flatten().long()
             Y = Fun.one_hot(Y_t, num_classes=self._num_spk)
             Y = Y.contiguous().view(B, -1, self._num_spk).float()
 

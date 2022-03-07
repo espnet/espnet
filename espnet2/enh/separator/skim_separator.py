@@ -82,8 +82,8 @@ class SkiMSeparator(AbsSeparator):
         }[nonlinear]
 
     def forward(
-        self, 
-        input: Union[torch.Tensor, ComplexTensor], 
+        self,
+        input: Union[torch.Tensor, ComplexTensor],
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:

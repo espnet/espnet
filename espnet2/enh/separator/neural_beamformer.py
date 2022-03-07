@@ -140,7 +140,7 @@ class NeuralBeamformer(AbsSeparator):
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data included in model
                 NOTE: not used in this model
-   
+
         Returns:
             enhanced speech (single-channel): List[torch.complex64/ComplexTensor]
             output lengths

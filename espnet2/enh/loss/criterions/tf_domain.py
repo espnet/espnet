@@ -238,7 +238,7 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
                 mask = reduce(lambda x, y: x * y, flags)
                 mask = mask.int() * i
                 r += mask
-            r = r.contiguous().view(-1,).long()
+            r = r.contiguous().flatten().long()
             re = F.one_hot(r, num_classes=num_spk)
             re = re.contiguous().view(B, -1, num_spk)
         elif self._loss_type == "mdc":
@@ -255,7 +255,11 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
                 )
 
             re = torch.zeros(
-                ref[0].shape[0], ref[0].shape[1], ref[0].shape[2], num_spk, device=inf.device
+                ref[0].shape[0],
+                ref[0].shape[1],
+                ref[0].shape[2],
+                num_spk,
+                device=inf.device,
             )
             for i in range(num_spk):
                 flags = [abs_ref[i] >= n for n in abs_ref]
@@ -270,7 +274,11 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
             )
 
         V2 = torch.matmul(torch.transpose(inf, 2, 1), inf).pow(2).sum(dim=(1, 2))
-        Y2 = torch.matmul(torch.transpose(re, 2, 1).float(), re.float()).pow(2).sum(dim=(1, 2))
+        Y2 = (
+            torch.matmul(torch.transpose(re, 2, 1).float(), re.float())
+            .pow(2)
+            .sum(dim=(1, 2))
+        )
         VY = torch.matmul(torch.transpose(inf, 2, 1), re.float()).pow(2).sum(dim=(1, 2))
 
         return V2 + Y2 - 2 * VY

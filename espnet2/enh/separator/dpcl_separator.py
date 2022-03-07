@@ -93,7 +93,6 @@ class DPCLSeparator(AbsSeparator):
                 'tf_embedding': learned embedding of all T-F bins (B, T * F, D),
             ]
         """
-
         # if complex spectrum,
         if isinstance(input, ComplexTensor):
             feature = abs(input)
