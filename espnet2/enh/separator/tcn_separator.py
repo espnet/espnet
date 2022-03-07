@@ -78,6 +78,7 @@ class TCNSeparator(AbsSeparator):
             input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data included in model
+                NOTE: not used in this model
 
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]

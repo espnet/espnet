@@ -82,8 +82,8 @@ class DANSeparator(AbsSeparator):
         Args:
             input (torch.Tensor or ComplexTensor): Encoded feature [B, T, F]
             ilens (torch.Tensor): input lengths [Batch]
-            additional (Dict or None): other data included in model, 
-            e.g. additional["feature_ref"]: torch.Tensor(B, T, F)
+            additional (Dict or None): other data included in model
+                e.g. "feature_ref": list of reference spectra List[(B, T, F)]
 
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]

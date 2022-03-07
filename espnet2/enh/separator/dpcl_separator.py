@@ -84,12 +84,13 @@ class DPCLSeparator(AbsSeparator):
             input (torch.Tensor or ComplexTensor): Encoded feature [B, T, F]
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data included in model
+                NOTE: not used in this model
 
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
             ilens (torch.Tensor): (B,)
             others predicted data, e.g. tf_embedding: OrderedDict[
-                'tf_embedding': torch.Tensor(Batch, T * F, D),
+                'tf_embedding': learned embedding of all T-F bins (B, T * F, D),
             ]
         """
 
@@ -112,8 +113,8 @@ class DPCLSeparator(AbsSeparator):
         else:
             # K-means for batch
             centers = tf_embedding[:, : self._num_spk, :].detach()
-            dist = torch.empty(B, T * F, self._num_spk).to(tf_embedding.device)
-            last_label = torch.zeros(B, T * F).to(tf_embedding.device)
+            dist = torch.empty(B, T * F, self._num_spk, device=tf_embedding.device)
+            last_label = torch.zeros(B, T * F, device=tf_embedding.device)
             while True:
                 for i in range(self._num_spk):
                     dist[:, :, i] = torch.sum(

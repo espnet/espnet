@@ -14,6 +14,8 @@ class DPCLSolver(AbsLossWrapper):
         Args:
             ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk
             inf (List[torch.Tensor]): [(batch, ...), ...]
+            others (List): other data included in this solver
+                e.g. "tf_embedding" learned embedding of all T-F bins (B, T * F, D)
 
         Returns:
             loss: (torch.Tensor): minimum loss with the best permutation
