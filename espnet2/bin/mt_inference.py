@@ -213,7 +213,11 @@ class Text2Text:
             assert isinstance(hyp, Hypothesis), type(hyp)
 
             # remove sos/eos and get results
-            token_int = hyp.yseq[1:-1].tolist()
+            # token_int = hyp.yseq[1:-1].tolist()
+            # TODO(sdalmia): check why the above line doesn't work
+            token_int = hyp.yseq.tolist()
+            token_int = list(filter(lambda x: x != self.mt_model.sos, token_int))
+            token_int = list(filter(lambda x: x != self.mt_model.eos, token_int))
 
             # remove blank symbol id, which is assumed to be 0
             token_int = list(filter(lambda x: x != 0, token_int))
