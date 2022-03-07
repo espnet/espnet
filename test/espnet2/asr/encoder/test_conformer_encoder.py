@@ -26,9 +26,7 @@ from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
         ([1], True),
     ],
 )
-@pytest.mark.parametrize(
-    "stochastic_depth_rate", [0.0, 0.1, [0.1, 0.1]]
-)
+@pytest.mark.parametrize("stochastic_depth_rate", [0.0, 0.1, [0.1, 0.1]])
 def test_encoder_forward_backward(
     input_layer,
     positionwise_layer_type,
@@ -133,6 +131,7 @@ def test_encoder_output_size():
 def test_encoder_invalid_type():
     with pytest.raises(ValueError):
         ConformerEncoder(20, input_layer="fff")
+
 
 def test_encoder_invalid_stochastic_depth_rate():
     with pytest.raises(ValueError):
