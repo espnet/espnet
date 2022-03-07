@@ -13,9 +13,6 @@ from espnet2.enh.layers.conv_utils import conv2d_output_shape
 from espnet2.enh.layers.conv_utils import convtransp2d_output_shape
 
 
-EPS = torch.finfo(torch.get_default_dtype()).eps
-
-
 class GLSTM(nn.Module):
     def __init__(
         self, hidden_size=1024, groups=2, layers=2, bidirectional=False, rearrange=False
@@ -336,7 +333,7 @@ class DC_CRN(nn.Module):
     ):
         """Densely-Connected Convolutional Recurrent Network (DC-CRN).
 
-        Reference: Fig. 3 and TablSection III-B in [1]
+        Reference: Fig. 3 and Section III-B in [1]
 
         Args:
             input_dim (int): input feature dimension
