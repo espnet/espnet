@@ -104,8 +104,8 @@ class LongformerEncoder(ConformerEncoder):
         padding_idx: int = -1,
         interctc_layer_idx: List[int] = [],
         interctc_use_conditioning: bool = False,
-        attention_windows: list = [100,100,100,100,100,100],
-        attention_dilation: list = [1,1,1,1,1,1],
+        attention_windows: list = [100, 100, 100, 100, 100, 100],
+        attention_dilation: list = [1, 1, 1, 1, 1, 1],
         attention_mode: str = "sliding_chunks",
     ):
         assert check_argument_types()
