@@ -7,19 +7,18 @@ set -o pipefail
 
 train_set="train"
 valid_set="dev"
-test_set="test "
-
 test_sets="test dev"
 
 
 asr_tag=train_asr_transformer
 asr_config=conf/train_asr_transformer.yaml
-lm_config=conf/train_lm.yaml
+lm_config=conf/train_lm.yaml  # Not Used, as use_lm=false
 
 ./asr.sh \
     --skip_data_prep false \
     --skip_train false \
     --skip_eval false \
+    --stage 1 \
     --lang en \
     --ngpu 1 \
     --nj 32 \

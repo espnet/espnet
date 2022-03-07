@@ -14,12 +14,12 @@ log() {
 . ./path.sh
 . ./cmd.sh
 
-download_and_untar=true
+download_and_untar=false
 mp4_to_wav=true
 
 # Manually fill the lrs3_username, lrs3_password
-lrs3_username=lrs531
-lrs3_password=49hfP4Rz
+lrs3_username=
+lrs3_password=
 
 cmd=run.pl
 log_dir=local/python_debug_log
@@ -38,13 +38,11 @@ fi
 
 if $download_and_untar; then
     log "Downloading and Untarring the LRS3 with username ${lrs3_username} and passwoed ${lrs3_password}."
-    chmod 777 local/download_and_untar.sh
     local/download_and_untar.sh --remove-archive ${LRS3} ${lrs3_username} ${lrs3_password}
 fi
 
 if $mp4_to_wav; then
     log "Extacting .wav files from .mp4 files and storing it under the same directory"
-    chmod 777 local/mp4_to_wav.sh
     local/mp4_to_wav.sh ${LRS3}
 fi
 
@@ -56,7 +54,7 @@ done
 
 # generate the utt2spk, wav.scp and text files
 log "Generating the utt2spk, wav.scp and text files"
-$cmd JOB=1:$nj ${log_dir}.JOB.log python ./local/data_prep.py --train_val_path ${LRS3}/trainval --test_path ${LRS3}/test 
+python3 ./local/data_prep.py --train_val_path ${LRS3}/trainval --test_path ${LRS3}/test 
 
 log "Generating the spk2utt files"
 utils/utt2spk_to_spk2utt.pl data/train/utt2spk > data/train/spk2utt

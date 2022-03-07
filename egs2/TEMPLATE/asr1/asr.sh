@@ -1357,6 +1357,8 @@ if ! "${skip_eval}"; then
 
                 fi
 
+                echo "doing sclite  ${score_opts} -r ${_scoredir}/ref.trn trn  -h ${_scoredir}/hyp.trn trn  -i rm -o all stdout > ${_scoredir}/result.txt"
+
                 sclite \
 		    ${score_opts} \
                     -r "${_scoredir}/ref.trn" trn \

@@ -20,7 +20,9 @@ class Utils:
         with open(text_file, encoding='ISO-8859-1') as f:
             first_line = f.readline()
         text_val = first_line.split('Text:')[1]
-        return text_val.strip('\n')
+        text_val = text_val.strip('\n')
+        text_val = text_val.replace("{LG}", '')  # Special code to avoid scoring seg-fault due to utterance n706Sqp20Mk_50005
+        return text_val
 
     @staticmethod
     def save_list_to_file(list_data: list, save_path: str) -> None:
