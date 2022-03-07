@@ -68,6 +68,7 @@ class ESPnetSTMDModel(AbsESPnetModel):
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
         extract_feats_in_collect_stats: bool = True,
+        speech_attn: bool = False,
     ):
         assert check_argument_types()
         assert 0.0 <= asr_weight < 1.0, "asr_weight should be [0.0, 1.0)"
@@ -85,6 +86,7 @@ class ESPnetSTMDModel(AbsESPnetModel):
         self.mt_weight = mt_weight
         self.mtlalpha = mtlalpha
         self.token_list = token_list.copy()
+        self.speech_attn = speech_attn
 
         self.frontend = frontend
         self.specaug = specaug
@@ -209,9 +211,12 @@ class ESPnetSTMDModel(AbsESPnetModel):
         dec_asr_lengths = src_text_lengths + 1
         encoder_mt_out, encoder_mt_out_lens, _ = self.encoder_mt(hs_dec_asr, dec_asr_lengths)
 
+        if self.speech_attn:
+            speech_out = encoder_out
+            speech_lens = encoder_out_lens
         # 2a. Attention-decoder branch (ST)
         loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
-            encoder_mt_out, encoder_mt_out_lens, text, text_lengths,
+            encoder_mt_out, encoder_mt_out_lens, text, text_lengths, speech_out, speech_lens
         )
 
         # 3. Loss computation
@@ -337,14 +342,21 @@ class ESPnetSTMDModel(AbsESPnetModel):
         encoder_out_lens: torch.Tensor,
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
+        speech: Optional[torch.Tensor],
+        speech_lens: Optional[torch.Tensor],
     ):
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
-        decoder_out, _ = self.decoder(
-            encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
-        )
+        if self.speech_attn:
+            decoder_out, _ = self.decoder(
+                encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens, speech, speech_lens
+            )
+        else:
+            decoder_out, _ = self.decoder(
+                encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
+            )
 
         # 2. Compute attention loss
         loss_att = self.criterion_st(decoder_out, ys_out_pad)
@@ -387,11 +399,11 @@ class ESPnetSTMDModel(AbsESPnetModel):
         )
 
         # Compute cer/wer using attention-decoder
-        if self.training or self.error_calculator is None:
+        if self.training or self.asr_error_calculator is None:
             cer_att, wer_att = None, None
         else:
             ys_hat = decoder_out.argmax(dim=-1)
-            cer_att, wer_att = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
+            cer_att, wer_att = self.asr_error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         return loss_att, acc_att, cer_att, wer_att, hs_dec_asr
 

@@ -17,14 +17,6 @@ encoder_conf:
     output_size: 256  # dimension of attention
     attention_heads: 4
 
-# decoder related
-decoder: transformer
-decoder_conf:
-    input_layer: embed
-    num_blocks: 6
-    linear_units: 2048
-    dropout_rate: 0.1
-
 asr_decoder: transformer
 asr_decoder_conf:
     input_layer: embed
@@ -36,6 +28,14 @@ encoder_mt: transformer
 encoder_mt_conf:
     input_layer: null
     num_blocks: 2
+    linear_units: 2048
+    dropout_rate: 0.1
+
+# decoder related
+decoder: transformer
+decoder_conf:
+    input_layer: embed
+    num_blocks: 6
     linear_units: 2048
     dropout_rate: 0.1
 
