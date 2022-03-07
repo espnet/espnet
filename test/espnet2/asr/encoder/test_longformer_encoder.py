@@ -4,7 +4,7 @@ from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
 import sys
 
 try:
-    import longformer
+    encoder = LongformerEncoder(20)
 except ImportError:
     pass
 
