@@ -1,12 +1,9 @@
+from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
 import pytest
 import torch
-from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
 import sys
 
-try:
-    encoder = LongformerEncoder(20)
-except ImportError:
-    pass
+pytest.importorskip("longformer")
 
 
 @pytest.mark.parametrize(
@@ -19,10 +16,6 @@ except ImportError:
         ("legacy", "abs_pos", "lf_selfattn"),
     ],
 )
-@pytest.mark.skipif(
-    "longformer" not in sys.modules,
-    reason="Longformer is not installed and requires pytorch >= 1.6.1, python > 3.6",
-)
 def test_encoder_forward_backward(
     input_layer,
     positionwise_layer_type,
@@ -30,6 +23,7 @@ def test_encoder_forward_backward(
     pos_enc_layer_type,
     selfattention_layer_type,
 ):
+    pytest.importorskip("longformer")
     encoder = LongformerEncoder(
         20,
         output_size=2,
@@ -58,11 +52,8 @@ def test_encoder_forward_backward(
     y.sum().backward()
 
 
-@pytest.mark.skipif(
-    "longformer" not in sys.modules,
-    reason="Longformer is not installed and requires pytorch >= 1.6.1, python > 3.6",
-)
 def test_encoder_invalid_layer_type():
+    pytest.importorskip("longformer")
     with pytest.raises(ValueError):
         LongformerEncoder(20, pos_enc_layer_type="abc_pos")
     with pytest.raises(ValueError):
@@ -73,30 +64,21 @@ def test_encoder_invalid_layer_type():
         )
 
 
-@pytest.mark.skipif(
-    "longformer" not in sys.modules,
-    reason="Longformer is not installed and requires pytorch >= 1.6.1, python > 3.6",
-)
 def test_encoder_invalid_windows_parameter():
+    pytest.importorskip("longformer")
     with pytest.raises(ValueError):
         LongformerEncoder(20, attention_windows=[1, 1], num_blocks=4)
     with pytest.raises(ValueError):
         LongformerEncoder(20, attention_dilation=[1, 1], num_blocks=4)
 
 
-@pytest.mark.skipif(
-    "longformer" not in sys.modules,
-    reason="Longformer is not installed and requires pytorch >= 1.6.1, python > 3.6",
-)
 def test_encoder_output_size():
+    pytest.importorskip("longformer")
     encoder = LongformerEncoder(20, output_size=256)
     assert encoder.output_size() == 256
 
 
-@pytest.mark.skipif(
-    "longformer" not in sys.modules,
-    reason="Longformer is not installed and requires pytorch >= 1.6.1, python > 3.6",
-)
 def test_encoder_invalid_type():
+    pytest.importorskip("longformer")
     with pytest.raises(ValueError):
         LongformerEncoder(20, input_layer="fff")
