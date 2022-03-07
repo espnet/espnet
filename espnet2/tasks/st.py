@@ -582,7 +582,6 @@ class STTask(AbsTask):
         assert check_return_type(model)
         return model
 
-
     @classmethod
     def build_model_combination(
         cls,

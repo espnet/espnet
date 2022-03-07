@@ -36,7 +36,12 @@ class LengthBonus(BatchScorerInterface):
 
         """
         sample = x[0] if type(x[0]) == list else x
-        return torch.tensor([1.0], device=sample.device, dtype=sample.dtype).expand(self.n), None
+        return (
+            torch.tensor([1.0], device=sample.device, dtype=sample.dtype).expand(
+                self.n
+            ),
+            None,
+        )
 
     def batch_score(
         self,
