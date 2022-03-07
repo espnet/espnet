@@ -112,6 +112,20 @@
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|65818|97.7|1.6|0.7|0.4|2.7|25.7|
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|65101|94.5|3.9|1.5|1.0|6.4|45.1|
 
+
+# Conformer, using stochastic depth
+- ASR config [conf/tuning/train_asr_conformer9_layerdrop0.1_last6.yaml](conf/tuning/train_asr_conformer9_layerdrop0.1_last6.yaml)
+- LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
+- Pretrained model: []()
+
+
+# Conformer, new SpecAug, using weight decay in Adam
+- ASR config [conf/tuning/train_asr_conformer8.yaml](conf/tuning/train_asr_conformer8.yaml)
+- LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
+- Pretrained model: []()
+
+
+
 # Tuning warmup_steps
 - Note
     - warmup_steps: 25000 -> 40000
