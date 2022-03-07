@@ -272,7 +272,7 @@ class ConformerEncoder(AbsEncoder):
                 dropout_rate,
                 normalize_before,
                 concat_after,
-                stochastic_depth_rate[lnum]
+                stochastic_depth_rate[lnum],
             ),
         )
         if self.normalize_before:
