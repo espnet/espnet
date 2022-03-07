@@ -129,6 +129,7 @@ try:
 except ImportError:
     is_parallel_wavegan_available = False
 
+
 @pytest.mark.execution_timeout(10)
 @pytest.mark.skipif(
     not is_parallel_wavegan_available, reason="parallel_wavegan is not installed."
