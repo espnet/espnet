@@ -125,6 +125,9 @@ inference_st_model=valid.acc.ave.pth # ST model path for decoding.
                                       # inference_st_model=valid.acc.best.pth
                                       # inference_st_model=valid.loss.ave.pth
 download_model= # Download a model from Model Zoo and use it for decoding.
+use_ensemble=false                    # Whether to use ensemble (multiple st system)
+additional_st_train_config=           # Additional st model config for ensemble
+additional_st_model_file=             # Additional st model file for ensemble
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -235,6 +238,9 @@ Options:
     --inference_lm        # Language model path for decoding (default="${inference_lm}").
     --inference_st_model # ST model path for decoding (default="${inference_st_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
+    --use_ensemble                    # Whether to use ensemble (multiple system) (default="${use_ensemble}").
+    --additional_st_train_config           # Additional st model config for ensemble (default="${additional_st_train_config}")
+    --additional_st_model_file             # Additional st model file for ensemble (default="${additional_st_model_file}")
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -1382,7 +1388,16 @@ if ! "${skip_eval}"; then
             fi
         fi
         if "${use_ngram}"; then
-             _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"
+             _opts+="--ngram_file ${ngram_exp}/${inference_ngram} "
+        fi
+
+        if "${use_ensemble}"; then
+            for config in "${additional_st_train_config}"; do
+                _opts+="--st_train_config ${config}"
+            done
+            for model in "${additional_st_model_file}"; do
+                _opts+="--st_model_file ${model}"
+            done
         fi
 
         # 2. Generate run.sh

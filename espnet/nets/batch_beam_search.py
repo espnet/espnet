@@ -6,6 +6,7 @@ from typing import Dict
 from typing import List
 from typing import NamedTuple
 from typing import Tuple
+from typing import Union
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
@@ -129,19 +130,22 @@ class BatchBeamSearch(BeamSearch):
                     score=0.0,
                     scores=init_scores,
                     states=init_states,
-                    yseq=torch.tensor([self.sos], device=x.device),
+                    yseq=torch.tensor(
+                        [self.sos],
+                        device=(x[0].device if type(x) is list else x.device),
+                    ),
                 )
             ]
         )
 
     def score_full(
-        self, hyp: BatchHypothesis, x: torch.Tensor
+        self, hyp: BatchHypothesis, x: Union[torch.Tensor, List[torch.Tensor]]
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
         Args:
             hyp (Hypothesis): Hypothesis with prefix tokens to score
-            x (torch.Tensor): Corresponding input feature
+            x (Union[torch.Tensor, List[torch.Tensor]]): Corresponding input feature
 
         Returns:
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
@@ -158,14 +162,17 @@ class BatchBeamSearch(BeamSearch):
         return scores, states
 
     def score_partial(
-        self, hyp: BatchHypothesis, ids: torch.Tensor, x: torch.Tensor
+        self,
+        hyp: BatchHypothesis,
+        ids: torch.Tensor,
+        x: Union[torch.Tensor, List[torch.Tensor]],
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
         Args:
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             ids (torch.Tensor): 2D tensor of new partial tokens to score
-            x (torch.Tensor): Corresponding input feature
+            x (Union[torch.Tensor, List[torch.Tensor]]): Corresponding input feature
 
         Returns:
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
@@ -204,7 +211,9 @@ class BatchBeamSearch(BeamSearch):
             new_states[k] = v
         return new_states
 
-    def search(self, running_hyps: BatchHypothesis, x: torch.Tensor) -> BatchHypothesis:
+    def search(
+        self, running_hyps: BatchHypothesis, x: Union[torch.Tensor, List[torch.Tensor]]
+    ) -> BatchHypothesis:
         """Search new tokens for running hypotheses and encoded speech x.
 
         Args:
@@ -215,13 +224,19 @@ class BatchBeamSearch(BeamSearch):
             BatchHypothesis: Best sorted hypotheses
 
         """
+        sample = x[0] if type(x) == list else x
         n_batch = len(running_hyps)
         part_ids = None  # no pre-beam
         # batch scoring
         weighted_scores = torch.zeros(
-            n_batch, self.n_vocab, dtype=x.dtype, device=x.device
+            n_batch, self.n_vocab, dtype=sample.dtype, device=sample.device
         )
-        scores, states = self.score_full(running_hyps, x.expand(n_batch, *x.shape))
+
+        if type(x) == list:
+            x_score_full = [h.expand(n_batch, *h.shape) for h in x]
+        else:
+            x_score_full = x.expand(n_batch, *x.shape)
+        scores, states = self.score_full(running_hyps, x_score_full)
         for k in self.full_scorers:
             weighted_scores += self.weights[k] * scores[k]
         # partial scoring
@@ -240,7 +255,7 @@ class BatchBeamSearch(BeamSearch):
             weighted_scores += self.weights[k] * part_scores[k]
         # add previous hyp scores
         weighted_scores += running_hyps.score.to(
-            dtype=x.dtype, device=x.device
+            dtype=sample.dtype, device=sample.device
         ).unsqueeze(1)
 
         # TODO(karita): do not use list. use batch instead

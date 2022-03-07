@@ -49,8 +49,8 @@ class Speech2Text:
 
     def __init__(
         self,
-        st_train_config: Union[Path, str] = None,
-        st_model_file: Union[Path, str] = None,
+        st_train_config: Union[Path, str, List[Path], List[str]] = None,
+        st_model_file: Union[Path, str, List[Path], List[str]] = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
         ngram_scorer: str = "full",
@@ -72,13 +72,19 @@ class Speech2Text:
 
         # 1. Build ST model
         scorers = {}
-        st_model, st_train_args = STTask.build_model_from_file(
-            st_train_config, st_model_file, device
-        )
+        if type(st_model_file) == list:
+            st_model, st_train_args = STTask.build_model_combination(
+                st_train_config, st_model_file, device
+            )
+            token_list = st_model.single_model.token_list
+        else:
+            st_model, st_train_args = STTask.build_model_from_file(
+                st_train_config, st_model_file, device
+            )
+            token_list = st_model.token_list
         st_model.to(dtype=getattr(torch, dtype)).eval()
 
         decoder = st_model.decoder
-        token_list = st_model.token_list
         scorers.update(
             decoder=decoder,
             length_bonus=LengthBonus(len(token_list)),
@@ -202,11 +208,19 @@ class Speech2Text:
 
         # b. Forward Encoder
         enc, _ = self.st_model.encode(**batch)
-        assert len(enc) == 1, len(enc)
+        if hasattr(self.st_model, "model_num"):
+            squeeze_enc = []
+            for h in enc:
+                assert len(h) == 1, len(h)
+                squeeze_enc.append(h[0])
+            enc = squeeze_enc
+        else:
+            assert len(enc) == 1, len(enc)
+            enc = enc[0]
 
         # c. Passed the encoder result and the beam search
         nbest_hyps = self.beam_search(
-            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            x=enc, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
         )
         nbest_hyps = nbest_hyps[: self.nbest]
 
@@ -279,8 +293,8 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    st_train_config: Optional[str],
-    st_model_file: Optional[str],
+    st_train_config: Optional[Union[str, List[str]]],
+    st_model_file: Optional[Union[str, List[str]]],
     lm_train_config: Optional[str],
     lm_file: Optional[str],
     word_lm_train_config: Optional[str],
@@ -431,14 +445,10 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--st_train_config",
-        type=str,
-        help="ST training configuration",
+        "--st_train_config", type=str, help="ST training configuration", action="append"
     )
     group.add_argument(
-        "--st_model_file",
-        type=str,
-        help="ST model parameter file",
+        "--st_model_file", type=str, help="ST model parameter file", action="append"
     )
     group.add_argument(
         "--lm_train_config",

@@ -2,6 +2,7 @@
 from typing import Any
 from typing import List
 from typing import Tuple
+from typing import Union
 
 import torch
 
@@ -26,7 +27,7 @@ class LengthBonus(BatchScorerInterface):
         Args:
             y (torch.Tensor): 1D torch.int64 prefix tokens.
             state: Scorer state for prefix tokens
-            x (torch.Tensor): 2D encoder feature that generates ys.
+            x (Union[torch.Tensor, List[torch.Tensor]]): 2D encoder feature that generates ys.
 
         Returns:
             tuple[torch.Tensor, Any]: Tuple of
@@ -34,17 +35,21 @@ class LengthBonus(BatchScorerInterface):
                 and None
 
         """
-        return torch.tensor([1.0], device=x.device, dtype=x.dtype).expand(self.n), None
+        sample = x[0] if type(x[0]) == list else x
+        return torch.tensor([1.0], device=sample.device, dtype=sample.dtype).expand(self.n), None
 
     def batch_score(
-        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
+        self,
+        ys: torch.Tensor,
+        states: List[Any],
+        xs: Union[torch.Tensor, List[torch.Tensor]],
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch.
 
         Args:
             ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).
             states (List[Any]): Scorer states for prefix tokens.
-            xs (torch.Tensor):
+            xs (Union[torch.Tensor, List[torch.Tensor]]):
                 The encoder feature that generates ys (n_batch, xlen, n_feat).
 
         Returns:
@@ -53,8 +58,9 @@ class LengthBonus(BatchScorerInterface):
                 and next state list for ys.
 
         """
+        sample = xs[0] if type(xs) == list else xs
         return (
-            torch.tensor([1.0], device=xs.device, dtype=xs.dtype).expand(
+            torch.tensor([1.0], device=sample.device, dtype=sample.dtype).expand(
                 ys.shape[0], self.n
             ),
             None,

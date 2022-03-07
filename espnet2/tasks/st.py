@@ -1,11 +1,13 @@
 import argparse
 import logging
+from pathlib import Path
 from typing import Callable
 from typing import Collection
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import numpy as np
 import torch
@@ -53,10 +55,12 @@ from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.st.espnet_ensemble import ESPnetSTEnsemble
 from espnet2.st.espnet_model import ESPnetSTModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import MutliTokenizerCommonPreprocessor
@@ -577,3 +581,47 @@ class STTask(AbsTask):
 
         assert check_return_type(model)
         return model
+
+
+    @classmethod
+    def build_model_combination(
+        cls,
+        config_file: Union[List[Path], List[str]] = None,
+        model_file: Union[List[Path], List[str]] = None,
+        device: str = "cpu",
+    ) -> Tuple[AbsESPnetModel, argparse.Namespace]:
+        """Build model from the files.
+        This method is used for inference with system combination.
+        Args:
+            config_file: The list of yaml file saved when training.
+            model_file: The list of model file saved when training.
+            device: Device type, "cpu", "cuda", or "cuda:N".
+        """
+        assert check_argument_types()
+        if config_file is None:
+            assert model_file is not None, (
+                "The argument 'model_file' must be provided "
+                "if the argument 'config_file' is not specified."
+            )
+            config_file = []
+            for model in model_file:
+                config_file.append(config_file=Path(model_file).parent / "config.yaml")
+        else:
+            for i in range(len(config_file)):
+                config_file[i] = Path(config_file[i])
+
+        assert len(config_file) == len(
+            model_file
+        ), "The number of model file should match the number of config file"
+
+        candidate_models = []
+        candidate_args = []
+        for i in range(len(model_file)):
+            model, args = cls.build_model_from_file(
+                config_file[i], model_file[i], device
+            )
+            candidate_models.append(model)
+            candidate_args.append(args)
+
+        model = ESPnetSTEnsemble(candidate_models, candidate_args)
+        return model, candidate_args[0]
