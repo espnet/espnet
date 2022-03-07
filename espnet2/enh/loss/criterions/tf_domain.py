@@ -229,29 +229,25 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
         num_spk = len(ref)
 
         # Compute the ref for Deep Clustering[1][2]
+        abs_ref = [abs(n) for n in ref]
         if self._loss_type == "dpcl":
-            r = torch.zeros_like(abs(ref[0]))
+            r = torch.zeros_like(abs_ref[0])
             B = ref[0].shape[0]
-            for i in range(0, num_spk):
-                flags = [abs(ref[i]) >= abs(n) for n in ref]
+            for i in range(num_spk):
+                flags = [abs_ref[i] >= n for n in abs_ref]
                 mask = reduce(lambda x, y: x * y, flags)
                 mask = mask.int() * i
                 r += mask
-            r = (
-                r.contiguous()
-                .view(
-                    -1,
-                )
-                .long()
-            )
+            r = r.contiguous().view(-1,).long()
             re = F.one_hot(r, num_classes=num_spk)
             re = re.contiguous().view(B, -1, num_spk)
         elif self._loss_type == "mdc":
             B = ref[0].shape[0]
-            manifold_vector = (
-                torch.ones(num_spk, num_spk, device=inf.device)
-                * (-1 / num_spk)
-                * math.sqrt(num_spk / (num_spk - 1))
+            manifold_vector = torch.full(
+                (num_spk, num_spk),
+                (-1 / num_spk) * math.sqrt(num_spk / (num_spk - 1)),
+                dtype=inf.dtype,
+                device=inf.device,
             )
             for i in range(num_spk):
                 manifold_vector[i][i] = ((num_spk - 1) / num_spk) * math.sqrt(
@@ -259,10 +255,10 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
                 )
 
             re = torch.zeros(
-                ref[0].shape[0], ref[0].shape[1], ref[0].shape[2], num_spk
-            ).to(inf.device)
-            for i in range(0, num_spk):
-                flags = [abs(ref[i]) >= abs(n) for n in ref]
+                ref[0].shape[0], ref[0].shape[1], ref[0].shape[2], num_spk, device=inf.device
+            )
+            for i in range(num_spk):
+                flags = [abs_ref[i] >= n for n in abs_ref]
                 mask = reduce(lambda x, y: x * y, flags)
                 mask = mask.int()
                 re[mask == 1] = manifold_vector[i]
@@ -274,11 +270,7 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
             )
 
         V2 = torch.matmul(torch.transpose(inf, 2, 1), inf).pow(2).sum(dim=(1, 2))
-        Y2 = (
-            torch.matmul(torch.transpose(re, 2, 1).float(), re.float())
-            .pow(2)
-            .sum(dim=(1, 2))
-        )
+        Y2 = torch.matmul(torch.transpose(re, 2, 1).float(), re.float()).pow(2).sum(dim=(1, 2))
         VY = torch.matmul(torch.transpose(inf, 2, 1), re.float()).pow(2).sum(dim=(1, 2))
 
         return V2 + Y2 - 2 * VY

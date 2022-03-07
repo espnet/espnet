@@ -88,8 +88,8 @@ class DPCLSeparator(AbsSeparator):
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
             ilens (torch.Tensor): (B,)
-            others predicted data, e.g. V: OrderedDict[
-                'V': torch.Tensor(Batch, T * F, D),
+            others predicted data, e.g. tf_embedding: OrderedDict[
+                'tf_embedding': torch.Tensor(Batch, T * F, D),
             ]
         """
 
@@ -105,19 +105,19 @@ class DPCLSeparator(AbsSeparator):
         x = self.linear(x)
         # x:(B, T, F*D)
         x = self.nonlinear(x)
-        V = x.view(B, -1, self.D)
+        tf_embedding = x.view(B, -1, self.D)
 
         if self.training:
             masked = None
         else:
             # K-means for batch
-            centers = V[:, : self._num_spk, :].detach()
-            dist = torch.empty(B, T * F, self._num_spk).to(V.device)
-            last_label = torch.zeros(B, T * F).to(V.device)
+            centers = tf_embedding[:, : self._num_spk, :].detach()
+            dist = torch.empty(B, T * F, self._num_spk).to(tf_embedding.device)
+            last_label = torch.zeros(B, T * F).to(tf_embedding.device)
             while True:
                 for i in range(self._num_spk):
                     dist[:, :, i] = torch.sum(
-                        (V - centers[:, i, :].unsqueeze(1)) ** 2, dim=2
+                        (tf_embedding - centers[:, i, :].unsqueeze(1)) ** 2, dim=2
                     )
                 label = dist.argmin(dim=2)
                 if torch.sum(label != last_label) == 0:
@@ -125,14 +125,14 @@ class DPCLSeparator(AbsSeparator):
                 last_label = label
                 for b in range(B):
                     for i in range(self._num_spk):
-                        centers[b, i] = V[b, label[b] == i].mean(dim=0)
+                        centers[b, i] = tf_embedding[b, label[b] == i].mean(dim=0)
             label = label.view(B, T, F)
             masked = []
             for i in range(self._num_spk):
                 masked.append(input * (label == i))
 
         others = OrderedDict(
-            {"V": V},
+            {"tf_embedding": tf_embedding},
         )
 
         return masked, ilens, others

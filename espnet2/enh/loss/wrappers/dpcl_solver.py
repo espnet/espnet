@@ -20,9 +20,9 @@ class DPCLSolver(AbsLossWrapper):
             stats: dict, for collecting training status
             others: reserved
         """
-        assert "V" in others
+        assert "tf_embedding" in others
 
-        loss = self.criterion(ref, others["V"]).mean()
+        loss = self.criterion(ref, others["tf_embedding"]).mean()
 
         stats = dict()
         stats[self.criterion.name] = loss.detach()

@@ -36,9 +36,9 @@ def test_dpcl_separator_forward_backward_complex(
 
     masked, flens, others = model(x, ilens=x_lens)
 
-    assert "V" in others
+    assert "tf_embedding" in others
 
-    others["V"].abs().mean().backward()
+    others["tf_embedding"].abs().mean().backward()
 
 
 @pytest.mark.parametrize("input_dim", [5])
@@ -69,9 +69,9 @@ def test_dpcl_separator_forward_backward_real(
 
     masked, flens, others = model(x, ilens=x_lens)
 
-    assert "V" in others
+    assert "tf_embedding" in others
 
-    others["V"].abs().mean().backward()
+    others["tf_embedding"].abs().mean().backward()
 
 
 def test_dpcl_separator_invalid_type():
@@ -110,4 +110,4 @@ def test_dpcl_separator_output():
         assert isinstance(others, dict)
         assert len(specs) == num_spk, len(specs)
         for n in range(num_spk):
-            assert "V" in others
+            assert "tf_embedding" in others

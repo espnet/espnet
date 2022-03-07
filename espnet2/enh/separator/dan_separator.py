@@ -82,13 +82,17 @@ class DANSeparator(AbsSeparator):
         Args:
             input (torch.Tensor or ComplexTensor): Encoded feature [B, T, F]
             ilens (torch.Tensor): input lengths [Batch]
-            additional (Dict or None): other data included in model
+            additional (Dict or None): other data included in model, 
+            e.g. additional["feature_ref"]: torch.Tensor(B, T, F)
 
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
             ilens (torch.Tensor): (B,)
-            others predicted data, e.g. V: OrderedDict[
-                'V': torch.Tensor(Batch, T * Frames, D),
+            others predicted data, e.g. masks: OrderedDict[
+                'mask_spk1': torch.Tensor(Batch, Frames, Freq),
+                'mask_spk2': torch.Tensor(Batch, Frames, Freq),
+                ...
+                'mask_spkn': torch.Tensor(Batch, Frames, Freq),
             ]
         """
 
@@ -104,44 +108,39 @@ class DANSeparator(AbsSeparator):
         x = self.linear(x)
         # x:(B, T, F*D)
         x = self.nonlinear(x)
-        # V:(B, T*F, D)
-        V = x.contiguous().view(B, T * F, -1)
+        # tf_embedding:(B, T*F, D)
+        tf_embedding = x.contiguous().view(B, T * F, -1)
 
         # Compute the attractors
         if self.training:
             assert additional is not None and "feature_ref" in additional
             origin = additional["feature_ref"]
+            abs_origin = [abs(o) for o in origin]
             Y_t = torch.zeros(B, T, F, device=origin[0].device)
             for i in range(self._num_spk):
-                flags = [abs(origin[i]) >= abs(n) for n in origin]
+                flags = [abs_origin[i] >= o for o in abs_origin]
                 Y = reduce(lambda x, y: x * y, flags)
                 Y = Y.int() * i
                 Y_t += Y
-            Y_t = (
-                Y_t.contiguous()
-                .view(
-                    -1,
-                )
-                .long()
-            )
+            Y_t = Y_t.contiguous().view(-1,).long()
             Y = Fun.one_hot(Y_t, num_classes=self._num_spk)
             Y = Y.contiguous().view(B, -1, self._num_spk).float()
 
             # v_y:(B, D, spks)
-            v_y = torch.bmm(torch.transpose(V, 1, 2), Y)
+            v_y = torch.bmm(torch.transpose(tf_embedding, 1, 2), Y)
             # sum_y:(B, D, spks)
             sum_y = torch.sum(Y, 1, keepdim=True).expand_as(v_y)
             # attractor:(B, D, spks)
             attractor = v_y / (sum_y + 1e-8)
         else:
             # K-means for batch
-            centers = V[:, : self._num_spk, :].detach()
-            dist = torch.empty(B, T * F, self._num_spk).to(V.device)
-            last_label = torch.zeros(B, T * F).to(V.device)
+            centers = tf_embedding[:, : self._num_spk, :].detach()
+            dist = torch.empty(B, T * F, self._num_spk, device=tf_embedding.device)
+            last_label = torch.zeros(B, T * F, device=tf_embedding.device)
             while True:
                 for i in range(self._num_spk):
                     dist[:, :, i] = torch.sum(
-                        (V - centers[:, i, :].unsqueeze(1)) ** 2, dim=2
+                        (tf_embedding - centers[:, i, :].unsqueeze(1)) ** 2, dim=2
                     )
                 label = dist.argmin(dim=2)
                 if torch.sum(label != last_label) == 0:
@@ -149,12 +148,12 @@ class DANSeparator(AbsSeparator):
                 last_label = label
                 for b in range(B):
                     for i in range(self._num_spk):
-                        centers[b, i] = V[b, label[b] == i].mean(dim=0)
+                        centers[b, i] = tf_embedding[b, label[b] == i].mean(dim=0)
             attractor = centers.permute(0, 2, 1)
 
         # calculate the distance between embeddings and attractors
         # dist:(B, T*F, spks)
-        dist = torch.bmm(V, attractor)
+        dist = torch.bmm(tf_embedding, attractor)
         masks = torch.softmax(dist, dim=2)
         masks = masks.contiguous().view(B, T, F, self._num_spk).unbind(dim=3)
 
