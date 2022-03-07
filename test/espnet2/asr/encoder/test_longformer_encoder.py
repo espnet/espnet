@@ -1,7 +1,6 @@
 from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
 import pytest
 import torch
-import sys
 
 pytest.importorskip("longformer")
 
