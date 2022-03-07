@@ -71,9 +71,9 @@ class ESPnetSTMDModel(AbsESPnetModel):
         speech_attn: bool = False,
     ):
         assert check_argument_types()
-        assert 0.0 <= asr_weight < 1.0, "asr_weight should be [0.0, 1.0)"
+        assert 0.0 < asr_weight < 1.0, "asr_weight should be (0.0, 1.0)"
         assert 0.0 <= mt_weight < 1.0, "mt_weight should be [0.0, 1.0)"
-        assert 0.0 <= mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
+        assert 0.0 <= mtlalpha < 1.0, "mtlalpha should be [0.0, 1.0)"
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
@@ -112,8 +112,6 @@ class ESPnetSTMDModel(AbsESPnetModel):
         )
 
         # submodule for ASR task
-        assert (self.asr_weight > 0), "ASR weight should be > 0 for MD"
-        assert (self.mtlalpha == 1.0), "mtlalpha needs to be less than 1.0 for MD"
         assert (asr_decoder is not None), "ASR decoder needs to be present for MD"
         assert (
             src_token_list is not None
@@ -386,7 +384,7 @@ class ESPnetSTMDModel(AbsESPnetModel):
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
-        decoder_out, _, hs_dec_asr = self.decoder(
+        decoder_out, _, hs_dec_asr = self.asr_decoder(
             encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens, return_hidden=True
         )
 

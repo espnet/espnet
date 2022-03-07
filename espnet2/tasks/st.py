@@ -27,6 +27,7 @@ from espnet2.asr.decoder.transformer_decoder import (
     LightweightConvolutionTransformerDecoder,  # noqa: H301
 )
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
+from espnet2.st.decoder.transformer_md_decoder import TransformerMDDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
@@ -135,6 +136,7 @@ decoder_choices = ClassChoices(
     "decoder",
     classes=dict(
         transformer=TransformerDecoder,
+        transformer_md=TransformerMDDecoder,
         lightweight_conv=LightweightConvolutionTransformerDecoder,
         lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
         dynamic_conv=DynamicConvolutionTransformerDecoder,
@@ -542,6 +544,8 @@ class STTask(AbsTask):
 
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
+        if args.decoder == "transformer_md":
+            speech_attn=True
 
         decoder = decoder_class(
             vocab_size=vocab_size,
@@ -592,6 +596,7 @@ class STTask(AbsTask):
                 encoder_mt=encoder_mt,
                 token_list=token_list,
                 src_token_list=src_token_list,
+                speech_attn = speech_attn,
                 **args.model_conf,
             )
 

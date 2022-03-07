@@ -182,4 +182,6 @@ class DecoderLayer(nn.Module):
         if cache is not None:
             x = torch.cat([cache, x], dim=1)
 
-        return x, tgt_mask, memory, memory_mask, speech, speech_mask
+        if speech is not None:
+            return x, tgt_mask, memory, memory_mask, speech, speech_mask
+        return x, tgt_mask, memory, memory_mask

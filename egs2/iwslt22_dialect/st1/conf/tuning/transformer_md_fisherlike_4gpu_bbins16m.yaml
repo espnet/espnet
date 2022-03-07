@@ -32,7 +32,7 @@ encoder_mt_conf:
     dropout_rate: 0.1
 
 # decoder related
-decoder: transformer
+decoder: transformer_md
 decoder_conf:
     input_layer: embed
     num_blocks: 6
@@ -43,7 +43,7 @@ decoder_conf:
 model_conf:
     asr_weight: 0.3
     mt_weight: 0.0
-    mtlalpha: 1.0
+    mtlalpha: 0.5
     lsm_weight: 0.1
     length_normalized_loss: false
 
