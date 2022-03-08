@@ -9,6 +9,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import Union
+from itertools import permutations
 
 import humanfriendly
 import numpy as np
@@ -61,6 +62,7 @@ class DiarSepSpeech:
         num_spk: Optional[int] = None,
         device: str = "cpu",
         dtype: str = "float32",
+        multiply_diar_result: bool = False,
     ):
         assert check_argument_types()
 
@@ -82,6 +84,7 @@ class DiarSepSpeech:
         # not specifying "num_spk" in inference config file
         # will enable speaker number prediction during inference
         self.num_spk = num_spk
+        self.multiply_diar_result = multiply_diar_result
         task = "enhancement" if self.num_spk == 1 else "separation"
 
         # reference channel for processing multi-channel speech
@@ -358,6 +361,11 @@ class DiarSepSpeech:
         assert len(waves[0]) == batch_size, (len(waves[0]), batch_size)
         assert spk_prediction.size(0) == batch_size, (spk_prediction.size(0), batch_size)
 
+        # multiply diarization result and separation result
+        # by calculating the correlation
+        if self.multiply_diar_result:
+            waves = self.multiply_diar(waves, spk_prediction)
+
         # diarization result
         spk_prediction = spk_prediction.cpu().numpy()
         spk_prediction = 1 / (1 + np.exp(-spk_prediction))
@@ -423,6 +431,22 @@ class DiarSepSpeech:
 
         return DiarSepSpeech(**kwargs)
 
+    def multiply_diar(self, waves, spk_prediction):
+        # note that batch_size > 1 is not considered
+        num_spk = len(waves)
+        permute_list = [np.array(p) for p in permutations(range(num_spk))]
+        corr_list = []
+        interp_prediction = F.interpolate(torch.sigmoid(spk_prediction).transpose(1,2), size=waves[0].size(1), mode="linear").transpose(1,2)
+        for p in permute_list:
+            diar_perm = interp_prediction[:, :, p]
+            corr_perm = [0]
+            for q in range(num_spk):
+                corr_perm += np.corrcoef(torch.squeeze(abs(waves[q])).cpu().numpy(), torch.squeeze(diar_perm[:, :, q]).cpu().numpy())[0,1]
+            corr_list.append(corr_perm)
+        max_corr, max_idx = torch.max(torch.from_numpy(np.array(corr_list)),dim=0)
+        interp_prediction = interp_prediction[:, :, permute_list[max_idx]]
+        waves = [waves[i] * interp_prediction[:, :, i] for i in range(num_spk)]
+        return waves
 
 def humanfriendly_or_none(value: str):
     if value in ("none", "None", "NONE"):
@@ -452,6 +476,7 @@ def inference(
     show_progressbar: bool,
     ref_channel: Optional[int],
     normalize_output_wav: bool,
+    multiply_diar_result: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -485,6 +510,7 @@ def inference(
         num_spk=num_spk,
         device=device,
         dtype=dtype,
+        multiply_diar_result=multiply_diar_result,
     )
     diarsep_speech = DiarSepSpeech.from_pretrained(
         model_tag=model_tag,
@@ -662,7 +688,12 @@ def get_parser():
         default=None,
         help="Predetermined number of speakers for inference",
     )
-
+    group.add_argument(
+        "--multiply_diar_result",
+        type=str2bool,
+        default=False,
+        help="Whether to multiply diar results to separated waves",
+    )
     return parser
 
 
