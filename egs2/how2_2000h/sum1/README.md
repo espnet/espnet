@@ -17,7 +17,7 @@ Then run the finetuning on summarization using the previously trained model as t
 ./run.sh --asr_tag sum_finetune --asr_args "--init_param exp/asr_asr_pretrain/valid.acc.ave_10best.pth:::ctc"
 ```
 
-#Results on ASR
+# Results on ASR
 
 
 ## asr_base_conformer_lf_mix
@@ -27,25 +27,22 @@ Then run the finetuning on summarization using the previously trained model as t
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_model_valid.acc.best/dev5_test|3016|55215|93.1|4.8|2.1|1.9|8.8|56.7|
-|decode_asr_model_valid.acc.best/held_out_test|2761|47348|92.7|5.0|2.3|2.2|9.5|54.6|
 
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_model_valid.acc.best/dev5_test|3016|276377|97.1|1.1|1.9|1.9|4.8|56.7|
-|decode_asr_model_valid.acc.best/held_out_test|2761|236575|96.8|1.2|2.0|2.1|5.4|54.6|
 
 ### TER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_model_valid.acc.best/dev5_test|3016|82484|94.1|3.5|2.4|2.2|8.0|56.7|
-|decode_asr_model_valid.acc.best/held_out_test|2761|70264|93.9|3.7|2.4|2.7|8.9|54.6|
 
 
 
-#Results on Summarization
+# Results on Summarization
 
 ## asr_ft_sum
 ### SUMM

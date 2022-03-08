@@ -9,7 +9,7 @@ train_set="train_960"
 valid_set="dev"
 test_sets="test_clean test_other dev_clean dev_other"
 
-asr_config=conf/tuning/train_asr_conformer7_n_fft512_hop_length256.yaml
+asr_config=conf/tuning/train_asr_conformer8.yaml
 lm_config=conf/tuning/train_lm_transformer2.yaml
 inference_config=conf/decode_asr.yaml
 
