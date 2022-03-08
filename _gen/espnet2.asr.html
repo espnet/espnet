@@ -111,6 +111,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-vgg-rnn-encoder">espnet2.asr.encoder.vgg_rnn_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-contextual-block-transformer-encoder">espnet2.asr.encoder.contextual_block_transformer_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-hubert-encoder">espnet2.asr.encoder.hubert_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-longformer-encoder">espnet2.asr.encoder.longformer_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-abs-encoder">espnet2.asr.encoder.abs_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-init">espnet2.asr.encoder.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-contextual-block-conformer-encoder">espnet2.asr.encoder.contextual_block_conformer_encoder</a></li>
@@ -2136,8 +2137,89 @@ before tuning the whole model (nessasary to prevent overfit).</p></li>
 <dd></dd></dl>
 
 </section>
+<section id="espnet2-asr-encoder-longformer-encoder">
+<span id="id37"></span><h2>espnet2.asr.encoder.longformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-longformer-encoder" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.encoder.longformer_encoder"></span><p>Conformer encoder definition.</p>
+<dl class="class">
+<dt id="espnet2.asr.encoder.longformer_encoder.LongformerEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.longformer_encoder.</code><code class="sig-name descname">LongformerEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int, output_size: int = 256, attention_heads: int = 4, linear_units: int = 2048, num_blocks: int = 6, dropout_rate: float = 0.1, positional_dropout_rate: float = 0.1, attention_dropout_rate: float = 0.0, input_layer: str = 'conv2d', normalize_before: bool = True, concat_after: bool = False, positionwise_layer_type: str = 'linear', positionwise_conv_kernel_size: int = 3, macaron_style: bool = False, rel_pos_type: str = 'legacy', pos_enc_layer_type: str = 'abs_pos', selfattention_layer_type: str = 'lf_selfattn', activation_type: str = 'swish', use_cnn_module: bool = True, zero_triu: bool = False, cnn_module_kernel: int = 31, padding_idx: int = -1, interctc_layer_idx: List[int] = [], interctc_use_conditioning: bool = False, attention_windows: list = [100, 100, 100, 100, 100, 100], attention_dilation: list = [1, 1, 1, 1, 1, 1], attention_mode: str = 'sliding_chunks'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/longformer_encoder.html#LongformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.longformer_encoder.LongformerEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.encoder.conformer_encoder.ConformerEncoder" title="espnet2.asr.encoder.conformer_encoder.ConformerEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.conformer_encoder.ConformerEncoder</span></code></a></p>
+<p>Longformer SA Conformer encoder module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> (<em>int</em>) – Input dimension.</p></li>
+<li><p><strong>output_size</strong> (<em>int</em>) – Dimension of attention.</p></li>
+<li><p><strong>attention_heads</strong> (<em>int</em>) – The number of heads of multi head attention.</p></li>
+<li><p><strong>linear_units</strong> (<em>int</em>) – The number of units of position-wise feed forward.</p></li>
+<li><p><strong>num_blocks</strong> (<em>int</em>) – The number of decoder blocks.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>attention_dropout_rate</strong> (<em>float</em>) – Dropout rate in attention.</p></li>
+<li><p><strong>positional_dropout_rate</strong> (<em>float</em>) – Dropout rate after adding positional encoding.</p></li>
+<li><p><strong>input_layer</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>torch.nn.Module</em><em>]</em>) – Input layer type.</p></li>
+<li><p><strong>normalize_before</strong> (<em>bool</em>) – Whether to use layer_norm before the first block.</p></li>
+<li><p><strong>concat_after</strong> (<em>bool</em>) – Whether to concat attention layer’s input and output.
+If True, additional linear will be applied.
+i.e. x -&gt; x + linear(concat(x, att(x)))
+If False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
+<li><p><strong>positionwise_layer_type</strong> (<em>str</em>) – “linear”, “conv1d”, or “conv1d-linear”.</p></li>
+<li><p><strong>positionwise_conv_kernel_size</strong> (<em>int</em>) – Kernel size of positionwise conv1d layer.</p></li>
+<li><p><strong>rel_pos_type</strong> (<em>str</em>) – Whether to use the latest relative positional encoding or
+the legacy one. The legacy relative positional encoding will be deprecated
+in the future. More Details can be found in
+<a class="reference external" href="https://github.com/espnet/espnet/pull/2816">https://github.com/espnet/espnet/pull/2816</a>.</p></li>
+<li><p><strong>encoder_pos_enc_layer_type</strong> (<em>str</em>) – Encoder positional encoding layer type.</p></li>
+<li><p><strong>encoder_attn_layer_type</strong> (<em>str</em>) – Encoder attention layer type.</p></li>
+<li><p><strong>activation_type</strong> (<em>str</em>) – Encoder activation function type.</p></li>
+<li><p><strong>macaron_style</strong> (<em>bool</em>) – Whether to use macaron style for positionwise layer.</p></li>
+<li><p><strong>use_cnn_module</strong> (<em>bool</em>) – Whether to use convolution module.</p></li>
+<li><p><strong>zero_triu</strong> (<em>bool</em>) – Whether to zero the upper triangular part of attention matrix.</p></li>
+<li><p><strong>cnn_module_kernel</strong> (<em>int</em>) – Kernerl size of convolution module.</p></li>
+<li><p><strong>padding_idx</strong> (<em>int</em>) – Padding idx for input_layer=embed.</p></li>
+<li><p><strong>attention_windows</strong> (<em>list</em>) – Layer-wise attention window sizes
+for longformer self-attn</p></li>
+<li><p><strong>attention_dilation</strong> (<em>list</em>) – Layer-wise attention dilation sizes
+for longformer self-attn</p></li>
+<li><p><strong>attention_mode</strong> (<em>str</em>) – Implementation for longformer self-attn.
+Default=”sliding_chunks”
+Choose ‘n2’, ‘tvm’ or ‘sliding_chunks’. More details in
+<a class="reference external" href="https://github.com/allenai/longformer">https://github.com/allenai/longformer</a></p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.encoder.longformer_encoder.LongformerEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">ctc: espnet2.asr.ctc.CTC = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/longformer_encoder.html#LongformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.longformer_encoder.LongformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_pad</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, L, input_size).</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – Input length (#batch).</p></li>
+<li><p><strong>prev_states</strong> (<em>torch.Tensor</em>) – Not to be used now.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor (#batch, L, output_size).
+torch.Tensor: Output length (#batch).
+torch.Tensor: Not to be used now.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.longformer_encoder.LongformerEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/encoder/longformer_encoder.html#LongformerEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.longformer_encoder.LongformerEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-asr-encoder-abs-encoder">
-<span id="id37"></span><h2>espnet2.asr.encoder.abs_encoder<a class="headerlink" href="#espnet2-asr-encoder-abs-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id38"></span><h2>espnet2.asr.encoder.abs_encoder<a class="headerlink" href="#espnet2-asr-encoder-abs-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.abs_encoder"></span><dl class="class">
 <dt id="espnet2.asr.encoder.abs_encoder.AbsEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.abs_encoder.</code><code class="sig-name descname">AbsEncoder</code><a class="reference internal" href="../_modules/espnet2/asr/encoder/abs_encoder.html#AbsEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="Permalink to this definition">¶</a></dt>
@@ -2166,10 +2248,10 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-asr-encoder-init">
-<span id="id38"></span><h2>espnet2.asr.encoder.__init__<a class="headerlink" href="#espnet2-asr-encoder-init" title="Permalink to this headline">¶</a></h2>
+<span id="id39"></span><h2>espnet2.asr.encoder.__init__<a class="headerlink" href="#espnet2-asr-encoder-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.__init__"></span></section>
 <section id="espnet2-asr-encoder-contextual-block-conformer-encoder">
-<span id="id39"></span><h2>espnet2.asr.encoder.contextual_block_conformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-contextual-block-conformer-encoder" title="Permalink to this headline">¶</a></h2>
+<span id="id40"></span><h2>espnet2.asr.encoder.contextual_block_conformer_encoder<a class="headerlink" href="#espnet2-asr-encoder-contextual-block-conformer-encoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.encoder.contextual_block_conformer_encoder"></span><p>Created on Sat Aug 21 17:27:16 2021.</p>
 <p>&#64;author: Keqi Deng (UCAS)</p>
 <dl class="class">

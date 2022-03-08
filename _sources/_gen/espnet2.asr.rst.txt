@@ -400,6 +400,17 @@ espnet2.asr.encoder.hubert_encoder
     :show-inheritance:
 
 
+.. _espnet2.asr.encoder.longformer_encoder:
+
+espnet2.asr.encoder.longformer_encoder
+--------------------------------------
+
+.. automodule:: espnet2.asr.encoder.longformer_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.encoder.abs_encoder:
 
 espnet2.asr.encoder.abs_encoder

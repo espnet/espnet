@@ -587,6 +587,17 @@ espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer
     :show-inheritance:
 
 
+.. _espnet.nets.pytorch_backend.transformer.longformer_attention:
+
+espnet.nets.pytorch_backend.transformer.longformer_attention
+------------------------------------------------------------
+
+.. automodule:: espnet.nets.pytorch_backend.transformer.longformer_attention
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet.nets.pytorch_backend.transformer.attention:
 
 espnet.nets.pytorch_backend.transformer.attention
