@@ -28,6 +28,8 @@ from espnet2.asr.decoder.transformer_decoder import (
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
+
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertPretrainEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
@@ -126,6 +128,7 @@ encoder_choices = ClassChoices(
         wav2vec2=FairSeqWav2Vec2Encoder,
         hubert=FairseqHubertEncoder,
         hubert_pretrain=FairseqHubertPretrainEncoder,
+        longformer=LongformerEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
@@ -477,7 +480,7 @@ class ASRTask(AbsTask):
 
         # 6. CTC
         ctc = CTC(
-            odim=vocab_size, encoder_output_sizse=encoder_output_size, **args.ctc_conf
+            odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
         )
 
         # 8. Build model

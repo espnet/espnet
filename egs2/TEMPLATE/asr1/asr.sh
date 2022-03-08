@@ -894,7 +894,7 @@ if ! "${skip_train}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         if "${use_ngram}"; then
             log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
-            cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
+            cut -f 2- -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
             build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
         else
             log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
@@ -1478,8 +1478,8 @@ fi
 if ! "${skip_upload_hf}"; then
     if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ]; then
         [ -z "${hf_repo}" ] && \
-            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
-            exit 1
+            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
+	    exit 1
         log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
 
         gitlfs=$(git lfs --version 2> /dev/null || true)

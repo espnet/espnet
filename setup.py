@@ -31,6 +31,7 @@ requirements = {
         "ctc-segmentation<1.8,>=1.6.6",
         # TTS
         "pyworld>=0.2.10",
+        "pypinyin<=0.44.0",
         "espnet_tts_frontend",
         # ENH
         "ci_sdr",
@@ -69,9 +70,8 @@ requirements = {
         "torchaudio",
         "torch_optimizer",
         "fairscale",
-        "fairseq",
         "transformers",
-        "gtn",
+        "gtn==0.0.0",
     ],
     "setup": [
         "numpy<=1.21.3",

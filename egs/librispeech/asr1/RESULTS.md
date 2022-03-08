@@ -63,6 +63,37 @@ exp/train_960_pytorch_train_pytorch_conformer_large_specaug/decode_test_other_mo
 |    Sum/Avg         |    2939        52343     |    95.3          4.1           0.6          0.6           5.3         44.8     |
 ```
 
+# pytorch large conformer-transducer with specaug + speed perturbation (4 GPUs)
+
+- Environments
+  - python version: `3.8.3 (default)  [GCC 7.3.0]`
+  - espnet version: `espnet 0.10.7a1`
+  - chainer version: `chainer 6.0.0`
+  - pytorch version: `pytorch 1.10.0`
+
+- Model files (archived to model.tar.gz by `$ pack_model.sh`)
+    - model link: ([pretrained model](https://drive.google.com/file/d/1fdadICi2w_b6lqb9_7J3wfRJc3LTnnSq/view?usp=sharing))
+    - training config file: `conf/tuning/transducer/train_conformer-rnn_transducer.yaml`
+    - decoding config file: `conf/tuning/transducer/decode.yaml`
+    - cmvn file: `data/train_sp/cmvn.ark`
+    - e2e file: `exp/train_960_pytorch_transducer_train_conformer-rnn_transducer/results/model.last10.avg.best`
+    - e2e JSON file: `exp/train_960_pytorch_transducer_train_conformer-rnn_transducer/results/model.json`
+    - dict file: `data/lang_char`
+  - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
+```
+exp/train_960_pytorch_transducer_train_conformer-rnn_transducer/decode_dev_clean_model.last10.avg.best/result.wrd.txt
+|    SPKR           |    # Snt       # Wrd     |    Corr          Sub          Del          Ins           Err        S.Err    |
+|    Sum/Avg        |    2703        54402     |    97.6          2.2          0.2          0.3           2.7         33.0    |
+exp/train_960_pytorch_transducer_train_conformer-rnn_transducer/decode_dev_other_model.last10.avg.best/result.wrd.txt
+|    SPKR           |    # Snt       # Wrd     |    Corr          Sub          Del          Ins           Err        S.Err    |
+|    Sum/Avg        |    2864        50948     |    93.7          5.7          0.6          0.7           7.0         52.8    |
+exp/train_960_pytorch_transducer_train_conformer-rnn_transducer/decode_test_clean_model.last10.avg.best/result.wrd.txt
+|    SPKR           |    # Snt        # Wrd    |    Corr          Sub           Del          Ins          Err         S.Err    |
+|    Sum/Avg        |    2620         52576    |    97.4          2.3           0.3          0.3          2.9          33.1    |
+exp/train_960_pytorch_transducer_train_conformer-rnn_transducer/decode_test_other_model.last10.avg.best/result.wrd.txt
+|    SPKR           |    # Snt        # Wrd    |    Corr          Sub           Del          Ins          Err         S.Err    |
+|    Sum/Avg        |    2939         52343    |    93.7          5.6           0.7          0.8          7.1          55.1    |
+```
 
 # Lightweight/Dynamic convolution results
 | |         | # Snt | # Wrd |Corr|Sub|Del|Ins|Err|S.Err |

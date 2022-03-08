@@ -4,6 +4,7 @@
 #
 # The code is based on:
 # https://github.com/kaituoxu/Conv-TasNet/blob/master/src/conv_tasnet.py
+# Licensed under MIT.
 #
 
 
@@ -46,7 +47,7 @@ class TemporalConvNet(nn.Module):
         for r in range(R):
             blocks = []
             for x in range(X):
-                dilation = 2 ** x
+                dilation = 2**x
                 padding = (P - 1) * dilation if causal else (P - 1) * dilation // 2
                 blocks += [
                     TemporalBlock(
@@ -86,9 +87,9 @@ class TemporalConvNet(nn.Module):
         elif self.mask_nonlinear == "relu":
             est_mask = F.relu(score)
         elif self.mask_nonlinear == "sigmoid":
-            est_mask = torch.sigmoid(score)
+            est_mask = F.sigmoid(score)
         elif self.mask_nonlinear == "tanh":
-            est_mask = torch.tanh(score)
+            est_mask = F.tanh(score)
         else:
             raise ValueError("Unsupported mask non-linear function")
         return est_mask
@@ -110,7 +111,7 @@ class TemporalBlock(nn.Module):
         # [M, B, K] -> [M, H, K]
         conv1x1 = nn.Conv1d(in_channels, out_channels, 1, bias=False)
         prelu = nn.PReLU()
-        norm = chose_norm(norm_type, out_channels)
+        norm = choose_norm(norm_type, out_channels)
         # [M, H, K] -> [M, B, K]
         dsconv = DepthwiseSeparableConv(
             out_channels,
@@ -169,7 +170,7 @@ class DepthwiseSeparableConv(nn.Module):
         if causal:
             chomp = Chomp1d(padding)
         prelu = nn.PReLU()
-        norm = chose_norm(norm_type, in_channels)
+        norm = choose_norm(norm_type, in_channels)
         # [M, H, K] -> [M, B, K]
         pointwise_conv = nn.Conv1d(in_channels, out_channels, 1, bias=False)
         # Put together
@@ -214,19 +215,21 @@ def check_nonlinear(nolinear_type):
         raise ValueError("Unsupported nonlinear type")
 
 
-def chose_norm(norm_type, channel_size):
+def choose_norm(norm_type, channel_size, shape="BDT"):
     """The input of normalization will be (M, C, K), where M is batch size.
 
     C is channel size and K is sequence length.
     """
     if norm_type == "gLN":
-        return GlobalLayerNorm(channel_size)
+        return GlobalLayerNorm(channel_size, shape=shape)
     elif norm_type == "cLN":
-        return ChannelwiseLayerNorm(channel_size)
+        return ChannelwiseLayerNorm(channel_size, shape=shape)
     elif norm_type == "BN":
         # Given input (M, C, K), nn.BatchNorm1d(C) will accumulate statics
         # along M and K, so this BN usage is right.
         return nn.BatchNorm1d(channel_size)
+    elif norm_type == "GN":
+        return nn.GroupNorm(1, channel_size, eps=1e-8)
     else:
         raise ValueError("Unsupported normalization type")
 
@@ -234,11 +237,13 @@ def chose_norm(norm_type, channel_size):
 class ChannelwiseLayerNorm(nn.Module):
     """Channel-wise Layer Normalization (cLN)."""
 
-    def __init__(self, channel_size):
+    def __init__(self, channel_size, shape="BDT"):
         super().__init__()
         self.gamma = nn.Parameter(torch.Tensor(1, channel_size, 1))  # [1, N, 1]
         self.beta = nn.Parameter(torch.Tensor(1, channel_size, 1))  # [1, N, 1]
         self.reset_parameters()
+        assert shape in ["BDT", "BTD"]
+        self.shape = shape
 
     def reset_parameters(self):
         self.gamma.data.fill_(1)
@@ -253,20 +258,32 @@ class ChannelwiseLayerNorm(nn.Module):
         Returns:
             cLN_y: [M, N, K]
         """
+
+        assert y.dim() == 3
+
+        if self.shape == "BTD":
+            y = y.transpose(1, 2).contiguous()
+
         mean = torch.mean(y, dim=1, keepdim=True)  # [M, 1, K]
         var = torch.var(y, dim=1, keepdim=True, unbiased=False)  # [M, 1, K]
         cLN_y = self.gamma * (y - mean) / torch.pow(var + EPS, 0.5) + self.beta
+
+        if self.shape == "BTD":
+            cLN_y = cLN_y.transpose(1, 2).contiguous()
+
         return cLN_y
 
 
 class GlobalLayerNorm(nn.Module):
     """Global Layer Normalization (gLN)."""
 
-    def __init__(self, channel_size):
+    def __init__(self, channel_size, shape="BDT"):
         super().__init__()
         self.gamma = nn.Parameter(torch.Tensor(1, channel_size, 1))  # [1, N, 1]
         self.beta = nn.Parameter(torch.Tensor(1, channel_size, 1))  # [1, N, 1]
         self.reset_parameters()
+        assert shape in ["BDT", "BTD"]
+        self.shape = shape
 
     def reset_parameters(self):
         self.gamma.data.fill_(1)
@@ -281,9 +298,13 @@ class GlobalLayerNorm(nn.Module):
         Returns:
             gLN_y: [M, N, K]
         """
-        mean = y.mean(dim=1, keepdim=True).mean(dim=2, keepdim=True)  # [M, 1, 1]
-        var = (
-            (torch.pow(y - mean, 2)).mean(dim=1, keepdim=True).mean(dim=2, keepdim=True)
-        )
+        if self.shape == "BTD":
+            y = y.transpose(1, 2).contiguous()
+
+        mean = y.mean(dim=(1, 2), keepdim=True)  # [M, 1, 1]
+        var = (torch.pow(y - mean, 2)).mean(dim=(1, 2), keepdim=True)
         gLN_y = self.gamma * (y - mean) / torch.pow(var + EPS, 0.5) + self.beta
+
+        if self.shape == "BTD":
+            gLN_y = gLN_y.transpose(1, 2).contiguous()
         return gLN_y

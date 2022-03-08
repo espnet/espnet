@@ -64,7 +64,7 @@ class FeatureTransform(torch.nn.Module):
             h = x
 
         # h: ComplexTensor(B, T, F) -> torch.Tensor(B, T, F)
-        h = h.real ** 2 + h.imag ** 2
+        h = h.real**2 + h.imag**2
 
         h, _ = self.logmel(h, ilens)
         if self.stats_file is not None:

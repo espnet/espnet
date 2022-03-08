@@ -42,6 +42,8 @@ egs*/*/*/tensorboard
 egs*/*/*/wav*
 egs*/*/*/nltk*
 egs*/*/*/.cache*
+egs*/*/*/pretrained_models*
+egs*/fisher_callhome_spanish/*/local/mapping*
 
 # tools related
 tools/chainer

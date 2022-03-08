@@ -134,20 +134,19 @@ except ImportError:
     not is_parallel_wavegan_available, reason="parallel_wavegan is not installed."
 )
 def test_parallel_wavegan_compatibility():
-    from parallel_wavegan.utils import download_pretrained_model
-    from parallel_wavegan.utils import load_model
+    from parallel_wavegan.models import (
+        ParallelWaveGANGenerator as PWGParallelWaveGANGenerator,  # NOQA
+    )
 
-    ckpt_path = download_pretrained_model("ljspeech_parallel_wavegan.v1")
-    state_dict = torch.load(ckpt_path, map_location="cpu")["model"]["generator"]
-    model_pwg = load_model(ckpt_path)
-    model_espnet2 = ParallelWaveGANGenerator()
-    model_espnet2.load_state_dict(state_dict)
+    model_pwg = PWGParallelWaveGANGenerator(**make_generator_args())
+    model_espnet2 = ParallelWaveGANGenerator(**make_generator_args())
+    model_espnet2.load_state_dict(model_pwg.state_dict())
     model_pwg.eval()
     model_espnet2.eval()
 
     with torch.no_grad():
-        z = torch.randn(5 * 256, 1)
-        c = torch.randn(5, 80)
+        z = torch.randn(3 * 16, 1)
+        c = torch.randn(3, 10)
         out_pwg = model_pwg.inference(c, z)
         out_espnet2 = model_espnet2.inference(c, z)
         np.testing.assert_array_equal(

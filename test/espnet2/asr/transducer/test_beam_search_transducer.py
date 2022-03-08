@@ -7,6 +7,7 @@ from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 
 
+@pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize("rnn_type", ["lstm", "gru"])
 @pytest.mark.parametrize(
     "search_params",
