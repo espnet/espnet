@@ -13,6 +13,7 @@ import argparse
 from sklearn.metrics import f1_score
 from sklearn.metrics import classification_report
 
+
 def get_classification_result(hyp_file, ref_file):
     hyp_lines = [line for line in hyp_file]
     ref_lines = [line for line in ref_file]
@@ -26,7 +27,7 @@ def get_classification_result(hyp_file, ref_file):
         hyp_intent_arr.append(hyp_intent)
         ref_intent_arr.append(ref_intent)
     print(classification_report(ref_intent_arr, hyp_intent_arr))
-    return f1_score(ref_intent_arr, hyp_intent_arr, average='macro')
+    return f1_score(ref_intent_arr, hyp_intent_arr, average="macro")
 
 
 parser = argparse.ArgumentParser()
