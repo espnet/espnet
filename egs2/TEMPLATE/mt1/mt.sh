@@ -460,7 +460,7 @@ if ! "${skip_data_prep}"; then
 
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         if [ "${feats_type}" = raw ]; then
-            log "Stage 3: data/ -> ${data_feats}"
+            log "Stage 2: data/ -> ${data_feats}"
 
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
@@ -508,19 +508,18 @@ if ! "${skip_data_prep}"; then
 
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 
-        # Then generate src lang
         if "${token_joint}"; then
             log "Merge src and target data if joint BPE"
 
             cat $tgt_bpe_train_text > ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
-            [ -z "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >>  ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+            [ ! -z "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >> ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
             # Set the new text as the target text
             tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
         fi
 
         # First generate tgt lang
         if [ "${tgt_token_type}" = bpe ]; then
-            log "Stage 5a: Generate token_list from ${tgt_bpe_train_text} using BPE for tgt_lang"
+            log "Stage 4a: Generate token_list from ${tgt_bpe_train_text} using BPE for tgt_lang"
 
             mkdir -p "${tgt_bpedir}"
             # shellcheck disable=SC2002
@@ -550,7 +549,7 @@ if ! "${skip_data_prep}"; then
             } > "${tgt_token_list}"
 
         elif [ "${tgt_token_type}" = char ] || [ "${tgt_token_type}" = word ]; then
-            log "Stage 5a: Generate character level token_list from ${tgt_bpe_train_text}  for tgt_lang"
+            log "Stage 4a: Generate character level token_list from ${tgt_bpe_train_text}  for tgt_lang"
 
             _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
@@ -593,10 +592,10 @@ if ! "${skip_data_prep}"; then
 
         # Then generate src lang
         if "${token_joint}"; then
-            log "Stage 5b: Skip separate token construction for src_lang when setting ${token_joint} as true"
+            log "Stage 4b: Skip separate token construction for src_lang when setting ${token_joint} as true"
         else
             if [ "${src_token_type}" = bpe ]; then
-                log "Stage 5b: Generate token_list from ${src_bpe_train_text} using BPE for src_lang"
+                log "Stage 4b: Generate token_list from ${src_bpe_train_text} using BPE for src_lang"
 
                 mkdir -p "${src_bpedir}"
                 # shellcheck disable=SC2002
@@ -626,7 +625,7 @@ if ! "${skip_data_prep}"; then
                 } > "${src_token_list}"
 
             elif [ "${src_token_type}" = char ] || [ "${src_token_type}" = word ]; then
-                log "Stage 5b: Generate character level token_list from ${src_bpe_train_text}  for src_lang"
+                log "Stage 4b: Generate character level token_list from ${src_bpe_train_text}  for src_lang"
 
                 _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
@@ -650,8 +649,6 @@ if ! "${skip_data_prep}"; then
                 log "Error: not supported --token_type '${src_token_type}'"
                 exit 2
             fi
-
-
         fi
     fi
 
@@ -1168,37 +1165,54 @@ if ! "${skip_eval}"; then
             _scoredir="${_dir}/score_bleu"
             mkdir -p "${_scoredir}"
 
-            paste \
-                <(<"${_data}/text.${tgt_case}.${tgt_lang}" \
-                    ${python} -m espnet2.bin.tokenize_text  \
-                        -f 2- --input - --output - \
-                        --token_type word \
-                        --non_linguistic_symbols "${nlsyms_txt}" \
-                        --remove_non_linguistic_symbols true \
-                        --cleaner "${cleaner}" \
-                        ) \
-                <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
-                    >"${_scoredir}/ref.trn.org"
+            <"${_data}/text.${tgt_case}.${tgt_lang}" \
+                ${python} -m espnet2.bin.tokenize_text  \
+                    -f 2- --input - --output - \
+                    --token_type word \
+                    --non_linguistic_symbols "${nlsyms_txt}" \
+                    --remove_non_linguistic_symbols true \
+                    --cleaner "${cleaner}" \
+            >"${_scoredir}/ref.trn"
+
+            #paste \
+            #    <(<"${_data}/text.${tgt_case}.${tgt_lang}" \
+            #        ${python} -m espnet2.bin.tokenize_text  \
+            #            -f 2- --input - --output - \
+            #            --token_type word \
+            #            --non_linguistic_symbols "${nlsyms_txt}" \
+            #            --remove_non_linguistic_symbols true \
+            #            --cleaner "${cleaner}" \
+            #            ) \
+            #    <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
+            #        >"${_scoredir}/ref.trn.org"
 
             # NOTE(kamo): Don't use cleaner for hyp
-            paste \
-                <(<"${_dir}/text"  \
-                        ${python} -m espnet2.bin.tokenize_text  \
-                            -f 2- --input - --output - \
-                            --token_type word \
-                            --non_linguistic_symbols "${nlsyms_txt}" \
-                            --remove_non_linguistic_symbols true \
-                            ) \
-                <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
-                    >"${_scoredir}/hyp.trn.org"
+            <"${_dir}/text"  \
+                    ${python} -m espnet2.bin.tokenize_text  \
+                    -f 2- --input - --output - \
+                    --token_type word \
+                    --non_linguistic_symbols "${nlsyms_txt}" \
+                    --remove_non_linguistic_symbols true \
+            >"${_scoredir}/hyp.trn"
+
+            #paste \
+            #    <(<"${_dir}/text"  \
+            #            ${python} -m espnet2.bin.tokenize_text  \
+            #                -f 2- --input - --output - \
+            #                --token_type word \
+            #                --non_linguistic_symbols "${nlsyms_txt}" \
+            #                --remove_non_linguistic_symbols true \
+            #                ) \
+            #    <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
+            #        >"${_scoredir}/hyp.trn.org"
             
             # remove utterance id
-            perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
-            perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
+            #perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
+            #perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
 
             # detokenizer
-            detokenizer.perl -l en -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
-            detokenizer.perl -l en -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
+            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
+            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
 
             if [ ${tgt_case} = "tc" ]; then
                 echo "Case sensitive BLEU result (single-reference)" >> ${_scoredir}/result.tc.txt
@@ -1241,7 +1255,7 @@ if ! "${skip_eval}"; then
                     
                     # 
                     perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
-                    detokenizer.perl -l en -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
+                    detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
                     remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
                     case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
                     case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
