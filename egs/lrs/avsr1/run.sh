@@ -78,6 +78,16 @@ fi
 train_dev="Val"
 recog_set="Val Test"
 
+
+
+# Stage -1: download local folder 
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
+    # Install required softwares
+    git clone https://github.com/wentaoxandry/lrs_avsr1_local.git
+    mv lrs_avsr1_local/local local
+    rm -rf lrs_avsr1_local
+fi
+
 # Stage 0: install software
 OPENFACE_DIR=local/installations/OpenFace/build/bin	# Path to OpenFace build directory
 VIDAUG_DIR=local/installations/vidaug 		 	# Path to vidaug directory
