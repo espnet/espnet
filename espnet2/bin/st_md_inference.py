@@ -33,7 +33,6 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
-from espnet2.bin.st_md_inference import inference_md 
 
 
 class Speech2Text:
@@ -68,18 +67,39 @@ class Speech2Text:
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
         nbest: int = 1,
+        src_token_type: str = None,
+        src_bpemodel: str = None,
+        md_beam_size: int = 20,
+        md_nbest: int = 1,
+        md_penalty: float = 0.0,
+        md_maxlenratio: float = 0.0,
+        md_minlenratio: float = 0.0,
+        md_ctc_weight: float = 0.3,
+        md_lm_weight: float = 1.0,
     ):
         assert check_argument_types()
 
         # 1. Build ST model
         scorers = {}
+        asr_scorers = {}
+
         st_model, st_train_args = STTask.build_model_from_file(
             st_train_config, st_model_file, device
         )
         st_model.to(dtype=getattr(torch, dtype)).eval()
 
         decoder = st_model.decoder
+        asr_decoder = st_model.asr_decoder
         token_list = st_model.token_list
+        if getattr(st_model,"src_token_list", None) is None:
+            src_token_list = st_train_args.src_token_list
+        else:
+            src_token_list = st_model.src_token_list
+
+        asr_scorers.update(
+            decoder=asr_decoder,
+            length_bonus=LengthBonus(len(src_token_list)),
+        )
         scorers.update(
             decoder=decoder,
             length_bonus=LengthBonus(len(token_list)),
@@ -105,6 +125,26 @@ class Speech2Text:
         else:
             ngram = None
         scorers["ngram"] = ngram
+        asr_scorers["ngram"] = None
+
+        # ASR BeamSearch Object
+        asr_weights = dict(
+            decoder=1.0 - md_ctc_weight,
+            ctc=md_ctc_weight,
+            lm=md_lm_weight,
+            length_bonus=md_penalty,
+        )
+        asr_beam_search = BeamSearch(
+            beam_size=md_beam_size,
+            weights=asr_weights,
+            scorers=asr_scorers,
+            sos=st_model.src_sos,
+            eos=st_model.src_eos,
+            vocab_size=len(src_token_list),
+            token_list=src_token_list,
+            pre_beam_score_key=None if md_ctc_weight == 1.0 else "full",
+            return_hidden=True,
+        )
 
         # 4. Build BeamSearch object
         weights = dict(
@@ -145,11 +185,37 @@ class Speech2Text:
         logging.info(f"Beam_search: {beam_search}")
         logging.info(f"Decoding device={device}, dtype={dtype}")
 
+        if batch_size == 1:
+            non_batch = [
+                k
+                for k, v in asr_beam_search.full_scorers.items()
+                if not isinstance(v, BatchScorerInterface)
+            ]
+            if len(non_batch) == 0:
+                asr_beam_search.__class__ = BatchBeamSearch
+                logging.info("BatchBeamSearch implementation is selected.")
+            else:
+                logging.warning(
+                    f"As non-batch scorers {non_batch} are found, "
+                    f"fall back to non-batch implementation."
+                )
+        asr_beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
+        for scorer in asr_scorers.values():
+            if isinstance(scorer, torch.nn.Module):
+                scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
+        logging.info(f"Beam_search: {asr_beam_search}")
+        logging.info(f"Decoding device={device}, dtype={dtype}")
+
         # 4. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
             token_type = st_train_args.token_type
         if bpemodel is None:
             bpemodel = st_train_args.bpemodel
+
+        if src_token_type is None:
+            src_token_type = st_train_args.src_token_type
+        if src_bpemodel is None:
+            src_bpemodel = st_train_args.src_bpemodel
 
         if token_type is None:
             tokenizer = None
@@ -163,27 +229,49 @@ class Speech2Text:
         converter = TokenIDConverter(token_list=token_list)
         logging.info(f"Text tokenizer: {tokenizer}")
 
+
+        if src_token_type is None:
+            asr_tokenizer = None
+        elif src_token_type == "bpe":
+            if src_bpemodel is not None:
+                asr_tokenizer = build_tokenizer(token_type=src_token_type, bpemodel=src_bpemodel)
+            else:
+                asr_tokenizer = None
+        else:
+            asr_tokenizer = build_tokenizer(token_type=src_token_type)
+        asr_converter = TokenIDConverter(token_list=src_token_list)
+        logging.info(f"ASR Text tokenizer: {asr_tokenizer}")
+
         self.st_model = st_model
         self.st_train_args = st_train_args
+        self.device = device
+        self.dtype = dtype
+
         self.converter = converter
         self.tokenizer = tokenizer
         self.beam_search = beam_search
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
-        self.device = device
-        self.dtype = dtype
         self.nbest = nbest
+
+
+        self.asr_converter = asr_converter
+        self.asr_tokenizer = asr_tokenizer
+        self.asr_beam_search = asr_beam_search
+        self.md_maxlenratio = md_maxlenratio
+        self.md_minlenratio = md_minlenratio
+        self.md_nbest = md_nbest
 
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
+    ) -> List[Tuple[Optional[str], Optional[str], List[str], List[int], Hypothesis]]:
         """Inference
 
         Args:
             data: Input speech data
         Returns:
-            text, token, token_int, hyp
+            src_text, text, token, token_int, hyp
 
         """
         assert check_argument_types()
@@ -206,8 +294,43 @@ class Speech2Text:
         assert len(enc) == 1, len(enc)
 
         # c. Passed the encoder result and the beam search
+        asr_nbest_hyps = self.asr_beam_search(
+            x=enc[0], maxlenratio=self.md_maxlenratio, minlenratio=self.md_minlenratio
+        )
+        asr_nbest_hyps = asr_nbest_hyps[: self.md_nbest]
+
+        asr_results = []
+        for hyp in asr_nbest_hyps:
+            assert isinstance(hyp, Hypothesis), type(hyp)
+
+            # remove sos/eos and get results
+            asr_hs = torch.stack(hyp.hs)
+
+            src_token_int = hyp.yseq[1:-1].tolist()
+
+            # remove blank symbol id, which is assumed to be 0
+            src_token_int = list(filter(lambda x: x != 0, src_token_int))
+
+            # Change integer-ids to tokens
+            src_token = self.asr_converter.ids2tokens(src_token_int)
+
+            if self.tokenizer is not None:
+                src_text = self.asr_tokenizer.tokens2text(src_token)
+            else:
+                src_text = None
+            asr_results.append((src_text, src_token, src_token_int, hyp, asr_hs))
+
+        # Currently only support nbest 1
+        asr_src_text = asr_results[0][0]
+        asr_hs = asr_results[0][-1].unsqueeze(0)
+        asr_hs = to_device(asr_hs, device=self.device)
+        asr_hs_lengths = asr_hs.new_full([1], dtype=torch.long, fill_value=asr_hs.size(1))
+        enc_mt, enc_mt_lengths, _ = self.st_model.encoder_mt(asr_hs, asr_hs_lengths)
+
+
+        # c. Passed the encoder result and the beam search
         nbest_hyps = self.beam_search(
-            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x = enc_mt[0]
         )
         nbest_hyps = nbest_hyps[: self.nbest]
 
@@ -228,7 +351,7 @@ class Speech2Text:
                 text = self.tokenizer.tokens2text(token)
             else:
                 text = None
-            results.append((text, token, token_int, hyp))
+            results.append((asr_src_text,text, token, token_int, hyp))
 
         assert check_return_type(results)
         return results
@@ -263,7 +386,7 @@ class Speech2Text:
         return Speech2Text(**kwargs)
 
 
-def inference(
+def inference_md(
     output_dir: str,
     maxlenratio: float,
     minlenratio: float,
@@ -290,6 +413,13 @@ def inference(
     model_tag: Optional[str],
     token_type: Optional[str],
     bpemodel: Optional[str],
+    md_beam_size: int,
+    md_nbest: int,
+    md_penalty: float,
+    md_maxlenratio: float,
+    md_minlenratio: float,
+    md_ctc_weight: float,
+    md_lm_weight: float,
     allow_variable_data_keys: bool,
 ):
     assert check_argument_types()
@@ -331,6 +461,13 @@ def inference(
         ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
+        md_beam_size=md_beam_size,
+        md_nbest=md_nbest,
+        md_penalty=md_penalty,
+        md_maxlenratio=md_maxlenratio,
+        md_minlenratio=md_minlenratio,
+        md_ctc_weight=md_ctc_weight,
+        md_lm_weight=md_lm_weight,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -370,7 +507,7 @@ def inference(
 
             # Only supporting batch_size==1
             key = keys[0]
-            for n, (text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
+            for n, (src_text, text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
                 # Create a directory: outdir/{n}best_recog
                 ibest_writer = writer[f"{n}best_recog"]
 
@@ -382,189 +519,5 @@ def inference(
                 if text is not None:
                     ibest_writer["text"][key] = text
 
-
-def get_parser():
-    parser = config_argparse.ArgumentParser(
-        description="ST Decoding",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-
-    # Note(kamo): Use '_' instead of '-' as separator.
-    # '-' is confusing if written in yaml.
-    parser.add_argument(
-        "--log_level",
-        type=lambda x: x.upper(),
-        default="INFO",
-        choices=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
-        help="The verbose level of logging",
-    )
-
-    parser.add_argument("--output_dir", type=str, required=True)
-    parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
-    )
-    parser.add_argument("--seed", type=int, default=0, help="Random seed")
-    parser.add_argument(
-        "--dtype",
-        default="float32",
-        choices=["float16", "float32", "float64"],
-        help="Data type",
-    )
-    parser.add_argument(
-        "--num_workers",
-        type=int,
-        default=1,
-        help="The number of workers used for DataLoader",
-    )
-
-    group = parser.add_argument_group("Input data related")
-    group.add_argument(
-        "--data_path_and_name_and_type",
-        type=str2triple_str,
-        required=True,
-        action="append",
-    )
-    group.add_argument("--key_file", type=str_or_none)
-    group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
-
-    group = parser.add_argument_group("The model configuration related")
-    group.add_argument(
-        "--use_multidecoder",
-        type=str2bool,
-        default=False,
-        help="Use multidecoder model",
-    )
-    group.add_argument(
-        "--st_train_config",
-        type=str,
-        help="ST training configuration",
-    )
-    group.add_argument(
-        "--st_model_file",
-        type=str,
-        help="ST model parameter file",
-    )
-    group.add_argument(
-        "--lm_train_config",
-        type=str,
-        help="LM training configuration",
-    )
-    group.add_argument(
-        "--lm_file",
-        type=str,
-        help="LM parameter file",
-    )
-    group.add_argument(
-        "--word_lm_train_config",
-        type=str,
-        help="Word LM training configuration",
-    )
-    group.add_argument(
-        "--word_lm_file",
-        type=str,
-        help="Word LM parameter file",
-    )
-    group.add_argument(
-        "--ngram_file",
-        type=str,
-        help="N-gram parameter file",
-    )
-    group.add_argument(
-        "--model_tag",
-        type=str,
-        help="Pretrained model tag. If specify this option, *_train_config and "
-        "*_file will be overwritten",
-    )
-
-    group = parser.add_argument_group("Beam-search related")
-    group.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
-    )
-    group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
-    group.add_argument("--beam_size", type=int, default=20, help="Beam size")
-    group.add_argument("--penalty", type=float, default=0.0, help="Insertion penalty")
-    group.add_argument(
-        "--maxlenratio",
-        type=float,
-        default=0.0,
-        help="Input length ratio to obtain max output length. "
-        "If maxlenratio=0.0 (default), it uses a end-detect "
-        "function "
-        "to automatically find maximum hypothesis lengths."
-        "If maxlenratio<0.0, its absolute value is interpreted"
-        "as a constant max output length",
-    )
-    group.add_argument(
-        "--minlenratio",
-        type=float,
-        default=0.0,
-        help="Input length ratio to obtain min output length",
-    )
-    group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
-    group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
-
-    group = parser.add_argument_group("MD Intermediate-search related")
-    group.add_argument("--md_nbest", type=int, default=1, help="Output N-best hypotheses")
-    group.add_argument("--md_beam_size", type=int, default=20, help="Beam size")
-    group.add_argument("--md_penalty", type=float, default=0.0, help="Insertion penalty")
-    group.add_argument(
-        "--md_maxlenratio",
-        type=float,
-        default=0.0,
-        help="Input length ratio to obtain max output length. "
-        "If maxlenratio=0.0 (default), it uses a end-detect "
-        "function "
-        "to automatically find maximum hypothesis lengths."
-        "If maxlenratio<0.0, its absolute value is interpreted"
-        "as a constant max output length",
-    )
-    group.add_argument(
-        "--md_minlenratio",
-        type=float,
-        default=0.0,
-        help="Input length ratio to obtain min output length",
-    )
-    group.add_argument("--md_ctc_weight", type=float, default=0.5, help="CTC weight in joint decoding")
-    group.add_argument("--md_lm_weight", type=float, default=1.0, help="RNNLM weight")
-
-    group = parser.add_argument_group("Text converter related")
-    group.add_argument(
-        "--token_type",
-        type=str_or_none,
-        default=None,
-        choices=["char", "bpe", None],
-        help="The token type for ST model. "
-        "If not given, refers from the training args",
-    )
-    group.add_argument(
-        "--bpemodel",
-        type=str_or_none,
-        default=None,
-        help="The model path of sentencepiece. "
-        "If not given, refers from the training args",
-    )
-
-    return parser
-
-
-def main(cmd=None):
-    print(get_commandline_args(), file=sys.stderr)
-    parser = get_parser()
-    args = parser.parse_args(cmd)
-    kwargs = vars(args)
-    kwargs.pop("config", None)
-    if kwargs['use_multidecoder']:
-        kwargs.pop("use_multidecoder", None)
-        inference_md(**kwargs)
-    else:
-        inference(**kwargs)
-
-
-if __name__ == "__main__":
-    main()
+                if src_text is not None:
+                    ibest_writer["src_text"][key] = src_text

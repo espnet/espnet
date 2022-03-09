@@ -198,16 +198,21 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             return y, h_asr, new_cache
         return y, new_cache
 
-    def score(self, ys, state, x):
+    def score(self, ys, state, x, return_hidden=False):
         """Score."""
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
+        if return_hidden:
+            logp, state = self.forward_one_step(
+                ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state, return_hidden=return_hidden
+            )
+            return logp.squeeze(0), hs, state
+
         logp, state = self.forward_one_step(
-            ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state
-        )
+            ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state,)
         return logp.squeeze(0), state
 
     def batch_score(
-        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor
+            self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor, return_hidden: bool = False,
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch.
 
@@ -237,6 +242,14 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
 
         # batch decoding
         ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
+
+        if return_hidden:
+            logp, hs, states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state, return_hidden=return_hidden)
+
+            # transpose state of [layer, batch] into [batch, layer]
+            state_list = [[states[i][b] for i in range(n_layers)] for b in range(n_batch)]
+            return logp, hs, state_list
+
         logp, states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state)
 
         # transpose state of [layer, batch] into [batch, layer]

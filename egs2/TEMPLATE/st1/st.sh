@@ -100,7 +100,6 @@ st_config=     # Config for st model training.
 st_args=       # Arguments for st model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in st config.
 pretrained_asr=               # Pretrained model to load
-ignore_init_mismatch=false      # Ignore initial mismatch
 feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_st=1            # Number of splitting for lm corpus.
 src_lang=es                # source language abbrev. id (e.g., es)
@@ -221,7 +220,6 @@ Options:
                        # e.g., --st_args "--max_epoch 10"
                        # Note that it will overwrite args in st config.
     --pretrained_asr=          # Pretrained model to load (default="${pretrained_asr}").
-    --ignore_init_mismatch=      # Ignore mismatch parameter init with pretrained model (default="${ignore_init_mismatch}").
     --feats_normalize  # Normalizaton layer type. (default="${feats_normalize}").
     --num_splits_st    # Number of splitting for lm corpus.  (default="${num_splits_st}").
     --src_lang=        # source language abbrev. id (e.g., es). (default="${src_lang}")
@@ -336,7 +334,7 @@ if "${token_joint}"; then
     src_bpetoken_list="${tgt_bpetoken_list}"
     src_chartoken_list="${tgt_chartoken_list}"
 else
-    src_bpedir="${token_listdir}/src_bpe_${tgt_bpemode}${tgt_nbpe}"
+    src_bpedir="${token_listdir}/src_bpe_${src_bpemode}${src_nbpe}"
     src_bpeprefix="${src_bpedir}"/bpe
     src_bpemodel="${src_bpeprefix}".model
     src_bpetoken_list="${src_bpedir}"/tokens.txt
@@ -1312,8 +1310,6 @@ if ! "${skip_train}"; then
                 --valid_shape_file "${st_stats_dir}/valid/text_shape.${tgt_token_type}" \
                 --valid_shape_file "${st_stats_dir}/valid/src_text_shape.${src_token_type}" \
                 --resume true \
-                --init_param ${pretrained_asr} \
-                --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${_fold_length}" \
                 --fold_length "${st_text_fold_length}" \
                 --fold_length "${st_text_fold_length}" \
@@ -1428,6 +1424,7 @@ if ! "${skip_eval}"; then
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/st_inference.JOB.log \
                 ${python} -m ${st_inference_tool} \
                     --batch_size ${batch_size} \
+                    --use_multidecoder ${use_multidecoder} \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \

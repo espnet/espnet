@@ -12,8 +12,7 @@ train_set=train
 train_dev=dev
 test_set=test1
 
-#st_config=conf/train_st_conformer.yaml
-st_config=conf/tuning/transformer_md_fisherlike_4gpu_bbins16m.yaml
+st_config=conf/md_conformer_try1.yaml
 inference_config=conf/decode_st.yaml
 
 src_nbpe=1000
@@ -27,7 +26,6 @@ src_case=tc.rm
 tgt_case=tc
 
 ./st.sh \
-    --ignore_init_mismatch true \
     --stage 1 \
     --stop_stage 13 \
     --use_lm false \
