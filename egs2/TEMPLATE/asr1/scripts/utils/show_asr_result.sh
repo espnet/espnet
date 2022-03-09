@@ -44,7 +44,16 @@ cat << EOF
 EOF
 
 while IFS= read -r expdir; do
-    if ls "${expdir}"/*/*/score_*/result.txt &> /dev/null; then
+    
+      if ls "${expdir}"/*/*/result.sum &> /dev/null; then
+	echo "## $(basename ${expdir})"
+	cat << EOF
+|dataset|ROUGE-1|ROUGE-2|ROUGE-L|METEOR|BERTScore|
+|---|---|---|---|---|---|
+EOF
+	grep -H -e "RESULT" "${expdir}"/*/*/result.sum | sed 's=RESULT==g' |  cut -d ' ' -f 1,2- | tr ' ' '|'
+	echo  
+      elif ls "${expdir}"/*/*/score_*/result.txt &> /dev/null; then
         echo "## $(basename ${expdir})"
         for type in wer cer ter; do
                 	cat << EOF
