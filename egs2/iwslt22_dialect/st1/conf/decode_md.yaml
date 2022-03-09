@@ -1,0 +1,13 @@
+batch_size: 1
+beam_size: 10
+penalty: 0.3
+maxlenratio: 0.0
+minlenratio: 0.0
+lm_weight: 0.0
+
+md_beam_size: 10
+md_penalty: 0.1
+md_maxlenratio: 0.0
+md_minlenratio: 0.0
+md_lm_weight: 0.0
+md_ctc_weight: 0.1
