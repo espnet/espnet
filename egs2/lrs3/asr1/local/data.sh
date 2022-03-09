@@ -21,11 +21,6 @@ mp4_to_wav=true
 lrs3_username=
 lrs3_password=
 
-cmd=run.pl
-log_dir=local/python_debug_log
-nj=1
-
-
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
     exit 1
