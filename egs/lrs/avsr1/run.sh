@@ -83,10 +83,8 @@ recog_set="Val Test"
 
 # Stage -1: download local folder 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
-    # Install required softwares
-    git clone https://github.com/wentaoxandry/lrs_avsr1_local.git
-    mv lrs_avsr1_local/local local
-    rm -rf lrs_avsr1_local
+    # download required files for data processing
+    local/download.sh
 fi
 
 # Stage 0: install software
@@ -163,11 +161,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     for part in Test Val Train; do 
         # use underscore-separated names in data directories. #Problem: Filelist_Val is readonly
-        local/audio_data_prep.sh ${DATA_DIR} $part $ifsegment $ifmulticore $ifdebug $num $nj || exit 1;
+        local/data_prepare/lrs2_audio_data_prep.sh ${DATA_DIR} $part $ifsegment $ifmulticore $ifdebug $num $nj || exit 1;
     done
     if [ "$ifpretrain" = true ] ; then
     	part=pretrain
-    	local/audio_data_prep.sh ${DATA_DIR} $part $ifsegment $ifmulticore $ifdebug $num $nj || exit 1;
+    	local/data_prepare/lrs2_audio_data_prep.sh ${DATA_DIR} $part $ifsegment $ifmulticore $ifdebug $num $nj || exit 1;
     fi
 
     if [ "$iflrs3pretrain" = true ] ; then
@@ -176,7 +174,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     	python3 -m venv --system-site-packages ./LRS3-env
     	source ./LRS3-env/bin/activate
     	pip3 install pydub
-    	local/LRS3dataprocessing.sh $DATALRS3_DIR pretrain $ifmulticore $ifsegment $ifdebug $num
+    	local/data_prepare/lrs3_audio_data_prep.sh $DATALRS3_DIR pretrain $ifmulticore $ifsegment $ifdebug $num
     	deactivate
     	rm -rf ./LRS3-env
         mkdir -p data/audio/clean/LRS3/pretrain
@@ -195,19 +193,19 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "stage 2: Audio augmentation"
     for part in Test Val Train; do 
         # use underscore-separated names in data directories.
-        local/audio_augmentation.sh $MUSAN_DIR $part LRS2 || exit 1;
+        local/extract_reliability/audio_augmentation.sh $MUSAN_DIR $part LRS2 || exit 1;
     done
 
     if [ "$ifpretrain" = true ] ; then
     	part=pretrain
-    	local/audio_augmentation.sh $MUSAN_DIR $part LRS2 || exit 1;
+    	local/extract_reliability/audio_augmentation.sh $MUSAN_DIR $part LRS2 || exit 1;
     fi
     if [ "$iflrs3pretrain" = true ] ; then
     	part=pretrain
-    	local/audio_augmentation.sh $MUSAN_DIR $part LRS3 || exit 1;
+    	local/extract_reliability/audio_augmentation.sh $MUSAN_DIR $part LRS3 || exit 1;
     fi
     # The Test set is augmented with ambient and music noise SNR from -12 to 12
-    local/audio_augmentation_recog.sh $MUSAN_DIR Test LRS2 || exit 1;
+    local/extract_reliability/audio_augmentation_recog.sh $MUSAN_DIR Test LRS2 || exit 1;
     echo "Datasets Combination"
     if [[ "$ifpretrain" = true || "$iflrs3pretrain" = true ]] ; then ## combine pretrain and train set
  	if [[ "$ifpretrain" = true && "$iflrs3pretrain" = false ]] ; then
@@ -251,18 +249,18 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         for part in Test Val Train; do
 	    echo "Run audioaugwav frames for ${part} set!" 
  	    mkdir -p ${mp3files}/$part
-            local/audioaugwav.sh data/audio/augment/${part}_aug $mp3files/$part || exit 1;
+            local/extract_reliability/audioaugwav.sh data/audio/augment/${part}_aug $mp3files/$part || exit 1;
         done
 
     else
 	for part in Test Val Train pretrain; do #Train pretrain 
 	    echo "Run audioaugwav frames for ${part} set!" 
 	    mkdir -p $mp3files/$part
-    	    local/audioaugwav.sh data/audio/augment/${part}_aug $mp3files/$part || exit 1;
+    	    local/extract_reliability/audioaugwav.sh data/audio/augment/${part}_aug $mp3files/$part || exit 1;
         done
 
 	part=pretrain
-        python3 local/segaugaudio.py $mp3files data/audio/augment $part $ifmulticore
+        python3 local/extract_reliability/segaugaudio.py $mp3files data/audio/augment $part $ifmulticore
 	rm -r ${mp3files:?}/${part:?}
 	mv ${mp3files}/${part}_aug $mp3files/${part}
     fi
@@ -272,7 +270,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     for name in ${name_list};do
         dset=Test
      	mkdir -p ${mp3files}/${dset}_${name}  || exit 1;
-	local/audioaugwav.sh data/audio/augment/LRS2_decode/${dset}_aug_${name} $mp3files/${dset}_${name} || exit 1;
+	local/extract_reliability/audioaugwav.sh data/audio/augment/LRS2_decode/${dset}_aug_${name} $mp3files/${dset}_${name} || exit 1;
     done
     echo "stage 3.1: Make augmented mp3 files finished"
 
@@ -289,7 +287,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 	mv data/audio/augment/pretrain_Train_aug/segments data/audio/augment/pretrain_Train_aug/segments_old
 	for x in pretrain Train Test Val; do #pretrain_Train pretrain Train
 	    mv data/audio/augment/${x}_aug/wav.scp data/audio/augment/${x}_aug/wavnew.scp
-	    python3 local/remakewav.py data/audio/augment/${x}_aug/wavnew.scp data/audio/augment/${x}_aug/wav.scp Dataset_processing/Audioaugments/$x
+	    python3 local/extract_reliability/remakewav.py data/audio/augment/${x}_aug/wavnew.scp data/audio/augment/${x}_aug/wav.scp Dataset_processing/Audioaugments/$x
 	    cp -R data/audio/augment/${x}_aug data/audio/augment/${x}mfccs_aug
 	    mv data/audio/augment/${x}_aug data/audio/augment/${x}fbank_aug
 	    steps/make_mfcc.sh \
@@ -529,7 +527,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
   	    echo "vidaug already exist..."
 	else
   	    ln -s $VIDAUG_DIR vidaug
-	    ln -rsf local/videoaug.py  vidaug/videoaug.py  
+	    ln -rsf local/extract_reliability/videoaug.py  vidaug/videoaug.py  
 	fi
 	python3 vidaug/videoaug.py data/METADATA/Filelist_Test $DATA_DIR $videoaug blur	# video augmentation with Gaussian blur
 	python3 vidaug/videoaug.py data/METADATA/Filelist_Test $DATA_DIR $videoaug saltandpepper # video augmentation with salt and pepper noise
@@ -543,28 +541,28 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     	for part in Test Val Train; do  #
 	    echo "Starting OpenFace background processes for ${part} set!"  
  	    mkdir -p $facerecog/LRS2${part}
-            local/Openface.sh $DATA_DIR $facerecog/LRS2${part} $part $OPENFACE_DIR \
+            local/extract_reliability/Openface.sh $DATA_DIR $facerecog/LRS2${part} $part $OPENFACE_DIR \
 				LRS2 $nj $ifdebug || exit 1;
     	done
     	if [ "$ifpretrain" = true ] ; then
     	    part=pretrain
     	    echo "Starting OpenFace background processes for ${part} set!"  
 	    mkdir -p $facerecog/LRS2${part}
-    	    local/Openface.sh $DATA_DIR $facerecog/LRS2${part} $part $OPENFACE_DIR \
+    	    local/extract_reliability/Openface.sh $DATA_DIR $facerecog/LRS2${part} $part $OPENFACE_DIR \
 				LRS2 $nj $ifdebug || exit 1;
    	fi
     	if [ "$iflrs3pretrain" = true ] ; then
     	    part=pretrain
     	    echo "Starting OpenFace background processes for LRS3 ${part} set!"  
 	    mkdir -p $facerecog/LRS3${part}
-    	    local/Openface.sh $DATALRS3_DIR $facerecog/LRS3${part} $part $OPENFACE_DIR \
+    	    local/extract_reliability/Openface.sh $DATALRS3_DIR $facerecog/LRS3${part} $part $OPENFACE_DIR \
 				LRS3 $nj $ifdebug || exit 1;
    	fi
 	part=Test
     	for noisetype in blur saltandpepper; do 
 	    echo "Starting OpenFace background processes for ${part} set!"  
  	    mkdir -p $facerecog/LRS2${part}_$noisetype
-            local/Openface_vidaug.sh $videoaug $facerecog/LRS2${part}_$noisetype \
+            local/extract_reliability/Openface_vidaug.sh $videoaug $facerecog/LRS2${part}_$noisetype \
 				$part $OPENFACE_DIR LRS2 $noisetype $nj $ifdebug || exit 1;
     	done
 
@@ -580,7 +578,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     	    part=pretrain
 	    echo "Extracting frames for ${part} set!" 
 	    mkdir -p $videoframe/LRS2${part}
-    	    local/extractframs.sh $DATA_DIR \
+    	    local/extract_reliability/extractframs.sh $DATA_DIR \
 			$videoframe \
 			$facerecog \
 			data/audio/clean/LRS2 \
@@ -594,7 +592,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     	    part=pretrain
 	    echo "Extracting frames for ${part} set!" 
 	    mkdir -p $videoframe/LRS3${part}
-    	    local/extractframs.sh $DATALRS3_DIR \
+    	    local/extract_reliability/extractframs.sh $DATALRS3_DIR \
 			$videoframe \
 			$facerecog \
 			data/audio/clean/LRS3 \
@@ -607,7 +605,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	for part in Test Val Train; do  # Test 
     	    echo "Extracting frames for ${part} set!"  	
  	    mkdir -p $videoframe/LRS2${part}
-            local/extractframs.sh $DATA_DIR \
+            local/extract_reliability/extractframs.sh $DATA_DIR \
 			$videoframe \
 			$facerecog \
 			data/audio/clean/LRS2 \
@@ -620,7 +618,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     	for noisetype in blur saltandpepper; do 
 	    echo "Extracting frames for augumented ${part} set!" 
 	    mkdir -p $videoframe/LRS2${part}_$noisetype
-    	    local/extractframs.sh $videoaug \
+    	    local/extract_reliability/extractframs.sh $videoaug \
 			$videoframe \
 			$facerecog \
 			data/audio/clean/LRS2 \
@@ -649,14 +647,14 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 		echo "Extract SNR for ${part} set!"
  		mkdir -p $SNRdir/$part
                 mkdir -p $SNRptdir/$part
-        	local/extractsnr.sh $SNRdir $SNRptdir $mp3files $part $ifmulticore || exit 1;
+        	local/extract_reliability/extractsnr.sh $SNRdir $SNRptdir $mp3files $part $ifmulticore || exit 1;
     	    done
     	else	
 	    for part in Train pretrain Test Val; do  
 		echo "Extract SNR for ${part} set!" 
 		mkdir -p $SNRdir/$part
                 mkdir -p $SNRptdir/$part
-    		local/extractsnr.sh $SNRdir $SNRptdir $mp3files $part $ifmulticore || exit 1;
+    		local/extract_reliability/extractsnr.sh $SNRdir $SNRptdir $mp3files $part $ifmulticore || exit 1;
 	    done
    	fi
 	nameambient=noise
@@ -666,7 +664,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     	    dset=Test
  	    mkdir -p $SNRdir/${dset}_${name}
      	    mkdir -p $SNRptdir/${dset}_${name}  || exit 1;
-	    local/extractsnr.sh $SNRdir $SNRptdir $mp3files ${dset}_${name} $ifmulticore || exit 1;
+	    local/extract_reliability/extractsnr.sh $SNRdir $SNRptdir $mp3files ${dset}_${name} $ifmulticore || exit 1;
         done
 
 	# Clean Up DeepXi: unlink and rm DeepXi
@@ -681,7 +679,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	for part in Test Val; do
 	    echo "Extract video features for ${part} set!"
 	    mkdir -p $videofeature/LRS2${part}
-	    local/extractfeatures.sh $videoframe/LRS2${part}/Pics \
+	    local/extract_reliability/extractfeatures.sh $videoframe/LRS2${part}/Pics \
 				$videofeature/LRS2${part} \
 				$PRETRAINEDMODEL \
 				$part \
@@ -693,7 +691,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	    part=pretrain
 	    echo "Extract video features for ${part} set!"
 	    mkdir -p $videofeature/LRS2${part}
-	    local/extractfeatures.sh $videoframe/LRS2${part}/Pics \
+	    local/extract_reliability/extractfeatures.sh $videoframe/LRS2${part}/Pics \
 				$videofeature/LRS2${part} \
 				$PRETRAINEDMODEL \
 				$part \
@@ -705,7 +703,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	    part=pretrain
 	    echo "Extract video features for ${part} set!"
 	    mkdir -p $videofeature/LRS3${part}
-	    local/extractfeatures.sh $videoframe/LRS3${part}/Pics \
+	    local/extract_reliability/extractfeatures.sh $videoframe/LRS3${part}/Pics \
 				$videofeature/LRS3${part} \
 				$PRETRAINEDMODEL \
 				$part \
@@ -716,7 +714,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     	for noisetype in blur saltandpepper; do 
 	    echo "Extract video features for augmented ${part} set!"
 	    mkdir -p $videofeature/LRS2${part}_$noisetype
-    	    local/extractfeatures.sh $videoframe/LRS2${part}_$noisetype/Pics \
+    	    local/extract_reliability/extractfeatures.sh $videoframe/LRS2${part}_$noisetype/Pics \
 			$videofeature/LRS2${part}_$noisetype \
 			$PRETRAINEDMODEL \
 			$part \
@@ -730,7 +728,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	echo "stage 5.6: Make video ark files"
 
 	rm -rf data/video
-	python3 local/make_video.py $videofeature data/video $nj
+	python3 local/extract_reliability/tensor2ark.py $videofeature data/video $nj
 	for part in Test Val; do
 	    echo "Make video dump files for LRS2 ${part} set!"
 	    cat data/video/LRS2${part}/feats_*.scp > data/video/LRS2${part}/feats.scp || exit 1;
@@ -806,19 +804,19 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
 	for dset in pretrain_Train Val Test Test_decode_music Test_decode_noise; do 
             rm -rf dump/audio/$dset
-	    python3 local/dumpcreate/audiodump.py dump/audio dump/audio_org $dset $ifmulticore || exit 1;
+	    python3 local/dump/audiodump.py dump/audio dump/audio_org $dset $ifmulticore || exit 1;
         done
 
 	for dset in pretrain Val Test; do 
  	    rm -rf dump/avpretrain/$dset
-	    python3 local/dumpcreate/avpretraindump.py dump/avpretrain dump/audio_org dump/video \
+	    python3 local/dump/avpretraindump.py dump/avpretrain dump/audio_org dump/video \
 						$SNRptdir $videoframe dump/mfcc \
 						$dset $ifmulticore || exit 1;
         done
 
 	for dset in Train Val Test; do 
             rm -rf dump/avtrain/$dset
-	    python3 local/dumpcreate/avtraindump.py dump/avtrain dump/audio_org $videofeature \
+	    python3 local/dump/avtraindump.py dump/avtrain dump/audio_org $videofeature \
 						$SNRptdir $videoframe dump/mfcc \
 						$dset $ifmulticore || exit 1;
         done
@@ -826,22 +824,22 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	# Creat video dump file
 	for dset in pretrain Val Test; do 
 	    rm -rf dump/videopretrain/$dset
-	    python3 local/dumpcreate/videodump.py dump/avpretrain dump/videopretrain $dset || exit 1;
+	    python3 local/dump/videodump.py dump/avpretrain dump/videopretrain $dset || exit 1;
         done
 
 	for dset in Train Val Test; do 
 	    rm -rf dump/videotrain/$dset
-	    python3 local/dumpcreate/videodump.py dump/avtrain dump/videotrain $dset || exit 1;
+	    python3 local/dump/videodump.py dump/avtrain dump/videotrain $dset || exit 1;
         done
 
 	dset=Test
 	rm -rf dump/avpretraindecode
 	rm -rf dump/avtraindecode
 	for noisecombination in 'noise_None' 'music_None' 'noise_blur' 'noise_saltandpepper'; do 
-	    python3 local/dumpcreate/avpretraindecodedump.py dump/avpretraindecode dump/audio_org dump/video \
+	    python3 local/dump/avpretraindecodedump.py dump/avpretraindecode dump/audio_org dump/video \
 				$SNRptdir $videoframe dump/mfcc \
 				$dset $noisecombination $ifmulticore || exit 1;
-	    python3 local/dumpcreate/avtraindecodedump.py dump/avtraindecode dump/audio_org dump/video \
+	    python3 local/dump/avtraindecodedump.py dump/avtraindecode dump/audio_org dump/video \
 				$videofeature $SNRptdir $videoframe dump/mfcc \
 				$dset $noisecombination $ifmulticore || exit 1;
 	done
@@ -851,11 +849,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     if [ ${dataprocessingstage} -le 8 ] && [ ${stop_dataprocessingstage} -ge 8 ]; then
 	echo "stage 5.8: Split Test decode dump files"
 	for audionoise in noise music; do
-	    python3 local/extractsnr.py data/audio/augment/LRS2_decode $audionoise $ifmulticore || exit 1;
+	    python3 local/extract_reliability/extractsnr.py data/audio/augment/LRS2_decode $audionoise $ifmulticore || exit 1;
         done
 	for noisecombination in 'noise_None' 'music_None' 'noise_blur' 'noise_saltandpepper'; do 
-	    python3 local/splitsnr.py dump/avpretraindecode $noisecombination data/audio/augment/LRS2_decode || exit 1;
-	    python3 local/splitsnr.py dump/avtraindecode $noisecombination data/audio/augment/LRS2_decode || exit 1;
+	    python3 local/extract_reliability/splitsnr.py dump/avpretraindecode $noisecombination data/audio/augment/LRS2_decode || exit 1;
+	    python3 local/extract_reliability/splitsnr.py dump/avtraindecode $noisecombination data/audio/augment/LRS2_decode || exit 1;
 	done
     fi
 	
