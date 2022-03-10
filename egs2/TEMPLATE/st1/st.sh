@@ -79,8 +79,10 @@ ngram_num=3
 
 # Language model related
 use_lm=true       # Use language model for ST decoding.
+use_asrlm=true       # Use language model for ST decoding.
 lm_tag=           # Suffix to the result dir for language model training.
 lm_exp=           # Specify the directory path for LM experiment.
+asrlm_exp=           # Specify the directory path for LM experiment.
                   # If this option is specified, lm_tag is ignored.
 lm_stats_dir=     # Specify the directory path for LM statistics.
 lm_config=        # Config for language model training.
@@ -117,6 +119,7 @@ inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                   # Note that it will overwrite args in inference config.
 inference_lm=valid.loss.ave.pth       # Language model path for decoding.
+inference_asrlm=valid.loss.ave.pth       # Language model path for decoding.
 inference_ngram=${ngram_num}gram.bin
 inference_st_model=valid.acc.ave.pth # ST model path for decoding.
                                       # e.g.
@@ -468,6 +471,9 @@ if [ -z "${inference_tag}" ]; then
     fi
     if "${use_lm}"; then
         inference_tag+="_lm_$(basename "${lm_exp}")_$(echo "${inference_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    fi
+    if "${use_asrlm}"; then
+        inference_tag+="_lm_$(basename "${lm_exp}")_$(echo "${inference_asrlm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
     if "${use_ngram}"; then
         inference_tag+="_ngram_$(basename "${ngram_exp}")_$(echo "${inference_ngram}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
@@ -1196,16 +1202,6 @@ if ! "${skip_train}"; then
 
 
     if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
-
-        tempdir=$(mktemp -d "/tmp/md_iwslt22-$$.XXXXXXXX")
-        trap 'rm -rf ${tempdir}' EXIT
-        #cp -r "${data_feats}" ${tempdir}
-        rsync -av --progress "${data_feats}" ${tempdir}
-        data_feats="${tempdir}/$(basename ${data_feats})"
-        scp_lists=$(find ${tempdir} -type f -name "*.scp")
-        for f in ${scp_lists}; do
-            sed -i -e "s/${dumpdir//\//\\/}/${tempdir//\//\\/}/g" $f
-        done
         _st_train_dir="${data_feats}/${train_set}"
         _st_valid_dir="${data_feats}/${valid_set}"
         log "Stage 11: ST Training: train_set=${_st_train_dir}, valid_set=${_st_valid_dir}"
@@ -1388,6 +1384,10 @@ if ! "${skip_eval}"; then
                 _opts+="--lm_train_config ${lm_exp}/config.yaml "
                 _opts+="--lm_file ${lm_exp}/${inference_lm} "
             fi
+        fi
+        if "${use_asrlm}"; then
+            _opts+="--md_lm_train_config ${asrlm_exp}/config.yaml "
+            _opts+="--md_lm_file ${asrlm_exp}/${inference_asrlm} "
         fi
         if "${use_ngram}"; then
              _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"
