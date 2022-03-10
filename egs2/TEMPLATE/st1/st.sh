@@ -473,7 +473,7 @@ if [ -z "${inference_tag}" ]; then
         inference_tag+="_lm_$(basename "${lm_exp}")_$(echo "${inference_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
     if "${use_asrlm}"; then
-        inference_tag+="_lm_$(basename "${lm_exp}")_$(echo "${inference_asrlm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+        inference_tag+="_asrlm_$(basename "${lm_exp}")_$(echo "${inference_asrlm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
     if "${use_ngram}"; then
         inference_tag+="_ngram_$(basename "${ngram_exp}")_$(echo "${inference_ngram}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
@@ -1449,6 +1449,12 @@ if ! "${skip_eval}"; then
                     cat "${_logdir}/output.${i}/1best_recog/${f}"
                 done | LC_ALL=C sort -k1 >"${_dir}/${f}"
             done
+
+            if [ -f "${_logdir}/output.1/1best_recog/src_text" ]; then
+                for i in $(seq "${_nj}"); do
+                    cat "${_logdir}/output.${i}/1best_recog/src_text"
+                done | LC_ALL=C sort -k1 >"${_dir}/src_text"
+            fi
         done
     fi
 
@@ -1477,6 +1483,7 @@ if ! "${skip_eval}"; then
                     >"${_scoredir}/ref.trn.org"
 
             # NOTE(kamo): Don't use cleaner for hyp
+            echo "hellooo ${_dir}/src_text"
             if [ -f ${_dir}/src_text ]; then
                 paste \
                     <(<"${_dir}/src_text"  \

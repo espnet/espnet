@@ -29,6 +29,7 @@ tgt_case=tc
     --stage 1 \
     --stop_stage 13 \
     --use_lm false \
+    --use_asrlm false \
     --token_joint false \
     --audio_format "flac.ark" \
     --nj 15 \
