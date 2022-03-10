@@ -448,6 +448,16 @@ def get_parser():
         help="ST model parameter file",
     )
     group.add_argument(
+        "--md_lm_train_config",
+        type=str,
+        help="LM training configuration",
+    )
+    group.add_argument(
+        "--md_lm_file",
+        type=str,
+        help="LM parameter file",
+    )
+    group.add_argument(
         "--lm_train_config",
         type=str,
         help="LM training configuration",

@@ -21,6 +21,7 @@ from espnet.nets.beam_search import Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
@@ -53,6 +54,8 @@ class Speech2Text:
         st_model_file: Union[Path, str] = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
+        md_lm_train_config: Union[Path, str] = None,
+        md_lm_file: Union[Path, str] = None,
         ngram_scorer: str = "full",
         ngram_file: Union[Path, str] = None,
         token_type: str = None,
@@ -96,14 +99,23 @@ class Speech2Text:
         else:
             src_token_list = st_model.src_token_list
 
+        asr_ctc = CTCPrefixScorer(ctc=st_model.ctc, eos=st_model.src_eos)
         asr_scorers.update(
             decoder=asr_decoder,
+            ctc=asr_ctc,
             length_bonus=LengthBonus(len(src_token_list)),
         )
         scorers.update(
             decoder=decoder,
             length_bonus=LengthBonus(len(token_list)),
         )
+
+        # 2. Build MD Language model
+        if md_lm_train_config is not None:
+            md_lm, md_lm_train_args = LMTask.build_model_from_file(
+                md_lm_train_config, md_lm_file, device
+            )
+            asr_scorers["lm"] = md_lm.lm
 
         # 2. Build Language model
         if lm_train_config is not None:
@@ -405,6 +417,8 @@ def inference_md(
     key_file: Optional[str],
     st_train_config: Optional[str],
     st_model_file: Optional[str],
+    md_lm_train_config: Optional[str],
+    md_lm_file: Optional[str],
     lm_train_config: Optional[str],
     lm_file: Optional[str],
     word_lm_train_config: Optional[str],
@@ -447,6 +461,8 @@ def inference_md(
     speech2text_kwargs = dict(
         st_train_config=st_train_config,
         st_model_file=st_model_file,
+        md_lm_train_config=md_lm_train_config,
+        md_lm_file=md_lm_file,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
         ngram_file=ngram_file,
