@@ -1477,6 +1477,40 @@ if ! "${skip_eval}"; then
                     >"${_scoredir}/ref.trn.org"
 
             # NOTE(kamo): Don't use cleaner for hyp
+            if [ -f ${_dir}/src_text ]; then
+                paste \
+                    <(<"${_dir}/src_text"  \
+                            ${python} -m espnet2.bin.tokenize_text  \
+                                -f 2- --input - --output - \
+                                --token_type word \
+                                --non_linguistic_symbols "${nlsyms_txt}" \
+                                --remove_non_linguistic_symbols true \
+                                ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/hyp_asr.trn"
+
+                paste \
+                    <(<"${_data}/text.${src_case}.${src_lang}" \
+                          ${python} -m espnet2.bin.tokenize_text  \
+                              -f 2- --input - --output - \
+                              --token_type word \
+                              --non_linguistic_symbols "${nlsyms_txt}" \
+                              --remove_non_linguistic_symbols true \
+                              --cleaner "${cleaner}" \
+                              ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/ref_asr.trn"
+
+                sclite \
+                ${score_opts} \
+                        -r "${_scoredir}/ref_asr.trn" trn \
+                        -h "${_scoredir}/hyp_asr.trn" trn \
+                        -i rm -o all stdout > "${_scoredir}/result_asr.txt"
+
+                log "Write WER result in ${_scoredir}/result_asr.txt"
+                grep -e Avg -e SPKR -m 2 "${_scoredir}/result_asr.txt"
+            fi
+
             paste \
                 <(<"${_dir}/text"  \
                         ${python} -m espnet2.bin.tokenize_text  \
