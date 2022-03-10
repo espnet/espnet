@@ -7,6 +7,7 @@ from typing import List
 from typing import Tuple
 from typing import Union
 
+import numpy as np
 import torch
 from typeguard import check_argument_types
 
@@ -73,14 +74,14 @@ class EnsembleDecoder(AbsDecoder, BatchScorerInterface):
         logps = []
         states = []
         for i in range(len(self.decoders)):
-            ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
+            ys_mask = subsequent_mask(len(ys), device=x[i].device).unsqueeze(0)
             sub_state = None if state is None else state[i]
             logp, sub_state = self.decoders[i].forward_one_step(
                 ys.unsqueeze(0), ys_mask, x[i].unsqueeze(0), cache=sub_state
             )
-            logps.append(self.weights[i] * logp.squeeze(0))
+            logps.append(np.log(self.weights[i]) * logp.squeeze(0))
             states.append(sub_state)
-        return torch.sum(torch.stack(logps, dim=0), dim=0), states
+        return torch.logsumexp(torch.stack(logps, dim=0), dim=0), states
 
     def batch_score(
         self,
@@ -103,13 +104,18 @@ class EnsembleDecoder(AbsDecoder, BatchScorerInterface):
         n_batch = len(states)
         n_decoders = len(self.decoders)
 
-        all_state_list = [[]] * n_batch
+        all_state_list = []
         logps = []
         for i in range(n_decoders):
             decoder_batch = [states[h][i] for h in range(n_batch)]
             logp, state_list = self.decoders[i].batch_score(ys, decoder_batch, xs[i])
-            for j in range(n_batch):
-                all_state_list[j].append(state_list[j])
-            logps.append(self.weights[i] * logp)
+            all_state_list.append(state_list)
+            logps.append(np.log(self.weights[i]) + logp)
+        score = torch.logsumexp(torch.stack(logps, dim=0), dim=0)
 
-        return torch.sum(torch.stack(logps, dim=0), dim=0), all_state_list
+        transpose_state_list = []
+        for i in range(n_batch):
+            transpose_state_list.append(
+                [all_state_list[j][i] for j in range(n_decoders)]
+            )
+        return score, transpose_state_list

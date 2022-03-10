@@ -27,7 +27,7 @@ class LengthBonus(BatchScorerInterface):
         Args:
             y (torch.Tensor): 1D torch.int64 prefix tokens.
             state: Scorer state for prefix tokens
-            x (Union[torch.Tensor, List[torch.Tensor]]): 
+            x (Union[torch.Tensor, List[torch.Tensor]]):
                 2D encoder feature that generates ys.
 
         Returns:
@@ -36,7 +36,7 @@ class LengthBonus(BatchScorerInterface):
                 and None
 
         """
-        sample = x[0] if type(x[0]) == list else x
+        sample = x[0] if type(x) == list else x
         return (
             torch.tensor([1.0], device=sample.device, dtype=sample.dtype).expand(
                 self.n

@@ -130,7 +130,9 @@ class BeamSearch(torch.nn.Module):
                 score=0.0,
                 scores=init_scores,
                 states=init_states,
-                yseq=torch.tensor([self.sos], device=x.device),
+                yseq=torch.tensor(
+                    [self.sos], device=(x[0].device if type(x) is list else x.device)
+                ),
             )
         ]
 
@@ -295,10 +297,13 @@ class BeamSearch(torch.nn.Module):
 
         """
         best_hyps = []
-        part_ids = torch.arange(self.n_vocab, device=x.device)  # no pre-beam
+        sample = x[0] if type(x) == list else x
+        part_ids = torch.arange(self.n_vocab, device=sample.device)  # no pre-beam
         for hyp in running_hyps:
             # scoring
-            weighted_scores = torch.zeros(self.n_vocab, dtype=x.dtype, device=x.device)
+            weighted_scores = torch.zeros(
+                self.n_vocab, dtype=sample.dtype, device=sample.device
+            )
             scores, states = self.score_full(hyp, x)
             for k in self.full_scorers:
                 weighted_scores += self.weights[k] * scores[k]

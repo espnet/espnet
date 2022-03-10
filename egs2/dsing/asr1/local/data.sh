@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2021 Carnegie Mellon  University (Jiatong Shi)
+# Copyright 2020 Johns Hopkins University (Shinji Watanabe)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 . ./path.sh || exit 1;
@@ -36,10 +36,9 @@ train_set=train${dsing}
 train_dev=dev
 test_set="dev test"
 
-
 log "data preparation started"
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
     log "Prepare stage1: Download data to ${DSING}"
     echo "Please download the data at https://ccrma.stanford.edu/damp/"
 fi
