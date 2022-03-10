@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 # if ture, speaker open setting will be used.
-use_speakeropen=false
+use_speakeropen=true
 train_set=tr_no_dev
 valid_set=dev
 test_sets="dev eval1"
