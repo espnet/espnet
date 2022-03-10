@@ -6,8 +6,8 @@ set -u
 set -o pipefail
 
 dsing=30  # Set: 1  for DSing1
-          #      3  for DSing3
-          #      30 for DSing30
+          #    3  for DSing3
+          #    30 for DSing30
 
 train_set=train${dsing}
 train_dev=dev
@@ -22,9 +22,8 @@ nbpe=500
 
 ./asr.sh \
     --ngpu 1 \
-    --audio_format wav.ark \
-    --stage 11 \
-    --stop_stage 11 \
+    --stage 1 \
+    --stop_stage 100 \
     --local_data_opts "--dsing ${dsing}" \
     --use_lm true \
     --lm_config "${lm_config}" \
@@ -39,4 +38,3 @@ nbpe=500
     --test_sets "${test_set}" \
     --bpe_train_text "data/${train_set}/text" \
     --lm_train_text "data/${train_set}/text" "$@"
-
