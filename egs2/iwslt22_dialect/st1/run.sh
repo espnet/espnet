@@ -31,8 +31,8 @@ tgt_case=tc
     --use_lm false \
     --token_joint false \
     --audio_format "flac.ark" \
-    --nj 40 \
-    --inference_nj 40 \
+    --nj 15 \
+    --inference_nj 15 \
     --audio_format "flac.ark" \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \

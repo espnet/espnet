@@ -1196,6 +1196,16 @@ if ! "${skip_train}"; then
 
 
     if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+
+        tempdir=$(mktemp -d "/tmp/md_iwslt22-$$.XXXXXXXX")
+        trap 'rm -rf ${tempdir}' EXIT
+        #cp -r "${data_feats}" ${tempdir}
+        rsync -av --progress "${data_feats}" ${tempdir}
+        data_feats="${tempdir}/$(basename ${data_feats})"
+        scp_lists=$(find ${tempdir} -type f -name "*.scp")
+        for f in ${scp_lists}; do
+            sed -i -e "s/${dumpdir//\//\\/}/${tempdir//\//\\/}/g" $f
+        done
         _st_train_dir="${data_feats}/${train_set}"
         _st_valid_dir="${data_feats}/${valid_set}"
         log "Stage 11: ST Training: train_set=${_st_train_dir}, valid_set=${_st_valid_dir}"
