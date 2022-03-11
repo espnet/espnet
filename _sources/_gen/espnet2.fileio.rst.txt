@@ -15,12 +15,12 @@ espnet2.fileio.rand_gen_dataset
     :show-inheritance:
 
 
-.. _espnet2.fileio.npy_scp:
+.. _espnet2.fileio.datadir_writer:
 
-espnet2.fileio.npy_scp
-----------------------
+espnet2.fileio.datadir_writer
+-----------------------------
 
-.. automodule:: espnet2.fileio.npy_scp
+.. automodule:: espnet2.fileio.datadir_writer
     :members:
     :undoc-members:
     :show-inheritance:
@@ -37,6 +37,17 @@ espnet2.fileio.__init__
     :show-inheritance:
 
 
+.. _espnet2.fileio.npy_scp:
+
+espnet2.fileio.npy_scp
+----------------------
+
+.. automodule:: espnet2.fileio.npy_scp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.fileio.read_text:
 
 espnet2.fileio.read_text
@@ -48,12 +59,12 @@ espnet2.fileio.read_text
     :show-inheritance:
 
 
-.. _espnet2.fileio.datadir_writer:
+.. _espnet2.fileio.sound_scp:
 
-espnet2.fileio.datadir_writer
------------------------------
+espnet2.fileio.sound_scp
+------------------------
 
-.. automodule:: espnet2.fileio.datadir_writer
+.. automodule:: espnet2.fileio.sound_scp
     :members:
     :undoc-members:
     :show-inheritance:
@@ -65,17 +76,6 @@ espnet2.fileio.rttm
 -------------------
 
 .. automodule:: espnet2.fileio.rttm
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.fileio.sound_scp:
-
-espnet2.fileio.sound_scp
-------------------------
-
-.. automodule:: espnet2.fileio.sound_scp
     :members:
     :undoc-members:
     :show-inheritance:
