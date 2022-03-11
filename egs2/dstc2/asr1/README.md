@@ -8,44 +8,12 @@
 - pytorch version: `pytorch 1.4.0+cu100`
 - Git hash: `3de98cec5d2bfe39ab4f7bbe8baa2a531e694ce3`
   - Commit date: `Sat Jul 24 00:48:04 2021 -0400`
-- Pretrained Model: https://zenodo.org/record/5154341 
+- Pretrained Model:  https://huggingface.co/espnet/Karthik_DSTC2_asr_train_asr_wav2vec_transformer
 
-## Using Transformer based encoder-decoder and decoding character with spectral augmentation 
+## Using Conformer encoder and Transformer based decoder with Wav2vec 2.0 front-end 
 
-- ASR config: [conf/tuning/train_asr_transformer_adam_specaug.yaml](conf/tuning/train_asr_transformer_adam_specaug.yaml)
+- ASR config: [conf/train_wav2vec.yaml](conf/train_wav2vec.yaml)
 
-|dataset|Snt|Intent Classification (%)|
+|dataset|Snt|Dialog act Classification (%)|Micro F1
 |---|---|---|
-|inference_asr_model_valid.acc.best/test|3793|98.3|
-|inference_asr_model_valid.acc.best/valid|3118|91.6|
-
-## Using Transformer based encoder-decoder and decoding sentence with spectral augmentation
-- ASR config: [conf/tuning/train_asr_transformer_adam_specaug_small.yaml](conf/tuning/train_asr_transformer_adam_specaug_small.yaml)
-- token_type: word
-- keep_nbest_models: 5
-- Pretrainded model: https://zenodo.org/record/5171544
-
-|dataset|Snt|Intent Classification (%)|
-|---|---|---|
-|inference_asr_model_valid.acc.ave_5best/test|3793|98.8|
-|inference_asr_model_valid.acc.ave_5best/valid|3118|93.6|
-
-
-## Using Transformer based encoder-decoder and decoding sentence with spectral augmentation and predicting transcript along with intent
-- ASR config: [conf/tuning/train_asr_transformer_adam_specaug.yaml](conf/tuning/train_asr_transformer_adam_specaug.yaml)
-- token_type: word
-- keep_nbest_models: 5
-
-|dataset|Snt|Intent Classification (%)|
-|---|---|---|
-|inference_asr_model_valid.acc.ave_5best/test|3793|99.5|
-
-###ASR results
-
-#### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|inference_asr_model_valid.acc.ave_5best/test|3793|20316|99.7|0.2|0.1|0.2|0.4|1.5|
-|inference_asr_model_valid.acc.ave_5best/valid|3118|16751|97.9|1.5|0.6|0.5|2.6|5.5|
-
+|inference_asr_model_valid.acc.best/test|3518|86.34|0.91
