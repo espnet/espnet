@@ -4,6 +4,7 @@
 ## Speaker closed setting (based on TTS's data preparation)
 - https://datashare.ed.ac.uk/handle/10283/3443
 - About 80% of the transcription in the evaluation data is covered by the training data in speaker closed condition.
+- Pre-trained model: https://huggingface.co/espnet/YosukeKashiwagi_vctk_asr_train_asr_transformer/tree/main/speaker_closed
 
 ### Environments
 - date: `Thu Mar 10 09:51:35 EST 2022`
@@ -31,6 +32,7 @@
 ## Speaker open setting (based on noisy-vctk's data preparation)
 - https://datashare.ed.ac.uk/handle/10283/2791
 - About 90% of the transcription in the evaluation data is covered by the training data in speaker open condition.
+- Pre-trained model: https://huggingface.co/espnet/YosukeKashiwagi_vctk_asr_train_asr_transformer/tree/main/speaker_open
 
 ## RESULTS
 ### Environments
