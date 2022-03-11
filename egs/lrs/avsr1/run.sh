@@ -15,7 +15,7 @@ ifmulticore=true        	# if multi cpu processing, default is true in all scrip
 num=  			# this variable is related with next variable. Only applies when ifdebug=true
 ifdebug=false	   		# with debug, we only use $num Utts from pretrain and $num Utts from Train set
 backend=pytorch
-stage=0			# start from -1 if you need to start from data download
+stage=-1			# start from -1 if you need to start from data download
 stop_stage=100			# stage at which to stop
 dataprocessingstage=0		# stage for data processing in stage 3
 stop_dataprocessingstage=100	# stage at which to stop
