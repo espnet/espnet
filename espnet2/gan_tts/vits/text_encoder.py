@@ -79,7 +79,7 @@ class TextEncoder(torch.nn.Module):
 
         # define modules
         self.emb = torch.nn.Embedding(vocabs, attention_dim)
-        torch.nn.init.normal_(self.emb.weight, 0.0, attention_dim ** -0.5)
+        torch.nn.init.normal_(self.emb.weight, 0.0, attention_dim**-0.5)
         self.encoder = Encoder(
             idim=-1,
             input_layer=None,

@@ -27,7 +27,11 @@ module_list = [
     ("gtn", None, "installers/install_gtn.sh"),
     ("s3prl", None, "installers/install_s3prl.sh"),
     ("transformers", None, "installers/install_transformers.sh"),
+    ("speechbrain", None, "installers/install_speechbrain.sh"),
     ("k2", None, "installers/install_k2.sh"),
+    ("longformer",None,"installers/install_longformer.sh"),
+    ("nlg-eval",None,"installers/install_longformer.sh"),
+    ("datasets",None,"installers/install_longformer.sh"),
 ]
 
 executable_list = [

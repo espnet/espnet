@@ -36,7 +36,7 @@ encoder_conf:
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
-    input_layer: conv2d
+    input_layer: conv2d2
     normalize_before: true
     macaron_style: true
     pos_enc_layer_type: "rel_pos"

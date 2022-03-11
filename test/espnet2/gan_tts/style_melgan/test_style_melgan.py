@@ -124,19 +124,16 @@ except ImportError:
     not is_parallel_wavegan_available, reason="parallel_wavegan is not installed."
 )
 def test_parallel_wavegan_compatibility():
-    from parallel_wavegan.utils import download_pretrained_model
-    from parallel_wavegan.utils import load_model
+    from parallel_wavegan.models import StyleMelGANGenerator as PWGStyleMelGANGenerator
 
-    ckpt_path = download_pretrained_model("ljspeech_style_melgan.v1")
-    state_dict = torch.load(ckpt_path, map_location="cpu")["model"]["generator"]
-    model_pwg = load_model(ckpt_path)
-    model_espnet2 = StyleMelGANGenerator()
-    model_espnet2.load_state_dict(state_dict)
+    model_pwg = PWGStyleMelGANGenerator(**make_style_melgan_generator_args())
+    model_espnet2 = StyleMelGANGenerator(**make_style_melgan_generator_args())
+    model_espnet2.load_state_dict(model_pwg.state_dict())
     model_pwg.eval()
     model_espnet2.eval()
 
     with torch.no_grad():
-        c = torch.randn(5, 80)
+        c = torch.randn(3, 5)
         torch.manual_seed(1)
         out_pwg = model_pwg.inference(c)
         torch.manual_seed(1)

@@ -3,6 +3,7 @@ import pytest
 import torch
 
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
+from espnet2.enh.layers.dnn_beamformer import BEAMFORMER_TYPES
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 
 
@@ -74,19 +75,7 @@ random_speech = torch.tensor(
 @pytest.mark.parametrize("ref_channel", [-1, 0])
 @pytest.mark.parametrize("use_noise_mask", [True])
 @pytest.mark.parametrize("bnonlinear", ["sigmoid", "relu", "tanh", "crelu"])
-@pytest.mark.parametrize(
-    "beamformer_type",
-    [
-        "mvdr_souden",
-        "mpdr_souden",
-        "wmpdr_souden",
-        "wpd_souden",
-        "mvdr",
-        "mpdr",
-        "wmpdr",
-        "wpd",
-    ],
-)
+@pytest.mark.parametrize("beamformer_type", BEAMFORMER_TYPES)
 def test_neural_beamformer_forward_backward(
     n_fft,
     win_length,
@@ -118,9 +107,19 @@ def test_neural_beamformer_forward_backward(
         if not multi_source_wpe:
             # Single-source WPE is not supported with beamformer in multi-speaker cases
             return
-    elif num_spk == 1 and multi_source_wpe:
-        # When num_spk == 1, `multi_source_wpe` has no effect
-        return
+    elif num_spk == 1:
+        if multi_source_wpe:
+            # When num_spk == 1, `multi_source_wpe` has no effect
+            return
+        elif beamformer_type in (
+            "lcmv",
+            "lcmp",
+            "wlcmp",
+            "mvdr_tfs",
+            "mvdr_tfs_souden",
+        ):
+            # only support multiple-source cases
+            return
     if bnonlinear != "sigmoid" and (
         beamformer_type != "mvdr_souden" or multi_source_wpe
     ):
@@ -214,19 +213,7 @@ def test_neural_beamformer_wpe_output(
 
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("use_noise_mask", [True, False])
-@pytest.mark.parametrize(
-    "beamformer_type",
-    [
-        "mvdr_souden",
-        "mpdr_souden",
-        "wmpdr_souden",
-        "wpd_souden",
-        "mvdr",
-        "mpdr",
-        "wmpdr",
-        "wpd",
-    ],
-)
+@pytest.mark.parametrize("beamformer_type", BEAMFORMER_TYPES)
 @pytest.mark.parametrize(
     "diagonal_loading, mask_flooring, use_torch_solver",
     [(True, True, True), (False, False, False)],
@@ -239,6 +226,16 @@ def test_neural_beamformer_bf_output(
     mask_flooring,
     use_torch_solver,
 ):
+    if num_spk == 1 and beamformer_type in (
+        "lcmv",
+        "lcmp",
+        "wlcmp",
+        "mvdr_tfs",
+        "mvdr_tfs_souden",
+    ):
+        # only support multiple-source cases
+        return
+
     ch = 2
     inputs = random_speech[..., :ch].float()
     ilens = torch.LongTensor([16, 12])
