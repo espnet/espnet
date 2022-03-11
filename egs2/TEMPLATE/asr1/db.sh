@@ -1,6 +1,7 @@
 # Set the path of your corpus
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
+DSTC2=downloads
 AIDATATANG_200ZH=downloads
 AISHELL=downloads
 AISHELL3=downloads
