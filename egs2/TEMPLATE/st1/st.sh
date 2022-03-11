@@ -80,9 +80,11 @@ ngram_num=3
 # Language model related
 use_lm=true       # Use language model for ST decoding.
 use_asrlm=true       # Use language model for ST decoding.
+use_asr=true       # Use language model for ST decoding.
 lm_tag=           # Suffix to the result dir for language model training.
 lm_exp=           # Specify the directory path for LM experiment.
 asrlm_exp=           # Specify the directory path for LM experiment.
+asr_exp=           # Specify the directory path for LM experiment.
                   # If this option is specified, lm_tag is ignored.
 lm_stats_dir=     # Specify the directory path for LM statistics.
 lm_config=        # Config for language model training.
@@ -121,6 +123,7 @@ inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
 inference_lm=valid.loss.ave.pth       # Language model path for decoding.
 inference_asrlm=valid.loss.ave.pth       # Language model path for decoding.
 inference_ngram=${ngram_num}gram.bin
+inference_asr=valid.acc.ave.pth       # Language model path for decoding.
 inference_st_model=valid.acc.ave.pth # ST model path for decoding.
                                       # e.g.
                                       # inference_st_model=train.loss.best.pth
@@ -473,7 +476,10 @@ if [ -z "${inference_tag}" ]; then
         inference_tag+="_lm_$(basename "${lm_exp}")_$(echo "${inference_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
     if "${use_asrlm}"; then
-        inference_tag+="_asrlm_$(basename "${lm_exp}")_$(echo "${inference_asrlm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+        inference_tag+="_asrlm_$(basename "${asrlm_exp}")_$(echo "${inference_asrlm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    fi
+    if "${use_asr}"; then
+        inference_tag+="_asr_$(basename "${asr_exp}")_$(echo "${inference_asr}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
     if "${use_ngram}"; then
         inference_tag+="_ngram_$(basename "${ngram_exp}")_$(echo "${inference_ngram}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
@@ -1389,6 +1395,10 @@ if ! "${skip_eval}"; then
             _opts+="--md_lm_train_config ${asrlm_exp}/config.yaml "
             _opts+="--md_lm_file ${asrlm_exp}/${inference_asrlm} "
         fi
+        if "${use_asr}"; then
+            _opts+="--md_asr_train_config ${asr_exp}/config.yaml "
+            _opts+="--md_asr_file ${asr_exp}/${inference_asr} "
+        fi
         if "${use_ngram}"; then
              _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"
         fi
@@ -1483,7 +1493,6 @@ if ! "${skip_eval}"; then
                     >"${_scoredir}/ref.trn.org"
 
             # NOTE(kamo): Don't use cleaner for hyp
-            echo "hellooo ${_dir}/src_text"
             if [ -f ${_dir}/src_text ]; then
                 paste \
                     <(<"${_dir}/src_text"  \

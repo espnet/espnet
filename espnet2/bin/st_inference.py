@@ -448,14 +448,24 @@ def get_parser():
         help="ST model parameter file",
     )
     group.add_argument(
+        "--md_asr_train_config",
+        type=str,
+        help="MD ASR training configuration",
+    )
+    group.add_argument(
+        "--md_asr_file",
+        type=str,
+        help="MD ASR parameter file",
+    )
+    group.add_argument(
         "--md_lm_train_config",
         type=str,
-        help="LM training configuration",
+        help="MD LM training configuration",
     )
     group.add_argument(
         "--md_lm_file",
         type=str,
-        help="LM parameter file",
+        help="MD LM parameter file",
     )
     group.add_argument(
         "--lm_train_config",
@@ -541,7 +551,8 @@ def get_parser():
         help="Input length ratio to obtain min output length",
     )
     group.add_argument("--md_ctc_weight", type=float, default=0.5, help="CTC weight in joint decoding")
-    group.add_argument("--md_lm_weight", type=float, default=1.0, help="RNNLM weight")
+    group.add_argument("--md_lm_weight", type=float, default=0.0, help="RNNLM weight")
+    group.add_argument("--md_asr_weight", type=float, default=0.0, help="RNNLM weight")
 
     group = parser.add_argument_group("Text converter related")
     group.add_argument(

@@ -24,6 +24,7 @@ from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.st import STTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -56,6 +57,8 @@ class Speech2Text:
         lm_file: Union[Path, str] = None,
         md_lm_train_config: Union[Path, str] = None,
         md_lm_file: Union[Path, str] = None,
+        md_asr_train_config: Union[Path, str] = None,
+        md_asr_file: Union[Path, str] = None,
         ngram_scorer: str = "full",
         ngram_file: Union[Path, str] = None,
         token_type: str = None,
@@ -79,6 +82,7 @@ class Speech2Text:
         md_minlenratio: float = 0.0,
         md_ctc_weight: float = 0.3,
         md_lm_weight: float = 1.0,
+        md_asr_weight: float = 1.0,
     ):
         assert check_argument_types()
 
@@ -109,6 +113,15 @@ class Speech2Text:
             decoder=decoder,
             length_bonus=LengthBonus(len(token_list)),
         )
+
+        # 2. Build MD ASR
+        self.asr_model=None
+        if md_asr_train_config is not None:
+            md_asr, md_asr_train_args = ASRTask.build_model_from_file(
+                md_asr_train_config, md_asr_file, device
+            )
+            self.asr_model=md_asr
+            asr_scorers["asr"] = md_asr.decoder
 
         # 2. Build MD Language model
         if md_lm_train_config is not None:
@@ -144,6 +157,7 @@ class Speech2Text:
             decoder=1.0 - md_ctc_weight,
             ctc=md_ctc_weight,
             lm=md_lm_weight,
+            asr=md_asr_weight,
             length_bonus=md_penalty,
         )
         asr_beam_search = BeamSearch(
@@ -305,9 +319,13 @@ class Speech2Text:
         enc, _ = self.st_model.encode(**batch)
         assert len(enc) == 1, len(enc)
 
+        md_asr_x = None
+        if self.asr_model is not None:
+            asr_enc, _ = self.asr_model.encode(**batch)
+            md_asr_x = asr_enc[0]
         # c. Passed the encoder result and the beam search
         asr_nbest_hyps = self.asr_beam_search(
-            x=enc[0], maxlenratio=self.md_maxlenratio, minlenratio=self.md_minlenratio
+            x=enc[0], maxlenratio=self.md_maxlenratio, minlenratio=self.md_minlenratio, md_asr_x=md_asr_x
         )
         asr_nbest_hyps = asr_nbest_hyps[: self.md_nbest]
 
@@ -417,6 +435,8 @@ def inference_md(
     key_file: Optional[str],
     st_train_config: Optional[str],
     st_model_file: Optional[str],
+    md_asr_train_config: Optional[str],
+    md_asr_file: Optional[str],
     md_lm_train_config: Optional[str],
     md_lm_file: Optional[str],
     lm_train_config: Optional[str],
@@ -434,6 +454,7 @@ def inference_md(
     md_minlenratio: float,
     md_ctc_weight: float,
     md_lm_weight: float,
+    md_asr_weight: float,
     allow_variable_data_keys: bool,
 ):
     assert check_argument_types()
@@ -463,6 +484,8 @@ def inference_md(
         st_model_file=st_model_file,
         md_lm_train_config=md_lm_train_config,
         md_lm_file=md_lm_file,
+        md_asr_train_config=md_asr_train_config,
+        md_asr_file=md_asr_file,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
         ngram_file=ngram_file,
@@ -484,6 +507,7 @@ def inference_md(
         md_minlenratio=md_minlenratio,
         md_ctc_weight=md_ctc_weight,
         md_lm_weight=md_lm_weight,
+        md_asr_weight=md_asr_weight,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
