@@ -14,6 +14,7 @@ from typeguard import check_return_type
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.decoder.mlm_decoder import MLMDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.transformer_decoder import (
     DynamicConvolution2DTransformerDecoder,  # noqa: H301
@@ -48,6 +49,7 @@ from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
+from espnet2.asr.maskctc_model import MaskCTCModel
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,  # noqa: H301
@@ -65,6 +67,7 @@ from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
@@ -105,6 +108,15 @@ normalize_choices = ClassChoices(
     type_check=AbsNormalize,
     default="utterance_mvn",
     optional=True,
+)
+model_choices = ClassChoices(
+    "model",
+    classes=dict(
+        espnet=ESPnetASRModel,
+        maskctc=MaskCTCModel,
+    ),
+    type_check=AbsESPnetModel,
+    default="espnet",
 )
 preencoder_choices = ClassChoices(
     name="preencoder",
@@ -152,6 +164,7 @@ decoder_choices = ClassChoices(
         dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
         rnn=RNNDecoder,
         transducer=TransducerDecoder,
+        mlm=MLMDecoder,
     ),
     type_check=AbsDecoder,
     default="rnn",
@@ -170,6 +183,8 @@ class ASRTask(AbsTask):
         specaug_choices,
         # --normalize and --normalize_conf
         normalize_choices,
+        # --model and --model_conf
+        model_choices,
         # --preencoder and --preencoder_conf
         preencoder_choices,
         # --encoder and --encoder_conf
@@ -231,12 +246,6 @@ class ASRTask(AbsTask):
             action=NestedDictAction,
             default=None,
             help="The keyword arguments for joint network class.",
-        )
-        group.add_argument(
-            "--model_conf",
-            action=NestedDictAction,
-            default=get_default_kwargs(ESPnetASRModel),
-            help="The keyword arguments for model class.",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
@@ -484,7 +493,8 @@ class ASRTask(AbsTask):
         )
 
         # 8. Build model
-        model = ESPnetASRModel(
+        model_class = model_choices.get_class(args.model)
+        model = model_class(
             vocab_size=vocab_size,
             frontend=frontend,
             specaug=specaug,
