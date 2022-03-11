@@ -15,5 +15,5 @@
 - ASR config: [conf/train_wav2vec.yaml](conf/train_wav2vec.yaml)
 
 |dataset|Snt|Dialog act Classification (%)|Micro F1
-|---|---|---|
+    |---|---|---|
 |inference_asr_model_valid.acc.best/test|3518|86.34|0.91
