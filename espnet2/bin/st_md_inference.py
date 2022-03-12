@@ -18,6 +18,7 @@ from typing import List
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch
 from espnet.nets.beam_search import Hypothesis
+from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
@@ -290,7 +291,7 @@ class Speech2Text:
 
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
+        self, speech: Union[torch.Tensor, np.ndarray], src_text: Optional[torch.Tensor] = None
     ) -> List[Tuple[Optional[str], Optional[str], List[str], List[int], Hypothesis]]:
         """Inference
 
@@ -316,27 +317,51 @@ class Speech2Text:
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
-        enc, _ = self.st_model.encode(**batch)
+        enc, enc_lens = self.st_model.encode(**batch)
         assert len(enc) == 1, len(enc)
 
-        md_asr_x = None
-        if self.asr_model is not None:
-            asr_enc, _ = self.asr_model.encode(**batch)
-            md_asr_x = asr_enc[0]
-        # c. Passed the encoder result and the beam search
-        asr_nbest_hyps = self.asr_beam_search(
-            x=enc[0], maxlenratio=self.md_maxlenratio, minlenratio=self.md_minlenratio, md_asr_x=md_asr_x
-        )
-        asr_nbest_hyps = asr_nbest_hyps[: self.md_nbest]
+        if src_text is not None:
+            # data: (Nsamples,) -> (1, Nsamples)
+            src_text = src_text.unsqueeze(0)
+            src_text_lengths = src_text.new_full([1], dtype=torch.long, fill_value=src_text.size(1))
+            src_text_in, _ = add_sos_eos(src_text, self.st_model.src_sos, self.st_model.src_eos, self.st_model.ignore_id)
+            src_text_in_lens = src_text_lengths + 1
+            decoder_out, _, hs_dec_asr = self.st_model.asr_decoder(
+                enc, enc_lens, src_text_in, src_text_in_lens, return_hidden=True
+            )
+            ys_hat = decoder_out.argmax(dim=-1)
+            asr_nbest_hyps = [
+                    Hypothesis(
+                        score=None,
+                        yseq=ys_hat[0],
+                        scores=None,
+                        states=None,
+                        hs=hs_dec_asr[0])
+                    ]
+        else:
+            md_asr_x = None
+            if self.asr_model is not None:
+                asr_enc, _ = self.asr_model.encode(**batch)
+                md_asr_x = asr_enc[0]
+            # c. Passed the encoder result and the beam search
+            asr_nbest_hyps = self.asr_beam_search(
+                x=enc[0], maxlenratio=self.md_maxlenratio, minlenratio=self.md_minlenratio, md_asr_x=md_asr_x
+            )
+            asr_nbest_hyps = asr_nbest_hyps[: self.md_nbest]
 
         asr_results = []
         for hyp in asr_nbest_hyps:
             assert isinstance(hyp, Hypothesis), type(hyp)
 
             # remove sos/eos and get results
-            asr_hs = torch.stack(hyp.hs)
+            if isinstance(hyp.hs, List):
+                asr_hs = torch.stack(hyp.hs)
+            else:
+                asr_hs = hyp.hs
 
-            src_token_int = hyp.yseq[1:-1].tolist()
+            src_token_int = hyp.yseq.tolist()
+            src_token_int = list(filter(lambda x: x != self.st_model.src_sos, src_token_int))
+            src_token_int = list(filter(lambda x: x != self.st_model.src_eos, src_token_int))
 
             # remove blank symbol id, which is assumed to be 0
             src_token_int = list(filter(lambda x: x != 0, src_token_int))

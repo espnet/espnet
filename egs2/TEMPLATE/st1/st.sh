@@ -81,6 +81,7 @@ ngram_num=3
 use_lm=true       # Use language model for ST decoding.
 use_asrlm=true       # Use language model for ST decoding.
 use_asr=true       # Use language model for ST decoding.
+use_asr_inference_text=true       # Use language model for ST decoding.
 lm_tag=           # Suffix to the result dir for language model training.
 lm_exp=           # Specify the directory path for LM experiment.
 asrlm_exp=           # Specify the directory path for LM experiment.
@@ -125,6 +126,7 @@ inference_asrlm=valid.loss.ave.pth       # Language model path for decoding.
 inference_ngram=${ngram_num}gram.bin
 inference_asr=valid.acc.ave.pth       # Language model path for decoding.
 inference_st_model=valid.acc.ave.pth # ST model path for decoding.
+asr_inference_text=                  # Use language model for ST decoding.
                                       # e.g.
                                       # inference_st_model=train.loss.best.pth
                                       # inference_st_model=3epoch.pth
@@ -1401,6 +1403,10 @@ if ! "${skip_eval}"; then
         fi
         if "${use_ngram}"; then
              _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"
+        fi
+        
+        if "${use_asr_inference_text}"; then
+            _opts+="--data_path_and_name_and_type ${asr_inference_text},src_text,text " 
         fi
 
         # 2. Generate run.sh

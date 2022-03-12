@@ -454,7 +454,7 @@ class STTask(AbsTask):
         if not inference:
             retval = ("src_text",)
         else:
-            retval = ()
+            retval = ("src_text",)
         assert check_return_type(retval)
         return retval
 
