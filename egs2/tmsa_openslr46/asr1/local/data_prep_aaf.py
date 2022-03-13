@@ -47,7 +47,7 @@ with open(os.path.join(DATA_DIR, 'train', 'text'), 'w') as f_text:
                         utt_id = utt_id[0: -4]
                         f_text.write(utt_id + " " + text)
 
-                        wav_path = os.path.join('egs2/tmsa_openslr46/asr1', TRAIN_SPEECH_DIR, 'check', utt_id)
+                        wav_path = os.path.join('egs2/tmsa_openslr46/asr1', DEST_DIR, 'train', utt_id)
                         f_wav.write(utt_id + " " + wav_path + "\n")
 
                         f_utt2spk.write(utt_id+ " "+ utt_id + "\n")
@@ -58,7 +58,7 @@ with open(os.path.join(DATA_DIR, 'train', 'text'), 'w') as f_text:
                         utt_id, text = line.split(' ', 1)
                         f_text.write(utt_id + " " + text)
 
-                        wav_path = os.path.join('egs2/tmsa_openslr46/asr1', TRAIN_SPEECH_DIR, 'check', utt_id)
+                        wav_path = os.path.join('egs2/tmsa_openslr46/asr1', DEST_DIR, 'train', utt_id)
                         f_wav.write(utt_id + " " + wav_path + "\n")
 
                         f_utt2spk.write(utt_id + " " + utt_id + "\n")
@@ -75,7 +75,7 @@ with open(os.path.join(DATA_DIR, 'train', 'text'), 'w') as f_text:
 
                         f_text.write(utt_id + " " + text)
 
-                        wav_path = os.path.join('egs2/tmsa_openslr46/asr1', TRAIN_SPEECH_DIR, 'check', utt_id)
+                        wav_path = os.path.join('egs2/tmsa_openslr46/asr1', DEST_DIR, 'train', utt_id)
                         f_wav.write(utt_id + " " + wav_path + "\n")
 
                         f_utt2spk.write(utt_id + " " + utt_id + "\n")
@@ -104,7 +104,7 @@ with open(os.path.join(DATA_DIR, 'test', 'text'), 'w') as f_text:
                         utt_id, text = line.split(' ', 1)
                         f_text.write(line)
 
-                        wav_path = os.path.join('egs2/tmsa_openslr46/asr1', TEST_SPEECH_DIR, 'check', utt_id)
+                        wav_path = os.path.join('egs2/tmsa_openslr46/asr1', DEST_DIR, 'test', utt_id)
                         f_wav.write(utt_id + " " +  wav_path + "\n")
 
                         f_utt2spk.write(utt_id + " " + utt_id + "\n")
@@ -134,7 +134,7 @@ with open(os.path.join(DATA_DIR, 'valid', 'text'), 'w') as f_text:
                         utt_id, text = line.split(' ', 1)
                         f_text.write(line)
 
-                        wav_path = os.path.join('egs2/tmsa_openslr46/asr1', VALID_SPEECH_DIR, 'check', utt_id)
+                        wav_path = os.path.join('egs2/tmsa_openslr46/asr1', DEST_DIR, 'test', utt_id)
                         f_wav.write(utt_id + " " + wav_path + "\n")
 
                         f_utt2spk.write(utt_id + " " + utt_id + "\n")
