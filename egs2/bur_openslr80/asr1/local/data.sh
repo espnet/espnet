@@ -38,7 +38,7 @@ workspace=$PWD
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "sub-stage 0: Download Data to downloads"
     cd ${BURMESE}
-    wget https://us.openslr.org/resources/74/my_mm_female.zip
+    wget https://us.openslr.org/resources/80/my_mm_female.zip
     unzip -o my_mm_female.zip
     rm -f my_mm_female.zip
 
