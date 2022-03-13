@@ -81,11 +81,13 @@ ngram_num=3
 use_lm=true       # Use language model for ST decoding.
 use_asrlm=true       # Use language model for ST decoding.
 use_asr=true       # Use language model for ST decoding.
+use_mt=true       # Use language model for ST decoding.
 use_asr_inference_text=true       # Use language model for ST decoding.
 lm_tag=           # Suffix to the result dir for language model training.
 lm_exp=           # Specify the directory path for LM experiment.
 asrlm_exp=           # Specify the directory path for LM experiment.
 asr_exp=           # Specify the directory path for LM experiment.
+mt_exp=           # Specify the directory path for LM experiment.
                   # If this option is specified, lm_tag is ignored.
 lm_stats_dir=     # Specify the directory path for LM statistics.
 lm_config=        # Config for language model training.
@@ -125,6 +127,7 @@ inference_lm=valid.loss.ave.pth       # Language model path for decoding.
 inference_asrlm=valid.loss.ave.pth       # Language model path for decoding.
 inference_ngram=${ngram_num}gram.bin
 inference_asr=valid.acc.ave.pth       # Language model path for decoding.
+inference_mt=valid.acc.ave.pth       # Language model path for decoding.
 inference_st_model=valid.acc.ave.pth # ST model path for decoding.
 asr_inference_text=                  # Use language model for ST decoding.
                                       # e.g.
@@ -482,6 +485,9 @@ if [ -z "${inference_tag}" ]; then
     fi
     if "${use_asr}"; then
         inference_tag+="_asr_$(basename "${asr_exp}")_$(echo "${inference_asr}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    fi
+    if "${use_mt}"; then
+        inference_tag+="_mt_$(basename "${mt_exp}")_$(echo "${inference_mt}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
     if "${use_ngram}"; then
         inference_tag+="_ngram_$(basename "${ngram_exp}")_$(echo "${inference_ngram}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
@@ -1400,6 +1406,10 @@ if ! "${skip_eval}"; then
         if "${use_asr}"; then
             _opts+="--md_asr_train_config ${asr_exp}/config.yaml "
             _opts+="--md_asr_file ${asr_exp}/${inference_asr} "
+        fi
+        if "${use_mt}"; then
+            _opts+="--mt_train_config ${mt_exp}/config.yaml "
+            _opts+="--mt_file ${mt_exp}/${inference_mt} "
         fi
         if "${use_ngram}"; then
              _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"

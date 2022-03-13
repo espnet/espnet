@@ -152,7 +152,7 @@ class BatchBeamSearch(BeamSearch):
         )
 
     def score_full(
-            self, hyp: BatchHypothesis, x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None
+            self, hyp: BatchHypothesis, x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
@@ -177,6 +177,8 @@ class BatchBeamSearch(BeamSearch):
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], md_x, x)
             elif 'asr' in k and md_asr_x is not None:
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], md_asr_x)
+            elif 'mt' in k and mt_x is not None:
+                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], mt_x)
             else:
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
         if self.return_hidden:
@@ -230,7 +232,7 @@ class BatchBeamSearch(BeamSearch):
             new_states[k] = v
         return new_states
 
-    def search(self, running_hyps: BatchHypothesis, x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None) -> BatchHypothesis:
+    def search(self, running_hyps: BatchHypothesis, x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None) -> BatchHypothesis:
         """Search new tokens for running hypotheses and encoded speech x.
 
         Args:
@@ -250,14 +252,17 @@ class BatchBeamSearch(BeamSearch):
         if md_asr_x is not None:
             md_asr_x=md_asr_x.expand(n_batch, *md_asr_x.shape)
 
+        if mt_x is not None:
+            mt_x=mt_x.expand(n_batch, *mt_x.shape)
+
         # batch scoring
         weighted_scores = torch.zeros(
             n_batch, self.n_vocab, dtype=x.dtype, device=x.device
         )
         if self.return_hidden:
-            hs, scores, states = self.score_full(running_hyps, x.expand(n_batch, *x.shape), md_x=md_x, md_asr_x=md_asr_x)
+            hs, scores, states = self.score_full(running_hyps, x.expand(n_batch, *x.shape), md_x=md_x, md_asr_x=md_asr_x, mt_x=mt_x)
         else:
-            scores, states = self.score_full(running_hyps, x.expand(n_batch, *x.shape), md_x =md_x, md_asr_x = md_asr_x)
+            scores, states = self.score_full(running_hyps, x.expand(n_batch, *x.shape), md_x =md_x, md_asr_x = md_asr_x, mt_x=mt_x)
 
         for k in self.full_scorers:
             weighted_scores += self.weights[k] * scores[k]

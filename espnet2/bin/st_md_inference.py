@@ -23,9 +23,11 @@ from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.nets.scorers.ctc import CTCPrefixScorer
+from espnet2.st.decoder.transformer_md_decoder import TransformerMDDecoder
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
+from espnet2.tasks.mt import MTTask
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.st import STTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -54,6 +56,8 @@ class Speech2Text:
         self,
         st_train_config: Union[Path, str] = None,
         st_model_file: Union[Path, str] = None,
+        mt_train_config: Union[Path, str] = None,
+        mt_file: Union[Path, str] = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
         md_lm_train_config: Union[Path, str] = None,
@@ -84,6 +88,7 @@ class Speech2Text:
         md_ctc_weight: float = 0.3,
         md_lm_weight: float = 1.0,
         md_asr_weight: float = 1.0,
+        mt_weight: float = 0.0,
     ):
         assert check_argument_types()
 
@@ -97,6 +102,8 @@ class Speech2Text:
         st_model.to(dtype=getattr(torch, dtype)).eval()
 
         decoder = st_model.decoder
+        if isinstance(decoder,TransformerMDDecoder):
+            self.speech_attn = True
         asr_decoder = st_model.asr_decoder
         token_list = st_model.token_list
         if getattr(st_model,"src_token_list", None) is None:
@@ -121,6 +128,7 @@ class Speech2Text:
             md_asr, md_asr_train_args = ASRTask.build_model_from_file(
                 md_asr_train_config, md_asr_file, device
             )
+            md_asr.to(dtype=getattr(torch, dtype)).eval()
             self.asr_model=md_asr
             asr_scorers["asr"] = md_asr.decoder
 
@@ -137,6 +145,15 @@ class Speech2Text:
                 lm_train_config, lm_file, device
             )
             scorers["lm"] = lm.lm
+
+        # 2. Build MT model
+        if mt_train_config is not None:
+            mt, mt_train_args = MTTask.build_model_from_file(
+                mt_train_config, mt_file, device
+            )
+            mt.to(dtype=getattr(torch, dtype)).eval()
+            self.mt_model = mt
+            scorers["mt"] = mt.decoder
 
         # 3. Build ngram model
         if ngram_file is not None:
@@ -177,6 +194,7 @@ class Speech2Text:
         weights = dict(
             decoder=1.0,
             lm=lm_weight,
+            mt=mt_weight,
             ngram=ngram_weight,
             length_bonus=penalty,
         )
@@ -370,10 +388,10 @@ class Speech2Text:
             src_token = self.asr_converter.ids2tokens(src_token_int)
 
             if self.tokenizer is not None:
-                src_text = self.asr_tokenizer.tokens2text(src_token)
+                src_hyp_text = self.asr_tokenizer.tokens2text(src_token)
             else:
-                src_text = None
-            asr_results.append((src_text, src_token, src_token_int, hyp, asr_hs))
+                src_hyp_text = None
+            asr_results.append((src_hyp_text, src_token, src_token_int, hyp, asr_hs))
 
         # Currently only support nbest 1
         asr_src_text = asr_results[0][0]
@@ -381,11 +399,30 @@ class Speech2Text:
         asr_hs = to_device(asr_hs, device=self.device)
         asr_hs_lengths = asr_hs.new_full([1], dtype=torch.long, fill_value=asr_hs.size(1))
         enc_mt, enc_mt_lengths, _ = self.st_model.encoder_mt(asr_hs, asr_hs_lengths)
+        if self.speech_attn:
+            x = enc[0]
+            md_x = enc_mt[0]
+        else:
+            x = enc_mt[0]
+            md_x = None
+
+        mt_x=None
+        if self.mt_model is not None:
+            if src_text is not None:
+                asr_text_token = src_text
+            else:
+                asr_text_token = torch.tensor(asr_results[0][2]).unsqueeze(0)
+            asr_text_token = asr_text_token.to(torch.long)
+            asr_text_lengths = asr_text_token.new_full([1], dtype=torch.long, fill_value=asr_text_token.size(1))
+            mt_batch = {"src_text": asr_text_token, "src_text_lengths": asr_text_lengths}
+            mt_batch = to_device(mt_batch, device=self.device)
+            mt_enc, _ = self.mt_model.encode(**mt_batch)
+            mt_x = mt_enc[0]
 
 
         # c. Passed the encoder result and the beam search
         nbest_hyps = self.beam_search(
-            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x = enc_mt[0]
+            x=x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x = md_x, mt_x = mt_x
         )
         nbest_hyps = nbest_hyps[: self.nbest]
 
@@ -460,6 +497,8 @@ def inference_md(
     key_file: Optional[str],
     st_train_config: Optional[str],
     st_model_file: Optional[str],
+    mt_train_config: Optional[str],
+    mt_file: Optional[str],
     md_asr_train_config: Optional[str],
     md_asr_file: Optional[str],
     md_lm_train_config: Optional[str],
@@ -480,6 +519,7 @@ def inference_md(
     md_ctc_weight: float,
     md_lm_weight: float,
     md_asr_weight: float,
+    mt_weight: float,
     allow_variable_data_keys: bool,
 ):
     assert check_argument_types()
@@ -511,6 +551,8 @@ def inference_md(
         md_lm_file=md_lm_file,
         md_asr_train_config=md_asr_train_config,
         md_asr_file=md_asr_file,
+        mt_train_config=mt_train_config,
+        mt_file=mt_file,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
         ngram_file=ngram_file,
@@ -533,6 +575,7 @@ def inference_md(
         md_ctc_weight=md_ctc_weight,
         md_lm_weight=md_lm_weight,
         md_asr_weight=md_asr_weight,
+        mt_weight=mt_weight,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
