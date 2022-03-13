@@ -78,7 +78,7 @@ if __name__ == "__main__":
                 )
                 text_strs.append("%s %s" % (utt, utt2text[fid]))
                 wav_scp_strs.append("%s %s" % (utt, cmd))
-        phase_dir = "data/%s_mala" % phase
+        phase_dir = "data/%s_ml" % phase
         if not os.path.exists(phase_dir):
             os.makedirs(phase_dir)
         text_strs = sorted(text_strs)

@@ -28,14 +28,14 @@ set -o pipefail
 
 log "data preparation started"
 
-mkdir -p ${MALA}
+mkdir -p ${MALAYALAM}
 
 workspace=$PWD
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "sub-stage 0: Download Data to downloads"
 
-    cd ${MALA}
+    cd ${MALAYALAM}
     wget https://www.openslr.org/resources/63/ml_in_female.zip
     unzip -o ml_in_female.zip
     rm -f ml_in_female.zip
@@ -52,13 +52,13 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "sub-stage 1: Preparing Data for openslr"
 
-    python3 local/data_prep.py -d ${MALA}
-    utils/spk2utt_to_utt2spk.pl data/train_mala/spk2utt > data/train_mala/utt2spk
-    utils/spk2utt_to_utt2spk.pl data/dev_mala/spk2utt > data/dev_mala/utt2spk
-    utils/spk2utt_to_utt2spk.pl data/test_mala/spk2utt > data/test_mala/utt2spk
-    utils/fix_data_dir.sh data/train_mala
-    utils/fix_data_dir.sh data/dev_mala
-    utils/fix_data_dir.sh data/test_mala
+    python3 local/data_prep.py -d ${MALAYALAM}
+    utils/spk2utt_to_utt2spk.pl data/train_ml/spk2utt > data/train_ml/utt2spk
+    utils/spk2utt_to_utt2spk.pl data/dev_ml/spk2utt > data/dev_ml/utt2spk
+    utils/spk2utt_to_utt2spk.pl data/test_ml/spk2utt > data/test_ml/utt2spk
+    utils/fix_data_dir.sh data/train_ml
+    utils/fix_data_dir.sh data/dev_ml
+    utils/fix_data_dir.sh data/test_ml
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -7,9 +7,9 @@ set -o pipefail
 
 lid=false # whether to use language id as additional label
 
-train_set="mala_train"
-train_dev="mala_dev"
-test_set="mala_test"
+train_set="ml_train"
+train_dev="ml_dev"
+test_set="ml_test"
 
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
