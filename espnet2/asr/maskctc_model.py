@@ -29,6 +29,7 @@ from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import force_gatherable
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
@@ -342,4 +343,4 @@ class MaskCTCInference(torch.nn.Module):
             [self.mask_token] + y_in.tolist()[0] + [self.mask_token], device=y_in.device
         )
 
-        return [Hypothesis(yseq=yseq)]
+        return Hypothesis(yseq=yseq)
