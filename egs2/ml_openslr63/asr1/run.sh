@@ -21,7 +21,7 @@ ngpu=4
     --stage 1 \
     --stop_stage 13 \
     --ngpu 4 \
-    --lang "${lang}" \
+    --lang "ml" \
     --use_lm true \
     --lm_config "${lm_config}" \
     --token_type bpe \
