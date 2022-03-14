@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     tsv_path = "%s/line_index_all.tsv" % args.d
 
-    with open(tsv_path, "r") as inf:
+    with open(tsv_path, "r", encoding="utf-8") as inf:
         tsv_lines = inf.readlines()
     tsv_lines = [line.strip() for line in tsv_lines]
 
@@ -27,6 +27,9 @@ if __name__ == "__main__":
         fid = l_list[0]
         spk = fid.split("_")[1]
         text = l_list[1]
+        text = text.replace(".", "")
+        text = text.replace(",", "")
+        text = text.lower()
         path = "%s/%s.wav" % (args.d, fid)
         if os.path.exists(path):
             utt2text[fid] = text
