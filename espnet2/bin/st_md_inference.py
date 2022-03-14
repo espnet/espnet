@@ -147,6 +147,7 @@ class Speech2Text:
             scorers["lm"] = lm.lm
 
         # 2. Build MT model
+        self.mt_model=None
         if mt_train_config is not None:
             mt, mt_train_args = MTTask.build_model_from_file(
                 mt_train_config, mt_file, device
