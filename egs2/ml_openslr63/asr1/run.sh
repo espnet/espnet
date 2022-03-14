@@ -25,7 +25,8 @@ ngpu=1
     --use_lm true \
     --lm_config "${lm_config}" \
     --token_type bpe \
-    --nbpe 1000 \
+    --nbpe 150 \
+    --bpemode "unigram" \
     --feats_type raw \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
