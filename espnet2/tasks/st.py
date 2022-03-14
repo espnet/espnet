@@ -459,7 +459,7 @@ class STTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTMDModel, ESPnetSTMDModel]:
+    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTMDModel]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:

@@ -448,6 +448,16 @@ def get_parser():
         help="ST model parameter file",
     )
     group.add_argument(
+        "--ext_st_train_config",
+        type=str,
+        help="External ST training configuration",
+    )
+    group.add_argument(
+        "--ext_st_file",
+        type=str,
+        help="External ST parameter file",
+    )
+    group.add_argument(
         "--mt_train_config",
         type=str,
         help="MT training configuration",
@@ -563,7 +573,8 @@ def get_parser():
     group.add_argument("--md_ctc_weight", type=float, default=0.5, help="CTC weight in joint decoding")
     group.add_argument("--md_lm_weight", type=float, default=0.0, help="RNNLM weight")
     group.add_argument("--md_asr_weight", type=float, default=0.0, help="MD ASR weight")
-    group.add_argument("--mt_weight", type=float, default=0.0, help="MD MT weight")
+    group.add_argument("--mt_weight", type=float, default=0.0, help="MT weight")
+    group.add_argument("--ext_st_weight", type=float, default=0.0, help="EXT ST weight")
 
     group = parser.add_argument_group("Text converter related")
     group.add_argument(

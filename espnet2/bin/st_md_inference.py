@@ -56,6 +56,8 @@ class Speech2Text:
         self,
         st_train_config: Union[Path, str] = None,
         st_model_file: Union[Path, str] = None,
+        ext_st_train_config: Union[Path, str] = None,
+        ext_st_file: Union[Path, str] = None,
         mt_train_config: Union[Path, str] = None,
         mt_file: Union[Path, str] = None,
         lm_train_config: Union[Path, str] = None,
@@ -89,6 +91,7 @@ class Speech2Text:
         md_lm_weight: float = 1.0,
         md_asr_weight: float = 1.0,
         mt_weight: float = 0.0,
+        ext_st_weight: float = 0.0,
     ):
         assert check_argument_types()
 
@@ -156,6 +159,16 @@ class Speech2Text:
             self.mt_model = mt
             scorers["mt"] = mt.decoder
 
+        # 2. Build EXT ST model
+        self.ext_st_model=None
+        if ext_st_train_config is not None:
+            ext_st, ext_st_train_args = STTask.build_model_from_file(
+                ext_st_train_config, ext_st_file, device
+            )
+            ext_st.to(dtype=getattr(torch, dtype)).eval()
+            self.ext_st_model = ext_st
+            scorers["ext_st"] = ext_st.decoder
+
         # 3. Build ngram model
         if ngram_file is not None:
             if ngram_scorer == "full":
@@ -196,6 +209,7 @@ class Speech2Text:
             decoder=1.0,
             lm=lm_weight,
             mt=mt_weight,
+            ext_st=ext_st_weight,
             ngram=ngram_weight,
             length_bonus=penalty,
         )
@@ -420,10 +434,15 @@ class Speech2Text:
             mt_enc, _ = self.mt_model.encode(**mt_batch)
             mt_x = mt_enc[0]
 
+        ext_st_x=None
+        if self.ext_st_model is not None:
+            ext_st_enc, _ = self.ext_st_model.encode(**batch)
+            ext_st_x = ext_st_enc[0]
+
 
         # c. Passed the encoder result and the beam search
         nbest_hyps = self.beam_search(
-            x=x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x = md_x, mt_x = mt_x
+            x=x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x = md_x, mt_x = mt_x, ext_st_x=ext_st_x
         )
         nbest_hyps = nbest_hyps[: self.nbest]
 
@@ -498,6 +517,8 @@ def inference_md(
     key_file: Optional[str],
     st_train_config: Optional[str],
     st_model_file: Optional[str],
+    ext_st_train_config: Optional[str],
+    ext_st_file: Optional[str],
     mt_train_config: Optional[str],
     mt_file: Optional[str],
     md_asr_train_config: Optional[str],
@@ -521,6 +542,7 @@ def inference_md(
     md_lm_weight: float,
     md_asr_weight: float,
     mt_weight: float,
+    ext_st_weight: float,
     allow_variable_data_keys: bool,
 ):
     assert check_argument_types()
@@ -552,6 +574,8 @@ def inference_md(
         md_lm_file=md_lm_file,
         md_asr_train_config=md_asr_train_config,
         md_asr_file=md_asr_file,
+        ext_st_train_config=ext_st_train_config,
+        ext_st_file=ext_st_file,
         mt_train_config=mt_train_config,
         mt_file=mt_file,
         lm_train_config=lm_train_config,
@@ -577,6 +601,7 @@ def inference_md(
         md_lm_weight=md_lm_weight,
         md_asr_weight=md_asr_weight,
         mt_weight=mt_weight,
+        ext_st_weight=ext_st_weight,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
