@@ -117,7 +117,7 @@
 - Params: 116.15 M
 - ASR config: [conf/tuning/train_asr_conformer10_hop_length160.yaml](conf/tuning/train_asr_conformer10_hop_length160.yaml)
 - LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
-- Pretrained model: []()
+- Pretrained model: [https://huggingface.co/pyf98/librispeech_conformer_hop_length160](https://huggingface.co/pyf98/librispeech_conformer_hop_length160)
 
 # RESULTS
 ## Environments
