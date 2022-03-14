@@ -18,7 +18,7 @@ lm_config=conf/train_lm.yaml
 ngpu=1
 
 ./asr.sh \
-    --stage 1 \
+    --stage 12 \
     --stop_stage 13 \
     --ngpu 1 \
     --lang "ml" \
@@ -33,6 +33,6 @@ ngpu=1
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
-    --test_sets "${test_set}" \
+    --test_sets "${train_dev} ${test_set}" \
     --bpe_train_text "data/${train_set}/text" \
     --lm_train_text "data/${train_set}/text"
