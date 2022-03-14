@@ -2,6 +2,7 @@
 cudnn_benchmark: false
 cudnn_deterministic: false
 use_amp: true
+
 # frontend related
 frontend: default
 frontend_conf:

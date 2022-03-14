@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# Copyright 2021 Carnegie Mellon University (Peter Wu)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+# Referred from https://github.com/espnet/espnet/blob/master/egs2/jv_openslr35/asr1/local/data_prep.py
+#
 
 
 import argparse
