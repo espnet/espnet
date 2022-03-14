@@ -15,12 +15,12 @@ asr_config=conf/tuning/train_asr_conformer5.yaml
 inference_config=conf/decode_asr.yaml
 lm_config=conf/train_lm.yaml
 
-ngpu=4
+ngpu=1
 
 ./asr.sh \
     --stage 1 \
     --stop_stage 13 \
-    --ngpu 4 \
+    --ngpu 1 \
     --lang "ml" \
     --use_lm true \
     --lm_config "${lm_config}" \

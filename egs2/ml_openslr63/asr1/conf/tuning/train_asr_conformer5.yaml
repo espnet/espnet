@@ -1,5 +1,7 @@
 # network architecture
-
+cudnn_benchmark: false
+cudnn_deterministic: false
+use_amp: true
 # frontend related
 frontend: default
 frontend_conf:
@@ -53,7 +55,7 @@ scheduler_conf:
 
 # minibatch related
 batch_type: numel
-batch_bins: 10000000
+batch_bins:2000000
 
 best_model_criterion:
 -   - valid
