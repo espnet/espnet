@@ -492,8 +492,11 @@ class ASRTask(AbsTask):
             odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
         )
 
-        # 8. Build model
-        model_class = model_choices.get_class(args.model)
+        # 7. Build model
+        try:
+            model_class = model_choices.get_class(args.model)
+        except:
+            model_class = model_choices.get_class("espnet")
         model = model_class(
             vocab_size=vocab_size,
             frontend=frontend,
@@ -510,7 +513,7 @@ class ASRTask(AbsTask):
         )
 
         # FIXME(kamo): Should be done in model?
-        # 9. Initialize
+        # 8. Initialize
         if args.init is not None:
             initialize(model, args.init)
 
