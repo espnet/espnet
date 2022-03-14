@@ -22,7 +22,6 @@ ngpu=4
     --stop_stage 13 \
     --ngpu 4 \
     --lang "${lang}" \
-    --local_data_opts "--lang ${lang}" \
     --use_lm true \
     --lm_config "${lm_config}" \
     --token_type bpe \
@@ -35,4 +34,4 @@ ngpu=4
     --valid_set "${train_dev}" \
     --test_sets "${test_set}" \
     --bpe_train_text "data/${train_set}/text" \
-    --lm_train_text "data/${train_set}/text" "$@"
+    --lm_train_text "data/${train_set}/text"
