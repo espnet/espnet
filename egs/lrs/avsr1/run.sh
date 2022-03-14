@@ -106,10 +106,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ -f "$PRETRAINEDMODEL" ] ; then
 	echo "pretrained video feature extractor already exists"
     else
-        gdrive_download '1ZXXCXSbbFS2PDlrs9kbJL9pE6-5nPPxi' 'model.v1.tar.gz'  || exit 1;
+        gdrive_download '1ITgdZoa8vQ7lDwi1jLziYGXOyUtgE2ow' 'model.v1.tar.gz'  || exit 1;
         tar -xf model.v1.tar.gz  || exit 1;
-        mv avsrlrs2_3/pretrainedvideomodel ./
-        rm -rf avsrlrs2_3
+        mv model.v1/avsrlrs2_3/pretrainedvideomodel ./
+        rm -rf model.v1
         rm -rf model.v1.tar.gz
     fi
 
@@ -428,14 +428,14 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     	wc -l ${dict}
     else
     	# if using external librispeech lm        
-	gdrive_download '1ZXXCXSbbFS2PDlrs9kbJL9pE6-5nPPxi' 'model.v1.tar.gz'  || exit 1;
+	gdrive_download '1ITgdZoa8vQ7lDwi1jLziYGXOyUtgE2ow' 'model.v1.tar.gz'  || exit 1;
         tar -xf model.v1.tar.gz  || exit 1;
-	mv avsrlrs2_3/exp/train_rnnlm_pytorch_lm_unigram500 exp/train_rnnlm_pytorch_lm_unigram500
-	mv avsrlrs2_3/data/lang_char data/
+	mv model.v1/avsrlrs2_3/exp/train_rnnlm_pytorch_lm_unigram500 exp/train_rnnlm_pytorch_lm_unigram500
+	mv model.v1/avsrlrs2_3/data/lang_char data/
 	mv data/lang_char/train_unigram500.model data/lang_char/${train_set}_unigram500.model
     	mv data/lang_char/train_unigram500.vocab data/lang_char/${train_set}_unigram500.vocab
     	mv data/lang_char/train_unigram500_units.txt data/lang_char/${train_set}_unigram500_units.txt
-	rm -rf avsrlrs2_3
+	rm -rf model.v1
 	rm -rf model.v1.tar.gz
 
     	##### it is depands on your corpus, if the corpus text transcription is uppercase, use this to convert to lowercase
