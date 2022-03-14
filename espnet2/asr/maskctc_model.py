@@ -40,6 +40,7 @@ else:
     def autocast(enabled=True):
         yield
 
+
 class MaskCTCModel(ESPnetASRModel):
     """Hybrid CTC/Masked LM Encoder-Decoder model (Mask-CTC)"""
 

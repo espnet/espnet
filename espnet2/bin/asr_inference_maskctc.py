@@ -43,7 +43,6 @@ from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 
 
-
 class Speech2Text:
     """Speech2Text class
     Examples:
