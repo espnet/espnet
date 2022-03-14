@@ -2,8 +2,6 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Masked LM Decoder definition."""
-from typing import Any
-from typing import List
 from typing import Tuple
 
 import torch
@@ -93,6 +91,7 @@ class MLMDecoder(AbsDecoder):
         ys_in_lens: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward decoder.
+
         Args:
             hs_pad: encoded memory, float32  (batch, maxlen_in, feat)
             hlens: (batch)
