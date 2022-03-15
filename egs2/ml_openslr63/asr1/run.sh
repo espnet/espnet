@@ -18,7 +18,7 @@ lm_config=conf/train_lm.yaml
 ngpu=1
 
 ./asr.sh \
-    --stage 12 \
+    --stage 1 \
     --stop_stage 13 \
     --ngpu 1 \
     --lang "ml" \
