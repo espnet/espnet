@@ -7,9 +7,7 @@ from espnet2.asr.decoder.mlm_decoder import MLMDecoder
 @pytest.mark.parametrize("input_layer", ["linear", "embed"])
 @pytest.mark.parametrize("normalize_before", [True, False])
 @pytest.mark.parametrize("use_output_layer", [True, False])
-def test_MLMDecoder_backward(
-    input_layer, normalize_before, use_output_layer
-):
+def test_MLMDecoder_backward(input_layer, normalize_before, use_output_layer):
     vocab_size = 10
     decoder = MLMDecoder(
         vocab_size,
