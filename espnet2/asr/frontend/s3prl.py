@@ -86,7 +86,7 @@ class S3prlFrontend(AbsFrontend):
 
         from s3prl.upstream.interfaces import Featurizer
 
-        if self.multilayer_feature is None:
+        if not self.multilayer_feature:
             feature_selection = "last_hidden_state"
         else:
             feature_selection = "hidden_states"
