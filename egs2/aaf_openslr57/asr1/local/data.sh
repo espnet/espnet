@@ -47,7 +47,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 
     wget https://www.openslr.org/resources/57/African_Accented_French.tar.gz
     tar -xvf African_Accented_French.tar.gz
-    rm -f African_Accented_French.tar.gz
+#    rm -f African_Accented_French.tar.gz
 
 fi
 
@@ -55,7 +55,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "sub-stage 1: Preparing Data for openslr"
 
     python3 local/data_prep_aaf.py --data-src African_Accented_French --data-dest ${DATA_DEST} --data-kaldi ${DATA_KALDI}
-    rm -r African_Accented_French
+#    rm -r African_Accented_French
 
     utils/fix_data_dir.sh data/train
     utils/fix_data_dir.sh data/valid
