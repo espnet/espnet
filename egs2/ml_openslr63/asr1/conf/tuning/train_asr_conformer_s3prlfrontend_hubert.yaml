@@ -62,7 +62,6 @@ optim_conf:
     lr: 4.0
 scheduler: noamlr
 scheduler_conf:
-    model_size: 256
     warmup_steps: 25000
 
 # minibatch related
