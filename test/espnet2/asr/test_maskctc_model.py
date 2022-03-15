@@ -3,13 +3,11 @@ import torch
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.mlm_decoder import MLMDecoder
-from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.maskctc_model import MaskCTCInference
 from espnet2.asr.maskctc_model import MaskCTCModel
 
 
-@pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
 @pytest.mark.parametrize(
     "interctc_layer_idx, interctc_use_conditioning",
     [
@@ -20,7 +18,7 @@ from espnet2.asr.maskctc_model import MaskCTCModel
 def test_maskctc(encoder_arch, interctc_layer_idx, interctc_use_conditioning):
     vocab_size = 5
     enc_out = 4
-    encoder = encoder_arch(
+    encoder = TransformerEncoder(
         20,
         output_size=enc_out,
         linear_units=4,
