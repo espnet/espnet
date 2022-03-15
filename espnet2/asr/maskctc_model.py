@@ -20,7 +20,6 @@ from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,  # noqa: H301
 )
 from espnet2.asr.ctc import CTC
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.mlm_decoder import MLMDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.espnet_model import ESPnetASRModel
@@ -54,9 +53,9 @@ class MaskCTCModel(ESPnetASRModel):
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
         postencoder: Optional[AbsPostEncoder],
-        decoder: AbsDecoder,
+        decoder: MLMDecoder,
         ctc: CTC,
-        joint_network: Optional[torch.nn.Module],
+        joint_network: Optional[torch.nn.Module] = None,
         ctc_weight: float = 0.5,
         interctc_weight: float = 0.0,
         ignore_id: int = -1,
@@ -70,8 +69,6 @@ class MaskCTCModel(ESPnetASRModel):
         extract_feats_in_collect_stats: bool = True,
     ):
         assert check_argument_types()
-        assert isinstance(decoder, MLMDecoder), "Only MLMDecoder is supported now"
-        assert joint_network is None, "Joint network is not supported"
 
         super().__init__(
             vocab_size=vocab_size,
