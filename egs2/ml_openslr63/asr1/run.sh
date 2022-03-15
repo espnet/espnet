@@ -28,6 +28,7 @@ ngpu=1
     --nbpe 150 \
     --bpemode "unigram" \
     --feats_type raw \
+    --feats_normalize uttmvn \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
