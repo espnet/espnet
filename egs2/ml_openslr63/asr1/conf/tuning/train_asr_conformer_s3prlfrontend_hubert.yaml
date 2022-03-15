@@ -3,6 +3,10 @@ cudnn_benchmark: false
 cudnn_deterministic: false
 use_amp: true
 
+freeze_param: [
+"frontend.upstream"
+]
+
 # frontend related
 frontend: s3prl
 frontend_conf:
@@ -47,6 +51,7 @@ model_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
+    extract_feats_in_collect_stats: false
 
 # optimization related
 optim: adam
