@@ -1,7 +1,7 @@
 ## pretrain_Train_pytorch_audio_delta_specaug (Audio-Only)
 
 * Model files (archived to model.tar.gz by <code>$ pack_model.sh</code>)
-  - download link: <code>https://drive.google.com/file/d/1ZXXCXSbbFS2PDlrs9kbJL9pE6-5nPPxi/view</code>
+  - download link: <code>https://drive.google.com/file/d/1ITgdZoa8vQ7lDwi1jLziYGXOyUtgE2ow/view</code>
   - training config file: <code>conf/train.yaml</code>
   - decoding config file: <code>conf/decode.yaml</code>
   - preprocess config file: <code>conf/specaug.yaml</code>
