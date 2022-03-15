@@ -26,6 +26,7 @@ ngpu=1
     --lm_config "${lm_config}" \
     --token_type bpe \
     --nbpe 150 \
+    --nj 8 \
     --bpemode "unigram" \
     --feats_type raw \
     --feats_normalize uttmvn \
