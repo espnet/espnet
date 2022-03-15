@@ -95,4 +95,16 @@ for dir in data/test data/train data/dev; do
     utils/fix_data_dir.sh $dir
 done
 fi
+
+for n in $num_spk; do
+    for dir in data/test$n; do
+        for file in spk1.scp spk2.scp spk3.scp noise1.scp; do
+            if [ -f ${dir}/${file} ]; then
+                sort -t '-' ${dir}/${file} -o ${dir}/${file}
+            fi
+        done
+        utils/fix_data_dir.sh $dir
+    done
+done
+            
 log "Successfully finished. [elapsed=${SECONDS}s]"
