@@ -53,5 +53,6 @@ for test_name in ("test", "dev"):
                         out_lines.append(line.strip())
             with open(f"data/{test_name}/{name}", "w") as f:
                 f.write("\n".join(out_lines))
+                f.write("\n")
     else:
         print("ok.")

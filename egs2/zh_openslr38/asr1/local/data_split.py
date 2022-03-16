@@ -8,6 +8,7 @@ from collections import defaultdict
 import random
 
 train_size = 0.9
+random.seed(1)
 
 data_dir = sys.argv[1] #ST-CMDS-20170001_1-OS
 
