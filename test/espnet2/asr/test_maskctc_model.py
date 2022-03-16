@@ -11,13 +11,13 @@ from espnet2.asr.maskctc_model import MaskCTCModel
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
 @pytest.mark.parametrize(
-    "interctc_layer_idx, interctc_use_conditioning",
+    "interctc_layer_idx, interctc_use_conditioning, interctc_weight",
     [
-        ([], False),
-        ([1], True),
+        ([], False, 0.0),
+        ([1], True, 0.5),
     ],
 )
-def test_maskctc(encoder_arch, interctc_layer_idx, interctc_use_conditioning):
+def test_maskctc(encoder_arch, interctc_layer_idx, interctc_use_conditioning, interctc_weight):
     vocab_size = 5
     enc_out = 4
     encoder = encoder_arch(
@@ -47,6 +47,7 @@ def test_maskctc(encoder_arch, interctc_layer_idx, interctc_use_conditioning):
         postencoder=None,
         decoder=decoder,
         ctc=ctc,
+        interctc_weight=interctc_weight,
     )
 
     inputs = dict(
