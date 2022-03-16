@@ -1,77 +1,78 @@
-batch_type: numel
-batch_bins: 2000000
-accum_grad: 4
-max_epoch: 60
-patience: none
-# The initialization method for model parameters
-init: xavier_uniform
-best_model_criterion:
--   - valid
-    - acc
-    - max
-keep_nbest_models: 10
+# network architecture
+cudnn_benchmark: false
+cudnn_deterministic: false
+use_amp: true
 
 freeze_param: [
 "frontend.upstream"
 ]
 
+# frontend related
 frontend: s3prl
 frontend_conf:
-    frontend_conf:
-        upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder.
-    download_dir: ./hub
-    multilayer_feature: true
+   frontend_conf:
+      upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder.
+   download_dir: ./hub
+   multilayer_feature: True
 
 preencoder: linear
 preencoder_conf:
-    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
-    output_size: 80
+   input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+   output_size: 80
 
+# encoder related
 encoder: conformer
 encoder_conf:
+    input_layer: conv2d
+    num_blocks: 12
+    linear_units: 2048
+    dropout_rate: 0.1
     output_size: 256
     attention_heads: 4
-    linear_units: 2048
-    num_blocks: 12
-    dropout_rate: 0.1
-    positional_dropout_rate: 0.1
     attention_dropout_rate: 0.0
-    input_layer: conv2d2
-    normalize_before: true
+    pos_enc_layer_type: rel_pos
+    selfattention_layer_type: rel_selfattn
+    activation_type: swish
     macaron_style: true
-    rel_pos_type: latest
-    pos_enc_layer_type: "rel_pos"
-    selfattention_layer_type: "rel_selfattn"
-    activation_type: "swish"
     use_cnn_module: true
     cnn_module_kernel: 15
 
+
+# decoder related
 decoder: transformer
 decoder_conf:
-    attention_heads: 4
-    linear_units: 2048
+    input_layer: embed
     num_blocks: 6
+    linear_units: 2048
     dropout_rate: 0.1
-    positional_dropout_rate: 0.1
-    self_attention_dropout_rate: 0.0
-    src_attention_dropout_rate: 0.0
 
-# ctc related
-ctc_conf:
-    ignore_nan_grad: true
-
+# hybrid CTC/attention
 model_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
-    extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
+    # extract_feats_in_collect_stats: false
 
+# optimization related
 optim: adam
+accum_grad: 1
+grad_clip: 3
+max_epoch: 50
 optim_conf:
-    lr: 0.5
-scheduler: warmuplr
+    lr: 4.0
+scheduler: noamlr
 scheduler_conf:
-    warmup_steps: 30000
+    warmup_steps: 2500
+
+# minibatch related
+batch_type: numel
+batch_bins: 2000000
+
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
 
 specaug: specaug
 specaug_conf:
