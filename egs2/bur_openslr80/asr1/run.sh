@@ -11,7 +11,7 @@ train_set="bur_train"
 train_dev="bur_dev"
 test_set="bur_test"
 
-asr_config=conf/train_asr.yaml
+asr_config=conf/train_asr_hubert_transformer_adam_specaug.yaml
 inference_config=conf/decode_asr.yaml
 lm_config=conf/train_lm.yaml 
 ngpu=1
@@ -27,7 +27,7 @@ ngpu=1
     --inference_args "--batch_size 1" \
     --use_lm true \
     --token_type bpe \
-    --nbpe 1000 \
+    --nbpe 150 \
     --feats_type raw \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
