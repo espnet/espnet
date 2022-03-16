@@ -2,17 +2,19 @@ from collections import OrderedDict
 from distutils.version import LooseVersion
 from typing import List
 from typing import Tuple
+from numpy import dtype
 
 import torch
 
 from espnet2.enh.layers.ifasnet import iFaSNet
+from espnet2.enh.layers.fasnet import FaSNet_TAC
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
-class IFaSNetSeparator(AbsSeparator):
+class FaSNetSeparator(AbsSeparator):
     def __init__(
         self,
         input_dim: int,
@@ -24,9 +26,10 @@ class IFaSNetSeparator(AbsSeparator):
         num_spk: int,
         win_len: int,
         context_len: int,
+        fasnet_type: str,
         sr: int = 16000,
     ):
-        """iFaSNet Separator
+        """FaSNet Separator
 
         Args:
             input_dim: required by AbsSeparator. Not used in this model.
@@ -44,7 +47,11 @@ class IFaSNetSeparator(AbsSeparator):
 
         self._num_spk = num_spk
 
-        self.ifasnet = iFaSNet(
+        assert fasnet_type in ['fasnet', 'ifasnet'], "only support fasnet and ifasnet"
+
+        FASNET = FaSNet_TAC if fasnet_type == 'fasnet' else iFaSNet
+
+        self.fasnet = FASNET(
             enc_dim=enc_dim,
             feature_dim=feature_dim,
             hidden_dim=hidden_dim,
@@ -81,9 +88,9 @@ class IFaSNetSeparator(AbsSeparator):
 
         input = input.permute(0, 2, 1)
 
-        none_mic = torch.zeros(1).type(input.type())
-
-        separated = self.ifasnet(input, none_mic)
+        none_mic = torch.zeros(1, dtype=input.dtype)
+        
+        separated = self.fasnet(input, none_mic)
 
         separated = list(separated.unbind(dim=1))
 

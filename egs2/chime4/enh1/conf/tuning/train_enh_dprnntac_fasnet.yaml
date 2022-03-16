@@ -42,7 +42,7 @@ separator_conf:
     win_len: 16
     context_len: 16
     sr: 16000
-    fasnet_type: 'ifasnet'
+    fasnet_type: 'fasnet'
 
 
 
