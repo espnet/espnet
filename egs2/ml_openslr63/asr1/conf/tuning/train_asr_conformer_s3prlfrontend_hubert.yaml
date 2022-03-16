@@ -3,9 +3,9 @@ cudnn_benchmark: false
 cudnn_deterministic: false
 use_amp: true
 
-freeze_param: [
-"frontend.upstream"
-]
+#freeze_param: [
+#"frontend.upstream"
+#]
 
 # frontend related
 frontend: s3prl
@@ -59,10 +59,10 @@ accum_grad: 1
 grad_clip: 3
 max_epoch: 50
 optim_conf:
-    lr: 4.0
+    lr: 1.0
 scheduler: noamlr
 scheduler_conf:
-    warmup_steps: 25000
+    warmup_steps: 2500
 
 # minibatch related
 batch_type: numel

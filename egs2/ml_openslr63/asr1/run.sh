@@ -21,6 +21,8 @@ ngpu=1
     --stage 1 \
     --stop_stage 13 \
     --ngpu 1 \
+    --nj 3 \
+    --inference_nj 4 \
     --lang "ml" \
     --use_lm true \
     --lm_config "${lm_config}" \
