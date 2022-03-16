@@ -72,6 +72,7 @@ mkdir -p $dev_dir
 mkdir -p $test_dir
 
 python3 local/data_split.py ${ST_CMDS}/ST-CMDS-20170001_1-OS
+python3 pyscripts/utils/check_train_test_duplicate.py
 
 for dir in $train_dir $dev_dir $test_dir; do
   utils/utt2spk_to_spk2utt.pl $dir/utt2spk > $dir/spk2utt
