@@ -18,7 +18,7 @@ lm_config=conf/train_lm.yaml
 ngpu=1
 
 ./asr.sh \
-    --stage 1 \
+    --stage 10 \
     --stop_stage 13 \
     --ngpu 1 \
     --nj 3 \
