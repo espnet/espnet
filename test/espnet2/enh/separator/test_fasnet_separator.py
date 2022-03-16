@@ -3,7 +3,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from espnet2.enh.separator.fasnet_separator import IFaSNetSeparator
+from espnet2.enh.separator.fasnet_separator import FaSNetSeparator
 
 
 @pytest.mark.parametrize("input_dim", [1])
@@ -15,7 +15,7 @@ from espnet2.enh.separator.fasnet_separator import IFaSNetSeparator
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("win_len", [2, 4])
 @pytest.mark.parametrize("context_len", [2, 4])
-@pytest.mark.parametrize("fasnet_type", ['fasnet', 'ifasnet'])
+@pytest.mark.parametrize("fasnet_type", ["fasnet", "ifasnet"])
 @pytest.mark.parametrize("sr", [100])
 def test_fasnet_separator_forward_backward_real(
     input_dim,
@@ -30,7 +30,7 @@ def test_fasnet_separator_forward_backward_real(
     fasnet_type,
     sr,
 ):
-    model = IFaSNetSeparator(
+    model = FaSNetSeparator(
         input_dim=input_dim,
         enc_dim=enc_dim,
         feature_dim=feature_dim,
@@ -55,14 +55,15 @@ def test_fasnet_separator_forward_backward_real(
 
     separated[0].abs().mean().backward()
 
-@pytest.mark.parametrize("fasnet_type", ['fasnet', 'ifasnet'])
+
+@pytest.mark.parametrize("fasnet_type", ["fasnet", "ifasnet"])
 def test_fasnet_separator_output(fasnet_type):
 
     x = torch.rand(2, 800, 4)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     for num_spk in range(1, 3):
-        model = IFaSNetSeparator(
+        model = FaSNetSeparator(
             input_dim=16,
             enc_dim=16,
             feature_dim=16,

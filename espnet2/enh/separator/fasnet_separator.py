@@ -2,12 +2,11 @@ from collections import OrderedDict
 from distutils.version import LooseVersion
 from typing import List
 from typing import Tuple
-from numpy import dtype
 
 import torch
 
-from espnet2.enh.layers.ifasnet import iFaSNet
 from espnet2.enh.layers.fasnet import FaSNet_TAC
+from espnet2.enh.layers.ifasnet import iFaSNet
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
@@ -29,7 +28,7 @@ class FaSNetSeparator(AbsSeparator):
         fasnet_type: str,
         sr: int = 16000,
     ):
-        """FaSNet Separator
+        """Filter-and-sum Network (FaSNet) Separator
 
         Args:
             input_dim: required by AbsSeparator. Not used in this model.
@@ -41,15 +40,17 @@ class FaSNetSeparator(AbsSeparator):
             num_spk: number of speakers
             win_len: window length in millisecond
             context_len: context length in millisecond
+            fasnet_type: 'fasnet' or 'ifasnet'.
+                Select from origin fasnet or Implicit fasnet
             sr: samplerate of input audio
         """
         super().__init__()
 
         self._num_spk = num_spk
 
-        assert fasnet_type in ['fasnet', 'ifasnet'], "only support fasnet and ifasnet"
+        assert fasnet_type in ["fasnet", "ifasnet"], "only support fasnet and ifasnet"
 
-        FASNET = FaSNet_TAC if fasnet_type == 'fasnet' else iFaSNet
+        FASNET = FaSNet_TAC if fasnet_type == "fasnet" else iFaSNet
 
         self.fasnet = FASNET(
             enc_dim=enc_dim,
@@ -89,7 +90,7 @@ class FaSNetSeparator(AbsSeparator):
         input = input.permute(0, 2, 1)
 
         none_mic = torch.zeros(1, dtype=input.dtype)
-        
+
         separated = self.fasnet(input, none_mic)
 
         separated = list(separated.unbind(dim=1))

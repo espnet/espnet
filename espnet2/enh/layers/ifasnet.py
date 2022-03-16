@@ -20,7 +20,7 @@ class iFaSNet(FaSNet_base):
     def __init__(self, *args, **kwargs):
         super(iFaSNet, self).__init__(*args, **kwargs)
 
-        self.context = self.context_len*2 // self.win_len
+        self.context = self.context_len * 2 // self.win_len
         # context compression
         self.summ_BN = nn.Linear(self.enc_dim, self.feature_dim)
         self.summ_RNN = dprnn.SingleRNN(
@@ -37,7 +37,7 @@ class iFaSNet(FaSNet_base):
             self.num_spk,
             self.layer,
             self.segment_size,
-            fasnet_type='ifasnet'
+            fasnet_type="ifasnet",
         )
 
         # waveform encoder/decoder
