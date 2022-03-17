@@ -547,7 +547,6 @@ Text converter related:
                     [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                     [--input_size INPUT_SIZE] [--ctc_conf CTC_CONF]
                     [--joint_net_conf JOINT_NET_CONF]
-                    [--model_conf MODEL_CONF]
                     [--use_preprocessor USE_PREPROCESSOR]
                     [--token_type {bpe,char,word,phn}] [--bpemodel BPEMODEL]
                     [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
@@ -563,13 +562,14 @@ Text converter related:
                     [--specaug_conf SPECAUG_CONF]
                     [--normalize {global_mvn,utterance_mvn,None}]
                     [--normalize_conf NORMALIZE_CONF]
+                    [--model {espnet,maskctc}] [--model_conf MODEL_CONF]
                     [--preencoder {sinc,linear,None}]
                     [--preencoder_conf PREENCODER_CONF]
                     [--encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer}]
                     [--encoder_conf ENCODER_CONF]
                     [--postencoder {hugging_face_transformers,None}]
                     [--postencoder_conf POSTENCODER_CONF]
-                    [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer}]
+                    [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm}]
                     [--decoder_conf DECODER_CONF]
 
 base parser
@@ -913,8 +913,6 @@ Optimizer related:
   --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: True})
   --joint_net_conf JOINT_NET_CONF
                         The keyword arguments for joint network class. (default: None)
-  --model_conf MODEL_CONF
-                        The keyword arguments for model class. (default: {&#39;ctc_weight&#39;: 0.5, &#39;interctc_weight&#39;: 0.0, &#39;ignore_id&#39;: -1, &#39;lsm_weight&#39;: 0.0, &#39;length_normalized_loss&#39;: False, &#39;report_cer&#39;: True, &#39;report_wer&#39;: True, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;extract_feats_in_collect_stats&#39;: True})
 
   Preprocess related
 
@@ -935,6 +933,10 @@ Optimizer related:
                         The normalize type (default: utterance_mvn)
   --normalize_conf NORMALIZE_CONF
                         The keyword arguments for normalize (default: {})
+  --model {espnet,maskctc}
+                        The model type (default: espnet)
+  --model_conf MODEL_CONF
+                        The keyword arguments for model (default: {})
   --preencoder {sinc,linear,None}
                         The preencoder type (default: None)
   --preencoder_conf PREENCODER_CONF
@@ -947,7 +949,7 @@ Optimizer related:
                         The postencoder type (default: None)
   --postencoder_conf POSTENCODER_CONF
                         The keyword arguments for postencoder (default: {})
-  --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer}
+  --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm}
                         The decoder type (default: rnn)
   --decoder_conf DECODER_CONF
                         The keyword arguments for decoder (default: {})

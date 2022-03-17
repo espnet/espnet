@@ -257,6 +257,17 @@ espnet2.bin.asr_inference_streaming
     :show-inheritance:
 
 
+.. _espnet2.bin.asr_inference_maskctc:
+
+espnet2.bin.asr_inference_maskctc
+---------------------------------
+
+.. automodule:: espnet2.bin.asr_inference_maskctc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.lm_train:
 
 espnet2.bin.lm_train

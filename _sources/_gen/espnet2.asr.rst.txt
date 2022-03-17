@@ -4,6 +4,17 @@ espnet2.asr package
 
 
 
+.. _espnet2.asr.maskctc_model:
+
+espnet2.asr.maskctc_model
+-------------------------
+
+.. automodule:: espnet2.asr.maskctc_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.__init__:
 
 espnet2.asr.__init__
@@ -417,6 +428,17 @@ espnet2.asr.decoder.rnn_decoder
 -------------------------------
 
 .. automodule:: espnet2.asr.decoder.rnn_decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.decoder.mlm_decoder:
+
+espnet2.asr.decoder.mlm_decoder
+-------------------------------
+
+.. automodule:: espnet2.asr.decoder.mlm_decoder
     :members:
     :undoc-members:
     :show-inheritance:

@@ -105,6 +105,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-inference">espnet2.bin.asr_inference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-pack">espnet2.bin.pack</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-inference-streaming">espnet2.bin.asr_inference_streaming</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-inference-maskctc">espnet2.bin.asr_inference_maskctc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-lm-train">espnet2.bin.lm_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-st-train">espnet2.bin.st_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-hubert-train">espnet2.bin.hubert_train</a></li>
@@ -1411,8 +1412,59 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 <dd></dd></dl>
 
 </section>
+<section id="espnet2-bin-asr-inference-maskctc">
+<span id="id24"></span><h2>espnet2.bin.asr_inference_maskctc<a class="headerlink" href="#espnet2-bin-asr-inference-maskctc" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.asr_inference_maskctc"></span><dl class="class">
+<dt id="espnet2.bin.asr_inference_maskctc.Speech2Text">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.asr_inference_maskctc.</code><code class="sig-name descname">Speech2Text</code><span class="sig-paren">(</span><em class="sig-param">asr_train_config: Union[pathlib.Path, str], asr_model_file: Union[pathlib.Path, str] = None, token_type: str = None, bpemodel: str = None, device: str = 'cpu', batch_size: int = 1, dtype: str = 'float32', maskctc_n_iterations: int = 10, maskctc_threshold_probability: float = 0.99</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_inference_maskctc.html#Speech2Text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_inference_maskctc.Speech2Text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Speech2Text class</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">soundfile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">speech2text</span> <span class="o">=</span> <span class="n">Speech2Text</span><span class="p">(</span><span class="s2">&quot;asr_config.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;asr.pth&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">audio</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;speech.wav&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">speech2text</span><span class="p">(</span><span class="n">audio</span><span class="p">)</span>
+<span class="go">[(text, token, token_int, hypothesis object), ...]</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.bin.asr_inference_maskctc.Speech2Text.from_pretrained">
+<em class="property">static </em><code class="sig-name descname">from_pretrained</code><span class="sig-paren">(</span><em class="sig-param">model_tag: Optional[str] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_inference_maskctc.html#Speech2Text.from_pretrained"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_inference_maskctc.Speech2Text.from_pretrained" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build Speech2Text instance from the pretrained model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model_tag</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Model tag of the pretrained models.
+Currently, the tags of espnet_model_zoo are supported.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Speech2Text instance.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet2.bin.st_inference.Speech2Text" title="espnet2.bin.st_inference.Speech2Text">Speech2Text</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.asr_inference_maskctc.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.asr_inference_maskctc.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_inference_maskctc.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_inference_maskctc.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.asr_inference_maskctc.inference">
+<code class="sig-prename descclassname">espnet2.bin.asr_inference_maskctc.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], asr_train_config: str, asr_model_file: str, model_tag: Optional[str], token_type: Optional[str], bpemodel: Optional[str], allow_variable_data_keys: bool, maskctc_n_iterations: int, maskctc_threshold_probability: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_inference_maskctc.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_inference_maskctc.inference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.asr_inference_maskctc.main">
+<code class="sig-prename descclassname">espnet2.bin.asr_inference_maskctc.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_inference_maskctc.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_inference_maskctc.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
 <section id="espnet2-bin-lm-train">
-<span id="id24"></span><h2>espnet2.bin.lm_train<a class="headerlink" href="#espnet2-bin-lm-train" title="Permalink to this headline">¶</a></h2>
+<span id="id25"></span><h2>espnet2.bin.lm_train<a class="headerlink" href="#espnet2-bin-lm-train" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.lm_train"></span><dl class="function">
 <dt id="espnet2.bin.lm_train.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.lm_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/lm_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.lm_train.get_parser" title="Permalink to this definition">¶</a></dt>
@@ -1429,7 +1481,7 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 
 </section>
 <section id="espnet2-bin-st-train">
-<span id="id25"></span><h2>espnet2.bin.st_train<a class="headerlink" href="#espnet2-bin-st-train" title="Permalink to this headline">¶</a></h2>
+<span id="id26"></span><h2>espnet2.bin.st_train<a class="headerlink" href="#espnet2-bin-st-train" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.st_train"></span><dl class="function">
 <dt id="espnet2.bin.st_train.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.st_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/st_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.st_train.get_parser" title="Permalink to this definition">¶</a></dt>
@@ -1449,7 +1501,7 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 
 </section>
 <section id="espnet2-bin-hubert-train">
-<span id="id26"></span><h2>espnet2.bin.hubert_train<a class="headerlink" href="#espnet2-bin-hubert-train" title="Permalink to this headline">¶</a></h2>
+<span id="id27"></span><h2>espnet2.bin.hubert_train<a class="headerlink" href="#espnet2-bin-hubert-train" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.hubert_train"></span><dl class="function">
 <dt id="espnet2.bin.hubert_train.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.hubert_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/hubert_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.hubert_train.get_parser" title="Permalink to this definition">¶</a></dt>
