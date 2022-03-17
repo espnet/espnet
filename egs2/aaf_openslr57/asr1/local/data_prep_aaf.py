@@ -103,7 +103,7 @@ with open(os.path.join(DATA_DIR, 'test', 'text'), 'w') as f_text:
 VALID_SPEECH_DIR = os.path.join(DATASET_DIR, "speech/devtest")
 utterances = set()
 
-with open(os.path.join(DATA_DIR, "test", "utt2spk"), 'w') as f_utt2spk:
+with open(os.path.join(DATA_DIR, "valid", "utt2spk"), 'w') as f_utt2spk:
     for speaker in os.listdir(os.path.join(VALID_SPEECH_DIR, 'ca16')):
         for utterance in os.listdir(os.path.join(VALID_SPEECH_DIR, 'ca16', speaker)):
             src = os.path.join(VALID_SPEECH_DIR, 'ca16', speaker, utterance)
