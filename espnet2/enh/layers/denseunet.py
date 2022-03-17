@@ -6,21 +6,25 @@
 
 import torch
 import asteroid_filterbanks.transforms as af_transforms
+from asteroid.masknn import activations
 
 
 class DenseBlock(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, num_freqs, hid_chans=32, ksz=3):
+    def __init__(self, in_channels, out_channels,
+                 num_freqs,
+                  ksz=3,
+                 activation=torch.nn.ELU, hid_chans=32):
         super(DenseBlock, self).__init__()
 
         self.conv1 = torch.nn.Sequential(
             torch.nn.Conv2d(in_channels, hid_chans, (ksz, ksz), (1, 1), "same"),
-            torch.nn.ELU(),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(in_channels),
         )
 
         self.conv2 = torch.nn.Sequential(
-            torch.nn.Conv2d(in_channels + hid_chans, hid_chans, (3, 3), (1, 1), "same"),
-            torch.nn.ELU(),
+            torch.nn.Conv2d(in_channels + hid_chans, hid_chans, (ksz, ksz), (1, 1), "same"),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(in_channels),
         )
 
@@ -28,29 +32,29 @@ class DenseBlock(torch.nn.Module):
             torch.nn.Conv2d(
                 in_channels + hid_chans * 2, hid_chans, (1, 1), (1, 1), "same"
             ),
-            torch.nn.ELU(),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(in_channels),
         )
 
         self.freq_processing = torch.nn.Sequential(
             torch.nn.Conv2d(num_freqs, num_freqs, (1, 1), (1, 1), "same"),
-            torch.nn.ELU(),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(in_channels),
         )
 
         self.conv3 = torch.nn.Sequential(
             torch.nn.Conv2d(
-                in_channels + hid_chans * 3, hid_chans, (3, 3), (1, 1), "same"
+                in_channels + hid_chans * 3, hid_chans, (ksz, ksz), (1, 1), "same"
             ),
-            torch.nn.ELU(),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(in_channels),
         )
 
         self.conv4 = torch.nn.Sequential(
             torch.nn.Conv2d(
-                in_channels + hid_chans * 4, out_channels, (3, 3), (1, 1), "same"
+                in_channels + hid_chans * 4, out_channels, (ksz, ksz), (1, 1), "same"
             ),
-            torch.nn.ELU(),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(in_channels),
         )
 
@@ -68,104 +72,84 @@ class DenseBlock(torch.nn.Module):
 
 
 class TCNResBlock(torch.nn.Module):
-    def __init__(self, d=384, ksz=3, dilation=1):
+    def __init__(self, d=384, ksz=3, dilation=1, activation=torch.nn.ELU):
         super(TCNResBlock, self).__init__()
-        padding = (ksz - 1) * dilation // 2
+        padding = dilation
         self.layer = torch.nn.Sequential(
             torch.nn.InstanceNorm1d(d),
-            torch.nn.ELU(),
-            torch.nn.Conv1d(d, d, ksz, 1, padding, dilation),
+            activations.get(activation)(),
+            torch.nn.Conv1d(d, d, ksz, 1, padding, dilation, groups=d),
         )
 
     def forward(self, inp):
         return self.layer(inp) + inp
 
 
-class DenseUNet(torch.nn.Module):
+class TCNDenseUNet(torch.nn.Module):
     def __init__(
         self,
-        winsize=512,
-        hopsize=128,
-        use_window=True,
-        samplerate=16000,
-        out_type="regress",
-        in_channels=8,
+        in_channels=1,
         hid_chans=32,
         ksz_dense=3,
         ksz_tcn=3,
-        n_repeats=4,
-        n_blocks=7,
+        tcn_repeats=4,
+        tcn_blocks=7,
         tcn_channels=384,
+        activation=torch.nn.ELU
     ):
-        super(DenseUNet, self).__init__()
-
+        super(TCNDenseUNet, self).__init__()
         self.in_channels = in_channels
-        self.out_type = out_type
-        assert winsize == 512, "Other not supported"
-        from asteroid_filterbanks import make_enc_dec
-
-        if use_window:
-            window = torch.hamming_window(512)
-        else:
-            window = None
-        self.enc, self.dec = make_enc_dec(
-            "stft", winsize, winsize, hopsize, samplerate, window=window
-        )
-
         self.conv1 = torch.nn.Sequential(
-            torch.nn.Conv2d(in_channels, hid_chans, (3, 3), (1, 1), (1, 0)),
-            torch.nn.ELU(),
-            torch.nn.InstanceNorm2d(hid_chans),
-        )
-        self.enc1 = DenseBlock(hid_chans, hid_chans, 255, ksz=ksz_dense)
+            torch.nn.Conv2d(self.in_channels*2, hid_chans, (3, 3), (1, 1), (1, 0)))
+        self.enc1 = DenseBlock(hid_chans, hid_chans, 255, ksz_dense, activation)
 
         self.conv2 = torch.nn.Sequential(
             torch.nn.Conv2d(hid_chans, hid_chans, (3, 3), (1, 2), (1, 0)),
-            torch.nn.ELU(),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(hid_chans),
         )
-        self.enc2 = DenseBlock(hid_chans, hid_chans, 127, ksz=ksz_dense)
+        self.enc2 = DenseBlock(hid_chans, hid_chans, 127, ksz_dense, activation)
 
         self.conv3 = torch.nn.Sequential(
             torch.nn.Conv2d(hid_chans, hid_chans, (3, 3), (1, 2), (1, 0)),
-            torch.nn.ELU(),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(hid_chans),
         )
-        self.enc3 = DenseBlock(hid_chans, hid_chans, 63, ksz=ksz_dense)
+        self.enc3 = DenseBlock(hid_chans, hid_chans, 63, ksz_dense, activation)
 
         self.conv4 = torch.nn.Sequential(
             torch.nn.Conv2d(hid_chans, hid_chans, (3, 3), (1, 2), (1, 0)),
-            torch.nn.ELU(),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(hid_chans),
         )
-        self.enc4 = DenseBlock(hid_chans, hid_chans, 31, ksz=ksz_dense)
+        self.enc4 = DenseBlock(hid_chans, hid_chans, 31,  ksz_dense, activation)
 
         self.conv5 = torch.nn.Sequential(
             torch.nn.Conv2d(hid_chans, hid_chans, (3, 3), (1, 2), (1, 0)),
-            torch.nn.ELU(),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(hid_chans),
         )
-        self.enc5 = DenseBlock(hid_chans, hid_chans, 15, ksz=ksz_dense)
+        self.enc5 = DenseBlock(hid_chans, hid_chans, 15,  ksz_dense, activation)
 
         self.conv6 = torch.nn.Sequential(
             torch.nn.Conv2d(hid_chans, hid_chans * 2, (3, 3), (1, 2), (1, 0)),
-            torch.nn.ELU(),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(hid_chans),
         )
         self.conv7 = torch.nn.Sequential(
             torch.nn.Conv2d(hid_chans * 2, hid_chans * 4, (3, 3), (1, 2), (1, 0)),
-            torch.nn.ELU(),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(hid_chans * 4),
         )
         self.conv8 = torch.nn.Sequential(
             torch.nn.Conv2d(hid_chans * 4, tcn_channels, (3, 3), (1, 1), (1, 0)),
-            torch.nn.ELU(),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(tcn_channels),
         )
 
         self.tcn = []
-        for r in range(n_repeats):
-            for x in range(n_blocks):
+        for r in range(tcn_repeats):
+            for x in range(tcn_blocks):
                 self.tcn.append(TCNResBlock(tcn_channels, ksz_tcn, 2 ** x))
 
         self.tcn = torch.nn.Sequential(*self.tcn)
@@ -173,58 +157,57 @@ class DenseUNet(torch.nn.Module):
         self.dconv8 = torch.nn.Sequential(
             torch.nn.ConvTranspose2d(
                 tcn_channels * 2, hid_chans * 4, (3, 3), (1, 1), (1, 0)
-            ),
+            ), activations.get(activation)(),
             torch.nn.InstanceNorm2d(hid_chans * 4),
         )
         self.dconv7 = torch.nn.Sequential(
             torch.nn.ConvTranspose2d(
                 hid_chans * 8, hid_chans * 2, (3, 3), (1, 2), (1, 0)
-            ),
+            ), activations.get(activation)(),
             torch.nn.InstanceNorm2d(hid_chans * 2),
         )
         self.dconv6 = torch.nn.Sequential(
             torch.nn.ConvTranspose2d(hid_chans * 4, hid_chans, (3, 3), (1, 2), (1, 0)),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(hid_chans),
         )
 
         self.dec5 = torch.nn.Sequential(
-            DenseBlock(hid_chans * 2, hid_chans, 15, ksz=ksz_dense),
-            torch.nn.ConvTranspose2d(hid_chans, hid_chans, (3, 3), (1, 2), (1, 0)),
-            torch.nn.ELU(),
+            DenseBlock(hid_chans * 2, hid_chans*2, 15, ksz_dense, activation),
+            torch.nn.ConvTranspose2d(hid_chans*2, hid_chans, (3, 3), (1, 2), (1, 0)),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(hid_chans),
         )
         self.dec4 = torch.nn.Sequential(
-            DenseBlock(hid_chans * 2, hid_chans, 31, ksz=ksz_dense),
-            torch.nn.ConvTranspose2d(hid_chans, hid_chans, (3, 3), (1, 2), (1, 0)),
-            torch.nn.ELU(),
+            DenseBlock(hid_chans * 2, hid_chans*2, 31, ksz_dense, activation),
+            torch.nn.ConvTranspose2d(hid_chans*2, hid_chans, (3, 3), (1, 2), (1, 0)),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(hid_chans),
         )
         self.dec3 = torch.nn.Sequential(
-            DenseBlock(hid_chans * 2, hid_chans, 63, ksz=ksz_dense),
-            torch.nn.ConvTranspose2d(hid_chans, hid_chans, (3, 3), (1, 2), (1, 0)),
-            torch.nn.ELU(),
+            DenseBlock(hid_chans * 2, hid_chans*2, 63, ksz_dense, activation),
+            torch.nn.ConvTranspose2d(hid_chans*2, hid_chans, (3, 3), (1, 2), (1, 0)),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(hid_chans),
         )
         self.dec2 = torch.nn.Sequential(
-            DenseBlock(hid_chans * 2, hid_chans, 127, ksz=ksz_dense),
-            torch.nn.ConvTranspose2d(hid_chans, hid_chans, (3, 3), (1, 2), (1, 0)),
-            torch.nn.ELU(),
+            DenseBlock(hid_chans * 2, hid_chans*2, 127, ksz_dense, activation),
+            torch.nn.ConvTranspose2d(hid_chans*2, hid_chans, (3, 3), (1, 2), (1, 0)),
+            activations.get(activation)(),
             torch.nn.InstanceNorm2d(hid_chans),
         )
 
         self.dec1 = torch.nn.Sequential(
-            DenseBlock(hid_chans * 2, hid_chans, 255, ksz=ksz_dense),
-            torch.nn.ConvTranspose2d(hid_chans, 2, (3, 3), (1, 1), (1, 0)),
+            DenseBlock(hid_chans * 2, hid_chans*2, 255, ksz_dense, activation),
+            torch.nn.ConvTranspose2d(hid_chans*2, 2, (3, 3), (1, 1), (1, 0)),
         )
 
     def forward(self, tf_rep):
 
         bsz, mics, _, frames = tf_rep.shape
         inp_feats = af_transforms.to_torch_complex(tf_rep)
-
         inp_feats = torch.cat((inp_feats.real, inp_feats.imag), 1)
         inp_feats = inp_feats.transpose(-1, -2)
-
         inp_feats = inp_feats.reshape(bsz, self.in_channels * 2, frames, -1)
 
         enc1 = self.enc1(self.conv1(inp_feats))
