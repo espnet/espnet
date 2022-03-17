@@ -19,11 +19,6 @@ inference_config=conf/decode_asr.yaml
 
 nbpe=250
 
-sed -i -e '1s/^/use_amp: true \n/' \
-        -e '1s/^/cudnn_deterministic: false \n/' \
-        -e '1s/^/cudnn_benchmark: false \n/' \
-        -e 's/10000000/2500000/' conf/tuning/train_asr_conformer5.yaml
-
 ./asr.sh \
     --ngpu 4 \
     --lang "${lang}" \
