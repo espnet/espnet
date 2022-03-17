@@ -17,20 +17,16 @@ asr_config=conf/train_asr.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
-if [[ "zh" == *"${lang}"* ]]; then
-  nbpe=2500
-elif [[ "fr" == *"${lang}"* ]]; then
-  nbpe=350
-elif [[ "es" == *"${lang}"* ]]; then
-  nbpe=235
-else
-  nbpe=150
-fi
+nbpe=250
+
+sed -i -e '1s/^/use_amp: true \n/' \
+        -e '1s/^/cudnn_deterministic: false \n/' \
+        -e '1s/^/cudnn_benchmark: false \n/' \
+        -e 's/10000000/2500000/' conf/tuning/train_asr_conformer5.yaml
 
 ./asr.sh \
     --ngpu 4 \
     --lang "${lang}" \
-    --local_data_opts "--lang ${lang}" \
     --audio_format "flac" \
     --use_lm false \
     --token_type bpe \
@@ -46,6 +42,3 @@ fi
     --lm_train_text "data/${train_set}/text" \
     --stage 13 --stop_stage 13
 
-
-    #    --lm_config "${lm_config}" \
-#    --lm_train_text "data/${train_set}/text" "$@"
