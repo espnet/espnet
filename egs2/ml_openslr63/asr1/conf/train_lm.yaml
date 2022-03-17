@@ -4,7 +4,7 @@ lm_conf:
 optim: sgd        # or adam
 batch_type: folded
 batch_size: 64   # batch size in LM training
-max_epoch: 20      # if the data size is large, we can reduce this
+max_epoch: 30      # if the data size is large, we can reduce this
 patience: 3
 
 best_model_criterion:
