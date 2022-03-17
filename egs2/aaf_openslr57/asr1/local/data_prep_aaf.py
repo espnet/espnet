@@ -90,13 +90,12 @@ with open(os.path.join(DATA_DIR, 'test', 'text'), 'w') as f_text:
             for line in f_trans:
                 utt_id, text = line.split(' ', 1)
                 text = "".join([i.lower() for i in text if i not in string.punctuation])
-
                 speaker = '_'.join(utt_id.split('_')[:3])
                 if utt_id in utterances:
-                    f_text.write(speaker + '_' + line)
+                    f_text.write(speaker + '_' + utt_id + ' ' + text)
 
                     wav_path = os.path.join(DEST_DIR, 'test', utt_id + '.wav')
-                    f_wav.write(speaker + '_'+ utt_id + " " + wav_path + "\n")
+                    f_wav.write(speaker + '_' + utt_id + " " + wav_path + "\n")
 
 # prepare the validation data
 
