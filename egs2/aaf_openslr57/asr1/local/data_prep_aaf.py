@@ -91,7 +91,7 @@ with open(os.path.join(DATA_DIR, 'test', 'text'), 'w') as f_text:
                 utt_id, text = line.split(' ', 1)
                 text = "".join([i.lower() for i in text if i not in string.punctuation])
 
-                speaker = utt_id.split('_')[2]
+                speaker = '_'.join(utt_id.split('_')[:3])
                 if utt_id in utterances:
                     f_text.write(speaker + '_' + line)
 
