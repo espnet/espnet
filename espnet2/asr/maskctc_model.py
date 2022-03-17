@@ -292,6 +292,8 @@ class MaskCTCInference(torch.nn.Module):
         y_hat = torch.stack([x[0] for x in groupby(ctc_ids[0])])
         y_idx = torch.nonzero(y_hat != 0).squeeze(-1)
 
+        logging.info("ctc:{}".format(self.ids2text(y_hat[y_idx].tolist())))
+
         # calculate token-level ctc probabilities by taking
         # the maximum probability of consecutive frames with
         # the same ctc symbols
@@ -314,7 +316,7 @@ class MaskCTCInference(torch.nn.Module):
         y_in = torch.zeros(1, len(y_idx), dtype=torch.long) + self.mask_token
         y_in[0][confident_idx] = y_hat[y_idx][confident_idx]
 
-        logging.info("ctc:{}".format(self.ids2text(y_in[0].tolist())))
+        logging.info("msk:{}".format(self.ids2text(y_in[0].tolist())))
 
         # iterative decoding
         if not mask_num == 0:
