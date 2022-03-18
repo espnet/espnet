@@ -161,6 +161,8 @@ class Speech2Text:
 
         # 2. Build EXT ST model
         self.ext_st_model=None
+        self.ext_md_model = False
+        self.ext_speech_attn = False
         if ext_st_train_config is not None:
             ext_st, ext_st_train_args = STTask.build_model_from_file(
                 ext_st_train_config, ext_st_file, device
@@ -168,6 +170,10 @@ class Speech2Text:
             ext_st.to(dtype=getattr(torch, dtype)).eval()
             self.ext_st_model = ext_st
             scorers["ext_st"] = ext_st.decoder
+            if isinstance(ext_st,ESPnetSTMDModel):
+                self.ext_md_model = True
+            if isinstance(ext_st.decoder,TransformerMDDecoder):
+                self.ext_speech_attn = True
 
         # 3. Build ngram model
         if ngram_file is not None:
@@ -435,14 +441,26 @@ class Speech2Text:
             mt_x = mt_enc[0]
 
         ext_st_x=None
+        ext_md_x=None
         if self.ext_st_model is not None:
-            ext_st_enc, _ = self.ext_st_model.encode(**batch)
+            ext_st_enc, ext_st_enc_lens = self.ext_st_model.encode(**batch)
             ext_st_x = ext_st_enc[0]
+            if self.ext_md_model:
+                _ , _, ext_hs_dec_asr = self.ext_md_model.asr_decoder(
+                    ext_st_enc, ext_st_enc_lens, src_text_in, src_text_in_lens, return_hidden=True
+                )
+                ext_asr_hs_lengths = ext_hs_dec_asr.new_full([1], dtype=torch.long, fill_value=ext_hs_dec_asr.size(1))
+                ext_st_enc_mt, _ , _ = self.ext_st_model.encoder_mt(ext_hs_dec_asr, ext_asr_hs_lengths)
+                if self.ext_speech_attn:
+                    ext_st_x = ext_st_enc[0]
+                    ext_md_x = ext_st_enc_mt[0]
+                else:
+                    ext_st_x = ext_st_enc_mt[0]
 
 
         # c. Passed the encoder result and the beam search
         nbest_hyps = self.beam_search(
-            x=x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x = md_x, mt_x = mt_x, ext_st_x=ext_st_x
+            x=x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x = md_x, mt_x = mt_x, ext_st_x=ext_st_x, ext_md_x=ext_md_x
         )
         nbest_hyps = nbest_hyps[: self.nbest]
 
