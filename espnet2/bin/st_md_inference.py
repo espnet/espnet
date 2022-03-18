@@ -447,7 +447,7 @@ class Speech2Text:
             ext_st_enc, ext_st_enc_lens = self.ext_st_model.encode(**batch)
             ext_st_x = ext_st_enc[0]
             if self.ext_md_model:
-                _ , _, ext_hs_dec_asr = self.ext_md_model.asr_decoder(
+                _ , _, ext_hs_dec_asr = self.ext_st_model.asr_decoder(
                     ext_st_enc, ext_st_enc_lens, src_text_in, src_text_in_lens, return_hidden=True
                 )
                 ext_asr_hs_lengths = ext_hs_dec_asr.new_full([1], dtype=torch.long, fill_value=ext_hs_dec_asr.size(1))
