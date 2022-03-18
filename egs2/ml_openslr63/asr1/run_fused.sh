@@ -11,18 +11,18 @@ train_set="train_ml"
 train_dev="dev_ml"
 test_set="test_ml"
 
-asr_config=conf/tuning/train_asr_conformer5.yaml
+asr_config=conf/tuning/train_asr_conformer_s3prlfrontend_hubert_fused.yaml
 inference_config=conf/decode_asr.yaml
 lm_config=conf/train_lm.yaml
 
 ngpu=1
 
 ./asr.sh \
-    --stage 1 \
-    --stop_stage 9 \
+    --stage 10 \
+    --stop_stage 13 \
     --ngpu 1 \
-    --nj 20 \
-    --inference_nj 20 \
+    --nj 1 \
+    --inference_nj 1 \
     --lang "ml" \
     --use_lm true \
     --lm_config "${lm_config}" \
