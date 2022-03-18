@@ -59,7 +59,7 @@ accum_grad: 1
 grad_clip: 3
 max_epoch: 50
 optim_conf:
-    lr: 0.005
+    lr: 0.1
 scheduler: noamlr
 scheduler_conf:
     warmup_steps: 25000
