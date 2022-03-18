@@ -19,7 +19,7 @@ ngpu=1
 
 ./asr.sh \
     --stage 1 \
-    --stop_stage 9 \
+    --stop_stage 13 \
     --ngpu 1 \
     --nj 20 \
     --inference_nj 20 \
