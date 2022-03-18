@@ -3,22 +3,12 @@ cudnn_benchmark: false
 cudnn_deterministic: false
 use_amp: true
 
-freeze_param: [
-"frontend.upstream"
-]
-
 # frontend related
-frontend: s3prl
+frontend: default
 frontend_conf:
-   frontend_conf:
-      upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder.
-   download_dir: ./hub
-   multilayer_feature: True
-
-preencoder: linear
-preencoder_conf:
-   input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
-   output_size: 80
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
 
 # encoder related
 encoder: conformer
@@ -61,6 +51,7 @@ optim_conf:
     lr: 4.0
 scheduler: noamlr
 scheduler_conf:
+    model_size: 256
     warmup_steps: 25000
 
 # minibatch related
@@ -81,10 +72,10 @@ specaug_conf:
     apply_freq_mask: true
     freq_mask_width_range:
     - 0
-    - 30
-    num_freq_mask: 2
+    - 8
+    num_freq_mask: 4
     apply_time_mask: true
     time_mask_width_range:
     - 0
-    - 40
-    num_time_mask: 2
+    - 10
+    num_time_mask: 4
