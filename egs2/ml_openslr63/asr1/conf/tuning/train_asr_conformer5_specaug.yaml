@@ -72,10 +72,10 @@ specaug_conf:
     apply_freq_mask: true
     freq_mask_width_range:
     - 0
-    - 16
-    num_freq_mask: 2
+    - 8
+    num_freq_mask: 4
     apply_time_mask: true
     time_mask_width_range:
     - 0
-    - 20
-    num_time_mask: 2
+    - 10
+    num_time_mask: 4
