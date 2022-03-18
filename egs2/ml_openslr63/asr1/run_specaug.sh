@@ -11,7 +11,7 @@ train_set="train_ml"
 train_dev="dev_ml"
 test_set="test_ml"
 
-asr_config=conf/tuning/train_asr_conformer5_specaug.yaml
+asr_config=conf/tuning/train_asr_conformer5.yaml
 inference_config=conf/decode_asr.yaml
 lm_config=conf/train_lm.yaml
 
@@ -21,7 +21,6 @@ ngpu=1
     --stage 1 \
     --stop_stage 13 \
     --ngpu 1 \
-    --nj 32 \
     --lang "ml" \
     --use_lm true \
     --lm_config "${lm_config}" \
