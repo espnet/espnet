@@ -22,17 +22,17 @@ frontend_conf:
       win_length: 400
       hop_length: 160
 
-    - frontend_type: s3prl
-      frontend_conf:
-        upstream: wav2vec2_large_ll60k
-      download_dir: ./hub
-      multilayer_feature: True
+#    - frontend_type: s3prl
+#      frontend_conf:
+#        upstream: wav2vec2_large_ll60k
+#      download_dir: ./hub
+#      multilayer_feature: True
    align_method: linear_projection
    proj_dim: 100 
    
 preencoder: linear
 preencoder_conf:
-   input_size: 300 # Note: If the upstream is changed, please change this value accordingly.
+   input_size: 200 # Note: If the upstream is changed, please change this value accordingly.
    output_size: 80
 
 # encoder related
@@ -74,7 +74,7 @@ accum_grad: 1
 grad_clip: 3
 max_epoch: 50
 optim_conf:
-    lr: 4.0
+    lr: 1.0
 scheduler: noamlr
 scheduler_conf:
     warmup_steps: 2500
