@@ -1551,7 +1551,7 @@ if ! "${skip_eval}"; then
         done
 
         # Show results in Markdown syntax
-        scripts/utils/show_st_result.sh --case $tgt_case "${st_exp}" > "${st_exp}"/RESULTS.md
+        scripts/utils/show_translation_result.sh --case $tgt_case "${st_exp}" > "${st_exp}"/RESULTS.md
         cat "${cat_exp}"/RESULTS.md
     fi
 else
