@@ -45,7 +45,7 @@ if __name__ == "__main__":
         num_test_spks += 1
         fids = sorted(list(set(spk2utt[spk])))
         num_fids += len(fids)
-        if num_fids >= 2000:
+        if num_fids >= 1000:
             break
     test_spks = spks[:num_test_spks]
     train_dev_spks = spks[num_test_spks:]
