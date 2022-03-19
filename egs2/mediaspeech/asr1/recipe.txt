@@ -1,0 +1,4 @@
+2022-03-18T03:00:27 (asr.sh:911:main) Stage 10: ASR collect stats: train_set=dump/raw/mediaspeech_train, valid_set=dump/raw/mediaspeech_dev
+2022-03-18T03:00:27 (asr.sh:961:main) Generate 'exp/asr_stats_raw_bpe1000/run.sh'. You can resume the process from stage 10 using this script
+2022-03-18T03:00:27 (asr.sh:965:main) ASR collect-stats started... log: 'exp/asr_stats_raw_bpe1000/logdir/stats.*.log'
+2022-03-18T03:00:27 (asr.sh:961:main) Generate 'exp/asr_stats_raw_bpe1000/run.sh'. You can resume the process from stage 10 using this script
