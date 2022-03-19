@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ESPnet Speech Enhancement Demonstration &mdash; ESPnet 0.10.7a1 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ESPnet Speech Translation Demonstration" href="st_demo.html" />
+    <link rel="prev" title="Pretrained Model" href="pretrained.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          </a>
+              <div class="version">
+                0.10.7a1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial_2021_CMU_11751_18781.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial_2021_CMU_11751_18781.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial_2021_CMU_11751_18781.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial_2021_CMU_11751_18781.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ESPnet Speech Enhancement Demonstration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Install">Install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Speech-Enhancement">Speech Enhancement</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Single-Channel-Enhancement,-the-CHiME-example">Single-Channel Enhancement, the CHiME example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Download-and-load-the-pretrained-Conv-Tasnet">Download and load the pretrained Conv-Tasnet</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Enhance-the-single-channel-real-noisy-speech-in-CHiME4">Enhance the single-channel real noisy speech in CHiME4</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Enhance-your-own-pre-recordings">Enhance your own pre-recordings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Multi-Channel-Enhancement">Multi-Channel Enhancement</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Download-and-load-the-pretrained-mvdr-neural-beamformer.">Download and load the pretrained mvdr neural beamformer.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Enhance-the-multi-channel-real-noisy-speech-in-CHiME4">Enhance the multi-channel real noisy speech in CHiME4</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#Speech-Separation">Speech Separation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Model-Selection">Model Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Separate-Speech-Mixture">Separate Speech Mixture</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Separate-the-example-in-wsj0_2mix-testing-set">Separate the example in wsj0_2mix testing set</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Separate-your-own-recordings">Separate your own recordings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Show-spectrums-of-separated-speech">Show spectrums of separated speech</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#Evluate-separated-speech-with-pretrained-ASR-model">Evluate separated speech with pretrained ASR model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>ESPnet Speech Enhancement Demonstration</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebook/se_demo.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt .copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="ESPnet-Speech-Enhancement-Demonstration">
+<h1>ESPnet Speech Enhancement Demonstration<a class="headerlink" href="#ESPnet-Speech-Enhancement-Demonstration" title="Permalink to this headline">¶</a></h1>
+<p><a class="reference external" href="https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing"><img alt="Open In Colab" src="https://colab.research.google.com/assets/colab-badge.svg" /></a></p>
+<p>This notebook provides a demonstration of the speech enhancement and separation using ESPnet2-SE.</p>
+<ul class="simple">
+<li><p>ESPnet2-SE: <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/enh1">https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/enh1</a></p></li>
+</ul>
+<p>Author: Chenda Li ([&#64;LiChenda](<a class="reference external" href="https://github.com/LiChenda">https://github.com/LiChenda</a>)), Wangyou Zhang ([&#64;Emrys365](<a class="reference external" href="https://github.com/Emrys365">https://github.com/Emrys365</a>))</p>
+<section id="Install">
+<h2>Install<a class="headerlink" href="#Install" title="Permalink to this headline">¶</a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>%pip install -q espnet==0.10.1
+%pip install -q espnet_model_zoo
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Speech-Enhancement">
+<h2>Speech Enhancement<a class="headerlink" href="#Speech-Enhancement" title="Permalink to this headline">¶</a></h2>
+<section id="Single-Channel-Enhancement,-the-CHiME-example">
+<h3>Single-Channel Enhancement, the CHiME example<a class="headerlink" href="#Single-Channel-Enhancement,-the-CHiME-example" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span># Download one utterance from real noisy speech of CHiME4
+!gdown --id 1SmrN5NFSg6JuQSs2sfy3ehD8OIcqK6wS -O /content/M05_440C0213_PED_REAL.wav
+import os
+
+import soundfile
+from IPython.display import display, Audio
+mixwav_mc, sr = soundfile.read(&quot;/content/M05_440C0213_PED_REAL.wav&quot;)
+# mixwav.shape: num_samples, num_channels
+mixwav_sc = mixwav_mc[:,4]
+display(Audio(mixwav_mc.T, rate=sr))
+</pre></div>
+</div>
+</div>
+<section id="Download-and-load-the-pretrained-Conv-Tasnet">
+<h4>Download and load the pretrained Conv-Tasnet<a class="headerlink" href="#Download-and-load-the-pretrained-Conv-Tasnet" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>!gdown --id 17DMWdw84wF3fz3t7ia1zssdzhkpVQGZm -O /content/chime_tasnet_singlechannel.zip
+!unzip /content/chime_tasnet_singlechannel.zip -d /content/enh_model_sc
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span># Load the model
+# If you encounter error &quot;No module named &#39;espnet2&#39;&quot;, please re-run the 1st Cell. This might be a colab bug.
+import sys
+import soundfile
+from espnet2.bin.enh_inference import SeparateSpeech
+
+
+separate_speech = {}
+# For models downloaded from GoogleDrive, you can use the following script:
+enh_model_sc = SeparateSpeech(
+  enh_train_config=&quot;/content/enh_model_sc/exp/enh_train_enh_conv_tasnet_raw/config.yaml&quot;,
+  enh_model_file=&quot;/content/enh_model_sc/exp/enh_train_enh_conv_tasnet_raw/5epoch.pth&quot;,
+  # for segment-wise process on long speech
+  normalize_segment_scale=False,
+  show_progressbar=True,
+  ref_channel=4,
+  normalize_output_wav=True,
+  device=&quot;cuda:0&quot;,
+)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Enhance-the-single-channel-real-noisy-speech-in-CHiME4">
+<h4>Enhance the single-channel real noisy speech in CHiME4<a class="headerlink" href="#Enhance-the-single-channel-real-noisy-speech-in-CHiME4" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span># play the enhanced single-channel speech
+wave = enh_model_sc(mixwav_sc[None, ...], sr)
+print(&quot;Input real noisy speech&quot;, flush=True)
+display(Audio(mixwav_sc, rate=sr))
+print(&quot;Enhanced speech&quot;, flush=True)
+display(Audio(wave[0].squeeze(), rate=sr))
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="Enhance-your-own-pre-recordings">
+<h3>Enhance your own pre-recordings<a class="headerlink" href="#Enhance-your-own-pre-recordings" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>from google.colab import files
+from IPython.display import display, Audio
+import soundfile
+
+uploaded = files.upload()
+
+for file_name in uploaded.keys():
+  speech, rate = soundfile.read(file_name)
+  assert rate == sr, &quot;mismatch in sampling rate&quot;
+  wave = enh_model_sc(speech[None, ...], sr)
+  print(f&quot;Your input speech {file_name}&quot;, flush=True)
+  display(Audio(speech, rate=sr))
+  print(f&quot;Enhanced speech for {file_name}&quot;, flush=True)
+  display(Audio(wave[0].squeeze(), rate=sr))
+<br/><br/></pre></div>
+</div>
+</div>
+</section>
+<section id="Multi-Channel-Enhancement">
+<h3>Multi-Channel Enhancement<a class="headerlink" href="#Multi-Channel-Enhancement" title="Permalink to this headline">¶</a></h3>
+<section id="Download-and-load-the-pretrained-mvdr-neural-beamformer.">
+<h4>Download and load the pretrained mvdr neural beamformer.<a class="headerlink" href="#Download-and-load-the-pretrained-mvdr-neural-beamformer." title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span># Download the pretained enhancement model
+
+!gdown --id 1FohDfBlOa7ipc9v2luY-QIFQ_GJ1iW_i -O /content/mvdr_beamformer_16k_se_raw_valid.zip
+!unzip /content/mvdr_beamformer_16k_se_raw_valid.zip -d /content/enh_model_mc
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span># Load the model
+# If you encounter error &quot;No module named &#39;espnet2&#39;&quot;, please re-run the 1st Cell. This might be a colab bug.
+import sys
+import soundfile
+from espnet2.bin.enh_inference import SeparateSpeech
+
+
+separate_speech = {}
+# For models downloaded from GoogleDrive, you can use the following script:
+enh_model_mc = SeparateSpeech(
+  enh_train_config=&quot;/content/enh_model_mc/exp/enh_train_enh_beamformer_mvdr_raw/config.yaml&quot;,
+  enh_model_file=&quot;/content/enh_model_mc/exp/enh_train_enh_beamformer_mvdr_raw/11epoch.pth&quot;,
+  # for segment-wise process on long speech
+  normalize_segment_scale=False,
+  show_progressbar=True,
+  ref_channel=4,
+  normalize_output_wav=True,
+  device=&quot;cuda:0&quot;,
+)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Enhance-the-multi-channel-real-noisy-speech-in-CHiME4">
+<h4>Enhance the multi-channel real noisy speech in CHiME4<a class="headerlink" href="#Enhance-the-multi-channel-real-noisy-speech-in-CHiME4" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>wave = enh_model_mc(mixwav_mc[None, ...], sr)
+print(&quot;Input real noisy speech&quot;, flush=True)
+display(Audio(mixwav_mc.T, rate=sr))
+print(&quot;Enhanced speech&quot;, flush=True)
+display(Audio(wave[0].squeeze(), rate=sr))
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="Speech-Separation">
+<h2>Speech Separation<a class="headerlink" href="#Speech-Separation" title="Permalink to this headline">¶</a></h2>
+<section id="Model-Selection">
+<h3>Model Selection<a class="headerlink" href="#Model-Selection" title="Permalink to this headline">¶</a></h3>
+<p>Please select model shown in <a class="reference external" href="https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv">espnet_model_zoo</a></p>
+<p>In this demonstration, we will show different speech separation models on wsj0_2mix.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>#@title Choose Speech Separation model { run: &quot;auto&quot; }
+
+fs = 8000 #@param {type:&quot;integer&quot;}
+tag = &quot;Chenda Li/wsj0_2mix_enh_train_enh_conv_tasnet_raw_valid.si_snr.ave&quot; #@param [&quot;Chenda Li/wsj0_2mix_enh_train_enh_conv_tasnet_raw_valid.si_snr.ave&quot;, &quot;Chenda Li/wsj0_2mix_enh_train_enh_rnn_tf_raw_valid.si_snr.ave&quot;, &quot;https://zenodo.org/record/4688000/files/enh_train_enh_dprnn_tasnet_raw_valid.si_snr.ave.zip&quot;]
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span># For models uploaded to Zenodo, you can use the following python script instead:
+import sys
+import soundfile
+from espnet_model_zoo.downloader import ModelDownloader
+from espnet2.bin.enh_inference import SeparateSpeech
+
+d = ModelDownloader()
+
+cfg = d.download_and_unpack(tag)
+separate_speech = SeparateSpeech(
+  enh_train_config=cfg[&quot;train_config&quot;],
+  enh_model_file=cfg[&quot;model_file&quot;],
+  # for segment-wise process on long speech
+  segment_size=2.4,
+  hop_size=0.8,
+  normalize_segment_scale=False,
+  show_progressbar=True,
+  ref_channel=None,
+  normalize_output_wav=True,
+  device=&quot;cuda:0&quot;,
+)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Separate-Speech-Mixture">
+<h3>Separate Speech Mixture<a class="headerlink" href="#Separate-Speech-Mixture" title="Permalink to this headline">¶</a></h3>
+<section id="Separate-the-example-in-wsj0_2mix-testing-set">
+<h4>Separate the example in wsj0_2mix testing set<a class="headerlink" href="#Separate-the-example-in-wsj0_2mix-testing-set" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>!gdown --id 1ZCUkd_Lb7pO2rpPr4FqYdtJBZ7JMiInx -O /content/447c020t_1.2106_422a0112_-1.2106.wav
+
+import os
+import soundfile
+from IPython.display import display, Audio
+
+mixwav, sr = soundfile.read(&quot;447c020t_1.2106_422a0112_-1.2106.wav&quot;)
+waves_wsj = separate_speech(mixwav[None, ...], fs=sr)
+
+print(&quot;Input mixture&quot;, flush=True)
+display(Audio(mixwav, rate=sr))
+print(f&quot;========= Separated speech with model {tag} =========&quot;, flush=True)
+print(&quot;Separated spk1&quot;, flush=True)
+display(Audio(waves_wsj[0].squeeze(), rate=sr))
+print(&quot;Separated spk2&quot;, flush=True)
+display(Audio(waves_wsj[1].squeeze(), rate=sr))
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Separate-your-own-recordings">
+<h4>Separate your own recordings<a class="headerlink" href="#Separate-your-own-recordings" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>from google.colab import files
+from IPython.display import display, Audio
+import soundfile
+
+uploaded = files.upload()
+
+for file_name in uploaded.keys():
+  mixwav_yours, rate = soundfile.read(file_name)
+  assert rate == sr, &quot;mismatch in sampling rate&quot;
+  waves_yours = separate_speech(mixwav_yours[None, ...], fs=sr)
+  print(&quot;Input mixture&quot;, flush=True)
+  display(Audio(mixwav_yours, rate=sr))
+  print(f&quot;========= Separated speech with model {tag} =========&quot;, flush=True)
+  print(&quot;Separated spk1&quot;, flush=True)
+  display(Audio(waves_yours[0].squeeze(), rate=sr))
+  print(&quot;Separated spk2&quot;, flush=True)
+  display(Audio(waves_yours[1].squeeze(), rate=sr))
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Show-spectrums-of-separated-speech">
+<h4>Show spectrums of separated speech<a class="headerlink" href="#Show-spectrums-of-separated-speech" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>import matplotlib.pyplot as plt
+import torch
+from torch_complex.tensor import ComplexTensor
+
+from espnet.asr.asr_utils import plot_spectrogram
+from espnet2.layers.stft import Stft
+
+
+stft = Stft(
+  n_fft=512,
+  win_length=None,
+  hop_length=128,
+  window=&quot;hann&quot;,
+)
+ilens = torch.LongTensor([len(mixwav)])
+# specs: (T, F)
+spec_mix = ComplexTensor(
+    *torch.unbind(
+      stft(torch.as_tensor(mixwav).unsqueeze(0), ilens)[0].squeeze(),
+      dim=-1
+  )
+)
+spec_sep1 = ComplexTensor(
+    *torch.unbind(
+      stft(torch.as_tensor(waves_wsj[0]), ilens)[0].squeeze(),
+      dim=-1
+  )
+)
+spec_sep2 = ComplexTensor(
+    *torch.unbind(
+      stft(torch.as_tensor(waves_wsj[1]), ilens)[0].squeeze(),
+      dim=-1
+  )
+)
+
+# freqs = torch.linspace(0, sr / 2, spec_mix.shape[1])
+# frames = torch.linspace(0, len(mixwav) / sr, spec_mix.shape[0])
+samples = torch.linspace(0, len(mixwav) / sr, len(mixwav))
+plt.figure(figsize=(24, 12))
+plt.subplot(3, 2, 1)
+plt.title(&#39;Mixture Spectrogram&#39;)
+plot_spectrogram(
+  plt, abs(spec_mix).transpose(-1, -2).numpy(), fs=sr,
+  mode=&#39;db&#39;, frame_shift=None,
+  bottom=False, labelbottom=False
+)
+plt.subplot(3, 2, 2)
+plt.title(&#39;Mixture Wavform&#39;)
+plt.plot(samples, mixwav)
+plt.xlim(0, len(mixwav) / sr)
+
+plt.subplot(3, 2, 3)
+plt.title(&#39;Separated Spectrogram (spk1)&#39;)
+plot_spectrogram(
+  plt, abs(spec_sep1).transpose(-1, -2).numpy(), fs=sr,
+  mode=&#39;db&#39;, frame_shift=None,
+  bottom=False, labelbottom=False
+)
+plt.subplot(3, 2, 4)
+plt.title(&#39;Separated Wavform (spk1)&#39;)
+plt.plot(samples, waves_wsj[0].squeeze())
+plt.xlim(0, len(mixwav) / sr)
+
+plt.subplot(3, 2, 5)
+plt.title(&#39;Separated Spectrogram (spk2)&#39;)
+plot_spectrogram(
+  plt, abs(spec_sep2).transpose(-1, -2).numpy(), fs=sr,
+  mode=&#39;db&#39;, frame_shift=None,
+  bottom=False, labelbottom=False
+)
+plt.subplot(3, 2, 6)
+plt.title(&#39;Separated Wavform (spk2)&#39;)
+plt.plot(samples, waves_wsj[1].squeeze())
+plt.xlim(0, len(mixwav) / sr)
+plt.xlabel(&quot;Time (s)&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="Evluate-separated-speech-with-pretrained-ASR-model">
+<h2>Evluate separated speech with pretrained ASR model<a class="headerlink" href="#Evluate-separated-speech-with-pretrained-ASR-model" title="Permalink to this headline">¶</a></h2>
+<p>The ground truths are:</p>
+<p><code class="docutils literal notranslate"><span class="pre">text_1:</span> <span class="pre">SOME</span> <span class="pre">CRITICS</span> <span class="pre">INCLUDING</span> <span class="pre">HIGH</span> <span class="pre">REAGAN</span> <span class="pre">ADMINISTRATION</span> <span class="pre">OFFICIALS</span> <span class="pre">ARE</span> <span class="pre">RAISING</span> <span class="pre">THE</span> <span class="pre">ALARM</span> <span class="pre">THAT</span> <span class="pre">THE</span> <span class="pre">FED'S</span> <span class="pre">POLICY</span> <span class="pre">IS</span> <span class="pre">TOO</span> <span class="pre">TIGHT</span> <span class="pre">AND</span> <span class="pre">COULD</span> <span class="pre">CAUSE</span> <span class="pre">A</span> <span class="pre">RECESSION</span> <span class="pre">NEXT</span> <span class="pre">YEAR</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">text_2:</span> <span class="pre">THE</span> <span class="pre">UNITED</span> <span class="pre">STATES</span> <span class="pre">UNDERTOOK</span> <span class="pre">TO</span> <span class="pre">DEFEND</span> <span class="pre">WESTERN</span> <span class="pre">EUROPE</span> <span class="pre">AGAINST</span> <span class="pre">SOVIET</span> <span class="pre">ATTACK</span></code></p>
+<p>(This may take a while for the speech recognition.)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>import espnet_model_zoo
+from espnet_model_zoo.downloader import ModelDownloader
+from espnet2.bin.asr_inference import Speech2Text
+
+wsj_8k_model_url=&quot;https://zenodo.org/record/4012264/files/asr_train_asr_transformer_raw_char_1gpu_valid.acc.ave.zip?download=1&quot;
+
+d = ModelDownloader()
+speech2text = Speech2Text(
+  **d.download_and_unpack(wsj_8k_model_url),
+  device=&quot;cuda:0&quot;,
+)
+
+text_est = [None, None]
+text_est[0], *_ = speech2text(waves_wsj[0].squeeze())[0]
+text_est[1], *_ = speech2text(waves_wsj[1].squeeze())[0]
+text_m, *_ = speech2text(mixwav)[0]
+print(&quot;Mix Speech to Text: &quot;, text_m)
+print(&quot;Separated Speech 1 to Text: &quot;, text_est[0])
+print(&quot;Separated Speech 2 to Text: &quot;, text_est[1])
+<br/></pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-none notranslate"><div class="highlight"><pre><span></span>import difflib
+from itertools import permutations
+
+import editdistance
+import numpy as np
+
+colors = dict(
+    red=lambda text: f&quot;\033[38;2;255;0;0m{text}\033[0m&quot; if text else &quot;&quot;,
+    green=lambda text: f&quot;\033[38;2;0;255;0m{text}\033[0m&quot; if text else &quot;&quot;,
+    yellow=lambda text: f&quot;\033[38;2;225;225;0m{text}\033[0m&quot; if text else &quot;&quot;,
+    white=lambda text: f&quot;\033[38;2;255;255;255m{text}\033[0m&quot; if text else &quot;&quot;,
+    black=lambda text: f&quot;\033[38;2;0;0;0m{text}\033[0m&quot; if text else &quot;&quot;,
+)
+
+def diff_strings(ref, est):
+    &quot;&quot;&quot;Reference: https://stackoverflow.com/a/64404008/7384873&quot;&quot;&quot;
+    ref_str, est_str, err_str = [], [], []
+    matcher = difflib.SequenceMatcher(None, ref, est)
+    for opcode, a0, a1, b0, b1 in matcher.get_opcodes():
+        if opcode == &quot;equal&quot;:
+            txt = ref[a0:a1]
+            ref_str.append(txt)
+            est_str.append(txt)
+            err_str.append(&quot; &quot; * (a1 - a0))
+        elif opcode == &quot;insert&quot;:
+            ref_str.append(&quot;*&quot; * (b1 - b0))
+            est_str.append(colors[&quot;green&quot;](est[b0:b1]))
+            err_str.append(colors[&quot;black&quot;](&quot;I&quot; * (b1 - b0)))
+        elif opcode == &quot;delete&quot;:
+            ref_str.append(ref[a0:a1])
+            est_str.append(colors[&quot;red&quot;](&quot;*&quot; * (a1 - a0)))
+            err_str.append(colors[&quot;black&quot;](&quot;D&quot; * (a1 - a0)))
+        elif opcode == &quot;replace&quot;:
+            diff = a1 - a0 - b1 + b0
+            if diff &gt;= 0:
+                txt_ref = ref[a0:a1]
+                txt_est = colors[&quot;yellow&quot;](est[b0:b1]) + colors[&quot;red&quot;](&quot;*&quot; * diff)
+                txt_err = &quot;S&quot; * (b1 - b0) + &quot;D&quot; * diff
+            elif diff &lt; 0:
+                txt_ref = ref[a0:a1] + &quot;*&quot; * -diff
+                txt_est = colors[&quot;yellow&quot;](est[b0:b1]) + colors[&quot;green&quot;](&quot;*&quot; * -diff)
+                txt_err = &quot;S&quot; * (b1 - b0) + &quot;I&quot; * -diff
+
+            ref_str.append(txt_ref)
+            est_str.append(txt_est)
+            err_str.append(colors[&quot;black&quot;](txt_err))
+    return &quot;&quot;.join(ref_str), &quot;&quot;.join(est_str), &quot;&quot;.join(err_str)
+
+
+text_ref = [
+  &quot;SOME CRITICS INCLUDING HIGH REAGAN ADMINISTRATION OFFICIALS ARE RAISING THE ALARM THAT THE FED&#39;S POLICY IS TOO TIGHT AND COULD CAUSE A RECESSION NEXT YEAR&quot;,
+  &quot;THE UNITED STATES UNDERTOOK TO DEFEND WESTERN EUROPE AGAINST SOVIET ATTACK&quot;,
+]
+
+print(&quot;=====================&quot; , flush=True)
+perms = list(permutations(range(2)))
+string_edit = [
+  [
+    editdistance.eval(text_ref[m], text_est[n])
+    for m, n in enumerate(p)
+  ]
+  for p in perms
+]
+
+dist = [sum(edist) for edist in string_edit]
+perm_idx = np.argmin(dist)
+perm = perms[perm_idx]
+
+for i, p in enumerate(perm):
+  print(&quot;\n--------------- Text %d ---------------&quot; % (i + 1), flush=True)
+  ref, est, err = diff_strings(text_ref[i], text_est[p])
+  print(&quot;REF: &quot; + ref + &quot;\n&quot; + &quot;HYP: &quot; + est + &quot;\n&quot; + &quot;ERR: &quot; + err, flush=True)
+  print(&quot;Edit Distance = {}\n&quot;.format(string_edit[perm_idx][i]), flush=True)
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pretrained.html" class="btn btn-neutral float-left" title="Pretrained Model" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="st_demo.html" class="btn btn-neutral float-right" title="ESPnet Speech Translation Demonstration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,370 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "espnet2_asr_realtime_demo.ipynb",
+      "provenance": [],
+      "collapsed_sections": [],
+      "toc_visible": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "afRWXQXdBDih"
+      },
+      "source": [
+        "# ESPnet2-ASR realtime demonstration\n",
+        "\n",
+        "This notebook provides a demonstration of the realtime E2E-ASR using ESPnet2-ASR.\n",
+        "\n",
+        "- ESPnet2-ASR: https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/asr1\n",
+        "\n",
+        "Author: Jiatong Shi ([@ftshijt](https://github.com/ftshijt))"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "nRo9Gx__BT1-"
+      },
+      "source": [
+        "# NOTE: pip shows imcompatible errors due to preinstalled libraries but you do not need to care\n",
+        "!pip install -q espnet==0.10.0\n",
+        "!pip install -q espnet_model_zoo"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "q1r9xOSug2v8"
+      },
+      "source": [
+        "## ASR model demo"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "2yN78T9xg5-S"
+      },
+      "source": [
+        "### Model Selection\n",
+        "\n",
+        "Please select model shown in [espnet_model_zoo](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv)\n",
+        "\n",
+        "In this demonstration, we will show English, Japanese, Spanish, Mandrain, Multilingual ASR model, respectively"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "0D27VWTlhnbG"
+      },
+      "source": [
+        "#@title Choose English ASR model { run: \"auto\" }\n",
+        "\n",
+        "lang = 'en'\n",
+        "fs = 16000 #@param {type:\"integer\"}\n",
+        "tag = 'Shinji Watanabe/spgispeech_asr_train_asr_conformer6_n_fft512_hop_length256_raw_en_unnorm_bpe5000_valid.acc.ave' #@param [\"Shinji Watanabe/spgispeech_asr_train_asr_conformer6_n_fft512_hop_length256_raw_en_unnorm_bpe5000_valid.acc.ave\", \"kamo-naoyuki/librispeech_asr_train_asr_conformer6_n_fft512_hop_length256_raw_en_bpe5000_scheduler_confwarmup_steps40000_optim_conflr0.0025_sp_valid.acc.ave\"] {type:\"string\"}"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "8ICdjXlSidsS"
+      },
+      "source": [
+        "#@title Choose Japanese ASR model { run: \"auto\" }\n",
+        "\n",
+        "lang = 'ja'\n",
+        "fs = 16000 #@param {type:\"integer\"}\n",
+        "tag = 'Shinji Watanabe/laborotv_asr_train_asr_conformer2_latest33_raw_char_sp_valid.acc.ave' #@param [\"Shinji Watanabe/laborotv_asr_train_asr_conformer2_latest33_raw_char_sp_valid.acc.ave\"] {type:\"string\"}"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "v-vnd1nMio5l"
+      },
+      "source": [
+        "#@title Choose Spanish ASR model { run: \"auto\" }\n",
+        "\n",
+        "lang = 'es'\n",
+        "fs = 16000 #@param {type:\"integer\"}\n",
+        "tag = 'ftshijt/mls_asr_transformer_valid.acc.best' #@param [\"ftshijt/mls_asr_transformer_valid.acc.best\"] {type:\"string\"}"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "lhngXFBci-j_"
+      },
+      "source": [
+        "#@title Choose Mandrain ASR model { run: \"auto\" }\n",
+        "\n",
+        "lang = 'zh'\n",
+        "fs = 16000 #@param {type:\"integer\"}\n",
+        "tag = 'Emiru Tsunoo/aishell_asr_train_asr_streaming_transformer_raw_zh_char_sp_valid.acc.ave' #@param [\"\tEmiru Tsunoo/aishell_asr_train_asr_streaming_transformer_raw_zh_char_sp_valid.acc.ave\"] {type:\"string\"}"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "qvRNF42msNyN"
+      },
+      "source": [
+        "#@title Choose Multilingual ASR model { run: \"auto\" }\n",
+        "\n",
+        "lang = 'multilingual'\n",
+        "fs = 16000 #@param {type:\"integer\"}\n",
+        "tag = 'ftshijt/open_li52_asr_train_asr_raw_bpe7000_valid.acc.ave_10best' #@param [\"\tftshijt/open_li52_asr_train_asr_raw_bpe7000_valid.acc.ave_10best\"] {type:\"string\"}"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "bAjVHP9mjFhb"
+      },
+      "source": [
+        "### Model Setup"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "1Pn-ieZAjEg6"
+      },
+      "source": [
+        "import time\n",
+        "import torch\n",
+        "import string\n",
+        "from espnet_model_zoo.downloader import ModelDownloader\n",
+        "from espnet2.bin.asr_inference import Speech2Text\n",
+        "\n",
+        "\n",
+        "d = ModelDownloader()\n",
+        "# It may takes a while to download and build models\n",
+        "speech2text = Speech2Text(\n",
+        "    **d.download_and_unpack(tag),\n",
+        "    device=\"cuda\",\n",
+        "    minlenratio=0.0,\n",
+        "    maxlenratio=0.0,\n",
+        "    ctc_weight=0.3,\n",
+        "    beam_size=10,\n",
+        "    batch_size=0,\n",
+        "    nbest=1\n",
+        ")\n",
+        "\n",
+        "def text_normalizer(text):\n",
+        "    text = text.upper()\n",
+        "    return text.translate(str.maketrans('', '', string.punctuation))"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "z6oT4dif__nZ"
+      },
+      "source": [
+        "### Recognize our example recordings"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Dmylr7GuAKEC"
+      },
+      "source": [
+        "!git clone https://github.com/ftshijt/ESPNet_asr_egs.git\n",
+        "\n",
+        "import pandas as pd\n",
+        "import soundfile\n",
+        "import librosa.display\n",
+        "from IPython.display import display, Audio\n",
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "\n",
+        "egs = pd.read_csv(\"ESPNet_asr_egs/egs.csv\")\n",
+        "for index, row in egs.iterrows():\n",
+        "  if row[\"lang\"] == lang or lang == \"multilingual\":\n",
+        "    speech, rate = soundfile.read(\"ESPNet_asr_egs/\" + row[\"path\"])\n",
+        "    assert fs == int(row[\"sr\"])\n",
+        "    nbests = speech2text(speech)\n",
+        "\n",
+        "    text, *_ = nbests[0]\n",
+        "    print(f\"Input Speech: ESPNet_asr_egs/{row['path']}\")\n",
+        "    # let us listen to samples\n",
+        "    display(Audio(speech, rate=rate))\n",
+        "    librosa.display.waveplot(speech, sr=rate)\n",
+        "    plt.show()\n",
+        "    print(f\"Reference text: {text_normalizer(row['text'])}\")\n",
+        "    print(f\"ASR hypothesis: {text_normalizer(text)}\")\n",
+        "    print(\"*\" * 50)\n"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "DiV2d3anAKYd"
+      },
+      "source": [
+        "### Recognize your own pre-recordings\n",
+        "\n",
+        "1.   Upload your own pre-recorded recordings\n",
+        "2.   Recognize your voice with the ASR system"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "R6daBfvHAQwG"
+      },
+      "source": [
+        "from google.colab import files\n",
+        "from IPython.display import display, Audio\n",
+        "import soundfile\n",
+        "import librosa.display\n",
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "uploaded = files.upload()\n",
+        "\n",
+        "for file_name in uploaded.keys():\n",
+        "  speech, rate = soundfile.read(file_name)\n",
+        "  assert rate == fs, \"mismatch in sampling rate\"\n",
+        "  nbests = speech2text(speech)\n",
+        "  text, *_ = nbests[0]\n",
+        "\n",
+        "  print(f\"Input Speech: {file_name}\")\n",
+        "  display(Audio(speech, rate=rate))\n",
+        "  librosa.display.waveplot(speech, sr=rate)\n",
+        "  plt.show()\n",
+        "  print(f\"ASR hypothesis: {text_normalizer(text)}\")\n",
+        "  print(\"*\" * 50)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "eCQkthl8mGrz"
+      },
+      "source": [
+        "### Recognize your own live-recordings\n",
+        "\n",
+        "\n",
+        "\n",
+        "1.   Record your own voice\n",
+        "2.   Recognize your voice with the ASR system\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "y06kmHvHmjyM"
+      },
+      "source": [
+        "# from https://gist.github.com/korakot/c21c3476c024ad6d56d5f48b0bca92be\n",
+        "\n",
+        "from IPython.display import Javascript\n",
+        "from google.colab import output\n",
+        "from base64 import b64decode\n",
+        "\n",
+        "RECORD = \"\"\"\n",
+        "const sleep = time => new Promise(resolve => setTimeout(resolve, time))\n",
+        "const b2text = blob => new Promise(resolve => {\n",
+        "  const reader = new FileReader()\n",
+        "  reader.onloadend = e => resolve(e.srcElement.result)\n",
+        "  reader.readAsDataURL(blob)\n",
+        "})\n",
+        "var record = time => new Promise(async resolve => {\n",
+        "  stream = await navigator.mediaDevices.getUserMedia({ audio: true })\n",
+        "  recorder = new MediaRecorder(stream)\n",
+        "  chunks = []\n",
+        "  recorder.ondataavailable = e => chunks.push(e.data)\n",
+        "  recorder.start()\n",
+        "  await sleep(time)\n",
+        "  recorder.onstop = async ()=>{\n",
+        "    blob = new Blob(chunks)\n",
+        "    text = await b2text(blob)\n",
+        "    resolve(text)\n",
+        "  }\n",
+        "  recorder.stop()\n",
+        "})\n",
+        "\"\"\"\n",
+        "\n",
+        "def record(sec, filename='audio.wav'):\n",
+        "  display(Javascript(RECORD))\n",
+        "  s = output.eval_js('record(%d)' % (sec * 1000))\n",
+        "  b = b64decode(s.split(',')[1])\n",
+        "  with open(filename, 'wb+') as f:\n",
+        "    f.write(b)\n",
+        "\n",
+        "audio = 'audio.wav'\n",
+        "second = 5\n",
+        "print(f\"Speak to your microphone {second} sec...\")\n",
+        "record(second, audio)\n",
+        "print(\"Done!\")\n",
+        "\n",
+        "\n",
+        "import librosa\n",
+        "import librosa.display\n",
+        "speech, rate = librosa.load(audio, sr=16000)\n",
+        "librosa.display.waveplot(speech, sr=rate)\n",
+        "\n",
+        "import matplotlib.pyplot as plt\n",
+        "plt.show()\n",
+        "\n",
+        "import pysndfile\n",
+        "pysndfile.sndio.write('audio_ds.wav', speech, rate=rate, format='wav', enc='pcm16')\n",
+        "\n",
+        "from IPython.display import display, Audio\n",
+        "display(Audio(speech, rate=rate))"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "_xffkLaUozww"
+      },
+      "source": [
+        "nbests = speech2text(speech)\n",
+        "text, *_ = nbests[0]\n",
+        "\n",
+        "print(f\"ASR hypothesis: {text_normalizer(text)}\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}

@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMU 11751/18781 2021: ESPnet Tutorial &mdash; ESPnet 0.10.7a1 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ESPnet Speech Enhancement Demonstration" href="espnet_se_demonstration_for_waspaa_2021.html" />
+    <link rel="prev" title="ESPnet2-TTS realtime demonstration" href="espnet2_tts_realtime_demo.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          </a>
+              <div class="version">
+                0.10.7a1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CMU 11751/18781 2021: ESPnet Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Useful-links">Useful links</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#Run-an-inference-example">Run an inference example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Speech-recognition-demo">Speech recognition demo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Model-Selection">Model Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Model-Setup">Model Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Recognize-our-examples-of-pre-recorded-samples">Recognize our examples of pre-recorded samples</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Recognize-your-own-live-recordings">Recognize your own live-recordings</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#Speech-synthesis-demo">Speech synthesis demo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Installation">Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Model Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Model Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Synthesis">Synthesis</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#Speech-enhancement-demo">Speech enhancement demo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Single-Channel-Enhancement,-the-CHiME-example">Single-Channel Enhancement, the CHiME example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Download-and-load-the-pretrained-Conv-Tasnet">Download and load the pretrained Conv-Tasnet</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Enhance-the-single-channel-real-noisy-speech-in-CHiME4">Enhance the single-channel real noisy speech in CHiME4</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Speech-Separation">Speech Separation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id3">Model Selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Separate-the-example-in-wsj0_2mix-testing-set">Separate the example in wsj0_2mix testing set</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#Run-a-recipe-example">Run a recipe example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#data-preparation">data preparation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#language-modeling-(skip-in-this-tutorial)">language modeling (skip in this tutorial)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#End-to-end-ASR">End-to-end ASR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#How-to-change-the-training-configs?">How to change the training configs?</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#config-file-based">config file based</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#command-line-argument-based">command line argument based</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#How-to-make-a-new-recipe?">How to make a new recipe?</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>CMU 11751/18781 2021: ESPnet Tutorial</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebook/espnet2_tutorial_2021_CMU_11751_18781.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt .copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="CMU-11751/18781-2021:-ESPnet-Tutorial">
+<h1>CMU 11751/18781 2021: ESPnet Tutorial<a class="headerlink" href="#CMU-11751/18781-2021:-ESPnet-Tutorial" title="Permalink to this headline">¶</a></h1>
+<p>ESPnet is an end-to-end speech processing toolkit, initially focused on end-to-end speech recognition and end-to-end text-to-speech, but now extended to various other speech processing. ESPnet uses PyTorch as a main deep learning engine, and also follows Kaldi style data processing, feature extraction/format, and recipes to provide a complete setup for speech recognition and other speech processing experiments.</p>
+<p>This tutorial is based on the collection of espnet notebook demos <a class="reference external" href="https://github.com/espnet/notebook">https://github.com/espnet/notebook</a>, espnet documentations in <a class="reference external" href="https://espnet.github.io/espnet/">https://espnet.github.io/espnet/</a>, and README.md in <a class="reference external" href="https://github.com/espnet/espnet">https://github.com/espnet/espnet</a></p>
+<p>Author: Shinji Watanabe ([&#64;sw005320](<a class="reference external" href="https://github.com/sw005320">https://github.com/sw005320</a>))</p>
+<section id="Useful-links">
+<h2>Useful links<a class="headerlink" href="#Useful-links" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Installation <a class="reference external" href="https://espnet.github.io/espnet/installation.html">https://espnet.github.io/espnet/installation.html</a></p></li>
+<li><p>Usage <a class="reference external" href="https://espnet.github.io/espnet/espnet2_tutorial.html">https://espnet.github.io/espnet/espnet2_tutorial.html</a></p></li>
+</ul>
+</section>
+</section>
+<section id="Run-an-inference-example">
+<h1>Run an inference example<a class="headerlink" href="#Run-an-inference-example" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p>ESPnet covers various speech applications and their pre-trained models.</p></li>
+<li><p>Please check a model shown in <a class="reference external" href="https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv">espnet_model_zoo</a></p></li>
+<li><p>We can play with a demo based on these pre-trained models.</p></li>
+<li><p>What we only need is to install <code class="docutils literal notranslate"><span class="pre">espnet_model_zoo</span></code></p></li>
+<li><p>Note that this <code class="docutils literal notranslate"><span class="pre">pip</span></code> based installation does not include training and so on. The full installation is explained later.</p></li>
+<li><p>You can also find similar demos in HuggingFace Hub <a class="reference external" href="https://huggingface.co/espnet">https://huggingface.co/espnet</a></p></li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It takes 1 minute.
+!pip install -q espnet_model_zoo
+</pre></div>
+</div>
+</div>
+<section id="Speech-recognition-demo">
+<h2>Speech recognition demo<a class="headerlink" href="#Speech-recognition-demo" title="Permalink to this headline">¶</a></h2>
+<p>Author: Jiatong Shi ([&#64;ftshijt](<a class="reference external" href="https://github.com/ftshijt">https://github.com/ftshijt</a>))</p>
+<section id="Model-Selection">
+<h3>Model Selection<a class="headerlink" href="#Model-Selection" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Please select the model shown in <a class="reference external" href="https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv">espnet_model_zoo</a>.</p></li>
+<li><p>They are stored in zenodo <a class="reference external" href="https://zenodo.org/communities/espnet">https://zenodo.org/communities/espnet</a> or HuggingFace Hub <a class="reference external" href="https://huggingface.co/espnet">https://huggingface.co/espnet</a></p></li>
+<li><p>In this demonstration, we will show English, Japanese, Spanish, Mandrain, and Multilingual ASR models, respectively</p></li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#@title Choose English ASR model { run: &quot;auto&quot; }</span>
+
+<span class="n">lang</span> <span class="o">=</span> <span class="s1">&#39;en&#39;</span>
+<span class="n">fs</span> <span class="o">=</span> <span class="mi">16000</span> <span class="c1">#@param {type:&quot;integer&quot;}</span>
+<span class="n">tag</span> <span class="o">=</span> <span class="s1">&#39;Shinji Watanabe/spgispeech_asr_train_asr_conformer6_n_fft512_hop_length256_raw_en_unnorm_bpe5000_valid.acc.ave&#39;</span> <span class="c1">#@param [&quot;Shinji Watanabe/spgispeech_asr_train_asr_conformer6_n_fft512_hop_length256_raw_en_unnorm_bpe5000_valid.acc.ave&quot;, &quot;kamo-naoyuki/librispeech_asr_train_asr_conformer6_n_fft512_hop_length256_raw_en_bpe5000_scheduler_confwarmup_steps40000_optim_conflr0.0025_sp_valid.acc.ave&quot;] {type:&quot;string&quot;}</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#@title Choose Japanese ASR model { run: &quot;auto&quot; }</span>
+
+<span class="n">lang</span> <span class="o">=</span> <span class="s1">&#39;ja&#39;</span>
+<span class="n">fs</span> <span class="o">=</span> <span class="mi">16000</span> <span class="c1">#@param {type:&quot;integer&quot;}</span>
+<span class="n">tag</span> <span class="o">=</span> <span class="s1">&#39;Shinji Watanabe/laborotv_asr_train_asr_conformer2_latest33_raw_char_sp_valid.acc.ave&#39;</span> <span class="c1">#@param [&quot;Shinji Watanabe/laborotv_asr_train_asr_conformer2_latest33_raw_char_sp_valid.acc.ave&quot;] {type:&quot;string&quot;}</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#@title Choose Spanish ASR model { run: &quot;auto&quot; }</span>
+
+<span class="n">lang</span> <span class="o">=</span> <span class="s1">&#39;es&#39;</span>
+<span class="n">fs</span> <span class="o">=</span> <span class="mi">16000</span> <span class="c1">#@param {type:&quot;integer&quot;}</span>
+<span class="n">tag</span> <span class="o">=</span> <span class="s1">&#39;ftshijt/mls_asr_transformer_valid.acc.best&#39;</span> <span class="c1">#@param [&quot;ftshijt/mls_asr_transformer_valid.acc.best&quot;] {type:&quot;string&quot;}</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#@title Choose Mandrain ASR model { run: &quot;auto&quot; }</span>
+
+<span class="n">lang</span> <span class="o">=</span> <span class="s1">&#39;zh&#39;</span>
+<span class="n">fs</span> <span class="o">=</span> <span class="mi">16000</span> <span class="c1">#@param {type:&quot;integer&quot;}</span>
+<span class="n">tag</span> <span class="o">=</span> <span class="s1">&#39;Emiru Tsunoo/aishell_asr_train_asr_streaming_transformer_raw_zh_char_sp_valid.acc.ave&#39;</span> <span class="c1">#@param [&quot;    Emiru Tsunoo/aishell_asr_train_asr_streaming_transformer_raw_zh_char_sp_valid.acc.ave&quot;] {type:&quot;string&quot;}</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#@title Choose Multilingual ASR model { run: &quot;auto&quot; }</span>
+
+<span class="n">lang</span> <span class="o">=</span> <span class="s1">&#39;multilingual&#39;</span>
+<span class="n">fs</span> <span class="o">=</span> <span class="mi">16000</span> <span class="c1">#@param {type:&quot;integer&quot;}</span>
+<span class="n">tag</span> <span class="o">=</span> <span class="s1">&#39;ftshijt/open_li52_asr_train_asr_raw_bpe7000_valid.acc.ave_10best&#39;</span> <span class="c1">#@param [&quot; ftshijt/open_li52_asr_train_asr_raw_bpe7000_valid.acc.ave_10best&quot;] {type:&quot;string&quot;}</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Model-Setup">
+<h3>Model Setup<a class="headerlink" href="#Model-Setup" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">from</span> <span class="nn">espnet_model_zoo.downloader</span> <span class="kn">import</span> <span class="n">ModelDownloader</span>
+<span class="kn">from</span> <span class="nn">espnet2.bin.asr_inference</span> <span class="kn">import</span> <span class="n">Speech2Text</span>
+
+
+<span class="n">d</span> <span class="o">=</span> <span class="n">ModelDownloader</span><span class="p">()</span>
+<span class="c1"># It may takes a while to download and build models</span>
+<span class="n">speech2text</span> <span class="o">=</span> <span class="n">Speech2Text</span><span class="p">(</span>
+    <span class="o">**</span><span class="n">d</span><span class="o">.</span><span class="n">download_and_unpack</span><span class="p">(</span><span class="n">tag</span><span class="p">),</span>
+    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+    <span class="n">minlenratio</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">maxlenratio</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">ctc_weight</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+    <span class="n">beam_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">nbest</span><span class="o">=</span><span class="mi">1</span>
+<span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">text_normalizer</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="nb">str</span><span class="o">.</span><span class="n">maketrans</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">string</span><span class="o">.</span><span class="n">punctuation</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Recognize-our-examples-of-pre-recorded-samples">
+<h3>Recognize our examples of pre-recorded samples<a class="headerlink" href="#Recognize-our-examples-of-pre-recorded-samples" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!git clone https://github.com/ftshijt/ESPNet_asr_egs.git
+
+import pandas as pd
+import soundfile
+import librosa.display
+from IPython.display import display, Audio
+import matplotlib.pyplot as plt
+
+
+egs = pd.read_csv(&quot;ESPNet_asr_egs/egs.csv&quot;)
+for index, row in egs.iterrows():
+  if row[&quot;lang&quot;] == lang or lang == &quot;multilingual&quot;:
+    speech, rate = soundfile.read(&quot;ESPNet_asr_egs/&quot; + row[&quot;path&quot;])
+    assert fs == int(row[&quot;sr&quot;])
+    nbests = speech2text(speech)
+
+    text, *_ = nbests[0]
+    print(f&quot;Input Speech: ESPNet_asr_egs/{row[&#39;path&#39;]}&quot;)
+    # let us listen to samples
+    display(Audio(speech, rate=rate))
+    librosa.display.waveplot(speech, sr=rate)
+    plt.show()
+    print(f&quot;Reference text: {text_normalizer(row[&#39;text&#39;])}&quot;)
+    print(f&quot;ASR hypothesis: {text_normalizer(text)}&quot;)
+    print(&quot;*&quot; * 50)
+<br/></pre></div>
+</div>
+</div>
+</section>
+<section id="Recognize-your-own-live-recordings">
+<h3>Recognize your own live-recordings<a class="headerlink" href="#Recognize-your-own-live-recordings" title="Permalink to this headline">¶</a></h3>
+<ol class="arabic simple">
+<li><p>Record your own voice</p></li>
+<li><p>Recognize your voice with the ASR system</p></li>
+</ol>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># from https://gist.github.com/korakot/c21c3476c024ad6d56d5f48b0bca92be</span>
+
+<span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">Javascript</span>
+<span class="kn">from</span> <span class="nn">google.colab</span> <span class="kn">import</span> <span class="n">output</span>
+<span class="kn">from</span> <span class="nn">base64</span> <span class="kn">import</span> <span class="n">b64decode</span>
+
+<span class="n">RECORD</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">const sleep = time =&gt; new Promise(resolve =&gt; setTimeout(resolve, time))</span>
+<span class="s2">const b2text = blob =&gt; new Promise(resolve =&gt; {</span>
+<span class="s2">  const reader = new FileReader()</span>
+<span class="s2">  reader.onloadend = e =&gt; resolve(e.srcElement.result)</span>
+<span class="s2">  reader.readAsDataURL(blob)</span>
+<span class="s2">})</span>
+<span class="s2">var record = time =&gt; new Promise(async resolve =&gt; {</span>
+<span class="s2">  stream = await navigator.mediaDevices.getUserMedia({ audio: true })</span>
+<span class="s2">  recorder = new MediaRecorder(stream)</span>
+<span class="s2">  chunks = []</span>
+<span class="s2">  recorder.ondataavailable = e =&gt; chunks.push(e.data)</span>
+<span class="s2">  recorder.start()</span>
+<span class="s2">  await sleep(time)</span>
+<span class="s2">  recorder.onstop = async ()=&gt;{</span>
+<span class="s2">    blob = new Blob(chunks)</span>
+<span class="s2">    text = await b2text(blob)</span>
+<span class="s2">    resolve(text)</span>
+<span class="s2">  }</span>
+<span class="s2">  recorder.stop()</span>
+<span class="s2">})</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="k">def</span> <span class="nf">record</span><span class="p">(</span><span class="n">sec</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;audio.wav&#39;</span><span class="p">):</span>
+  <span class="n">display</span><span class="p">(</span><span class="n">Javascript</span><span class="p">(</span><span class="n">RECORD</span><span class="p">))</span>
+  <span class="n">s</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">eval_js</span><span class="p">(</span><span class="s1">&#39;record(</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sec</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">))</span>
+  <span class="n">b</span> <span class="o">=</span> <span class="n">b64decode</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;wb+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+<span class="n">audio</span> <span class="o">=</span> <span class="s1">&#39;audio.wav&#39;</span>
+<span class="n">second</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Speak to your microphone </span><span class="si">{</span><span class="n">second</span><span class="si">}</span><span class="s2"> sec...&quot;</span><span class="p">)</span>
+<span class="n">record</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">audio</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Done!&quot;</span><span class="p">)</span>
+
+
+<span class="kn">import</span> <span class="nn">librosa</span>
+<span class="kn">import</span> <span class="nn">librosa.display</span>
+<span class="n">speech</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">librosa</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">audio</span><span class="p">,</span> <span class="n">sr</span><span class="o">=</span><span class="mi">16000</span><span class="p">)</span>
+<span class="n">librosa</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">waveplot</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">sr</span><span class="o">=</span><span class="n">rate</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="kn">import</span> <span class="nn">pysndfile</span>
+<span class="n">pysndfile</span><span class="o">.</span><span class="n">sndio</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;audio_ds.wav&#39;</span><span class="p">,</span> <span class="n">speech</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;wav&#39;</span><span class="p">,</span> <span class="n">enc</span><span class="o">=</span><span class="s1">&#39;pcm16&#39;</span><span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">display</span><span class="p">,</span> <span class="n">Audio</span>
+<span class="n">display</span><span class="p">(</span><span class="n">Audio</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">nbests</span> <span class="o">=</span> <span class="n">speech2text</span><span class="p">(</span><span class="n">speech</span><span class="p">)</span>
+<span class="n">text</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">nbests</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ASR hypothesis: </span><span class="si">{</span><span class="n">text_normalizer</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="Speech-synthesis-demo">
+<h2>Speech synthesis demo<a class="headerlink" href="#Speech-synthesis-demo" title="Permalink to this headline">¶</a></h2>
+<p>This notebook provides a demonstration of the realtime E2E-TTS using ESPnet2-TTS and ParallelWaveGAN repo.</p>
+<ul class="simple">
+<li><p>ESPnet2-TTS: <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/tts1">https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/tts1</a></p></li>
+<li><p>ParallelWaveGAN: <a class="reference external" href="https://github.com/kan-bayashi/ParallelWaveGAN">https://github.com/kan-bayashi/ParallelWaveGAN</a></p></li>
+</ul>
+<p>Author: Tomoki Hayashi ([&#64;kan-bayashi](<a class="reference external" href="https://github.com/kan-bayashi">https://github.com/kan-bayashi</a>))</p>
+<section id="Installation">
+<h3>Installation<a class="headerlink" href="#Installation" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># NOTE: pip shows imcompatible errors due to preinstalled libraries but you do not need to care
+# It takes 1 minute
+!pip install -q pyopenjtalk==0.1.5 parallel_wavegan==0.5.3
+</pre></div>
+</div>
+</div>
+</section>
+<section id="id1">
+<h3>Model Selection<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>Please select model: English, Japanese, and Mandarin are supported.</p>
+<div class="line-block">
+<div class="line">You can try end-to-end text2wav model &amp; combination of text2mel and vocoder.</div>
+<div class="line">If you use text2wav model, you do not need to use vocoder (automatically disabled).</div>
+</div>
+<p><strong>Text2wav models</strong>: - VITS</p>
+<p><strong>Text2mel models</strong>: - Tacotron2 - Transformer-TTS - (Conformer) FastSpeech - (Conformer) FastSpeech2</p>
+<p><strong>Vocoders</strong>: - Parallel WaveGAN - Multi-band MelGAN - HiFiGAN - Style MelGAN.</p>
+<blockquote>
+<div><p>The terms of use follow that of each corpus. We use the following corpora: - <code class="docutils literal notranslate"><span class="pre">ljspeech_*</span></code>: LJSpeech dataset - <a class="reference external" href="https://keithito.com/LJ-Speech-Dataset/">https://keithito.com/LJ-Speech-Dataset/</a> - <code class="docutils literal notranslate"><span class="pre">jsut_*</span></code>: JSUT corpus - <a class="reference external" href="https://sites.google.com/site/shinnosuketakamichi/publication/jsut">https://sites.google.com/site/shinnosuketakamichi/publication/jsut</a> - <code class="docutils literal notranslate"><span class="pre">jvs_*</span></code>: JVS corpus + JSUT corpus - <a class="reference external" href="https://sites.google.com/site/shinnosuketakamichi/research-topics/jvs_corpus">https://sites.google.com/site/shinnosuketakamichi/research-topics/jvs_corpus</a> - <a class="reference external" href="https://sites.google.com/site/shinnosuketakamichi/publication/jsut">https://sites.google.com/site/shinnosuketakamichi/publication/jsut</a> - <code class="docutils literal notranslate"><span class="pre">tsukuyomi_*</span></code>: つくよみちゃんコーパス + JSUT corpus -
+<a class="reference external" href="https://tyc.rei-yumesaki.net/material/corpus/">https://tyc.rei-yumesaki.net/material/corpus/</a> - <a class="reference external" href="https://sites.google.com/site/shinnosuketakamichi/publication/jsut">https://sites.google.com/site/shinnosuketakamichi/publication/jsut</a> - <code class="docutils literal notranslate"><span class="pre">csmsc_*</span></code>: Chinese Standard Mandarin Speech Corpus - <a class="reference external" href="https://www.data-baker.com/open_source.html">https://www.data-baker.com/open_source.html</a></p>
+</div></blockquote>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#@title Choose English model { run: &quot;auto&quot; }</span>
+<span class="n">lang</span> <span class="o">=</span> <span class="s1">&#39;English&#39;</span>
+<span class="n">tag</span> <span class="o">=</span> <span class="s1">&#39;kan-bayashi/ljspeech_vits&#39;</span> <span class="c1">#@param [&quot;kan-bayashi/ljspeech_tacotron2&quot;, &quot;kan-bayashi/ljspeech_fastspeech&quot;, &quot;kan-bayashi/ljspeech_fastspeech2&quot;, &quot;kan-bayashi/ljspeech_conformer_fastspeech2&quot;, &quot;kan-bayashi/ljspeech_vits&quot;] {type:&quot;string&quot;}</span>
+<span class="n">vocoder_tag</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span> <span class="c1">#@param [&quot;none&quot;, &quot;parallel_wavegan/ljspeech_parallel_wavegan.v1&quot;, &quot;parallel_wavegan/ljspeech_full_band_melgan.v2&quot;, &quot;parallel_wavegan/ljspeech_multi_band_melgan.v2&quot;, &quot;parallel_wavegan/ljspeech_hifigan.v1&quot;, &quot;parallel_wavegan/ljspeech_style_melgan.v1&quot;] {type:&quot;string&quot;}</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#@title Choose Japanese model { run: &quot;auto&quot; }</span>
+<span class="n">lang</span> <span class="o">=</span> <span class="s1">&#39;Japanese&#39;</span>
+<span class="n">tag</span> <span class="o">=</span> <span class="s1">&#39;kan-bayashi/jsut_full_band_vits_prosody&#39;</span> <span class="c1">#@param [&quot;kan-bayashi/jsut_tacotron2&quot;, &quot;kan-bayashi/jsut_transformer&quot;, &quot;kan-bayashi/jsut_fastspeech&quot;, &quot;kan-bayashi/jsut_fastspeech2&quot;, &quot;kan-bayashi/jsut_conformer_fastspeech2&quot;, &quot;kan-bayashi/jsut_conformer_fastspeech2_accent&quot;, &quot;kan-bayashi/jsut_conformer_fastspeech2_accent_with_pause&quot;, &quot;kan-bayashi/jsut_vits_accent_with_pause&quot;, &quot;kan-bayashi/jsut_full_band_vits_accent_with_pause&quot;, &quot;kan-bayashi/jsut_tacotron2_prosody&quot;, &quot;kan-bayashi/jsut_transformer_prosody&quot;, &quot;kan-bayashi/jsut_conformer_fastspeech2_tacotron2_prosody&quot;, &quot;kan-bayashi/jsut_vits_prosody&quot;, &quot;kan-bayashi/jsut_full_band_vits_prosody&quot;, &quot;kan-bayashi/jvs_jvs010_vits_prosody&quot;, &quot;kan-bayashi/tsukuyomi_full_band_vits_prosody&quot;] {type:&quot;string&quot;}</span>
+<span class="n">vocoder_tag</span> <span class="o">=</span> <span class="s1">&#39;none&#39;</span> <span class="c1">#@param [&quot;none&quot;, &quot;parallel_wavegan/jsut_parallel_wavegan.v1&quot;, &quot;parallel_wavegan/jsut_multi_band_melgan.v2&quot;, &quot;parallel_wavegan/jsut_style_melgan.v1&quot;, &quot;parallel_wavegan/jsut_hifigan.v1&quot;] {type:&quot;string&quot;}</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#@title Choose Mandarin model { run: &quot;auto&quot; }</span>
+<span class="n">lang</span> <span class="o">=</span> <span class="s1">&#39;Mandarin&#39;</span>
+<span class="n">tag</span> <span class="o">=</span> <span class="s1">&#39;kan-bayashi/csmsc_full_band_vits&#39;</span> <span class="c1">#@param [&quot;kan-bayashi/csmsc_tacotron2&quot;, &quot;kan-bayashi/csmsc_transformer&quot;, &quot;kan-bayashi/csmsc_fastspeech&quot;, &quot;kan-bayashi/csmsc_fastspeech2&quot;, &quot;kan-bayashi/csmsc_conformer_fastspeech2&quot;, &quot;kan-bayashi/csmsc_vits&quot;, &quot;kan-bayashi/csmsc_full_band_vits&quot;] {type: &quot;string&quot;}</span>
+<span class="n">vocoder_tag</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span> <span class="c1">#@param [&quot;none&quot;, &quot;parallel_wavegan/csmsc_parallel_wavegan.v1&quot;, &quot;parallel_wavegan/csmsc_multi_band_melgan.v2&quot;, &quot;parallel_wavegan/csmsc_hifigan.v1&quot;, &quot;parallel_wavegan/csmsc_style_melgan.v1&quot;] {type:&quot;string&quot;}</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="id2">
+<h3>Model Setup<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">espnet2.bin.tts_inference</span> <span class="kn">import</span> <span class="n">Text2Speech</span>
+<span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str_or_none</span>
+
+<span class="n">text2speech</span> <span class="o">=</span> <span class="n">Text2Speech</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+    <span class="n">model_tag</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">(</span><span class="n">tag</span><span class="p">),</span>
+    <span class="n">vocoder_tag</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">(</span><span class="n">vocoder_tag</span><span class="p">),</span>
+    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+    <span class="c1"># Only for Tacotron 2 &amp; Transformer</span>
+    <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="c1"># Only for Tacotron 2</span>
+    <span class="n">minlenratio</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">maxlenratio</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span>
+    <span class="n">use_att_constraint</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">backward_window</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">forward_window</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="c1"># Only for FastSpeech &amp; FastSpeech2 &amp; VITS</span>
+    <span class="n">speed_control_alpha</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="c1"># Only for VITS</span>
+    <span class="n">noise_scale</span><span class="o">=</span><span class="mf">0.667</span><span class="p">,</span>
+    <span class="n">noise_scale_dur</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Synthesis">
+<h3>Synthesis<a class="headerlink" href="#Synthesis" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="c1"># decide the input sentence by yourself</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input your favorite sentence in </span><span class="si">{</span><span class="n">lang</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="nb">input</span><span class="p">()</span>
+
+<span class="c1"># synthesis</span>
+<span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">wav</span> <span class="o">=</span> <span class="n">text2speech</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="s2">&quot;wav&quot;</span><span class="p">]</span>
+<span class="n">rtf</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">wav</span><span class="p">)</span> <span class="o">/</span> <span class="n">text2speech</span><span class="o">.</span><span class="n">fs</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;RTF = </span><span class="si">{</span><span class="n">rtf</span><span class="si">:</span><span class="s2">5f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># let us listen to generated samples</span>
+<span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">display</span><span class="p">,</span> <span class="n">Audio</span>
+<span class="n">display</span><span class="p">(</span><span class="n">Audio</span><span class="p">(</span><span class="n">wav</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">rate</span><span class="o">=</span><span class="n">text2speech</span><span class="o">.</span><span class="n">fs</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="Speech-enhancement-demo">
+<h2>Speech enhancement demo<a class="headerlink" href="#Speech-enhancement-demo" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>ESPnet2-SE: <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/enh1">https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/enh1</a></p></li>
+</ul>
+<p>Author: Chenda Li ([&#64;LiChenda](<a class="reference external" href="https://github.com/LiChenda">https://github.com/LiChenda</a>)), Wangyou Zhang ([&#64;Emrys365](<a class="reference external" href="https://github.com/Emrys365">https://github.com/Emrys365</a>))</p>
+<section id="Single-Channel-Enhancement,-the-CHiME-example">
+<h3>Single-Channel Enhancement, the CHiME example<a class="headerlink" href="#Single-Channel-Enhancement,-the-CHiME-example" title="Permalink to this headline">¶</a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># Download one utterance from real noisy speech of CHiME4
+!gdown --id 1SmrN5NFSg6JuQSs2sfy3ehD8OIcqK6wS -O /content/M05_440C0213_PED_REAL.wav
+import os
+
+import soundfile
+from IPython.display import display, Audio
+mixwav_mc, sr = soundfile.read(&quot;/content/M05_440C0213_PED_REAL.wav&quot;)
+# mixwav.shape: num_samples, num_channels
+mixwav_sc = mixwav_mc[:,4]
+display(Audio(mixwav_mc.T, rate=sr))
+</pre></div>
+</div>
+</div>
+<section id="Download-and-load-the-pretrained-Conv-Tasnet">
+<h4>Download and load the pretrained Conv-Tasnet<a class="headerlink" href="#Download-and-load-the-pretrained-Conv-Tasnet" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!gdown --id 17DMWdw84wF3fz3t7ia1zssdzhkpVQGZm -O /content/chime_tasnet_singlechannel.zip
+!unzip /content/chime_tasnet_singlechannel.zip -d /content/enh_model_sc
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load the model</span>
+<span class="c1"># If you encounter error &quot;No module named &#39;espnet2&#39;&quot;, please re-run the 1st Cell. This might be a colab bug.</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">soundfile</span>
+<span class="kn">from</span> <span class="nn">espnet2.bin.enh_inference</span> <span class="kn">import</span> <span class="n">SeparateSpeech</span>
+
+
+<span class="n">separate_speech</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="c1"># For models downloaded from GoogleDrive, you can use the following script:</span>
+<span class="n">enh_model_sc</span> <span class="o">=</span> <span class="n">SeparateSpeech</span><span class="p">(</span>
+  <span class="n">train_config</span><span class="o">=</span><span class="s2">&quot;/content/enh_model_sc/exp/enh_train_enh_conv_tasnet_raw/config.yaml&quot;</span><span class="p">,</span>
+  <span class="n">model_file</span><span class="o">=</span><span class="s2">&quot;/content/enh_model_sc/exp/enh_train_enh_conv_tasnet_raw/5epoch.pth&quot;</span><span class="p">,</span>
+  <span class="c1"># for segment-wise process on long speech</span>
+  <span class="n">normalize_segment_scale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+  <span class="n">show_progressbar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+  <span class="n">ref_channel</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+  <span class="n">normalize_output_wav</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+  <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda:0&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Enhance-the-single-channel-real-noisy-speech-in-CHiME4">
+<h4>Enhance the single-channel real noisy speech in CHiME4<a class="headerlink" href="#Enhance-the-single-channel-real-noisy-speech-in-CHiME4" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># play the enhanced single-channel speech</span>
+<span class="n">wave</span> <span class="o">=</span> <span class="n">enh_model_sc</span><span class="p">(</span><span class="n">mixwav_sc</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">sr</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Input real noisy speech&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">Audio</span><span class="p">(</span><span class="n">mixwav_sc</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">sr</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Enhanced speech&quot;</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">Audio</span><span class="p">(</span><span class="n">wave</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">rate</span><span class="o">=</span><span class="n">sr</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="Speech-Separation">
+<h3>Speech Separation<a class="headerlink" href="#Speech-Separation" title="Permalink to this headline">¶</a></h3>
+<section id="id3">
+<h4>Model Selection<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<p>Please select model shown in <a class="reference external" href="https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv">espnet_model_zoo</a></p>
+<p>In this demonstration, we will show different speech separation models on wsj0_2mix.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#@title Choose Speech Separation model { run: &quot;auto&quot; }</span>
+
+<span class="n">fs</span> <span class="o">=</span> <span class="mi">8000</span> <span class="c1">#@param {type:&quot;integer&quot;}</span>
+<span class="n">tag</span> <span class="o">=</span> <span class="s2">&quot;Chenda Li/wsj0_2mix_enh_train_enh_conv_tasnet_raw_valid.si_snr.ave&quot;</span> <span class="c1">#@param [&quot;Chenda Li/wsj0_2mix_enh_train_enh_conv_tasnet_raw_valid.si_snr.ave&quot;, &quot;Chenda Li/wsj0_2mix_enh_train_enh_rnn_tf_raw_valid.si_snr.ave&quot;, &quot;https://zenodo.org/record/4688000/files/enh_train_enh_dprnn_tasnet_raw_valid.si_snr.ave.zip&quot;]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># For models uploaded to Zenodo, you can use the following python script instead:</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">soundfile</span>
+<span class="kn">from</span> <span class="nn">espnet_model_zoo.downloader</span> <span class="kn">import</span> <span class="n">ModelDownloader</span>
+<span class="kn">from</span> <span class="nn">espnet2.bin.enh_inference</span> <span class="kn">import</span> <span class="n">SeparateSpeech</span>
+
+<span class="n">d</span> <span class="o">=</span> <span class="n">ModelDownloader</span><span class="p">()</span>
+
+<span class="n">cfg</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">download_and_unpack</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span>
+<span class="n">separate_speech</span> <span class="o">=</span> <span class="n">SeparateSpeech</span><span class="p">(</span>
+  <span class="n">train_config</span><span class="o">=</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;train_config&quot;</span><span class="p">],</span>
+  <span class="n">model_file</span><span class="o">=</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;model_file&quot;</span><span class="p">],</span>
+  <span class="c1"># for segment-wise process on long speech</span>
+  <span class="n">segment_size</span><span class="o">=</span><span class="mf">2.4</span><span class="p">,</span>
+  <span class="n">hop_size</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+  <span class="n">normalize_segment_scale</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+  <span class="n">show_progressbar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+  <span class="n">ref_channel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+  <span class="n">normalize_output_wav</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+  <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda:0&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Separate-the-example-in-wsj0_2mix-testing-set">
+<h4>Separate the example in wsj0_2mix testing set<a class="headerlink" href="#Separate-the-example-in-wsj0_2mix-testing-set" title="Permalink to this headline">¶</a></h4>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!gdown --id 1ZCUkd_Lb7pO2rpPr4FqYdtJBZ7JMiInx -O /content/447c020t_1.2106_422a0112_-1.2106.wav
+
+import os
+import soundfile
+from IPython.display import display, Audio
+
+mixwav, sr = soundfile.read(&quot;/content/447c020t_1.2106_422a0112_-1.2106.wav&quot;)
+waves_wsj = separate_speech(mixwav[None, ...], fs=sr)
+
+print(&quot;Input mixture&quot;, flush=True)
+display(Audio(mixwav, rate=sr))
+print(f&quot;========= Separated speech with model {tag} =========&quot;, flush=True)
+print(&quot;Separated spk1&quot;, flush=True)
+display(Audio(waves_wsj[0].squeeze(), rate=sr))
+print(&quot;Separated spk2&quot;, flush=True)
+display(Audio(waves_wsj[1].squeeze(), rate=sr))
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+</section>
+<section id="Full-installation">
+<h1>Full installation<a class="headerlink" href="#Full-installation" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p>This is a full installation method to perform data preprocess, training, inference, scoring, and so on. for various experiments.</p></li>
+<li><p>We prepare various ways of installations. We also prepare a <a class="reference external" href="https://github.com/espnet/espnet/blob/master/docker/README.md">docker image</a> as well.</p></li>
+<li><p>See <a class="reference external" href="https://espnet.github.io/espnet/installation.html#step-2-installation-espnet">https://espnet.github.io/espnet/installation.html#step-2-installation-espnet</a> for more details.</p></li>
+</ul>
+<p><strong>Installation of required tools</strong></p>
+<p>See <a class="reference external" href="https://espnet.github.io/espnet/installation.html#requirements">https://espnet.github.io/espnet/installation.html#requirements</a> for more details.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It takes ~10 seconds
+!sudo apt-get install cmake sox libsndfile1-dev
+</pre></div>
+</div>
+</div>
+<p><strong>Download espnet</strong></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It takes a few seconds
+!git clone --depth 5 https://github.com/espnet/espnet
+</pre></div>
+</div>
+</div>
+<p><strong>Setup Python environment based on anaconda</strong></p>
+<p>There are several other installation methods, but <strong>we highly recommend the anaconda-based one</strong>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It takes 30 seconds
+%cd /content/espnet/tools
+!./setup_anaconda.sh anaconda espnet 3.8
+</pre></div>
+</div>
+</div>
+<p><strong>Install espnet</strong></p>
+<p>This includes the installation of PyTorch and other tools.</p>
+<p>We just specify CUDA_VERSION=10.2 for the latest PyTorch (1.9.0)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It may take ~8 minutes
+%cd /content/espnet/tools
+!make CUDA_VERSION=10.2
+</pre></div>
+</div>
+</div>
+<p><strong>Install other speech processing tools</strong></p>
+<p>We install NIST SCTK toolkit for scoring</p>
+<p>Please manually install other tools if needed.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>%cd /content/espnet/tools
+!./installers/install_sctk.sh
+</pre></div>
+</div>
+</div>
+<p><strong>Check installation</strong></p>
+<p>Please check whether torch, torch cuda, and espnet are correctly installed.</p>
+<p>If torch, torch cuda, and espnet are successfully installed, it would be no problem.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[x] torch=1.9.0
+[x] torch cuda=10.2
+:
+[x] espnet=0.10.3a3
+</pre></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>%cd /content/espnet/tools
+!. ./activate_python.sh; python3 check_install.py
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Run-a-recipe-example">
+<h1>Run a recipe example<a class="headerlink" href="#Run-a-recipe-example" title="Permalink to this headline">¶</a></h1>
+<p>ESPnet has a number of recipes (73 recipes on Sep. 16, 2021). Let’s first check <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/README.md">https://github.com/espnet/espnet/blob/master/egs2/README.md</a></p>
+<p>Please also check the general usage of the recipe in <a class="reference external" href="https://espnet.github.io/espnet/espnet2_tutorial.html#recipes-using-espnet2">https://espnet.github.io/espnet/espnet2_tutorial.html#recipes-using-espnet2</a></p>
+<p><strong>CMU AN4 recipe</strong></p>
+<p>In this tutorial, we use the CMU an4 recipe. This is a small-scale speech recognition task mainly used for testing.</p>
+<p>First, move to the recipe directory</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>%cd /content/espnet/egs2/an4/asr1
+!ls
+</pre></div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">egs2/an4/asr1/</span>&#160; <span class="pre">-</span> <span class="pre">conf/</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">#</span> <span class="pre">Configuration</span> <span class="pre">files</span> <span class="pre">for</span> <span class="pre">training,</span> <span class="pre">inference,</span> <span class="pre">etc.</span>&#160; <span class="pre">-</span> <span class="pre">scripts/</span>&#160;&#160; <span class="pre">#</span> <span class="pre">Bash</span> <span class="pre">utilities</span> <span class="pre">of</span> <span class="pre">espnet2</span>&#160; <span class="pre">-</span> <span class="pre">pyscripts/</span> <span class="pre">#</span> <span class="pre">Python</span> <span class="pre">utilities</span> <span class="pre">of</span> <span class="pre">espnet2</span>&#160; <span class="pre">-</span> <span class="pre">steps/</span>&#160;&#160;&#160;&#160; <span class="pre">#</span> <span class="pre">From</span> <span class="pre">Kaldi</span> <span class="pre">utilities</span>&#160; <span class="pre">-</span> <span class="pre">utils/</span>&#160;&#160;&#160;&#160; <span class="pre">#</span> <span class="pre">From</span> <span class="pre">Kaldi</span> <span class="pre">utilities</span>&#160; <span class="pre">-</span> <span class="pre">db.sh</span>&#160;&#160;&#160;&#160;&#160; <span class="pre">#</span> <span class="pre">The</span> <span class="pre">directory</span> <span class="pre">path</span> <span class="pre">of</span> <span class="pre">each</span> <span class="pre">corpora</span>&#160; <span class="pre">-</span> <span class="pre">path.sh</span>&#160;&#160;&#160; <span class="pre">#</span> <span class="pre">Setup</span> <span class="pre">script</span> <span class="pre">for</span> <span class="pre">environment</span> <span class="pre">variables</span>&#160; <span class="pre">-</span> <span class="pre">cmd.sh</span>&#160;&#160;&#160;&#160; <span class="pre">#</span> <span class="pre">Configuration</span> <span class="pre">for</span> <span class="pre">your</span> <span class="pre">backend</span> <span class="pre">of</span> <span class="pre">job</span> <span class="pre">scheduler</span>&#160; <span class="pre">-</span> <span class="pre">run.sh</span>&#160;&#160;&#160;&#160; <span class="pre">#</span> <span class="pre">Entry</span> <span class="pre">point</span>&#160; <span class="pre">-</span> <span class="pre">asr.sh</span>&#160;&#160;&#160;&#160; <span class="pre">#</span> <span class="pre">Invoked</span> <span class="pre">by</span> <span class="pre">run.sh</span></code></p>
+<p>ESPnet is designed for various use cases (local machines or cluster machines) based on Kaldi tools. If you use it in the cluster machines, please also check <a class="reference external" href="https://kaldi-asr.org/doc/queue.html">https://kaldi-asr.org/doc/queue.html</a></p>
+<p>The main stages can be parallelized by various jobs.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!cat run.sh
+</pre></div>
+</div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">run.sh</span></code> can call <code class="docutils literal notranslate"><span class="pre">asr.sh</span></code>, which completes the entire speech recognition experiments, including data preparation, training, inference, and scoring. They are based on separate stages (totally 15 stages).</p>
+<p>Instead of executing the entire experiments by <code class="docutils literal notranslate"><span class="pre">run.sh</span></code>, the following example executes the experiment for each stage to understand the process in each stage.</p>
+<section id="data-preparation">
+<h2>data preparation<a class="headerlink" href="#data-preparation" title="Permalink to this headline">¶</a></h2>
+<p><strong>Stage 1: Data preparation for training, validation, and evaluation data</strong></p>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">--stage</span> <span class="pre">&lt;N&gt;</span></code> is to start the stage and <code class="docutils literal notranslate"><span class="pre">--stop_stage</span> <span class="pre">&lt;N&gt;</span></code> is to stop the stage. We also need to specify training, validation, and test data.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># 30 seconds
+!./asr.sh --stage 1 --stop_stage 1 --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot;
+</pre></div>
+</div>
+</div>
+<p>After this stage is finished, please check the <code class="docutils literal notranslate"><span class="pre">data</span></code> directory</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!ls data
+</pre></div>
+</div>
+</div>
+<p>In this recipe, we use <code class="docutils literal notranslate"><span class="pre">train_nodev</span></code> as a training set, <code class="docutils literal notranslate"><span class="pre">train_dev</span></code> as a validation set (monitor the training progress by checking the validation score). We also use (reuse) <code class="docutils literal notranslate"><span class="pre">test</span></code> and <code class="docutils literal notranslate"><span class="pre">train_dev</span></code> sets for the final speech recognition evaluation.</p>
+<p>Let’s check one of the training data directory:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!ls -1 data/train_nodev/
+</pre></div>
+</div>
+</div>
+<p>These are the speech and corresponding text and speaker information based on the Kaldi format. Please also check <a class="reference external" href="https://kaldi-asr.org/doc/data_prep.html">https://kaldi-asr.org/doc/data_prep.html</a></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>spk2utt # Speaker information
+text    # Transcription file
+utt2spk # Speaker information
+wav.scp # Audio file
+</pre></div>
+</div>
+<p><strong>Stage 2: Speed perturbation</strong> (one of the data augmentation methods)</p>
+<p>We do not use speed perturbation for this demo. But you can turn it on by adding an argument <code class="docutils literal notranslate"><span class="pre">--speed_perturb_factors</span> <span class="pre">&quot;0.9</span> <span class="pre">1.0</span> <span class="pre">1.1&quot;</span></code> to the shell script</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./asr.sh --stage 2 --stop_stage 2 --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot;
+</pre></div>
+</div>
+</div>
+<p><strong>Stage 3: Format wav.scp: data/ -&gt; dump/raw</strong></p>
+<p>We dump the data with specified format (flac in this case) for the efficient use of the data.</p>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">--nj</span> <span class="pre">&lt;N&gt;</span></code> means the number of CPU jobs. Please set it appropriately by considering your CPU resources and disk access.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># 30 seconds
+!./asr.sh --stage 3 --stop_stage 3 --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot; --nj 4
+</pre></div>
+</div>
+</div>
+<p><strong>Stage 4: Remove long/short data: dump/raw/org -&gt; dump/raw</strong></p>
+<p>There are too long and too short audio data, which are harmful for our efficient training. Those data are removed from the list.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./asr.sh --stage 4 --stop_stage 4 --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot;
+</pre></div>
+</div>
+</div>
+<p><strong>Stage 5: Generate token_list from dump/raw/train_nodev/text using BPE.</strong></p>
+<p>This is important for text processing. We make a dictionary based on the English character in this example. We use a <code class="docutils literal notranslate"><span class="pre">sentencepiece</span></code> toolkit developed by Google.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./asr.sh --stage 5 --stop_stage 5 --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot;
+</pre></div>
+</div>
+</div>
+<p>Let’s check the content of the dictionary. There are several special symbols, e.g.,</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;blank&gt;   used for CTC
+&lt;unk&gt;     unknown symbols do not appear in the training data
+&lt;sos/eos&gt; start and end sentence symbols
+</pre></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!cat data/token_list/bpe_unigram30/tokens.txt
+</pre></div>
+</div>
+</div>
+</section>
+<section id="language-modeling-(skip-in-this-tutorial)">
+<h2>language modeling (skip in this tutorial)<a class="headerlink" href="#language-modeling-(skip-in-this-tutorial)" title="Permalink to this headline">¶</a></h2>
+<p><strong>Stages 6–9: Stages related to language modeling.</strong></p>
+<p>We skip the language modeling part in the recipe (stages 6 – 9) in this tutorial.</p>
+</section>
+<section id="End-to-end-ASR">
+<h2>End-to-end ASR<a class="headerlink" href="#End-to-end-ASR" title="Permalink to this headline">¶</a></h2>
+<p><strong>Stage 10: ASR collect stats</strong>: train_set=dump/raw/train_nodev, valid_set=dump/raw/train_dev</p>
+<p>We estimate the mean and variance of the data to normalize the data. We also collect the information of input and output lengths for the efficient mini batch creation.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># 18 seconds
+!./asr.sh --stage 10 --stop_stage 10 --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot; --nj 4
+</pre></div>
+</div>
+</div>
+<p><strong>Stage 11: ASR Training:</strong> train_set=dump/raw/train_nodev, valid_set=dump/raw/train_dev</p>
+<p>Main training loop.</p>
+<p>Please also monitor the following files - log file /content/espnet/egs2/an4/asr1/exp/asr_train_raw_bpe30/train.log - loss /content/espnet/egs2/an4/asr1/exp/asr_train_raw_bpe30/images/loss.png - accuracy /content/espnet/egs2/an4/asr1/exp/asr_train_raw_bpe30/images/acc.png</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It would take 20-30 min.
+!./asr.sh --stage 11 --stop_stage 11 --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot; --ngpu 1
+</pre></div>
+</div>
+</div>
+<p><strong>Stage 12</strong>: Decoding: training_dir=exp/asr_train_raw_bpe30</p>
+<p>Note that we need to make <code class="docutils literal notranslate"><span class="pre">--use_lm</span> <span class="pre">false</span></code> since we skip the language model.</p>
+<p><code class="docutils literal notranslate"><span class="pre">inference_nj</span> <span class="pre">&lt;N&gt;</span></code> specifies the number of inference jobs</p>
+<p>Let’s monitor the log /content/espnet/egs2/an4/asr1/exp/asr_train_raw_bpe30/inference_asr_model_valid.acc.ave/train_dev/logdir/asr_inference.1.log</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It would take ~10 minutes
+!./asr.sh --inference_nj 4 --stage 12 --stop_stage 12 --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot; --use_lm false
+</pre></div>
+</div>
+</div>
+<p><strong>Stage 13: Scoring</strong></p>
+<p>You can find word error rate (WER), character error rate (CER), etc. for each test set.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./asr.sh --stage 13 --stop_stage 13 --train_set train_nodev --valid_set train_dev --test_sets &quot;train_dev test&quot; --use_lm false
+</pre></div>
+</div>
+</div>
+<p>You can also check the break down of the word error rate in /content/espnet/egs2/an4/asr1/exp/asr_train_raw_bpe30/inference_asr_model_valid.acc.ave/train_dev/score_wer/result.txt</p>
+</section>
+<section id="How-to-change-the-training-configs?">
+<h2>How to change the training configs?<a class="headerlink" href="#How-to-change-the-training-configs?" title="Permalink to this headline">¶</a></h2>
+<section id="config-file-based">
+<h3>config file based<a class="headerlink" href="#config-file-based" title="Permalink to this headline">¶</a></h3>
+<p>All training options are changed by using a config file.</p>
+<p>Pleae check <a class="reference external" href="https://espnet.github.io/espnet/espnet2_training_option.html">https://espnet.github.io/espnet/espnet2_training_option.html</a></p>
+<p>Let’s first check config files prepared in the <code class="docutils literal notranslate"><span class="pre">an4</span></code> recipe</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>- LSTM-based E2E ASR /content/espnet/egs2/an4/asr1/conf/train_asr_rnn.yaml
+- Transformer based E2E ASR /content/espnet/egs2/an4/asr1/conf/train_asr_transformer.yaml
+</pre></div>
+</div>
+<p>You can run</p>
+<p><strong>RNN</strong></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>./asr.sh --stage 10 \
+   --train_set train_nodev \
+   --valid_set train_dev \
+   --test_sets &quot;train_dev test&quot; \
+   --nj 4 \
+   --inference_nj 4 \
+   --use_lm false \
+   ----asr_config conf/train_asr_rnn.yaml
+</pre></div>
+</div>
+<p><strong>Transformer</strong></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>./asr.sh --stage 10 \
+   --train_set train_nodev \
+   --valid_set train_dev \
+   --test_sets &quot;train_dev test&quot; \
+   --nj 4 \
+   --inference_nj 4 \
+   --use_lm false \
+   ----asr_config conf/train_asr_transformer.yaml
+</pre></div>
+</div>
+<p>You can also find various configs in <code class="docutils literal notranslate"><span class="pre">espnet/egs2/*/asr1/conf/</span></code>, including - Conformer <code class="docutils literal notranslate"><span class="pre">espnet/egs2/librispeech/asr1/conf/train_asr_confformer.yaml</span></code> - Wav2vec2.0 pre-trained model and fine-tuning <code class="docutils literal notranslate"><span class="pre">https://github.com/espnet/espnet/blob/master/egs2/librispeech/asr1/conf/tuning/train_asr_conformer7_wav2vec2_960hr_large.yaml</span></code> - HuBERT pre-trained model and fine-tuning <code class="docutils literal notranslate"><span class="pre">https://github.com/espnet/espnet/blob/master/egs2/librispeech/asr1/conf/tuning/train_asr_conformer7_hubert_960hr_large.yaml</span></code></p>
+</section>
+<section id="command-line-argument-based">
+<h3>command line argument based<a class="headerlink" href="#command-line-argument-based" title="Permalink to this headline">¶</a></h3>
+<p>You can also customize it by editing the file or passing the command line arguments, e.g.,</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>./run.sh --stage 10 --asr_args &quot;--model_conf ctc_weight=0.3&quot;
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>./run.sh --stage 10 --asr_args &quot;--optim_conf lr=0.1&quot;
+</pre></div>
+</div>
+<p>See <a class="reference external" href="https://espnet.github.io/espnet/espnet2_tutorial.html#change-the-configuration-for-training">https://espnet.github.io/espnet/espnet2_tutorial.html#change-the-configuration-for-training</a></p>
+</section>
+</section>
+<section id="How-to-make-a-new-recipe?">
+<h2>How to make a new recipe?<a class="headerlink" href="#How-to-make-a-new-recipe?" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Check <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE">https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE</a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="espnet2_tts_realtime_demo.html" class="btn btn-neutral float-left" title="ESPnet2-TTS realtime demonstration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="espnet_se_demonstration_for_waspaa_2021.html" class="btn btn-neutral float-right" title="ESPnet Speech Enhancement Demonstration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
