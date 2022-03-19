@@ -17,7 +17,7 @@ inference_config=conf/decode_asr.yaml
 ngpu=1
 
 ./asr.sh \
-    --stage 11 \
+    --stage 1 \
     --stop_stage 100 \
     --ngpu ${ngpu} \
     --nj 80 \
@@ -26,7 +26,7 @@ ngpu=1
     --inference_args "--batch_size 1" \
     --use_lm false \
     --token_type bpe \
-    --nbpe 1000 \
+    --nbpe 150 \
     --feats_type raw \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
