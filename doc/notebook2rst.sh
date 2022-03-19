@@ -14,4 +14,4 @@ echo "\
    :caption: Notebook:
 "
 
-ls notebook | xargs -n1 -I{} echo "   ./notebook/{}"
+find notebook/*.ipynb -exec echo "   {}" \;
