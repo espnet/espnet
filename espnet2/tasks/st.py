@@ -58,6 +58,7 @@ from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.st.espnet_model import ESPnetSTModel
 from espnet2.st.espnet_model_md import ESPnetSTMDModel
 from espnet2.st.espnet_model_md_hier import ESPnetSTMDHierModel
+from espnet2.st.espnet_model_md_samp import ESPnetSTMDSampModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -280,6 +281,12 @@ class STTask(AbsTask):
             help="Use hier ctc MT model",
         )
         group.add_argument(
+            "--use_ctc_samp",
+            type=str2bool,
+            default=False,
+            help="Use hier ctc MT model",
+        )
+        group.add_argument(
             "--init",
             type=lambda x: str_or_none(x.lower()),
             default=None,
@@ -479,7 +486,7 @@ class STTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTMDModel, ESPnetSTMDHierModel]:
+    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTMDModel, ESPnetSTMDHierModel, ESPnetSTMDSampModel]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -601,6 +608,7 @@ class STTask(AbsTask):
             encoder_mt = encoder_mt_class(input_size=asr_decoder_output_size_bf_softmax, **args.encoder_mt_conf)
 
             use_hier_ctc = getattr(args, "use_hier_ctc", False)
+            use_ctc_samp = getattr(args, "use_ctc_samp", False)
             if use_hier_ctc:
                 encoder_hier_class = encoder_choices.get_class(args.encoder_hier)
                 encoder_hier = encoder_hier_class(input_size=encoder_output_size, **args.encoder_hier_conf)
@@ -625,6 +633,26 @@ class STTask(AbsTask):
                     decoder=decoder,
                     ctc=ctc,
                     mt_ctc=mt_ctc,
+                    asr_decoder=asr_decoder,
+                    encoder_mt=encoder_mt,
+                    token_list=token_list,
+                    src_token_list=src_token_list,
+                    speech_attn = speech_attn,
+                    **args.model_conf,
+                )
+            elif use_ctc_samp:
+                # 8. Build model
+                model = ESPnetSTMDSampModel(
+                    vocab_size=vocab_size,
+                    src_vocab_size=src_vocab_size,
+                    frontend=frontend,
+                    specaug=specaug,
+                    normalize=normalize,
+                    preencoder=preencoder,
+                    encoder=encoder,
+                    postencoder=postencoder,
+                    decoder=decoder,
+                    ctc=ctc,
                     asr_decoder=asr_decoder,
                     encoder_mt=encoder_mt,
                     token_list=token_list,
