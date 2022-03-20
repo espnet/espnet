@@ -269,4 +269,5 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     IWSLT21LR=downloads/iwslt21
     TOTONAC=downloads
     GOOGLEI18N=downloads
+    MALAYALAM=
 fi
