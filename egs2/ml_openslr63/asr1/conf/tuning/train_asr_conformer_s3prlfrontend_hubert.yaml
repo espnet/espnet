@@ -1,7 +1,4 @@
 # network architecture
-cudnn_benchmark: false
-cudnn_deterministic: false
-use_amp: true
 
 freeze_param: [
 "frontend.upstream"
