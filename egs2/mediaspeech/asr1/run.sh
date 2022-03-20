@@ -18,7 +18,7 @@ ngpu=1
 nbpe=235
 
 ./asr.sh \
-    --stage 11 \
+    --stage 1 \
     --stop_stage 100 \
     --ngpu ${ngpu} \
     --nj 80 \

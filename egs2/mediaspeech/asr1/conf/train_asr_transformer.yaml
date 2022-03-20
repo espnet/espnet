@@ -31,12 +31,12 @@ batch_size: 32
 
 # optimization related
 optim: adam
-accum_grad: 2
+accum_grad: 20
 grad_clip: 5
-patience: 0
-max_epoch: 100
+patience: 20
+max_epoch: 200
 optim_conf:
-    lr: 1.0
+    lr: 0.001
 scheduler: noamlr
 scheduler_conf:
     warmup_steps: 1000
