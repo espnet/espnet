@@ -131,7 +131,14 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
         self.asr_decoder = asr_decoder
 
         # MT error calculator
-        self.mt_error_calculator = ASRErrorCalculator(
+        if report_bleu:
+            self.mt_error_calculator = MTErrorCalculator(
+                token_list, sym_space, sym_blank, report_bleu
+            )
+        else:
+            self.mt_error_calculator = None
+
+        self.mt_ctc_error_calculator = ASRErrorCalculator(
                 token_list, sym_space, sym_blank, report_cer, report_wer
             )
 
@@ -213,7 +220,7 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
                 encoder_out, encoder_out_lens, src_text, src_text_lengths
             )
         else:
-            loss_asr_ctc, cer_asr_ctc = 0, None
+            loss_asr_ctc, cer_asr_ctc = 0.0, None
 
         # MT CTC
         if self.mt_mtlalpha > 0:
@@ -221,7 +228,7 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
                 encoder_hier_out, encoder_hier_out_lens, text, text_lengths
             )
         else:
-            loss_mt_ctc, cer_mt_ctc = 0, None
+            loss_mt_ctc, cer_mt_ctc = 0.0, None
 
         # 3a. MT Encoder
         dec_asr_lengths = src_text_lengths + 1
@@ -254,7 +261,8 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
             (1 - self.asr_weight) * loss_st
             + self.asr_weight * loss_asr
         )
-
+        if not self.training:
+            import pdb;pdb.set_trace()
         stats = dict(
             loss=loss.detach(),
             loss_asr=loss_asr.detach() if type(loss_asr) is not float else loss_asr,
@@ -266,7 +274,7 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
             wer=wer_asr_att,
             bleu=bleu_st_att,
             loss_mt_ctc=loss_mt_ctc.detach() if type(loss_mt_ctc) is not float else loss_mt_ctc,
-            cer_mt_ctc=cer_mt_ctc
+            cer_mt_ctc=cer_mt_ctc,
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
@@ -462,5 +470,5 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
         cer_ctc = None
         if not self.training and self.mt_error_calculator is not None:
             ys_hat = self.mt_ctc.argmax(encoder_out).data
-            cer_ctc = self.mt_error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
+            cer_ctc = self.mt_ctc_error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc
