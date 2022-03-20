@@ -27,7 +27,7 @@ use_wordlm=false
     --lm_config "${lm_config}"                         \
     --asr_config "${asr_config}"                       \
     --inference_config "${inference_config}"           \
-    --train_set "train_nodev"                       \
+    --train_set "train"                       \
     --valid_set "dev"                       \
     --test_sets "test"                        \
     --asr_speech_fold_length 512 \
