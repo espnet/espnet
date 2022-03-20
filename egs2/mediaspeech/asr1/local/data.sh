@@ -37,16 +37,17 @@ if [ -z "${MEDIASPEECH}" ]; then
 fi
 
 workspace=$PWD
+lang=TR
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "sub-stage 0: Download Data to downloads"
 
     cd ${MEDIASPEECH}
-    wget https://www.openslr.org/resources/108/TR.tgz
-    tar -xvf TR.tgz
-    rm -f TR.tgz
-    mv TR/* .
-    rm -rf TR
+    wget https://www.openslr.org/resources/108/${lang}.tgz
+    tar -xvf ${lang}.tgz
+    rm -f ${lang}.tgz
+    mv ${lang}/* .
+    rm -rf ${lang}
     cd $workspace
 fi
 

@@ -14,7 +14,8 @@ test_set="mediaspeech_test"
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 
-ngpu=1
+ngpu=4
+nbpe=235
 
 ./asr.sh \
     --stage 1 \
@@ -26,7 +27,8 @@ ngpu=1
     --inference_args "--batch_size 1" \
     --use_lm false \
     --token_type bpe \
-    --nbpe 150 \
+    --nbpe ${nbpe} \
+    --bpe_train_text "data/${train_set}/text" \
     --feats_type raw \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
