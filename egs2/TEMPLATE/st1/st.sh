@@ -115,6 +115,7 @@ src_lang=es                # source language abbrev. id (e.g., es)
 tgt_lang=en                # target language abbrev. id (e.g., en)
 use_multidecoder=false
 use_hier_ctc=false
+use_ctc_samp=false
 
 # Upload model related
 hf_repo=
@@ -1322,6 +1323,7 @@ if ! "${skip_train}"; then
                 --use_preprocessor true \
                 --use_multidecoder ${use_multidecoder} \
                 --use_hier_ctc ${use_hier_ctc} \
+                --use_ctc_samp ${use_ctc_samp} \
                 --bpemodel "${tgt_bpemodel}" \
                 --token_type "${tgt_token_type}" \
                 --token_list "${tgt_token_list}" \
