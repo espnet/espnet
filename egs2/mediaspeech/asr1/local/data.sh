@@ -37,7 +37,7 @@ if [ -z "${MEDIASPEECH}" ]; then
 fi
 
 workspace=$PWD
-lang=TR
+lang=ES
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "sub-stage 0: Download Data to downloads"

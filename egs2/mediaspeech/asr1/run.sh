@@ -11,7 +11,7 @@ train_set="mediaspeech_train"
 train_dev="mediaspeech_dev"
 test_set="mediaspeech_test"
 
-asr_config=conf/train_asr.yaml
+asr_config=conf/train_asr_transformer.yaml
 inference_config=conf/decode_asr.yaml
 
 ngpu=4

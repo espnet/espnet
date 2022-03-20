@@ -20,7 +20,7 @@ if __name__ == "__main__":
     
     spk2utt = {}
     utt2text = {}
-    for fname in file_names:
+    for idx, fname in enumerate(file_names):
         
         # File ID
         fid = fname
@@ -28,6 +28,10 @@ if __name__ == "__main__":
         # Speaker ID – Info not provided so treat each as unique
         spk = fname
         
+        # Sometimes there are {lang}.gz files also in the zipped folder, skip those.
+        if fname=="TR":
+          continue
+
         # Text – Read from file
         text_path = "%s/%s.txt" % (args.d, fname)
         with open(text_path, "r", encoding="utf-8") as f:
