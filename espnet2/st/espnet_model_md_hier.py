@@ -131,9 +131,9 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
         self.asr_decoder = asr_decoder
 
         # MT error calculator
-        self.mt_error_calculator = MTErrorCalculator(
-            token_list, sym_space, sym_blank, report_bleu
-        )
+        self.mt_error_calculator = ASRErrorCalculator(
+                token_list, sym_space, sym_blank, report_cer, report_wer
+            )
 
         # ASR error calculator
         if report_cer or report_wer:
