@@ -202,6 +202,9 @@ class ESPnetSTMDSampModel(AbsESPnetModel):
             ys_hat = self.ctc.argmax(encoder_out).data
             ys_hat = [[x[0] for x in groupby(ys)] for ys in ys_hat]
             ys_hat = [[x for x in filter(lambda x: x != 0, ys)] for ys in ys_hat]
+            for i, ys in enumerate(ys_hat):
+                if len(ys) == 0:
+                    ys_hat[i] = [x for x in src_text[i] if x != -1]
             ys_hat_lens = torch.tensor([len(x) for x in ys_hat], device=speech.device)
             ys_hat = [torch.tensor(ys, device=speech.device) for ys in ys_hat]
             ys_hat = pad_sequence(ys_hat, batch_first=True, padding_value=-1)
@@ -214,8 +217,6 @@ class ESPnetSTMDSampModel(AbsESPnetModel):
                 _,
                 hs_dec_asr,
             ) = self._calc_asr_att_loss(encoder_out, encoder_out_lens, ys_hat, ys_hat_lens)
-            # loss_asr_att = torch.tensor(0.0, device=speech.device)
-            # loss_asr_att = 0.0
             acc_asr_att = None
             cer_asr_att = None
             wer_asr_att = None
