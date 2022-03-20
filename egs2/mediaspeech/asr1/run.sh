@@ -14,11 +14,11 @@ test_set="mediaspeech_test"
 asr_config=conf/train_asr_transformer.yaml
 inference_config=conf/decode_asr.yaml
 
-ngpu=4
+ngpu=1
 nbpe=235
 
 ./asr.sh \
-    --stage 1 \
+    --stage 11 \
     --stop_stage 100 \
     --ngpu ${ngpu} \
     --nj 80 \

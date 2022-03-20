@@ -39,10 +39,10 @@ grad_clip: 5
 patience: 20
 max_epoch: 200
 optim_conf:
-    lr: 10.0
+    lr: 1.0
 scheduler: noamlr
 scheduler_conf:
-    warmup_steps: 25000
+    warmup_steps:1000
 
 # others:
 best_model_criterion:
@@ -51,4 +51,4 @@ best_model_criterion:
    - max
 keep_nbest_models: 10
 
-init: chainer
+init: xavier_uniform
