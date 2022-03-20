@@ -261,8 +261,7 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
             (1 - self.asr_weight) * loss_st
             + self.asr_weight * loss_asr
         )
-        if not self.training:
-            import pdb;pdb.set_trace()
+
         stats = dict(
             loss=loss.detach(),
             loss_asr=loss_asr.detach() if type(loss_asr) is not float else loss_asr,
