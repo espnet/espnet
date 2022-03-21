@@ -59,10 +59,6 @@ model_conf:
     length_normalized_loss: false
     extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
 
-# minibatch related
-batch_type: numel
-batch_bins: 10000
-
 specaug: specaug
 specaug_conf:
     apply_time_warp: true

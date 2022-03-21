@@ -11,11 +11,11 @@ train_set="mediaspeech_train"
 train_dev="mediaspeech_dev"
 test_set="mediaspeech_test"
 
-asr_config=conf/train_asr_fused_frontends.yaml
+asr_config=conf/train_asr_new.yaml
 inference_config=conf/decode_asr.yaml
 
 ngpu=1
-nbpe=235
+nbpe=200
 
 ./asr.sh \
     --stage 1 \
