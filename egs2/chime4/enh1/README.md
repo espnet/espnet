@@ -38,9 +38,10 @@ config: conf/tuning/train_enh_beamformer_mvdr.yaml
   - Commit date: `Wed Mar 16 18:47:21 2022 +0800`
 
 
-## ..
+## enh_train_enh_dprnntac_fasnet_raw
 
 config: conf/tuning/train_enh_dprnntac_fasnet.yaml
+
 Pretrained model: https://huggingface.co/lichenda/chime4_fasnet_dprnn_tac
 
 |dataset|STOI|SAR|SDR|SIR|
