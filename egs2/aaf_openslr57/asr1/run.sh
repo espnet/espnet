@@ -11,7 +11,6 @@ train_dev="valid"
 test_set="valid test"
 
 asr_config=conf/tuning/train_asr_conformer5.yaml
-lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
 nbpe=150
