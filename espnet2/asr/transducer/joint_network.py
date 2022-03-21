@@ -9,33 +9,31 @@ class JointNetwork(torch.nn.Module):
     """Transducer joint network module.
 
     Args:
-        output_size: Output dimension
-        encoder_output_size: Encoder output dimension.
-        decoder_output_size: Decoder output dimension.
-        joint_space_size: Dimension of joint space.
-        joint_activation_type: Type of activation for joint network.
+        dim_output: Output dimension
+        dim_encoder: Encoder output dimension.
+        dim_decoder: Decoder output dimension.
+        dim_joint_space: Dimension of joint space.
+        joint_act_type: Type of activation for joint network.
 
     """
 
     def __init__(
         self,
-        output_size: int,
-        encoder_output_size: int,
-        decoder_output_size: int,
-        joint_space_size: int = 256,
-        joint_activation_type: str = "tanh",
+        dim_output: int,
+        dim_encoder: int,
+        dim_decoder: int,
+        dim_joint_space: int = 256,
+        joint_act_type: str = "tanh",
     ):
         """Joint network initializer."""
         super().__init__()
 
-        self.lin_enc = torch.nn.Linear(encoder_output_size, joint_space_size)
-        self.lin_dec = torch.nn.Linear(
-            decoder_output_size, joint_space_size, bias=False
-        )
+        self.lin_enc = torch.nn.Linear(dim_encoder, dim_joint_space)
+        self.lin_dec = torch.nn.Linear(dim_decoder, dim_joint_space, bias=False)
 
-        self.lin_out = torch.nn.Linear(joint_space_size, output_size)
+        self.lin_out = torch.nn.Linear(dim_joint_space, dim_output)
 
-        self.joint_activation = get_activation(joint_activation_type)
+        self.joint_activation = get_activation(joint_act_type)
 
     def forward(
         self,

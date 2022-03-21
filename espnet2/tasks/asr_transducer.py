@@ -14,20 +14,15 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
-from espnet2.asr.encoder.rnn_encoder import RNNEncoder
-from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.asr.transducer.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.transducer.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.transducer.decoder.stateless_decoder import StatelessDecoder
+from espnet2.asr.transducer.encoder.encoder import Encoder
 from espnet2.asr.transducer.espnet_transducer_model import ESPnetASRTransducerModel
 from espnet2.asr.transducer.initialize import initialize
 from espnet2.asr.transducer.joint_network import JointNetwork
@@ -51,14 +46,13 @@ frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(
         default=DefaultFrontend,
-        fused=FusedFrontends,
         sliding_window=SlidingWindow,
     ),
     type_check=AbsFrontend,
     default="default",
 )
 specaug_choices = ClassChoices(
-    name="specaug",
+    "specaug",
     classes=dict(
         specaug=SpecAug,
     ),
@@ -75,17 +69,6 @@ normalize_choices = ClassChoices(
     type_check=AbsNormalize,
     default="utterance_mvn",
     optional=True,
-)
-encoder_choices = ClassChoices(
-    "encoder",
-    classes=dict(
-        conformer=ConformerEncoder,
-        rnn=RNNEncoder,
-        transformer=TransformerEncoder,
-        vgg_rnn=VGGRNNEncoder,
-    ),
-    type_check=AbsEncoder,
-    default="rnn",
 )
 decoder_choices = ClassChoices(
     "decoder",
@@ -107,7 +90,6 @@ class ASRTransducerTask(AbsTask):
         frontend_choices,
         specaug_choices,
         normalize_choices,
-        encoder_choices,
         decoder_choices,
     ]
 
@@ -159,6 +141,12 @@ class ASRTransducerTask(AbsTask):
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetASRTransducerModel),
             help="The keyword arguments for model class.",
+        )
+        group.add_argument(
+            "--encoder_conf",
+            action=NestedDictAction,
+            default={},
+            help="The keyword arguments for encoder class.",
         )
         group.add_argument(
             "--joint_network_conf",
@@ -244,7 +232,7 @@ class ASRTransducerTask(AbsTask):
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
-            # e.g. --encoder and --encoder_conf
+            # e.g. --decoder and --decoder_conf
             class_choices.add_arguments(group)
 
     @classmethod
@@ -393,8 +381,6 @@ class ASRTransducerTask(AbsTask):
             input_size = frontend.output_size()
         else:
             # Give features from data-loader
-            args.frontend = None
-            args.frontend_conf = {}
             frontend = None
             input_size = args.input_size
 
@@ -413,9 +399,8 @@ class ASRTransducerTask(AbsTask):
             normalize = None
 
         # 4. Encoder
-        encoder_class = encoder_choices.get_class(args.encoder)
-        encoder = encoder_class(input_size=input_size, **args.encoder_conf)
-        encoder_output_size = encoder.output_size()
+        encoder = Encoder(input_size, **args.encoder_conf)
+        encoder_output_size = encoder.dim_output
 
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
@@ -423,7 +408,7 @@ class ASRTransducerTask(AbsTask):
             vocab_size,
             **args.decoder_conf,
         )
-        decoder_output_size = decoder.dunits
+        decoder_output_size = decoder.dim_output
 
         # 6. Joint Network
         joint_network = JointNetwork(

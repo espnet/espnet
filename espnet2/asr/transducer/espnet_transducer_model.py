@@ -12,10 +12,10 @@ from typing import Union
 import torch
 from typeguard import check_argument_types
 
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.transducer.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.transducer.encoder.encoder import Encoder
 from espnet2.asr.transducer.joint_network import JointNetwork
 from espnet2.asr.transducer.utils import get_transducer_task_io
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -32,7 +32,7 @@ else:
 
 
 class ESPnetASRTransducerModel(AbsESPnetModel):
-    """ESPnet2 ASR Transducer model definition.
+    """ESPnet2ASRTransducerModel module definition.
 
     Args:
         vocab_size: Size of complete vocabulary (w/ EOS and blank included).
@@ -65,7 +65,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         frontend: Optional[AbsFrontend],
         specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
-        encoder: AbsEncoder,
+        encoder: Encoder,
         decoder: AbsDecoder,
         joint_network: JointNetwork,
         transducer_weight: float = 1.0,
@@ -162,16 +162,14 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         """
         assert text_lengths.dim() == 1, text_lengths.shape
-        # Check that batch_size is unified
         assert (
             speech.shape[0]
             == speech_lengths.shape[0]
             == text.shape[0]
             == text_lengths.shape[0]
         ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)
-        batch_size = speech.shape[0]
 
-        # for data-parallel
+        batch_size = speech.shape[0]
         text = text[:, : text_lengths.max()]
 
         # 1. Encoder
