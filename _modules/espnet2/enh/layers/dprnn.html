@@ -320,6 +320,175 @@
         <span class="k">return</span> <span class="n">output</span></div></div>
 
 
+<span class="c1"># dual-path RNN with transform-average-concatenate (TAC)</span>
+<div class="viewcode-block" id="DPRNN_TAC"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dprnn.DPRNN_TAC">[docs]</a><span class="k">class</span> <span class="nc">DPRNN_TAC</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Deep duaL-path RNN with TAC applied to each layer/block.</span>
+
+<span class="sd">    args:</span>
+<span class="sd">        rnn_type: string, select from &#39;RNN&#39;, &#39;LSTM&#39; and &#39;GRU&#39;.</span>
+<span class="sd">        input_size: int, dimension of the input feature. The input should</span>
+<span class="sd">                    have shape (batch, seq_len, input_size).</span>
+<span class="sd">        hidden_size: int, dimension of the hidden state.</span>
+<span class="sd">        output_size: int, dimension of the output size.</span>
+<span class="sd">        dropout: float, dropout ratio. Default is 0.</span>
+<span class="sd">        num_layers: int, number of stacked RNN layers. Default is 1.</span>
+<span class="sd">        bidirectional: bool, whether the RNN layers are bidirectional.</span>
+<span class="sd">                    Default is False.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">rnn_type</span><span class="p">,</span>
+        <span class="n">input_size</span><span class="p">,</span>
+        <span class="n">hidden_size</span><span class="p">,</span>
+        <span class="n">output_size</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">bidirectional</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">DPRNN_TAC</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_size</span> <span class="o">=</span> <span class="n">input_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span> <span class="o">=</span> <span class="n">output_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span> <span class="o">=</span> <span class="n">hidden_size</span>
+
+        <span class="c1"># DPRNN + TAC for 3D input (ch, N, T)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">row_rnn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">col_rnn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ch_transform</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ch_average</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ch_concat</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">row_norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">col_norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ch_norm</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">([])</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">row_rnn</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">SingleRNN</span><span class="p">(</span>
+                    <span class="n">rnn_type</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">,</span> <span class="n">dropout</span><span class="p">,</span> <span class="n">bidirectional</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+            <span class="p">)</span>  <span class="c1"># intra-segment RNN is always noncausal</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">col_rnn</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">SingleRNN</span><span class="p">(</span>
+                    <span class="n">rnn_type</span><span class="p">,</span>
+                    <span class="n">input_size</span><span class="p">,</span>
+                    <span class="n">hidden_size</span><span class="p">,</span>
+                    <span class="n">dropout</span><span class="p">,</span>
+                    <span class="n">bidirectional</span><span class="o">=</span><span class="n">bidirectional</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ch_transform</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">hidden_size</span> <span class="o">*</span> <span class="mi">3</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">PReLU</span><span class="p">())</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ch_average</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="n">hidden_size</span> <span class="o">*</span> <span class="mi">3</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">PReLU</span><span class="p">())</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ch_concat</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span> <span class="o">*</span> <span class="mi">6</span><span class="p">,</span> <span class="n">input_size</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">PReLU</span><span class="p">())</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">row_norm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">))</span>
+            <span class="c1"># default is to use noncausal LayerNorm for</span>
+            <span class="c1"># inter-chunk RNN and TAC modules.</span>
+            <span class="c1"># For causal setting change them to causal normalization</span>
+            <span class="c1"># techniques accordingly.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">col_norm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ch_norm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">GroupNorm</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_size</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">))</span>
+
+        <span class="c1"># output layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">PReLU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<div class="viewcode-block" id="DPRNN_TAC.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dprnn.DPRNN_TAC.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">num_mic</span><span class="p">):</span>
+        <span class="c1"># input shape: batch, ch, N, dim1, dim2</span>
+        <span class="c1"># num_mic shape: batch,</span>
+        <span class="c1"># apply RNN on dim1 first, then dim2, then ch</span>
+
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="nb">input</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">row_rnn</span><span class="p">)):</span>
+            <span class="c1"># intra-segment RNN</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">ch</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span><span class="p">)</span>
+            <span class="n">row_input</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">output</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">ch</span> <span class="o">*</span> <span class="n">dim2</span><span class="p">,</span> <span class="n">dim1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>  <span class="c1"># B*ch*dim2, dim1, N</span>
+            <span class="n">row_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">row_rnn</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">row_input</span><span class="p">)</span>  <span class="c1"># B*ch*dim2, dim1, N</span>
+            <span class="n">row_output</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">row_output</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">ch</span><span class="p">,</span> <span class="n">dim2</span><span class="p">,</span> <span class="n">dim1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+            <span class="p">)</span>  <span class="c1"># B*ch, N, dim1, dim2</span>
+            <span class="n">row_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">row_norm</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">row_output</span><span class="p">)</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">+</span> <span class="n">row_output</span>  <span class="c1"># B*ch, N, dim1, dim2</span>
+
+            <span class="c1"># inter-segment RNN</span>
+            <span class="n">col_input</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">output</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">ch</span> <span class="o">*</span> <span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>  <span class="c1"># B*ch*dim1, dim2, N</span>
+            <span class="n">col_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">col_rnn</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">col_input</span><span class="p">)</span>  <span class="c1"># B*dim1, dim2, N</span>
+            <span class="n">col_output</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">col_output</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">ch</span><span class="p">,</span> <span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+            <span class="p">)</span>  <span class="c1"># B*ch, N, dim1, dim2</span>
+            <span class="n">col_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">col_norm</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">col_output</span><span class="p">)</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">+</span> <span class="n">col_output</span>  <span class="c1"># B*ch, N, dim1, dim2</span>
+
+            <span class="c1"># TAC for cross-channel communication</span>
+            <span class="n">ch_input</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># B, ch, N, dim1, dim2</span>
+            <span class="n">ch_input</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">ch_input</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span>
+            <span class="p">)</span>  <span class="c1"># B*dim1*dim2*ch, N</span>
+            <span class="n">ch_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ch_transform</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">ch_input</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                <span class="n">batch_size</span><span class="p">,</span> <span class="n">dim1</span> <span class="o">*</span> <span class="n">dim2</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="p">)</span>  <span class="c1"># B, dim1*dim2, ch, H</span>
+            <span class="c1"># mean pooling across channels</span>
+            <span class="k">if</span> <span class="n">num_mic</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># fixed geometry array</span>
+                <span class="n">ch_mean</span> <span class="o">=</span> <span class="n">ch_output</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                    <span class="n">batch_size</span> <span class="o">*</span> <span class="n">dim1</span> <span class="o">*</span> <span class="n">dim2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="p">)</span>  <span class="c1"># B*dim1*dim2, H</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># only consider valid channels</span>
+                <span class="n">ch_mean</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">ch_output</span><span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:</span> <span class="n">num_mic</span><span class="p">[</span><span class="n">b</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
+                <span class="p">]</span>  <span class="c1"># 1, dim1*dim2, H</span>
+                <span class="n">ch_mean</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">ch_mean</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                    <span class="n">batch_size</span> <span class="o">*</span> <span class="n">dim1</span> <span class="o">*</span> <span class="n">dim2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="p">)</span>  <span class="c1"># B*dim1*dim2, H</span>
+            <span class="n">ch_output</span> <span class="o">=</span> <span class="n">ch_output</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                <span class="n">batch_size</span> <span class="o">*</span> <span class="n">dim1</span> <span class="o">*</span> <span class="n">dim2</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="p">)</span>  <span class="c1"># B*dim1*dim2, ch, H</span>
+            <span class="n">ch_mean</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ch_average</span><span class="p">[</span><span class="n">i</span><span class="p">](</span><span class="n">ch_mean</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">ch_output</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+            <span class="p">)</span>  <span class="c1"># B*dim1*dim2, ch, H</span>
+            <span class="n">ch_output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">ch_output</span><span class="p">,</span> <span class="n">ch_mean</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># B*dim1*dim2, ch, 2H</span>
+            <span class="n">ch_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ch_concat</span><span class="p">[</span><span class="n">i</span><span class="p">](</span>
+                <span class="n">ch_output</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">ch_output</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="p">)</span>  <span class="c1"># B*dim1*dim2*ch, N</span>
+            <span class="n">ch_output</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">ch_output</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span><span class="p">,</span> <span class="n">ch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+            <span class="p">)</span>  <span class="c1"># B, ch, N, dim1, dim2</span>
+            <span class="n">ch_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">](</span>
+                <span class="n">ch_output</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">ch</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span><span class="p">)</span>
+            <span class="p">)</span>  <span class="c1"># B*ch, N, dim1, dim2</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">output</span> <span class="o">+</span> <span class="n">ch_output</span>
+
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>  <span class="c1"># B*ch, N, dim1, dim2</span>
+
+        <span class="k">return</span> <span class="n">output</span></div></div>
+
+
 <span class="k">def</span> <span class="nf">_pad_segment</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">segment_size</span><span class="p">):</span>
     <span class="c1"># input is the features: (B, N, T)</span>
     <span class="n">batch_size</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">seq_len</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span>

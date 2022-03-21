@@ -136,7 +136,9 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-asteroid-models">espnet2.enh.separator.asteroid_models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-skim-separator">espnet2.enh.separator.skim_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-rnn-separator">espnet2.enh.separator.rnn_separator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-separator-fasnet-separator">espnet2.enh.separator.fasnet_separator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-beamformer">espnet2.enh.layers.beamformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-ifasnet">espnet2.enh.layers.ifasnet</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-mask-estimator">espnet2.enh.layers.mask_estimator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-init">espnet2.enh.layers.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-skim">espnet2.enh.layers.skim</a></li>
@@ -144,6 +146,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-dnn-wpe">espnet2.enh.layers.dnn_wpe</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-dnn-beamformer">espnet2.enh.layers.dnn_beamformer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-dprnn">espnet2.enh.layers.dprnn</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-fasnet">espnet2.enh.layers.fasnet</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-tcn">espnet2.enh.layers.tcn</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-complex-utils">espnet2.enh.layers.complex_utils</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-complexnn">espnet2.enh.layers.complexnn</a></li>
@@ -1409,8 +1412,72 @@ others predicted data, e.g. masks: OrderedDict[</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-enh-separator-fasnet-separator">
+<span id="id29"></span><h2>espnet2.enh.separator.fasnet_separator<a class="headerlink" href="#espnet2-enh-separator-fasnet-separator" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.separator.fasnet_separator"></span><dl class="class">
+<dt id="espnet2.enh.separator.fasnet_separator.FaSNetSeparator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.fasnet_separator.</code><code class="sig-name descname">FaSNetSeparator</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">enc_dim: int</em>, <em class="sig-param">feature_dim: int</em>, <em class="sig-param">hidden_dim: int</em>, <em class="sig-param">layer: int</em>, <em class="sig-param">segment_size: int</em>, <em class="sig-param">num_spk: int</em>, <em class="sig-param">win_len: int</em>, <em class="sig-param">context_len: int</em>, <em class="sig-param">fasnet_type: str</em>, <em class="sig-param">dropout: float = 0.0</em>, <em class="sig-param">sr: int = 16000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/fasnet_separator.html#FaSNetSeparator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.fasnet_separator.FaSNetSeparator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
+<p>Filter-and-sum Network (FaSNet) Separator</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> – required by AbsSeparator. Not used in this model.</p></li>
+<li><p><strong>enc_dim</strong> – encoder dimension</p></li>
+<li><p><strong>feature_dim</strong> – feature dimension</p></li>
+<li><p><strong>hidden_dim</strong> – hidden dimension in DPRNN</p></li>
+<li><p><strong>layer</strong> – number of DPRNN blocks in iFaSNet</p></li>
+<li><p><strong>segment_size</strong> – dual-path segment size</p></li>
+<li><p><strong>num_spk</strong> – number of speakers</p></li>
+<li><p><strong>win_len</strong> – window length in millisecond</p></li>
+<li><p><strong>context_len</strong> – context length in millisecond</p></li>
+<li><p><strong>fasnet_type</strong> – ‘fasnet’ or ‘ifasnet’.
+Select from origin fasnet or Implicit fasnet</p></li>
+<li><p><strong>dropout</strong> – dropout rate. Default is 0.</p></li>
+<li><p><strong>sr</strong> – samplerate of input audio</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.separator.fasnet_separator.FaSNetSeparator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[List[torch.Tensor], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/separator/fasnet_separator.html#FaSNetSeparator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.fasnet_separator.FaSNetSeparator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>torch.Tensor</em>) – (Batch, samples, channels)</p></li>
+<li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>[(B, T, N), …]
+ilens (torch.Tensor): (B,)
+others predicted data, e.g. masks: OrderedDict[</p>
+<blockquote>
+<div><p>’mask_spk1’: torch.Tensor(Batch, Frames, Freq),
+‘mask_spk2’: torch.Tensor(Batch, Frames, Freq),
+…
+‘mask_spkn’: torch.Tensor(Batch, Frames, Freq),</p>
+</div></blockquote>
+<p>]</p>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>separated (List[Union(torch.Tensor, ComplexTensor)])</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.fasnet_separator.FaSNetSeparator.num_spk">
+<em class="property">property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.fasnet_separator.FaSNetSeparator.num_spk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-enh-layers-beamformer">
-<span id="id29"></span><h2>espnet2.enh.layers.beamformer<a class="headerlink" href="#espnet2-enh-layers-beamformer" title="Permalink to this headline">¶</a></h2>
+<span id="id30"></span><h2>espnet2.enh.layers.beamformer<a class="headerlink" href="#espnet2-enh-layers-beamformer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.beamformer"></span><p>Beamformer module.</p>
 <dl class="function">
 <dt id="espnet2.enh.layers.beamformer.apply_beamforming_vector">
@@ -2067,8 +2134,33 @@ else:          (…, T - bdelay - frame_length + 2, frame_length)</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-enh-layers-ifasnet">
+<span id="id31"></span><h2>espnet2.enh.layers.ifasnet<a class="headerlink" href="#espnet2-enh-layers-ifasnet" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.layers.ifasnet"></span><dl class="class">
+<dt id="espnet2.enh.layers.ifasnet.iFaSNet">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.ifasnet.</code><code class="sig-name descname">iFaSNet</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/ifasnet.html#iFaSNet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.ifasnet.iFaSNet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.layers.fasnet.FaSNet_base" title="espnet2.enh.layers.fasnet.FaSNet_base"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.layers.fasnet.FaSNet_base</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.enh.layers.ifasnet.iFaSNet.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em>, <em class="sig-param">num_mic</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/ifasnet.html#iFaSNet.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.ifasnet.iFaSNet.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>abstract forward function</p>
+<p>input: shape (batch, max_num_ch, T)
+num_mic: shape (batch, ), the number of channels for each input.</p>
+<blockquote>
+<div><p>Zero for fixed geometry configuration.</p>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.ifasnet.test_model">
+<code class="sig-prename descclassname">espnet2.enh.layers.ifasnet.</code><code class="sig-name descname">test_model</code><span class="sig-paren">(</span><em class="sig-param">model</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/ifasnet.html#test_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.ifasnet.test_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
 <section id="espnet2-enh-layers-mask-estimator">
-<span id="id30"></span><h2>espnet2.enh.layers.mask_estimator<a class="headerlink" href="#espnet2-enh-layers-mask-estimator" title="Permalink to this headline">¶</a></h2>
+<span id="id32"></span><h2>espnet2.enh.layers.mask_estimator<a class="headerlink" href="#espnet2-enh-layers-mask-estimator" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.mask_estimator"></span><dl class="class">
 <dt id="espnet2.enh.layers.mask_estimator.MaskEstimator">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.mask_estimator.</code><code class="sig-name descname">MaskEstimator</code><span class="sig-paren">(</span><em class="sig-param">type</em>, <em class="sig-param">idim</em>, <em class="sig-param">layers</em>, <em class="sig-param">units</em>, <em class="sig-param">projs</em>, <em class="sig-param">dropout</em>, <em class="sig-param">nmask=1</em>, <em class="sig-param">nonlinear='sigmoid'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/mask_estimator.html#MaskEstimator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.mask_estimator.MaskEstimator" title="Permalink to this definition">¶</a></dt>
@@ -2099,10 +2191,10 @@ ilens: (B,)</p>
 
 </section>
 <section id="espnet2-enh-layers-init">
-<span id="id31"></span><h2>espnet2.enh.layers.__init__<a class="headerlink" href="#espnet2-enh-layers-init" title="Permalink to this headline">¶</a></h2>
+<span id="id33"></span><h2>espnet2.enh.layers.__init__<a class="headerlink" href="#espnet2-enh-layers-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.__init__"></span></section>
 <section id="espnet2-enh-layers-skim">
-<span id="id32"></span><h2>espnet2.enh.layers.skim<a class="headerlink" href="#espnet2-enh-layers-skim" title="Permalink to this headline">¶</a></h2>
+<span id="id34"></span><h2>espnet2.enh.layers.skim<a class="headerlink" href="#espnet2-enh-layers-skim" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.skim"></span><dl class="class">
 <dt id="espnet2.enh.layers.skim.MemLSTM">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.skim.</code><code class="sig-name descname">MemLSTM</code><span class="sig-paren">(</span><em class="sig-param">hidden_size</em>, <em class="sig-param">dropout=0.0</em>, <em class="sig-param">bidirectional=False</em>, <em class="sig-param">mem_type='hc'</em>, <em class="sig-param">norm_type='cLN'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/skim.html#MemLSTM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.skim.MemLSTM" title="Permalink to this definition">¶</a></dt>
@@ -2229,7 +2321,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-enh-layers-wpe">
-<span id="id33"></span><h2>espnet2.enh.layers.wpe<a class="headerlink" href="#espnet2-enh-layers-wpe" title="Permalink to this headline">¶</a></h2>
+<span id="id35"></span><h2>espnet2.enh.layers.wpe<a class="headerlink" href="#espnet2-enh-layers-wpe" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.wpe"></span><dl class="function">
 <dt id="espnet2.enh.layers.wpe.get_correlations">
 <code class="sig-prename descclassname">espnet2.enh.layers.wpe.</code><code class="sig-name descname">get_correlations</code><span class="sig-paren">(</span><em class="sig-param">Y: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], inverse_power: torch.Tensor, taps, delay</em><span class="sig-paren">)</span> &#x2192; Tuple[Union[torch.Tensor, torch_complex.tensor.ComplexTensor], Union[torch.Tensor, torch_complex.tensor.ComplexTensor]]<a class="reference internal" href="../_modules/espnet2/enh/layers/wpe.html#get_correlations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.wpe.get_correlations" title="Permalink to this definition">¶</a></dt>
@@ -2382,7 +2474,7 @@ Many functions aren’t enough tested</p>
 
 </section>
 <section id="espnet2-enh-layers-dnn-wpe">
-<span id="id34"></span><h2>espnet2.enh.layers.dnn_wpe<a class="headerlink" href="#espnet2-enh-layers-dnn-wpe" title="Permalink to this headline">¶</a></h2>
+<span id="id36"></span><h2>espnet2.enh.layers.dnn_wpe<a class="headerlink" href="#espnet2-enh-layers-dnn-wpe" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.dnn_wpe"></span><dl class="class">
 <dt id="espnet2.enh.layers.dnn_wpe.DNN_WPE">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dnn_wpe.</code><code class="sig-name descname">DNN_WPE</code><span class="sig-paren">(</span><em class="sig-param">wtype: str = 'blstmp'</em>, <em class="sig-param">widim: int = 257</em>, <em class="sig-param">wlayers: int = 3</em>, <em class="sig-param">wunits: int = 300</em>, <em class="sig-param">wprojs: int = 320</em>, <em class="sig-param">dropout_rate: float = 0.0</em>, <em class="sig-param">taps: int = 5</em>, <em class="sig-param">delay: int = 3</em>, <em class="sig-param">use_dnn_mask: bool = True</em>, <em class="sig-param">nmask: int = 1</em>, <em class="sig-param">nonlinear: str = 'sigmoid'</em>, <em class="sig-param">iterations: int = 1</em>, <em class="sig-param">normalization: bool = False</em>, <em class="sig-param">eps: float = 1e-06</em>, <em class="sig-param">diagonal_loading: bool = True</em>, <em class="sig-param">diag_eps: float = 1e-07</em>, <em class="sig-param">mask_flooring: bool = False</em>, <em class="sig-param">flooring_thres: float = 1e-06</em>, <em class="sig-param">use_torch_solver: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dnn_wpe.html#DNN_WPE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnn_wpe.DNN_WPE" title="Permalink to this definition">¶</a></dt>
@@ -2442,7 +2534,7 @@ ilens (torch.Tensor): (B,)</p>
 
 </section>
 <section id="espnet2-enh-layers-dnn-beamformer">
-<span id="id35"></span><h2>espnet2.enh.layers.dnn_beamformer<a class="headerlink" href="#espnet2-enh-layers-dnn-beamformer" title="Permalink to this headline">¶</a></h2>
+<span id="id37"></span><h2>espnet2.enh.layers.dnn_beamformer<a class="headerlink" href="#espnet2-enh-layers-dnn-beamformer" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.dnn_beamformer"></span><p>DNN beamformer module.</p>
 <dl class="class">
 <dt id="espnet2.enh.layers.dnn_beamformer.AttentionReference">
@@ -2567,7 +2659,7 @@ ilens (torch.Tensor): (B,)</p>
 
 </section>
 <section id="espnet2-enh-layers-dprnn">
-<span id="id36"></span><h2>espnet2.enh.layers.dprnn<a class="headerlink" href="#espnet2-enh-layers-dprnn" title="Permalink to this headline">¶</a></h2>
+<span id="id38"></span><h2>espnet2.enh.layers.dprnn<a class="headerlink" href="#espnet2-enh-layers-dprnn" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.dprnn"></span><dl class="class">
 <dt id="espnet2.enh.layers.dprnn.DPRNN">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dprnn.</code><code class="sig-name descname">DPRNN</code><span class="sig-paren">(</span><em class="sig-param">rnn_type</em>, <em class="sig-param">input_size</em>, <em class="sig-param">hidden_size</em>, <em class="sig-param">output_size</em>, <em class="sig-param">dropout=0</em>, <em class="sig-param">num_layers=1</em>, <em class="sig-param">bidirectional=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dprnn.html#DPRNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dprnn.DPRNN" title="Permalink to this definition">¶</a></dt>
@@ -2590,6 +2682,42 @@ ilens (torch.Tensor): (B,)</p>
 <dl class="method">
 <dt id="espnet2.enh.layers.dprnn.DPRNN.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dprnn.html#DPRNN.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dprnn.DPRNN.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.dprnn.DPRNN_TAC">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dprnn.</code><code class="sig-name descname">DPRNN_TAC</code><span class="sig-paren">(</span><em class="sig-param">rnn_type</em>, <em class="sig-param">input_size</em>, <em class="sig-param">hidden_size</em>, <em class="sig-param">output_size</em>, <em class="sig-param">dropout=0</em>, <em class="sig-param">num_layers=1</em>, <em class="sig-param">bidirectional=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dprnn.html#DPRNN_TAC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dprnn.DPRNN_TAC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Deep duaL-path RNN with TAC applied to each layer/block.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rnn_type</strong> – string, select from ‘RNN’, ‘LSTM’ and ‘GRU’.</p></li>
+<li><p><strong>input_size</strong> – int, dimension of the input feature. The input should
+have shape (batch, seq_len, input_size).</p></li>
+<li><p><strong>hidden_size</strong> – int, dimension of the hidden state.</p></li>
+<li><p><strong>output_size</strong> – int, dimension of the output size.</p></li>
+<li><p><strong>dropout</strong> – float, dropout ratio. Default is 0.</p></li>
+<li><p><strong>num_layers</strong> – int, number of stacked RNN layers. Default is 1.</p></li>
+<li><p><strong>bidirectional</strong> – bool, whether the RNN layers are bidirectional.
+Default is False.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.layers.dprnn.DPRNN_TAC.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em>, <em class="sig-param">num_mic</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dprnn.html#DPRNN_TAC.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dprnn.DPRNN_TAC.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines the computation performed at every call.</p>
 <p>Should be overridden by all subclasses.</p>
 <div class="admonition note">
@@ -2647,8 +2775,108 @@ registered hooks while the latter silently ignores them.</p>
 <dd></dd></dl>
 
 </section>
+<section id="espnet2-enh-layers-fasnet">
+<span id="id39"></span><h2>espnet2.enh.layers.fasnet<a class="headerlink" href="#espnet2-enh-layers-fasnet" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.layers.fasnet"></span><dl class="class">
+<dt id="espnet2.enh.layers.fasnet.BF_module">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.fasnet.</code><code class="sig-name descname">BF_module</code><span class="sig-paren">(</span><em class="sig-param">input_dim</em>, <em class="sig-param">feature_dim</em>, <em class="sig-param">hidden_dim</em>, <em class="sig-param">output_dim</em>, <em class="sig-param">num_spk=2</em>, <em class="sig-param">layer=4</em>, <em class="sig-param">segment_size=100</em>, <em class="sig-param">bidirectional=True</em>, <em class="sig-param">dropout=0.0</em>, <em class="sig-param">fasnet_type='ifasnet'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/fasnet.html#BF_module"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.fasnet.BF_module" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.layers.fasnet.BF_module.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em>, <em class="sig-param">num_mic</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/fasnet.html#BF_module.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.fasnet.BF_module.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.fasnet.FaSNet_TAC">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.fasnet.</code><code class="sig-name descname">FaSNet_TAC</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/fasnet.html#FaSNet_TAC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.fasnet.FaSNet_TAC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.layers.fasnet.FaSNet_base" title="espnet2.enh.layers.fasnet.FaSNet_base"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.layers.fasnet.FaSNet_base</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.enh.layers.fasnet.FaSNet_TAC.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em>, <em class="sig-param">num_mic</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/fasnet.html#FaSNet_TAC.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.fasnet.FaSNet_TAC.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>abstract forward function</p>
+<p>input: shape (batch, max_num_ch, T)
+num_mic: shape (batch, ), the number of channels for each input.</p>
+<blockquote>
+<div><p>Zero for fixed geometry configuration.</p>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.fasnet.FaSNet_base">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.fasnet.</code><code class="sig-name descname">FaSNet_base</code><span class="sig-paren">(</span><em class="sig-param">enc_dim</em>, <em class="sig-param">feature_dim</em>, <em class="sig-param">hidden_dim</em>, <em class="sig-param">layer</em>, <em class="sig-param">segment_size=24</em>, <em class="sig-param">nspk=2</em>, <em class="sig-param">win_len=16</em>, <em class="sig-param">context_len=16</em>, <em class="sig-param">dropout=0.0</em>, <em class="sig-param">sr=16000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/fasnet.html#FaSNet_base"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.fasnet.FaSNet_base" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.layers.fasnet.FaSNet_base.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em>, <em class="sig-param">num_mic</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/fasnet.html#FaSNet_base.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.fasnet.FaSNet_base.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>abstract forward function</p>
+<p>input: shape (batch, max_num_ch, T)
+num_mic: shape (batch, ), the number of channels for each input.</p>
+<blockquote>
+<div><p>Zero for fixed geometry configuration.</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.layers.fasnet.FaSNet_base.pad_input">
+<code class="sig-name descname">pad_input</code><span class="sig-paren">(</span><em class="sig-param">input</em>, <em class="sig-param">window</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/fasnet.html#FaSNet_base.pad_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.fasnet.FaSNet_base.pad_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Zero-padding input according to window/stride size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.layers.fasnet.FaSNet_base.seg_signal_context">
+<code class="sig-name descname">seg_signal_context</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">window</em>, <em class="sig-param">context</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/fasnet.html#FaSNet_base.seg_signal_context"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.fasnet.FaSNet_base.seg_signal_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Segmenting the signal into chunks with specific context.</p>
+<dl class="simple">
+<dt>input:</dt><dd><p>x: size (B, ch, T)
+window: int
+context: int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.layers.fasnet.FaSNet_base.seq_cos_sim">
+<code class="sig-name descname">seq_cos_sim</code><span class="sig-paren">(</span><em class="sig-param">ref</em>, <em class="sig-param">target</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/fasnet.html#FaSNet_base.seq_cos_sim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.fasnet.FaSNet_base.seq_cos_sim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cosine similarity between some reference mics and some target mics</p>
+<p>ref: shape (nmic1, L, seg1)
+target: shape (nmic2, L, seg2)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.layers.fasnet.FaSNet_base.signal_context">
+<code class="sig-name descname">signal_context</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">context</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/fasnet.html#FaSNet_base.signal_context"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.fasnet.FaSNet_base.signal_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>signal context function</p>
+<p>Segmenting the signal into chunks with specific context.
+input:</p>
+<blockquote>
+<div><p>x: size (B, dim, nframe)
+context: int</p>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.enh.layers.fasnet.test_model">
+<code class="sig-prename descclassname">espnet2.enh.layers.fasnet.</code><code class="sig-name descname">test_model</code><span class="sig-paren">(</span><em class="sig-param">model</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/fasnet.html#test_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.fasnet.test_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
 <section id="espnet2-enh-layers-tcn">
-<span id="id37"></span><h2>espnet2.enh.layers.tcn<a class="headerlink" href="#espnet2-enh-layers-tcn" title="Permalink to this headline">¶</a></h2>
+<span id="id40"></span><h2>espnet2.enh.layers.tcn<a class="headerlink" href="#espnet2-enh-layers-tcn" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.tcn"></span><dl class="class">
 <dt id="espnet2.enh.layers.tcn.ChannelwiseLayerNorm">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.tcn.</code><code class="sig-name descname">ChannelwiseLayerNorm</code><span class="sig-paren">(</span><em class="sig-param">channel_size</em>, <em class="sig-param">shape='BDT'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#ChannelwiseLayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.ChannelwiseLayerNorm" title="Permalink to this definition">¶</a></dt>
@@ -2825,7 +3053,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-enh-layers-complex-utils">
-<span id="id38"></span><h2>espnet2.enh.layers.complex_utils<a class="headerlink" href="#espnet2-enh-layers-complex-utils" title="Permalink to this headline">¶</a></h2>
+<span id="id41"></span><h2>espnet2.enh.layers.complex_utils<a class="headerlink" href="#espnet2-enh-layers-complex-utils" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.complex_utils"></span><p>Beamformer module.</p>
 <dl class="function">
 <dt id="espnet2.enh.layers.complex_utils.cat">
@@ -2900,7 +3128,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-enh-layers-complexnn">
-<span id="id39"></span><h2>espnet2.enh.layers.complexnn<a class="headerlink" href="#espnet2-enh-layers-complexnn" title="Permalink to this headline">¶</a></h2>
+<span id="id42"></span><h2>espnet2.enh.layers.complexnn<a class="headerlink" href="#espnet2-enh-layers-complexnn" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.layers.complexnn"></span><dl class="class">
 <dt id="espnet2.enh.layers.complexnn.ComplexBatchNorm">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.complexnn.</code><code class="sig-name descname">ComplexBatchNorm</code><span class="sig-paren">(</span><em class="sig-param">num_features</em>, <em class="sig-param">eps=1e-05</em>, <em class="sig-param">momentum=0.1</em>, <em class="sig-param">affine=True</em>, <em class="sig-param">track_running_stats=True</em>, <em class="sig-param">complex_axis=1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/complexnn.html#ComplexBatchNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.complexnn.ComplexBatchNorm" title="Permalink to this definition">¶</a></dt>
@@ -3024,10 +3252,10 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-enh-decoder-init">
-<span id="id40"></span><h2>espnet2.enh.decoder.__init__<a class="headerlink" href="#espnet2-enh-decoder-init" title="Permalink to this headline">¶</a></h2>
+<span id="id43"></span><h2>espnet2.enh.decoder.__init__<a class="headerlink" href="#espnet2-enh-decoder-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.decoder.__init__"></span></section>
 <section id="espnet2-enh-decoder-stft-decoder">
-<span id="id41"></span><h2>espnet2.enh.decoder.stft_decoder<a class="headerlink" href="#espnet2-enh-decoder-stft-decoder" title="Permalink to this headline">¶</a></h2>
+<span id="id44"></span><h2>espnet2.enh.decoder.stft_decoder<a class="headerlink" href="#espnet2-enh-decoder-stft-decoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.decoder.stft_decoder"></span><dl class="class">
 <dt id="espnet2.enh.decoder.stft_decoder.STFTDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.decoder.stft_decoder.</code><code class="sig-name descname">STFTDecoder</code><span class="sig-paren">(</span><em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">window='hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/stft_decoder.html#STFTDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.stft_decoder.STFTDecoder" title="Permalink to this definition">¶</a></dt>
@@ -3051,7 +3279,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-enh-decoder-null-decoder">
-<span id="id42"></span><h2>espnet2.enh.decoder.null_decoder<a class="headerlink" href="#espnet2-enh-decoder-null-decoder" title="Permalink to this headline">¶</a></h2>
+<span id="id45"></span><h2>espnet2.enh.decoder.null_decoder<a class="headerlink" href="#espnet2-enh-decoder-null-decoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.decoder.null_decoder"></span><dl class="class">
 <dt id="espnet2.enh.decoder.null_decoder.NullDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.decoder.null_decoder.</code><code class="sig-name descname">NullDecoder</code><a class="reference internal" href="../_modules/espnet2/enh/decoder/null_decoder.html#NullDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.null_decoder.NullDecoder" title="Permalink to this definition">¶</a></dt>
@@ -3075,7 +3303,7 @@ registered hooks while the latter silently ignores them.</p>
 
 </section>
 <section id="espnet2-enh-decoder-conv-decoder">
-<span id="id43"></span><h2>espnet2.enh.decoder.conv_decoder<a class="headerlink" href="#espnet2-enh-decoder-conv-decoder" title="Permalink to this headline">¶</a></h2>
+<span id="id46"></span><h2>espnet2.enh.decoder.conv_decoder<a class="headerlink" href="#espnet2-enh-decoder-conv-decoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.decoder.conv_decoder"></span><dl class="class">
 <dt id="espnet2.enh.decoder.conv_decoder.ConvDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.decoder.conv_decoder.</code><code class="sig-name descname">ConvDecoder</code><span class="sig-paren">(</span><em class="sig-param">channel: int</em>, <em class="sig-param">kernel_size: int</em>, <em class="sig-param">stride: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/conv_decoder.html#ConvDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.conv_decoder.ConvDecoder" title="Permalink to this definition">¶</a></dt>
@@ -3094,7 +3322,7 @@ ilens (torch.Tensor): input lengths [Batch]</p>
 
 </section>
 <section id="espnet2-enh-decoder-abs-decoder">
-<span id="id44"></span><h2>espnet2.enh.decoder.abs_decoder<a class="headerlink" href="#espnet2-enh-decoder-abs-decoder" title="Permalink to this headline">¶</a></h2>
+<span id="id47"></span><h2>espnet2.enh.decoder.abs_decoder<a class="headerlink" href="#espnet2-enh-decoder-abs-decoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.decoder.abs_decoder"></span><dl class="class">
 <dt id="espnet2.enh.decoder.abs_decoder.AbsDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.decoder.abs_decoder.</code><code class="sig-name descname">AbsDecoder</code><a class="reference internal" href="../_modules/espnet2/enh/decoder/abs_decoder.html#AbsDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.abs_decoder.AbsDecoder" title="Permalink to this definition">¶</a></dt>

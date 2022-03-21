@@ -312,12 +312,34 @@ espnet2.enh.separator.rnn_separator
     :show-inheritance:
 
 
+.. _espnet2.enh.separator.fasnet_separator:
+
+espnet2.enh.separator.fasnet_separator
+--------------------------------------
+
+.. automodule:: espnet2.enh.separator.fasnet_separator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.layers.beamformer:
 
 espnet2.enh.layers.beamformer
 -----------------------------
 
 .. automodule:: espnet2.enh.layers.beamformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.ifasnet:
+
+espnet2.enh.layers.ifasnet
+--------------------------
+
+.. automodule:: espnet2.enh.layers.ifasnet
     :members:
     :undoc-members:
     :show-inheritance:
@@ -395,6 +417,17 @@ espnet2.enh.layers.dprnn
 ------------------------
 
 .. automodule:: espnet2.enh.layers.dprnn
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.fasnet:
+
+espnet2.enh.layers.fasnet
+-------------------------
+
+.. automodule:: espnet2.enh.layers.fasnet
     :members:
     :undoc-members:
     :show-inheritance:

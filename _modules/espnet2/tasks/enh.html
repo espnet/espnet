@@ -183,6 +183,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.conformer_separator</span> <span class="kn">import</span> <span class="n">ConformerSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.dccrn_separator</span> <span class="kn">import</span> <span class="n">DCCRNSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.dprnn_separator</span> <span class="kn">import</span> <span class="n">DPRNNSeparator</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.separator.fasnet_separator</span> <span class="kn">import</span> <span class="n">FaSNetSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.neural_beamformer</span> <span class="kn">import</span> <span class="n">NeuralBeamformer</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.rnn_separator</span> <span class="kn">import</span> <span class="n">RNNSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.skim_separator</span> <span class="kn">import</span> <span class="n">SkiMSeparator</span>
@@ -217,6 +218,7 @@
         <span class="n">conformer</span><span class="o">=</span><span class="n">ConformerSeparator</span><span class="p">,</span>
         <span class="n">wpe_beamformer</span><span class="o">=</span><span class="n">NeuralBeamformer</span><span class="p">,</span>
         <span class="n">asteroid</span><span class="o">=</span><span class="n">AsteroidModel_Converter</span><span class="p">,</span>
+        <span class="n">fasnet</span><span class="o">=</span><span class="n">FaSNetSeparator</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsSeparator</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;rnn&quot;</span><span class="p">,</span>
