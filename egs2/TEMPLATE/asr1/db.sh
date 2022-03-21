@@ -129,6 +129,7 @@ SEAME=
 BENGALI=downloads
 IWSLT14=
 MALAYALAM=downloads
+
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
     BABEL_101=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_BP_101/
@@ -270,4 +271,5 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     TOTONAC=downloads
     GOOGLEI18N=downloads
     MALAYALAM=
+
 fi
