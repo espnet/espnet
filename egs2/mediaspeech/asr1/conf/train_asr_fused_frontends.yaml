@@ -2,76 +2,60 @@
 # encoder related
 encoder: transformer
 encoder_conf:
-    input_layer: "conv2d"
-    num_blocks: 12
-    linear_units: 2048
-    dropout_rate: 0.1
-    output_size: 256  # dimension of attention
+    output_size: 256    # dimension of attention
     attention_heads: 4
+    linear_units: 2048  # the number of units of position-wise feed forward
+    num_blocks: 12      # the number of encoder blocks
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
     attention_dropout_rate: 0.0
+    input_layer: conv2d # encoder architecture type
+    normalize_before: true
 
-# decoder related
 # decoder related
 decoder: transformer
 decoder_conf:
-    input_layer: "embed"
-    num_blocks: 6
+    attention_heads: 4
     linear_units: 2048
+    num_blocks: 6
     dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+optim: adam
+optim_conf:
+    lr: 10.0
+scheduler: warmuplr     # pytorch v1.1.0+ required
+scheduler_conf:
+    warmup_steps: 1000
+max_epoch: 100
+keep_nbest_models: 5
 
-#frontend related 
-#freeze_param: ["frontend.upstream"] 
-frontend: fused
-frontend_conf: 
-  frontends:
-    - frontend_type: s3prl
-      frontend_conf:
-        upstream: hubert_large_ll60k
-      download_dir: ./hub
-      multilayer_feature: True
-      
-    - frontend_type: default
-      n_fft: 512
-      win_length: 400
-      hop_length: 160
+freeze_param: [
+"frontend.upstream"
+]
 
-    - frontend_type: s3prl
-      frontend_conf:
-        upstream: wav2vec2_large_ll60k
-      download_dir: ./hub
-      multilayer_feature: True
+frontend_conf:
+  n_fft: 512
+  hop_length: 256
 
-  align_method: linear_projection
-  proj_dim: 100     
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder.
+    download_dir: ./hub
+    multilayer_feature: True
 
 preencoder: linear
 preencoder_conf:
-    input_size: 300  # Note: If the upstream is changed, please change this value accordingly.
-    output_size: 100
+    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+    output_size: 80
 
-# hybrid CTC/attention
 model_conf:
-    ctc_weight: 0.1
+    ctc_weight: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
     extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
-
-
-# minibatch related
-batch_type: folded
-batch_size: 32
-
-# optimization related
-optim: adam
-accum_grad: 20
-grad_clip: 5
-patience: 20
-max_epoch: 200
-optim_conf:
-    lr: 1.0
-scheduler: noamlr
-scheduler_conf:
-    warmup_steps: 1000
 
 specaug: specaug
 specaug_conf:
@@ -88,12 +72,3 @@ specaug_conf:
     - 0
     - 40
     num_time_mask: 2
-
-# others:
-best_model_criterion:
--  - valid
-   - acc
-   - max
-keep_nbest_models: 5
-
-init: xavier_uniform

@@ -18,7 +18,7 @@ ngpu=1
 nbpe=235
 
 ./asr.sh \
-    --stage 1 \
+    --stage 11 \
     --stop_stage 100 \
     --ngpu ${ngpu} \
     --nj 80 \
@@ -31,6 +31,7 @@ nbpe=235
     --bpe_train_text "data/${train_set}/text" \
     --feats_type raw \
     --asr_config "${asr_config}" \
+    --feats_normalize uttmvn \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
