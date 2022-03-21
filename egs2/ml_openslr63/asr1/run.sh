@@ -14,8 +14,6 @@ inference_config=conf/decode_asr.yaml
 lm_config=conf/train_lm.yaml
 
 ./asr.sh \
-    --stage 1 \
-    --stop_stage 13 \
     --ngpu 1 \
     --lang "ml" \
     --use_lm true \
