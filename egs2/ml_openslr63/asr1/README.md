@@ -7,6 +7,9 @@
 - pytorch version: `pytorch 1.10.1`
 - Git hash: `d2410457152872f63c51ee76ed746a6ea3153f09`
   - Commit date: `Sat Mar 19 09:04:54 2022 +0000`
+- Pretrained Model
+  - Hugging Face Hub: 
+  https://huggingface.co/espnet/ml_openslr63
 
 ## asr_train_asr_conformer_s3prlfrontend_hubert_fused_raw_ml_bpe150_sp
 ### WER
