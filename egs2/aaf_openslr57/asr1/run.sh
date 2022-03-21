@@ -1,5 +1,3 @@
-
-
 #!/usr/bin/env bash
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
@@ -7,21 +5,19 @@ set -e
 set -u
 set -o pipefail
 
-lang=fr
 
 train_set="train"
 train_dev="valid"
 test_set="valid test"
 
-asr_config=conf/train_asr.yaml
+asr_config=conf/tuning/train_asr_conformer5.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
-nbpe=250
+nbpe=150
 
 ./asr.sh \
-    --ngpu 4 \
-    --lang "${lang}" \
+    --ngpu 1 \
     --audio_format "flac" \
     --use_lm false \
     --token_type bpe \
@@ -35,5 +31,5 @@ nbpe=250
     --test_sets "${test_set}" \
     --bpe_train_text "data/${train_set}/text" \
     --lm_train_text "data/${train_set}/text" \
-    --stage 13 --stop_stage 13
+    --stage 1 --stop_stage 13
 
