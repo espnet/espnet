@@ -52,6 +52,7 @@ class ESPnetASRModel(AbsESPnetModel):
         decoder: AbsDecoder,
         ctc: CTC,
         ctc_weight: float = 0.5,
+        interctc_weight: float = 0.0,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
         length_normalized_loss: bool = False,
@@ -63,6 +64,7 @@ class ESPnetASRModel(AbsESPnetModel):
     ):
         assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
+        assert 0.0 <= interctc_weight < 1.0, interctc_weight
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
@@ -71,6 +73,7 @@ class ESPnetASRModel(AbsESPnetModel):
         self.vocab_size = vocab_size
         self.ignore_id = ignore_id
         self.ctc_weight = ctc_weight
+        self.interctc = interctc_weight
         self.token_list = token_list.copy()
 
         self.frontend = frontend
@@ -79,6 +82,13 @@ class ESPnetASRModel(AbsESPnetModel):
         self.preencoder = preencoder
         self.postencoder = postencoder
         self.encoder = encoder
+
+        if not hasattr(self.encoder, "interctc_use_conditioning"):
+            self.encoder.interctc_use_conditioning = False
+        if self.encoder.interctc_use_conditioning:
+            self.encoder.conditioning_layer = torch.nn.Linear(
+                vocab_size, self.encoder.output_size()
+            )
 
         # we set self.decoder = None in the CTC mode since
         # self.decoder parameters were never used and PyTorch complained
@@ -140,6 +150,10 @@ class ESPnetASRModel(AbsESPnetModel):
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
+        intermediate_outs = None
+        if isinstance(encoder_out, tuple):
+            intermediate_outs = encoder_out[1]
+            encoder_out = encoder_out[0]
 
         stats = dict()
         # 2a. Attention-decoder branch
@@ -165,6 +179,30 @@ class ESPnetASRModel(AbsESPnetModel):
 
         stats["loss_ctc"] = loss_ctc.detach() if loss_ctc is not None else None
         stats["cer_ctc"] = cer_ctc
+
+        # Intermediate CTC (optional)
+        loss_interctc = 0.0
+        if self.interctc_weight != 0.0 and intermediate_outs is not None:
+            for layer_idx, intermediate_out in intermediate_outs:
+                # we assume intermediate_out has the same length & padding
+                # as those of encoder_out
+                loss_ic, cer_ic = self._calc_ctc_loss(
+                    intermediate_out, encoder_out_lens, text, text_lengths
+                )
+                loss_interctc = loss_interctc + loss_ic
+
+                # Collect Intermedaite CTC stats
+                stats["loss_interctc_layer{}".format(layer_idx)] = (
+                    loss_ic.detach() if loss_ic is not None else None
+                )
+                stats["cer_interctc_layer{}".format(layer_idx)] = cer_ic
+
+            loss_interctc = loss_interctc / len(intermediate_outs)
+
+            # calculate whole encoder loss
+            loss_ctc = (
+                1 - self.interctc_weight
+            ) * loss_ctc + self.interctc_weight * loss_interctc
 
         # 3. Loss
         if self.ctc_weight == 0.0:
@@ -227,7 +265,16 @@ class ESPnetASRModel(AbsESPnetModel):
         # 4. Forward encoder
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
-        encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
+        if self.encoder.interctc_use_conditioning:
+            encoder_out, encoder_out_lens, _ = self.encoder(
+                feats, feats_lengths, ctc=self.ctc
+            )
+        else:
+            encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
+        intermediate_outs = None
+        if isinstance(encoder_out, tuple):
+            intermediate_outs = encoder_out[1]
+            encoder_out = encoder_out[0]
 
         # Post-encoder, e.g. NLU
         if self.postencoder is not None:
@@ -243,6 +290,9 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out.size(),
             encoder_out_lens.max(),
         )
+
+        if intermediate_outs is not None:
+            return (encoder_out, intermediate_outs), encoder_out_lens
 
         return encoder_out, encoder_out_lens
 

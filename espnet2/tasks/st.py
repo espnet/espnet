@@ -516,7 +516,7 @@ class STTask(AbsTask):
         if src_token_list is not None:
             ctc = CTC(
                 odim=src_vocab_size,
-                encoder_output_sizse=encoder_output_size,
+                encoder_output_size=encoder_output_size,
                 **args.ctc_conf,
             )
         else:
