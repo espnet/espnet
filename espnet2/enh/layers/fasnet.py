@@ -26,6 +26,7 @@ class BF_module(nn.Module):
         layer=4,
         segment_size=100,
         bidirectional=True,
+        dropout=0.0,
         fasnet_type="ifasnet",
     ):
         super().__init__()
@@ -51,6 +52,7 @@ class BF_module(nn.Module):
             self.feature_dim * self.num_spk,
             num_layers=layer,
             bidirectional=bidirectional,
+            dropout=dropout,
         )
         self.eps = 1e-8
 
@@ -129,6 +131,7 @@ class FaSNet_base(nn.Module):
         nspk=2,
         win_len=16,
         context_len=16,
+        dropout=0.0,
         sr=16000,
     ):
         super(FaSNet_base, self).__init__()
@@ -139,6 +142,7 @@ class FaSNet_base(nn.Module):
         self.stride = self.window // 2
         self.sr = sr
         self.context_len = context_len
+        self.dropout = dropout
 
         self.enc_dim = enc_dim
         self.feature_dim = feature_dim
@@ -306,6 +310,7 @@ class FaSNet_TAC(FaSNet_base):
             self.num_spk,
             self.layer,
             self.segment_size,
+            dropout=self.dropout,
             fasnet_type="fasnet",
         )
 

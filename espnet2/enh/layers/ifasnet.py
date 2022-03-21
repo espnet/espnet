@@ -37,6 +37,7 @@ class iFaSNet(FaSNet_base):
             self.num_spk,
             self.layer,
             self.segment_size,
+            dropout=self.dropout,
             fasnet_type="ifasnet",
         )
 

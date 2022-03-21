@@ -26,6 +26,7 @@ class FaSNetSeparator(AbsSeparator):
         win_len: int,
         context_len: int,
         fasnet_type: str,
+        dropout: float = 0.0,
         sr: int = 16000,
     ):
         """Filter-and-sum Network (FaSNet) Separator
@@ -42,6 +43,7 @@ class FaSNetSeparator(AbsSeparator):
             context_len: context length in millisecond
             fasnet_type: 'fasnet' or 'ifasnet'.
                 Select from origin fasnet or Implicit fasnet
+            dropout: dropout rate. Default is 0.
             sr: samplerate of input audio
         """
         super().__init__()
@@ -62,6 +64,7 @@ class FaSNetSeparator(AbsSeparator):
             win_len=win_len,
             context_len=context_len,
             sr=sr,
+            dropout=dropout,
         )
 
     def forward(
