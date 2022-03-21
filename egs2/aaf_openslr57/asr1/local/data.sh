@@ -44,17 +44,17 @@ workspace=$PWD
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "sub-stage 0: Download Data to downloads"
-
+    cd ${AAF}
     wget https://www.openslr.org/resources/57/African_Accented_French.tar.gz
     tar -xvf African_Accented_French.tar.gz
     rm -f African_Accented_French.tar.gz
-
+    cd $workspace
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "sub-stage 1: Preparing Data for openslr"
 
-    python3 local/data_prep_aaf.py --data-src African_Accented_French --data-dest ${DATA_DEST} --data-kaldi ${DATA_KALDI}
+    python3 local/data_prep_aaf.py --data-src ${AAF}/African_Accented_French --data-dest ${DATA_DEST} --data-kaldi ${DATA_KALDI}
     rm -r African_Accented_French
 
     utils/utt2spk_to_spk2utt.pl data/train/utt2spk > data/train/spk2utt
