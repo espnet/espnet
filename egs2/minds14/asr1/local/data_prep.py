@@ -86,7 +86,7 @@ for partition in dir_dict:
 
         transcript_df = pd.read_csv(os.path.join(DATA_DIR, dir_dict[partition]))
         for row in transcript_df.values:
-            words = row[4] + " " + " ".join([ch for ch in row[3]])
+            words = row[4] + " " + row[3]
             path_arr = row[1].split("/")
             utt_id = path_arr[-2] + "_" + path_arr[-1]
             text_f.write(f"{utt_id} {words}\n")
