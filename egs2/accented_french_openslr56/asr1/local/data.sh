@@ -1,7 +1,8 @@
 #!/bin/bash
 
-stage=0
+stage=4
 
+# devtest
 if [ ${stage} -le 1 ] ; then
     # test set : 
     FILE=downloads/African_Accented_French/transcripts/devtest/ca16_read/new_conditioned.txt
@@ -31,8 +32,7 @@ if [ ${stage} -le 1 ] ; then
     rm aux aux2 aux3 aux4 uttid
 fi
 
-# run stage 3 to make sure it works in the dump folder
-
+# train
 if [ ${stage} -le 2 ]; then
     # train set ca16_conv: 
     FILE=downloads/African_Accented_French/transcripts/train/ca16_conv/new_transcripts.txt
@@ -127,6 +127,7 @@ if [ ${stage} -le 2 ]; then
     rm aux5 aux6 aux7 aux8 aux9 aux10 aux11 auxtext1 auxtext3 auxtext4 auxwav1 auxwav2 auxwav3 auxwav4 auxutt1 auxutt2 auxutt3 auxutt4 uttid1 uttid2 uttid3 uttid4
 fi
 
+# dev
 if [ ${stage} -le 3 ]; then
     FILE=downloads/African_Accented_French/transcripts/dev/niger_west_african_fr/transcripts.txt
 
@@ -151,4 +152,28 @@ if [ ${stage} -le 3 ]; then
     ./utils/fix_data_dir.sh data/dev/
 
     rm aux5 aux6 aux9 aux10 uttid aux8 aux11
+fi
+
+# test; normalization of the test set is done in normalize_test.py
+if [ ${stage} -le 4 ]; then
+    FILE=downloads/African_Accented_French/transcripts/test/ca16/new_prompts.txt
+
+    cp "$FILE" data/test/text
+
+    cut -d ' ' -f 1 "$FILE" > aux5
+    cut -d '_' -f 1-3 aux5 > aux6
+
+    awk '{print "downloads/African_Accented_French/speech/test/ca16/"$0"/"}' aux6 > aux7
+    paste -d '' aux7 aux5 > aux8
+    awk '{print $0".wav"}' aux8 > aux9
+    paste -d ' ' aux5 aux9 > data/test/wav.scp
+
+    paste -d ' ' aux5 aux5 > data/test/utt2spk
+
+    utils/utt2spk_to_spk2utt.pl data/test/utt2spk > data/test/spk2utt
+
+    ./utils/fix_data_dir.sh data/test/
+
+    rm aux5 aux6 aux7 aux8 aux9
+
 fi
