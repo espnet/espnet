@@ -77,7 +77,7 @@ for dir in $train_dir $dev_dir $test_dir; do
   utils/utt2spk_to_spk2utt.pl $dir/utt2spk > $dir/spk2utt
 done
 
-python3 pyscripts/utils/check_train_test_duplicate.py
+python3 local/check_train_test_duplicate.py
 
 # validate formats
 utils/validate_data_dir.sh --no-feats data/train

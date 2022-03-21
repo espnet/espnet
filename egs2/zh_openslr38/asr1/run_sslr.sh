@@ -9,10 +9,10 @@ train_set=train
 valid_set=dev
 test_sets="dev test"
 
-asr_config=conf/train_asr_conformer_sslr.yaml
-inference_config=conf/decode_asr_rnn.yaml
+asr_config=conf/tuning/train_asr_sslr.yaml
+inference_config=conf/decode_asr.yaml
 
-lm_config=conf/train_lm_transformer.yaml
+lm_config=conf/train_lm.yaml
 use_lm=true
 use_wordlm=false
 
@@ -40,4 +40,5 @@ speed_perturb_factors="0.9 1.0 1.1"
     --lm_train_text "data/${train_set}/text" "$@" \
     --feats_normalize uttmvn \
     --nj 1 \
-    --stage 10
+    --inference_asr_model valid.acc.best.pth \
+    --gpu_inference true
