@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
-# Referred from https://github.com/espnet/espnet/blob/master/egs2/jv_openslr35/asr1/local/data_prep.py
-#
+# Referred from data_prep.py in jv_openslr35 in ESPnet
+# https://github.com/espnet/espnet/blob/master/egs2/jv_openslr35/
+# asr1/local/data_prep.py
 
 
 import argparse
