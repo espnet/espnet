@@ -22,12 +22,14 @@ decoder_conf:
     positional_dropout_rate: 0.1
     self_attention_dropout_rate: 0.0
     src_attention_dropout_rate: 0.0
+
 optim: adam
 optim_conf:
-    lr: 0.02
-scheduler: warmuplr     # pytorch v1.1.0+ required
+    lr: 0.0005
+scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 25000
+    warmup_steps: 10000
+
 max_epoch: 150
 keep_nbest_models: 5
 
@@ -56,6 +58,10 @@ model_conf:
     lsm_weight: 0.1
     length_normalized_loss: false
     extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
+
+# minibatch related
+batch_type: numel
+batch_bins: 10000
 
 specaug: specaug
 specaug_conf:
