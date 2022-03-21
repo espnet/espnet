@@ -27,8 +27,6 @@ with open(os.path.join(DATA_DIR, "train", "utt2spk"), "w") as f_utt2spk:
             dest = os.path.join(DEST_DIR, "train", utterance)
             shutil.copy(src, dest)
             utt_id = utterance[0:-4]
-            if utt_id in utterances:
-                print(utt_id)
             utterances.add(utt_id)
             f_utt2spk.write(speaker + "_" + utt_id + " " + speaker + "\n")
 
@@ -79,8 +77,6 @@ with open(os.path.join(DATA_DIR, "test", "utt2spk"), "w") as f_utt2spk:
             dest = os.path.join(DEST_DIR, "test", utterance)
             shutil.copy(src, dest)
             utt_id = utterance[0:-4]
-            if utt_id in utterances:
-                print(utt_id)
             utterances.add(utt_id)
             f_utt2spk.write(speaker + "_" + utt_id + " " + speaker + "\n")
 
@@ -115,8 +111,6 @@ with open(os.path.join(DATA_DIR, "valid", "utt2spk"), "w") as f_utt2spk:
             dest = os.path.join(DEST_DIR, "valid", utterance)
             shutil.copy(src, dest)
             utt_id = utterance[0:-4]
-            if utt_id in utterances:
-                print(utt_id)
             utterances.add(utt_id)
             f_utt2spk.write(speaker + "_" + utt_id + " " + speaker + "\n")
 
