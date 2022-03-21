@@ -29,9 +29,9 @@ from espnet2.asr.decoder.transformer_decoder import (
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
-from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertPretrainEncoder
+from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
