@@ -4,8 +4,8 @@ new_f = open('downloads/African_Accented_French/transcripts/test/ca16/new_prompt
 
 for row in f:
     uttid = row.split(' ')[0]
-    utt = ' '.join(row.split(' ')[1:-1])
-    
+    utt = ' '.join(row.split(' ')[1:])
+    utt = utt.split('\n')[0]
     utt = utt.lower()
     utt = utt.strip('.?!')
     utt = utt.replace(',', '')
