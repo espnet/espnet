@@ -28,16 +28,6 @@ encoder_conf:
     input_layer: conv2d
     normalize_before: true
 
-decoder: mlm
-decoder_conf:
-    attention_heads: 4
-    linear_units: 2048
-    num_blocks: 6
-    dropout_rate: 0.1
-    positional_dropout_rate: 0.1
-    self_attention_dropout_rate: 0.1
-    src_attention_dropout_rate: 0.1
-
 optim: adam
 optim_conf:
     lr: 0.002
