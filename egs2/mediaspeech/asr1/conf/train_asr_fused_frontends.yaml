@@ -25,10 +25,10 @@ decoder_conf:
 optim: adam
 optim_conf:
     lr: 10.0
-scheduler: warmuplr     # pytorch v1.1.0+ required
+scheduler: noamlr     # pytorch v1.1.0+ required
 scheduler_conf:
     warmup_steps: 1000
-max_epoch: 100
+max_epoch: 200
 keep_nbest_models: 5
 
 freeze_param: [
