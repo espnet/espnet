@@ -18,6 +18,7 @@ nbpe=150
 
 ./asr.sh \
     --ngpu 1 \
+    --nj 1 \
     --audio_format "flac" \
     --use_lm false \
     --token_type bpe \
@@ -30,6 +31,4 @@ nbpe=150
     --valid_set "${train_dev}" \
     --test_sets "${test_set}" \
     --bpe_train_text "data/${train_set}/text" \
-    --lm_train_text "data/${train_set}/text" \
-    --stage 1 --stop_stage 13
-
+    --lm_train_text "data/${train_set}/text" "$@"
