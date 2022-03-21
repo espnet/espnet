@@ -10,10 +10,9 @@ best_model_criterion:
     - min
 keep_nbest_models: 10
 
-# specify model type as "maskctc"
-model: maskctc
+model: espnet
 model_conf:
-    ctc_weight: 0.3
+    ctc_weight: 1.0
     lsm_weight: 0.1
     length_normalized_loss: false
 
@@ -29,7 +28,6 @@ encoder_conf:
     input_layer: conv2d
     normalize_before: true
 
-# Masked Language Model (MLM)-based decoder
 decoder: mlm
 decoder_conf:
     attention_heads: 4

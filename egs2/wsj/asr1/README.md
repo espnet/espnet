@@ -53,6 +53,26 @@
 |decode_lm_lm_train_lm_transformer_en_char_valid.loss.ave_asr_model_valid.acc.ave/test_eval92|333|33341|99.3|0.3|0.4|0.1|0.8|32.4|
 
 
+## Mask-CTC
+
+- Training config: [conf/tuning/train_asr_transformer_maskctc.yaml](conf/tuning/train_asr_transformer_maskctc.yaml)
+- Inference config:  [conf/tuning/inference_asr_maskctc.yaml](conf/tuning/inference_asr_maskctc.yaml)
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|inference_asr_maskctc_asr_model_valid.cer_ctc.ave_10best/test_dev93|503|8234|87.2|11.6|1.2|1.0|13.9|79.3|
+|inference_asr_maskctc_asr_model_valid.cer_ctc.ave_10best/test_eval92|333|5643|90.1|9.2|0.7|1.1|11.0|71.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|inference_asr_maskctc_asr_model_valid.cer_ctc.ave_10best/test_dev93|503|48634|96.7|1.7|1.6|1.0|4.2|81.3|
+|inference_asr_maskctc_asr_model_valid.cer_ctc.ave_10best/test_eval92|333|33341|97.7|1.3|1.1|1.0|3.3|76.0|
+
+
 ## Using Transformer LM (ASR model is same as the above): lm_weight=1.2, ctc_weight=0.3, beam_size=20
 
 - ASR config: [conf/tuning/train_asr_transformer2.yaml](conf/tuning/train_asr_transformer2.yaml)
