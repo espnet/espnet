@@ -24,11 +24,11 @@ decoder_conf:
     src_attention_dropout_rate: 0.0
 optim: adam
 optim_conf:
-    lr: 10.0
+    lr: 0.001
 scheduler: noamlr     # pytorch v1.1.0+ required
 scheduler_conf:
-    warmup_steps: 1000
-max_epoch: 200
+    warmup_steps: 500
+max_epoch: 100
 keep_nbest_models: 5
 
 freeze_param: [
