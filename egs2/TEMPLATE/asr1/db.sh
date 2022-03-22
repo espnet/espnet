@@ -11,6 +11,7 @@ DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
 DNS=
+DSING=downloads
 WSJ0=
 WSJ1=
 WSJCAM0=
@@ -107,6 +108,7 @@ GOOGLEI18N=downloads
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
+LRS3=
 SUNDA=downloads
 CMU_ARCTIC=downloads
 CMU_INDIC=downloads
@@ -159,6 +161,7 @@ if [[ "$(hostname)" == tir* ]]; then
     IWSLT22_DIALECT=/projects/tir5/data/speech_corpora/LDC2022E01_IWSLT22_Tunisian_Arabic_Shared_Task_Training_Data/
     PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
     FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
+    DSING=/projects/tir5/data/speech_corpora/sing_300x30x2
 fi
 
 # For only JHU environment

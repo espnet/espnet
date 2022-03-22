@@ -6,6 +6,7 @@
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import logging
 import torch
@@ -105,6 +106,7 @@ class ConformerEncoder(AbsEncoder):
         padding_idx: int = -1,
         interctc_layer_idx: List[int] = [],
         interctc_use_conditioning: bool = False,
+        stochastic_depth_rate: Union[float, List[float]] = 0.0,
     ):
         assert check_argument_types()
         super().__init__()
@@ -250,6 +252,15 @@ class ConformerEncoder(AbsEncoder):
         convolution_layer = ConvolutionModule
         convolution_layer_args = (output_size, cnn_module_kernel, activation)
 
+        if isinstance(stochastic_depth_rate, float):
+            stochastic_depth_rate = [stochastic_depth_rate] * num_blocks
+
+        if len(stochastic_depth_rate) != num_blocks:
+            raise ValueError(
+                f"Length of stochastic_depth_rate ({len(stochastic_depth_rate)}) "
+                f"should be equal to num_blocks ({num_blocks})"
+            )
+
         self.encoders = repeat(
             num_blocks,
             lambda lnum: EncoderLayer(
@@ -261,6 +272,7 @@ class ConformerEncoder(AbsEncoder):
                 dropout_rate,
                 normalize_before,
                 concat_after,
+                stochastic_depth_rate[lnum],
             ),
         )
         if self.normalize_before:

@@ -35,7 +35,7 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
 - Support numbers of `ASR` recipes (WSJ, Switchboard, CHiME-4/5, Librispeech, TED, CSJ, AMI, HKUST, Voxforge, REVERB, etc.)
 - Support numbers of `TTS` recipes with a similar manner to the ASR recipe (LJSpeech, LibriTTS, M-AILABS, etc.)
 - Support numbers of `ST` recipes (Fisher-CallHome Spanish, Libri-trans, IWSLT'18, How2, Must-C, Mboshi-French, etc.)
-- Support numbers of `MT` recipes (IWSLT'16, the above ST recipes etc.)
+- Support numbers of `MT` recipes (IWSLT'14, IWSLT'16, the above ST recipes etc.)
 - Support numbers of `SLU` recipes (CATSLU-MAPS, FSC, Grabo, IEMOCAP, JDCINAL, SNIPS, SLURP, SWBD-DA, etc.)
 - Support numbers of `SE/SS` recipes (DNS-IS2020, LibriMix, SMS-WSJ, VCTK-noisyreverb, WHAM!, WHAMR!, WSJ-2mix, etc.)
 - Support voice conversion recipe (VCC2020 baseline)
@@ -78,6 +78,10 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
   - Set `frontend` to be `s3prl`
   - Select any upstream model by setting the `frontend_conf` to the corresponding name.
 - Streaming Transformer/Conformer ASR with blockwise synchronous beam search.
+- Restricted Self-Attention based on [Longformer](https://arxiv.org/abs/2004.05150) as an encoder for long sequences 
+
+### SUM: Speech Summarization
+- End to End Speech Summarization Recipe for Instructional Videos using Restricted Self-Attention [[Sharma et al., 2022]](https://arxiv.org/abs/2110.06263)
 
 Demonstration
 - Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_asr_realtime_demo.ipynb)
@@ -368,6 +372,7 @@ Available pretrained models in the demo script are listed as below.
 | Must-C tst-COMMON (En->De)                        | 27.63 |                               [link](https://github.com/espnet/espnet/blob/master/egs/must_c/mt1/RESULTS.md#summary-4-gram-bleu)                                |
 | IWSLT'14 test2014 (En->De)                        | 24.70 |                                     [link](https://github.com/espnet/espnet/blob/master/egs/iwslt16/mt1/RESULTS.md#result)                                      |
 | IWSLT'14 test2014 (De->En)                        | 29.22 |                                     [link](https://github.com/espnet/espnet/blob/master/egs/iwslt16/mt1/RESULTS.md#result)                                      |
+| IWSLT'14 test2014 (De->En)                        | 32.2  | [link](https://github.com/espnet/espnet/blob/master/egs2/iwslt14/mt1/README.md)  |
 | IWSLT'16 test2014 (En->De)                        | 24.05 |                                     [link](https://github.com/espnet/espnet/blob/master/egs/iwslt16/mt1/RESULTS.md#result)                                      |
 | IWSLT'16 test2014 (De->En)                        | 29.13 |                                     [link](https://github.com/espnet/espnet/blob/master/egs/iwslt16/mt1/RESULTS.md#result)                                      |
 
