@@ -1,11 +1,12 @@
-from collections import Counter 
+from collections import Counter
 
 train_file = "data/train/text"
 
 train_lines = []
 with open(train_file) as f:
     for line in f:
-        if not line: continue
+        if not line:
+            continue
         train_lines.append(line.split()[1])
 train_lines = set(train_lines)
 
@@ -16,7 +17,8 @@ for test_name in ("test", "dev"):
     test_uttids = []
     with open(test_file) as f:
         for line in f:
-            if not line: continue
+            if not line:
+                continue
             test_uttids.append(line.split()[0])
             test_lines.append(line.split()[1])
 
@@ -31,18 +33,19 @@ for test_name in ("test", "dev"):
 
     # if input("continue? [y/n]") == 'y':
     # remove all instances of duplicate uttids in these files: spk2utt, text, utt2spk, wav.scp
-    with open(f"data/{test_name}/spk2utt", 'r') as f:
+    with open(f"data/{test_name}/spk2utt", "r") as f:
         # replace all uttid with empty string
         text = f.read()
         for uttid in duplicate_uttids:
-            text = text.replace(" "+uttid, "")
+            text = text.replace(" " + uttid, "")
         for line in text.split("\n"):
-            if not line: continue
+            if not line:
+                continue
             if len(line.strip().split(" ")) < 2:
                 print(f"removing {line} from spk2utt")
-                text = text.replace(line+'\n', "")
-    with open(f"data/{test_name}/spk2utt", 'w') as f:
-        f.write(text)   
+                text = text.replace(line + "\n", "")
+    with open(f"data/{test_name}/spk2utt", "w") as f:
+        f.write(text)
 
     for name in ("text", "utt2spk", "wav.scp"):
         with open(f"data/{test_name}/{name}", "r") as f:
