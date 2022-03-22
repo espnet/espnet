@@ -57,6 +57,18 @@
 
 - Training config: [conf/tuning/train_asr_transformer_maskctc.yaml](conf/tuning/train_asr_transformer_maskctc.yaml)
 - Inference config:  [conf/tuning/inference_asr_maskctc.yaml](conf/tuning/inference_asr_maskctc.yaml)
+- Pretrained model: https://huggingface.co/espnet/YosukeHiguchi_espnet2_wsj_asr_transformer_maskctc
+
+### Environments
+
+- date: `Wed Mar 23 04:54:11 JST 2022`
+- python version: `3.8.12 (default, Oct 12 2021, 13:49:34)  [GCC 7.5.0]`
+- espnet version: `espnet 0.10.7a1`
+- chainer version: `chainer 6.0.0`
+- pytorch version: `pytorch 1.10.1`
+- Git hash: `f29fc9d34f98635bca9e9f7860f3f6cb04300146`
+  - Commit date: `Tue Mar 22 05:48:17 2022 +0900`
+
 
 ### WER
 
