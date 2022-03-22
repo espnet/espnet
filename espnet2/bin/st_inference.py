@@ -450,11 +450,13 @@ def get_parser():
     group.add_argument(
         "--ext_st_train_config",
         type=str,
+        action='append',
         help="External ST training configuration",
     )
     group.add_argument(
         "--ext_st_file",
         type=str,
+        action='append',
         help="External ST parameter file",
     )
     group.add_argument(

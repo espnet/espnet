@@ -285,7 +285,6 @@ fi
 . ./path.sh
 . ./cmd.sh
 
-
 # Check required arguments
 [ -z "${train_set}" ] && { log "${help_message}"; log "Error: --train_set is required"; exit 2; };
 [ -z "${valid_set}" ] && { log "${help_message}"; log "Error: --valid_set is required"; exit 2; };
@@ -493,7 +492,8 @@ if [ -z "${inference_tag}" ]; then
         inference_tag+="_mt_$(basename "${mt_exp}")_$(echo "${inference_mt}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
     if "${use_ext_st}"; then
-        inference_tag+="_ext_st_$(basename "${ext_st_exp}")_$(echo "${inference_ext_st}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+        #inference_tag+="_ext_st_$(basename "${ext_st_exp}")_$(echo "${inference_ext_st}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+        inference_tag+="_with_ext_st"
     fi
     if "${use_ngram}"; then
         inference_tag+="_ngram_$(basename "${ngram_exp}")_$(echo "${inference_ngram}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
@@ -1418,8 +1418,11 @@ if ! "${skip_eval}"; then
             _opts+="--mt_file ${mt_exp}/${inference_mt} "
         fi
         if "${use_ext_st}"; then
-            _opts+="--ext_st_train_config ${ext_st_exp}/config.yaml "
-            _opts+="--ext_st_file ${ext_st_exp}/${inference_ext_st} "
+            for i in ${ext_st_exp//,/ }
+            do
+                _opts+="--ext_st_train_config ${i}/config.yaml "
+                _opts+="--ext_st_file ${i}/${inference_ext_st} "
+            done
         fi
         if "${use_ngram}"; then
              _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"

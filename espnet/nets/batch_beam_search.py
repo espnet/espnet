@@ -152,7 +152,7 @@ class BatchBeamSearch(BeamSearch):
         )
 
     def score_full(
-            self, hyp: BatchHypothesis, x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None, ext_st_x: torch.Tensor = None, ext_md_x: torch.Tensor = None
+            self, hyp: BatchHypothesis, x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None, ext_st_xs: List[torch.Tensor] = None, ext_md_xs: List[torch.Tensor] = None
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
@@ -179,10 +179,8 @@ class BatchBeamSearch(BeamSearch):
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], md_asr_x)
             elif 'mt' in k and mt_x is not None:
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], mt_x)
-            elif 'ext_st' in k and ext_md_x is not None and ext_st_x is not None:
-                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], ext_md_x, ext_st_x)
-            elif 'ext_st' in k and ext_st_x is not None:
-                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], ext_st_x)
+            elif 'ext_st' in k and ext_st_xs is not None:
+                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], ext_md_xs, ext_st_xs)
             else:
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
         if self.return_hidden:
@@ -236,7 +234,7 @@ class BatchBeamSearch(BeamSearch):
             new_states[k] = v
         return new_states
 
-    def search(self, running_hyps: BatchHypothesis, x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None, ext_st_x: torch.Tensor = None, ext_md_x: torch.Tensor = None) -> BatchHypothesis:
+    def search(self, running_hyps: BatchHypothesis, x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None, ext_st_xs: List[torch.Tensor] = None, ext_md_xs: List[torch.Tensor] = None) -> BatchHypothesis:
         """Search new tokens for running hypotheses and encoded speech x.
 
         Args:
@@ -259,19 +257,25 @@ class BatchBeamSearch(BeamSearch):
         if mt_x is not None:
             mt_x=mt_x.expand(n_batch, *mt_x.shape)
 
-        if ext_st_x is not None:
-            ext_st_x=ext_st_x.expand(n_batch, *ext_st_x.shape)
+        if ext_st_xs is not None:
+            assert isinstance(ext_st_xs, List)
+            for i in range(len(ext_st_xs)):
+                if ext_st_xs[i] is not None:
+                    ext_st_xs[i]=ext_st_xs[i].expand(n_batch, *ext_st_xs[i].shape)
 
-        if ext_md_x is not None:
-            ext_md_x=ext_md_x.expand(n_batch, *ext_md_x.shape)
+        if ext_md_xs is not None:
+            assert isinstance(ext_md_xs, List)
+            for i in range(len(ext_md_xs)):
+                if ext_md_xs[i] is not None:
+                    ext_md_xs[i]=ext_md_xs[i].expand(n_batch, *ext_md_xs[i].shape)
         # batch scoring
         weighted_scores = torch.zeros(
             n_batch, self.n_vocab, dtype=x.dtype, device=x.device
         )
         if self.return_hidden:
-            hs, scores, states = self.score_full(running_hyps, x.expand(n_batch, *x.shape), md_x=md_x, md_asr_x=md_asr_x, mt_x=mt_x, ext_st_x=ext_st_x, ext_md_x=ext_md_x)
+            hs, scores, states = self.score_full(running_hyps, x.expand(n_batch, *x.shape), md_x=md_x, md_asr_x=md_asr_x, mt_x=mt_x, ext_st_xs=ext_st_xs, ext_md_xs=ext_md_xs)
         else:
-            scores, states = self.score_full(running_hyps, x.expand(n_batch, *x.shape), md_x =md_x, md_asr_x = md_asr_x, mt_x=mt_x, ext_st_x=ext_st_x, ext_md_x=ext_md_x)
+            scores, states = self.score_full(running_hyps, x.expand(n_batch, *x.shape), md_x =md_x, md_asr_x = md_asr_x, mt_x=mt_x, ext_st_xs=ext_st_xs, ext_md_xs=ext_md_xs)
 
         for k in self.full_scorers:
             weighted_scores += self.weights[k] * scores[k]

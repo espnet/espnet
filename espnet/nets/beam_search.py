@@ -154,7 +154,7 @@ class BeamSearch(torch.nn.Module):
         return torch.cat((xs, x))
 
     def score_full(
-            self, hyp: Hypothesis, x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None, ext_st_x: torch.Tensor = None, ext_md_x: torch.Tensor = None
+            self, hyp: Hypothesis, x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None, ext_st_xs: List[torch.Tensor] = None, ext_md_xs: List[torch.Tensor] = None
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
@@ -181,10 +181,8 @@ class BeamSearch(torch.nn.Module):
                 scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], md_asr_x)
             elif 'mt' in k and mt_x is not None:
                 scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], mt_x)
-            elif 'ext_st' in k and ext_md_x is not None and ext_st_x is not None:
-                scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], ext_md_x, ext_st_x)
-            elif 'ext_st' in k and ext_st_x is not None:
-                scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], ext_st_x)
+            elif 'ext_st' in k and ext_st_xs is not None:
+                scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], ext_md_xs, ext_st_xs)
             else:
                 scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], x)
 
@@ -299,7 +297,7 @@ class BeamSearch(torch.nn.Module):
         return new_states
 
     def search(
-            self, running_hyps: List[Hypothesis], x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None, ext_st_x: torch.Tensor = None, ext_md_x: torch.Tensor = None
+            self, running_hyps: List[Hypothesis], x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None, ext_st_xs: List[torch.Tensor] = None, ext_md_xs: List[torch.Tensor] = None
     ) -> List[Hypothesis]:
         """Search new tokens for running hypotheses and encoded speech x.
 
@@ -317,9 +315,9 @@ class BeamSearch(torch.nn.Module):
             # scoring
             weighted_scores = torch.zeros(self.n_vocab, dtype=x.dtype, device=x.device)
             if self.return_hidden:
-                hs, scores, states = self.score_full(hyp, x, md_x=md_x, md_asr_x=md_asr_x, mt_x=mt_x, ext_st_x = ext_st_x, ext_md_x= ext_md_x)
+                hs, scores, states = self.score_full(hyp, x, md_x=md_x, md_asr_x=md_asr_x, mt_x=mt_x, ext_st_xs = ext_st_xs, ext_md_xs= ext_md_xs)
             else:
-                scores, states = self.score_full(hyp, x, md_x=md_x, md_asr_x=md_asr_x, mt_x = mt_x, ext_st_x=ext_st_x, ext_md_x=ext_md_x)
+                scores, states = self.score_full(hyp, x, md_x=md_x, md_asr_x=md_asr_x, mt_x = mt_x, ext_st_xs=ext_st_xs, ext_md_xs=ext_md_xs)
             for k in self.full_scorers:
                 weighted_scores += self.weights[k] * scores[k]
             # partial scoring
@@ -362,7 +360,7 @@ class BeamSearch(torch.nn.Module):
         return best_hyps
 
     def forward(
-            self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None, ext_st_x: torch.Tensor = None, ext_md_x: torch.Tensor = None
+            self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None, ext_st_xs: List[torch.Tensor] = None, ext_md_xs: List[torch.Tensor] = None
     ) -> List[Hypothesis]:
         """Perform beam search.
 
@@ -396,7 +394,7 @@ class BeamSearch(torch.nn.Module):
         ended_hyps = []
         for i in range(maxlen):
             logging.debug("position " + str(i))
-            best = self.search(running_hyps, x, md_x=md_x, md_asr_x=md_asr_x,mt_x=mt_x, ext_st_x=ext_st_x, ext_md_x= ext_md_x)
+            best = self.search(running_hyps, x, md_x=md_x, md_asr_x=md_asr_x,mt_x=mt_x, ext_st_xs=ext_st_xs, ext_md_xs= ext_md_xs)
             # post process of one iteration
             running_hyps = self.post_process(i, maxlen, maxlenratio, best, ended_hyps)
             # end detection

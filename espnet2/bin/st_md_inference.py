@@ -24,6 +24,7 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.st.decoder.transformer_md_decoder import TransformerMDDecoder
+from espnet2.st.decoder.ensemble_decoder import EnsembleSTDecoder
 from espnet2.st.espnet_model_md import ESPnetSTMDModel
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
@@ -57,8 +58,8 @@ class Speech2Text:
         self,
         st_train_config: Union[Path, str] = None,
         st_model_file: Union[Path, str] = None,
-        ext_st_train_config: Union[Path, str] = None,
-        ext_st_file: Union[Path, str] = None,
+        ext_st_train_config: Union[Path, List, str] = None,
+        ext_st_file: Union[Path, List, str] = None,
         mt_train_config: Union[Path, str] = None,
         mt_file: Union[Path, str] = None,
         lm_train_config: Union[Path, str] = None,
@@ -161,20 +162,30 @@ class Speech2Text:
             scorers["mt"] = mt.decoder
 
         # 2. Build EXT ST model
-        self.ext_st_model=None
-        self.ext_md_model = False
-        self.ext_speech_attn = False
+        self.ext_st_models=None
+        self.ext_md_models = False
+        self.ext_speech_attns = False
         if ext_st_train_config is not None:
-            ext_st, ext_st_train_args = STTask.build_model_from_file(
-                ext_st_train_config, ext_st_file, device
-            )
-            ext_st.to(dtype=getattr(torch, dtype)).eval()
-            self.ext_st_model = ext_st
-            scorers["ext_st"] = ext_st.decoder
-            if isinstance(ext_st,ESPnetSTMDModel):
-                self.ext_md_model = True
-            if isinstance(ext_st.decoder,TransformerMDDecoder):
-                self.ext_speech_attn = True
+            assert isinstance(ext_st_train_config, List) and isinstance(ext_st_file, List)
+            self.ext_st_models= []
+            self.ext_md_models = []
+            self.ext_speech_attns = []
+            self.ext_st_decoders = []
+            for train_conf,file in zip(ext_st_train_config, ext_st_file):
+                ext_st, ext_st_train_args = STTask.build_model_from_file(train_conf, file, device)
+                ext_st.to(dtype=getattr(torch, dtype)).eval()
+                self.ext_st_models.append(ext_st)
+                self.ext_st_decoders.append(ext_st.decoder)
+                if isinstance(ext_st,ESPnetSTMDModel):
+                    self.ext_md_models.append(True)
+                else:
+                    self.ext_md_models.append(False)
+
+                if isinstance(ext_st.decoder,TransformerMDDecoder):
+                    self.ext_speech_attns.append(True)
+                else:
+                    self.ext_speech_attns.append(False)
+            scorers["ext_st"] = EnsembleSTDecoder(self.ext_st_decoders, self.ext_md_models, self.ext_speech_attns)
 
         # 3. Build ngram model
         if ngram_file is not None:
@@ -441,27 +452,46 @@ class Speech2Text:
             mt_enc, _ = self.mt_model.encode(**mt_batch)
             mt_x = mt_enc[0]
 
-        ext_st_x=None
-        ext_md_x=None
-        if self.ext_st_model is not None:
-            ext_st_enc, ext_st_enc_lens = self.ext_st_model.encode(**batch)
-            ext_st_x = ext_st_enc[0]
-            if self.ext_md_model:
-                _ , _, ext_hs_dec_asr = self.ext_st_model.asr_decoder(
-                    ext_st_enc, ext_st_enc_lens, src_text_in, src_text_in_lens, return_hidden=True
-                )
-                ext_asr_hs_lengths = ext_hs_dec_asr.new_full([1], dtype=torch.long, fill_value=ext_hs_dec_asr.size(1))
-                ext_st_enc_mt, _ , _ = self.ext_st_model.encoder_mt(ext_hs_dec_asr, ext_asr_hs_lengths)
-                if self.ext_speech_attn:
-                    ext_st_x = ext_st_enc[0]
-                    ext_md_x = ext_st_enc_mt[0]
+        ext_st_xs=None
+        ext_md_xs=None
+        if self.ext_st_models is not None:
+            ext_st_xs=[]
+            ext_md_xs=[]
+            for i in range(len(self.ext_st_models)):
+                ext_st_model = self.ext_st_models[i]
+                ext_md_model = self.ext_md_models[i]
+                ext_speech_attn = self.ext_speech_attns[i]
+
+                ext_st_enc, ext_st_enc_lens = ext_st_model.encode(**batch)
+                if ext_md_model:
+                    if src_text is not None:
+                        _ , _, ext_hs_dec_asr = ext_st_model.asr_decoder(
+                            ext_st_enc, ext_st_enc_lens, src_text_in, src_text_in_lens, return_hidden=True
+                        )
+                        ext_asr_hs_lengths = ext_hs_dec_asr.new_full([1], dtype=torch.long, fill_value=ext_hs_dec_asr.size(1))
+                        ext_st_enc_mt, _ , _ = ext_st_model.encoder_mt(ext_hs_dec_asr, ext_asr_hs_lengths)
+                    else:
+                        ext_st_enc_mt, _ , _ = ext_st_model.encoder_mt(asr_hs, asr_hs_lengths)
+                    if ext_speech_attn:
+                        ext_st_xs.append(ext_st_enc[0])
+                        ext_md_xs.append(ext_st_enc_mt[0])
+                    else:
+                        ext_st_xs.append(ext_st_enc_mt[0])
+                        ext_md_xs.append(None)
                 else:
-                    ext_st_x = ext_st_enc_mt[0]
+                    ext_st_xs.append(ext_st_enc[0])
+                    ext_md_xs.append(None)
 
 
         # c. Passed the encoder result and the beam search
         nbest_hyps = self.beam_search(
-            x=x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x = md_x, mt_x = mt_x, ext_st_x=ext_st_x, ext_md_x=ext_md_x
+            x=x, 
+            maxlenratio=self.maxlenratio, 
+            minlenratio=self.minlenratio, 
+            md_x = md_x, 
+            mt_x = mt_x, 
+            ext_st_xs=ext_st_xs, 
+            ext_md_xs=ext_md_xs
         )
         nbest_hyps = nbest_hyps[: self.nbest]
 
@@ -536,8 +566,8 @@ def inference_md(
     key_file: Optional[str],
     st_train_config: Optional[str],
     st_model_file: Optional[str],
-    ext_st_train_config: Optional[str],
-    ext_st_file: Optional[str],
+    ext_st_train_config: Optional[Union[Path, List, str]],
+    ext_st_file: Optional[Union[Path, List, str]],
     mt_train_config: Optional[str],
     mt_file: Optional[str],
     md_asr_train_config: Optional[str],
