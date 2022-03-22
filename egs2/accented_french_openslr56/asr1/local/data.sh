@@ -35,9 +35,9 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "sub-stage 0: Download Data to downloads"
 
     cd downloads
-    #wget https://www.openslr.org/resources/57/African_Accented_French.tar.gz
-    #tar -xvf African_Accented_French.tar.gz
-    #rm -r African_Accented_French.tar.gz
+    wget https://www.openslr.org/resources/57/African_Accented_French.tar.gz
+    tar -xvf African_Accented_French.tar.gz
+    rm -r African_Accented_French.tar.gz
     cd ..
 fi
 
@@ -89,7 +89,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     paste  -d " " uttid1 uttid1 > auxutt2
 
     # train yaounde read
-    head -6299 downloads/African_Accented_French/transcripts/train/yaounde/fn_text.txt >  downloads/African_Accented_French/transcripts/train/yaounde/fn_read_text.txt
+    head -6299 downloads/African_Accented_French/transcripts/train/yaounde/fn_text.txt > d_aux
+    tail -n +2 d_aux > downloads/African_Accented_French/transcripts/train/yaounde/fn_read_text.txt
     FILE=downloads/African_Accented_French/transcripts/train/yaounde/fn_read_text.txt
 
     # .split('_') starts at 1, put in aux file, aux is the folder
@@ -143,7 +144,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     ./utils/fix_data_dir.sh data/train/
 
-    rm aux5 aux6 aux7 aux8 aux9 aux10 aux11 auxtext1 auxtext3 auxtext4 auxwav1 auxwav2 auxwav3 auxwav4 auxutt1 auxutt2 auxutt3 auxutt4 uttid1 uttid2 uttid3 uttid4
+    rm d_aux aux5 aux6 aux7 aux8 aux9 aux10 aux11 auxtext1 auxtext3 auxtext4 auxwav1 auxwav2 auxwav3 auxwav4 auxutt1 auxutt2 auxutt3 auxutt4 uttid1 uttid2 uttid3 uttid4
 fi
 
 
