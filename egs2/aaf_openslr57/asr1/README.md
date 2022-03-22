@@ -9,6 +9,7 @@
   - Commit date: `Thu Mar 17 15:50:03 2022 -0400`
 
 ## asr_train_asr_conformer5_raw_bpe150_sp
+Pretrained Model: https://huggingface.co/espnet/aaf_openslr57
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
