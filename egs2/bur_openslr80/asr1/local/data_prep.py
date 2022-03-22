@@ -58,7 +58,7 @@ if __name__ == "__main__":
     for phase in spks_by_phase:
         spks = spks_by_phase[phase]
         if type(spks) is not list:
-          spks = [spks]
+            spks = [spks]
         text_strs = []
         wav_scp_strs = []
         spk2utt_strs = []
