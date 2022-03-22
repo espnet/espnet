@@ -28,6 +28,10 @@ set -o pipefail
 log "data preparation started"
 
 mkdir -p ${MALAYALAM}
+if [ -z "${MALAYALAM}" ]; then
+    log "Fill the value of 'MALAYALAM' of db.sh"
+    exit 1
+fi
 
 workspace=$PWD
 
