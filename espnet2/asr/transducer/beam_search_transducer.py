@@ -49,7 +49,7 @@ class BeamSearchTransducer:
         nstep: int = 1,
         expansion_gamma: int = 2.3,
         expansion_beta: int = 2,
-        score_norm: bool = True,
+        score_norm: bool = False,
         nbest: int = 1,
     ):
         """Initialize Transducer search module.
@@ -77,23 +77,23 @@ class BeamSearchTransducer:
         self.dim_vocab = decoder.dim_vocab
         self.blank_id = decoder.blank_id
 
-        if beam_size >= self.dim_vocab:
-            raise ValueError(
-                "beam_size (%d) should be smaller or equal to vocabulary size (%d)."
-                % (beam_size, self.dim_vocab)
-            )
-
+        assert (
+            beam_size <= self.dim_vocab
+        ), "beam_size (%d) should be smaller or equal to vocabulary size (%d)." % (
+            beam_size,
+            self.dim_vocab,
+        )
         self.beam_size = beam_size
 
         if search_type == "default":
             self.search_algorithm = self.default_beam_search
         elif search_type == "tsd":
             assert max_sym_exp > 1, "max_sym_exp should be greater than one."
-
             self.max_sym_exp = max_sym_exp
 
             self.search_algorithm = self.time_sync_decoding
         elif search_type == "alsd":
+            assert u_max >= 0, "u_max should be a positive integer, a portion of max_T."
             self.u_max = u_max
 
             self.search_algorithm = self.align_length_sync_decoding
@@ -103,14 +103,16 @@ class BeamSearchTransducer:
                 " should be smaller or equal to vocab size (%d)."
                 % (beam_size, expansion_beta, self.dim_vocab)
             )
+            self.max_candidates = beam_size + expansion_beta
 
             self.nstep = nstep
             self.expansion_gamma = expansion_gamma
-            self.max_candidates = beam_size + expansion_beta
 
             self.search_algorithm = self.modified_adaptive_expansion_search
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                "Provided search type (%s) is not supported." % search_type
+            )
 
         self.use_lm = lm is not None
         self.lm = lm
@@ -358,7 +360,7 @@ class BeamSearchTransducer:
                 if self.use_lm:
                     beam_lm_scores, beam_lm_states = self.lm.batch_score(
                         torch.LongTensor(
-                            [b.yseq[-1] for b in B_], device=self.decoder.device
+                            [[b.yseq[-1]] for b in B_], device=self.decoder.device
                         ),
                         [b.lm_state for b in B_],
                         None,
@@ -460,7 +462,7 @@ class BeamSearchTransducer:
                     if self.use_lm:
                         beam_lm_scores, beam_lm_states = self.lm.batch_score(
                             torch.LongTensor(
-                                [h.yseq[-1] for h in C], device=self.decoder.device
+                                [[h.yseq[-1]] for h in C], device=self.decoder.device
                             ),
                             [c.lm_state for c in C],
                             None,
@@ -517,7 +519,7 @@ class BeamSearchTransducer:
         if self.use_lm:
             beam_lm_scores, beam_lm_states = self.lm.batch_score(
                 torch.LongTensor(
-                    [h.yseq[-1] for h in init_tokens], device=self.decoder.device
+                    [[h.yseq[-1]] for h in init_tokens], device=self.decoder.device
                 ),
                 [h.lm_state for h in init_tokens],
                 None,
@@ -593,7 +595,7 @@ class BeamSearchTransducer:
                     if self.use_lm:
                         beam_lm_scores, beam_lm_states = self.lm.batch_score(
                             torch.LongTensor(
-                                [h.yseq[-1] for h in list_exp],
+                                [[h.yseq[-1]] for h in list_exp],
                                 device=self.decoder.device,
                             ),
                             [h.lm_state for h in list_exp],
