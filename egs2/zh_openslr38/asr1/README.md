@@ -12,6 +12,7 @@ Link: https://openslr.org/38
 - python version: `3.9.10 | packaged by conda-forge | (main, Feb  1 2022, 21:24:11)  [GCC 9.4.0]`
 - espnet version: `espnet 0.10.7a1`
 - pytorch version: `pytorch 1.10.1`
+- pretrained model: https://huggingface.co/espnet/zh_openslr38/blob/main/exp/asr_train_asr_conformer_raw_zh_char_sp/valid.acc.ave_10best.pth
 
 ### CER
 
