@@ -41,7 +41,7 @@ class Encoder(torch.nn.Module):
 
         super().__init__()
 
-        dim_output = validate_architecture([input_conf] + body_conf, dim_input)
+        dim_output = validate_architecture(input_conf, body_conf, dim_input)
 
         need_pos, avg_eps = validate_positional_information(body_conf)
         main_params, mask_type = build_main_parameters(need_pos, **main_conf)

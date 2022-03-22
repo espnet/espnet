@@ -85,21 +85,23 @@ def validate_block_arguments(
     return block_type, (dim_input, dim_output)
 
 
-def validate_input_block(configuration: List[Dict[str, Any]], dim_input: int):
+def validate_input_block(
+    input_conf: Dict[str, Any], body_conf: List[Dict[str, Any]], dim_input: int
+):
     """Validate input block.
 
     Args:
-        configurations: Encoder blocks configuration.
+        input_conf: Encoder input block configuration.
+        body_conf: Encoder body blocks configuration.
         dim_input: Input dimension.
 
     """
-    block_type = configuration[0].get("block_type")
-    next_block_type = configuration[1].get("block_type")
+    block_type = input_conf.get("block_type")
+    next_block_type = body_conf[0].get("block_type")
 
     if block_type is None:
-        raise ValueError("Input block doesn't have a type assigned.")
-
-    if block_type not in ["conv2d", "vgg"]:
+        block_type = input_conf["block_type"] = "vgg"
+    elif block_type not in ["conv2d", "vgg"]:
         raise ValueError("Input block type can be either 'vgg' or 'conv2d'")
 
     if next_block_type is None or (
@@ -111,42 +113,43 @@ def validate_input_block(configuration: List[Dict[str, Any]], dim_input: int):
         if block_type == "vgg":
             dim_output = 128 * ((dim_input // 2) // 2)
         else:
-            dim_conv = configuration[0].get("dim_conv")
+            dim_conv = input_conf.get("dim_conv")
 
             if dim_conv is None:
                 if next_block_type == "rnn":
-                    dim_conv = configuration[1].get("dim_hidden")
+                    dim_conv = body_conf[0].get("dim_hidden")
                 else:
-                    dim_conv = configuration[1].get("dim_output")
+                    dim_conv = body_conf[0].get("dim_output")
 
             _, _, conv_odim = sub_factor_to_params(
-                configuration[0].get("subsampling_factor", 4), dim_input
+                input_conf.get("subsampling_factor", 4), dim_input
             )
 
             dim_output = conv_odim * dim_conv
 
-            configuration[0]["dim_conv"] = dim_conv
+            input_conf["dim_conv"] = dim_conv
 
-        configuration[0]["dim_output"] = None
-        configuration[0]["dim_pos_enc"] = dim_output
+        input_conf["dim_output"] = None
+        input_conf["dim_pos_enc"] = dim_output
     else:
-        dim_output = configuration[1]["dim_hidden"]
+        dim_output = body_conf[0].get("dim_hidden")
 
-        configuration[0]["dim_output"] = dim_output
+        input_conf["dim_output"] = dim_output
 
         if block_type == "conv2d":
-            configuration[0]["dim_conv"] = dim_output
+            input_conf["dim_conv"] = dim_output
 
     return dim_output
 
 
 def validate_architecture(
-    configuration: List[Dict[str, Any]], dim_input: int
+    input_conf: Dict[str, Any], body_conf: List[Dict[str, Any]], dim_input: int
 ) -> Tuple[int, int]:
     """Validate specified architecture is valid.
 
     Args:
-        configuration: Encoder blocks configuration.
+        input_conf: Encoder input block configuration.
+        body_conf: Encoder body blocks configuration.
         dim_input: Encoder input dimension.
 
     Returns:
@@ -157,9 +160,9 @@ def validate_architecture(
     cmp_io = []
     cmp_type = []
 
-    input_block_odim = validate_input_block(configuration, dim_input)
+    input_block_odim = validate_input_block(input_conf, body_conf, dim_input)
 
-    for i, b in enumerate(configuration[1:]):
+    for i, b in enumerate(body_conf):
         _type, _io = validate_block_arguments(
             b, i, input_block_odim if i == 0 else cmp_io[i - 1][1]
         )

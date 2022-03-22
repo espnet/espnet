@@ -127,8 +127,8 @@ def build_input_block(
         : Input block.
 
     """
-    block_type = configuration.get("block_type")
-    dim_output = configuration.get("dim_output")
+    block_type = configuration["block_type"]
+    dim_output = configuration["dim_output"]
 
     if pos_enc_class is not None and pos_enc_class.__name__ == "RelPositionalEncoding":
         pos_enc = pos_enc_class(
