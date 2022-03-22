@@ -75,16 +75,15 @@ class BeamSearchTransducer:
         self.joint_network = joint_network
 
         self.dim_vocab = decoder.dim_vocab
+        self.blank_id = decoder.blank_id
 
-        if beam_size > self.dim_vocab:
+        if beam_size >= self.dim_vocab:
             raise ValueError(
-                "beam_size (%d) can't be greater than vocabulary size (%d)"
+                "beam_size (%d) should be smaller or equal to vocabulary size (%d)."
                 % (beam_size, self.dim_vocab)
             )
-        else:
-            self.beam_size = beam_size
 
-        self.blank_id = decoder.blank_id
+        self.beam_size = beam_size
 
         if search_type == "default":
             self.search_algorithm = self.default_beam_search
@@ -99,9 +98,9 @@ class BeamSearchTransducer:
 
             self.search_algorithm = self.align_length_sync_decoding
         elif search_type == "maes":
-            assert self.dim_vocab > beam_size + expansion_beta, (
+            assert self.dim_vocab >= beam_size + expansion_beta, (
                 "beam_size (%d) + expansion_beta (%d) "
-                " should be smaller than vocab size (%d)"
+                " should be smaller or equal to vocab size (%d)."
                 % (beam_size, expansion_beta, self.dim_vocab)
             )
 
