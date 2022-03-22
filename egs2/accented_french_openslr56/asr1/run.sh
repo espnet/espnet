@@ -13,8 +13,6 @@ lm_config=conf/train_lm_transformer.yaml
 use_lm=false
 use_wordlm=false
 
-
-
 ./asr.sh \
     --ngpu 1 \
     --use_lm false \
