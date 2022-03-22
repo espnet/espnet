@@ -11,9 +11,19 @@ train_set=train_"$(echo "${lang}" | tr - _)"
 train_dev=dev_"$(echo "${lang}" | tr - _)"
 test_set="${train_dev} test_$(echo ${lang} | tr - _)"
 
-asr_config=conf/tuning/train_asr_hubert.yaml
+asr_config=conf/tuning/train_asr_conformer5.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
+
+if [[ "zh" == *"${lang}"* ]]; then
+  nbpe=2500
+elif [[ "fr" == *"${lang}"* ]]; then
+  nbpe=350
+elif [[ "es" == *"${lang}"* ]]; then
+  nbpe=235
+else
+  nbpe=150
+fi
 
 ./asr.sh \
     --ngpu 4 \

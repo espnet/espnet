@@ -22,3 +22,10 @@
 |---|---|---|---|---|---|---|---|---|
 |inference_asr_model_valid.acc.ave/dev_as|249|58679|80.9|8.0|11.1|7.2|26.3|100.0|
 |inference_asr_model_valid.acc.ave/test_as|249|58694|82.1|7.2|10.8|7.1|25.0|100.0|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|inference_asr_model_valid.acc.ave/dev_as|249|30837|69.5|19.0|11.5|6.3|36.8|100.0|
+|inference_asr_model_valid.acc.ave/test_as|249|30942|70.7|17.9|11.4|6.0|35.3|100.0|
