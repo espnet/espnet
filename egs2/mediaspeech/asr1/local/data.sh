@@ -36,10 +36,6 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train_"$(echo "${lang}" | tr - _)"
-train_dev=dev_"$(echo "${lang}" | tr - _)"
-test_set=test_"$(echo "${lang}" | tr - _)"
-
 log "data preparation started"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
