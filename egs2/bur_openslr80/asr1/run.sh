@@ -29,6 +29,7 @@ ngpu=1
     --token_type bpe \
     --nbpe 150 \
     --feats_type raw \
+    --feats_normalize uttmvn \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --lm_config "${lm_config}"\
