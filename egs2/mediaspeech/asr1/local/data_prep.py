@@ -3,11 +3,9 @@
 # Copyright 2021 Carnegie Mellon University (Peter Wu)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-
 import argparse
 import os
 import random
-import pdb
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
