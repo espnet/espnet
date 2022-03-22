@@ -205,6 +205,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     FSC=
     SNIPS= # smart-light-en-closed-field data path
     SLURP=
+    MEDIASPEECH=downloads
     MINI_LIBRISPEECH=downloads
     LIBRITTS=
     LJSPEECH=downloads
