@@ -12,27 +12,25 @@ import pandas as pd
 import argparse
 
 
-def get_classification_result(hyp_file, ref_file, hyp_write, ref_write):
-    hyp_lines = [line for line in hyp_file]
-    ref_lines = [line for line in ref_file]
-
-    error = 0
-    for line_count in range(len(hyp_lines)):
-        hyp_intent = hyp_lines[line_count].split(" ")[0]
-        ref_intent = ref_lines[line_count].split(" ")[0]
-        if hyp_intent != ref_intent:
-            error += 1
-        hyp_write.write(
-            " ".join(hyp_lines[line_count].split("\t")[0].split(" ")[1:])
-            + "\t"
-            + hyp_lines[line_count].split("\t")[1]
-        )
-        ref_write.write(
-            " ".join(ref_lines[line_count].split("\t")[0].split(" ")[1:])
-            + "\t"
-            + ref_lines[line_count].split("\t")[1]
-        )
-    return 1 - (error / len(hyp_lines))
+def generate_asr_files(txt_file, transcript_file):
+    line_arr = [line for line in txt_file]
+    for line in line_arr:
+        if len(line.split("\t")) > 2:
+            print(line)
+            exit()
+        if len(line.split("\t")[0].split()) == 1:
+            text = "<blank>"
+        else:
+            text = line.split("\t")[0].split()[1].replace("▁", "")
+        for sub_word in line.split("\t")[0].split()[2:]:
+            if "▁" in sub_word:
+                text = text + " " + sub_word.replace("▁", "")
+            else:
+                text = text + sub_word
+        if len(text) == 0:
+            text = "<blank>"
+        wav_name = line.split("\t")[1]
+        transcript_file.write(text + "\t" + wav_name)
 
 
 parser = argparse.ArgumentParser()
@@ -73,11 +71,10 @@ valid_ref_write_file = open(
     os.path.join(exp_root, valid_inference_folder + "score_wer/ref_asr.trn"), "w"
 )
 
-result = get_classification_result(
-    valid_hyp_file, valid_ref_file, valid_hyp_write_file, valid_ref_write_file
-)
-print("Valid Intent Classification Result")
-print(result)
+generate_asr_files(valid_hyp_file, valid_hyp_write_file)
+
+generate_asr_files(valid_ref_file, valid_ref_write_file)
+
 
 test_hyp_file = open(
     os.path.join(exp_root, test_inference_folder + "score_wer/hyp.trn")
@@ -92,11 +89,10 @@ test_ref_write_file = open(
     os.path.join(exp_root, test_inference_folder + "score_wer/ref_asr.trn"), "w"
 )
 
-result = get_classification_result(
-    test_hyp_file, test_ref_file, test_hyp_write_file, test_ref_write_file
-)
-print("Test Intent Classification Result")
-print(result)
+generate_asr_files(test_hyp_file, test_hyp_write_file)
+
+generate_asr_files(test_ref_file, test_ref_write_file)
+
 
 if args.utterance_test_folder is not None:
     utt_test_inference_folder = args.utterance_test_folder
@@ -112,11 +108,6 @@ if args.utterance_test_folder is not None:
     utt_test_ref_write_file = open(
         os.path.join(exp_root, utt_test_inference_folder + "score_wer/ref_asr.trn"), "w"
     )
-    result = get_classification_result(
-        utt_test_hyp_file,
-        utt_test_ref_file,
-        utt_test_hyp_write_file,
-        utt_test_ref_write_file,
-    )
-    print("Unseen Utterance Test Intent Classification Result")
-    print(result)
+    generate_asr_files(utt_test_hyp_file, utt_test_hyp_write_file)
+
+    generate_asr_files(utt_test_ref_file, utt_test_ref_write_file)

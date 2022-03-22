@@ -10,29 +10,24 @@ import re
 import sys
 import pandas as pd
 import argparse
+from sklearn.metrics import f1_score
+from sklearn.metrics import classification_report
 
 
-def get_classification_result(hyp_file, ref_file, hyp_write, ref_write):
+def get_classification_result(hyp_file, ref_file):
     hyp_lines = [line for line in hyp_file]
     ref_lines = [line for line in ref_file]
 
     error = 0
+    hyp_intent_arr = []
+    ref_intent_arr = []
     for line_count in range(len(hyp_lines)):
         hyp_intent = hyp_lines[line_count].split(" ")[0]
         ref_intent = ref_lines[line_count].split(" ")[0]
-        if hyp_intent != ref_intent:
-            error += 1
-        hyp_write.write(
-            " ".join(hyp_lines[line_count].split("\t")[0].split(" ")[1:])
-            + "\t"
-            + hyp_lines[line_count].split("\t")[1]
-        )
-        ref_write.write(
-            " ".join(ref_lines[line_count].split("\t")[0].split(" ")[1:])
-            + "\t"
-            + ref_lines[line_count].split("\t")[1]
-        )
-    return 1 - (error / len(hyp_lines))
+        hyp_intent_arr.append(hyp_intent)
+        ref_intent_arr.append(ref_intent)
+    print(classification_report(ref_intent_arr, hyp_intent_arr))
+    return f1_score(ref_intent_arr, hyp_intent_arr, average="macro")
 
 
 parser = argparse.ArgumentParser()
@@ -66,17 +61,8 @@ valid_ref_file = open(
     os.path.join(exp_root, valid_inference_folder + "score_wer/ref.trn")
 )
 
-valid_hyp_write_file = open(
-    os.path.join(exp_root, valid_inference_folder + "score_wer/hyp_asr.trn"), "w"
-)
-valid_ref_write_file = open(
-    os.path.join(exp_root, valid_inference_folder + "score_wer/ref_asr.trn"), "w"
-)
-
-result = get_classification_result(
-    valid_hyp_file, valid_ref_file, valid_hyp_write_file, valid_ref_write_file
-)
-print("Valid Intent Classification Result")
+result = get_classification_result(valid_hyp_file, valid_ref_file)
+print("Valid Macro F1")
 print(result)
 
 test_hyp_file = open(
@@ -85,17 +71,9 @@ test_hyp_file = open(
 test_ref_file = open(
     os.path.join(exp_root, test_inference_folder + "score_wer/ref.trn")
 )
-test_hyp_write_file = open(
-    os.path.join(exp_root, test_inference_folder + "score_wer/hyp_asr.trn"), "w"
-)
-test_ref_write_file = open(
-    os.path.join(exp_root, test_inference_folder + "score_wer/ref_asr.trn"), "w"
-)
 
-result = get_classification_result(
-    test_hyp_file, test_ref_file, test_hyp_write_file, test_ref_write_file
-)
-print("Test Intent Classification Result")
+result = get_classification_result(test_hyp_file, test_ref_file)
+print("Test Intent Macro F1")
 print(result)
 
 if args.utterance_test_folder is not None:
@@ -106,17 +84,6 @@ if args.utterance_test_folder is not None:
     utt_test_ref_file = open(
         os.path.join(exp_root, utt_test_inference_folder + "score_wer/ref.trn")
     )
-    utt_test_hyp_write_file = open(
-        os.path.join(exp_root, utt_test_inference_folder + "score_wer/hyp_asr.trn"), "w"
-    )
-    utt_test_ref_write_file = open(
-        os.path.join(exp_root, utt_test_inference_folder + "score_wer/ref_asr.trn"), "w"
-    )
-    result = get_classification_result(
-        utt_test_hyp_file,
-        utt_test_ref_file,
-        utt_test_hyp_write_file,
-        utt_test_ref_write_file,
-    )
-    print("Unseen Utterance Test Intent Classification Result")
+    result = get_classification_result(utt_test_hyp_file, utt_test_ref_file)
+    print("Unseen Utterance Test Macro F1")
     print(result)
