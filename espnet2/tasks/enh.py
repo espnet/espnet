@@ -32,6 +32,7 @@ from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.separator.asteroid_models import AsteroidModel_Converter
 from espnet2.enh.separator.conformer_separator import ConformerSeparator
+from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
 from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.fasnet_separator import FaSNetSeparator
@@ -63,6 +64,7 @@ separator_choices = ClassChoices(
         rnn=RNNSeparator,
         skim=SkiMSeparator,
         tcn=TCNSeparator,
+        dc_crn=DC_CRNSeparator,
         dprnn=DPRNNSeparator,
         dccrn=DCCRNSeparator,
         transformer=TransformerSeparator,
