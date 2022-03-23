@@ -59,9 +59,6 @@ ST_CMDS=$(cd ${ST_CMDS}; pwd)
 echo local/data_download.sh ${download_opt} "${ST_CMDS}" "${data_url}" ST-CMDS-20170001_1-OS.tar.gz
 local/data_download.sh ${download_opt} "${ST_CMDS}" "${data_url}" ST-CMDS-20170001_1-OS.tar.gz
 
-ST_CMDS_audio_dir=${ST_CMDS}/data_ST_CMDS/wav
-ST_CMDS_text=${ST_CMDS}/data_ST_CMDS/transcript/ST_CMDS_transcript_v0.8.txt
-
 log "Data Preparation"
 train_dir=data/train
 dev_dir=data/dev
