@@ -434,7 +434,11 @@ class Speech2Text:
         asr_hs_lengths = asr_hs.new_full([1], dtype=torch.long, fill_value=asr_hs.size(1))
         enc_mt, enc_mt_lengths, _ = self.st_model.encoder_mt(asr_hs, asr_hs_lengths)
         if self.speech_attn:
-            x = enc[0]
+            if hasattr(self.st_model, "encoder_hier"):
+                enc_hier, enc_hier_lens, _ = self.st_model.encoder_hier(enc, enc_lens)
+                x = enc_hier[0]
+            else:
+                x = enc[0]
             md_x = enc_mt[0]
         else:
             x = enc_mt[0]
