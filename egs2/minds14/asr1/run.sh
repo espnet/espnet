@@ -10,7 +10,7 @@ valid_set="valid"
 test_sets="test valid"
 language="es-ES"
 
-asr_config=conf/train_wav2vec.yaml
+asr_config=conf/train.yaml
 
 ./asr.sh \
     --ngpu 1 \
