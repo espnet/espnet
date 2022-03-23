@@ -296,14 +296,8 @@ fi
 # Extra files for translation process
 utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for bpe training if not specified.
-if "${token_joint}"; then
-    # if token_joint, the bpe training will use both src_lang and tgt_lang to train a single bpe model
-    # TODO (prepare data as text.${src_lang}_${tgt_lang})
-    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
-else
-    [ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
-    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
-fi
+[ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
+[ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for lm training if not specified.
 [ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for lm training if not specified.
@@ -739,6 +733,16 @@ if ! "${skip_data_prep}"; then
     fi
 
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+        # Combine source and target texts when using joint tokenization
+        if "${token_joint}"; then
+            log "Merge src and target data if joint BPE"
+
+            cat $tgt_bpe_train_text > ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+            [ ! -z "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >> ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+            # Set the new text as the target text
+            tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
+        fi
+
         # First generate tgt lang
         if [ "${tgt_token_type}" = bpe ]; then
             log "Stage 5a: Generate token_list from ${tgt_bpe_train_text} using BPE for tgt_lang"
@@ -1480,8 +1484,8 @@ if ! "${skip_eval}"; then
             perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
 
             # detokenizer
-            detokenizer.perl -l en -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
-            detokenizer.perl -l en -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
+            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
+            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
 
             if [ ${tgt_case} = "tc" ]; then
                 echo "Case sensitive BLEU result (single-reference)" >> ${_scoredir}/result.tc.txt
@@ -1524,7 +1528,7 @@ if ! "${skip_eval}"; then
                     
                     # 
                     perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
-                    detokenizer.perl -l en -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
+                    detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
                     remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
                     case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
                     case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
@@ -1547,7 +1551,7 @@ if ! "${skip_eval}"; then
         done
 
         # Show results in Markdown syntax
-        scripts/utils/show_st_result.sh --case $tgt_case "${st_exp}" > "${st_exp}"/RESULTS.md
+        scripts/utils/show_translation_result.sh --case $tgt_case "${st_exp}" > "${st_exp}"/RESULTS.md
         cat "${cat_exp}"/RESULTS.md
     fi
 else

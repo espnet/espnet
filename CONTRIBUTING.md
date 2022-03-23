@@ -53,9 +53,9 @@ ESPnet2's recipes correspond to `egs2`. ESPnet2 applies a new paradigm without d
 For ESPnet2, we do not recommend preparing the recipe's stages for each corpus but using the common pipelines we provided in `asr.sh`, `tts.sh`, and
 `enh.sh`. For details of creating ESPnet2 recipes, please refer to [egs2-readme](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/README.md).
 
-The common pipeline of ESPnet2 recipes will take care of the `RESULTS.md` generation, model packing, and uploading. ESPnet2 models are maintained at Zenodo and Hugging Face.
+The common pipeline of ESPnet2 recipes will take care of the `RESULTS.md` generation, model packing, and uploading. ESPnet2 models are maintained at Hugging Face and Zenodo (Deprecated).
 You can also refer to the document in https://github.com/espnet/espnet_model_zoo
-To upload your model, you need first:
+To upload your model, you need first (This is currently deprecated , uploading to Huggingface Hub is prefered) :
 1. Sign up to Zenodo: https://zenodo.org/
 2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
 3. Set your environment: % export ACCESS_TOKEN="<your token>"
@@ -64,6 +64,21 @@ To port models from zenodo using Hugging Face hub,
 1. Create a Hugging Face account - https://huggingface.co/
 2. Request to be added to espnet organisation - https://huggingface.co/espnet
 3. Go to `egs2/RECIPE/*/scripts/utils` and run `./upload_models_to_hub.sh "ZENODO_MODEL_NAME"`
+   
+To upload models using Huggingface-cli follow the following steps:
+You can also refer to https://huggingface.co/docs/transformers/model_sharing
+1. Create a Hugging Face account - https://huggingface.co/
+2. Request to be added to espnet organisation - https://huggingface.co/espnet 
+3. Run huggingface-cli login (You can get the token request at this step under setting > Access Tokens > espnet token  
+4. `huggingface-cli repo create your-model-name --organization espnet`
+5. `git clone https://huggingface.co/username/your-model-name` (clone this outside ESPNet to avoid issues as this a git repo)
+6. `cd your-model-name`
+7. `git lfs install`
+8. copy contents from exp diretory of your recipe into this directory (Check other models of similar task under ESPNet to confirm your directory structure) 
+9. `git add . `
+10. `git commit -m "Add model files"`
+11. `git push`
+12. Check if the inference demo on HF is running successfully to verify the upload      
 
 #### 1.3.3 Additional requirements for new recipe
 

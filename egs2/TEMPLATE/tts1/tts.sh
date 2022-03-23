@@ -401,10 +401,15 @@ if ! "${skip_data_prep}"; then
                 # Assume that others toolkits are python-based
                 log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector using python toolkits"
                 for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                    if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                        _suf="/org"
+                    else
+                        _suf=""
+                    fi
                     pyscripts/utils/extract_xvectors.py \
                         --pretrained_model ${xvector_model} \
                         --toolkit ${xvector_tool} \
-                        ${data_feats}/${dset} \
+                        ${data_feats}${_suf}/${dset} \
                         ${dumpdir}/xvector/${dset}
                 done
             fi
@@ -697,8 +702,12 @@ if ! "${skip_train}"; then
             #     CASE 1: AR model training     #
             #####################################
             _scp=wav.scp
-            # "sound" supports "wav", "flac", etc.
-            _type=sound
+            if [[ "${audio_format}" == *ark* ]]; then
+                _type=kaldi_ark
+            else
+                # "sound" supports "wav", "flac", etc.
+                _type=sound
+            fi
             _fold_length="$((speech_fold_length * n_shift))"
             _opts+="--feats_extract ${feats_extract} "
             _opts+="--feats_extract_conf n_fft=${n_fft} "
@@ -775,7 +784,12 @@ if ! "${skip_train}"; then
             else
                 # Teacher forcing case: use groundtruth as the target
                 _scp=wav.scp
-                _type=sound
+                if [[ "${audio_format}" == *ark* ]]; then
+                    _type=kaldi_ark
+                else
+                    # "sound" supports "wav", "flac", etc.
+                    _type=sound
+                fi
                 _fold_length="$((speech_fold_length * n_shift))"
                 _opts+="--feats_extract ${feats_extract} "
                 _opts+="--feats_extract_conf n_fft=${n_fft} "
