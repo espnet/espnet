@@ -474,8 +474,13 @@ class Speech2Text:
                     else:
                         ext_st_enc_mt, _ , _ = self.ext_st_models[i].encoder_mt(asr_hs, asr_hs_lengths)
                     if self.ext_speech_attns[i]:
-                        ext_st_xs.append(ext_st_enc[0])
-                        ext_md_xs.append(ext_st_enc_mt[0])
+                        if hasattr(self.ext_st_models[i], "encoder_hier"):
+                            ext_st_enc_hier, _ , _ = self.ext_st_models[i].encoder_hier(ext_st_enc, ext_st_enc_lens)
+                            ext_st_xs.append(ext_st_enc_hier[0])
+                            ext_md_xs.append(ext_st_enc_mt[0])
+                        else:
+                            ext_st_xs.append(ext_st_enc[0])
+                            ext_md_xs.append(ext_st_enc_mt[0])
                     else:
                         ext_st_xs.append(ext_st_enc_mt[0])
                         ext_md_xs.append(None)
