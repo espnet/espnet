@@ -178,7 +178,7 @@ class Speech2Text:
                 ext_st.to(dtype=getattr(torch, dtype)).eval()
                 self.ext_st_models.append(ext_st)
                 self.ext_st_decoders.append(ext_st.decoder)
-                if isinstance(ext_st,Union[ESPnetSTMDModel, ESPnetSTMDHierModel, ESPnetSTMDSampModel]):
+                if isinstance(ext_st,(ESPnetSTMDModel, ESPnetSTMDHierModel, ESPnetSTMDSampModel)):
                     self.ext_md_models.append(True)
                 else:
                     self.ext_md_models.append(False)
