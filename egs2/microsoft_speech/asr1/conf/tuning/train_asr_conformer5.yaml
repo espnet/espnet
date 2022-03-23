@@ -1,3 +1,9 @@
+cudnn_benchmark: false 
+cudnn_deterministic: false 
+use_amp: true 
+cudnn_benchmark: false 
+cudnn_deterministic: false 
+use_amp: true 
 # network architecture
 
 # frontend related
@@ -53,7 +59,7 @@ scheduler_conf:
 
 # minibatch related
 batch_type: numel
-batch_bins: 10000000
+batch_bins: 2500000
 
 best_model_criterion:
 -   - valid
