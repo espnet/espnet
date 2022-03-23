@@ -128,7 +128,7 @@ with open(os.path.join(DATA_DIR, "valid", "text"), "w") as f_text:
                 text = "".join([i.lower() for i in text if i not in string.punctuation])
                 speaker = utt_id.split("_")[2]
                 if utt_id in utterances:
-                    f_text.write(speaker + "_" + line)
+                    f_text.write(speaker + "_" + text)
 
                     wav_path = os.path.join(DEST_DIR, "valid", utt_id + ".wav")
                     f_wav.write(speaker + "_" + utt_id + " " + wav_path + "\n")
