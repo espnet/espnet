@@ -16,7 +16,7 @@ if len(sys.argv) != 3:
 
 
 MINDS14_DIR = sys.argv[1]  # raw dataset zip file contents should be here
-LANG = sys.argv[2] # language
+LANG = sys.argv[2]  # language
 DATA_DIR = "data"  # processed data should go here
 
 
@@ -63,7 +63,7 @@ def read_minds14_data(dataset_csv, export_csv):
 
 read_minds14_data(
     os.path.join(MINDS14_DIR, f"text/{LANG}.csv"),  # ~/text/lang-LOCALE.csv
-    os.path.join(MINDS14_DIR, "export.csv")
+    os.path.join(MINDS14_DIR, "export.csv"),
 )
 
 
@@ -75,10 +75,15 @@ dir_dict = {
 
 
 for partition in dir_dict:
-    with open(os.path.join(DATA_DIR, partition, "text"), "w", encoding='utf-8') as text_f, \
-         open(os.path.join(DATA_DIR, partition, "wav.scp"), "w", encoding='utf-8') as wav_scp_f, \
-         open(os.path.join(DATA_DIR, partition, "transcript"), "w", encoding='utf-8') as transcript_f, \
-         open(os.path.join(DATA_DIR, partition, "utt2spk"), "w", encoding='utf-8') as utt2spk_f:
+    with open(
+        os.path.join(DATA_DIR, partition, "text"), "w", encoding="utf-8"
+    ) as text_f, open(
+        os.path.join(DATA_DIR, partition, "wav.scp"), "w", encoding="utf-8"
+    ) as wav_scp_f, open(
+        os.path.join(DATA_DIR, partition, "transcript"), "w", encoding="utf-8"
+    ) as transcript_f, open(
+        os.path.join(DATA_DIR, partition, "utt2spk"), "w", encoding="utf-8"
+    ) as utt2spk_f:
 
         text_f.truncate()
         wav_scp_f.truncate()
