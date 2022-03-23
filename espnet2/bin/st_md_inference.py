@@ -26,6 +26,8 @@ from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet2.st.decoder.transformer_md_decoder import TransformerMDDecoder
 from espnet2.st.decoder.ensemble_decoder import EnsembleSTDecoder
 from espnet2.st.espnet_model_md import ESPnetSTMDModel
+from espnet2.st.espnet_model_md_hier import ESPnetSTMDHierModel
+from espnet2.st.espnet_model_md_samp import ESPnetSTMDSampModel
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
@@ -176,7 +178,7 @@ class Speech2Text:
                 ext_st.to(dtype=getattr(torch, dtype)).eval()
                 self.ext_st_models.append(ext_st)
                 self.ext_st_decoders.append(ext_st.decoder)
-                if isinstance(ext_st,Union[ESPnetSTModel, ESPnetSTMDModel, ESPnetSTMDHierModel, ESPnetSTMDSampModel]):
+                if isinstance(ext_st,Union[ESPnetSTMDModel, ESPnetSTMDHierModel, ESPnetSTMDSampModel]):
                     self.ext_md_models.append(True)
                 else:
                     self.ext_md_models.append(False)
