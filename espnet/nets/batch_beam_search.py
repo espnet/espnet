@@ -258,16 +258,12 @@ class BatchBeamSearch(BeamSearch):
             mt_x=mt_x.expand(n_batch, *mt_x.shape)
 
         if ext_st_xs is not None:
-            assert isinstance(ext_st_xs, List)
-            for i in range(len(ext_st_xs)):
-                if ext_st_xs[i] is not None:
-                    ext_st_xs[i]=ext_st_xs[i].expand(n_batch, *ext_st_xs[i].shape)
+            ext_st_xs = [ x.expand(n_batch, *x.shape) if x is not None else None for x in ext_st_xs ]
+
 
         if ext_md_xs is not None:
-            assert isinstance(ext_md_xs, List)
-            for i in range(len(ext_md_xs)):
-                if ext_md_xs[i] is not None:
-                    ext_md_xs[i]=ext_md_xs[i].expand(n_batch, *ext_md_xs[i].shape)
+            ext_md_xs = [ x.expand(n_batch, *x.shape) if x is not None else None for x in ext_md_xs ]
+
         # batch scoring
         weighted_scores = torch.zeros(
             n_batch, self.n_vocab, dtype=x.dtype, device=x.device
