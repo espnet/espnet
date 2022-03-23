@@ -1,3 +1,11 @@
+---
+tags:
+- espnet
+- audio
+- automatic-speech-recognition
+language: es-ES
+license: mit
+---
 # Dataset
 * MInDS-14: https://aclanthology.org/2021.emnlp-main.591/
 
@@ -22,14 +30,6 @@
 
 # How to run
 * In `run.sh`, edit the value of `language` to `{lang}-{LOCALE}` (ex. `es-ES`, `en-AU`)
----
-
-tags:
-- espnet
-- audio
-- automatic-speech-recognition
-language: es-ES
-license: mit
 ---
 
 # RESULTS
@@ -59,4 +59,4 @@ license: mit
 ___
 
 # HuggingFace
-* The trained model can be found at: https://huggingface.co/espnet/MInDS-14_es-ES
+* The trained model for `es-ES` can be found at: https://huggingface.co/espnet/MInDS-14_es-ES
