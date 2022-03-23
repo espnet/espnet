@@ -117,22 +117,30 @@ class EnsembleSTDecoder(AbsDecoder, BatchScorerInterface):
                 and next state list for ys.
         """
         n_batch = len(states)
-
-        all_state_list = []
+        state_list = [[None] * self.n_decoders for x in range(n_batch)]
         logps = []
         for i in range(self.n_decoders):
-            decoder_batch = [states[h][i] for h in range(n_batch)]
-            if self.md_has_speechattn[i]:
-                logp, state_list = self.decoders[i].batch_score(ys, decoder_batch, xs[i], speech[i])
-            else:
-                logp, state_list = self.decoders[i].batch_score(ys, decoder_batch, speech[i])
-            all_state_list.append(state_list)
-            logps.append(self.weights[i] * logp)
-        score = torch.sum(torch.stack(logps, dim=0), dim=0)
+            n_layers = len(self.decoders[i].decoders)
 
-        transpose_state_list = []
-        for i in range(n_batch):
-            transpose_state_list.append(
-                [all_state_list[j][i] for j in range(self.n_decoders)]
-            )
-        return score, transpose_state_list
+            if states[i][0] is None:
+                batch_state= None
+            else:
+                # transpose state of [batch, id, layer] into [layer, batch]
+                batch_state = [
+                    torch.stack([states[b][i][l] for b in range(n_batch)])
+                    for l in range(n_layers)
+                ]
+
+            ys_mask = subsequent_mask(ys.size(-1), device=xs[i].device).unsqueeze(0)
+            if self.md_has_speechattn[i]:
+                logp, states = self.decoders[i].forward_one_step(ys, ys_mask, xs[i], speech[i], cache=batch_state)
+            else:
+                logp, states = self.decoders[i].forward_one_step(ys, ys_mask, speech[i], cache=batch_state)
+            logps.append(self.weights[i] * logp)
+
+            # transpose state of [layer, batch] into [batch, id, layer]
+            for b in range(n_batch):
+                state_list[b][i] = [states[k][b] for k in range(n_layers)]
+
+        score = torch.sum(torch.stack(logps, dim=0), dim=0)
+        return score, state_list
