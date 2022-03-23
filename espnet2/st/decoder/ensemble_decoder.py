@@ -27,7 +27,6 @@ class EnsembleSTDecoder(AbsDecoder, BatchScorerInterface):
     def __init__(
         self,
         decoders: List[AbsDecoder],
-        is_md_decoders: List[bool] = None,
         md_has_speechattn: List[bool] = None,
         weights: List[float] = None,
     ):
@@ -36,14 +35,12 @@ class EnsembleSTDecoder(AbsDecoder, BatchScorerInterface):
         assert len(decoders) > 0, "At least one decoder is needed for ensembling"
 
         # Note (jiatong): different from other'decoders
-        self.decoders = decoders
+        self.decoders = torch.nn.ModuleList(decoders)
         self.n_decoders = len(self.decoders)
-        self.is_md_decoders = is_md_decoders
         self.md_has_speechattn = md_has_speechattn
         self.weights = (
             [1.0 / len(decoders)] * len(decoders) if weights is None else weights
         )
-        self.weights = np.array(self.weights)
 
     def init_state(self, x: torch.Tensor) -> Any:
         """Get an initial state for decoding (optional).
@@ -52,7 +49,7 @@ class EnsembleSTDecoder(AbsDecoder, BatchScorerInterface):
             x (torch.Tensor): The encoded feature tensor
         Returns: initial state
         """
-        return [None] * len(self.decoders)
+        return [None] * self.n_decoders
 
     def batch_init_state(self, x: torch.Tensor) -> Any:
         """Get an initial state for decoding (optional).

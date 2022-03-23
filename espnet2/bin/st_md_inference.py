@@ -185,7 +185,8 @@ class Speech2Text:
                     self.ext_speech_attns.append(True)
                 else:
                     self.ext_speech_attns.append(False)
-            scorers["ext_st"] = EnsembleSTDecoder(self.ext_st_decoders, self.ext_md_models, self.ext_speech_attns)
+            scorers["ext_st"] = EnsembleSTDecoder(self.ext_st_decoders, self.ext_speech_attns)
+            scorers["ext_st"].eval()
 
         # 3. Build ngram model
         if ngram_file is not None:
@@ -458,21 +459,17 @@ class Speech2Text:
             ext_st_xs=[]
             ext_md_xs=[]
             for i in range(len(self.ext_st_models)):
-                ext_st_model = self.ext_st_models[i]
-                ext_md_model = self.ext_md_models[i]
-                ext_speech_attn = self.ext_speech_attns[i]
-
-                ext_st_enc, ext_st_enc_lens = ext_st_model.encode(**batch)
-                if ext_md_model:
+                ext_st_enc, ext_st_enc_lens = self.ext_st_models[i].encode(**batch)
+                if self.ext_md_models[i]:
                     if src_text is not None:
-                        _ , _, ext_hs_dec_asr = ext_st_model.asr_decoder(
+                        _ , _, ext_hs_dec_asr = self.ext_st_models[i].asr_decoder(
                             ext_st_enc, ext_st_enc_lens, src_text_in, src_text_in_lens, return_hidden=True
                         )
                         ext_asr_hs_lengths = ext_hs_dec_asr.new_full([1], dtype=torch.long, fill_value=ext_hs_dec_asr.size(1))
-                        ext_st_enc_mt, _ , _ = ext_st_model.encoder_mt(ext_hs_dec_asr, ext_asr_hs_lengths)
+                        ext_st_enc_mt, _ , _ = self.ext_st_models[i].encoder_mt(ext_hs_dec_asr, ext_asr_hs_lengths)
                     else:
-                        ext_st_enc_mt, _ , _ = ext_st_model.encoder_mt(asr_hs, asr_hs_lengths)
-                    if ext_speech_attn:
+                        ext_st_enc_mt, _ , _ = self.ext_st_models[i].encoder_mt(asr_hs, asr_hs_lengths)
+                    if self.ext_speech_attns[i]:
                         ext_st_xs.append(ext_st_enc[0])
                         ext_md_xs.append(ext_st_enc_mt[0])
                     else:
