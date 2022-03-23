@@ -114,12 +114,12 @@ class EnsembleSTDecoder(AbsDecoder, BatchScorerInterface):
                 and next state list for ys.
         """
         n_batch = len(states)
-        state_list = [[None] * self.n_decoders for x in range(n_batch)]
+        all_state_list = [[None] * self.n_decoders for x in range(n_batch)]
         logps = []
         for i in range(self.n_decoders):
             n_layers = len(self.decoders[i].decoders)
 
-            if states[i][0] is None:
+            if states[0][i] is None:
                 batch_state= None
             else:
                 # transpose state of [batch, id, layer] into [layer, batch]
@@ -130,14 +130,14 @@ class EnsembleSTDecoder(AbsDecoder, BatchScorerInterface):
 
             ys_mask = subsequent_mask(ys.size(-1), device=xs[i].device).unsqueeze(0)
             if self.md_has_speechattn[i]:
-                logp, states = self.decoders[i].forward_one_step(ys, ys_mask, xs[i], speech[i], cache=batch_state)
+                logp, state_list = self.decoders[i].forward_one_step(ys, ys_mask, xs[i], speech[i], cache=batch_state)
             else:
-                logp, states = self.decoders[i].forward_one_step(ys, ys_mask, speech[i], cache=batch_state)
+                logp, state_list = self.decoders[i].forward_one_step(ys, ys_mask, speech[i], cache=batch_state)
             logps.append(self.weights[i] * logp)
 
             # transpose state of [layer, batch] into [batch, id, layer]
             for b in range(n_batch):
-                state_list[b][i] = [states[k][b] for k in range(n_layers)]
+                all_state_list[b][i] = [state_list[k][b] for k in range(n_layers)]
 
         score = torch.sum(torch.stack(logps, dim=0), dim=0)
-        return score, state_list
+        return score, all_state_list
