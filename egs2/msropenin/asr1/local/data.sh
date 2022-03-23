@@ -54,10 +54,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     mkdir -p ${COMMONVOICE}/msropenin
     git lfs install
     git clone https://huggingface.co/bhanu77prakash/msropenin_${lang}
-    cd msropenin_${lang}
-    tar -xvf ${lang}.tar.gz
-    cd ..
-    mv msropenin_${lang}/${lang} ${COMMONVOICE}/msropenin/
+    tar -xvf msropenin_${lang}/${lang}.tar.gz
+    mv ${lang} ${COMMONVOICE}/msropenin/
     rm -rf msropenin_${lang}
 fi
 
