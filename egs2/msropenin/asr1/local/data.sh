@@ -19,9 +19,9 @@
 
 # general configuration
 stage=0       # start from 0 if you need to start from data preparation
-stop_stage=100
+stop_stage=13 # Change to 16 if you need the model to be uploaded to espnet hub
 SECONDS=0
-lang=en # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk 
+lang=te # te gu ta
 
  . utils/parse_options.sh || exit 1;
 
