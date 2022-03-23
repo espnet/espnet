@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# Copyright 2020 Johns Hopkins University (Shinji Watanabe)
-#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
 . ./path.sh || exit 1;
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
@@ -15,7 +12,6 @@ SECONDS=0
  . utils/parse_options.sh || exit 1;
 
 # base url for downloads.
-# Deprecated url:https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-3/$lang.tar.gz
 data_url=https://us.openslr.org/resources/108/FR.tgz
 
 log() {
@@ -61,16 +57,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > data/${x}/spk2utt
         utils/fix_data_dir.sh data/${x}
         utils/validate_data_dir.sh --no-feats data/${x}
-    # for part in "validated" "test" "dev"; do
-    #     # use underscore-separated names in data directories.
-    #     local/data_prep.pl "${COMMONVOICE}/cv-corpus-5.1-2020-06-22/${lang}" ${part} data/"$(echo "${part}_${lang}" | tr - _)"
-
-
-    # remove test&dev data from validated sentences
-    # utils/copy_data_dir.sh data/"$(echo "validated_${lang}" | tr - _)" data/${train_set}
-    # utils/filter_scp.pl --exclude data/${train_dev}/wav.scp data/${train_set}/wav.scp > data/${train_set}/temp_wav.scp
-    # utils/filter_scp.pl --exclude data/${test_set}/wav.scp data/${train_set}/temp_wav.scp > data/${train_set}/wav.scp
-    # utils/fix_data_dir.sh data/${train_set}
     done
 fi
 
