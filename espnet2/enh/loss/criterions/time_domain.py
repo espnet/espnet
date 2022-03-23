@@ -4,6 +4,8 @@ import ci_sdr
 import torch
 
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
+import asteroid_filterbanks.transforms as af_transforms
+from asteroid_filterbanks import make_enc_dec
 
 
 class TimeDomainLoss(AbsEnhLoss, ABC):
@@ -107,15 +109,15 @@ class SISNRLoss(TimeDomainLoss):
         # s_target = <s', s>s / ||s||^2
         pair_wise_dot = torch.sum(s_estimate * s_target, dim=1, keepdim=True)  # [B, 1]
         s_target_energy = (
-            torch.sum(s_target ** 2, dim=1, keepdim=True) + self.eps
+            torch.sum(s_target**2, dim=1, keepdim=True) + self.eps
         )  # [B, 1]
         pair_wise_proj = pair_wise_dot * s_target / s_target_energy  # [B, T]
         # e_noise = s' - s_target
         e_noise = s_estimate - pair_wise_proj  # [B, T]
 
         # SI-SNR = 10 * log_10(||s_target||^2 / ||e_noise||^2)
-        pair_wise_si_snr = torch.sum(pair_wise_proj ** 2, dim=1) / (
-            torch.sum(e_noise ** 2, dim=1) + self.eps
+        pair_wise_si_snr = torch.sum(pair_wise_proj**2, dim=1) / (
+            torch.sum(e_noise**2, dim=1) + self.eps
         )
         pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + self.eps)  # [B]
 
@@ -130,11 +132,11 @@ class MultiResL1SpecLoss(TimeDomainLoss):
         self.window_sz = window_sz
 
         if hop_sz is None:
-            self.hop_sz = [x//2 for x in window_sz]
+            self.hop_sz = [x // 2 for x in window_sz]
         else:
             self.hop_sz = hop_sz
 
-        self.time_domain_weight=time_domain_weight
+        self.time_domain_weight = time_domain_weight
         self.eps = eps
         self.stft_encoders = torch.nn.ModuleList([])
         for w, h in zip(self.window_sz, self.hop_sz):
@@ -145,12 +147,16 @@ class MultiResL1SpecLoss(TimeDomainLoss):
     def name(self) -> str:
         return "l1_timedomain+magspec_loss"
 
-    def forward(self,
+    def forward(
+        self,
         target: torch.Tensor,
-        estimate: torch.Tensor,):
+        estimate: torch.Tensor,
+    ):
         # shape bsz, samples
-        scaling_factor = torch.sum(estimate * target, -1, keepdim=True) / (torch.sum(estimate**2, -1, keepdim=True) + self.eps)
-        time_domain_loss = torch.mean((estimate*scaling_factor - target).abs())
+        scaling_factor = torch.sum(estimate * target, -1, keepdim=True) / (
+            torch.sum(estimate**2, -1, keepdim=True) + self.eps
+        )
+        time_domain_loss = torch.mean((estimate * scaling_factor - target).abs())
 
         if len(self.stft_encoders) == 0:
             return time_domain_loss
@@ -158,9 +164,15 @@ class MultiResL1SpecLoss(TimeDomainLoss):
             spectral_loss = torch.zeros_like(time_domain_loss)
             for stft_enc in self.stft_encoders:
                 target_stft = stft_enc(target)
-                estimate_stft = stft_enc(estimate*scaling_factor)
+                estimate_stft = stft_enc(estimate * scaling_factor)
                 c_loss = torch.mean(
-            (af_transforms.mag(estimate_stft) - af_transforms.mag(target_stft)).abs())
+                    (
+                        af_transforms.mag(estimate_stft)
+                        - af_transforms.mag(target_stft)
+                    ).abs()
+                )
                 spectral_loss += c_loss
 
-            return time_domain_loss*self.time_domain_weight + (1 - self.time_domain_weight)*spectral_loss/len(self.stft_encoders)
+            return time_domain_loss * self.time_domain_weight + (
+                1 - self.time_domain_weight
+            ) * spectral_loss / len(self.stft_encoders)
