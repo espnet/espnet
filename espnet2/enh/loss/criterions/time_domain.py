@@ -120,3 +120,47 @@ class SISNRLoss(TimeDomainLoss):
         pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + self.eps)  # [B]
 
         return -1 * pair_wise_si_snr
+
+
+class MultiResL1SpecLoss(TimeDomainLoss):
+    def __init__(self, window_sz=[512], hop_sz=None, eps=1e-8, time_domain_weight=0.5):
+        super(MultiResL1SpecLoss, self).__init__()
+
+        assert [x % 2 == 0 for x in window_sz]
+        self.window_sz = window_sz
+
+        if hop_sz is None:
+            self.hop_sz = [x//2 for x in window_sz]
+        else:
+            self.hop_sz = hop_sz
+
+        self.time_domain_weight=time_domain_weight
+        self.eps = eps
+        self.stft_encoders = torch.nn.ModuleList([])
+        for w, h in zip(self.window_sz, self.hop_sz):
+            stft_enc, _ = make_enc_dec("torch_stft", w, w, h)
+            self.stft_encoders.append(stft_enc)
+
+    @property
+    def name(self) -> str:
+        return "l1_timedomain+magspec_loss"
+
+    def forward(self,
+        target: torch.Tensor,
+        estimate: torch.Tensor,):
+        # shape bsz, samples
+        scaling_factor = torch.sum(estimate * target, -1, keepdim=True) / (torch.sum(estimate**2, -1, keepdim=True) + self.eps)
+        time_domain_loss = torch.mean((estimate*scaling_factor - target).abs())
+
+        if len(self.stft_encoders) == 0:
+            return time_domain_loss
+        else:
+            spectral_loss = torch.zeros_like(time_domain_loss)
+            for stft_enc in self.stft_encoders:
+                target_stft = stft_enc(target)
+                estimate_stft = stft_enc(estimate*scaling_factor)
+                c_loss = torch.mean(
+            (af_transforms.mag(estimate_stft) - af_transforms.mag(target_stft)).abs())
+                spectral_loss += c_loss
+
+            return time_domain_loss*self.time_domain_weight + (1 - self.time_domain_weight)*spectral_loss/len(self.stft_encoders)
