@@ -251,7 +251,7 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
                 asr_ctc_weight * loss_asr_ctc + (1 - asr_ctc_weight) * loss_asr_att
             )
         mt_ctc_weight = self.mt_mtlalpha
-        if asr_ctc_weight == 0.0:
+        if mt_ctc_weight == 0.0:
             loss_st = loss_st_att
         else:
             loss_st = (

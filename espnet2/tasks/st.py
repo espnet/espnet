@@ -59,6 +59,7 @@ from espnet2.st.espnet_model import ESPnetSTModel
 from espnet2.st.espnet_model_md import ESPnetSTMDModel
 from espnet2.st.espnet_model_md_hier import ESPnetSTMDHierModel
 from espnet2.st.espnet_model_md_samp import ESPnetSTMDSampModel
+from espnet2.st.espnet_model_md_hier_samp import ESPnetSTMDHierSampModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -486,7 +487,7 @@ class STTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTMDModel, ESPnetSTMDHierModel, ESPnetSTMDSampModel]:
+    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTMDModel, ESPnetSTMDHierModel, ESPnetSTMDSampModel, ESPnetSTMDHierSampModel]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -609,7 +610,38 @@ class STTask(AbsTask):
 
             use_hier_ctc = getattr(args, "use_hier_ctc", False)
             use_ctc_samp = getattr(args, "use_ctc_samp", False)
-            if use_hier_ctc:
+            if use_hier_ctc and use_ctc_samp:
+                encoder_hier_class = encoder_choices.get_class(args.encoder_hier)
+                encoder_hier = encoder_hier_class(input_size=encoder_output_size, **args.encoder_hier_conf)
+
+                mt_ctc = CTC(
+                    odim=vocab_size,
+                    encoder_output_size=encoder_output_size,
+                    **args.ctc_conf,
+                )
+
+                # 8. Build model
+                model = ESPnetSTMDHierSampModel(
+                    vocab_size=vocab_size,
+                    src_vocab_size=src_vocab_size,
+                    frontend=frontend,
+                    specaug=specaug,
+                    normalize=normalize,
+                    preencoder=preencoder,
+                    encoder=encoder,
+                    encoder_hier=encoder_hier,
+                    postencoder=postencoder,
+                    decoder=decoder,
+                    ctc=ctc,
+                    mt_ctc=mt_ctc,
+                    asr_decoder=asr_decoder,
+                    encoder_mt=encoder_mt,
+                    token_list=token_list,
+                    src_token_list=src_token_list,
+                    speech_attn = speech_attn,
+                    **args.model_conf,
+                )
+            elif use_hier_ctc:
                 encoder_hier_class = encoder_choices.get_class(args.encoder_hier)
                 encoder_hier = encoder_hier_class(input_size=encoder_output_size, **args.encoder_hier_conf)
 
