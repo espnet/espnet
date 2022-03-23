@@ -36,6 +36,10 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "${MINDS14_DIR}/license.md" ]; then
 	echo "stage 1: Download data to ${MINDS14_DIR}"
+    wget https://poly-public-data.s3.amazonaws.com/MInDS-14/MInDS-14.zip
+    unzip MInDS-14.zip
+    unzip ${MINDS14_DIR}/audio.zip -d ${MINDS14_DIR}/audio
+    unzip ${MINDS14_DIR}/text.zip -d ${MINDS14_DIR}/text
     else
         log "stage 1: ${MINDS14_DIR}/LICENCE already exists. Skip data downloading"
     fi
