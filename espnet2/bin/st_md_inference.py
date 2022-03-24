@@ -92,6 +92,7 @@ class Speech2Text:
         md_maxlenratio: float = 0.0,
         md_minlenratio: float = 0.0,
         md_ctc_weight: float = 0.3,
+        st_ctc_weight: float = 0.0,
         md_lm_weight: float = 1.0,
         md_asr_weight: float = 1.0,
         mt_weight: float = 0.0,
@@ -120,6 +121,12 @@ class Speech2Text:
             src_token_list = st_model.src_token_list
 
         asr_ctc = CTCPrefixScorer(ctc=st_model.ctc, eos=st_model.src_eos)
+
+        if st_ctc_weight > 0:
+            assert hasattr(st_model, "encoder_hier")
+            st_ctc = CTCPrefixScorer(ctc=st_model.mt_ctc, eos=st_model.eos)
+            scorers.update(ctc=st_ctc)
+
         asr_scorers.update(
             decoder=asr_decoder,
             ctc=asr_ctc,
@@ -620,6 +627,7 @@ def inference_md(
     md_maxlenratio: float,
     md_minlenratio: float,
     md_ctc_weight: float,
+    st_ctc_weight: float,
     md_lm_weight: float,
     md_asr_weight: float,
     mt_weight: float,
@@ -680,6 +688,7 @@ def inference_md(
         md_maxlenratio=md_maxlenratio,
         md_minlenratio=md_minlenratio,
         md_ctc_weight=md_ctc_weight,
+        st_ctc_weight=st_ctc_weight,
         md_lm_weight=md_lm_weight,
         md_asr_weight=md_asr_weight,
         mt_weight=mt_weight,

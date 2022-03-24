@@ -573,6 +573,7 @@ def get_parser():
         help="Input length ratio to obtain min output length",
     )
     group.add_argument("--md_ctc_weight", type=float, default=0.5, help="CTC weight in joint decoding")
+    group.add_argument("--st_ctc_weight", type=float, default=0.0, help="CTC weight in joint decoding")
     group.add_argument("--md_lm_weight", type=float, default=0.0, help="RNNLM weight")
     group.add_argument("--md_asr_weight", type=float, default=0.0, help="MD ASR weight")
     group.add_argument("--mt_weight", type=float, default=0.0, help="MT weight")
