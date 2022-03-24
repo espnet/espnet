@@ -21,7 +21,6 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
-mkdir -p ${MS_INDIC_IS18}
 if [ -z "${MS_INDIC_IS18}" ]; then
     log "Fill the value of 'MS_INDIC_IS18' of db.sh"
     exit 1
