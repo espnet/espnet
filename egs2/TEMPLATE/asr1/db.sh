@@ -129,6 +129,7 @@ SEAME=
 BENGALI=downloads
 IWSLT14=
 MALAYALAM=downloads
+MS_INDIC_IS18=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
@@ -163,6 +164,7 @@ if [[ "$(hostname)" == tir* ]]; then
     PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
     FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
     DSING=/projects/tir5/data/speech_corpora/sing_300x30x2
+    MS_INDIC_IS18=/projects/tir6/general/cnariset/corpora/microsoft_speech_corpus_indian_languages
 fi
 
 # For only JHU environment
