@@ -11,7 +11,7 @@ log() {
 }
 SECONDS=0
 
-
+coverage=1
 stage=1
 stop_stage=100000
 log "$0 $*"
@@ -39,7 +39,7 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
     mkdir -p data/{train,valid,test}
-    python3 local/data_prep.py ${PWD} 
+    python3 local/data_prep.py ${PWD} coverage  
     for x in test valid train; do
         for f in text wav.scp utt2spk; do
             sort data/${x}/${f} -o data/${x}/${f}
