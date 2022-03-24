@@ -40,9 +40,9 @@ test_set=test_"$(echo "${lang}" | tr - _)"
 log "data preparation started"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
-    if [[ ! -d "${lang}-in-Train}" ]];; then
+    if [[ ! -d "${lang}-in-Train}" ]]; then
         log "stage0: Download data to ${MS_INDIC_IS18}. ${lang}-in-Train} directory is missing"
-    elif [[ ! -d "${lang}-in-Test}" ]];; then
+    elif [[ ! -d "${lang}-in-Test}" ]]; then
         log "stage0: Download data to ${MS_INDIC_IS18}. ${lang}-in-Test} directory is missing"
     fi
     exit 1
