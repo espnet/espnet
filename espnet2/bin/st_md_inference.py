@@ -243,6 +243,7 @@ class Speech2Text:
         # 4. Build BeamSearch object
         weights = dict(
             decoder=1.0,
+            ctc=st_ctc_weight,
             lm=lm_weight,
             mt=mt_weight,
             ext_st=ext_st_weight,
