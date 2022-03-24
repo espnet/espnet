@@ -1,0 +1,122 @@
+log_level: INFO
+dry_run: false
+iterator_type: sequence
+output_dir: null
+seed: 0
+num_workers: 1
+num_att_plot: 3
+dist_backend: nccl
+dist_init_method: env://
+dist_world_size: null
+dist_rank: null
+local_rank: null
+dist_master_addr: null
+dist_master_port: null
+dist_launcher: null
+multiprocessing_distributed: false
+unused_parameters: false
+sharded_ddp: false
+cudnn_enabled: true
+cudnn_benchmark: false
+cudnn_deterministic: true
+collect_stats: false
+write_collected_feats: false
+max_epoch: 40
+patience: null
+val_scheduler_criterion:
+- valid
+- loss
+early_stopping_criterion:
+- valid
+- loss
+- min
+best_model_criterion:
+-   - train
+    - loss
+    - min
+-   - valid
+    - loss
+    - min
+-   - train
+    - acc
+    - max
+-   - valid
+    - acc
+    - max
+keep_nbest_models:
+- 10
+nbest_averaging_interval: 0
+grad_clip: 5.0
+grad_clip_type: 2.0
+grad_noise: false
+accum_grad: 1
+no_forward_run: false
+resume: false
+train_dtype: float32
+use_amp: false
+log_interval: null
+use_matplotlib: true
+use_tensorboard: true
+use_wandb: false
+wandb_project: null
+wandb_id: null
+wandb_entity: null
+wandb_name: null
+wandb_model_log_interval: -1
+detect_anomaly: false
+pretrain_path: null
+init_param: []
+ignore_init_mismatch: false
+freeze_param: []
+num_iters_per_epoch: null
+batch_size: 20
+valid_batch_size: null
+batch_bins: 1000000
+valid_batch_bins: null
+train_shape_file: []
+valid_shape_file: []
+batch_type: folded
+valid_batch_type: null
+fold_length: []
+sort_in_batch: descending
+sort_batch: descending
+multiple_iterator: false
+chunk_length: 500
+chunk_shift_ratio: 0.5
+num_cache_chunks: 1024
+train_data_path_and_name_and_type: []
+valid_data_path_and_name_and_type: []
+allow_variable_data_keys: false
+max_cache_size: 0.0
+max_cache_fd: 32
+valid_max_cache_size: null
+optim: adam
+optim_conf:
+    lr: 0.001
+    betas:
+    - 0.9
+    - 0.999
+    eps: 1.0e-08
+    weight_decay: 0
+    amsgrad: false
+scheduler: null
+scheduler_conf: {}
+token_list: null
+init: null
+model_conf:
+    ignore_id: 0
+use_preprocessor: true
+token_type: bpe
+bpemodel: null
+non_linguistic_symbols: null
+cleaner: null
+g2p: null
+lm: seq_rnn
+lm_conf:
+    unit: 650
+    nhid: null
+    nlayers: 2
+    dropout_rate: 0.0
+    tie_weights: false
+    rnn_type: lstm
+    ignore_id: 0
