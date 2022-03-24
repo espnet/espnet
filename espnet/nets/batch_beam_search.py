@@ -179,7 +179,7 @@ class BatchBeamSearch(BeamSearch):
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], md_asr_x)
             elif 'mt' in k and mt_x is not None:
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], mt_x)
-            elif 'ext_st' in k and ext_st_xs is not None:
+            elif 'ext_st' in k:
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], ext_md_xs, ext_st_xs)
             else:
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)

@@ -96,6 +96,7 @@ class Speech2Text:
         md_asr_weight: float = 1.0,
         mt_weight: float = 0.0,
         ext_st_weight: float = 0.0,
+        md_ext_st_weight: float = 0.0,
     ):
         assert check_argument_types()
 
@@ -167,12 +168,14 @@ class Speech2Text:
         self.ext_st_models=None
         self.ext_md_models = False
         self.ext_speech_attns = False
+        self.ext_st_asr_models = None
         if ext_st_train_config is not None:
             assert isinstance(ext_st_train_config, List) and isinstance(ext_st_file, List)
             self.ext_st_models= []
             self.ext_md_models = []
             self.ext_speech_attns = []
             self.ext_st_decoders = []
+            self.ext_st_asr_decoders = []
             for train_conf,file in zip(ext_st_train_config, ext_st_file):
                 ext_st, ext_st_train_args = STTask.build_model_from_file(train_conf, file, device)
                 ext_st.to(dtype=getattr(torch, dtype)).eval()
@@ -180,15 +183,19 @@ class Speech2Text:
                 self.ext_st_decoders.append(ext_st.decoder)
                 if isinstance(ext_st,(ESPnetSTMDModel, ESPnetSTMDHierModel, ESPnetSTMDSampModel)):
                     self.ext_md_models.append(True)
+                    self.ext_st_asr_decoders.append(ext_st.asr_decoder)
                 else:
                     self.ext_md_models.append(False)
+                    self.ext_st_asr_decoders.append(None)
 
                 if isinstance(ext_st.decoder,TransformerMDDecoder):
                     self.ext_speech_attns.append(True)
                 else:
                     self.ext_speech_attns.append(False)
-            scorers["ext_st"] = EnsembleSTDecoder(self.ext_st_decoders, self.ext_speech_attns)
+            scorers["ext_st"] = EnsembleSTDecoder(self.ext_st_decoders, self.ext_st_asr_decoders, self.ext_speech_attns, self.ext_md_models)
+            asr_scorers["ext_st"] = scorers["ext_st"]
             scorers["ext_st"].eval()
+            asr_scorers["ext_st"].eval()
 
         # 3. Build ngram model
         if ngram_file is not None:
@@ -212,6 +219,7 @@ class Speech2Text:
             lm=md_lm_weight,
             asr=md_asr_weight,
             length_bonus=md_penalty,
+            ext_st=md_ext_st_weight,
         )
         asr_beam_search = BeamSearch(
             beam_size=md_beam_size,
@@ -397,9 +405,16 @@ class Speech2Text:
             if self.asr_model is not None:
                 asr_enc, _ = self.asr_model.encode(**batch)
                 md_asr_x = asr_enc[0]
+
+            ext_md_xs=None
+            if self.ext_st_models is not None:
+                ext_md_xs=[]
+                for i in range(len(self.ext_st_models)):
+                    ext_st_enc, ext_st_enc_lens = self.ext_st_models[i].encode(**batch)
+                    ext_md_xs.append(ext_st_enc[0])
             # c. Passed the encoder result and the beam search
             asr_nbest_hyps = self.asr_beam_search(
-                x=enc[0], maxlenratio=self.md_maxlenratio, minlenratio=self.md_minlenratio, md_asr_x=md_asr_x
+                x=enc[0], maxlenratio=self.md_maxlenratio, minlenratio=self.md_minlenratio, md_asr_x=md_asr_x, ext_md_xs = ext_md_xs
             )
             asr_nbest_hyps = asr_nbest_hyps[: self.md_nbest]
 
@@ -474,7 +489,16 @@ class Speech2Text:
                         ext_asr_hs_lengths = ext_hs_dec_asr.new_full([1], dtype=torch.long, fill_value=ext_hs_dec_asr.size(1))
                         ext_st_enc_mt, _ , _ = self.ext_st_models[i].encoder_mt(ext_hs_dec_asr, ext_asr_hs_lengths)
                     else:
-                        ext_st_enc_mt, _ , _ = self.ext_st_models[i].encoder_mt(asr_hs, asr_hs_lengths)
+                        asr_text_token = torch.tensor(asr_results[0][2]).unsqueeze(0)
+                        asr_text_token = asr_text_token.to(torch.long)
+                        asr_text_token_in, _ = add_sos_eos(asr_text_token, self.ext_st_models[i].src_sos, self.ext_st_models[i].src_eos, self.ext_st_models[i].ignore_id)
+
+                        asr_text_lengths = asr_text_token_in.new_full([1], dtype=torch.long, fill_value=asr_text_token_in.size(1))
+                        _ , _, ext_hs_dec_asr = self.ext_st_models[i].asr_decoder(
+                            ext_st_enc, ext_st_enc_lens, asr_text_token_in, asr_text_lengths, return_hidden=True
+                        )
+                        ext_asr_hs_lengths = ext_hs_dec_asr.new_full([1], dtype=torch.long, fill_value=ext_hs_dec_asr.size(1))
+                        ext_st_enc_mt, _ , _ = self.ext_st_models[i].encoder_mt(ext_hs_dec_asr, ext_asr_hs_lengths)
                     if self.ext_speech_attns[i]:
                         if hasattr(self.ext_st_models[i], "encoder_hier"):
                             ext_st_enc_hier, _ , _ = self.ext_st_models[i].encoder_hier(ext_st_enc, ext_st_enc_lens)
@@ -600,6 +624,7 @@ def inference_md(
     md_asr_weight: float,
     mt_weight: float,
     ext_st_weight: float,
+    md_ext_st_weight: float,
     allow_variable_data_keys: bool,
 ):
     assert check_argument_types()
@@ -659,6 +684,7 @@ def inference_md(
         md_asr_weight=md_asr_weight,
         mt_weight=mt_weight,
         ext_st_weight=ext_st_weight,
+        md_ext_st_weight=ext_st_weight,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,

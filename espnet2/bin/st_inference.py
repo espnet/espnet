@@ -577,6 +577,7 @@ def get_parser():
     group.add_argument("--md_asr_weight", type=float, default=0.0, help="MD ASR weight")
     group.add_argument("--mt_weight", type=float, default=0.0, help="MT weight")
     group.add_argument("--ext_st_weight", type=float, default=0.0, help="EXT ST weight")
+    group.add_argument("--md_ext_st_weight", type=float, default=0.0, help="EXT ST weight")
 
     group = parser.add_argument_group("Text converter related")
     group.add_argument(
