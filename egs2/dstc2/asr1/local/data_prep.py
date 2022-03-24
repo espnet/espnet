@@ -21,6 +21,36 @@ dir_dict = {
     "test": "test.csv",
 }
 
+#specify the coverage 
+coverage = 0.05 
+
+def _get_stratified_sampled_data(data,coverage):
+    total_sample_count = data.shape[0]
+
+    data["labels_tuple"] = data.labels.apply(lambda x: tuple(x))   
+    unique_data = data.drop_duplicates(subset=['labels_tuple'], keep='first')
+
+    
+    unique_sample_count = unique_data.shape[0]
+
+    print("coverage",coverage)
+    print("total_sample_count",total_sample_count)
+    print("unique_sample_count",unique_sample_count)
+    
+    rem_sample_count = int(np.round(abs((float(coverage)*total_sample_count) - unique_sample_count)))
+    data = data[~data.isin(unique_data)].dropna()
+
+    print("rem_sample_count",rem_sample_count)
+    
+    rem_data = data.sample(n = rem_sample_count, random_state = 42).reset_index(drop=True)
+    
+    sampled_data = pd.concat([unique_data, rem_data], ignore_index=True)
+
+    
+    print("sampled_data",sampled_data.shape)
+    return sampled_data
+
+
 for x in dir_dict:
     with open(os.path.join("data", x, "text"), "w") as text_f, open(
         os.path.join("data", x, "wav.scp"), "w"
