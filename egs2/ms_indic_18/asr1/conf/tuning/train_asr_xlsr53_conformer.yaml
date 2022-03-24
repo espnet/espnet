@@ -1,14 +1,4 @@
 # network architecture
-# encoder related
-# encoder: transformer
-# encoder_conf:
-#     input_layer: "conv2d"
-#     num_blocks: 12
-#     linear_units: 2048
-#     dropout_rate: 0.1
-#     output_size: 256  # dimension of attention
-#     attention_heads: 4
-#     attention_dropout_rate: 0.0
 encoder: conformer
 encoder_conf:
   output_size: 256
@@ -27,7 +17,6 @@ encoder_conf:
   use_cnn_module: true
   cnn_module_kernel: 15
 
-# decoder related
 # decoder related
 decoder: transformer
 decoder_conf:
