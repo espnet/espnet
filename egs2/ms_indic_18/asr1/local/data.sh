@@ -13,7 +13,7 @@ stop_stage=100
 SECONDS=0
 lang=te # te ta gu
 
- . utils/parse_options.sh || exit 1;
+. utils/parse_options.sh || exit 1;
 
 
 log() {
@@ -41,11 +41,12 @@ log "data preparation started"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
     if [[ ! -d "${MS_INDIC_IS18}/${lang}-in-Train" ]]; then
-        log "stage0: Download data to ${MS_INDIC_IS18}. ${lang}-in-Train} directory is missing"
+        log "stage0: Download training data to ${MS_INDIC_IS18}. ${lang}-in-Train directory is missing"
+        exit 1
     elif [[ ! -d "${MS_INDIC_IS18}/${lang}-in-Test" ]]; then
-        log "stage0: Download data to ${MS_INDIC_IS18}. ${lang}-in-Test} directory is missing"
+        log "stage0: Download test data to ${MS_INDIC_IS18}. ${lang}-in-Test directory is missing"
+        exit 1
     fi
-    exit 1
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -53,5 +54,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     local/prepare_data.py ${MS_INDIC_IS18} ${lang}
 fi
+
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
