@@ -15,11 +15,11 @@ asr_config=conf/train_asr.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decoder_asr.yaml
 
-if [[ "zh" == *"${lang}"* ]]; then
+if [[ "zh" == *"${lang}"* ]]; then # placeholder for optimal bpe when lang=te
   nbpe=2500
-elif [[ "fr" == *"${lang}"* ]]; then
+elif [[ "fr" == *"${lang}"* ]]; then # placeholder for optimal bpe when lang=ta
   nbpe=350
-elif [[ "es" == *"${lang}"* ]]; then
+elif [[ "es" == *"${lang}"* ]]; then # placeholder for optimal bpe when lang=gu
   nbpe=235
 else
   nbpe=150
