@@ -1,4 +1,4 @@
-function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir)
+function CHiME3_simulate_data_patched_parallel_kaldistyle(official,idx,nj,chime4_dir,chime3_dir)
 
     % CHIME3_SIMULATE_DATA Creates simulated data for the 3rd CHiME Challenge
     %
@@ -154,9 +154,23 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
         mat2json(mat,[apath 'tr05_simu_new.json']);
     end
     
-    p = parpool('local', nj);
-    % Loop over utterances
-    parfor utt_ind=1:length(mat),
+    if idx < 1 || nj < 1 || idx > nj,
+        error ("Invalid arguments for multi-processing (Usage: `nj` is the total number of processes, `idx` is the index of current process)");
+    end
+
+    len = ceil(length(mat) ./ nj);
+    start = (idx - 1) * len;
+    if idx < nj,
+        stop = start + len;
+    else
+        stop = length(mat);
+    end
+    start = start + 1;
+
+    fprintf('Simulate tr from mat{%d} to mat{%d}\n',[start, stop]);
+
+    % % Loop over utterances
+    for utt_ind=start:stop,
         if official,
             udir=[upath_simu 'tr05_' lower(mat{utt_ind}.environment) '_simu/'];
             udir_ext=[upath_ext 'tr05_' lower(mat{utt_ind}.environment) '_simu/'];
@@ -280,8 +294,19 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
             mat2json(mat,[apath set '_simu_new.json']);
         end
         
+        len = ceil(length(mat) ./ nj);
+        start = (idx - 1) * len;
+        if idx < nj,
+            stop = start + len;
+        else
+            stop = length(mat);
+        end
+        start = start + 1;
+
+        fprintf('Simulate {%s} from mat{%d} to mat{%d}\n', [set, start, stop]);
+
         % Loop over utterances
-        parfor utt_ind=1:length(mat),
+        for utt_ind=start:stop,
             if official,
                 udir=[upath_simu set '_' lower(mat{utt_ind}.environment) '_simu/'];
                 udir_ext=[upath_ext set '_' lower(mat{utt_ind}.environment) '_simu/'];
@@ -358,5 +383,4 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
             end
         end
     end
-    delete(p);
-    end
+end

@@ -64,8 +64,14 @@ odir="${PWD}/local/nn-gev/data"; mkdir -p "${odir}"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data Simulation"
 
-    if ! command -v matlab &> /dev/null; then
-        log "You don't have matlab"
+    if command -v octave &> /dev/null; then
+        log "Using matlab"
+        matlab_cmd="matlab -nodisplay -nosplash -r"
+    elif command -v octave &> /dev/null; then
+        log "Using octave"
+        matlab_cmd="octave --no-gui --eval"
+    else
+        log "You don't have matlab nor octave"
         exit 2
     fi
 
@@ -109,7 +115,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # -----------------------------------------------------------------------------------------------
 
     log "Generating simulation data and storing in ${odir}"
-    ${train_cmd} $odir/simulation.log matlab -nodisplay -nosplash -r "addpath('local'); CHiME3_simulate_data_patched_parallel(1,$nj,'${CHIME4}','${CHIME3}');exit"
+    ${train_cmd} JOB=1:${nj} $odir/simulation.JOB.log ${matlab_cmd} "addpath('local'); CHiME3_simulate_data_patched_parallel(1,JOB,$nj,'${CHIME4}','${CHIME3}');exit"
 
     # Validate data simulation
     num_wavs=$(find "$odir/audio/16kHz/isolated" -iname "*.wav" | wc -l)

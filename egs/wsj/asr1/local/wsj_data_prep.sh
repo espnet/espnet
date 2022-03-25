@@ -193,7 +193,7 @@ fi
 
 if [ ! -f wsj0-train-spkrinfo.txt ] || [ `cat wsj0-train-spkrinfo.txt | wc -l` -ne 134 ]; then
   rm wsj0-train-spkrinfo.txt
-  ! wget https://catalog.ldc.upenn.edu/docs/LDC93S6A/wsj0-train-spkrinfo.txt && \
+  ! wget --no-check-certificate https://catalog.ldc.upenn.edu/docs/LDC93S6A/wsj0-train-spkrinfo.txt && \
     echo "Getting wsj0-train-spkrinfo.txt from backup location" && \
     wget --no-check-certificate https://sourceforge.net/projects/kaldi/files/wsj0-train-spkrinfo.txt
 fi
