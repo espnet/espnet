@@ -200,11 +200,11 @@ class Speech2TextStreaming:
             speech_to_process = speech
             waveform_buffer = None
         else:
-            n_frames = (speech.size(0) - 384) // 128
-            n_residual = (speech.size(0) - 384) % 128
-            speech_to_process = speech.narrow(0, 0, 384 + n_frames * 128)
+            n_frames = (speech.size(0) - self.n_fft) // self.hop_length
+            n_residual = (speech.size(0) - self.n_fft) % self.hop_length
+            speech_to_process = speech.narrow(0, 0, self.n_fft + n_frames * self.hop_length)
             waveform_buffer = speech.narrow(
-                0, speech.size(0) - 384 - n_residual, 384 + n_residual
+                0, speech.size(0) - self.n_fft - n_residual, self.n_fft + n_residual
             ).clone()
 
         # data: (Nsamples,) -> (1, Nsamples)
@@ -232,9 +232,9 @@ class Speech2TextStreaming:
                 feats = feats.narrow(1, 2, feats.size(1) - 2)
         else:
             if prev_states is None:
-                feats = feats.narrow(1, 0, feats.size(1) - 2)
+                feats = feats.narrow(1, 0, feats.size(1) - (self.n_fft//self.hop_length-1))
             else:
-                feats = feats.narrow(1, 2, feats.size(1) - 4)
+                feats = feats.narrow(1, 2, feats.size(1) - (self.n_fft//self.hop_length-1) - 2)
 
         feats_lengths = feats.new_full([1], dtype=torch.long, fill_value=feats.size(1))
 
