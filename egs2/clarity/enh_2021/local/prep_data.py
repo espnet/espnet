@@ -80,6 +80,10 @@ def prepare_data(clarity_root):
             for ex_id in ids[ds_split]:
                 f.write("{} dummy\n".format(ex_id))
 
+        with open(os.path.join(output_folder, ds_split, "utt2spk.scp"), "w") as f:
+            for ex_id in ids[ds_split]:
+                f.write("dummy {}\n".format(ex_id))
+
 
 if __name__ == "__main__":
     args = parser.parse_args()
