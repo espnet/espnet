@@ -1,6 +1,7 @@
 import argparse
 import os
 import json
+from pathlib import Path
 
 parser = argparse.ArgumentParser("Clarity")
 parser.add_argument(
@@ -25,6 +26,9 @@ def prepare_data(clarity_root):
         for ex in metadata:
             ids[ds_split].add(ex["scene"])
 
+    for ds_split in ids.keys():
+        ids[ds_split] = sorted(list(ids[ds_split]))
+
     # create wav.scp
     for ds_split in ids.keys():
         os.makedirs(os.path.join(output_folder, ds_split), exist_ok=True)
@@ -45,7 +49,8 @@ def prepare_data(clarity_root):
                     "please check your root folder, is the path correct ?"
                 )
                 array_files = " ".join(array_files)
-                f.write("{} sox -M {} -c 6 -t wav - |\n".format(ex_id, array_files))
+                f.write("{} sox -M {} -c 6 -t wav - |\n".format(ex_id,
+                                                                   array_files))
 
         with open(os.path.join(output_folder, ds_split, "noise1.scp"), "w") as f:
             for ex_id in ids[ds_split]:
@@ -59,7 +64,7 @@ def prepare_data(clarity_root):
                     "Some file do not seem to exist, "
                     "please check your root folder, is the path correct ?"
                 )
-                f.write("{} sox {} remix 1 -t wav - |\n".format(ex_id, array_file))
+                f.write("{} sox {} -t wav - remix 1 |\n".format(ex_id, array_file))
 
         with open(os.path.join(output_folder, ds_split, "spk1.scp"), "w") as f:
             for ex_id in ids[ds_split]:
@@ -70,17 +75,17 @@ def prepare_data(clarity_root):
                     "Some file do not seem to exist, "
                     "please check your root folder, is the path correct ?"
                 )
-                f.write("{} sox {} remix 1 -t wav - |\n".format(ex_id, array_file))
+                f.write("{} sox {} -t wav - remix 1 |\n".format(ex_id, array_file))
 
         with open(os.path.join(output_folder, ds_split, "text.scp"), "w") as f:
             for ex_id in ids[ds_split]:
                 f.write("{} dummy\n".format(ex_id))
 
-        with open(os.path.join(output_folder, ds_split, "spk2utt.scp"), "w") as f:
+        with open(os.path.join(output_folder, ds_split, "utt2spk"), "w") as f:
             for ex_id in ids[ds_split]:
                 f.write("{} dummy\n".format(ex_id))
 
-        with open(os.path.join(output_folder, ds_split, "utt2spk.scp"), "w") as f:
+        with open(os.path.join(output_folder, ds_split, "spk2utt"), "w") as f:
             for ex_id in ids[ds_split]:
                 f.write("dummy {}\n".format(ex_id))
 
