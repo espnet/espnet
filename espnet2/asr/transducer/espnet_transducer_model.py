@@ -1,5 +1,7 @@
 """ESPnet2 ASR Transducer model."""
 
+from contextlib import contextmanager
+from distutils.version import LooseVersion
 import logging
 from typing import Dict
 from typing import List
@@ -8,7 +10,6 @@ from typing import Tuple
 from typing import Union
 
 import torch
-from torch.cuda.amp import autocast
 from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -20,6 +21,14 @@ from espnet2.asr.transducer.utils import get_transducer_task_io
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+
+if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+    from torch.cuda.amp import autocast
+else:
+
+    @contextmanager
+    def autocast(enabled=True):
+        yield
 
 
 class ESPnetASRTransducerModel(AbsESPnetModel):
