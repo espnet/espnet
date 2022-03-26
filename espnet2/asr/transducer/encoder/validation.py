@@ -64,9 +64,19 @@ def validate_block_arguments(
     if block_type == "conformer":
         dim_input = configuration.get("dim_hidden")
         dim_output = configuration.get("dim_hidden")
+
+        if configuration.get("dim_linear") is None:
+            raise ValueError(
+                "Missing 'dim_linear' argument for Conformer block (ID: %d)" % num_block
+            )
     elif block_type == "conv1d":
         dim_input = configuration["dim_input"] = previous_block_output
         dim_output = configuration.get("dim_output")
+
+        if configuration.get("kernel_size") is None:
+            raise ValueError(
+                "Missing 'kernel_size' argument for Conv1d block (ID: %d)" % num_block
+            )
     elif block_type == "rnn":
         dim_input = configuration["dim_input"] = previous_block_output
         dim_output = configuration.get("dim_output")
@@ -75,12 +85,6 @@ def validate_block_arguments(
             dim_output = configuration.get("dim_hidden")
     else:
         raise ValueError("Block type: %s is not supported." % block_type)
-
-    if not all(i is not None for i in [dim_input, dim_output]):
-        raise ValueError(
-            "Encoder (type: %s, ID: %d): Wrong I/O arguments: ('%s', '%s')."
-            % (block_type, num_block, dim_input, dim_output)
-        )
 
     return block_type, (dim_input, dim_output)
 
@@ -164,7 +168,7 @@ def validate_architecture(
 
     for i, b in enumerate(body_conf):
         _type, _io = validate_block_arguments(
-            b, i, input_block_odim if i == 0 else cmp_io[i - 1][1]
+            b, (i + 1), input_block_odim if i == 0 else cmp_io[i - 1][1]
         )
 
         cmp_io.append(_io)

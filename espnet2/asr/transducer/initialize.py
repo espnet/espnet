@@ -53,10 +53,6 @@ def initialize(model: torch.nn.Module, init: str):
                         n = param.size(0)
 
                         param.data[n // 4 : n // 2].fill_(1.0)
-
-            if hasattr(mod, "espnet_initialization_fn"):
-                mod.espnet_initialization_fn()
-
     else:
         # weight init
         for p in model.parameters():
@@ -80,14 +76,3 @@ def initialize(model: torch.nn.Module, init: str):
                 m, (torch.nn.Embedding, torch.nn.LayerNorm, torch.nn.GroupNorm)
             ):
                 m.reset_parameters()
-            if hasattr(m, "espnet_initialization_fn"):
-                m.espnet_initialization_fn()
-
-        if getattr(model, "encoder", None) and getattr(
-            model.encoder, "reload_pretrained_parameters", None
-        ):
-            model.encoder.reload_pretrained_parameters()
-        if getattr(model, "frontend", None) and getattr(
-            model.frontend, "reload_pretrained_parameters", None
-        ):
-            model.frontend.reload_pretrained_parameters()

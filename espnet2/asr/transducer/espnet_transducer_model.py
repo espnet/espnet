@@ -1,7 +1,5 @@
 """ESPnet2 ASR Transducer model."""
 
-from contextlib import contextmanager
-from distutils.version import LooseVersion
 import logging
 from typing import Dict
 from typing import List
@@ -10,6 +8,7 @@ from typing import Tuple
 from typing import Union
 
 import torch
+from torch.cuda.amp import autocast
 from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -21,14 +20,6 @@ from espnet2.asr.transducer.utils import get_transducer_task_io
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-
-    @contextmanager
-    def autocast(enabled=True):
-        yield
 
 
 class ESPnetASRTransducerModel(AbsESPnetModel):
@@ -112,11 +103,11 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         self.use_auxiliary_lm_loss = self.training and auxiliary_lm_loss_weight > 0
 
         if self.use_auxiliary_ctc:
-            self.ctc_lin = torch.nn.Linear(encoder.output_size(), vocab_size)
+            self.ctc_lin = torch.nn.Linear(encoder.dim_output, vocab_size)
             self.ctc_dropout_rate = auxiliary_ctc_dropout_rate
 
         if self.use_auxiliary_lm_loss:
-            self.lm_lin = torch.nn.Linear(decoder.dunits, vocab_size)
+            self.lm_lin = torch.nn.Linear(decoder.dim_output, vocab_size)
 
             self.lm_loss_smoothing = auxiliary_lm_loss_smoothing
 

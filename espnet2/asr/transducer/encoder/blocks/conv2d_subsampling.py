@@ -54,12 +54,7 @@ class Conv2dSubsampling(torch.nn.Module):
                     torch.nn.Linear((dim_conv * conv_2_dim_output), dim_output), pos_enc
                 )
         else:
-            if dim_output is None:
-                self.output = None
-            else:
-                self.output = torch.nn.Linear(
-                    (dim_conv * conv_2_dim_output), dim_output
-                )
+            self.output = None
 
         self.subsampling_factor = subsampling_factor
 
@@ -72,7 +67,7 @@ class Conv2dSubsampling(torch.nn.Module):
             self.create_new_mask = self.create_new_conformer_mask
 
     def forward(
-        self, sequence: torch.Tensor, mask: torch.Tensor = None
+        self, sequence: torch.Tensor, mask: torch.Tensor
     ) -> Tuple[Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]], torch.Tensor]:
         """Encode input sequences.
 
@@ -97,10 +92,7 @@ class Conv2dSubsampling(torch.nn.Module):
         if self.output is not None:
             sequence = self.output(sequence)
 
-        if mask is not None:
-            return sequence, self.create_new_mask(mask)
-
-        return sequence, None
+        return sequence, self.create_new_mask(mask)
 
     def create_new_conformer_mask(self, mask: torch.Tensor) -> torch.Tensor:
         """Create new conformer mask for output sequences.

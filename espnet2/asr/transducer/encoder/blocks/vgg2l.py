@@ -51,10 +51,7 @@ class VGG2L(torch.nn.Module):
                     torch.nn.Linear(128 * ((dim_input // 2) // 2), dim_output), pos_enc
                 )
         else:
-            if dim_output is None:
-                self.output = None
-            else:
-                self.output = torch.nn.Linear(128 * ((dim_input // 2) // 2), dim_output)
+            self.output = None
 
         self.subsampling_factor = 4
 
@@ -64,7 +61,7 @@ class VGG2L(torch.nn.Module):
             self.create_new_mask = self.create_new_conformer_mask
 
     def forward(
-        self, sequence: torch.Tensor, mask: torch.Tensor = None
+        self, sequence: torch.Tensor, mask: torch.Tensor
     ) -> Tuple[Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]], torch.Tensor]:
         """Encode input sequences.
 
@@ -88,10 +85,7 @@ class VGG2L(torch.nn.Module):
         if self.output is not None:
             sequence = self.output(sequence)
 
-        if mask is not None:
-            return sequence, self.create_new_mask(mask)
-
-        return sequence, mask
+        return sequence, self.create_new_mask(mask)
 
     def create_new_conformer_mask(self, mask: torch.Tensor) -> torch.Tensor:
         """Create a new conformer mask for output sequences.

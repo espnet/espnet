@@ -79,9 +79,6 @@ class RNN(torch.nn.Module):
             sequence_len: Output sequences lengths. (B,)
 
         """
-        if not isinstance(sequence_len, torch.Tensor):
-            sequence_len = torch.tensor(sequence_len)
-
         sequence = pack_padded_sequence(sequence, sequence_len.cpu(), batch_first=True)
         self.rnn.flatten_parameters()
 

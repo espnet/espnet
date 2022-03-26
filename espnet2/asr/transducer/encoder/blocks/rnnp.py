@@ -86,12 +86,12 @@ class RNNP(torch.nn.Module):
             self.dropout += [torch.nn.Dropout(p=dropout)]
 
         if subsample is None:
-            self.subsample = np.ones(num_blocks + 1, dtype=np.int)
+            self.subsample = np.ones(num_blocks + 1, dtype=int)
         else:
             subsample = subsample[:num_blocks]
 
             self.subsample = np.pad(
-                np.array(subsample, dtype=np.int),
+                np.array(subsample, dtype=int),
                 [1, num_blocks - len(subsample)],
                 mode="constant",
                 constant_values=1,
@@ -120,8 +120,6 @@ class RNNP(torch.nn.Module):
             sequence_len: Output sequences lengths. (B,)
 
         """
-        if not isinstance(sequence_len, torch.Tensor):
-            sequence_len = torch.tensor(sequence_len)
         states = cache
 
         for block in range(self.num_blocks):

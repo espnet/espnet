@@ -104,13 +104,9 @@ def get_transducer_task_io(
 
     target = pad_list(labels_unpad, blank_id).type(torch.int32).to(device)
 
-    if encoder_out_lens.dim() > 1:
-        enc_mask = [m[m != 0] for m in encoder_out_lens]
-        encoder_out_lens = list(map(int, [m.size(0) for m in enc_mask]))
-    else:
-        encoder_out_lens = list(map(int, encoder_out_lens))
-
+    encoder_out_lens = list(map(int, encoder_out_lens))
     t_len = torch.IntTensor(encoder_out_lens).to(device)
+
     u_len = torch.IntTensor([y.size(0) for y in labels_unpad]).to(device)
 
     return decoder_in, target, t_len, u_len

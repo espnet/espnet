@@ -115,23 +115,3 @@ class AbsDecoder(torch.nn.Module, ABC):
 
         """
         raise NotImplementedError
-
-    @abstractmethod
-    def create_batch_states(
-        self,
-        states: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]] = None,
-        new_states: List[Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]] = [
-            None
-        ],
-    ) -> Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]:
-        """Create batch of states from list of individual states, if provided.
-
-        Args:
-            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec)) or None
-            new_states: Decoder hidden states. [N x ((1, D_dec), (1, D_dec))] or [None]
-
-        Returns:
-            states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec)) or None
-
-        """
-        raise NotImplementedError

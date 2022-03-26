@@ -150,18 +150,3 @@ class StatelessDecoder(AbsDecoder):
 
         """
         return None
-
-    def create_batch_states(
-        self, states: Optional[torch.Tensor], new_states: List[Optional[torch.Tensor]]
-    ) -> None:
-        """Create decoder hidden states.
-
-        Args:
-            states: Decoder hidden states. None
-            new_states: Decoder hidden states. [N x None]
-
-        Returns:
-            states: Decoder hidden states. None
-
-        """
-        return None

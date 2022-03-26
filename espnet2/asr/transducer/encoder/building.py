@@ -50,10 +50,10 @@ pos_wise_choices = ClassChoices(
     ),
     default="linear",
 )
-self_att_choices = ClassChoices(
+selfattn_choices = ClassChoices(
     "self_attention",
     classes=dict(
-        self_att=MultiHeadedAttention,
+        selfattn=MultiHeadedAttention,
         rel_selfattn=RelPositionMultiHeadedAttention,
     ),
     default="selfattn",
@@ -96,7 +96,7 @@ def build_main_parameters(
 
     main_params["pos_enc_class"] = pos_enc_choices.get_class(pos_enc_layer_type)
     main_params["pos_wise_class"] = pos_wise_choices.get_class(pos_wise_layer_type)
-    main_params["selfatt_class"] = self_att_choices.get_class(
+    main_params["selfattn_class"] = selfattn_choices.get_class(
         "rel_selfattn" if "rel" in pos_enc_layer_type else "selfattn"
     )
 
@@ -130,7 +130,7 @@ def build_input_block(
     block_type = configuration["block_type"]
     dim_output = configuration["dim_output"]
 
-    if pos_enc_class is not None and pos_enc_class.__name__ == "RelPositionalEncoding":
+    if pos_enc_class is not None:
         pos_enc = pos_enc_class(
             dim_output if dim_output is not None else configuration["dim_pos_enc"],
             configuration.get("dropout_rate_pos_enc", 0.0),
@@ -201,7 +201,7 @@ def build_conformer_block(
 
     return lambda: Conformer(
         dim_hidden,
-        main_params["selfatt_class"](
+        main_params["selfattn_class"](
             configuration.get("heads", 4),
             dim_hidden,
             configuration.get("dropout_rate_att", 0.0),

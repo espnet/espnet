@@ -93,15 +93,7 @@ class Conformer(torch.nn.Module):
 
         residual = sequence
         sequence = self.norm_multihead_att(sequence)
-
-        if cache is None:
-            x_q = sequence
-        else:
-            assert cache.shape == (sequence.shape[0], sequence.shape[1] - 1, self.size)
-
-            x_q = sequence[:, -1:, :]
-            residual = residual[:, -1:, :]
-            mask = None if mask is None else mask[:, -1:, :]
+        x_q = sequence
 
         if pos_emb is not None:
             sequence_att = self.self_att(x_q, sequence, sequence, pos_emb, mask)
@@ -125,9 +117,6 @@ class Conformer(torch.nn.Module):
 
         if self.conv_mod is not None:
             sequence = self.norm_final(sequence)
-
-        if cache is not None:
-            sequence = torch.cat([cache, sequence], dim=1)
 
         if pos_emb is not None:
             return (sequence, pos_emb), mask
