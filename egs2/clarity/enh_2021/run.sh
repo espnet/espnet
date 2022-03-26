@@ -27,6 +27,6 @@ test_sets="dev"
     --local_data_opts "--extra-annotations ${extra_annotations} --stage 1 --stop-stage 2" \
     --enh_config conf/tuning/train_enh_beamformer_mvdr.yaml \
     --use_dereverb_ref false \
-    --use_noise_ref false \
+    --use_noise_ref true \
     --inference_model "valid.loss.best.pth" \
     "$@"

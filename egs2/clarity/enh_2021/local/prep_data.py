@@ -35,22 +35,21 @@ def prepare_data(clarity_root):
         with open(os.path.join(output_folder, ds_split, "wav.scp"), "w") as f:
             for ex_id in ids[ds_split]:
                 array_files = [
-                        os.path.join(
-                            clarity_root,
-                            ds_split,
-                            "scenes",
-                            "{}_mixed_CH{}.wav".format(ex_id, idx),
-                        )
-                        for idx in range(1, 4)
-                    ]
+                    os.path.join(
+                        clarity_root,
+                        ds_split,
+                        "scenes",
+                        "{}_mixed_CH{}.wav".format(ex_id, idx),
+                    )
+                    for idx in range(1, 4)
+                ]
 
                 assert all([os.path.exists(x) for x in array_files]), (
                     "Some file do not seem to exist, "
                     "please check your root folder, is the path correct ?"
                 )
                 array_files = " ".join(array_files)
-                f.write("{} sox -M {} -c 6 -t wav - |\n".format(ex_id,
-                                                                   array_files))
+                f.write("{} sox -M {} -c 6 -t wav - |\n".format(ex_id, array_files))
 
         with open(os.path.join(output_folder, ds_split, "noise1.scp"), "w") as f:
             for ex_id in ids[ds_split]:
