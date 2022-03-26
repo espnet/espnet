@@ -136,6 +136,7 @@ class Speech2Text:
                 decoder=1.0 - ctc_weight,
                 ctc=ctc_weight,
                 lm=lm_weight,
+                ngram=ngram_weight,
                 length_bonus=penalty,
             )
             beam_search = BeamSearch(
@@ -245,6 +246,8 @@ class Speech2Text:
 
         # b. Forward Encoder
         enc, _ = self.asr_model.encode(**batch)
+        if isinstance(enc, tuple):
+            enc = enc[0]
         assert len(enc) == 1, len(enc)
 
         # c. Passed the encoder result and the beam search
@@ -262,10 +265,11 @@ class Speech2Text:
             assert isinstance(hyp, (Hypothesis, TransHypothesis)), type(hyp)
 
             # remove sos/eos and get results
+            last_pos = None if self.asr_model.use_transducer_decoder else -1
             if isinstance(hyp.yseq, list):
-                token_int = hyp.yseq[1:-1]
+                token_int = hyp.yseq[1:last_pos]
             else:
-                token_int = hyp.yseq[1:-1].tolist()
+                token_int = hyp.yseq[1:last_pos].tolist()
 
             # remove blank symbol id, which is assumed to be 0
             token_int = list(filter(lambda x: x != 0, token_int))

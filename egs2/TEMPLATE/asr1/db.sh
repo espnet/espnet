@@ -11,6 +11,7 @@ DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
 DNS=
+DSING=downloads
 WSJ0=
 WSJ1=
 WSJCAM0=
@@ -33,6 +34,7 @@ CSS10=
 HKUST1=
 HKUST2=
 HUI_ACG=downloads
+HUB4_SPANISH=
 LABOROTV=
 TEDXJP=
 LIBRISPEECH=
@@ -42,6 +44,7 @@ SLURP=
 VOXCELEB=
 MINI_LIBRISPEECH=downloads
 MISP2021=
+LIBRIMIX=downloads
 LIBRITTS=
 LJSPEECH=downloads
 NSC=
@@ -86,7 +89,7 @@ BABEL_401=
 BABEL_402=
 BABEL_403=
 BABEL_404=
-PUEBLA_NAHUATL=
+PUEBLA_NAHUATL=downloads
 TEDLIUM2=downloads
 TEDLIUM3=downloads
 VCTK=downloads
@@ -101,13 +104,16 @@ RU_OPEN_STT=downloads
 RUSLAN=downloads
 SIWIS=downloads
 GIGASPEECH=
+GOOGLEI18N=downloads
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
 LRS2=
+LRS3=
 SUNDA=downloads
 CMU_ARCTIC=downloads
 CMU_INDIC=downloads
 INDIC_SPEECH=downloads
+IWSLT22_DIALECT=
 JKAC=
 MUCS_SUBTASK1=downloads
 MUCS_SUBTASK2=downloads
@@ -119,9 +125,13 @@ WENETSPEECH=
 SPEECHCOMMANDS=downloads
 TOTONAC=downloads
 PRIMEWORDS_CHINESE=downloads
+SEAME=
+BENGALI=downloads
+IWSLT14=
+MS_INDIC_IS18=
 
-# For only CMU environment
-if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
+# For only CMU TIR environment
+if [[ "$(hostname)" == tir* ]]; then
     BABEL_101=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_BP_101/
     BABEL_102=/projects/tir5/data/speech_corpora/babel/BABEL_OP1_102/
     BABEL_103=/projects/tir5/data/speech_corpora/babel/BABEL_OP1_103/
@@ -148,7 +158,12 @@ if [[ "$(hostname)" == tir.lti.cs.cmu.edu ]]; then
     BABEL_403=/projects/tir5/data/speech_corpora/babel/IARPA-babel403b-v1.0b-build/BABEL_OP3_403/
     BABEL_404=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_OP3_404/
     GRABO=/projects/tir5/data/speech_corpora/Grabo
+    IWSLT14=/projects/tir5/data/iwslt14
+    IWSLT22_DIALECT=/projects/tir5/data/speech_corpora/LDC2022E01_IWSLT22_Tunisian_Arabic_Shared_Task_Training_Data/
     PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
+    FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
+    DSING=/projects/tir5/data/speech_corpora/sing_300x30x2
+    MS_INDIC_IS18=/projects/tir6/general/cnariset/corpora/microsoft_speech_corpus_indian_languages
 fi
 
 # For only JHU environment
@@ -184,6 +199,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     HKUST1=
     HKUST2=
     HUI_ACG=downloads
+    HUB4_SPANISH=
     LABOROTV=
     TEDXJP=
     LIBRISPEECH=
@@ -241,6 +257,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     ZEROTH_KOREAN=downloads
     LRS2=
     JAVA=
+    BENGALI=
     RU_OPEN_STT=downloads
     RUSLAN=downloads
     SIWIS=downloads
@@ -253,4 +270,5 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     GAMAYUN=downloads
     IWSLT21LR=downloads/iwslt21
     TOTONAC=downloads
+    GOOGLEI18N=downloads
 fi

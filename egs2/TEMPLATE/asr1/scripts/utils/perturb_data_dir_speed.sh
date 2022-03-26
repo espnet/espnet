@@ -23,6 +23,9 @@
 export LC_ALL=C
 set -euo pipefail
 
+utt_extra_files=
+. utils/parse_options.sh
+
 if [[ $# != 3 ]]; then
     echo "Usage: perturb_data_dir_speed.sh <warping-factor> <srcdir> <destdir>"
     echo "e.g.:"
@@ -100,17 +103,17 @@ else # no segments->wav indexed by utterance.
     fi
 fi
 
-if [[ -f ${srcdir}/text ]]; then
-    utils/apply_map.pl -f 1 "${destdir}"/utt_map <"${srcdir}"/text >"${destdir}"/text
-fi
+for x in text utt2lang ${utt_extra_files}; do
+    echo ${x}
+    if [[ -f ${srcdir}/${x} ]]; then
+        utils/apply_map.pl -f 1 "${destdir}"/utt_map <"${srcdir}"/${x} >"${destdir}"/${x}
+    fi
+done
 if [[ -f ${srcdir}/spk2gender ]]; then
     utils/apply_map.pl -f 1 "${destdir}"/spk_map <"${srcdir}"/spk2gender >"${destdir}"/spk2gender
-fi
-if [[ -f ${srcdir}/utt2lang ]]; then
-    utils/apply_map.pl -f 1 "${destdir}"/utt_map <"${srcdir}"/utt2lang >"${destdir}"/utt2lang
 fi
 
 rm "${destdir}"/spk_map "${destdir}"/utt_map "${destdir}"/reco_map 2>/dev/null
 echo "$0: generated speed-perturbed version of data in ${srcdir}, in ${destdir}"
-
+utils/fix_data_dir.sh "${destdir}"
 utils/validate_data_dir.sh --no-feats --no-text "${destdir}"
