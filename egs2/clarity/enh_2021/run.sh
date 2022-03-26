@@ -10,7 +10,7 @@ sample_rate=44k
 # Run `local/data.sh` for more information.
 extra_annotations=
 
-python local/prep_data.py --clarity_root /raid/users/popcornell/Clarity/target_dir/clarity_CEC1_data/clarity_data/
+
 
 train_set=train
 valid_set=dev
