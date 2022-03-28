@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 import sys
 from typing import Any
+from typing import Dict
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
@@ -66,7 +67,7 @@ class Speech2Text:
         self,
         asr_train_config: Union[Path, str] = None,
         asr_model_file: Union[Path, str] = None,
-        beam_search_config: Optional[dict] = None,
+        beam_search_config: Dict[str, Any] = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
         token_type: str = None,
@@ -97,6 +98,9 @@ class Speech2Text:
             lm_scorer = None
 
         # 4. Build BeamSearch object
+        if beam_search_config is None:
+            beam_search_config = {}
+
         beam_search = BeamSearchTransducer(
             asr_model.decoder,
             asr_model.joint_network,
