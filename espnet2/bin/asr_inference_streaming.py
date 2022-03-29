@@ -232,7 +232,7 @@ class Speech2TextStreaming:
                 feats = feats.narrow(1, 2, feats.size(1) - 2)
         else:
             if prev_states is None:
-                feats = feats.narrow(1, 0, feats.size(1) - (self.n_fft//self.hop_length-1))
+                feats = feats.narrow(1, 0, feats.size(1) - 2)
             else:
                 feats = feats.narrow(1, 2, feats.size(1) - (self.n_fft//self.hop_length-1) - 2)
 
