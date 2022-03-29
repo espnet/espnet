@@ -27,3 +27,4 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_batch_size1_lm_lm_train_lm_bpe150_valid.loss.ave_asr_model_valid.acc.best/bur_test|480|18237|70.7|17.7|11.6|2.5|31.8|99.8|
 
+Link to model: https://huggingface.co/espnet/bur_openslr80_hubert
