@@ -80,6 +80,7 @@ def tokenize(
     add_symbol: List[str],
     cleaner: Optional[str],
     g2p: Optional[str],
+    nbpe: int,
 ):
     assert check_argument_types()
 
@@ -132,6 +133,10 @@ def tokenize(
         else:
             for t in tokens:
                 counter[t] += 1
+    if nbpe!=-1 :
+        assert len(counter) + len(non_linguistic_symbols) < nbpe , "The number of bpes you asked ({}) is smaller than the number of unique caracters in the training text ({}).\n Please select a larger number of bpes or decrease the --character_coverage parameter (for Chinese and Japanese, 0.9995 is a good value, according to SentencePiece Github)".format(nbpe, len(counter) + len(non_linguistic_symbols))
+        print("You selected a correct number of bpes.")
+        return
 
     if not write_vocabulary:
         return
@@ -254,6 +259,12 @@ def get_parser() -> argparse.ArgumentParser:
         default=[],
         action="append",
         help="Append symbol e.g. --add_symbol '<blank>:0' --add_symbol '<unk>:1'",
+    )
+    group.add_argument(
+        "--nbpe",
+        type=int,
+        default=-1,
+        help="number of bpes chosen by the user",
     )
 
     return parser
