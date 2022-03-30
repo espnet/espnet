@@ -1,9 +1,9 @@
 name: docker-builder
 
 on:
-  # pull_request:
-  #   types: [closed]
-  push:
+  pull_request:
+    types: [closed]
+  pull_request:
     branches:
       - master
     paths:
@@ -12,10 +12,11 @@ on:
 
 jobs:
   docker:
-    # build:
-    #   if: github.event.pull_request.merged == 'true'
     runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.merged == 'true' }}
     steps:
+      - uses: actions/checkout@v2
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
 
@@ -35,14 +36,14 @@ jobs:
             -f prebuilt/devel.dockerfile \
             --target devel \
             -t espnet/espnet:cpu-latest .
-      # docker push espnet/espnet:cpu-latest   
+          docker push espnet/espnet:cpu-latest   
 
-      # - name: Build and push GPU container
-      #   run: |
-      #     cd docker
-      #     docker build --build-arg FROM_TAG=cuda-latest \
-      #       --build-arg CUDA_VER=11.1 \
-      #       -f prebuilt/devel.dockerfile \
-      #       --target devel \
-      #       -t espnet/espnet:gpu-latest.
-      # docker push espnet/espnet:gpu-latest
+      - name: Build and push GPU container
+        run: |
+          cd docker
+          docker build --build-arg FROM_TAG=cuda-latest \
+            --build-arg CUDA_VER=11.1 \
+            -f prebuilt/devel.dockerfile \
+            --target devel \
+            -t espnet/espnet:gpu-latest .
+          docker push espnet/espnet:gpu-latest
