@@ -29,8 +29,8 @@ We are planning a super major update, called `ESPnet2`. The developing status is
 You can find the new recipes in `egs2`:
 
 ```
-espnet/  # Python modules of epsnet1
-espnet2/ # Python modules of epsnet2
+espnet/  # Python modules of espnet1
+espnet2/ # Python modules of espnet2
 egs/     # espnet1 recipes
 egs2/    # espnet2 recipes
 ```
@@ -340,3 +340,190 @@ To enable online decoding, the argument `--use_streaming true` should be added t
 ### FAQ
 1. Issue about `'NoneType' object has no attribute 'max'` during training: Please make sure you employ `forward_train` function during traininig, check more details [here](https://github.com/espnet/espnet/issues/3803).
 3. I successfully trained the model, but encountered the above issue during decoding: You may forget to specify `--use_streaming true` to select streaming inference.
+
+## Transducer ASR
+
+ESPnet2 supports models trained with the (RNN-)Tranducer loss, aka Transducer models. This kind of model is defined independently from the other ASR models. For that, we rely on `ESPnetASRTransducerModel` instead of `ESPnetASRModel` and a new task called `ASRTransducerTask` is used in place of `ASRTask`.
+
+**Note:** For the user, it means two things. One, some features or modules may not be supported depending on the model used. Second, the usage of some common ASR features or modules may differ between the models. In addition, some core modules (e.g.: `preencoder` or `postencoder`) or features (e.g.: streaming) were intentionally removed until further testing, specifically for the Transducer model.
+
+### General usage
+
+To enable Transducer model training or decoding in your experiments, the following option should be supplied to `asr.sh` in your `run.sh`:
+
+```sh
+asr.sh --asr-transducer true [...]
+```
+
+For Transducer loss computation during training, we rely on a fork of `warp-transducer`. The installation procedure is described [here](https://espnet.github.io/espnet/installation.html#step-3-optional-custom-tool-installation).
+
+### Architecture
+
+The architecture is composed of three modules: encoder, decoder and joint network. Each one has a set of up to two parameters settable in order to configure the internal parts. The following sections describe the mandatory and optional parameters for each module.
+
+#### Encoder
+
+For the encoder, we propose an unique encoder type encapsulating the following blocks: Conformer, Conv 1D and RNN. It is similar to the custom encoder in ESPnet1 with the exception that we also support RNN, meaning we don't need to set the parameter `encoder: [type]` here. Instead, the encoder architecture is defined by three parameters passed to `encoder_conf`:
+
+  1. `input_conf (Dict): The configuration for the input block.
+  2. `main_conf` (Dict): The main configuration containing the set of high-level parameters used by the whole architecture (i.e.: shared configuration across all blocks). Right now, only Conformer-related parameters are available.
+  3. `body_conf` (List[Dict]): The list of configurations for each block of the encoder architecture but the input block.
+
+The first and second configuration are optional and the following parameters can be set:
+
+    main_conf:
+      pos_wise_layer_type: Position-wise layer type. (str, default = "linear")
+      pos_enc_layer_type: Positional encoding layer type. (str, default = "abs_pos")
+      pos_wise_act_type: Position-wise activation type. (str, default = "swish")
+      conv_mod_act_type: Convolutional module activation type. (str, default = "swish")
+
+    input_conf:
+      block_type: Input block type, either "conv2d" or "vgg". (str, default = "conv2d")
+      dim_conv (conv2d only): Convolution output dimension. (int, default = 256)
+      subsampling_factor (conv2d only): Subsampling factor of the input block, either 2, 4 or 6. (int, default = 4)
+      dropout_rate_pos_enc: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
+
+The only mandatory parameter is `body_conf`, where a list of configurations for each block of the encoder body architecture need to be given. Each block has its own set of mandatory and optional parameters depending on the type:
+
+    # Conv 1D
+    - block_type: conv1d
+      dim_output: Output dimension. (int)
+      kernel_size: Size of the context window. (int or Tuple)
+      stride (optional): Stride of the sliding blocks. (int or tuple, default = 1)
+      dilation (optional): Parameter to control the stride of elements within the neighborhood. (int or tuple, default = 1)
+      groups (optional): Number of blocked connections from input channels to output channels. (int, default = 1)
+      bias (optional): Whether to add a learnable bias to the output. (bool, default = True)
+      use_relu (optional): Whether to use a ReLU activation after convolution. (bool, default = True)
+      use_batchnorm: Whether to use batch normalization after convolution. (bool, default = False)
+      dropout_rate (optional): Dropout rate for the Conv1d outputs. (float, default = 0.0)
+
+    # RNN
+    - block_type: rnn
+      dim_hidden: Hidden dimension. (int)
+      dim_proj (optional): Projection dimension, where 0 means no projection layers. (int, default = 0)
+      rnn_type (optional): Type of RNN units (str, default = "lstm")
+      bidirectional (optional): Whether bidirectional layers shuld be used. (bool, default = True)
+      subsample (optional) Subsampling for each layer when projection layers are used. (sequence, default = (1, 1, 1, 1))
+      dropout_rate (optional): Dropout rate for the RNN outputs. (float, default = 0.0)
+
+    # Conformer
+    - block_type: conformer
+      dim_hidden: Hidden (and output) dimension. (int)
+      dim_linear: Dimension of feed-forward module. (int)
+      heads (optional): Number of heads in multi-head attention. (int, default = 4)
+      macaron_style (optional): Whether to use macaron style. (bool, default = False)
+      conv_mod_kernel (optional): Number of kernel in convolutional module, where 0 means no conv. module. (int, default = 0)
+      dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)]
+      dropout_rate_att (optional: Dropout rate for the attention module. (float, default = 0.0)]
+      dropout_rate_pos_wise (optional): Dropout rate for the position-wise module. (float, default = 0.0)
+
+Additionally, each block has a parameter `num_blocks` to build N times the defined block. This is useful if you want to build a group of blocks sharing the same parameters without writing each configuration.
+
+**Example 1: conv 2D + 2x Conv 1D + 14x Conformer.**
+
+```yaml
+encoder_conf:
+    main_conf:
+      pos_wise_layer_type: linear
+      pos_wise_act_type: swish
+      pos_enc_layer_type: rel_pos
+      conv_mod_act_type: swish
+    input_conf:
+      block_type: conv2d
+      dim_conv: 256
+      subsampling_factor: 4
+      dropout_rate_pos_enc: 0.1
+    body_conf:
+    - block_type: conv1d
+      dim_output: 128
+      kernel_size: 3
+    - block_type: conv1d
+      dim_output: 256
+      kernel_size: 2
+    - block_type: conformer
+      dim_linear: 1024
+      dim_hidden: 256
+      heads: 8
+      dropout_rate: 0.1
+      dropout_rate_pos_wise: 0.1
+      dropout_rate_att: 0.1
+      macaron_style: true
+      conv_mod_kernel: 31
+      num_blocks: 14
+```
+
+**Example 2: VGG + 4x RNN w/ projection layers.**
+
+```yaml
+encoder_conf:
+    input_conf:
+      block_type: vgg
+    body_conf:
+    - block_type: rnn
+      num_blocks: 4
+      dim_hidden: 512
+      dim_proj: 256
+```
+
+#### Decoder
+
+For the decoder, two types of blocks are available: RNN and stateless (only embedding). It is defined through two parameters: `decoder` and `decoder_conf`. The first one take a string defining the type of block (either `rnn` or `stateless`) to use while the second takes a single configuration. The following parameters can be set but are all optional:
+
+    decoder_conf:
+      rnn_type (RNN only): Type of RNN cells (int, default = "lstm").
+      dim_hidden (RNN only): Dimension of the hidden layers (int, default = 256).
+      dim_embedding: Dimension of the embedding layer (int, default = 256).
+      dropout: Dropout rate for the RNN output nodes (float, default = 0.0).
+      dropout_embed: Dropout rate for the embedding layer (float, default = 0.0).
+
+#### Joint network
+
+Currently, we only propose the standard joint network module composed of two three linear layers and an activation functions. The module definition is optional but the following parameters can be modified through the configuration parameter `joint_network_conf`:
+
+    joint_network_conf:
+      dim_joint_space: Dimension of the joint space (int, default = 256).
+      joint_act_type: Type of activation in the joint network (str, default = "tanh").
+
+### Multi-task learning
+
+We also support multi-task learning with two auxiliary tasks: CTC and cross-entropy w/ label smoothing option (called LM loss here). The auxiliary tasks contributes to the overal task defined as:
+
+L_tot = (λ_trans * L_trans) + (λ_auxCTC * L_auxCTC) + (λ_auxLM + L_auxLM)
+
+where the losses (L_*) are respectively, in order: The Transducer loss, the CTC loss and the LM loss. Lambda values define their respective contribution. Each auxiliary task can be defined through the following parameters passed to `model_conf`:
+
+    model_conf:
+      transducer-loss-weight: Weight of the Transducer loss (float, default = 1.0)
+      auxiliary_ctc_weight: Weight of the CTC loss. (float, default = 0.0)
+      auxiliary_ctc_dropout_rate: Dropout rate for the CTC loss inputs. (float, default = 0.0)
+      auxiliary_lm_loss_weight: Weight of the LM loss. (float, default = 0.2)
+      auxiliary_lm_loss_smoothing: Smoothing rate for LM loss. If > 0, label smoothing is enabled. (float, default = 0.0)
+
+**Note:** We do not support other auxiliary tasks in ESPnet2 yet.
+
+### Inference
+
+Various decoding algorithms are also available for Transducer by setting `search-type` parameter in your decode config:
+
+  - Beam search algorithm without prefix search [[Graves, 2012]](https://arxiv.org/pdf/1211.3711.pdf). (`search-type: default`)
+  - Time Synchronous Decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040). (`search-type: tsd`)
+  - Alignment-Length Synchronous Decoding [[Saon et al., 2020]](https://ieeexplore.ieee.org/abstract/document/9053040). (`search-type: alsd`)
+  - modified Adaptive Expansion Search, based on [[Kim et al., 2021]](https://ieeexplore.ieee.org/abstract/document/9250505) and [[Boyer et al., 2021]](https://arxiv.org/pdf/2201.05420.pdf). (`search-type: maes`)
+
+The algorithms share two parameters to control the beam size (`beam-size`) and the final hypotheses normalization (`score-norm`). In addition, three algorithms have specific parameters:
+
+    # Time-synchronous decoding
+    search_type: tsd
+    max_sym_exp : Number of maximum symbol expansions at each time step. (int > 1, default = 3)
+
+    # Alignement-length decoding
+    search_type: alsd
+    u_max: Maximum expected target sequence length. (int, default = 50)
+
+    # modified Adaptive Expansion Search
+    search_type: maes
+    nstep: Number of maximum expansion steps at each time step (int, default = 2)
+    expansion_gamma: Number of additional candidates in expanded hypotheses selection. (int, default = 2)
+    expansion_beta: Allowed logp difference for prune-by-value method. (float, default = 2.3)
+
+Except for the default algorithm, the described parameters are used to control the performance and decoding speed. The optimal values for each parameter are task-dependent; a high value will typically increase decoding time to focus on performance while a low value will improve decoding time at the expense of performance.
