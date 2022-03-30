@@ -5,7 +5,7 @@ on:
   #   types: [closed]
   push:
     branches:
-      - pr-docker
+      - master
     paths:
       - 'tools/**'
       - setup.py
