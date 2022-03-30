@@ -649,7 +649,7 @@ if ! "${skip_data_prep}"; then
             fi
 
             ${python} -m espnet2.bin.tokenize_text  \
-                --token_type "chars" \
+                --token_type "char" \
                 --input "${data_feats}/lm_train.txt" --output "${token_list}" ${_opts} \
                 --field 2- \
                 --cleaner "${cleaner}" \
