@@ -3,7 +3,6 @@ name: docker-builder
 on:
   pull_request:
     types: [closed]
-  pull_request:
     branches:
       - master
     paths:
