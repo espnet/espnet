@@ -757,6 +757,19 @@ if ! "${skip_data_prep}"; then
                 _opts_spm=""
             fi
 
+            _opts="--non_linguistic_symbols ${nlsyms_txt}"
+            ${python} -m espnet2.bin.tokenize_text  \
+                --token_type "char" \
+                --input "${data_feats}/lm_train.txt" --output "${token_list}" ${_opts} \
+                --field 2- \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --write_vocabulary true \
+                --add_symbol "${blank}:0" \
+                --add_symbol "${oov}:1" \
+                --add_symbol "${sos_eos}:-1"\
+                --nbpe "${nbpe}"
+
             spm_train \
                 --input="${tgt_bpedir}"/train.txt \
                 --vocab_size="${tgt_nbpe}" \
