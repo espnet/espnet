@@ -29,6 +29,7 @@ skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
 skip_upload=true     # Skip packing and uploading stages.
+skip_upload_hf=true  # Skip uploading to hugging face stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
@@ -104,6 +105,9 @@ feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_st=1            # Number of splitting for lm corpus.
 src_lang=es                # source language abbrev. id (e.g., es)
 tgt_lang=en                # target language abbrev. id (e.g., en)
+
+# Upload model related
+hf_repo=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
@@ -292,14 +296,8 @@ fi
 # Extra files for translation process
 utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for bpe training if not specified.
-if "${token_joint}"; then
-    # if token_joint, the bpe training will use both src_lang and tgt_lang to train a single bpe model
-    # TODO (prepare data as text.${src_lang}_${tgt_lang})
-    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
-else
-    [ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
-    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
-fi
+[ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
+[ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for lm training if not specified.
 [ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for lm training if not specified.
@@ -735,6 +733,16 @@ if ! "${skip_data_prep}"; then
     fi
 
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+        # Combine source and target texts when using joint tokenization
+        if "${token_joint}"; then
+            log "Merge src and target data if joint BPE"
+
+            cat $tgt_bpe_train_text > ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+            [ ! -z "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >> ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+            # Set the new text as the target text
+            tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
+        fi
+
         # First generate tgt lang
         if [ "${tgt_token_type}" = bpe ]; then
             log "Stage 5a: Generate token_list from ${tgt_bpe_train_text} using BPE for tgt_lang"
@@ -1476,8 +1484,8 @@ if ! "${skip_eval}"; then
             perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
 
             # detokenizer
-            detokenizer.perl -l en -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
-            detokenizer.perl -l en -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
+            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
+            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
 
             if [ ${tgt_case} = "tc" ]; then
                 echo "Case sensitive BLEU result (single-reference)" >> ${_scoredir}/result.tc.txt
@@ -1520,7 +1528,7 @@ if ! "${skip_eval}"; then
                     
                     # 
                     perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
-                    detokenizer.perl -l en -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
+                    detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
                     remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
                     case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
                     case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
@@ -1540,10 +1548,13 @@ if ! "${skip_eval}"; then
                     >> ${_scoredir}/result.lc.txt
                 log "Write a case-insensitve BLEU (multi-reference) result in ${_scoredir}/result.lc.txt"
             fi
-
         done
-    fi
 
+        # Show results in Markdown syntax
+        scripts/utils/show_translation_result.sh --case $tgt_case "${st_exp}" > "${st_exp}"/RESULTS.md
+        cat "${cat_exp}"/RESULTS.md
+    fi
+else
     log "Skip the evaluation stages"
 fi
 
@@ -1564,7 +1575,8 @@ if ! "${skip_upload}"; then
             _opts+="--option ${st_stats_dir}/train/feats_stats.npz "
         fi
         if [ "${tgt_token_type}" = bpe ]; then
-            _opts+="--option ${bpemodel} "
+            _opts+="--option ${tgt_bpemodel} "
+            _opts+="--option ${src_bpemodel} "
         fi
         if [ "${nlsyms_txt}" != none ]; then
             _opts+="--option ${nlsyms_txt} "
@@ -1636,10 +1648,60 @@ EOF
             --use_sandbox false \
             --publish false
     fi
-
-# TODO (jiatong): add HF uploading feature
 else
     log "Skip the uploading stages"
+fi
+
+if ! "${skip_upload_hf}"; then
+    if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ]; then
+        [ -z "${hf_repo}" ] && \
+            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
+
+        gitlfs=$(git lfs --version 2> /dev/null || true)
+        [ -z "${gitlfs}" ] && \
+            log "ERROR: You need to install git-lfs first" && \
+            exit 1             
+  
+        dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+        [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+  
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/asr1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+  
+        # copy files in ${dir_repo}
+        unzip -o ${packed_model} -d ${dir_repo}
+        # Generate description file
+        # shellcheck disable=SC2034
+        hf_task=speech-translation
+        # shellcheck disable=SC2034     
+        espnet_task=ST
+        # shellcheck disable=SC2034
+        task_exp=${st_exp}
+        eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+        this_folder=${PWD}
+        cd ${dir_repo}
+        if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Update model"
+        fi
+        git push
+        cd ${this_folder}
+    fi
+else
+    log "Skip the uploading to HuggingFace stage"
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

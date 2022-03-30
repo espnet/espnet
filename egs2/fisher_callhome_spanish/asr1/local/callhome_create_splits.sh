@@ -1,1 +1,1 @@
-../../../../egs/fisher_callhome_spanish/asr1/local/callhome_create_splits.sh
+../../../../egs/fisher_callhome_spanish/st1/local/callhome_create_splits.sh

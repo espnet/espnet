@@ -70,9 +70,8 @@ requirements = {
         "torchaudio",
         "torch_optimizer",
         "fairscale",
-        "fairseq",
         "transformers",
-        "gtn",
+        "gtn==0.0.0",
     ],
     "setup": [
         "numpy<=1.21.3",

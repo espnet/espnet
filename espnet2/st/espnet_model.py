@@ -121,7 +121,7 @@ class ESPnetSTModel(AbsESPnetModel):
                 self.extra_asr_decoder = extra_asr_decoder
             elif extra_asr_decoder is not None:
                 logging.warning(
-                    "Not using extra_asr_decoder because",
+                    "Not using extra_asr_decoder because "
                     "mtlalpha is set as {} (== 1.0)".format(mtlalpha),
                 )
 
@@ -130,7 +130,7 @@ class ESPnetSTModel(AbsESPnetModel):
             self.extra_mt_decoder = extra_mt_decoder
         elif extra_mt_decoder is not None:
             logging.warning(
-                "Not using extra_mt_decoder because",
+                "Not using extra_mt_decoder because "
                 "mt_weight is set as {} (== 0)".format(mt_weight),
             )
 
@@ -413,7 +413,7 @@ class ESPnetSTModel(AbsESPnetModel):
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
-        decoder_out, _ = self.decoder(
+        decoder_out, _ = self.extra_asr_decoder(
             encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
         )
 
@@ -426,11 +426,11 @@ class ESPnetSTModel(AbsESPnetModel):
         )
 
         # Compute cer/wer using attention-decoder
-        if self.training or self.error_calculator is None:
+        if self.training or self.asr_error_calculator is None:
             cer_att, wer_att = None, None
         else:
             ys_hat = decoder_out.argmax(dim=-1)
-            cer_att, wer_att = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
+            cer_att, wer_att = self.asr_error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         return loss_att, acc_att, cer_att, wer_att
 
