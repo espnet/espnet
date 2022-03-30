@@ -137,7 +137,7 @@ def tokenize(
         for t in tokens:
             counter[t] += 1
         print( len(counter))
-        assert len(counter) + len(add_symbol) < nbpe , "The number of bpes you asked ({}) is smaller than the number of unique caracters in the training text ({}).\n Please select a larger number of bpes or decrease the --character_coverage parameter (for Chinese and Japanese, 0.9995 is a good value, according to SentencePiece Github)".format(nbpe, len(counter) + len(add_symbol))
+        assert len(counter) + len(add_symbol) < nbpe , "The number of bpes you asked ({}) is smaller than the number of unique characters in the training text ({}).\n Please select a larger number of bpes or decrease the --character_coverage parameter (for Chinese and Japanese, 0.9995 is a good value, according to SentencePiece Github)".format(nbpe, len(counter) + len(add_symbol))
         print("You selected a correct number of bpes.")
         return
 
