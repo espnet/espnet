@@ -130,6 +130,7 @@ BENGALI=downloads
 IWSLT14=
 ST_CMDS=downloads
 MS_INDIC_IS18=
+MARATHI=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
