@@ -33,8 +33,8 @@ class RNNDecoder(AbsDecoder):
     def __init__(
         self,
         dim_vocab: int,
-        dim_embedding: int = 512,
-        dim_hidden: int = 512,
+        dim_embedding: int = 256,
+        dim_hidden: int = 256,
         rnn_type: str = "lstm",
         num_layers: int = 1,
         dropout: float = 0.0,

@@ -18,7 +18,7 @@ class RNN(torch.nn.Module):
         rnn_type: Type of RNN layers.
         bidirectional: Whether bidirectional layers are used.
         num_blocks: Number of layers.
-        dropout: Dropout rate.
+        dropout_rate: Dropout_Rate rate.
         dim_output: Output dimension if provided.
 
     """
@@ -30,7 +30,7 @@ class RNN(torch.nn.Module):
         rnn_type: str = "lstm",
         bidirectional: bool = True,
         num_blocks: int = 1,
-        dropout: float = 0.0,
+        dropout_rate: float = 0.0,
         dim_output: Optional[int] = None,
     ):
         assert check_argument_types()
@@ -50,7 +50,7 @@ class RNN(torch.nn.Module):
             dim_hidden,
             num_layers=num_blocks,
             bidirectional=bidirectional,
-            dropout=dropout,
+            dropout=dropout_rate,
             batch_first=True,
         )
 

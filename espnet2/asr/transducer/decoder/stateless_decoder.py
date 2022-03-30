@@ -29,7 +29,7 @@ class StatelessDecoder(AbsDecoder):
     def __init__(
         self,
         dim_vocab: int,
-        dim_embedding: int = 512,
+        dim_embedding: int = 256,
         dropout_embed: float = 0.0,
         embed_pad: int = 0,
     ):

@@ -44,9 +44,9 @@ class BeamSearchTransducer:
         lm: torch.nn.Module = None,
         lm_weight: float = 0.1,
         search_type: str = "default",
-        max_sym_exp: int = 2,
+        max_sym_exp: int = 3,
         u_max: int = 50,
-        nstep: int = 1,
+        nstep: int = 2,
         expansion_gamma: int = 2.3,
         expansion_beta: int = 2,
         score_norm: bool = False,
@@ -62,7 +62,7 @@ class BeamSearchTransducer:
             lm_weight: LM weight for soft fusion.
             search_type: Search algorithm to use during inference.
             max_sym_exp: Number of maximum symbol expansions at each time step. (TSD)
-            u_max: Maximum output sequence length. (ALSD)
+            u_max: Maximum expected target sequence length. (ALSD)
             nstep: Number of maximum expansion steps at each time step. (mAES)
             expansion_beta:
               Number of additional candidates for expanded hypotheses selection. (mAES)

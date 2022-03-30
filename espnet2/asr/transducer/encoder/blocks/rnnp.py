@@ -22,7 +22,7 @@ class RNNP(torch.nn.Module):
         bidirectional: Whether bidirectional layers are used.
         num_blocks: Number of layers.
         subsample: Subsampling for each layer.
-        dropout: Dropout rate.
+        dropout_rate: Dropout rate.
         dim_output: Output dimension if provided.
 
     """
@@ -35,8 +35,8 @@ class RNNP(torch.nn.Module):
         rnn_type: str = "lstm",
         bidirectional: bool = True,
         num_blocks: int = 1,
-        dropout: float = 0.0,
-        subsample: Optional[Sequence[int]] = (2, 2, 1, 1),
+        dropout_rate: float = 0.0,
+        subsample: Optional[Sequence[int]] = None,
         dim_output: Optional[int] = None,
     ):
         assert check_argument_types()
@@ -83,7 +83,7 @@ class RNNP(torch.nn.Module):
                 )
             ]
 
-            self.dropout += [torch.nn.Dropout(p=dropout)]
+            self.dropout += [torch.nn.Dropout(p=dropout_rate)]
 
         if subsample is None:
             self.subsample = np.ones(num_blocks + 1, dtype=int)

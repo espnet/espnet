@@ -240,14 +240,14 @@ def build_conv1d_block(configuration: List[Dict[str, Any]], mask_type: str) -> C
     )
 
 
-def build_rnn_block(configuration: List[Dict[str, Any]]) -> RNN:
+def build_rnn_block(configuration: List[Dict[str, Any]]) -> Union[RNN, RNNP]:
     """Build RNN block.
 
     Args:
         configuration: RNN block configuration.
 
     Returns:
-        : RNN block function.
+        : RNN/RNNP block function.
 
     """
     dim_proj = configuration.get("dim_proj")
@@ -260,7 +260,7 @@ def build_rnn_block(configuration: List[Dict[str, Any]]) -> RNN:
             rnn_type=configuration.get("rnn_type", "lstm"),
             bidirectional=configuration.get("bidirectional", True),
             num_blocks=configuration.get("num_blocks", 1),
-            dropout=configuration.get("dropout", 0.0),
+            dropout_rate=configuration.get("dropout_rate", 0.0),
             subsample=configuration.get("subsample"),
             dim_output=configuration.get("dim_output"),
         )
@@ -272,7 +272,7 @@ def build_rnn_block(configuration: List[Dict[str, Any]]) -> RNN:
         bidirectional=configuration.get("bidirectional", True),
         num_blocks=configuration.get("num_blocks", 1),
         dim_output=configuration.get("dim_output"),
-        dropout=configuration.get("dropout", 0.0),
+        dropout_rate=configuration.get("dropout_rate", 0.0),
     )
 
 
