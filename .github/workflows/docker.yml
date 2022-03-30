@@ -37,12 +37,12 @@ jobs:
             -t espnet/espnet:cpu-latest .
       # docker push espnet/espnet:cpu-latest   
 
-      - name: Build and push GPU container
-        run: |
-          cd docker
-          docker build --build-arg FROM_TAG=cuda-latest \
-            --build-arg CUDA_VER=11.1 \
-            -f prebuilt/devel.dockerfile \
-            --target devel \
-            -t espnet/espnet:gpu-latest.
+      # - name: Build and push GPU container
+      #   run: |
+      #     cd docker
+      #     docker build --build-arg FROM_TAG=cuda-latest \
+      #       --build-arg CUDA_VER=11.1 \
+      #       -f prebuilt/devel.dockerfile \
+      #       --target devel \
+      #       -t espnet/espnet:gpu-latest.
       # docker push espnet/espnet:gpu-latest
