@@ -357,6 +357,13 @@ asr.sh --asr-transducer true [...]
 
 For Transducer loss computation during training, we rely on a fork of `warp-transducer`. The installation procedure is described [here](https://espnet.github.io/espnet/installation.html#step-3-optional-custom-tool-installation).
 
+**Note:** If you encounter any error related to this tool, please open an issue in ESPnet instead of the [original repository](https://github.com/HawkAaron/warp-transducer/issues).
+
+**Note 2:** We made available FastEmit regularization [[Yu et al., 2021]](https://arxiv.org/pdf/2010.11148) during loss computation. To enable it, `fastemit-lambda` need to set in `model_conf`:
+
+    model_conf:
+      fastemit_lambda: Regularization parameter for FastEmit. (float, default = 0.0)
+
 ### Architecture
 
 The architecture is composed of three modules: encoder, decoder and joint network. Each one has a set of up to two parameters settable in order to configure the internal parts. The following sections describe the mandatory and optional parameters for each module.
@@ -365,11 +372,11 @@ The architecture is composed of three modules: encoder, decoder and joint networ
 
 For the encoder, we propose an unique encoder type encapsulating the following blocks: Conformer, Conv 1D and RNN. It is similar to the custom encoder in ESPnet1 with the exception that we also support RNN, meaning we don't need to set the parameter `encoder: [type]` here. Instead, the encoder architecture is defined by three parameters passed to `encoder_conf`:
 
-  1. `input_conf (Dict): The configuration for the input block.
-  2. `main_conf` (Dict): The main configuration containing the set of high-level parameters used by the whole architecture (i.e.: shared configuration across all blocks). Right now, only Conformer-related parameters are available.
-  3. `body_conf` (List[Dict]): The list of configurations for each block of the encoder architecture but the input block.
+  1. `input_conf` (**Dict**): The configuration for the input block.
+  2. `main_conf` (**Dict**): The main configuration for the parameters shared configuration across all blocks. Right now, only Conformer-related parameters are available.
+  3. `body_conf` (**List[Dict]**): The list of configurations for each block of the encoder architecture but the input block.
 
-The first and second configuration are optional and the following parameters can be set:
+The first and second configuration are optional. If needed, fhe following parameters can be modified in each configuration:
 
     main_conf:
       pos_wise_layer_type: Position-wise layer type. (str, default = "linear")
@@ -383,10 +390,10 @@ The first and second configuration are optional and the following parameters can
       subsampling_factor (conv2d only): Subsampling factor of the input block, either 2, 4 or 6. (int, default = 4)
       dropout_rate_pos_enc: Dropout rate for the positional encoding layer, if used. (float, default = 0.0)
 
-The only mandatory parameter is `body_conf`, where a list of configurations for each block of the encoder body architecture need to be given. Each block has its own set of mandatory and optional parameters depending on the type:
+The only mandatory configuration is `body_conf`, defining the encoder body architecture block by block. Each block has its own set of mandatory and optional parameters depending on the type, defined by `block_type`:
 
     # Conv 1D
-    - block_type: conv1d
+    - **block_type: conv1d**
       dim_output: Output dimension. (int)
       kernel_size: Size of the context window. (int or Tuple)
       stride (optional): Stride of the sliding blocks. (int or tuple, default = 1)
@@ -398,7 +405,7 @@ The only mandatory parameter is `body_conf`, where a list of configurations for 
       dropout_rate (optional): Dropout rate for the Conv1d outputs. (float, default = 0.0)
 
     # RNN
-    - block_type: rnn
+    - **block_type: rnn**
       dim_hidden: Hidden dimension. (int)
       dim_proj (optional): Projection dimension, where 0 means no projection layers. (int, default = 0)
       rnn_type (optional): Type of RNN units (str, default = "lstm")
@@ -407,17 +414,17 @@ The only mandatory parameter is `body_conf`, where a list of configurations for 
       dropout_rate (optional): Dropout rate for the RNN outputs. (float, default = 0.0)
 
     # Conformer
-    - block_type: conformer
+    - **block_type: conformer**
       dim_hidden: Hidden (and output) dimension. (int)
       dim_linear: Dimension of feed-forward module. (int)
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
       macaron_style (optional): Whether to use macaron style. (bool, default = False)
       conv_mod_kernel (optional): Number of kernel in convolutional module, where 0 means no conv. module. (int, default = 0)
-      dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)]
-      dropout_rate_att (optional: Dropout rate for the attention module. (float, default = 0.0)]
+      dropout_rate (optional): Dropout rate for some intermediate layers. (float, default = 0.0)
+      dropout_rate_att (optional: Dropout rate for the attention module. (float, default = 0.0)
       dropout_rate_pos_wise (optional): Dropout rate for the position-wise module. (float, default = 0.0)
 
-Additionally, each block has a parameter `num_blocks` to build N times the defined block. This is useful if you want to build a group of blocks sharing the same parameters without writing each configuration.
+In addition, each block has a parameter `num_blocks` to build N consecutive times the defined block. This is useful if you want to use a group of blocks sharing the same parameters without writing each configuration.
 
 **Example 1: conv 2D + 2x Conv 1D + 14x Conformer.**
 
@@ -488,9 +495,9 @@ Currently, we only propose the standard joint network module composed of two thr
 
 We also support multi-task learning with two auxiliary tasks: CTC and cross-entropy w/ label smoothing option (called LM loss here). The auxiliary tasks contributes to the overal task defined as:
 
-L_tot = (λ_trans * L_trans) + (λ_auxCTC * L_auxCTC) + (λ_auxLM + L_auxLM)
+**L_tot = (λ_trans x L_trans) + (λ_auxCTC x L_auxCTC) + (λ_auxLM x L_auxLM)**
 
-where the losses (L_*) are respectively, in order: The Transducer loss, the CTC loss and the LM loss. Lambda values define their respective contribution. Each auxiliary task can be defined through the following parameters passed to `model_conf`:
+where the losses (L_*) are respectively, in order: The Transducer loss, the CTC loss and the LM loss. Lambda values define their respective contribution to the total loss. Each task can be parametrized using the following options, passed to `model_conf`:
 
     model_conf:
       transducer-loss-weight: Weight of the Transducer loss (float, default = 1.0)
