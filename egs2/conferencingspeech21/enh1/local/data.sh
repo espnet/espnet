@@ -132,22 +132,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     )
 
     rir_dir="${official_data_dir}/Training_set"
-    # if [ "${rir_dir,,}" = "none" ] || [ ! -d "${rir_dir}" ]; then
-    #     # Simulate RIRs if not provided
-    #     if python -c 'import sys; assert(float(".".join(map(str, sys.version_info[:2]))) < 3.6)' 2>/dev/null; then
-    #         log "Python 3.6+ is required for simulation."
-    #         exit 2
-    #     fi
-    #     # This takes ~3.3 hours with Intel(R) Xeon(R) CPU E5-2670 v2 @ 2.50GHz
-    #     # ~105 RIRs will be generated in ${odir}/ConferencingSpeech2021/simulation/tmp*.wav
-    #     log "Start RIR simulation..."
-    #     (
-    #         export LD_LIBRARY_PATH="${odir}/ConferencingSpeech2021/simulation":$LD_LIBRARY_PATH
-    #         cd "${odir}/ConferencingSpeech2021/simulation"
-    #         python ./challenge_rirgenerator.py
-    #     )
-    #     rir_dir="${odir}/ConferencingSpeech2021/simulation"
-    # fi
 
     # make symbolic links for each corpus to match the data preparation script
     corpora_dir="${odir}/ConferencingSpeech2021/corpora"

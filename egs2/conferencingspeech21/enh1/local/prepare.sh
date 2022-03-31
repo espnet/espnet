@@ -39,13 +39,19 @@ python local/prepare_data_list.py \
 cat "${tmpdir}"/train_{aishell_3,aishell_1,vctk,librispeech_360}.lst > "${outdir}/train_clean.lst"
 
 # prepare noise for training
-for name in musan audioset; do
-    python local/prepare_data_list.py \
-        --outfile "${tmpdir}/${name}.lst" \
-        --audiodirs "${corpora_dir}/${name}" \
-        --audio-format "wav" \
-        "${selected_list_dir}/train/${name}.name"
-done
+python local/prepare_data_list.py \
+    --outfile "${tmpdir}/musan.lst" \
+    --audiodirs "${corpora_dir}/musan" \
+    --audio-format "wav" \
+    "${selected_list_dir}/train/musan.name"
+
+python local/prepare_data_list.py \
+    --outfile "${tmpdir}/audioset.lst" \
+    --audiodirs "${corpora_dir}/audioset" \
+    --audio-format "wav" \
+    --ignore-missing-files True \
+    "${selected_list_dir}/train/audioset.name"
+
 cat "${tmpdir}"/{musan,audioset}.lst > "${outdir}/train_noise.lst"
 
 # prepare speech for development

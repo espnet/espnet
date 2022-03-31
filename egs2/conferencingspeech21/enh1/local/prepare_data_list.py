@@ -5,6 +5,8 @@
 import argparse
 from pathlib import Path
 
+from espnet2.utils.types import str2bool
+
 
 def prepare_data(args):
     datalist = Path(args.datalist).expanduser().resolve()
@@ -15,16 +17,29 @@ def prepare_data(args):
         for audiodir in audiodirs
         for path in audiodir.rglob("*." + args.audio_format)
     }
+    missing_files = []
     with outfile.open("w") as out, datalist.open("r") as f:
-        for wavname in f:
-            wavname = wavname.strip()
-            if not wavname:
+        for line in f:
+            line = line.strip()
+            if not line:
                 continue
-            assert wavname in audios, "No such file %s in %s" % (
-                wavname,
-                str([str(p) for p in audiodirs]),
+            wavname, others = line.split(maxsplit=1)
+            if args.ignore_missing_files:
+                if wavname not in audios:
+                    missing_files.append(wavname)
+                    continue
+            else:
+                assert wavname in audios, "No such file %s in %s" % (
+                    wavname,
+                    str([str(p) for p in audiodirs]),
+                )
+            out.write(audios[wavname] + " " + others + "\n")
+    if args.ignore_missing_files and len(missing_files) > 0:
+        print(
+            "{} wav missing files are skipped:\n{}".format(
+                len(missing_files), "\n  ".join(missing_files)
             )
-            out.write(audios[wavname] + "\n")
+        )
 
 
 def get_parser():
@@ -42,6 +57,7 @@ def get_parser():
         help="Paths to the directories containing audio files",
     )
     parser.add_argument("--audio-format", type=str, default="wav")
+    parser.add_argument("--ignore-missing-files", type=str2bool, default=False)
     return parser
 
 
