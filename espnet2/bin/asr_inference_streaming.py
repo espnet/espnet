@@ -181,6 +181,8 @@ class Speech2TextStreaming:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
+        self.n_fft = asr_train_args.frontend_conf['n_fft']
+        self.hop_length = asr_train_args.frontend_conf['hop_length']
 
         self.reset()
 
