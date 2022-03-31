@@ -32,7 +32,8 @@ for test_name in ("test", "dev"):
     print(count, "duplicates in", test_name)
 
     # if input("continue? [y/n]") == 'y':
-    # remove all instances of duplicate uttids in these files: spk2utt, text, utt2spk, wav.scp
+    # remove all instances of duplicate uttids in these files: 
+    # spk2utt, text, utt2spk, wav.scp
     with open(f"data/{test_name}/spk2utt", "r") as f:
         # replace all uttid with empty string
         text = f.read()
