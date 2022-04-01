@@ -77,46 +77,79 @@ class SNRLoss(TimeDomainLoss):
 
 
 class SISNRLoss(TimeDomainLoss):
-    def __init__(self, eps=EPS):
+    """
+    A more stable SI-SNR loss with clamp from `fast_bss_eval`.
+    Thanks to Robin Scheibler for the implementation.
+    We should consider import `fast_bss_eval` in the future PR.
+    """
+
+    def __init__(self, clamp_db=None, zero_mean=True, eps=None):
         super().__init__()
-        self.eps = float(eps)
+        self.clamp_db = clamp_db
+        self.zero_mean = zero_mean
 
     @property
     def name(self) -> str:
         return "si_snr_loss"
 
+    def _db_clamp_eps(self, db_max: float) -> float:
+        """
+        helper function to compute the clamping constant
+        """
+        e = 10.0 ** (-db_max / 10.0)
+        eps = e / (1.0 + e)
+        return eps
+
+    def _coherence_to_neg_sdr(self, coh: torch.Tensor) -> torch.Tensor:
+        """
+        This function transforms the squared cosine to negative SDR value.
+        If provided clamp_db will limit the output to the range [-clamp_db, clamp_db].
+        """
+        clamp_db = self.clamp_db
+
+        if clamp_db is not None:
+            # clamp within desired decibel range
+            eps = self._db_clamp_eps(clamp_db)
+        else:
+            # theoretically the coh values should be in [0, 1],
+            # so we clamp them there to avoid numerical issues.
+            eps = 0.0
+        coh = torch.clamp(coh, min=eps, max=(1 - eps))
+
+        ratio = (1 - coh) / coh
+
+        # apply the SDR mapping
+        return 10.0 * torch.log10(ratio)
+
     def forward(
         self,
         ref: torch.Tensor,
-        inf: torch.Tensor,
+        est: torch.Tensor,
     ) -> torch.Tensor:
-        # the return tensor should be shape of (batch,)
-        assert ref.size() == inf.size()
-        B, T = ref.size()
+        """
+        ref: Tensor, (..., n_samples)
+            reference signal
+        est: Tensor (..., n_samples)
+            estimated signal
+        clamp_db: float
+            clamp the output value in  [-clamp_db, clamp_db]
 
-        # Step 1. Zero-mean norm
-        mean_target = torch.sum(ref, dim=1, keepdim=True) / T
-        mean_estimate = torch.sum(inf, dim=1, keepdim=True) / T
-        zero_mean_target = ref - mean_target
-        zero_mean_estimate = inf - mean_estimate
+        Returns
+        -------
+        loss: (...,)
+            the SI-SDR loss (negative si-sdr)
+        """
 
-        # Step 2. SI-SNR with order
-        # reshape to use broadcast
-        s_target = zero_mean_target  # [B, T]
-        s_estimate = zero_mean_estimate  # [B, T]
-        # s_target = <s', s>s / ||s||^2
-        pair_wise_dot = torch.sum(s_estimate * s_target, dim=1, keepdim=True)  # [B, 1]
-        s_target_energy = (
-            torch.sum(s_target**2, dim=1, keepdim=True) + self.eps
-        )  # [B, 1]
-        pair_wise_proj = pair_wise_dot * s_target / s_target_energy  # [B, T]
-        # e_noise = s' - s_target
-        e_noise = s_estimate - pair_wise_proj  # [B, T]
+        assert ref.size() == est.size()
 
-        # SI-SNR = 10 * log_10(||s_target||^2 / ||e_noise||^2)
-        pair_wise_si_snr = torch.sum(pair_wise_proj**2, dim=1) / (
-            torch.sum(e_noise**2, dim=1) + self.eps
-        )
-        pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + self.eps)  # [B]
+        if self.zero_mean:
+            mean_ref = torch.mean(ref, dim=-1, keepdim=True)
+            mean_est = torch.mean(est, dim=-1, keepdim=True)
+            ref = ref - mean_ref
+            est = est - mean_est
 
-        return -1 * pair_wise_si_snr
+        ref = torch.nn.functional.normalize(ref, dim=-1)
+        est = torch.nn.functional.normalize(est, dim=-1)
+        cos_sq = torch.square(torch.einsum("...n,...n->...", ref, est))
+
+        return self._coherence_to_neg_sdr(cos_sq)
