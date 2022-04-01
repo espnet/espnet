@@ -77,8 +77,8 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         ignore_id: int = -1,
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
-        report_cer: bool = True,
-        report_wer: bool = True,
+        report_cer: bool = False,
+        report_wer: bool = False,
         extract_feats_in_collect_stats: bool = True,
     ):
         assert check_argument_types()

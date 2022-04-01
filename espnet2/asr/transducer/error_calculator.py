@@ -164,8 +164,8 @@ class ErrorCalculator(object):
         distances, lens = [], []
 
         for i, char_pred_i in enumerate(char_pred):
-            pred = char_pred_i.split()
-            target = char_target[i].split()
+            pred = char_pred_i.replace("▁", " ").split()
+            target = char_target[i].replace("▁", " ").split()
 
             distances.append(editdistance.eval(pred, target))
             lens.append(len(target))
