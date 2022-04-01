@@ -1,3 +1,5 @@
+from argparse import Namespace
+
 import pytest
 
 from espnet2.tasks.asr_transducer import ASRTransducerTask
@@ -34,3 +36,72 @@ def test_print_config_and_load_it(tmp_path):
         ASRTransducerTask.print_config(f)
     parser = ASRTransducerTask.get_parser()
     parser.parse_args(["--config", str(config_file)])
+
+
+def get_dummy_namespace():
+    return Namespace(
+        token_type="char",
+        token_list=["<blank>", "a", "b", "c", "<space>", "<unk>"],
+        input_size=40,
+        frontend="frontend",
+        frontend_conf={"n_fft": 51, "win_length": 40, "hop_length": 16},
+        specaug="specaug",
+        specaug_conf={"apply_time_warp": True, "time_mask_width_range": 4},
+        normalize=None,
+        normalize_conf=None,
+        encoder_conf={"body_conf": [{"block_type": "rnn", "dim_hidden": 16}]},
+        decoder="stateless",
+        decoder_conf={"dim_embedding": 8},
+        joint_network_conf={"dim_joint_space": 8},
+        model_conf={"transducer_weight": 1.0},
+        init="chainer_espnet1",
+    )
+
+
+def test_build_model():
+    args = get_dummy_namespace()
+
+    _ = ASRTransducerTask.build_model(args)
+
+    with pytest.raises(RuntimeError):
+        args.token_list = -1
+
+        _ = ASRTransducerTask.build_model(args)
+
+
+def test_build_collate_fn():
+    args = get_dummy_namespace()
+
+    _ = ASRTransducerTask.build_collate_fn(args, True)
+
+
+@pytest.mark.parametrize("use_preprocessor", [True, False])
+def test_build_preprocess_fn(use_preprocessor):
+    args = get_dummy_namespace()
+
+    new_args = {
+        "use_preprocessor": use_preprocessor,
+        "bpemodel": None,
+        "non_linguistic_symbols": args.token_list,
+        "cleaner": None,
+        "g2p": None,
+    }
+    args.__dict__.update(new_args)
+
+    _ = ASRTransducerTask.build_preprocess_fn(args, True)
+
+
+@pytest.mark.parametrize("inference", [True, False])
+def test_required_data_names(inference):
+    retval = ASRTransducerTask.required_data_names(True, inference)
+
+    if inference:
+        assert retval == ("speech",)
+    else:
+        assert retval == ("speech", "text")
+
+
+def test_optional_data_names():
+    retval = ASRTransducerTask.optional_data_names(True, True)
+
+    assert not retval

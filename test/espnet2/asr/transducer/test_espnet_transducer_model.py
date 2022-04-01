@@ -1,6 +1,7 @@
 import pytest
 import torch
 
+from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.asr.transducer.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.transducer.decoder.stateless_decoder import StatelessDecoder
 from espnet2.asr.transducer.encoder.encoder import Encoder
@@ -34,6 +35,14 @@ def get_decoder(vocab_size, params):
     return decoder
 
 
+def get_specaug():
+    return SpecAug(
+        apply_time_warp=True,
+        apply_freq_mask=True,
+        apply_time_mask=False,
+    )
+
+
 @pytest.mark.parametrize(
     "enc_params, dec_params, joint_net_params, main_params",
     [
@@ -41,13 +50,13 @@ def get_decoder(vocab_size, params):
             [{"block_type": "rnn", "dim_hidden": 4}],
             {"rnn_type": "lstm", "num_layers": 2},
             {"dim_joint_space": 4},
-            {"report_cer": False, "report_wer": False},
+            {"report_cer": True, "report_wer": True},
         ),
         (
             [{"block_type": "rnn", "dim_hidden": 4}],
             {"dim_embedding": 4},
             {"dim_joint_space": 4},
-            {},
+            {"specaug": True},
         ),
         (
             [{"block_type": "rnn", "dim_hidden": 4}],
@@ -77,11 +86,13 @@ def test_model_training(enc_params, dec_params, joint_net_params, main_params):
         vocab_size, encoder.dim_output, decoder.dim_output, **joint_net_params
     )
 
+    specaug = get_specaug() if main_params.pop("specaug", False) else None
+
     model = ESPnetASRTransducerModel(
         vocab_size,
         token_list,
         frontend=None,
-        specaug=None,
+        specaug=specaug,
         normalize=None,
         encoder=encoder,
         decoder=decoder,
@@ -94,3 +105,40 @@ def test_model_training(enc_params, dec_params, joint_net_params, main_params):
     )
 
     _ = model(feats, feat_len, labels, label_len)
+
+    if main_params.get("report_cer") or main_params.get("report_wer"):
+        model.training = False
+
+        _ = model(feats, feat_len, labels, label_len)
+
+
+@pytest.mark.parametrize("extract_feats", [True, False])
+def test_collect_feats(extract_feats):
+    token_list = ["<blank>", "a", "b", "c", "<space>"]
+    vocab_size = len(token_list)
+
+    encoder = Encoder(20, [{"block_type": "rnn", "dim_hidden": 4}])
+    decoder = StatelessDecoder(vocab_size, dim_embedding=4)
+
+    joint_network = JointNetwork(vocab_size, encoder.dim_output, decoder.dim_output, 8)
+
+    model = ESPnetASRTransducerModel(
+        vocab_size,
+        token_list,
+        frontend=None,
+        specaug=None,
+        normalize=None,
+        encoder=encoder,
+        decoder=decoder,
+        joint_network=joint_network,
+    )
+    model.extract_feats_in_collect_stats = extract_feats
+
+    feats_dict = model.collect_feats(
+        torch.randn(2, 12),
+        torch.tensor([12, 11]),
+        torch.randn(2, 8),
+        torch.tensor([8, 8]),
+    )
+
+    assert set(("feats", "feats_lengths")) == feats_dict.keys()

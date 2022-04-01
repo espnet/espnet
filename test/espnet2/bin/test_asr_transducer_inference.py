@@ -89,9 +89,21 @@ def lm_config_file(tmp_path: Path, token_list):
 
 
 @pytest.mark.execution_timeout(10)
-def test_Speech2Text(asr_config_file, lm_config_file):
+@pytest.mark.parametrize(
+    "use_lm, token_type",
+    [
+        (False, "char"),
+        (True, "char"),
+        (False, "bpe"),
+        (False, None),
+    ],
+)
+def test_Speech2Text(use_lm, token_type, asr_config_file, lm_config_file):
     speech2text = Speech2Text(
-        asr_train_config=asr_config_file, lm_train_config=lm_config_file, beam_size=1
+        asr_train_config=asr_config_file,
+        lm_train_config=lm_config_file if use_lm else None,
+        beam_size=1,
+        token_type=token_type,
     )
     speech = np.random.randn(100000)
     results = speech2text(speech)
@@ -101,3 +113,15 @@ def test_Speech2Text(asr_config_file, lm_config_file):
         assert isinstance(token, List)
         assert isinstance(token_int, List)
         assert isinstance(hyp, Hypothesis)
+
+
+# TO DO: upload mini_an4 pre-trained model to huggingface for additional tests.
+def test_pretrained_speech2Text(asr_config_file):
+    speech2text = Speech2Text.from_pretrained(
+        model_tag=None,
+        asr_train_config=asr_config_file,
+        beam_size=1,
+    )
+
+    speech = np.random.randn(100000)
+    _ = speech2text(speech)
