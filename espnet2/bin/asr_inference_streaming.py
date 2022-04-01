@@ -28,6 +28,7 @@ import logging
 import numpy as np
 from pathlib import Path
 import sys
+import math
 import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
@@ -181,8 +182,18 @@ class Speech2TextStreaming:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
-        self.n_fft = asr_train_args.frontend_conf['n_fft']
-        self.hop_length = asr_train_args.frontend_conf['hop_length']
+        if 'n_fft' in asr_train_args.frontend_conf:
+            self.n_fft = asr_train_args.frontend_conf['n_fft']
+        else:
+            self.n_fft = 512
+        if 'hop_length' in asr_train_args.frontend_conf:
+            self.hop_length = asr_train_args.frontend_conf['hop_length']
+        else:
+            self.hop_length = 128
+        if 'win_length' in asr_train_args.frontend_conf and asr_train_args.frontend_conf['win_length'] is not None:
+            self.win_length = asr_train_args.frontend_conf['win_length']
+        else:
+            self.win_length = self.n_fft
 
         self.reset()
 
@@ -202,11 +213,11 @@ class Speech2TextStreaming:
             speech_to_process = speech
             waveform_buffer = None
         else:
-            n_frames = (speech.size(0) - self.n_fft) // self.hop_length
-            n_residual = (speech.size(0) - self.n_fft) % self.hop_length
-            speech_to_process = speech.narrow(0, 0, self.n_fft + n_frames * self.hop_length)
+            n_frames = (speech.size(0) - (self.win_length-self.hop_length)) // self.hop_length
+            n_residual = (speech.size(0) - (self.win_length-self.hop_length)) % self.hop_length
+            speech_to_process = speech.narrow(0, 0, (self.win_length-self.hop_length) + n_frames * self.hop_length)
             waveform_buffer = speech.narrow(
-                0, speech.size(0) - self.n_fft - n_residual, self.n_fft + n_residual
+                0, speech.size(0) - (self.win_length-self.hop_length) - n_residual, (self.win_length-self.hop_length) + n_residual
             ).clone()
 
         # data: (Nsamples,) -> (1, Nsamples)
@@ -231,12 +242,12 @@ class Speech2TextStreaming:
             if prev_states is None:
                 pass
             else:
-                feats = feats.narrow(1, 2, feats.size(1) - 2)
+                feats = feats.narrow(1, math.ceil(math.ceil(self.win_length/self.hop_length)/2), feats.size(1) - math.ceil(math.ceil(self.win_length/self.hop_length)/2))
         else:
             if prev_states is None:
-                feats = feats.narrow(1, 0, feats.size(1) - 2)
+                feats = feats.narrow(1, 0, feats.size(1) - math.ceil(math.ceil(self.win_length/self.hop_length)/2))
             else:
-                feats = feats.narrow(1, 2, feats.size(1) - (self.n_fft//self.hop_length-1) - 2)
+                feats = feats.narrow(1, math.ceil(math.ceil(self.win_length/self.hop_length)/2), feats.size(1) - math.ceil(self.win_length/self.hop_length))
 
         feats_lengths = feats.new_full([1], dtype=torch.long, fill_value=feats.size(1))
 
