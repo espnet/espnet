@@ -413,7 +413,7 @@ class ESPnetSTModel(AbsESPnetModel):
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
-        decoder_out, _ = self.decoder(
+        decoder_out, _ = self.extra_asr_decoder(
             encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
         )
 
@@ -426,11 +426,11 @@ class ESPnetSTModel(AbsESPnetModel):
         )
 
         # Compute cer/wer using attention-decoder
-        if self.training or self.error_calculator is None:
+        if self.training or self.asr_error_calculator is None:
             cer_att, wer_att = None, None
         else:
             ys_hat = decoder_out.argmax(dim=-1)
-            cer_att, wer_att = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
+            cer_att, wer_att = self.asr_error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
         return loss_att, acc_att, cer_att, wer_att
 
