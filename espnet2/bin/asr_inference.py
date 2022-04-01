@@ -136,6 +136,7 @@ class Speech2Text:
                 decoder=1.0 - ctc_weight,
                 ctc=ctc_weight,
                 lm=lm_weight,
+                ngram=ngram_weight,
                 length_bonus=penalty,
             )
             beam_search = BeamSearch(
