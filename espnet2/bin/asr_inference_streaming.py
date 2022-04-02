@@ -25,10 +25,10 @@ from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 import logging
+import math
 import numpy as np
 from pathlib import Path
 import sys
-import math
 import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
