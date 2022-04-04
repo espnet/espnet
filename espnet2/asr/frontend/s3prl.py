@@ -90,7 +90,7 @@ class S3prlFrontend(AbsFrontend):
             feature_selection = "hidden_states"
         else:
             feature_selection = "last_hidden_state"
-            
+
         s3prl_featurizer = Featurizer(
             upstream=s3prl_upstream,
             feature_selection=feature_selection,
