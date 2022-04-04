@@ -8,6 +8,7 @@ chunk_length: 24000
 num_workers: 4
 optim_conf:
     lr: 1.0e-03
+    eps: 1.0e-07
     weight_decay: 0
 patience: 4
 val_scheduler_criterion:
@@ -17,9 +18,6 @@ best_model_criterion:
 -   - valid
     - si_snr_loss
     - min
-#-   - valid
-#    - der
-#    - min
 keep_nbest_models: 1
 scheduler: reducelronplateau
 scheduler_conf:

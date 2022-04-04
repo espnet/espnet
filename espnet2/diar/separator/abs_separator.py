@@ -15,13 +15,3 @@ class AbsSeparator(torch.nn.Module, ABC):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
 
         raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def input_dim(self) -> int:
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def bottleneck_dim(self) -> int:
-        raise NotImplementedError

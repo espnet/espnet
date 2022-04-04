@@ -1,1 +1,1 @@
-../../TEMPLATE/diar1/db.sh
+../../TEMPLATE/diar_enh1/db.sh

@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 
-# Copyright 2021 Jiatong Shi
+# Copyright 2022 Yushi Ueda
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 #
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
+# Note: To train the model with a flexible number of speakers, 
+# run local/run_adapt.sh after running this script until stage 5 (training).
 
 set -e
 set -u

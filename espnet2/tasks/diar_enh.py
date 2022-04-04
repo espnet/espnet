@@ -1,16 +1,8 @@
 import argparse
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
-
 from espnet2.asr.encoder.abs_encoder import AbsEncoder as DiarAbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
@@ -27,7 +19,10 @@ from espnet2.diar.decoder.abs_decoder import AbsDecoder as DiarAbsDecoder
 from espnet2.diar.decoder.linear_decoder import LinearDecoder
 from espnet2.diar.espnet_diar_enh_model import ESPnetDiarEnhModel
 from espnet2.diar.layers.abs_mask import AbsMask
-from espnet2.diar.layers.mask import Mask
+from espnet2.diar.layers.multi_mask import MultiMask
+from espnet2.diar.loss.wrappers.pit_solver_2 import PITSolver2
+from espnet2.diar.separator.abs_separator import AbsSeparator
+from espnet2.diar.separator.tcn_separator_nomask import TCNSeparator
 from espnet2.enh.decoder.abs_decoder import AbsDecoder as EnhAbsDecoder
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
@@ -37,23 +32,13 @@ from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
-from espnet2.enh.loss.criterions.time_domain import CISDRLoss
-from espnet2.enh.loss.criterions.time_domain import SISNRLoss
-from espnet2.enh.loss.criterions.time_domain import SNRLoss
+from espnet2.enh.loss.criterions.tf_domain import (FrequencyDomainL1,
+                                                   FrequencyDomainMSE)
+from espnet2.enh.loss.criterions.time_domain import (CISDRLoss, SISNRLoss,
+                                                     SNRLoss)
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
-from espnet2.diar.separator.abs_separator import AbsSeparator
-#from espnet2.enh.separator.asteroid_models import AsteroidModel_Converter
-#from espnet2.enh.separator.conformer_separator import ConformerSeparator
-#from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
-#from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
-#from espnet2.enh.separator.rnn_separator import RNNSeparator
-#from espnet2.diar.separator.tcn_separator import TCNSeparator
-from espnet2.diar.separator.tcn_separator_nomask import TCNSeparator
-#from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.label_aggregation import LabelAggregate
@@ -66,9 +51,8 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import int_or_none
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import int_or_none, str2bool, str_or_none
+from typeguard import check_argument_types, check_return_type
 
 frontend_choices = ClassChoices(
     name="frontend",
@@ -139,13 +123,7 @@ enh_encoder_choices = ClassChoices(
 separator_choices = ClassChoices(
     name="separator",
     classes=dict(
-#        rnn=RNNSeparator,
         tcn=TCNSeparator,
-#        dprnn=DPRNNSeparator,
-#        transformer=TransformerSeparator,
-#        conformer=ConformerSeparator,
-#        wpe_beamformer=NeuralBeamformer,
-#        asteroid=AsteroidModel_Converter,
     ),
     type_check=AbsSeparator,
     default="tcn",
@@ -154,10 +132,10 @@ separator_choices = ClassChoices(
 mask_module_choices = ClassChoices(
     name="mask_module",
     classes=dict(
-        mask=Mask
+        multi_mask=MultiMask
     ),
     type_check=AbsMask,
-    default="mask",
+    default="multi_mask",
 )
 
 enh_decoder_choices = ClassChoices(
@@ -169,7 +147,7 @@ enh_decoder_choices = ClassChoices(
 
 loss_wrapper_choices = ClassChoices(
     name="loss_wrappers",
-    classes=dict(pit=PITSolver, fixed_order=FixedOrderSolver),
+    classes=dict(pit=PITSolver, fixed_order=FixedOrderSolver, pit2=PITSolver2),
     type_check=AbsLossWrapper,
     default=None,
 )

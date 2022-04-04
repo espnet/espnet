@@ -1,1 +1,1 @@
-../../TEMPLATE/diar1/path.sh
+../../TEMPLATE/diar_enh1/path.sh

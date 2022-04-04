@@ -2,8 +2,8 @@ optim: adam
 init: xavier_uniform
 max_epoch: 50
 batch_type: folded
-batch_size: 1 # batch_size 16 can be trained on 4 RTX 2080ti
-accum_grad: 10
+batch_size: 4 # batch_size 16 can be trained on 4 RTX 2080ti
+accum_grad: 4
 iterator_type: chunk
 chunk_length: 24000
 num_workers: 4
@@ -85,7 +85,7 @@ criterions:
   - name: si_snr 
     conf:
       eps: 1.0e-7
-    wrapper: pit
+    wrapper: pit2
     wrapper_conf:
       weight: 1.0
       independent_perm: True

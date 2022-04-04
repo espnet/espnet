@@ -12,11 +12,6 @@ class AbsMask(torch.nn.Module, ABC):
     def max_num_spk(self) -> int:
         raise NotImplementedError
 
-    @property
-    @abstractmethod
-    def output_size(self) -> int:
-        raise NotImplementedError
-
     @abstractmethod
     def forward(
         self, 

@@ -51,16 +51,6 @@ class TCNSeparator(AbsSeparator):
             norm_type=norm_type,
             causal=causal,
         )
-        self._input_dim = input_dim
-        self._bottleneck_dim = bottleneck_dim
-
-    @property
-    def input_dim(self) -> int:
-        return self._input_dim
-
-    @property
-    def bottleneck_dim(self) -> int:
-        return self._bottleneck_dim
 
     def forward(
         self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor

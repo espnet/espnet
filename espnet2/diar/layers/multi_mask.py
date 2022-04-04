@@ -1,10 +1,5 @@
-# Implementation of the TCN proposed in
-# Luo. et al.  "Conv-tasnet: Surpassing ideal time–frequency
-# magnitude masking for speech separation."
-#
-# The code is based on:
-# https://github.com/kaituoxu/Conv-TasNet/blob/master/src/conv_tasnet.py
-#
+# This is an implementation of the multiple 1x1 convolution layer architecture
+# in https://arxiv.org/pdf/2203.17068.pdf
 
 from collections import OrderedDict
 
@@ -14,7 +9,7 @@ import torch.nn.functional as F
 from espnet2.diar.layers.abs_mask import AbsMask
 
 
-class Mask(AbsMask):
+class MultiMask(AbsMask):
     def __init__(
         self,
         input_dim: int,
@@ -22,19 +17,18 @@ class Mask(AbsMask):
         max_num_spk: int = 3,
         mask_nonlinear="relu"
     ):
-        """Basic Module of tasnet.
+        """Multiple 1x1 convolution layer Module.
 
         Args:
             input_dim: Number of filters in autoencoder
             bottleneck_dim: Number of channels in bottleneck 1 * 1-conv block
-            max_num_spk: Number of mask_conv1x1 modules (= Max number of speakers in the dataset)
+            max_num_spk: Number of mask_conv1x1 modules (>= Max number of speakers in the dataset)
             mask_nonlinear: use which non-linear function to generate mask
         """
         super().__init__()
         # Hyper-parameter
         self._max_num_spk = max_num_spk
         self.mask_nonlinear = mask_nonlinear
-        self._output_size = bottleneck_dim
         # [M, B, K] -> [M, C*N, K]
         self.mask_conv1x1 = nn.ModuleList()
         for z in range(1, max_num_spk+1):
@@ -44,10 +38,6 @@ class Mask(AbsMask):
     def max_num_spk(self) -> int:
         return self._max_num_spk
 
-    @property
-    def output_size(self) -> int:
-        return self._output_size
-
     def forward(self, input, ilens, bottleneck_feat, num_spk):
         """Keep this API same with TasNet.
 
@@ -55,7 +45,9 @@ class Mask(AbsMask):
             input: [M, K, N], M is batch size
             ilens (torch.Tensor): (M,)
             bottleneck_feat: [M, K, B]
-            num_spk: number of speakers
+            num_spk: number of speakers 
+            (Training: oracle, 
+            Inference: estimated by other module (e.g, EEND-EDA))
 
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(M, K, N), ...]

@@ -2,32 +2,28 @@
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from itertools import permutations
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn.functional as F
-from typeguard import check_argument_types
-
-from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet2.asr.encoder.abs_encoder import AbsEncoder as AbsDiarEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.diar.attractor.abs_attractor import AbsAttractor
 from espnet2.diar.decoder.abs_decoder import AbsDecoder as AbsDiarDecoder
 from espnet2.diar.layers.abs_mask import AbsMask
-from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.diar.separator.abs_separator import AbsSeparator
 from espnet2.enh.decoder.abs_decoder import AbsDecoder as AbsEnhDecoder
 from espnet2.enh.encoder.abs_encoder import AbsEncoder as AbsEnhEncoder
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
 from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
-from espnet2.diar.separator.abs_separator import AbsSeparator
+from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet.nets.pytorch_backend.nets_utils import to_device
+from typeguard import check_argument_types
 
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
@@ -64,7 +60,6 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
         enh_weight: float = 1.0,
         diar_weight: float = 1.0,
         attractor_weight: float = 1.0,
-        concat_feats: bool = False,
         pooling_kernel: int = 1,
     ):
         assert check_argument_types()
@@ -88,7 +83,6 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
         self.loss_wrappers = loss_wrappers
         self.max_num_spk = mask_module.max_num_spk
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
-        self.concat_feats = concat_feats
         # pooling layer in case further subsampling is required for long recordings
         self.pooling_kernel = pooling_kernel
         self.pool_1d = torch.nn.AvgPool1d(kernel_size=pooling_kernel, padding=pooling_kernel // 2)
@@ -204,10 +198,7 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
             speech_pre = None
 
         # diar model forward
-        if self.concat_feats:
-            # concatenate separator encoder features and bottleneck features
-            encoder_out, encoder_out_lens, _ = self.diar_encoder(torch.cat((feature_mix, bottleneck_feats), 2), flens)
-        elif self.frontend is not None:
+        if self.frontend is not None:
             # Frontend
             #  e.g. STFT and Feature extract
             #       data_loader may send time-domain signal in this case
@@ -220,7 +211,8 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
             # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
             if self.normalize is not None:
                 frontend_feats, frontend_feats_lengths = self.normalize(frontend_feats, frontend_feats_lengths)
-            # pooling bottleneck_feats in case further subsampling is required for long recordings (default: pooling_kernel=1 (no pooling))
+            # pooling bottleneck_feats in case further subsampling is required for long recordings
+            # (default: pooling_kernel=1 (no pooling))
             pool_bottleneck_feats = self.pool_1d(bottleneck_feats.transpose(1,2)).transpose(1,2)
             pool_flens = (flens + (self.pooling_kernel // 2) * 2)  // self.pooling_kernel
             # interpolate (copy) frontend_feats frames to match the length with bottleneck_feats
