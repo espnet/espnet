@@ -17,10 +17,14 @@ from espnet2.lm.seq_rnn_lm import SequentialRNNLM
         (RNNDecoder, {"dim_hidden": 4}, {"search_type": "default", "lm": None}),
         (StatelessDecoder, {}, {"search_type": "default", "lm": None}),
         (StatelessDecoder, {}, {"search_type": "default"}),
-        (RNNDecoder, {"dim_hidden": 4}, {"search_type": "alsd"}),
-        (RNNDecoder, {"dim_hidden": 4}, {"search_type": "alsd", "lm": None}),
-        (StatelessDecoder, {}, {"search_type": "alsd"}),
-        (StatelessDecoder, {}, {"search_type": "alsd", "lm": None}),
+        (RNNDecoder, {"dim_hidden": 4}, {"search_type": "alsd", "u_max": 10}),
+        (
+            RNNDecoder,
+            {"dim_hidden": 4},
+            {"search_type": "alsd", "u_max": 10, "lm": None},
+        ),
+        (StatelessDecoder, {}, {"search_type": "alsd", "u_max": 10}),
+        (StatelessDecoder, {}, {"search_type": "alsd", "u_max": 10, "lm": None}),
         (RNNDecoder, {"dim_hidden": 4}, {"search_type": "tsd", "max_sym_exp": 3}),
         (
             RNNDecoder,
@@ -48,7 +52,9 @@ def test_transducer_beam_search(decoder_class, decoder_opts, search_opts):
     decoder = decoder_class(dim_vocab, dim_embedding=4, **decoder_opts)
     joint_net = JointNetwork(dim_vocab, dim_encoder, 4, dim_joint_space=2)
 
-    lm = search_opts.pop("lm", SequentialRNNLM(dim_vocab, rnn_type="lstm"))
+    lm = search_opts.pop(
+        "lm", SequentialRNNLM(dim_vocab, unit=8, nlayers=1, rnn_type="lstm")
+    )
 
     beam = BeamSearchTransducer(
         decoder,
@@ -67,10 +73,10 @@ def test_transducer_beam_search(decoder_class, decoder_opts, search_opts):
 @pytest.mark.parametrize(
     "search_opts",
     [
-        {"beam_size": 10},
+        {"beam_size": 5},
         {"beam_size": 2, "search_type": "tsd", "max_sym_exp": 1},
         {"beam_size": 2, "search_type": "alsd", "u_max": -2},
-        {"beam_size": 2, "search_type": "maes", "expansion_beta": 10},
+        {"beam_size": 2, "search_type": "maes", "expansion_beta": 2.3},
     ],
 )
 def test_integer_parameters_limits(search_opts):
