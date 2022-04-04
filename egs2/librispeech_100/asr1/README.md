@@ -100,3 +100,49 @@ Model: https://huggingface.co/pyf98/librispeech_100h_transformer
 |beam20_ctc0.3/dev_other|2864|64524|78.5|15.3|6.2|2.8|24.3|83.8|
 |beam20_ctc0.3/test_clean|2620|66983|90.0|6.2|3.9|0.8|10.9|63.3|
 |beam20_ctc0.3/test_other|2939|66650|77.9|15.2|6.9|2.5|24.6|84.8|
+
+
+
+## asr_train_conformer-rnn_transducer
+
+- General
+  - GPU: Nvidia A100 40Gb
+  - CPU: AMD EPYC 7502P 32-cores
+  - Peak VRAM usage during training: ~ 18.1 GiB
+  - Training time: ~ 2 days 10 hours and 15 minutes (with CER/WER report enabled)
+  - Decoding + scoring time (32 jobs, `search-type: default`): ~ 9 minutes and 30 seconds
+
+- Environments
+  - date: `Mon Apr  4 05:22:55 UTC 2022`
+  - python version: `3.8.10 (default, Mar 15 2022, 12:22:08)  [GCC 9.4.0]`
+  - espnet version: `espnet 0.10.7a1`
+  - pytorch version: `pytorch 1.8.1+cu111`
+  - Git hash: `24f8751855a19219089778888ded229f6bfab4bd`
+  - Commit date: `Sat Apr 2 06:20:31 2022 +0000`
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_model_valid.loss.ave_10best/dev_clean|2703|54402|94.8|4.7|0.4|0.6|5.8|54.2|
+|decode_asr_model_valid.loss.ave_10best/dev_other|2864|50948|84.7|13.6|1.7|1.8|17.1|79.6|
+|decode_asr_model_valid.loss.ave_10best/test_clean|2620|52576|94.5|5.0|0.5|0.7|6.3|56.5|
+|decode_asr_model_valid.loss.ave_10best/test_other|2939|52343|84.5|13.6|1.9|1.7|17.2|80.2|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_model_valid.loss.ave_10best/dev_clean|2703|288456|98.4|0.9|0.7|0.6|2.2|54.2|
+|decode_asr_model_valid.loss.ave_10best/dev_other|2864|265951|93.7|3.8|2.5|1.8|8.1|79.6|
+|decode_asr_model_valid.loss.ave_10best/test_clean|2620|281530|98.3|0.9|0.8|0.6|2.3|56.5|
+|decode_asr_model_valid.loss.ave_10best/test_other|2939|272758|93.7|3.7|2.6|1.7|8.0|80.2|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_model_valid.loss.ave_10best/dev_clean|2703|107929|95.5|3.3|1.2|0.6|5.1|54.2|
+|decode_asr_model_valid.loss.ave_10best/dev_other|2864|98610|86.0|10.7|3.3|2.1|16.1|79.6|
+|decode_asr_model_valid.loss.ave_10best/test_clean|2620|105724|95.3|3.4|1.4|0.6|5.3|56.5|
+|decode_asr_model_valid.loss.ave_10best/test_other|2939|101026|85.9|10.5|3.6|1.9|16.1|80.2|
