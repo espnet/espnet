@@ -9,12 +9,15 @@ import os
 import re
 import sys
 import pandas as pd
+import numpy as np 
+
 
 if len(sys.argv) != 3:
     print("Usage: python data_prep.py [dstc2_root] coverage")
     sys.exit(1)
 dstc2_root = sys.argv[1]
-coverage = int(sys.argv[2])
+print(sys.argv[2])
+coverage = float(sys.argv[2])
 
 dir_dict = {
     "train": "train.csv",
@@ -65,11 +68,15 @@ for x in dir_dict:
         utt2spk_f.truncate()
         transcript_df = pd.read_csv(os.path.join(dstc2_root, "data", dir_dict[x]))
         
-        if x==train and coverage<1:
+        if x=="train" and coverage<1:
+            print("I am being sampled")
             transcript_df = _get_stratified_sampled_data(transcript_df,coverage)
+        else:
+            continue 
             
         transcript_df  = transcript_df.reset_index()  # make sure indexes pair with number of rows
-        
+        transcript_df.to_csv(f'sampled_{coverage}.csv')
+
         for index, row in transcript_df.iterrows():
             words = (
                 " <sep> ".join(sorted(eval(row["dialog_acts"])))
@@ -77,7 +84,8 @@ for x in dir_dict:
                 + row["transcript"].replace("<unk>", "unk").encode("ascii", "ignore").decode()
             )
             path_arr = row["audio_file_path"].split("/")
-            utt_id = path_arr["audio_file_path"] + "_" + path_arr[-1]
+            #print(path_arr)
+            utt_id = row["audio_file_path"] + "_" + path_arr[-1]
             speaker_id = path_arr[-2]
             text_f.write(utt_id + " " + words + "\n")
             wav_scp_f.write(utt_id + " " + dstc2_root + "/" + row["audio_file_path"] + "\n")

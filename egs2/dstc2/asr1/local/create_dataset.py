@@ -48,6 +48,8 @@ data_urls = {
     "dstc2_test.tar.gz": "https://github.com/matthen/dstc/releases/download/v1/dstc2_test.tar.gz",
 }
 
+os.system("mv scripts scripts_temp")
+
 for key in data_urls.keys():
     os.system("wget " + data_urls[key])
     while not os.path.exists(key):
@@ -58,6 +60,7 @@ for key in data_urls.keys():
     os.system("mv scripts/config/*  files_list")
     os.system("rm -rf data scripts")
 
+os.system("mv scripts_temp scripts")
 
 ##### END OF DOWNLOAD
 
