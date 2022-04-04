@@ -15,7 +15,7 @@ class MultiMask(AbsMask):
         input_dim: int,
         bottleneck_dim: int,
         max_num_spk: int = 3,
-        mask_nonlinear="relu"
+        mask_nonlinear="relu",
     ):
         """Multiple 1x1 convolution layer Module.
 
@@ -31,8 +31,10 @@ class MultiMask(AbsMask):
         self.mask_nonlinear = mask_nonlinear
         # [M, B, K] -> [M, C*N, K]
         self.mask_conv1x1 = nn.ModuleList()
-        for z in range(1, max_num_spk+1):
-            self.mask_conv1x1.append(nn.Conv1d(bottleneck_dim, z * input_dim, 1, bias=False))
+        for z in range(1, max_num_spk + 1):
+            self.mask_conv1x1.append(
+                nn.Conv1d(bottleneck_dim, z * input_dim, 1, bias=False)
+            )
 
     @property
     def max_num_spk(self) -> int:
@@ -45,8 +47,8 @@ class MultiMask(AbsMask):
             input: [M, K, N], M is batch size
             ilens (torch.Tensor): (M,)
             bottleneck_feat: [M, K, B]
-            num_spk: number of speakers 
-            (Training: oracle, 
+            num_spk: number of speakers
+            (Training: oracle,
             Inference: estimated by other module (e.g, EEND-EDA))
 
         Returns:
@@ -61,12 +63,17 @@ class MultiMask(AbsMask):
 
         """
         M, K, N = input.size()
-        bottleneck_feat = bottleneck_feat.transpose(1,2) #[M, B, K]
-        score = self.mask_conv1x1[num_spk - 1](bottleneck_feat) # [M, B, K] -> [M, num_spk*N, K]
+        bottleneck_feat = bottleneck_feat.transpose(1, 2)  # [M, B, K]
+        score = self.mask_conv1x1[num_spk - 1](
+            bottleneck_feat
+        )  # [M, B, K] -> [M, num_spk*N, K]
         # add other outputs of the module list with factor 0.0 to enable distributed training
         for z in range(self._max_num_spk):
             if z != num_spk - 1:
-                score += 0.0 * F.interpolate(self.mask_conv1x1[z](bottleneck_feat).transpose(1,2), size=num_spk*N).transpose(1,2)
+                score += 0.0 * F.interpolate(
+                    self.mask_conv1x1[z](bottleneck_feat).transpose(1, 2),
+                    size=num_spk * N,
+                ).transpose(1, 2)
         score = score.view(M, num_spk, N, K)  # [M, num_spk*N, K] -> [M, num_spk, N, K]
         if self.mask_nonlinear == "softmax":
             est_mask = F.softmax(score, dim=1)
@@ -78,8 +85,8 @@ class MultiMask(AbsMask):
             est_mask = torch.tanh(score)
         else:
             raise ValueError("Unsupported mask non-linear function")
-        
-        masks = est_mask.transpose(2, 3) # [M, num_spk, K, N]
+
+        masks = est_mask.transpose(2, 3)  # [M, num_spk, K, N]
         masks = masks.unbind(dim=1)  # List[M, K, N]
 
         masked = [input * m for m in masks]

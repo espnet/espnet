@@ -15,9 +15,7 @@ EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
 class TemporalConvNet(nn.Module):
-    def __init__(
-        self, N, B, H, P, X, R, norm_type="gLN", causal=False
-    ):
+    def __init__(self, N, B, H, P, X, R, norm_type="gLN", causal=False):
         """Basic Module of tasnet.
 
         Args:
@@ -41,7 +39,7 @@ class TemporalConvNet(nn.Module):
         for r in range(R):
             blocks = []
             for x in range(X):
-                dilation = 2 ** x
+                dilation = 2**x
                 padding = (P - 1) * dilation if causal else (P - 1) * dilation // 2
                 blocks += [
                     TemporalBlock(
@@ -58,9 +56,7 @@ class TemporalConvNet(nn.Module):
             repeats += [nn.Sequential(*blocks)]
         temporal_conv_net = nn.Sequential(*repeats)
         # Put together (except mask_conv1x1, modified from the original code)
-        self.network = nn.Sequential(
-            layer_norm, bottleneck_conv1x1, temporal_conv_net
-        )
+        self.network = nn.Sequential(layer_norm, bottleneck_conv1x1, temporal_conv_net)
 
     def forward(self, mixture_w):
         """Keep this API same with TasNet.

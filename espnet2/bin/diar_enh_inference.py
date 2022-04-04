@@ -19,8 +19,7 @@ from espnet2.tasks.diar_enh import DiarEnhTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.types import (int_or_none, str2bool, str2triple_str,
-                                 str_or_none)
+from espnet2.utils.types import int_or_none, str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
 from tqdm import trange
 from typeguard import check_argument_types
@@ -139,35 +138,66 @@ class DiarSepSpeech:
             # Note: segmenting for diarization not supported for now
             # First perform diarization using the whole sequence
             input_feats, f_lens = self.diar_enh_model.enh_encoder(speech_mix, lengths)
-            bottleneck_feats, f_lens = self.diar_enh_model.separator(input_feats, f_lens)
+            bottleneck_feats, f_lens = self.diar_enh_model.separator(
+                input_feats, f_lens
+            )
             if self.diar_enh_model.frontend is not None:
                 # Frontend
                 #  e.g. STFT and Feature extract
                 #       data_loader may send time-domain signal in this case
                 # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
-                frontend_feats, frontend_feats_lengths = self.diar_enh_model.frontend(speech_mix, lengths)
+                frontend_feats, frontend_feats_lengths = self.diar_enh_model.frontend(
+                    speech_mix, lengths
+                )
 
                 # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
                 if self.diar_enh_model.normalize is not None:
-                    frontend_feats, frontend_feats_lengths = self.diar_enh_model.normalize(frontend_feats, frontend_feats_lengths)
-                # pooling bottleneck_feats in case further subsampling is required for long recordings 
+                    (
+                        frontend_feats,
+                        frontend_feats_lengths,
+                    ) = self.diar_enh_model.normalize(
+                        frontend_feats, frontend_feats_lengths
+                    )
+                # pooling bottleneck_feats in case further subsampling is required for long recordings
                 # (default: pooling_kernel=1 (no pooling))
-                pool_bottleneck_feats = self.diar_enh_model.pool_1d(bottleneck_feats.transpose(1,2)).transpose(1,2)
-                pool_flens = (f_lens + (self.diar_enh_model.pooling_kernel // 2) * 2)  // self.diar_enh_model.pooling_kernel             
+                pool_bottleneck_feats = self.diar_enh_model.pool_1d(
+                    bottleneck_feats.transpose(1, 2)
+                ).transpose(1, 2)
+                pool_flens = (
+                    f_lens + (self.diar_enh_model.pooling_kernel // 2) * 2
+                ) // self.diar_enh_model.pooling_kernel
                 # interpolate (copy) frontend_feats frames to match the length with bottleneck_feats
-                frontend_feats = F.interpolate(frontend_feats.transpose(1,2), size=pool_bottleneck_feats.shape[1]).transpose(1,2)
+                frontend_feats = F.interpolate(
+                    frontend_feats.transpose(1, 2), size=pool_bottleneck_feats.shape[1]
+                ).transpose(1, 2)
                 # concatenate frontend LMF feature and bottleneck feature
-                diar_encoder_out, diar_encoder_out_lens, _ = self.diar_enh_model.diar_encoder(torch.cat((pool_bottleneck_feats, frontend_feats), 2), pool_flens)
+                (
+                    diar_encoder_out,
+                    diar_encoder_out_lens,
+                    _,
+                ) = self.diar_enh_model.diar_encoder(
+                    torch.cat((pool_bottleneck_feats, frontend_feats), 2), pool_flens
+                )
             else:
-                # pooling bottleneck_feats in case further subsampling is required for long recordings 
+                # pooling bottleneck_feats in case further subsampling is required for long recordings
                 # (default: pooling_kernel=1 (no pooling))
-                pool_bottleneck_feats = self.diar_enh_model.pool_1d(bottleneck_feats.transpose(1,2)).transpose(1,2)
-                pool_flens = (f_lens + (self.diar_enh_model.pooling_kernel // 2) * 2)  // self.diar_enh_model.pooling_kernel             
-                diar_encoder_out, diar_encoder_out_lens, _ = self.diar_enh_model.diar_encoder(pool_bottleneck_feats, pool_flens)
+                pool_bottleneck_feats = self.diar_enh_model.pool_1d(
+                    bottleneck_feats.transpose(1, 2)
+                ).transpose(1, 2)
+                pool_flens = (
+                    f_lens + (self.diar_enh_model.pooling_kernel // 2) * 2
+                ) // self.diar_enh_model.pooling_kernel
+                (
+                    diar_encoder_out,
+                    diar_encoder_out_lens,
+                    _,
+                ) = self.diar_enh_model.diar_encoder(pool_bottleneck_feats, pool_flens)
             # SA-EEND
             if self.diar_enh_model.attractor is None:
                 assert self.num_spk is not None, 'Argument "num_spk" must be specified'
-                spk_prediction = self.diar_enh_model.diar_decoder(diar_encoder_out, diar_encoder_out_lens)
+                spk_prediction = self.diar_enh_model.diar_decoder(
+                    diar_encoder_out, diar_encoder_out_lens
+                )
                 num_spk = self.num_spk
             # EEND-EDA
             else:
@@ -177,11 +207,14 @@ class DiarSepSpeech:
                         diar_encoder_out,
                         diar_encoder_out_lens,
                         torch.zeros(
-                            diar_encoder_out.size(0), self.num_spk + 1, diar_encoder_out.size(2)
+                            diar_encoder_out.size(0),
+                            self.num_spk + 1,
+                            diar_encoder_out.size(2),
                         ),
                     )
                     spk_prediction = torch.bmm(
-                        diar_encoder_out, attractor[:, : self.num_spk, :].permute(0, 2, 1)
+                        diar_encoder_out,
+                        attractor[:, : self.num_spk, :].permute(0, 2, 1),
                     )
                     num_spk = self.num_spk
                 # else find the first att_prob[i] < 0
@@ -190,7 +223,9 @@ class DiarSepSpeech:
                         diar_encoder_out,
                         diar_encoder_out_lens,
                         torch.zeros(
-                            diar_encoder_out.size(0), self.diar_enh_model.max_num_spk + 1, diar_encoder_out.size(2)
+                            diar_encoder_out.size(0),
+                            self.diar_enh_model.max_num_spk + 1,
+                            diar_encoder_out.size(2),
                         ),
                     )
                     att_prob = torch.squeeze(att_prob)
@@ -198,7 +233,8 @@ class DiarSepSpeech:
                         if att_prob[pred_num_spk].item() < 0:
                             break
                     spk_prediction = torch.bmm(
-                        diar_encoder_out, attractor[:, :pred_num_spk, :].permute(0, 2, 1)
+                        diar_encoder_out,
+                        attractor[:, :pred_num_spk, :].permute(0, 2, 1),
                     )
                     num_spk = pred_num_spk
             # perform segment-wise speech separation (using num_spk estimated in diarization if EEND-EDA is used)
@@ -227,9 +263,15 @@ class DiarSepSpeech:
                     [batch_size], dtype=torch.long, fill_value=T
                 )
                 # b. Enhancement/Separation Forward
-                input_feats, f_lens = self.diar_enh_model.enh_encoder(speech_seg, lengths_seg)
-                bottleneck_feats, f_lens = self.diar_enh_model.separator(input_feats, f_lens)
-                feats, _, _ = self.diar_enh_model.mask_module(input_feats, f_lens, bottleneck_feats, num_spk)
+                input_feats, f_lens = self.diar_enh_model.enh_encoder(
+                    speech_seg, lengths_seg
+                )
+                bottleneck_feats, f_lens = self.diar_enh_model.separator(
+                    input_feats, f_lens
+                )
+                feats, _, _ = self.diar_enh_model.mask_module(
+                    input_feats, f_lens, bottleneck_feats, num_spk
+                )
                 processed_wav = [
                     self.diar_enh_model.enh_decoder(f, lengths_seg)[0] for f in feats
                 ]
@@ -286,35 +328,68 @@ class DiarSepSpeech:
         else:
             # b. Enhancement/Separation Forward
             input_feats, f_lens = self.diar_enh_model.enh_encoder(speech_mix, lengths)
-            bottleneck_feats, f_lens = self.diar_enh_model.separator(input_feats, f_lens)
+            bottleneck_feats, f_lens = self.diar_enh_model.separator(
+                input_feats, f_lens
+            )
             if self.diar_enh_model.frontend is not None:
                 # Frontend
                 #  e.g. STFT and Feature extract
                 #       data_loader may send time-domain signal in this case
                 # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
-                frontend_feats, frontend_feats_lengths = self.diar_enh_model.frontend(speech_mix, lengths)
+                frontend_feats, frontend_feats_lengths = self.diar_enh_model.frontend(
+                    speech_mix, lengths
+                )
                 # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
                 if self.diar_enh_model.normalize is not None:
-                    frontend_feats, frontend_feats_lengths = self.diar_enh_model.normalize(frontend_feats, frontend_feats_lengths)
-                # pooling bottleneck_feats in case further subsampling is required for long recordings 
+                    (
+                        frontend_feats,
+                        frontend_feats_lengths,
+                    ) = self.diar_enh_model.normalize(
+                        frontend_feats, frontend_feats_lengths
+                    )
+                # pooling bottleneck_feats in case further subsampling is required for long recordings
                 # (default: pooling_kernel=1 (no pooling))
-                pool_bottleneck_feats = self.diar_enh_model.pool_1d(bottleneck_feats.transpose(1,2)).transpose(1,2)
-                pool_flens = (f_lens + (self.diar_enh_model.pooling_kernel // 2) * 2)  // self.diar_enh_model.pooling_kernel             
+                pool_bottleneck_feats = self.diar_enh_model.pool_1d(
+                    bottleneck_feats.transpose(1, 2)
+                ).transpose(1, 2)
+                pool_flens = (
+                    f_lens + (self.diar_enh_model.pooling_kernel // 2) * 2
+                ) // self.diar_enh_model.pooling_kernel
                 # interpolate (copy) frontend_feats frames to match the length with bottleneck_feats
-                frontend_feats = F.interpolate(frontend_feats.transpose(1,2), size=pool_bottleneck_feats.shape[1]).transpose(1,2)
+                frontend_feats = F.interpolate(
+                    frontend_feats.transpose(1, 2), size=pool_bottleneck_feats.shape[1]
+                ).transpose(1, 2)
                 # concatenate frontend LMF feature and bottleneck feature
-                diar_encoder_out, diar_encoder_out_lens, _ = self.diar_enh_model.diar_encoder(torch.cat((pool_bottleneck_feats, frontend_feats), 2), pool_flens)
+                (
+                    diar_encoder_out,
+                    diar_encoder_out_lens,
+                    _,
+                ) = self.diar_enh_model.diar_encoder(
+                    torch.cat((pool_bottleneck_feats, frontend_feats), 2), pool_flens
+                )
             else:
                 # pooling bottleneck_feats in case further subsampling is required for long recordings
                 # (default: pooling_kernel=1 (no pooling))
-                pool_bottleneck_feats = self.diar_enh_model.pool_1d(bottleneck_feats.transpose(1,2)).transpose(1,2)
-                pool_flens = (f_lens + (self.diar_enh_model.pooling_kernel // 2) * 2)  // self.diar_enh_model.pooling_kernel
-                diar_encoder_out, diar_encoder_out_lens, _ = self.diar_enh_model.diar_encoder(pool_bottleneck_feats, pool_flens)
+                pool_bottleneck_feats = self.diar_enh_model.pool_1d(
+                    bottleneck_feats.transpose(1, 2)
+                ).transpose(1, 2)
+                pool_flens = (
+                    f_lens + (self.diar_enh_model.pooling_kernel // 2) * 2
+                ) // self.diar_enh_model.pooling_kernel
+                (
+                    diar_encoder_out,
+                    diar_encoder_out_lens,
+                    _,
+                ) = self.diar_enh_model.diar_encoder(pool_bottleneck_feats, pool_flens)
             # SA-EEND
             if self.diar_enh_model.attractor is None:
                 assert self.num_spk is not None, 'Argument "num_spk" must be specified'
-                feats, _, _ = self.diar_enh_model.mask_module(input_feats, f_lens, bottleneck_feats, self.num_spk)
-                spk_prediction = self.diar_enh_model.diar_decoder(diar_encoder_out, diar_encoder_out_lens)
+                feats, _, _ = self.diar_enh_model.mask_module(
+                    input_feats, f_lens, bottleneck_feats, self.num_spk
+                )
+                spk_prediction = self.diar_enh_model.diar_decoder(
+                    diar_encoder_out, diar_encoder_out_lens
+                )
             # EEND-EDA
             else:
                 # if num_spk is specified, use that number
@@ -323,20 +398,27 @@ class DiarSepSpeech:
                         diar_encoder_out,
                         diar_encoder_out_lens,
                         torch.zeros(
-                            diar_encoder_out.size(0), self.num_spk + 1, diar_encoder_out.size(2)
+                            diar_encoder_out.size(0),
+                            self.num_spk + 1,
+                            diar_encoder_out.size(2),
                         ),
                     )
                     spk_prediction = torch.bmm(
-                        diar_encoder_out, attractor[:, : self.num_spk, :].permute(0, 2, 1)
+                        diar_encoder_out,
+                        attractor[:, : self.num_spk, :].permute(0, 2, 1),
                     )
-                    feats, _, _ = self.diar_enh_model.mask_module(input_feats, f_lens, bottleneck_feats, self.num_spk)
+                    feats, _, _ = self.diar_enh_model.mask_module(
+                        input_feats, f_lens, bottleneck_feats, self.num_spk
+                    )
                 # else find the first att_prob[i] < 0
                 else:
                     attractor, att_prob = self.diar_enh_model.attractor(
                         diar_encoder_out,
                         diar_encoder_out_lens,
                         torch.zeros(
-                            diar_encoder_out.size(0), self.diar_enh_model.max_num_spk + 1, diar_encoder_out.size(2)
+                            diar_encoder_out.size(0),
+                            self.diar_enh_model.max_num_spk + 1,
+                            diar_encoder_out.size(2),
                         ),
                     )
                     att_prob = torch.squeeze(att_prob)
@@ -344,9 +426,12 @@ class DiarSepSpeech:
                         if att_prob[pred_num_spk].item() < 0:
                             break
                     spk_prediction = torch.bmm(
-                        diar_encoder_out, attractor[:, :pred_num_spk, :].permute(0, 2, 1)
+                        diar_encoder_out,
+                        attractor[:, :pred_num_spk, :].permute(0, 2, 1),
                     )
-                    feats, _, _ = self.diar_enh_model.mask_module(input_feats, f_lens, bottleneck_feats, pred_num_spk)
+                    feats, _, _ = self.diar_enh_model.mask_module(
+                        input_feats, f_lens, bottleneck_feats, pred_num_spk
+                    )
 
             waves = [self.diar_enh_model.enh_decoder(f, lengths)[0] for f in feats]
 
@@ -357,7 +442,10 @@ class DiarSepSpeech:
             )
             assert len(waves) == self.num_spk, (len(waves), self.num_spk)
         assert len(waves[0]) == batch_size, (len(waves[0]), batch_size)
-        assert spk_prediction.size(0) == batch_size, (spk_prediction.size(0), batch_size)
+        assert spk_prediction.size(0) == batch_size, (
+            spk_prediction.size(0),
+            batch_size,
+        )
 
         # multiply diarization result and separation result
         # by calculating the correlation
@@ -434,17 +522,25 @@ class DiarSepSpeech:
         num_spk = len(waves)
         permute_list = [np.array(p) for p in permutations(range(num_spk))]
         corr_list = []
-        interp_prediction = F.interpolate(torch.sigmoid(spk_prediction).transpose(1,2), size=waves[0].size(1), mode="linear").transpose(1,2)
+        interp_prediction = F.interpolate(
+            torch.sigmoid(spk_prediction).transpose(1, 2),
+            size=waves[0].size(1),
+            mode="linear",
+        ).transpose(1, 2)
         for p in permute_list:
             diar_perm = interp_prediction[:, :, p]
             corr_perm = [0]
             for q in range(num_spk):
-                corr_perm += np.corrcoef(torch.squeeze(abs(waves[q])).cpu().numpy(), torch.squeeze(diar_perm[:, :, q]).cpu().numpy())[0,1]
+                corr_perm += np.corrcoef(
+                    torch.squeeze(abs(waves[q])).cpu().numpy(),
+                    torch.squeeze(diar_perm[:, :, q]).cpu().numpy(),
+                )[0, 1]
             corr_list.append(corr_perm)
-        max_corr, max_idx = torch.max(torch.from_numpy(np.array(corr_list)),dim=0)
+        max_corr, max_idx = torch.max(torch.from_numpy(np.array(corr_list)), dim=0)
         interp_prediction = interp_prediction[:, :, permute_list[max_idx]]
         waves = [waves[i] * interp_prediction[:, :, i] for i in range(num_spk)]
         return waves
+
 
 def humanfriendly_or_none(value: str):
     if value in ("none", "None", "NONE"):
@@ -539,12 +635,16 @@ def inference(
     if diarsep_speech.num_spk is not None:
         for i in range(diarsep_speech.num_spk):
             wav_writers.append(
-                SoundScpWriter(f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp")
+                SoundScpWriter(
+                    f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp"
+                )
             )
-    else: 
+    else:
         for i in range(diarsep_speech.max_num_spk):
             wav_writers.append(
-                SoundScpWriter(f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp")
+                SoundScpWriter(
+                    f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp"
+                )
             )
 
     for keys, batch in loader:
@@ -563,6 +663,7 @@ def inference(
     for writer in wav_writers:
         writer.close()
     diar_writer.close()
+
 
 def get_parser():
     parser = config_argparse.ArgumentParser(

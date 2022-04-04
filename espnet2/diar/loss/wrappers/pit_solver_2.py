@@ -28,6 +28,7 @@ class PITSolver2(AbsLossWrapper):
         perm = others["perm"] if "perm" in others else None
 
         num_spk = len(inf)
+
         def pair_loss(permutation):
             return sum(
                 [self.criterion(ref[s], inf[t]) for s, t in enumerate(permutation)]

@@ -32,10 +32,8 @@ from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
-from espnet2.enh.loss.criterions.tf_domain import (FrequencyDomainL1,
-                                                   FrequencyDomainMSE)
-from espnet2.enh.loss.criterions.time_domain import (CISDRLoss, SISNRLoss,
-                                                     SNRLoss)
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1, FrequencyDomainMSE
+from espnet2.enh.loss.criterions.time_domain import CISDRLoss, SISNRLoss, SNRLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
@@ -131,9 +129,7 @@ separator_choices = ClassChoices(
 
 mask_module_choices = ClassChoices(
     name="mask_module",
-    classes=dict(
-        multi_mask=MultiMask
-    ),
+    classes=dict(multi_mask=MultiMask),
     type_check=AbsMask,
     default="multi_mask",
 )
@@ -195,7 +191,7 @@ class DiarEnhTask(AbsTask):
         # --mask_module and --mask_module_conf
         mask_module_choices,
         # --enh_decoder and --enh_decoder_conf
-        enh_decoder_choices,        
+        enh_decoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -339,7 +335,9 @@ class DiarEnhTask(AbsTask):
         label_aggregator = label_aggregator_class(**args.label_aggregator_conf)
 
         # enh_encoder
-        enh_encoder = enh_encoder_choices.get_class(args.enh_encoder)(**args.enh_encoder_conf)
+        enh_encoder = enh_encoder_choices.get_class(args.enh_encoder)(
+            **args.enh_encoder_conf
+        )
 
         # separator
         separator = separator_choices.get_class(args.separator)(
@@ -350,10 +348,12 @@ class DiarEnhTask(AbsTask):
         mask_module_class = mask_module_choices.get_class(args.mask_module)
         mask_module = mask_module_class(
             **args.mask_module_conf,
-        )        
+        )
 
         # enh_decoder
-        enh_decoder = enh_decoder_choices.get_class(args.enh_decoder)(**args.enh_decoder_conf)
+        enh_decoder = enh_decoder_choices.get_class(args.enh_decoder)(
+            **args.enh_decoder_conf
+        )
 
         # 5. diar_encoder
         diar_encoder_class = diar_encoder_choices.get_class(args.diar_encoder)

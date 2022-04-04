@@ -52,8 +52,16 @@ def scoring(
 
     with DatadirWriter(output_dir) as writer:
         for key in keys:
-            ref_audios = [ref_reader[key][1] for ref_reader in ref_readers if key in ref_reader.keys()]
-            inf_audios = [inf_reader[key][1] for inf_reader in inf_readers if key in inf_reader.keys()]
+            ref_audios = [
+                ref_reader[key][1]
+                for ref_reader in ref_readers
+                if key in ref_reader.keys()
+            ]
+            inf_audios = [
+                inf_reader[key][1]
+                for inf_reader in inf_readers
+                if key in inf_reader.keys()
+            ]
             ref = np.array(ref_audios)
             inf = np.array(inf_audios)
             if ref.ndim > inf.ndim:
@@ -71,7 +79,7 @@ def scoring(
                 ref = ref[..., ref_channel]
                 inf = inf[..., ref_channel]
 
-            eps = 0.000001 # epsilon value to avoid divergence caused by zero-value, e.g., log(0)
+            eps = 0.000001  # epsilon value to avoid divergence caused by zero-value, e.g., log(0)
             # if num_spk of ref > num_spk of inf
             if ref.shape[0] > inf.shape[0]:
                 p = np.full((ref.shape[0] - inf.shape[0], inf.shape[1]), eps)
@@ -100,6 +108,7 @@ def scoring(
                 writer[f"SDR_spk{i + 1}"][key] = str(sdr[i])
                 writer[f"SAR_spk{i + 1}"][key] = str(sar[i])
                 writer[f"SIR_spk{i + 1}"][key] = str(sir[i])
+
 
 def get_parser():
     parser = config_argparse.ArgumentParser(

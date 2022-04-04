@@ -33,6 +33,7 @@ def load_rttm_text(path):
 
     return data, spk_dict
 
+
 def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
@@ -56,7 +57,14 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
         if num_spk == 2:
             assert len(header) == 6
             for linenum, line in enumerate(f, 1):
-                mix_id, mix_path, spk1_path, spk2_path, noise1_path, length = line.strip().split(",")
+                (
+                    mix_id,
+                    mix_path,
+                    spk1_path,
+                    spk2_path,
+                    noise1_path,
+                    length,
+                ) = line.strip().split(",")
                 # from 3536-8226-0026_1673-143397-0009
                 # to 3536-8226-0026, 1673-143397-0009
                 source1_id, source2_id = mix_id.split("_")
@@ -77,7 +85,9 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(end)
                         )
-                        segments.write("{} {} {} {}\n".format(seg_id, mix_id, start, end))
+                        segments.write(
+                            "{} {} {} {}\n".format(seg_id, mix_id, start, end)
+                        )
                         utt2spk.write("{} {}\n".format(seg_id, spk_id))
                         rttm.write(
                             "SPEAKER\t{}\t1\t{}\t{}\t<NA>\t<NA>\t{}\t<NA>\n".format(
@@ -90,7 +100,9 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(length_sec)
                         )
-                        segments.write("{} {} {} {}\n".format(seg_id, mix_id, start, length_sec))
+                        segments.write(
+                            "{} {} {} {}\n".format(seg_id, mix_id, start, length_sec)
+                        )
                         utt2spk.write("{} {}\n".format(seg_id, spk_id))
                         rttm.write(
                             "SPEAKER\t{}\t1\t{}\t{}\t<NA>\t<NA>\t{}\t<NA>\n".format(
@@ -107,7 +119,9 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(end)
                         )
-                        segments.write("{} {} {} {}\n".format(seg_id, mix_id, start, end))
+                        segments.write(
+                            "{} {} {} {}\n".format(seg_id, mix_id, start, end)
+                        )
                         utt2spk.write("{} {}\n".format(seg_id, spk_id))
                         rttm.write(
                             "SPEAKER\t{}\t1\t{}\t{}\t<NA>\t<NA>\t{}\t<NA>\n".format(
@@ -120,7 +134,9 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(length_sec)
                         )
-                        segments.write("{} {} {} {}\n".format(seg_id, mix_id, start, length_sec))
+                        segments.write(
+                            "{} {} {} {}\n".format(seg_id, mix_id, start, length_sec)
+                        )
                         utt2spk.write("{} {}\n".format(seg_id, spk_id))
                         rttm.write(
                             "SPEAKER\t{}\t1\t{}\t{}\t<NA>\t<NA>\t{}\t<NA>\n".format(
@@ -134,7 +150,15 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
         elif num_spk == 3:
             assert len(header) == 7
             for linenum, line in enumerate(f, 1):
-                mix_id, mix_path, spk1_path, spk2_path, spk3_path, noise1_path, length = line.strip().split(",")
+                (
+                    mix_id,
+                    mix_path,
+                    spk1_path,
+                    spk2_path,
+                    spk3_path,
+                    noise1_path,
+                    length,
+                ) = line.strip().split(",")
                 # from 6313-76958-0019_6295-244435-0031_2277-149897-0012
                 # to 6313-76958-0019, 6295-244435-0031, 2277-149897-0012
                 source1_id, source2_id, source3_id = mix_id.split("_")
@@ -169,7 +193,9 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(end)
                         )
-                        segments.write("{} {} {} {}\n".format(seg_id, mix_id, start, end))
+                        segments.write(
+                            "{} {} {} {}\n".format(seg_id, mix_id, start, end)
+                        )
                         utt2spk.write("{} {}\n".format(seg_id, spk_id))
                         rttm.write(
                             "SPEAKER\t{}\t1\t{}\t{}\t<NA>\t<NA>\t{}\t<NA>\n".format(
@@ -182,7 +208,9 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(length_sec)
                         )
-                        segments.write("{} {} {} {}\n".format(seg_id, mix_id, start, length_sec))
+                        segments.write(
+                            "{} {} {} {}\n".format(seg_id, mix_id, start, length_sec)
+                        )
                         utt2spk.write("{} {}\n".format(seg_id, spk_id))
                         rttm.write(
                             "SPEAKER\t{}\t1\t{}\t{}\t<NA>\t<NA>\t{}\t<NA>\n".format(
@@ -199,7 +227,9 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(end)
                         )
-                        segments.write("{} {} {} {}\n".format(seg_id, mix_id, start, end))
+                        segments.write(
+                            "{} {} {} {}\n".format(seg_id, mix_id, start, end)
+                        )
                         utt2spk.write("{} {}\n".format(seg_id, spk_id))
                         rttm.write(
                             "SPEAKER\t{}\t1\t{}\t{}\t<NA>\t<NA>\t{}\t<NA>\n".format(
@@ -212,7 +242,9 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(length_sec)
                         )
-                        segments.write("{} {} {} {}\n".format(seg_id, mix_id, start, length_sec))
+                        segments.write(
+                            "{} {} {} {}\n".format(seg_id, mix_id, start, length_sec)
+                        )
                         utt2spk.write("{} {}\n".format(seg_id, spk_id))
                         rttm.write(
                             "SPEAKER\t{}\t1\t{}\t{}\t<NA>\t<NA>\t{}\t<NA>\n".format(
@@ -229,7 +261,9 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(end)
                         )
-                        segments.write("{} {} {} {}\n".format(seg_id, mix_id, start, end))
+                        segments.write(
+                            "{} {} {} {}\n".format(seg_id, mix_id, start, end)
+                        )
                         utt2spk.write("{} {}\n".format(seg_id, spk_id))
                         rttm.write(
                             "SPEAKER\t{}\t1\t{}\t{}\t<NA>\t<NA>\t{}\t<NA>\n".format(
@@ -242,7 +276,9 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(length_sec)
                         )
-                        segments.write("{} {} {} {}\n".format(seg_id, mix_id, start, length_sec))
+                        segments.write(
+                            "{} {} {} {}\n".format(seg_id, mix_id, start, length_sec)
+                        )
                         utt2spk.write("{} {}\n".format(seg_id, spk_id))
                         rttm.write(
                             "SPEAKER\t{}\t1\t{}\t{}\t<NA>\t<NA>\t{}\t<NA>\n".format(
@@ -267,6 +303,7 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
     if num_spk == 3:
         spk_3.close()
     noise_1.close()
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument(

@@ -34,6 +34,7 @@ else:
     def autocast(enabled=True):
         yield
 
+
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
@@ -85,7 +86,9 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
         # pooling layer in case further subsampling is required for long recordings
         self.pooling_kernel = pooling_kernel
-        self.pool_1d = torch.nn.AvgPool1d(kernel_size=pooling_kernel, padding=pooling_kernel // 2)
+        self.pool_1d = torch.nn.AvgPool1d(
+            kernel_size=pooling_kernel, padding=pooling_kernel // 2
+        )
 
         # get mask type for TF-domain models
         # (only used when loss_type="mask_*") (deprecated, keep for compatibility)
@@ -130,9 +133,7 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
         # take the number of speakers from label
         num_spk = spk_labels.size(2)
         # clean speech signal of each speaker
-        speech_ref = [
-            kwargs["speech_ref{}".format(spk + 1)] for spk in range(num_spk)
-        ]
+        speech_ref = [kwargs["speech_ref{}".format(spk + 1)] for spk in range(num_spk)]
         # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
         speech_ref = torch.stack(speech_ref, dim=1)
 
@@ -158,9 +159,7 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
                 for n in range(num_spk)
                 if "dereverb_ref{}".format(n + 1) in kwargs
             ]
-            assert len(dereverb_speech_ref) in (1, num_spk), len(
-                dereverb_speech_ref
-            )
+            assert len(dereverb_speech_ref) in (1, num_spk), len(dereverb_speech_ref)
             # (Batch, N, samples) or (Batch, N, samples, channels)
             dereverb_speech_ref = torch.stack(dereverb_speech_ref, dim=1)
         else:
@@ -189,7 +188,9 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
         # enh model forward
         feature_mix, flens = self.enh_encoder(speech_mix, speech_lengths)
         bottleneck_feats, flens = self.separator(feature_mix, flens)
-        feature_pre, flens, others = self.mask_module(feature_mix, flens, bottleneck_feats, num_spk)        
+        feature_pre, flens, others = self.mask_module(
+            feature_mix, flens, bottleneck_feats, num_spk
+        )
         if feature_pre is not None:
             speech_pre = [self.enh_decoder(ps, speech_lengths)[0] for ps in feature_pre]
         else:
@@ -203,24 +204,38 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
             #  e.g. STFT and Feature extract
             #       data_loader may send time-domain signal in this case
             # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
-            frontend_feats, frontend_feats_lengths = self.frontend(speech_mix, speech_lengths)
+            frontend_feats, frontend_feats_lengths = self.frontend(
+                speech_mix, speech_lengths
+            )
             # 2. Data augmentation
             if self.specaug is not None and self.training:
-                frontend_feats, frontend_feats_lengths = self.specaug(frontend_feats, frontend_feats_lengths)
+                frontend_feats, frontend_feats_lengths = self.specaug(
+                    frontend_feats, frontend_feats_lengths
+                )
 
             # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
             if self.normalize is not None:
-                frontend_feats, frontend_feats_lengths = self.normalize(frontend_feats, frontend_feats_lengths)
+                frontend_feats, frontend_feats_lengths = self.normalize(
+                    frontend_feats, frontend_feats_lengths
+                )
             # pooling bottleneck_feats in case further subsampling is required for long recordings
             # (default: pooling_kernel=1 (no pooling))
-            pool_bottleneck_feats = self.pool_1d(bottleneck_feats.transpose(1,2)).transpose(1,2)
-            pool_flens = (flens + (self.pooling_kernel // 2) * 2)  // self.pooling_kernel
+            pool_bottleneck_feats = self.pool_1d(
+                bottleneck_feats.transpose(1, 2)
+            ).transpose(1, 2)
+            pool_flens = (flens + (self.pooling_kernel // 2) * 2) // self.pooling_kernel
             # interpolate (copy) frontend_feats frames to match the length with bottleneck_feats
-            frontend_feats = F.interpolate(frontend_feats.transpose(1,2), size=pool_bottleneck_feats.shape[1]).transpose(1,2)
+            frontend_feats = F.interpolate(
+                frontend_feats.transpose(1, 2), size=pool_bottleneck_feats.shape[1]
+            ).transpose(1, 2)
             # concatenate frontend LMF feature and bottleneck feature
-            encoder_out, encoder_out_lens, _ = self.diar_encoder(torch.cat((pool_bottleneck_feats, frontend_feats), 2), pool_flens)
+            encoder_out, encoder_out_lens, _ = self.diar_encoder(
+                torch.cat((pool_bottleneck_feats, frontend_feats), 2), pool_flens
+            )
         else:
-            encoder_out, encoder_out_lens, _ = self.diar_encoder(bottleneck_feats, flens)
+            encoder_out, encoder_out_lens, _ = self.diar_encoder(
+                bottleneck_feats, flens
+            )
 
         if self.attractor is None:
             # 2a. Decoder (baiscally a predction layer after encoder_out)
@@ -255,7 +270,7 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
         # length of 'spk_labels'. Here we force them to be equal.
         length_diff_tolerance = 2
         length_diff = spk_labels.shape[1] - pred.shape[1]
-        if  length_diff > 0 and length_diff <= length_diff_tolerance:
+        if length_diff > 0 and length_diff <= length_diff_tolerance:
             spk_labels = spk_labels[:, 0 : pred.shape[1], :]
 
         # diar loss
@@ -318,7 +333,7 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
                     # only select one channel as the reference
                     speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
                 # for the time domain criterions
-                
+
                 l, s, o = loss_wrapper(speech_ref, speech_pre, o)
             elif isinstance(criterion, FrequencyDomainLoss):
                 # for the time-frequency domain criterions
@@ -329,8 +344,7 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
                         [self.enh_encoder(sr, speech_lengths)[0] for sr in speech_ref],
                     )
                     tf_pre = [
-                        others["mask_spk{}".format(spk + 1)]
-                        for spk in range(num_spk)
+                        others["mask_spk{}".format(spk + 1)] for spk in range(num_spk)
                     ]
                 else:
                     # compute on spectrum
@@ -338,7 +352,9 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
                         # For multi-channel reference,
                         # only select one channel as the reference
                         speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
-                    tf_ref = [self.enh_encoder(sr, speech_lengths)[0] for sr in speech_ref]
+                    tf_ref = [
+                        self.enh_encoder(sr, speech_lengths)[0] for sr in speech_ref
+                    ]
                     tf_pre = feature_pre
 
                 l, s, o = loss_wrapper(tf_ref, tf_pre, o)
@@ -346,21 +362,25 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
             stats.update(s)
 
         # sum losses of each branch
-        loss = self.enh_weight * loss_enh + self.diar_weight * loss_diar + self.attractor_weight * loss_att
+        loss = (
+            self.enh_weight * loss_enh
+            + self.diar_weight * loss_diar
+            + self.attractor_weight * loss_att
+        )
         # add to stats dictionary
         stats["loss"] = loss.detach()
- 
+
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
     def collect_feats(
-        self, 
-        speech_mix: torch.Tensor, 
+        self,
+        speech_mix: torch.Tensor,
         speech_mix_lengths: torch.Tensor,
         spk_labels: torch.Tensor = None,
-        spk_labels_lengths: torch.Tensor = None,         
-        **kwargs
+        spk_labels_lengths: torch.Tensor = None,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         # for data-parallel
         speech_mix = speech_mix[:, : speech_mix_lengths.max()]

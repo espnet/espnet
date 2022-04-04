@@ -73,6 +73,6 @@ class TCNSeparator(AbsSeparator):
         feature = feature.transpose(1, 2)  # B, N, L
 
         feats = self.tcn(feature)  # [B, bottleneck_dim, L]
-        feats = feats.transpose(1, 2) # B, L, bottleneck_dim
+        feats = feats.transpose(1, 2)  # B, L, bottleneck_dim
 
         return feats, ilens

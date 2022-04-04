@@ -14,12 +14,11 @@ class AbsMask(torch.nn.Module, ABC):
 
     @abstractmethod
     def forward(
-        self, 
-        input, 
-        ilens, 
-        bottleneck_feat, 
+        self,
+        input,
+        ilens,
+        bottleneck_feat,
         num_spk,
-        ):
+    ):
 
         raise NotImplementedError
-        
