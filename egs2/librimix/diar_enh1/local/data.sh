@@ -12,9 +12,7 @@ log() {
 
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
-#FOLDER=git_librimix
-FOLDER=../diar1/git_librimix # your path to github librimix
-LIBRIMIX=../diar1/downloads # your path to downloaded data
+FOLDER=git_librimix
 fs=8k
 num_spk="2 3"
 min_max_mode=min
