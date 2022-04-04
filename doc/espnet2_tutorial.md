@@ -500,7 +500,7 @@ We also support multi-task learning with two auxiliary tasks: CTC and cross-entr
 where the losses (L_*) are respectively, in order: The Transducer loss, the CTC loss and the LM loss. Lambda values define their respective contribution to the total loss. Each task can be parametrized using the following options, passed to `model_conf`:
 
     model_conf:
-      transducer-loss-weight: Weight of the Transducer loss (float, default = 1.0)
+      transducer_weight: Weight of the Transducer loss (float, default = 1.0)
       auxiliary_ctc_weight: Weight of the CTC loss. (float, default = 0.0)
       auxiliary_ctc_dropout_rate: Dropout rate for the CTC loss inputs. (float, default = 0.0)
       auxiliary_lm_loss_weight: Weight of the LM loss. (float, default = 0.2)
