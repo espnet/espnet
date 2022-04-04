@@ -6,6 +6,7 @@ from functools import reduce
 import torch
 
 from espnet2.enh.layers.complex_utils import is_complex
+from espnet2.enh.layers.complex_utils import new_complex_like
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 
 
@@ -26,6 +27,7 @@ def _create_mask_label(mix_spec, ref_spec, mask_type="IAM"):
     """
 
     # Must be upper case
+    mask_type = mask_type.upper()
     assert mask_type in [
         "IBM",
         "IRM",
@@ -33,6 +35,7 @@ def _create_mask_label(mix_spec, ref_spec, mask_type="IAM"):
         "PSM",
         "NPSM",
         "PSM^2",
+        "CIRM",
     ], f"mask type {mask_type} not supported"
     mask_label = []
     for r in ref_spec:
@@ -67,6 +70,12 @@ def _create_mask_label(mix_spec, ref_spec, mask_type="IAM"):
             cos_theta = phase_r.real * phase_mix.real + phase_r.imag * phase_mix.imag
             mask = (abs(r).pow(2) / (abs(mix_spec).pow(2) + EPS)) * cos_theta
             mask = mask.clamp(min=-1, max=1)
+        elif mask_type == "CIRM":
+            # Ref: Complex Ratio Masking for Monaural Speech Separation
+            denominator = mix_spec.real.pow(2) + mix_spec.imag.pow(2) + EPS
+            mask_real = (mix_spec.real * r.real + mix_spec.imag * r.imag) / denominator
+            mask_imag = (mix_spec.real * r.imag - mix_spec.imag * r.real) / denominator
+            mask = new_complex_like(mix_spec, [mask_real, mask_imag])
         assert mask is not None, f"mask type {mask_type} not supported"
         mask_label.append(mask)
     return mask_label
@@ -173,7 +182,11 @@ class FrequencyDomainL1(FrequencyDomainLoss):
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
 
         if is_complex(inf):
-            l1loss = abs(ref - inf + EPS)
+            l1loss = (
+                abs(ref.real - inf.real)
+                + abs(ref.imag - inf.imag)
+                + abs(ref.abs() - inf.abs())
+            )
         else:
             l1loss = abs(ref - inf)
         if ref.dim() == 3:
