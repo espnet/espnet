@@ -55,8 +55,8 @@ while IFS= read -r expdir; do
 |---|---|---|
 EOF
     data=$(echo "${expdir}"/*/*/score_*/result.${case}.txt | cut -d '/' -f4)
-    bleu=$(sed -n '5p' "${expdir}"/*/*/score_*/result.${case}.txt | cut -d ' ' -f 3 | tr -d '[,]')
-    verbose=$(sed -n '7p' "${expdir}"/*/*/score_*/result.${case}.txt | cut -d ' ' -f 3- | tr -d '[",]')
+    bleu=$(sed -n '5p' "${expdir}"/*/*/score_*/result.${case}.txt | cut -d ' ' -f 3 | tr -d ',')
+    verbose=$(sed -n '7p' "${expdir}"/*/*/score_*/result.${case}.txt | cut -d ' ' -f 3- | tr -d '",')
     echo "${data}|${bleu}|${verbose}"
 
         done
