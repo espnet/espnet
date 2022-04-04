@@ -1,0 +1,82 @@
+# general
+batch_type: numel
+batch_bins: 2000000
+accum_grad: 16
+max_epoch: 100 # 60 is enough to produce good results.
+patience: none
+init: none
+num_att_plot: 0
+
+# optimizer
+optim: adam
+optim_conf:
+    lr: 0.002
+    weight_decay: 0.000001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 15000
+
+# criterion
+val_scheduler_criterion:
+    - valid
+    - loss
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+model_conf:
+    transducer_weight: 1.0
+    auxiliary_ctc_weight: 0.3
+    report_cer: True
+    report_wer: True
+
+# specaug conf
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 5
+
+encoder_conf:
+    main_conf:
+      pos_wise_layer_type: linear
+      pos_wise_act_type: swish
+      pos_enc_layer_type: rel_pos
+      conv_mod_act_type: swish
+    input_conf:
+      block_type: vgg
+      dropout_rate_pos_enc: 0.2
+    body_conf:
+    - block_type: conformer
+      dim_linear: 1024
+      dim_hidden: 256
+      heads: 4
+      dropout_rate: 0.1
+      dropout_rate_pos_enc: 0.1
+      dropout_rate_pos_wise: 0.1
+      dropout_rate_att: 0.1
+      macaron_style: true
+      conv_mod_kernel: 31
+      num_blocks: 18
+decoder: rnn
+decoder_conf:
+    rnn_type: lstm
+    num_layers: 1
+    dim_embedding: 256
+    dim_hidden: 256
+    dropout: 0.1
+    dropout_embed: 0.2
+joint_network_conf:
+    dim_joint_space: 256
