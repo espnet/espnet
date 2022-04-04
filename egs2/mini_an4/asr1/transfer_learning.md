@@ -2,8 +2,7 @@
 
 In that tutorial, we will introduce several options to use pre-trained models/parameters for Automatic Speech Recognition (ASR) in ESPnet. Available options are : 
 - use a local model you (or a collegue) have already trained,
-- use a trained model from ESPnet repository on HuggingFace,
-- use a Self-Supervised pre-trained model (e.g. Hubert, Wav2Vec2, WavLM ...).
+- use a trained model from ESPnet repository on HuggingFace.
 
 We note that this is done for ASR training, so at __stage 11__ of ESPnet2 models' recipe.
 
@@ -13,7 +12,7 @@ Several projects may involve making use of previously trained models, this is th
 Example of use cases are listed below (non-exhaustive):
 - target a low resource language, a model trained from scratch may perform badly if trained with only few hours of data,
 - study robustness to shifts (domain, language ... shifts) of a model,
-- use state of the art Self-Supervised models for any purpose (low resource, medium resource, semi-supervised adaptations ...) ...
+- use massively trained multilingual ASR models ...
 
 ### 1. Use a local model that you have already trained. 
 
