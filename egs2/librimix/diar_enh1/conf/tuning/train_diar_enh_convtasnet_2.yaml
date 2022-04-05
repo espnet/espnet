@@ -59,9 +59,11 @@ label_aggregator_conf:
     hop_length: 64  # This value should be set to:
                     # enh_encoder stride * subsampling factor (corresponding to diar_encoder input_layer)
                     # subsampling factors: 1 (linear), 2 (conv2d2), 4 (conv2d), 6 (conv2d6), 8 (conv2d8)
+# frontend: default # uncomment this line to use concatenated log-mel filterbank and bottleneck features
 diar_encoder: transformer
 diar_encoder_conf:
     input_size: 128 # same as bottleneck_dim
+    # input_size: 208 # use this line instead of above if "frontend: default". frontend_dim (80) + bottleneck_dim (128)
     input_layer: "conv2d8"
     num_blocks: 4
     linear_units: 512
