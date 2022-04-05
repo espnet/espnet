@@ -1,16 +1,13 @@
-from collections import OrderedDict
 from distutils.version import LooseVersion
-from typing import List
 from typing import Tuple
 from typing import Union
 
 import torch
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.diar.layers.tcn_nomask import TemporalConvNet
 from espnet2.diar.separator.abs_separator import AbsSeparator
-
+from espnet2.enh.layers.complex_utils import is_complex
 
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
@@ -54,7 +51,7 @@ class TCNSeparator(AbsSeparator):
 
     def forward(
         self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor
-    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward.
 
         Args:

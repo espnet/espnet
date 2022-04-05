@@ -1,15 +1,24 @@
 #!/usr/bin/env python3
 import argparse
-import logging
-import sys
 from itertools import permutations
+import logging
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union
+import sys
+from typing import Any
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import Union
 
 import humanfriendly
 import numpy as np
 import torch
 import torch.nn.functional as F
+from tqdm import trange
+from typeguard import check_argument_types
+
+from espnet.utils.cli_utils import get_commandline_args
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
@@ -19,10 +28,10 @@ from espnet2.tasks.diar_enh import DiarEnhTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.types import int_or_none, str2bool, str2triple_str, str_or_none
-from espnet.utils.cli_utils import get_commandline_args
-from tqdm import trange
-from typeguard import check_argument_types
+from espnet2.utils.types import int_or_none
+from espnet2.utils.types import str2bool
+from espnet2.utils.types import str2triple_str
+from espnet2.utils.types import str_or_none
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
@@ -158,7 +167,8 @@ class DiarSepSpeech:
                     ) = self.diar_enh_model.normalize(
                         frontend_feats, frontend_feats_lengths
                     )
-                # pooling bottleneck_feats in case further subsampling is required for long recordings
+                # pooling bottleneck_feats in case
+                # further subsampling is required for long recordings
                 # (default: pooling_kernel=1 (no pooling))
                 pool_bottleneck_feats = self.diar_enh_model.pool_1d(
                     bottleneck_feats.transpose(1, 2)
@@ -166,7 +176,8 @@ class DiarSepSpeech:
                 pool_flens = (
                     f_lens + (self.diar_enh_model.pooling_kernel // 2) * 2
                 ) // self.diar_enh_model.pooling_kernel
-                # interpolate (copy) frontend_feats frames to match the length with bottleneck_feats
+                # interpolate (copy) frontend_feats frames
+                # to match the length with bottleneck_feats
                 frontend_feats = F.interpolate(
                     frontend_feats.transpose(1, 2), size=pool_bottleneck_feats.shape[1]
                 ).transpose(1, 2)
@@ -179,7 +190,8 @@ class DiarSepSpeech:
                     torch.cat((pool_bottleneck_feats, frontend_feats), 2), pool_flens
                 )
             else:
-                # pooling bottleneck_feats in case further subsampling is required for long recordings
+                # pooling bottleneck_feats in case
+                # further subsampling is required for long recordings
                 # (default: pooling_kernel=1 (no pooling))
                 pool_bottleneck_feats = self.diar_enh_model.pool_1d(
                     bottleneck_feats.transpose(1, 2)
@@ -237,7 +249,8 @@ class DiarSepSpeech:
                         attractor[:, :pred_num_spk, :].permute(0, 2, 1),
                     )
                     num_spk = pred_num_spk
-            # perform segment-wise speech separation (using num_spk estimated in diarization if EEND-EDA is used)
+            # perform segment-wise speech separation
+            # (using num_spk estimated in diarization if EEND-EDA is used)
             overlap_length = int(np.round(fs * (self.segment_size - self.hop_size)))
             num_segments = int(
                 np.ceil((speech_mix.size(1) - overlap_length) / (self.hop_size * fs))
@@ -347,7 +360,8 @@ class DiarSepSpeech:
                     ) = self.diar_enh_model.normalize(
                         frontend_feats, frontend_feats_lengths
                     )
-                # pooling bottleneck_feats in case further subsampling is required for long recordings
+                # pooling bottleneck_feats in case
+                # further subsampling is required for long recordings
                 # (default: pooling_kernel=1 (no pooling))
                 pool_bottleneck_feats = self.diar_enh_model.pool_1d(
                     bottleneck_feats.transpose(1, 2)
@@ -355,7 +369,8 @@ class DiarSepSpeech:
                 pool_flens = (
                     f_lens + (self.diar_enh_model.pooling_kernel // 2) * 2
                 ) // self.diar_enh_model.pooling_kernel
-                # interpolate (copy) frontend_feats frames to match the length with bottleneck_feats
+                # interpolate (copy) frontend_feats frames
+                # to match the length with bottleneck_feats
                 frontend_feats = F.interpolate(
                     frontend_feats.transpose(1, 2), size=pool_bottleneck_feats.shape[1]
                 ).transpose(1, 2)
@@ -368,7 +383,8 @@ class DiarSepSpeech:
                     torch.cat((pool_bottleneck_feats, frontend_feats), 2), pool_flens
                 )
             else:
-                # pooling bottleneck_feats in case further subsampling is required for long recordings
+                # pooling bottleneck_feats in case
+                # further subsampling is required for long recordings
                 # (default: pooling_kernel=1 (no pooling))
                 pool_bottleneck_feats = self.diar_enh_model.pool_1d(
                     bottleneck_feats.transpose(1, 2)

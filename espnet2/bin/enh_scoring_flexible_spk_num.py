@@ -79,7 +79,9 @@ def scoring(
                 ref = ref[..., ref_channel]
                 inf = inf[..., ref_channel]
 
-            eps = 0.000001  # epsilon value to avoid divergence caused by zero-value, e.g., log(0)
+            # epsilon value to avoid divergence
+            # caused by zero-value, e.g., log(0)
+            eps = 0.000001
             # if num_spk of ref > num_spk of inf
             if ref.shape[0] > inf.shape[0]:
                 p = np.full((ref.shape[0] - inf.shape[0], inf.shape[1]), eps)

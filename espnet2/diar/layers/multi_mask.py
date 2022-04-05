@@ -2,10 +2,14 @@
 # in https://arxiv.org/pdf/2203.17068.pdf
 
 from collections import OrderedDict
+from typing import List
+from typing import Tuple
+from typing import Union
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch_complex.tensor import ComplexTensor
 from espnet2.diar.layers.abs_mask import AbsMask
 
 
@@ -22,7 +26,8 @@ class MultiMask(AbsMask):
         Args:
             input_dim: Number of filters in autoencoder
             bottleneck_dim: Number of channels in bottleneck 1 * 1-conv block
-            max_num_spk: Number of mask_conv1x1 modules (>= Max number of speakers in the dataset)
+            max_num_spk: Number of mask_conv1x1 modules
+                        (>= Max number of speakers in the dataset)
             mask_nonlinear: use which non-linear function to generate mask
         """
         super().__init__()
@@ -40,7 +45,13 @@ class MultiMask(AbsMask):
     def max_num_spk(self) -> int:
         return self._max_num_spk
 
-    def forward(self, input, ilens, bottleneck_feat, num_spk):
+    def forward(
+        self,
+        input: Union[torch.Tensor, ComplexTensor],
+        ilens: torch.Tensor,
+        bottleneck_feat: torch.Tensor,
+        num_spk: int,
+    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """Keep this API same with TasNet.
 
         Args:
@@ -67,7 +78,8 @@ class MultiMask(AbsMask):
         score = self.mask_conv1x1[num_spk - 1](
             bottleneck_feat
         )  # [M, B, K] -> [M, num_spk*N, K]
-        # add other outputs of the module list with factor 0.0 to enable distributed training
+        # add other outputs of the module list with factor 0.0
+        # to enable distributed training
         for z in range(self._max_num_spk):
             if z != num_spk - 1:
                 score += 0.0 * F.interpolate(

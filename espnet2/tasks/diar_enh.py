@@ -1,8 +1,16 @@
 import argparse
-from typing import Callable, Collection, Dict, List, Optional, Tuple
+from typing import Callable
+from typing import Collection
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
 
 import numpy as np
 import torch
+from typeguard import check_argument_types
+from typeguard import check_return_type
+
 from espnet2.asr.encoder.abs_encoder import AbsEncoder as DiarAbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
@@ -32,8 +40,11 @@ from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1, FrequencyDomainMSE
-from espnet2.enh.loss.criterions.time_domain import CISDRLoss, SISNRLoss, SNRLoss
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
+from espnet2.enh.loss.criterions.time_domain import CISDRLoss
+from espnet2.enh.loss.criterions.time_domain import SISNRLoss
+from espnet2.enh.loss.criterions.time_domain import SNRLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
@@ -49,8 +60,9 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import int_or_none, str2bool, str_or_none
-from typeguard import check_argument_types, check_return_type
+from espnet2.utils.types import int_or_none
+from espnet2.utils.types import str2bool
+from espnet2.utils.types import str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",
