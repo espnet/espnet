@@ -132,7 +132,7 @@ for x in tt; do
   mkdir -p ${data}/${ddir}
   real_dir=${dns_test_wav}
 
-  find $real_dir -iname '*.wav' > $tmpdir/${x}_real_recordings.flist
+  find $real_dir -maxdepth 1 -name '*.wav' > $tmpdir/${x}_real_recordings.flist
   
   sed -e 's:.*\/\(.*\).wav$:\1:i' $tmpdir/${x}_real_recordings.flist \
   > $tmpdir/${x}_real_recordings.uttids
