@@ -81,6 +81,7 @@ def scoring(
                         torch.from_numpy(inf[int(perm[i])][None, ...]),
                     )
                 )
+
                 writer[f"STOI_spk{i + 1}"][key] = str(stoi_score)
                 writer[f"SI_SNR_spk{i + 1}"][key] = str(si_snr_score)
                 writer[f"SDR_spk{i + 1}"][key] = str(sdr[i])

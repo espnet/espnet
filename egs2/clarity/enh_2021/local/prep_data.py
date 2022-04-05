@@ -17,6 +17,7 @@ parser.add_argument(
     help="Sample rate to use, by default we resample to 16000 Hz",
 )
 
+
 def prepare_data(clarity_root, samplerate):
 
     output_folder = "./data"
@@ -54,7 +55,11 @@ def prepare_data(clarity_root, samplerate):
                     "please check your root folder, is the path correct ?"
                 )
                 array_files = " ".join(array_files)
-                f.write("{} sox -M {} -c 6 -b 16 -r {} -t wav - |\n".format(ex_id, array_files, samplerate))
+                f.write(
+                    "{} sox -M {} -c 6 -b 16 -r {} -t wav - |\n".format(
+                        ex_id, array_files, samplerate
+                    )
+                )
 
         with open(os.path.join(output_folder, ds_split, "noise1.scp"), "w") as f:
             for ex_id in ids[ds_split]:
@@ -68,7 +73,11 @@ def prepare_data(clarity_root, samplerate):
                     "Some file do not seem to exist, "
                     "please check your root folder, is the path correct ?"
                 )
-                f.write("{} sox {} -b 16 -r {} -t wav - remix 1 |\n".format(ex_id, array_file, samplerate))
+                f.write(
+                    "{} sox {} -b 16 -r {} -t wav - remix 1 |\n".format(
+                        ex_id, array_file, samplerate
+                    )
+                )
 
         with open(os.path.join(output_folder, ds_split, "spk1.scp"), "w") as f:
             for ex_id in ids[ds_split]:
@@ -79,18 +88,29 @@ def prepare_data(clarity_root, samplerate):
                     "Some file do not seem to exist, "
                     "please check your root folder, is the path correct ?"
                 )
-                f.write("{} sox {}  -b 16 -r {} -t wav - remix 1 |\n".format(ex_id, array_file, samplerate))
+                f.write(
+                    "{} sox {}  -b 16 -r {} -t wav - remix 1 |\n".format(
+                        ex_id, array_file, samplerate
+                    )
+                )
 
         with open(os.path.join(output_folder, ds_split, "noise.scp"), "w") as f:
             for ex_id in ids[ds_split]:
                 array_file = os.path.join(
-                    clarity_root, ds_split, "scenes", "{}_interferer_CH1.wav".format(ex_id)
+                    clarity_root,
+                    ds_split,
+                    "scenes",
+                    "{}_interferer_CH1.wav".format(ex_id),
                 )
                 assert os.path.exists(array_file), (
                     "Some file do not seem to exist, "
                     "please check your root folder, is the path correct ?"
                 )
-                f.write("{} sox {}  -b 16 -r {} -t wav - remix 1 |\n".format(ex_id, array_file, samplerate))
+                f.write(
+                    "{} sox {}  -b 16 -r {} -t wav - remix 1 |\n".format(
+                        ex_id, array_file, samplerate
+                    )
+                )
 
         with open(os.path.join(output_folder, ds_split, "text.scp"), "w") as f:
             for ex_id in ids[ds_split]:
