@@ -6,12 +6,13 @@ from typing import List
 from typing import Tuple
 from typing import Union
 
+from espnet2.diar.layers.abs_mask import AbsMask
+
 import torch
-from torch_complex.tensor import ComplexTensor
 import torch.nn as nn
 import torch.nn.functional as F
 
-from espnet2.diar.layers.abs_mask import AbsMask
+from torch_complex.tensor import ComplexTensor
 
 
 class MultiMask(AbsMask):
