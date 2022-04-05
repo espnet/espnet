@@ -17,11 +17,10 @@ Usage: $0 [--stage <stage>] [--stop_stage <stop_stage>] [--configure <conf.json>
     [--configure]: use another specific configuration file
     NOTE:
         stage 1: Create the Data Mixture from the DNS scripts. You can skip this step when you already have the audio mixture for training.
-        stage 2: Prepare the data for ESPNet-se
-        You can clone the DNS-interspeech2021 by git clone https://github.com/microsoft/DNS-Challenge.git DNS-Challenge
-        You can download the data by using download-dns-challenge-3.sh in the master branch
-        In addition, "datasets/wideband/acoustic_params_wideband" is required, which can be downloded from the interspeech2021/adddata branch
-        For evaluation, synthetic data in the "datasets/wideband/dev_testset_wideband/track1" in the the interspeech2021/adddata branch is used 
+        stage 2: Prepare the data for ESPnet-se
+        You can get scripts by git clone -b interspeech2021/adddata https://github.com/microsoft/DNS-Challenge.git DNS-Challenge
+        You can download the data by using download-dns-challenge-3.sh in the master branch without git lfs
+        In addition, "datasets/wideband/acoustic_params_wideband" and "datasets/wideband/dev_testset_wideband/track1" are required, which are not downloaded by the above script
         To avoid issues related to hard-coded paths, please change the current directory to DNS-Challenge in noisyspeech_synthesizer_singleprocess.py
         Also, please make sure the destination is under data/dns_wav
 EOF
