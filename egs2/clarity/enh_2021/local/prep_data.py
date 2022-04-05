@@ -12,8 +12,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--fs",
-    type=str,
-    default="16000",
+    type=int,
+    default=16000,
     help="Sample rate to use, by default we resample to 16000 Hz",
 )
 
@@ -74,6 +74,17 @@ def prepare_data(clarity_root, samplerate):
             for ex_id in ids[ds_split]:
                 array_file = os.path.join(
                     clarity_root, ds_split, "scenes", "{}_target_CH1.wav".format(ex_id)
+                )
+                assert os.path.exists(array_file), (
+                    "Some file do not seem to exist, "
+                    "please check your root folder, is the path correct ?"
+                )
+                f.write("{} sox {}  -b 16 -r {} -t wav - remix 1 |\n".format(ex_id, array_file, samplerate))
+
+        with open(os.path.join(output_folder, ds_split, "noise.scp"), "w") as f:
+            for ex_id in ids[ds_split]:
+                array_file = os.path.join(
+                    clarity_root, ds_split, "scenes", "{}_interferer_CH1.wav".format(ex_id)
                 )
                 assert os.path.exists(array_file), (
                     "Some file do not seem to exist, "

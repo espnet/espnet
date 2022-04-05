@@ -5,9 +5,12 @@ set -e
 set -u
 set -o pipefail
 
-sample_rate=16000
-# Path to a directory containing extra annotations for CHiME4
-# Run `local/data.sh` for more information.
+sample_rate=16000 # by default we resample to 16k
+
+# put the path here to the clarity first enhancement challenge folder which contains
+# dev  hrir  metadata  train subfolders
+clarity_root=/raid/users/popcornell/Clarity/target_dir/clarity_CEC1_data/clarity_data/
+
 train_set=train
 valid_set=dev
 test_sets="dev"
@@ -20,8 +23,9 @@ test_sets="dev"
     --ngpu 1 \
     --spk_num 1 \
     --ref_channel 0 \
+    --local_data_opts "--clarity_root ${clarity_root} --sample_rate ${sample_rate}" \
     --enh_config conf/tuning/train_enh_beamformer_mvdr.yaml \
     --use_dereverb_ref false \
-    --use_noise_ref false \
+    --use_noise_ref true \
     --inference_model "valid.loss.best.pth" \
     "$@"
