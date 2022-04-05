@@ -7,9 +7,10 @@ from typing import Tuple
 from typing import Union
 
 import torch
+from torch_complex.tensor import ComplexTensor
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_complex.tensor import ComplexTensor
+
 from espnet2.diar.layers.abs_mask import AbsMask
 
 
