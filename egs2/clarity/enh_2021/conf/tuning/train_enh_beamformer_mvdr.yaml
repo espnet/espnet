@@ -2,7 +2,7 @@ optim: adam
 init: xavier_uniform
 max_epoch: 70
 batch_type: folded
-batch_size: 8
+batch_size: 4
 num_workers: 4
 optim_conf:
     lr: 1.0e-03
@@ -27,43 +27,47 @@ scheduler_conf:
     patience: 1
 encoder: stft
 encoder_conf:
-    n_fft: 512
-    hop_length: 128
+    n_fft: 1024
+    hop_length: 512
     use_builtin_complex: False
 decoder: stft
 decoder_conf:
-    n_fft: 512
-    hop_length: 128
+    n_fft: 1024
+    hop_length: 512
 separator: wpe_beamformer
 separator_conf:
     num_spk: 1
-    loss_type: magnitude
-    use_wpe: False
-    wnet_type: blstmp
-    wlayers: 3
-    wunits: 300
-    wprojs: 320
-    wdropout_rate: 0.0
-    taps: 5
-    delay: 3
-    use_dnn_mask_for_wpe: True
+    loss_type: spectrum
+    # Dereverberation options
+    use_wpe:  False
+    # Beamformer options
     use_beamformer: True
     bnet_type: blstmp
     blayers: 3
-    bunits: 512
-    bprojs: 512
+    bunits: 300
+    bprojs: 320
     badim: 320
     ref_channel: 0
     use_noise_mask: True
+    bnonlinear: sigmoid
     beamformer_type: mvdr_souden
+    rtf_iterations: 2
     bdropout_rate: 0.0
-
+    shared_power: True
+    # For numerical stability
+    diagonal_loading: False
+    diag_eps_wpe: 1e-4
+    diag_eps_bf: 1e-4
+    mask_flooring: False
+    flooring_thres_wpe: 1e-6
+    flooring_thres_bf: 1e-6
+    use_torch_solver: True
 
 criterions: 
   # The first criterion
-  - name: mse
+  - name: snr
     conf:
-      compute_on_mask: False
+      eps: 1e-8
     # the wrapper for the current criterion
     # for single-talker case, we simplely use fixed_order wrapper
     wrapper: fixed_order

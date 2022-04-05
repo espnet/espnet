@@ -49,7 +49,7 @@ def prepare_data(clarity_root):
                     "please check your root folder, is the path correct ?"
                 )
                 array_files = " ".join(array_files)
-                f.write("{} sox -M {} -c 6 -t wav - |\n".format(ex_id, array_files))
+                f.write("{} sox -M {} -c 6 -b 16 -r 16000 -t wav - |\n".format(ex_id, array_files))
 
         with open(os.path.join(output_folder, ds_split, "noise1.scp"), "w") as f:
             for ex_id in ids[ds_split]:
@@ -63,7 +63,7 @@ def prepare_data(clarity_root):
                     "Some file do not seem to exist, "
                     "please check your root folder, is the path correct ?"
                 )
-                f.write("{} sox {} -t wav - remix 1 |\n".format(ex_id, array_file))
+                f.write("{} sox {} -b 16 -r 16000 -t wav - remix 1 |\n".format(ex_id, array_file))
 
         with open(os.path.join(output_folder, ds_split, "spk1.scp"), "w") as f:
             for ex_id in ids[ds_split]:
@@ -74,7 +74,7 @@ def prepare_data(clarity_root):
                     "Some file do not seem to exist, "
                     "please check your root folder, is the path correct ?"
                 )
-                f.write("{} sox {} -t wav - remix 1 |\n".format(ex_id, array_file))
+                f.write("{} sox {}  -b 16 -r 16000 -t wav - remix 1 |\n".format(ex_id, array_file))
 
         with open(os.path.join(output_folder, ds_split, "text.scp"), "w") as f:
             for ex_id in ids[ds_split]:
