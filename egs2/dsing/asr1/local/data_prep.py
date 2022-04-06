@@ -60,11 +60,17 @@ class DataSet:
         self.utt2spk.append("{} {}".format(utt_id, spk))
 
     def _add_wavscp(self, rec_id, wavpath):
+        # use ffmpeg or sox (default ffmepg)
         self.wavscp.append(
-            "{} sox {}/{} -G -t wav -r 16000 -c 1 - remix 1 | ".format(
-                rec_id, db_path, wavpath
+            "{} ffmpeg -i {}/{} -f wav -ar 16000 -ac 1 - | ".format(
+                rec_id, self.db_path, wavpath
             )
         )
+        # self.wavscp.append(
+        #     "{} sox {}/{} -G -t wav -r 16000 -c 1 - remix 1 | ".format(
+        #         rec_id, db_path, wavpath
+        #     )
+        #  )
 
     def list2file(self, outfile, list_data):
         list_data = list(set(list_data))

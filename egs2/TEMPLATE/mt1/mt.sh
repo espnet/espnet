@@ -1165,37 +1165,54 @@ if ! "${skip_eval}"; then
             _scoredir="${_dir}/score_bleu"
             mkdir -p "${_scoredir}"
 
-            paste \
-                <(<"${_data}/text.${tgt_case}.${tgt_lang}" \
-                    ${python} -m espnet2.bin.tokenize_text  \
-                        -f 2- --input - --output - \
-                        --token_type word \
-                        --non_linguistic_symbols "${nlsyms_txt}" \
-                        --remove_non_linguistic_symbols true \
-                        --cleaner "${cleaner}" \
-                        ) \
-                <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
-                    >"${_scoredir}/ref.trn.org"
+            <"${_data}/text.${tgt_case}.${tgt_lang}" \
+                ${python} -m espnet2.bin.tokenize_text  \
+                    -f 2- --input - --output - \
+                    --token_type word \
+                    --non_linguistic_symbols "${nlsyms_txt}" \
+                    --remove_non_linguistic_symbols true \
+                    --cleaner "${cleaner}" \
+            >"${_scoredir}/ref.trn"
+
+            #paste \
+            #    <(<"${_data}/text.${tgt_case}.${tgt_lang}" \
+            #        ${python} -m espnet2.bin.tokenize_text  \
+            #            -f 2- --input - --output - \
+            #            --token_type word \
+            #            --non_linguistic_symbols "${nlsyms_txt}" \
+            #            --remove_non_linguistic_symbols true \
+            #            --cleaner "${cleaner}" \
+            #            ) \
+            #    <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
+            #        >"${_scoredir}/ref.trn.org"
 
             # NOTE(kamo): Don't use cleaner for hyp
-            paste \
-                <(<"${_dir}/text"  \
-                        ${python} -m espnet2.bin.tokenize_text  \
-                            -f 2- --input - --output - \
-                            --token_type word \
-                            --non_linguistic_symbols "${nlsyms_txt}" \
-                            --remove_non_linguistic_symbols true \
-                            ) \
-                <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
-                    >"${_scoredir}/hyp.trn.org"
+            <"${_dir}/text"  \
+                    ${python} -m espnet2.bin.tokenize_text  \
+                    -f 2- --input - --output - \
+                    --token_type word \
+                    --non_linguistic_symbols "${nlsyms_txt}" \
+                    --remove_non_linguistic_symbols true \
+            >"${_scoredir}/hyp.trn"
+
+            #paste \
+            #    <(<"${_dir}/text"  \
+            #            ${python} -m espnet2.bin.tokenize_text  \
+            #                -f 2- --input - --output - \
+            #                --token_type word \
+            #                --non_linguistic_symbols "${nlsyms_txt}" \
+            #                --remove_non_linguistic_symbols true \
+            #                ) \
+            #    <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
+            #        >"${_scoredir}/hyp.trn.org"
             
             # remove utterance id
-            perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
-            perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
+            #perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
+            #perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
 
             # detokenizer
-            detokenizer.perl -l en -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
-            detokenizer.perl -l en -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
+            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
+            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
 
             if [ ${tgt_case} = "tc" ]; then
                 echo "Case sensitive BLEU result (single-reference)" >> ${_scoredir}/result.tc.txt
@@ -1238,7 +1255,7 @@ if ! "${skip_eval}"; then
                     
                     # 
                     perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
-                    detokenizer.perl -l en -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
+                    detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
                     remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
                     case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
                     case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"

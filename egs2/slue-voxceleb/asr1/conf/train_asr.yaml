@@ -1,1 +1,1 @@
-tuning/train_asr_conformer.yaml
+tuning/train_asr_wav2vec2_conformer_small.yaml
