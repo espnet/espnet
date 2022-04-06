@@ -58,7 +58,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # while enforcing STFT consistency (deprecated, keep for compatibility)
         self.stft_consistency = stft_consistency
 
-        # for multi-channel signal (deprecated, keep for compatibility)
+        # for multi-channel signal
         self.ref_channel = getattr(self.separator, "ref_channel", -1)
 
     def forward(
