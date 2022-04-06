@@ -31,20 +31,20 @@ os.popen(f"mkdir -p {test_datadir}").read()
 
 
 # prepare data for training and validation splits
-with open(traindir+'transcription.txt') as f:
+with open(traindir + "transcription.txt") as f:
     train_lines = [line.rstrip() for line in f.readlines()]
     train_id2text = {}
     train_id2filepath = {}
     for line in train_lines:
         wav_id = line.split()[0]
         filepath = f"{traindir}/Audios/{wav_id}.wav"
-        train_id2text[wav_id] = ' '.join(line.split()[1:])
+        train_id2text[wav_id] = " ".join(line.split()[1:])
         train_id2filepath[wav_id] = filepath
 
 wav_ids = list(train_id2text.keys())
 random.shuffle(wav_ids)
 valid_id2text = {}
-valid_totaldur = 2*60*60 # (in seconds) 2 hours taken for validation split
+valid_totaldur = 2 * 60 * 60  # (in seconds) 2 hours taken for validation split
 for wav_id in wav_ids:
     dur = librosa.get_duration(filename=train_id2filepath[wav_id])
     valid_id2text[wav_id] = train_id2text.pop(wav_id)
@@ -53,55 +53,53 @@ for wav_id in wav_ids:
         break
 
 
-with open(train_datadir+'text', 'w') as f:
+with open(train_datadir + "text", "w") as f:
     for wav_id in sorted(train_id2text):
         f.write(f"{lang}_{wav_id} {train_id2text[wav_id]}\n")
-with open(train_datadir+'wav.scp', 'w') as f:
+with open(train_datadir + "wav.scp", "w") as f:
     for wav_id in sorted(train_id2text):
         f.write(f"{lang}_{wav_id} {train_id2filepath[wav_id]}\n")
-with open(train_datadir+'spk2utt', 'w') as f:
+with open(train_datadir + "spk2utt", "w") as f:
     for wav_id in sorted(train_id2text):
         f.write(f"spk_{lang}_{wav_id} {lang}_{wav_id}\n")
-with open(train_datadir+'utt2spk', 'w') as f:
+with open(train_datadir + "utt2spk", "w") as f:
     for wav_id in sorted(train_id2text):
         f.write(f"{lang}_{wav_id} spk_{lang}_{wav_id}\n")
 
-with open(valid_datadir+'text', 'w') as f:
+with open(valid_datadir + "text", "w") as f:
     for wav_id in sorted(valid_id2text):
         f.write(f"{lang}_{wav_id} {valid_id2text[wav_id]}\n")
-with open(valid_datadir+'wav.scp', 'w') as f:
+with open(valid_datadir + "wav.scp", "w") as f:
     for wav_id in sorted(valid_id2text):
         f.write(f"{lang}_{wav_id} {train_id2filepath[wav_id]}\n")
-with open(valid_datadir+'spk2utt', 'w') as f:
+with open(valid_datadir + "spk2utt", "w") as f:
     for wav_id in sorted(valid_id2text):
         f.write(f"spk_{lang}_{wav_id} {lang}_{wav_id}\n")
-with open(valid_datadir+'utt2spk', 'w') as f:
+with open(valid_datadir + "utt2spk", "w") as f:
     for wav_id in sorted(valid_id2text):
         f.write(f"{lang}_{wav_id} spk_{lang}_{wav_id}\n")
 
 
 # prepare test data
-with open(testdir+'transcription.txt') as f:
+with open(testdir + "transcription.txt") as f:
     test_lines = [line.rstrip() for line in f.readlines()]
     test_id2text = {}
     test_id2filepath = {}
     for line in test_lines:
         wav_id = line.split()[0]
         filepath = f"{testdir}/Audios/{wav_id}.wav"
-        test_id2text[wav_id] = ' '.join(line.split()[1:])
+        test_id2text[wav_id] = " ".join(line.split()[1:])
         test_id2filepath[wav_id] = filepath
 
-with open(test_datadir+'text', 'w') as f:
+with open(test_datadir + "text", "w") as f:
     for wav_id in sorted(test_id2text):
         f.write(f"{lang}_{wav_id} {test_id2text[wav_id]}\n")
-with open(test_datadir+'wav.scp', 'w') as f:
+with open(test_datadir + "wav.scp", "w") as f:
     for wav_id in sorted(test_id2text):
         f.write(f"{lang}_{wav_id} {test_id2filepath[wav_id]}\n")
-with open(test_datadir+'spk2utt', 'w') as f:
+with open(test_datadir + "spk2utt", "w") as f:
     for wav_id in sorted(test_id2text):
         f.write(f"spk_{lang}_{wav_id} {lang}_{wav_id}\n")
-with open(test_datadir+'utt2spk', 'w') as f:
+with open(test_datadir + "utt2spk", "w") as f:
     for wav_id in sorted(test_id2text):
         f.write(f"{lang}_{wav_id} spk_{lang}_{wav_id}\n")
-
-
