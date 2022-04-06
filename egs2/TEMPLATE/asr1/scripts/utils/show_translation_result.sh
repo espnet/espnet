@@ -44,10 +44,12 @@ cat << EOF
 
 EOF
 
+metrics="bleu"
+
 while IFS= read -r expdir; do
     if ls "${expdir}"/*/*/score_*/result.${case}.txt &> /dev/null; then
         echo "## $(basename ${expdir})"
-        for type in bleu; do
+        for type in $metrics; do
                 	cat << EOF
 ### ${type^^}
 
