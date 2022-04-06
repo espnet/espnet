@@ -28,6 +28,10 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
+import random
+from itertools import groupby
+from torch.nn.utils.rnn import pad_sequence
+
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast
 else:
@@ -37,7 +41,7 @@ else:
         yield
 
 
-class ESPnetSTMDHierModel(AbsESPnetModel):
+class ESPnetSTMDHierSampModel(AbsESPnetModel):
     """CTC-attention hybrid Encoder-Decoder model"""
 
     def __init__(
@@ -62,6 +66,7 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
         mt_weight: float = 0.0,
         mtlalpha: float = 0.0,  # ctc weight
         mt_mtlalpha: float = 0.0,   # ctc weight
+        ctc_sample_rate: float = 0.0,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
         length_normalized_loss: bool = False,
@@ -91,6 +96,7 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
         self.mt_weight = mt_weight
         self.mtlalpha = mtlalpha
         self.mt_mtlalpha = mt_mtlalpha
+        self.ctc_sample_rate = ctc_sample_rate
         self.token_list = token_list.copy()
         self.src_token_list = src_token_list.copy()
         self.speech_attn = speech_attn
@@ -205,14 +211,38 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
         # 1.b Encoder Hier
         encoder_hier_out, encoder_hier_out_lens, _ = self.encoder_hier(encoder_out, encoder_out_lens)
 
-        # 2a. ASR Decoder
-        (
-            loss_asr_att,
-            acc_asr_att,
-            cer_asr_att,
-            wer_asr_att,
-            hs_dec_asr,
-        ) = self._calc_asr_att_loss(encoder_out, encoder_out_lens, src_text, src_text_lengths)
+        do_ctc_sample = random.uniform(0, 1) < self.ctc_sample_rate
+        if self.training and do_ctc_sample:
+            ys_hat = self.ctc.argmax(encoder_out).data
+            ys_hat = [[x[0] for x in groupby(ys)] for ys in ys_hat]
+            ys_hat = [[x for x in filter(lambda x: x != 0, ys)] for ys in ys_hat]
+            for i, ys in enumerate(ys_hat):
+                if len(ys) == 0:
+                    ys_hat[i] = [x for x in src_text[i] if x != -1]
+            ys_hat_lens = torch.tensor([len(x) for x in ys_hat], device=speech.device)
+            ys_hat = [torch.tensor(ys, device=speech.device) for ys in ys_hat]
+            ys_hat = pad_sequence(ys_hat, batch_first=True, padding_value=-1)
+
+            # 2a. ASR Decoder
+            (
+                loss_asr_att,
+                _,
+                _,
+                _,
+                hs_dec_asr,
+            ) = self._calc_asr_att_loss(encoder_out, encoder_out_lens, ys_hat, ys_hat_lens)
+            acc_asr_att = None
+            cer_asr_att = None
+            wer_asr_att = None
+        else:
+            # 2a. ASR Decoder
+            (
+                loss_asr_att,
+                acc_asr_att,
+                cer_asr_att,
+                wer_asr_att,
+                hs_dec_asr,
+            ) = self._calc_asr_att_loss(encoder_out, encoder_out_lens, src_text, src_text_lengths)
 
         # 2b. CTC branch
         if self.mtlalpha > 0:
@@ -231,7 +261,10 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
             loss_mt_ctc, cer_mt_ctc = 0.0, None
 
         # 3a. MT Encoder
-        dec_asr_lengths = src_text_lengths + 1
+        if self.training and do_ctc_sample:
+            dec_asr_lengths = ys_hat_lens + 1
+        else:
+            dec_asr_lengths = src_text_lengths + 1
         encoder_mt_out, encoder_mt_out_lens, _ = self.encoder_mt(hs_dec_asr, dec_asr_lengths)
 
         if self.speech_attn:
@@ -243,7 +276,11 @@ class ESPnetSTMDHierModel(AbsESPnetModel):
         )
 
         # 3. Loss computation
-        asr_ctc_weight = self.mtlalpha
+        if self.training and do_ctc_sample:
+            asr_ctc_weight = 1.0
+        else:
+            asr_ctc_weight = self.mtlalpha
+
         if asr_ctc_weight == 0.0:
             loss_asr = loss_asr_att
         else:
