@@ -10,11 +10,10 @@ log() {
 }
 
 help_message=$(cat << EOF
-Usage: $0 [--stage <stage>] [--stop_stage <stop_stage>] [--configure <conf.json>]
+Usage: $0 [--stage <stage>] [--stop_stage <stop_stage>]
   optional argument:
     [--stage]: 1 (default) or 2
     [--stop_stage]: 1 or 2 (default)
-    [--configure]: use another specific configuration file
     NOTE:
         stage 1: Create the Data Mixture from the DNS scripts. You can skip this step when you already have the audio mixture for training.
         stage 2: Prepare the data for ESPnet-se

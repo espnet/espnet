@@ -25,8 +25,7 @@ scheduler_conf:
     mode: min
     factor: 0.7
     patience: 1
-model_conf:
-    loss_type: si_snr
+
 encoder: stft
 encoder_conf:
     n_fft: 320
@@ -46,3 +45,12 @@ separator_conf:
     causal: True
     norm_type: "gLN"
     nonlinear: "relu"
+
+criterions: 
+  # The first criterion
+  - name: si_snr 
+    conf:
+      eps: 1.0e-7
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0
