@@ -203,6 +203,7 @@ Options:
     --num_splits_lm   # Number of splitting for lm corpus (default="${num_splits_lm}").
 
     # ASR model related
+    --asr_transducer   # Whether to use ASR Transducer (default="${asr_transducer}").
     --asr_tag          # Suffix to the result dir for asr model training (default="${asr_tag}").
     --asr_exp          # Specify the directory path for ASR experiment.
                        # If this option is specified, asr_tag is ignored (default="${asr_exp}").
