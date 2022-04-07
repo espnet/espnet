@@ -13,8 +13,8 @@ from espnet2.asr.encoder.contextual_block_conformer_encoder import (
     ContextualBlockConformerEncoder,  # noqa: H301
 )
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.tasks.st import STTask
 from espnet2.tasks.lm import LMTask
+from espnet2.tasks.st import STTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
