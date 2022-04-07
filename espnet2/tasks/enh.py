@@ -34,6 +34,7 @@ from espnet2.enh.separator.asteroid_models import AsteroidModel_Converter
 from espnet2.enh.separator.conformer_separator import ConformerSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
+from espnet2.enh.separator.ineube_separator import iNeuBe
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
@@ -64,6 +65,7 @@ separator_choices = ClassChoices(
         conformer=ConformerSeparator,
         wpe_beamformer=NeuralBeamformer,
         asteroid=AsteroidModel_Converter,
+        ineube=iNeuBe
     ),
     type_check=AbsSeparator,
     default="rnn",
