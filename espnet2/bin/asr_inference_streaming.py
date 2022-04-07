@@ -271,7 +271,8 @@ class Speech2TextStreaming:
                 feats = feats.narrow(
                     1,
                     math.ceil(math.ceil(self.win_length / self.hop_length) / 2),
-                    feats.size(1) - math.ceil(self.win_length / self.hop_length),
+                    feats.size(1)
+                    - 2 * math.ceil(math.ceil(self.win_length / self.hop_length) / 2),
                 )
 
         feats_lengths = feats.new_full([1], dtype=torch.long, fill_value=feats.size(1))
