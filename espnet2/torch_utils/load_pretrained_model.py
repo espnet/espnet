@@ -1,13 +1,47 @@
 from typing import Any
+from typing import Dict
+from typing import Union
 
+import logging
 import torch
 import torch.nn
 import torch.optim
 
 
+def filter_state_dict(
+    dst_state: Dict[str, Union[float, torch.Tensor]],
+    src_state: Dict[str, Union[float, torch.Tensor]],
+):
+    """Filter name, size mismatch instances between dicts.
+
+    Args:
+        dst_state: reference state dict for filtering
+        src_state: target state dict for filtering
+
+    """
+    match_state = {}
+    for key, value in src_state.items():
+        if key in dst_state and (dst_state[key].size() == src_state[key].size()):
+            match_state[key] = value
+        else:
+            if key not in dst_state:
+                logging.warning(
+                    f"Filter out {key} from pretrained dict"
+                    + " because of name not found in target dict"
+                )
+            else:
+                logging.warning(
+                    f"Filter out {key} from pretrained dict"
+                    + " because of size mismatch"
+                    + f"({dst_state[key].size()}-{src_state[key].size()})"
+                )
+    return match_state
+
+
 def load_pretrained_model(
     init_param: str,
     model: torch.nn.Module,
+    ignore_init_mismatch: bool,
     map_location: str = "cpu",
 ):
     """Load a model state and set it to the model.
@@ -77,5 +111,7 @@ def load_pretrained_model(
         }
 
     dst_state = obj.state_dict()
+    if ignore_init_mismatch:
+        src_state = filter_state_dict(dst_state, src_state)
     dst_state.update(src_state)
     obj.load_state_dict(dst_state)

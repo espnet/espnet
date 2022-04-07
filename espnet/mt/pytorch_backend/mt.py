@@ -6,15 +6,14 @@
 
 """Training/decoding definition for the text translation task."""
 
+import itertools
 import json
 import logging
 import os
-import sys
 
 from chainer import training
 from chainer.training import extensions
 import numpy as np
-from tensorboardX import SummaryWriter
 import torch
 
 from espnet.asr.asr_utils import adadelta_eps_decay
@@ -42,15 +41,6 @@ from espnet.utils.training.train_utils import set_early_stop
 from espnet.asr.pytorch_backend.asr import CustomEvaluator
 from espnet.asr.pytorch_backend.asr import CustomUpdater
 from espnet.asr.pytorch_backend.asr import load_trained_model
-
-import matplotlib
-
-matplotlib.use("Agg")
-
-if sys.version_info[0] == 2:
-    from itertools import izip_longest as zip_longest
-else:
-    from itertools import zip_longest as zip_longest
 
 
 class CustomConverter(object):
@@ -502,6 +492,8 @@ def train(args):
     set_early_stop(trainer, args)
 
     if args.tensorboard_dir is not None and args.tensorboard_dir != "":
+        from torch.utils.tensorboard import SummaryWriter
+
         trainer.extend(
             TensorboardLogger(SummaryWriter(args.tensorboard_dir), att_reporter),
             trigger=(args.report_interval_iters, "iteration"),
@@ -562,7 +554,7 @@ def trans(args):
 
         def grouper(n, iterable, fillvalue=None):
             kargs = [iter(iterable)] * n
-            return zip_longest(*kargs, fillvalue=fillvalue)
+            return itertools.zip_longest(*kargs, fillvalue=fillvalue)
 
         # sort data
         keys = list(js.keys())

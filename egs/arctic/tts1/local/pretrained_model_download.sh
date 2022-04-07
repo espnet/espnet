@@ -1,4 +1,5 @@
-#!/usr/bin/env bash -e
+#!/usr/bin/env bash
+set -e
 
 # Copyright 2019 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -34,4 +35,4 @@ if [ ! -e ${dir}/.complete ]; then
     download_from_google_drive.sh ${share_url} ${dir} ".tar.gz"
     touch ${dir}/.complete
 fi
-echo "Successfully finished donwload of pretrained model."
+echo "Successfully finished download of pretrained model."

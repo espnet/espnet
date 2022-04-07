@@ -18,12 +18,7 @@ import os
 
 from chainer.training import extension
 
-import matplotlib
-
 from espnet.asr.asr_utils import parse_hypothesis
-
-
-matplotlib.use("Agg")
 
 
 # * -------------------- chainer extension related -------------------- *
@@ -115,6 +110,9 @@ class PlotAttentionReport(extension.Extension):
             matplotlib.pyplot: pyplot object with attention matrix image.
 
         """
+        import matplotlib
+
+        matplotlib.use("Agg")
         import matplotlib.pyplot as plt
 
         if len(att_w.shape) == 3:

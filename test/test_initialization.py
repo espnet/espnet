@@ -1,15 +1,11 @@
-# coding: utf-8
-
 # Copyright 2017 Shigeki Karita
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
-
-
 import argparse
+import os
+import random
 
 import numpy
-import os
-import pytest
-import random
+import torch
 
 args = argparse.Namespace(
     elayers=4,
@@ -36,7 +32,7 @@ args = argparse.Namespace(
     minlenratio=0.0,
     ctc_weight=0.2,
     verbose=True,
-    char_list=[u"あ", u"い", u"う", u"え", u"お"],
+    char_list=["あ", "い", "う", "え", "お"],
     outdir=None,
     seed=1,
     ctc_type="warpctc",
@@ -52,7 +48,6 @@ args = argparse.Namespace(
 
 
 def test_lecun_init_torch():
-    torch = pytest.importorskip("torch")
     nseed = args.seed
     random.seed(nseed)
     torch.manual_seed(nseed)

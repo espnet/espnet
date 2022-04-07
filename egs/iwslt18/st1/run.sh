@@ -75,11 +75,11 @@ train_set=train_nodevtest_sp.de
 train_set_prefix=train_nodevtest_sp
 train_dev=train_dev.de
 trans_subset="dev.en test.en"
-trans_set="dev.de test.de dev2010.de tst2010.de tst2013.de tst2014.de tst2015.de"
+trans_set="dev.de test.de dev2010.de tst2010.de tst2013.de tst2014.de tst2015.de tst2018.de tst2019.de"
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
-    for part in train dev2010 tst2010 tst2013 tst2014 tst2015; do
+    for part in train dev2010 tst2010 tst2013 tst2014 tst2015 tst2018 tst2019; do
         local/download_and_untar.sh ${st_ted} ${part}
     done
 fi
@@ -90,7 +90,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     echo "stage 0: Data Preparation"
     local/data_prep_train.sh ${st_ted}
 
-    for part in dev2010 tst2010 tst2013 tst2014 tst2015; do
+    for part in dev2010 tst2010 tst2013 tst2014 tst2015 tst2018 tst2019; do
         local/data_prep_eval.sh ${st_ted} ${part}
     done
 
@@ -135,7 +135,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     fbankdir=fbank
     # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
-    for x in dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
+    for x in dev test dev2010 tst2010 tst2013 tst2014 tst2015 tst2018 tst2019; do
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
     done
@@ -144,7 +144,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     speed_perturb.sh --cmd "$train_cmd" --cases "lc.rm lc tc" --langs "en de" data/train_nodevtest data/train_nodevtest_sp ${fbankdir}
 
     # Divide into source and target languages
-    for x in ${train_set_prefix} dev test dev2010 tst2010 tst2013 tst2014 tst2015; do
+    for x in ${train_set_prefix} dev test dev2010 tst2010 tst2013 tst2014 tst2015 tst2018 tst2019; do
         local/divide_lang.sh ${x}
     done
 
@@ -164,19 +164,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     compute-cmvn-stats scp:data/${train_set}/feats.scp data/${train_set}/cmvn.ark
 
     # dump features for training
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
-      utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18/st1/dump/${train_set}/delta${do_delta}/storage \
-          ${feat_tr_dir}/storage
-    fi
-    if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_dt_dir}/storage ]; then
-      utils/create_split_dir.pl \
-          /export/b{14,15,16,17}/${USER}/espnet-data/egs/iwslt18/st1/dump/${train_dev}/delta${do_delta}/storage \
-          ${feat_dt_dir}/storage
-    fi
     dump.sh --cmd "$train_cmd" --nj 80 --do_delta $do_delta \
         data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/${train_set} ${feat_tr_dir}
-    for x in ${train_dev}　${trans_set}; do
+    for x in ${train_dev} ${trans_set}; do
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_trans_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
             data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${x} ${feat_trans_dir}
@@ -207,14 +197,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     wc -l ${dict}
 
     echo "make json files"
-    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang de \
+    data2json.sh --nj 16 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
-    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang de \
+    data2json.sh --feat ${feat_dt_dir}/feats.scp --text data/${train_dev}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
         data/${train_dev} ${dict} > ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
     for x in ${trans_set}; do
         feat_trans_dir=${dumpdir}/${x}/delta${do_delta}
         if [ ${x} = "dev.de" ] || [ ${x} = "test.de" ]; then
-            data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang de \
+            data2json.sh --feat ${feat_trans_dir}/feats.scp --text data/${x}/text.${tgt_case} --bpecode ${bpemodel}.model --lang "de" \
                 data/${x} ${dict} > ${feat_trans_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json
         else
             local/data2json.sh --feat ${feat_trans_dir}/feats.scp --no_text true \
@@ -274,7 +264,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
         --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.${src_case}_${tgt_case}.json \
         --enc-init ${asr_model} \
-        --dec-init ${mt_model}
+        --dec-init ${mt_model} \
+        --n-iter-processes 2
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -332,11 +323,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --model ${expdir}/results/${trans_model}
 
         if [ ${x} = "dev.de" ] || [ ${x} = "test.de" ]; then
-            score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
                 ${expdir}/${decode_dir} "de" ${dict}
         else
             set=$(echo ${x} | cut -f 1 -d ".")
-            local/score_bleu_reseg.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+            local/score_bleu_reseg.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
                 ${expdir}/${decode_dir} ${dict} ${st_ted} ${set}
         fi
 

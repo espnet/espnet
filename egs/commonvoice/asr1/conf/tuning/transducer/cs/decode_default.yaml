@@ -1,0 +1,4 @@
+# decoding parameters
+batch: 0
+beam-size: 10
+search-type: default

@@ -279,7 +279,7 @@ def pack(
     try:
         import torch
 
-        meta_objs.update(torch=torch.__version__)
+        meta_objs.update(torch=str(torch.__version__))
     except ImportError:
         pass
     try:

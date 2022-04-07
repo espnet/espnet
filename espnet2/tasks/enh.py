@@ -20,12 +20,25 @@ from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
+from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
+from espnet2.enh.loss.criterions.time_domain import CISDRLoss
+from espnet2.enh.loss.criterions.time_domain import SISNRLoss
+from espnet2.enh.loss.criterions.time_domain import SNRLoss
+from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
+from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
+from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.separator.asteroid_models import AsteroidModel_Converter
 from espnet2.enh.separator.conformer_separator import ConformerSeparator
+from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
+from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
+from espnet2.enh.separator.fasnet_separator import FaSNetSeparator
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
+from espnet2.enh.separator.skim_separator import SkiMSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.tasks.abs_task import AbsTask
@@ -49,12 +62,16 @@ separator_choices = ClassChoices(
     name="separator",
     classes=dict(
         rnn=RNNSeparator,
+        skim=SkiMSeparator,
         tcn=TCNSeparator,
+        dc_crn=DC_CRNSeparator,
         dprnn=DPRNNSeparator,
+        dccrn=DCCRNSeparator,
         transformer=TransformerSeparator,
         conformer=ConformerSeparator,
         wpe_beamformer=NeuralBeamformer,
         asteroid=AsteroidModel_Converter,
+        fasnet=FaSNetSeparator,
     ),
     type_check=AbsSeparator,
     default="rnn",
@@ -65,6 +82,26 @@ decoder_choices = ClassChoices(
     classes=dict(stft=STFTDecoder, conv=ConvDecoder, same=NullDecoder),
     type_check=AbsDecoder,
     default="stft",
+)
+
+loss_wrapper_choices = ClassChoices(
+    name="loss_wrappers",
+    classes=dict(pit=PITSolver, fixed_order=FixedOrderSolver),
+    type_check=AbsLossWrapper,
+    default=None,
+)
+
+criterion_choices = ClassChoices(
+    name="criterions",
+    classes=dict(
+        snr=SNRLoss,
+        ci_sdr=CISDRLoss,
+        si_snr=SISNRLoss,
+        mse=FrequencyDomainMSE,
+        l1=FrequencyDomainL1,
+    ),
+    type_check=AbsEnhLoss,
+    default=None,
 )
 
 MAX_REFERENCE_NUM = 100
@@ -114,6 +151,20 @@ class EnhancementTask(AbsTask):
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetEnhancementModel),
             help="The keyword arguments for model class.",
+        )
+
+        group.add_argument(
+            "--criterions",
+            action=NestedDictAction,
+            default=[
+                {
+                    "name": "si_snr",
+                    "conf": {},
+                    "wrapper": "fixed_order",
+                    "wrapper_conf": {},
+                },
+            ],
+            help="The criterions binded with the loss wrappers.",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
@@ -181,9 +232,21 @@ class EnhancementTask(AbsTask):
         )
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
 
+        loss_wrappers = []
+        for ctr in args.criterions:
+            criterion = criterion_choices.get_class(ctr["name"])(**ctr["conf"])
+            loss_wrapper = loss_wrapper_choices.get_class(ctr["wrapper"])(
+                criterion=criterion, **ctr["wrapper_conf"]
+            )
+            loss_wrappers.append(loss_wrapper)
+
         # 1. Build model
         model = ESPnetEnhancementModel(
-            encoder=encoder, separator=separator, decoder=decoder, **args.model_conf
+            encoder=encoder,
+            separator=separator,
+            decoder=decoder,
+            loss_wrappers=loss_wrappers,
+            **args.model_conf
         )
 
         # FIXME(kamo): Should be done in model?

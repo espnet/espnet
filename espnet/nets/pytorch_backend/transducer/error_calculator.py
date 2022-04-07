@@ -1,44 +1,49 @@
-#!/usr/bin/env python3
-# encoding: utf-8
+"""CER/WER computation for Transducer model."""
 
-"""CER/WER monitoring for transducer models."""
+from typing import List
+from typing import Tuple
+from typing import Union
 
-import editdistance
+import torch
 
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
+from espnet.nets.pytorch_backend.transducer.custom_decoder import CustomDecoder
+from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
+from espnet.nets.pytorch_backend.transducer.rnn_decoder import RNNDecoder
 
 
 class ErrorCalculator(object):
-    """Calculate CER and WER for transducer models.
+    """CER and WER computation for Transducer model.
 
     Args:
-        decoder (torch.nn.Module|TransducerDecoderInterface): decoder module
-        joint_network (torch.nn.Module): joint network module
-        token_list (list): list of tokens
-        sym_space (str): space symbol
-        sym_blank (str): blank symbol
-        report_cer (boolean): compute CER option
-        report_wer (boolean): compute WER option
+        decoder: Decoder module.
+        joint_network: Joint network module.
+        token_list: Set of unique labels.
+        sym_space: Space symbol.
+        sym_blank: Blank symbol.
+        report_cer: Whether to compute CER.
+        report_wer: Whether to compute WER.
 
     """
 
     def __init__(
         self,
-        decoder,
-        joint_network,
-        token_list,
-        sym_space,
-        sym_blank,
-        report_cer=False,
-        report_wer=False,
+        decoder: Union[RNNDecoder, CustomDecoder],
+        joint_network: JointNetwork,
+        token_list: List[int],
+        sym_space: str,
+        sym_blank: str,
+        report_cer: bool = False,
+        report_wer: bool = False,
     ):
-        """Construct an ErrorCalculator object for transducer model."""
+        """Construct an ErrorCalculator object for Transducer model."""
         super().__init__()
 
         self.beam_search = BeamSearchTransducer(
             decoder=decoder,
             joint_network=joint_network,
-            beam_size=1,
+            beam_size=2,
+            search_type="default",
         )
 
         self.decoder = decoder
@@ -50,114 +55,116 @@ class ErrorCalculator(object):
         self.report_cer = report_cer
         self.report_wer = report_wer
 
-    def __call__(self, hs_pad, ys_pad):
-        """Calculate sentence-level WER/CER score for transducer models.
+    def __call__(
+        self, enc_out: torch.Tensor, target: torch.Tensor
+    ) -> Tuple[float, float]:
+        """Calculate sentence-level CER/WER score for hypotheses sequences.
 
         Args:
-            hs_pad (torch.Tensor): batch of padded input sequence (batch, T, D)
-            ys_pad (torch.Tensor): reference (batch, seqlen)
+            enc_out: Encoder output sequences. (B, T, D_enc)
+            target: Target label ID sequences. (B, L)
 
         Returns:
-            (float): sentence-level CER score
-            (float): sentence-level WER score
+            cer: Sentence-level CER score.
+            wer: Sentence-level WER score.
 
         """
         cer, wer = None, None
 
-        batchsize = int(hs_pad.size(0))
+        batchsize = int(enc_out.size(0))
         batch_nbest = []
 
-        hs_pad = hs_pad.to(next(self.decoder.parameters()).device)
+        enc_out = enc_out.to(next(self.decoder.parameters()).device)
 
         for b in range(batchsize):
-            nbest_hyps = self.beam_search(hs_pad[b])
+            nbest_hyps = self.beam_search(enc_out[b])
             batch_nbest.append(nbest_hyps[-1])
 
-        ys_hat = [nbest_hyp.yseq[1:] for nbest_hyp in batch_nbest]
+        batch_nbest = [nbest_hyp.yseq[1:] for nbest_hyp in batch_nbest]
 
-        seqs_hat, seqs_true = self.convert_to_char(ys_hat, ys_pad.cpu())
+        hyps, refs = self.convert_to_char(batch_nbest, target.cpu())
 
         if self.report_cer:
-            cer = self.calculate_cer(seqs_hat, seqs_true)
+            cer = self.calculate_cer(hyps, refs)
 
         if self.report_wer:
-            wer = self.calculate_wer(seqs_hat, seqs_true)
+            wer = self.calculate_wer(hyps, refs)
 
         return cer, wer
 
-    def convert_to_char(self, ys_hat, ys_pad):
-        """Convert index to character.
+    def convert_to_char(
+        self, hyps: torch.Tensor, refs: torch.Tensor
+    ) -> Tuple[List, List]:
+        """Convert label ID sequences to character.
 
         Args:
-            ys_hat (torch.Tensor): prediction (batch, seqlen)
-            ys_pad (torch.Tensor): reference (batch, seqlen)
+            hyps: Hypotheses sequences. (B, L)
+            refs: References sequences. (B, L)
 
         Returns:
-            (list): token list of prediction
-            (list): token list of reference
+            char_hyps: Character list of hypotheses.
+            char_hyps: Character list of references.
 
         """
-        seqs_hat, seqs_true = [], []
+        char_hyps, char_refs = [], []
 
-        for i, y_hat in enumerate(ys_hat):
-            y_true = ys_pad[i]
+        for i, hyp in enumerate(hyps):
+            hyp_i = [self.token_list[int(h)] for h in hyp]
+            ref_i = [self.token_list[int(r)] for r in refs[i]]
 
-            seq_hat = [self.token_list[int(idx)] for idx in y_hat]
-            seq_true = [self.token_list[int(idx)] for idx in y_true if int(idx) != -1]
+            char_hyp = "".join(hyp_i).replace(self.space, " ")
+            char_hyp = char_hyp.replace(self.blank, "")
+            char_ref = "".join(ref_i).replace(self.space, " ")
 
-            seq_hat_text = "".join(seq_hat).replace(self.space, " ")
-            seq_hat_text = seq_hat_text.replace(self.blank, "")
-            seq_true_text = "".join(seq_true).replace(self.space, " ")
+            char_hyps.append(char_hyp)
+            char_refs.append(char_ref)
 
-            seqs_hat.append(seq_hat_text)
-            seqs_true.append(seq_true_text)
+        return char_hyps, char_refs
 
-        return seqs_hat, seqs_true
-
-    def calculate_cer(self, seqs_hat, seqs_true):
-        """Calculate sentence-level CER score for transducer model.
+    def calculate_cer(self, hyps: torch.Tensor, refs: torch.Tensor) -> float:
+        """Calculate sentence-level CER score.
 
         Args:
-            seqs_hat (torch.Tensor): prediction (batch, seqlen)
-            seqs_true (torch.Tensor): reference (batch, seqlen)
+            hyps: Hypotheses sequences. (B, L)
+            refs: References sequences. (B, L)
 
         Returns:
-            (float): average sentence-level CER score
+            : Average sentence-level CER score.
 
         """
-        char_eds, char_ref_lens = [], []
+        import editdistance
 
-        for i, seq_hat_text in enumerate(seqs_hat):
-            seq_true_text = seqs_true[i]
+        distances, lens = [], []
 
-            hyp_chars = seq_hat_text.replace(" ", "")
-            ref_chars = seq_true_text.replace(" ", "")
+        for i, hyp in enumerate(hyps):
+            char_hyp = hyp.replace(" ", "")
+            char_ref = refs[i].replace(" ", "")
 
-            char_eds.append(editdistance.eval(hyp_chars, ref_chars))
-            char_ref_lens.append(len(ref_chars))
+            distances.append(editdistance.eval(char_hyp, char_ref))
+            lens.append(len(char_ref))
 
-        return float(sum(char_eds)) / sum(char_ref_lens)
+        return float(sum(distances)) / sum(lens)
 
-    def calculate_wer(self, seqs_hat, seqs_true):
-        """Calculate sentence-level WER score for transducer model.
+    def calculate_wer(self, hyps: torch.Tensor, refs: torch.Tensor) -> float:
+        """Calculate sentence-level WER score.
 
         Args:
-            seqs_hat (torch.Tensor): prediction (batch, seqlen)
-            seqs_true (torch.Tensor): reference (batch, seqlen)
+            hyps: Hypotheses sequences. (B, L)
+            refs: References sequences. (B, L)
 
         Returns:
-            (float): average sentence-level WER score
+            : Average sentence-level WER score.
 
         """
-        word_eds, word_ref_lens = [], []
+        import editdistance
 
-        for i, seq_hat_text in enumerate(seqs_hat):
-            seq_true_text = seqs_true[i]
+        distances, lens = [], []
 
-            hyp_words = seq_hat_text.split()
-            ref_words = seq_true_text.split()
+        for i, hyp in enumerate(hyps):
+            word_hyp = hyp.split()
+            word_ref = refs[i].split()
 
-            word_eds.append(editdistance.eval(hyp_words, ref_words))
-            word_ref_lens.append(len(ref_words))
+            distances.append(editdistance.eval(word_hyp, word_ref))
+            lens.append(len(word_ref))
 
-        return float(sum(word_eds)) / sum(word_ref_lens)
+        return float(sum(distances)) / sum(lens)

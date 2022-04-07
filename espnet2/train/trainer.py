@@ -1,3 +1,4 @@
+"""Trainer module."""
 import argparse
 from contextlib import contextmanager
 import dataclasses
@@ -38,17 +39,8 @@ from espnet2.train.reporter import Reporter
 from espnet2.train.reporter import SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-    from torch.utils.tensorboard import SummaryWriter
-else:
-    from tensorboardX import SummaryWriter
 if torch.distributed.is_available():
-    if LooseVersion(torch.__version__) > LooseVersion("1.0.1"):
-        from torch.distributed import ReduceOp
-    else:
-        from torch.distributed import reduce_op as ReduceOp
-else:
-    ReduceOp = None
+    from torch.distributed import ReduceOp
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast
@@ -79,6 +71,7 @@ class TrainerOptions:
     grad_clip_type: float
     log_interval: Optional[int]
     no_forward_run: bool
+    use_matplotlib: bool
     use_tensorboard: bool
     use_wandb: bool
     output_dir: Union[Path, str]
@@ -87,10 +80,12 @@ class TrainerOptions:
     sharded_ddp: bool
     patience: Optional[int]
     keep_nbest_models: Union[int, List[int]]
+    nbest_averaging_interval: int
     early_stopping_criterion: Sequence[str]
     best_model_criterion: Sequence[Sequence[str]]
     val_scheduler_criterion: Sequence[str]
     unused_parameters: bool
+    wandb_model_log_interval: int
 
 
 class Trainer:
@@ -178,12 +173,12 @@ class Trainer:
         assert len(optimizers) == len(schedulers), (len(optimizers), len(schedulers))
 
         if isinstance(trainer_options.keep_nbest_models, int):
-            keep_nbest_models = trainer_options.keep_nbest_models
+            keep_nbest_models = [trainer_options.keep_nbest_models]
         else:
             if len(trainer_options.keep_nbest_models) == 0:
                 logging.warning("No keep_nbest_models is given. Change to [1]")
                 trainer_options.keep_nbest_models = [1]
-            keep_nbest_models = max(trainer_options.keep_nbest_models)
+            keep_nbest_models = trainer_options.keep_nbest_models
 
         output_dir = Path(trainer_options.output_dir)
         reporter = Reporter()
@@ -247,7 +242,6 @@ class Trainer:
             dp_model = torch.nn.parallel.DataParallel(
                 model,
                 device_ids=list(range(distributed_option.ngpu)),
-                find_unused_parameters=trainer_options.unused_parameters,
             )
         else:
             # NOTE(kamo): DataParallel also should work with ngpu=1,
@@ -257,9 +251,16 @@ class Trainer:
         if trainer_options.use_tensorboard and (
             not distributed_option.distributed or distributed_option.dist_rank == 0
         ):
-            summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
+            from torch.utils.tensorboard import SummaryWriter
+
+            train_summary_writer = SummaryWriter(
+                str(output_dir / "tensorboard" / "train")
+            )
+            valid_summary_writer = SummaryWriter(
+                str(output_dir / "tensorboard" / "valid")
+            )
         else:
-            summary_writer = None
+            train_summary_writer = None
 
         start_time = time.perf_counter()
         for iepoch in range(start_epoch, trainer_options.max_epoch + 1):
@@ -289,7 +290,7 @@ class Trainer:
                     iterator=train_iter_factory.build_iter(iepoch),
                     reporter=sub_reporter,
                     scaler=scaler,
-                    summary_writer=summary_writer,
+                    summary_writer=train_summary_writer,
                     options=trainer_options,
                     distributed_option=distributed_option,
                 )
@@ -302,7 +303,6 @@ class Trainer:
                     options=trainer_options,
                     distributed_option=distributed_option,
                 )
-
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 # att_plot doesn't support distributed
                 if plot_attention_iter_factory is not None:
@@ -310,7 +310,7 @@ class Trainer:
                         cls.plot_attention(
                             model=model,
                             output_dir=output_dir / "att_ws",
-                            summary_writer=summary_writer,
+                            summary_writer=train_summary_writer,
                             iterator=plot_attention_iter_factory.build_iter(iepoch),
                             reporter=sub_reporter,
                             options=trainer_options,
@@ -332,9 +332,11 @@ class Trainer:
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 # 3. Report the results
                 logging.info(reporter.log_message())
-                reporter.matplotlib_plot(output_dir / "images")
-                if summary_writer is not None:
-                    reporter.tensorboard_add_scalar(summary_writer)
+                if trainer_options.use_matplotlib:
+                    reporter.matplotlib_plot(output_dir / "images")
+                if train_summary_writer is not None:
+                    reporter.tensorboard_add_scalar(train_summary_writer, key1="train")
+                    reporter.tensorboard_add_scalar(valid_summary_writer, key1="valid")
                 if trainer_options.use_wandb:
                     reporter.wandb_log()
 
@@ -353,7 +355,7 @@ class Trainer:
                     output_dir / "checkpoint.pth",
                 )
 
-                # 5. Save the model and update the link to the best model
+                # 5. Save and log the model and update the link to the best model
                 torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
 
                 # Creates a sym link latest.pth -> {iepoch}epoch.pth
@@ -381,16 +383,50 @@ class Trainer:
                         "The best model has been updated: " + ", ".join(_improved)
                     )
 
+                log_model = (
+                    trainer_options.wandb_model_log_interval > 0
+                    and iepoch % trainer_options.wandb_model_log_interval == 0
+                )
+                if log_model and trainer_options.use_wandb:
+                    import wandb
+
+                    logging.info("Logging Model on this epoch :::::")
+                    artifact = wandb.Artifact(
+                        name=f"model_{wandb.run.id}",
+                        type="model",
+                        metadata={"improved": _improved},
+                    )
+                    artifact.add_file(str(output_dir / f"{iepoch}epoch.pth"))
+                    aliases = [
+                        f"epoch-{iepoch}",
+                        "best" if best_epoch == iepoch else "",
+                    ]
+                    wandb.log_artifact(artifact, aliases=aliases)
+
                 # 6. Remove the model files excluding n-best epoch and latest epoch
                 _removed = []
                 # Get the union set of the n-best among multiple criterion
                 nbests = set().union(
                     *[
-                        set(reporter.sort_epochs(ph, k, m)[:keep_nbest_models])
+                        set(reporter.sort_epochs(ph, k, m)[: max(keep_nbest_models)])
                         for ph, k, m in trainer_options.best_model_criterion
                         if reporter.has(ph, k)
                     ]
                 )
+
+                # Generated n-best averaged model
+                if (
+                    trainer_options.nbest_averaging_interval > 0
+                    and iepoch % trainer_options.nbest_averaging_interval == 0
+                ):
+                    average_nbest_models(
+                        reporter=reporter,
+                        output_dir=output_dir,
+                        best_model_criterion=trainer_options.best_model_criterion,
+                        nbest=keep_nbest_models,
+                        suffix=f"till{iepoch}epoch",
+                    )
+
                 for e in range(1, iepoch):
                     p = output_dir / f"{e}epoch.pth"
                     if p.exists() and e not in nbests:
@@ -419,8 +455,8 @@ class Trainer:
                 f"The training was finished at {trainer_options.max_epoch} epochs "
             )
 
+        # Generated n-best averaged model
         if not distributed_option.distributed or distributed_option.dist_rank == 0:
-            # Generated n-best averaged model
             average_nbest_models(
                 reporter=reporter,
                 output_dir=output_dir,
@@ -437,7 +473,7 @@ class Trainer:
         schedulers: Sequence[Optional[AbsScheduler]],
         scaler: Optional[GradScaler],
         reporter: SubReporter,
-        summary_writer: Optional[SummaryWriter],
+        summary_writer,
         options: TrainerOptions,
         distributed_option: DistributedOption,
     ) -> bool:
@@ -614,7 +650,10 @@ class Trainer:
                                 optimizer.step()
                             if isinstance(scheduler, AbsBatchStepScheduler):
                                 scheduler.step()
-                            optimizer.zero_grad()
+                for iopt, optimizer in enumerate(optimizers):
+                    if optim_idx is not None and iopt != optim_idx:
+                        continue
+                    optimizer.zero_grad()
 
                 # Register lr and train/load time[sec/step],
                 # where step refers to accum_grad * mini-batch
@@ -644,7 +683,6 @@ class Trainer:
             if distributed:
                 iterator_stop.fill_(1)
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
-
         return all_steps_are_invalid
 
     @classmethod
@@ -703,7 +741,7 @@ class Trainer:
         cls,
         model: torch.nn.Module,
         output_dir: Optional[Path],
-        summary_writer: Optional[SummaryWriter],
+        summary_writer,
         iterator: Iterable[Tuple[List[str], Dict[str, torch.Tensor]]],
         reporter: SubReporter,
         options: TrainerOptions,
@@ -769,4 +807,9 @@ class Trainer:
                         summary_writer.add_figure(
                             f"{k}_{id_}", fig, reporter.get_epoch()
                         )
+
+                    if options.use_wandb:
+                        import wandb
+
+                        wandb.log({f"attention plot/{k}_{id_}": wandb.Image(fig)})
             reporter.next()

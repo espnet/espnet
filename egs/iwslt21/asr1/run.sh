@@ -39,6 +39,10 @@ n_average=5                  # the number of ASR models to be averaged
 use_valbest_average=true     # if true, the validation `n_average`-best ASR models will be averaged.
                              # if false, the last `n_average` ASR models will be averaged.
 
+# iwslt segmentation related
+max_interval=200
+max_duration=2000
+
 # bpemode (unigram or bpe)
 nbpe=5000
 bpemode=bpe
@@ -61,14 +65,19 @@ stted_dir=../../iwslt18
 tedlium2_dir=../../tedlium2
 librispeech_dir=../../librispeech
 
+# test data directory
+iwslt_test_data_dir=/n/rd8/iwslt18
+
 train_set=train
 train_dev=dev
-recog_set_subset="et_mustc_tst-COMMON et_tedlium2_test et_librispeech_test_other"  # for quick decoding
+recog_subset="et_mustc_tst-COMMON et_tedlium2_test et_librispeech_test_other"  # for quick decoding
 recog_set="et_mustc_dev_org et_mustc_tst-COMMON et_mustc_tst-HE \
            et_mustcv2_dev_org et_mustcv2_tst-COMMON et_mustcv2_tst-HE \
            et_stted_dev et_stted_test \
            et_tedlium2_dev et_tedlium2_test \
            et_librispeech_dev_clean et_librispeech_dev_other et_librispeech_test_clean et_librispeech_test_other"
+iwslt_test_set="et_stted_dev2010 et_stted_tst2010 et_stted_tst2013 et_stted_tst2014 et_stted_tst2015 \
+                et_stted_tst2018 et_stted_tst2019"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
@@ -109,7 +118,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${stted_dir}/asr1/data/train_dev.en          data/dt_${data_code}
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${stted_dir}/asr1/data/dev.en                data/et_${data_code}_dev
     local/copy_data_dir.sh --utt-prefix ${data_code}- --spk-prefix ${data_code}- ${stted_dir}/asr1/data/test.en               data/et_${data_code}_test
-    for x in dev2010 tst2010 tst2010 tst2013 tst2014 tst2015; do
+    for x in dev2010 tst2010 tst2010 tst2013 tst2014 tst2015 tst2018 tst2019; do
         cp -rf ${stted_dir}/asr1/data/${x}.en data/et_${data_code}_${x}
     done
 
@@ -126,7 +135,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # additionally we copy text to text.${case}
     for x in tr_${data_code} dt_${data_code} et_${data_code}_dev et_${data_code}_test; do
         for case in tc lc lc.rm; do
-            cp data/${x}/text data/${x}/text.${case}
+            paste -d " " <(cut -d " " -f 1 data/${x}/text) <(cut -d " " -f 2- data/${x}/text | lowercase.perl | tokenizer.perl -l en -q) > data/${x}/text.${case}
         done
     done
 
@@ -150,8 +159,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         done
         cp data/${x}/text.lc.rm data/${x}/text
     done
-
-    # TODO: IWSLT21 test set
 fi
 
 feat_tr_dir=${dumpdir}/${train_set}/delta${do_delta}; mkdir -p ${feat_tr_dir}
@@ -166,9 +173,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
             data/${x} exp/make_fbank/${x} ${fbankdir}
         utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${x}
+        rm data/${x}/segments
+        rm data/${x}/wav.scp
     done
-    rm data/*/segments
-    rm data/*/wav.scp
 
     utils/combine_data.sh --extra_files "text.tc text.lc text.lc.rm" data/${train_set} data/tr_mustc data/tr_mustcv2 data/tr_librispeech data/tr_stted data/tr_tedlium2
     utils/combine_data.sh --extra_files "text.tc text.lc text.lc.rm" data/${train_dev} data/dt_mustc data/dt_mustcv2 data/dt_librispeech data/dt_stted data/dt_tedlium2
@@ -200,8 +207,33 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for x in ${train_dev} ${recog_set}; do
         feat_recog_dir=${dumpdir}/${x}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
-            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${x} \
-            ${feat_recog_dir}
+            data/${x}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/recog/${x} ${feat_recog_dir}
+    done
+
+    # concatenate short segments
+    for x in ${iwslt_test_set}; do
+        output_dir=${x}_merge${max_interval}_duration${max_duration}
+        rm -rf data/${output_dir}
+        cp -rf data/${x} data/${output_dir}
+        rm data/${output_dir}/utt2num_frames
+
+        local/merge_short_segments.py \
+            data/${x}/segments \
+            data/${output_dir}/segments \
+            data/${output_dir}/utt2spk \
+            data/${output_dir}/spk2utt \
+            --min_interval ${max_interval} \
+            --max_duration ${max_duration} \
+            --delimiter "_" || exit 1;
+
+        # Generate the fbank features; by default 80-dimensional fbanks with pitch on each frame
+        steps/make_fbank_pitch.sh --cmd "$train_cmd" --nj 32 --write_utt2num_frames true \
+            data/${output_dir} exp/make_fbank/${output_dir} ${fbankdir}
+        utils/fix_data_dir.sh --utt_extra_files "text.tc text.lc text.lc.rm" data/${output_dir}
+
+        feat_recog_dir=${dumpdir}/${output_dir}/delta${do_delta}; mkdir -p ${feat_recog_dir}
+        dump.sh --cmd "$train_cmd" --nj 32 --do_delta $do_delta \
+            data/${output_dir}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/trans/${output_dir} ${feat_recog_dir}
     done
 fi
 
@@ -234,10 +266,16 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "make json files"
     data2json.sh --nj 32 --feat ${feat_tr_dir}/feats.scp --text data/${train_set}/text.lc.rm --bpecode ${bpemodel}.model \
         data/${train_set} ${dict} > ${feat_tr_dir}/data_${bpemode}${nbpe}.json
-    for x in ${train_dev} ${recog_set}; do
-        feat_recog_dir=${dumpdir}/${x}/delta${do_delta}
-        data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${x}/text.lc.rm --bpecode ${bpemodel}.model \
-            data/${x} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+    for x in ${train_dev} ${recog_set} ${iwslt_test_set}; do
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
+            feat_recog_dir=${dumpdir}/${x}_merge${max_interval}_duration${max_duration}/delta${do_delta}
+            local/data2json.sh --feat ${feat_recog_dir}/feats.scp --no_text true \
+                data/${x}_merge${max_interval}_duration${max_duration} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+        else
+            feat_recog_dir=${dumpdir}/${x}/delta${do_delta}
+            data2json.sh --feat ${feat_recog_dir}/feats.scp --text data/${x}/text.lc.rm --bpecode ${bpemodel}.model \
+                data/${x} ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json
+        fi
     done
 fi
 
@@ -346,8 +384,11 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     fi
 
     pids=() # initialize pids
-    for x in ${recog_set_subset}; do
+    for x in ${recog_subset}; do
     (
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
+            x=${x}_merge${max_interval}_duration${max_duration}
+        fi
         decode_dir=decode_${x}_$(basename ${decode_config%.*})
         feat_recog_dir=${dumpdir}/${x}/delta${do_delta}
 
@@ -364,7 +405,13 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}
 
-        score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
+        if [[ ${x} = *tst20* ]] || [[ ${x} = *dev20* ]]; then
+            set=$(echo ${x} | cut -f 3 -d "_")
+            local/score_sclite_reseg.sh --case lc.rm --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true \
+                ${expdir}/${decode_dir} ${dict} ${iwslt_test_data_dir} ${set}
+        else
+            score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
+        fi
     ) &
     pids+=($!) # store background pids
     done

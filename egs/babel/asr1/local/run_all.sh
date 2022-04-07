@@ -8,7 +8,7 @@ for x in 101-cantonese 102-assamese 103-bengali 104-pashto 105-turkish 106-tagal
     ./setup_experiment.sh asr1_${lang}
     pushd ../asr1_${lang}
     ./run.sh --langs $langid --recog $langid --ngpu 1 &
-    sleep 20m # to avoid too many disk access happend at the same time
+    sleep 20m # to avoid too many disk access happened at the same time
     popd
 done
 

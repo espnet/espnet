@@ -15,7 +15,7 @@ from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 
 
 BATCH_TYPES = dict(
-    unsorted="UnsortedBatchSampler has nothing in paticular feature and "
+    unsorted="UnsortedBatchSampler has nothing in particular feature and "
     "just creates mini-batches which has constant batch_size. "
     "This sampler doesn't require any length "
     "information for each feature. "

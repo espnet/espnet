@@ -23,7 +23,7 @@ def test_preprocessing(tmpdir):
     samples = np.random.randn(100, 80)
     stats = np.empty((2, 81), dtype=np.float32)
     stats[0, :80] = samples.sum(axis=0)
-    stats[1, :80] = (samples ** 2).sum(axis=0)
+    stats[1, :80] = (samples**2).sum(axis=0)
     stats[0, -1] = 100.0
     stats[1, -1] = 0.0
     kaldiio.save_mat(cmvn_ark, stats)

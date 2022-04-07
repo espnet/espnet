@@ -1,4 +1,3 @@
-from distutils.version import LooseVersion
 import logging
 from pathlib import Path
 import uuid
@@ -6,16 +5,12 @@ import uuid
 import numpy as np
 import pytest
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from espnet2.train.reporter import aggregate
 from espnet2.train.reporter import Average
 from espnet2.train.reporter import ReportedValue
 from espnet2.train.reporter import Reporter
-
-if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-    from torch.utils.tensorboard import SummaryWriter
-else:
-    from tensorboardX import SummaryWriter
 
 
 @pytest.mark.parametrize("weight1,weight2", [(None, None), (19, np.array(9))])
@@ -280,7 +275,7 @@ def test_matplotlib_plot(tmp_path: Path):
 def test_tensorboard_add_scalar(tmp_path: Path):
     reporter = Reporter()
     reporter.set_epoch(1)
-    key1 = uuid.uuid4().hex
+    key1 = "train"
     with reporter.observe(key1) as sub:
         stats1 = {"aa": 0.6}
         sub.register(stats1)

@@ -11,6 +11,7 @@ fi
 . ./path.sh
 
 # general configuration
+python=python3
 stage=0        # start from 0 if you need to start from data preparation
 stop_stage=100
 ngpu=0         # number of gpus ("0" uses cpu, otherwise use gpu)
@@ -188,7 +189,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
 
     ${decode_cmd} ${decode_dir}/log/decode.log \
-        st_trans.py \
+        ${python} -m espnet.bin.st_trans \
         --config ${decode_config} \
         --ngpu ${ngpu} \
         --backend pytorch \

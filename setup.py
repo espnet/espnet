@@ -14,39 +14,39 @@ requirements = {
         "setuptools>=38.5.1",
         "configargparse>=1.2.1",
         "typeguard>=2.7.0",
-        "dataclasses; python_version < '3.7'",
         "humanfriendly",
         "scipy>=1.4.1",
-        "matplotlib==3.1.0",
-        "pillow>=6.1.0",
-        "editdistance==0.5.2",
-        "ctc-segmentation>=1.4.0",
-        "wandb",
-        # DNN related packages are installed by Makefile
-        # 'torch==1.0.1'
-        # "chainer==6.0.0",
-        # 'cupy==6.0.0',
-        "tensorboard>=1.14",  # For pytorch>=1.1.0
-        "tensorboardX>=1.8",  # For pytorch<1.1.0
-        # Signal processing related
+        "filelock",
         "librosa>=0.8.0",
-        # Natural language processing related
-        # FIXME(kamo): Sentencepiece 0.1.90 breaks backwardcompatibility?
-        "sentencepiece<0.1.90,>=0.1.82",
-        "nltk>=3.4.5",
-        # File IO related
+        "jamo==0.4.1",  # For kss
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
         "h5py>=2.10.0",
         "kaldiio>=2.17.0",
-        # TTS related
-        "pyworld>=0.2.10",
-        "espnet_tts_frontend",
-        # ASR frontend related
-        "nara_wpe>=0.0.5",
+        "torch>=1.3.0",
         "torch_complex",
+        "nltk>=3.4.5",
+        # ASR
+        "sentencepiece",
+        "ctc-segmentation<1.8,>=1.6.6",
+        # TTS
+        "pyworld>=0.2.10",
+        "pypinyin<=0.44.0",
+        "espnet_tts_frontend",
+        # ENH
+        "ci_sdr",
         "pytorch_wpe",
     ],
+    # train: The modules invoked when training only.
+    "train": [
+        "matplotlib==3.1.0",
+        "pillow>=6.1.0",
+        "editdistance==0.5.2",
+        "wandb",
+        "tensorboard>=1.14",
+    ],
+    # recipe: The modules actually are not invoked in the main module of espnet,
+    #         but are invoked for the python scripts in each recipe
     "recipe": [
         "espnet_model_zoo",
         "gdown",
@@ -59,8 +59,24 @@ requirements = {
         "pystoi>=0.2.2",
         "mir-eval>=0.6",
         "fastdtw",
+        "nara_wpe>=0.0.5",
+        "sacrebleu>=1.5.1",
     ],
-    "setup": ["numpy", "pytest-runner"],
+    # all: The modules should be optionally installled due to some reason.
+    #      Please consider moving them to "install" occasionally
+    # NOTE(kamo): The modules in "train" and "recipe" are appended into "all"
+    "all": [
+        # NOTE(kamo): Append modules requiring specific pytorch version or torch>1.3.0
+        "torchaudio",
+        "torch_optimizer",
+        "fairscale",
+        "transformers",
+        "gtn==0.0.0",
+    ],
+    "setup": [
+        "numpy<=1.21.3",
+        "pytest-runner",
+    ],
     "test": [
         "pytest>=3.3.0",
         "pytest-timeouts>=1.2.1",
@@ -75,51 +91,18 @@ requirements = {
         "black",
     ],
     "doc": [
+        "Jinja2<3.1",
         "Sphinx==2.1.2",
         "sphinx-rtd-theme>=0.2.4",
         "sphinx-argparse>=0.2.5",
         "commonmark==0.8.1",
         "recommonmark>=0.4.0",
-        "travis-sphinx>=2.0.1",
         "nbsphinx>=0.4.2",
         "sphinx-markdown-tables>=0.0.12",
     ],
 }
-try:
-    # NOTE(kamo): These packages are not listed if installing from the PyPI server
-    import torch
-
-    if LooseVersion(torch.__version__) >= LooseVersion("1.1.0"):
-        requirements["install"].append("torch_optimizer")
-    if LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
-        requirements["install"].append("fairscale")
-
-    if LooseVersion(torch.__version__) >= LooseVersion("1.8.0"):
-        requirements["install"].append("torchaudio==0.8.0")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.7.1"):
-        requirements["install"].append("torchaudio==0.7.2")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.7.0"):
-        requirements["install"].append("torchaudio==0.7.0")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-        # Due to https://github.com/pytorch/pytorch/issues/42213,
-        # use torchaudio.functional.istft instead of torch.functional.istft
-        requirements["install"].append("torchaudio==0.6.0")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.5.1"):
-        requirements["install"].append("torchaudio==0.5.1")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
-        requirements["install"].append("torchaudio==0.5.0")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
-        requirements["install"].append("torchaudio==0.4.0")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.3.1"):
-        requirements["install"].append("torchaudio==0.3.2")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.3.0"):
-        requirements["install"].append("torchaudio==0.3.1")
-    elif LooseVersion(torch.__version__) >= LooseVersion("1.2.0"):
-        requirements["install"].append("torchaudio==0.3.0")
-
-    del torch
-except ImportError:
-    pass
+requirements["all"].extend(requirements["train"] + requirements["recipe"])
+requirements["test"].extend(requirements["train"])
 
 install_requires = requirements["install"]
 setup_requires = requirements["setup"]
@@ -150,13 +133,13 @@ setup(
     setup_requires=setup_requires,
     tests_require=tests_require,
     extras_require=extras_require,
-    python_requires=">=3.6.0",
+    python_requires=">=3.7.0",
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "Operating System :: POSIX :: Linux",

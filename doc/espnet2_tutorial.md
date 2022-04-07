@@ -18,6 +18,7 @@ We are planning a super major update, called `ESPnet2`. The developing status is
    - You don't need to create the feature file before training, but just input wave data directly.
    - We support both raw wave input and extracted features.
    - The preprocessing for text, tokenization to characters, or sentencepieces, can be also applied during training.
+   - Support **self-supervised learning representations** from s3prl
 - Discarding the JSON format describing the training corpus.
    - Why do we discard the JSON format? Because a dict object generated from a large JSON file requires much memory and it also takes much time to parse such a large JSON file.
 - Support distributed data-parallel training (Not enough tested)
@@ -179,7 +180,7 @@ You need to do one of the following two ways to change the training configuratio
 
 ```sh
 # Give a configuration file
-./run.sh --asr_train_config conf/train_asr.yaml
+./run.sh --asr_config conf/train_asr.yaml
 # Give arguments to "espnet2/bin/asr_train.py" directly
 ./run.sh --asr_args "--foo arg --bar arg2"
 ```
@@ -222,8 +223,7 @@ Note that you need to setup your environment correctly to use distributed traini
 - [Distributed training](./espnet2_distributed.md)
 - [Using Job scheduling system](./parallelization.md)
 
-
-## Use specified expereiment directory for evaluation
+## Use specified experiment directory for evaluation
 
 If you already have trained a model, you may wonder how to give it to run.sh when you'll evaluate it later.
 By default the directory name is determined according to given options, `asr_args`, `lm_args`, or etc.
@@ -244,4 +244,99 @@ You can overwrite it by `--asr_exp` and `--lm_exp`.
 ./run.sh --download_model <model_name> --skip_train true
 ```
 
-You need to fill `model_name` by yourself. See the following link about our pretrain models: https://github.com/espnet/espnet_model_zoo
+You need to fill `model_name` by yourself. You can search for pretrained models on Hugging Face using the tag [espnet](https://huggingface.co/models?library=espnet)
+
+(Deprecated: See the following link about our pretrain models: https://github.com/espnet/espnet_model_zoo)
+
+## Packing and sharing your trained model
+
+ESPnet encourages you to share your results using platforms like [Hugging Face](https://huggingface.co/) or [Zenodo](https://zenodo.org/) (This last will become deprecated.)
+
+For sharing your models, the last three stages of each task simplify this process. The model is packed into a zip file and uploaded to the selected platform (one or both).
+
+For **Hugging Face**, you need to first create a repository (`<my_repo> = <user_name>/<repo_name>`).  
+Remember to install `git-lfs ` before continuing.
+Then, execute `run.sh` as follows:
+
+```sh
+# For ASR recipe
+./run.sh --stage 14 --skip-upload-hf false --hf-repo <my_repo>
+
+# For TTS recipe
+./run.sh --stage 8 --skip-upload-hf false --hf-repo <my_repo>
+```
+
+For **Zenodo**, you need to register your account first. Then, execute `run.sh` as follows:
+
+```sh
+# For ASR recipe
+./run.sh --stage 14 --skip-upload false
+
+# For TTS recipe
+./run.sh --stage 8 --skip-upload false
+```
+
+The packed model can be uploaded to both platforms by setting the previously mentioned flags.
+
+## Usage of Self-Supervised Learning Representations as feature
+
+ESPnet supports self-supervised learning representations (SSLR) to replace traditional spectrum features. In some cases, SSLRs can boost the performance.
+
+To use SSLRs in your task, you need to make several modifications.
+
+### Prerequisite
+1. Install [S3PRL](https://github.com/s3prl/s3prl) by `tools/installers/install_s3prl.sh`.
+2. If HuBERT / Wav2Vec is needed, [fairseq](https://github.com/pytorch/fairseq) should be installed by `tools/installers/install_fairseq.sh`.
+
+### Usage
+1. To reduce the time used in `collect_stats` step, please specify `--feats_normalize uttmvn` in `run.sh` and pass it as arguments to `asr.sh` or other task-specific scripts. (Recommended)
+2. In the configuration file, specify the `frontend` and `preencoder`. Taking `HuBERT` as an example:
+   The `upstream` name can be whatever supported in S3PRL. `multilayer-feature=True` means the final representation is a weighted-sum of all layers' hidden states from SSLR model.
+   ```
+   frontend: s3prl
+   frontend_conf:
+      frontend_conf:
+         upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder.
+      download_dir: ./hub
+      multilayer_feature: True
+   ```
+   Here the `preencoder` is to reduce the input dimension to the encoder, to reduce the memory cost. The `input_size` depends on the upstream model, while the `output_size` can be set to any values.
+   ```
+   preencoder: linear
+   preencoder_conf:
+      input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+      output_size: 80
+   ```
+3. Because the shift sizes of different `upstream` models are different, e.g. `HuBERT` and `Wav2Vec2.0` have `20ms` frameshift. Sometimes, the downsampling rate (`input_layer`) in the `encoder` configuration need to be changed. For example, using `input_layer: conv2d2` will results in a total frameshift of `40ms`, which is enough for some tasks.
+
+## Streaming ASR
+ESPnet supports streaming Transformer/Conformer ASR with blockwise synchronous beam search.
+
+For more details, please refer to the [paper](https://arxiv.org/pdf/2006.14941.pdf).
+
+### Training
+
+To achieve streaming ASR, please employ blockwise Transformer/Conformer encoder in the configuration file. Taking `blockwise Transformer` as an example:
+The `encoder` name can be `contextual_block_transformer` or `contextual_block_conformer`. 
+
+```sh
+encoder: contextual_block_transformer
+encoder_conf:
+    block_size: 40         # block size for block processing
+    hop_size: 16           # hop size for block processing
+    look_ahead: 16         # look-ahead size for block processing
+    init_average: true     # whether to use average input as initial context 
+    ctx_pos_enc: true      # whether to use positional encoding for the context vectors 
+```
+   
+### Decoding
+
+To enable online decoding, the argument `--use_streaming true` should be added to `run.sh`.
+
+```sh
+./run.sh --stage 12 --use_streaming true
+```
+
+### FAQ
+1. Issue about `'NoneType' object has no attribute 'max'` during training: Please make sure you employ `forward_train` function during traininig, check more details [here](https://github.com/espnet/espnet/issues/3803).
+3. I successfully trained the model, but encountered the above issue during decoding: You may forget to specify `--use_streaming true` to select streaming inference.

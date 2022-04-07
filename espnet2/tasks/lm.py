@@ -17,6 +17,7 @@ from espnet2.lm.espnet_model import ESPnetLanguageModel
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 from espnet2.lm.transformer_lm import TransformerLM
 from espnet2.tasks.abs_task import AbsTask
+from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
@@ -122,7 +123,7 @@ class LMTask(AbsTask):
         parser.add_argument(
             "--g2p",
             type=str_or_none,
-            choices=[None, "g2p_en", "pyopenjtalk", "pyopenjtalk_kana"],
+            choices=g2p_choices,
             default=None,
             help="Specify g2p method if --token_type=phn",
         )

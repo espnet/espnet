@@ -14,7 +14,6 @@ import math
 import os
 import sys
 
-import editdistance
 import numpy as np
 import six
 import torch
@@ -285,6 +284,8 @@ class E2E(ASRInterface, torch.nn.Module):
         :return: accuracy in attention decoder
         :rtype: float
         """
+        import editdistance
+
         # 0. Frontend
         if self.frontend is not None:
             hs_pad, hlens, mask = self.frontend(to_torch_tensor(xs_pad), ilens)
@@ -322,7 +323,7 @@ class E2E(ASRInterface, torch.nn.Module):
                             hlens[i // self.num_spkrs],
                             ys_pad[i % self.num_spkrs],
                         )
-                        for i in range(self.num_spkrs ** 2)
+                        for i in range(self.num_spkrs**2)
                     ],
                     dim=1,
                 )  # (B, num_spkrs^2)
@@ -440,13 +441,13 @@ class E2E(ASRInterface, torch.nn.Module):
                     editdistance.eval(
                         hyp_words[ns // self.num_spkrs], ref_words[ns % self.num_spkrs]
                     )
-                    for ns in range(self.num_spkrs ** 2)
+                    for ns in range(self.num_spkrs**2)
                 ]  # h1r1,h1r2,h2r1,h2r2
                 tmp_char_ed = [
                     editdistance.eval(
                         hyp_chars[ns // self.num_spkrs], ref_chars[ns % self.num_spkrs]
                     )
-                    for ns in range(self.num_spkrs ** 2)
+                    for ns in range(self.num_spkrs**2)
                 ]  # h1r1,h1r2,h2r1,h2r2
 
                 word_eds.append(self.pit.min_pit_sample(torch.tensor(tmp_word_ed))[0])
@@ -675,7 +676,7 @@ class E2E(ASRInterface, torch.nn.Module):
                             hlens[i // self.num_spkrs],
                             ys_pad[i % self.num_spkrs],
                         )
-                        for i in range(self.num_spkrs ** 2)
+                        for i in range(self.num_spkrs**2)
                     ],
                     1,
                 )  # (B, num_spkrs^2)

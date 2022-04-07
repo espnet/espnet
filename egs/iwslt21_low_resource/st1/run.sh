@@ -112,7 +112,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Divide into source and target languages
     for x in train_sp.${src_lang}-${tgt_lang} valid.${src_lang}-${tgt_lang}; do
-        local/divide_lang.sh ${x} ${src_lang} ${tgt_lang}
+        divide_lang.sh ${x} "${src_lang} ${tgt_lang}"
     done
     for lang in ${tgt_lang} ${src_lang}; do
         cp -rf data/valid.${src_lang}-${tgt_lang}.${lang} data/valid_org.${src_lang}-${tgt_lang}.${lang}
@@ -271,7 +271,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${trans_model}
 
-        score_bleu.sh --case ${tgt_case} --bpe ${nbpe} --bpemodel ${bpemodel}.model \
+        score_bleu.sh --case ${tgt_case} --bpemodel ${bpemodel}.model \
             ${expdir}/${decode_dir} ${tgt_lang} ${dict}
 
         calculate_rtf.py --log-dir ${expdir}/${decode_dir}/log
