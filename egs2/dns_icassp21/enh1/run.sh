@@ -23,7 +23,7 @@ test_sets="tt_synthetic_track_1"
     --local_data_opts "" \
     --enh_config ./conf/train.yaml \
     --use_dereverb_ref false \
-    --use_noise_ref true \
+    --use_noise_ref false \
     --max_wav_duration 31 \
     --inference_model "valid.loss.best.pth" \
     "$@"
