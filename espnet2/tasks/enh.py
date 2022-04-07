@@ -65,7 +65,7 @@ separator_choices = ClassChoices(
         conformer=ConformerSeparator,
         wpe_beamformer=NeuralBeamformer,
         asteroid=AsteroidModel_Converter,
-        ineube=iNeuBe
+        ineube=iNeuBe,
     ),
     type_check=AbsSeparator,
     default="rnn",
