@@ -31,7 +31,6 @@ EOF
 
 stage=1
 stop_stage=2
-configure=
 dns_wav=$PWD/data/dns_wav
 
 
