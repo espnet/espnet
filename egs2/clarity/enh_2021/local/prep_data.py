@@ -1,7 +1,7 @@
 import argparse
-import os
 import json
-from pathlib import Path
+import os
+
 
 parser = argparse.ArgumentParser("Clarity")
 parser.add_argument(

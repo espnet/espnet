@@ -22,6 +22,7 @@ sample_rate=16000
 
 . utils/parse_options.sh
 
-
+# check for sox
+! command -v sox &>/dev/null && echo "sox: command not found" && exit 1;
 
 python local/prep_data.py --clarity_root ${clarity_root} --fs ${sample_rate}
