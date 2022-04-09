@@ -71,7 +71,7 @@ requirements = {
         "torch_optimizer",
         "fairscale",
         "transformers",
-        "gtn",
+        "gtn==0.0.0",
     ],
     "setup": [
         "numpy<=1.21.3",
@@ -91,6 +91,7 @@ requirements = {
         "black",
     ],
     "doc": [
+        "Jinja2<3.1",
         "Sphinx==2.1.2",
         "sphinx-rtd-theme>=0.2.4",
         "sphinx-argparse>=0.2.5",
