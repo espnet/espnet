@@ -92,6 +92,7 @@ class Text2Speech:
         device: str = "cpu",
         seed: int = 777,
         always_fix_seed: bool = False,
+        prefer_normalized_feats: bool = False,
     ):
         """Initialize Text2Speech module."""
         assert check_argument_types()
@@ -114,6 +115,7 @@ class Text2Speech:
         self.seed = seed
         self.always_fix_seed = always_fix_seed
         self.vocoder = None
+        self.prefer_normalized_feats = prefer_normalized_feats
         if self.tts.require_vocoder:
             vocoder = TTSTask.build_vocoder_from_file(
                 vocoder_config, vocoder_file, model, device
@@ -209,7 +211,9 @@ class Text2Speech:
 
         # apply vocoder (mel-to-wav)
         if self.vocoder is not None:
-            if output_dict.get("feat_gen_denorm") is not None:
+            if self.prefer_normalized_feats and output_dict.get("feat_gen") is not None:
+                input_feat = output_dict["feat_gen"]
+            elif output_dict.get("feat_gen_denorm") is not None:
                 input_feat = output_dict["feat_gen_denorm"]
             else:
                 input_feat = output_dict["feat_gen"]
