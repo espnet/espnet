@@ -5,6 +5,7 @@ from functools import reduce
 
 import torch
 
+from espnet2.enh.layers.complex_utils import complex_norm
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.layers.complex_utils import new_complex_like
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
@@ -15,12 +16,14 @@ is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
-def _create_mask_label(mix_spec, ref_spec, mask_type="IAM"):
+def _create_mask_label(mix_spec, ref_spec, noise_spec=None, mask_type="IAM"):
     """Create mask label.
 
     Args:
         mix_spec: ComplexTensor(B, T, [C,] F)
         ref_spec: List[ComplexTensor(B, T, [C,] F), ...]
+        noise_spec: ComplexTensor(B, T, [C,] F)
+            only used for IBM and IRM
         mask_type: str
     Returns:
         labels: List[Tensor(B, T, [C,] F), ...] or List[ComplexTensor(B, T, F), ...]
@@ -38,16 +41,23 @@ def _create_mask_label(mix_spec, ref_spec, mask_type="IAM"):
         "CIRM",
     ], f"mask type {mask_type} not supported"
     mask_label = []
-    for r in ref_spec:
+    if ref_spec[0].ndim < mix_spec.ndim:
+        # (B, T, F) -> (B, T, 1, F)
+        ref_spec = [r.unsqueeze(2) for r in ref_spec]
+    for idx, r in enumerate(ref_spec):
         mask = None
         if mask_type == "IBM":
-            flags = [abs(r) >= abs(n) for n in ref_spec]
+            if noise_spec is None:
+                raise ValueError("noise_spec should not be None")
+            flags = [abs(r) >= abs(n) for n in ref_spec + [noise_spec]]
             mask = reduce(lambda x, y: x * y, flags)
             mask = mask.int()
         elif mask_type == "IRM":
-            # TODO(Wangyou): need to fix this,
-            #  as noise referecens are provided separately
-            mask = abs(r) / (sum(([abs(n) for n in ref_spec])) + EPS)
+            if noise_spec is None:
+                raise ValueError("noise_spec should not be None")
+            beta = 0.5
+            res_spec = sum(n for i, n in enumerate(ref_spec) if i != idx) + noise_spec
+            mask = (abs(r).pow(2) / (abs(res_spec).pow(2) + EPS)).pow(beta)
         elif mask_type == "IAM":
             mask = abs(r) / (abs(mix_spec) + EPS)
             mask = mask.clamp(min=0, max=1)
@@ -95,9 +105,12 @@ class FrequencyDomainLoss(AbsEnhLoss, ABC):
     def mask_type() -> str:
         pass
 
-    def create_mask_label(self, mix_spec, ref_spec):
+    def create_mask_label(self, mix_spec, ref_spec, noise_spec=None):
         return _create_mask_label(
-            mix_spec=mix_spec, ref_spec=ref_spec, mask_type=self.mask_type
+            mix_spec=mix_spec,
+            ref_spec=ref_spec,
+            noise_spec=noise_spec,
+            mask_type=self.mask_type,
         )
 
 
@@ -198,3 +211,55 @@ class FrequencyDomainL1(FrequencyDomainLoss):
                 "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
             )
         return l1loss
+
+
+class FrequencyDomainAbsCoherence(FrequencyDomainLoss):
+    def __init__(self, compute_on_mask=False, mask_type=None):
+        super().__init__()
+        self._compute_on_mask = False
+        self._mask_type = None
+
+    @property
+    def compute_on_mask(self) -> bool:
+        return self._compute_on_mask
+
+    @property
+    def mask_type(self) -> str:
+        return self._mask_type
+
+    @property
+    def name(self) -> str:
+        return "Coherence_on_Spec"
+
+    def forward(self, ref, inf) -> torch.Tensor:
+        """time-frequency absolute coherence loss.
+
+        Reference:
+            Independent Vector Analysis with Deep Neural Network Source Priors;
+            Li et al 2020; https://arxiv.org/abs/2008.11273
+
+        Args:
+            ref: (Batch, T, F) or (Batch, T, C, F)
+            inf: (Batch, T, F) or (Batch, T, C, F)
+        Returns:
+            loss: (Batch,)
+        """
+        assert ref.shape == inf.shape, (ref.shape, inf.shape)
+
+        if is_complex(ref) and is_complex(inf):
+            # sqrt( E[|inf|^2] * E[|ref|^2] )
+            denom = (
+                complex_norm(ref, dim=1) * complex_norm(inf, dim=1) / ref.size(1) + EPS
+            )
+            coh = (inf * ref.conj()).mean(dim=1).abs() / denom
+            if ref.dim() == 3:
+                coh_loss = 1.0 - coh.mean(dim=1)
+            elif ref.dim() == 4:
+                coh_loss = 1.0 - coh.mean(dim=[1, 2])
+            else:
+                raise ValueError(
+                    "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
+                )
+        else:
+            raise ValueError("`ref` and `inf` must be complex tensors.")
+        return coh_loss

@@ -368,13 +368,15 @@ def inference(
     )
 
     # 4. Start for-loop
+    output_dir = Path(output_dir).expanduser().resolve()
     writers = []
     for i in range(separate_speech.num_spk):
         writers.append(
             SoundScpWriter(f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp")
         )
 
-    for keys, batch in loader:
+    for i, (keys, batch) in enumerate(loader):
+        logging.info(f"[{i}] Enhancing {keys}")
         assert isinstance(batch, dict), type(batch)
         assert all(isinstance(s, str) for s in keys), keys
         _bs = len(next(iter(batch.values())))

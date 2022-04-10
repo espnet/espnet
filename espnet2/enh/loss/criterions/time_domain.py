@@ -120,3 +120,65 @@ class SISNRLoss(TimeDomainLoss):
         pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + self.eps)  # [B]
 
         return -1 * pair_wise_si_snr
+
+
+class TimeDomainMSE(TimeDomainLoss):
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def name(self) -> str:
+        return "time_MSE_loss"
+
+    def forward(self, ref, inf) -> torch.Tensor:
+        """time-domain MSE loss.
+
+        Args:
+            ref: (Batch, T) or (Batch, T, C)
+            inf: (Batch, T) or (Batch, T, C)
+        Returns:
+            loss: (Batch,)
+        """
+        assert ref.shape == inf.shape, (ref.shape, inf.shape)
+
+        mseloss = (ref - inf).pow(2)
+        if ref.dim() == 3:
+            mseloss = mseloss.mean(dim=[1, 2])
+        elif ref.dim() == 2:
+            mseloss = mseloss.mean(dim=1)
+        else:
+            raise ValueError(
+                "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
+            )
+        return mseloss
+
+
+class TimeDomainL1(TimeDomainLoss):
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def name(self) -> str:
+        return "time_L1_loss"
+
+    def forward(self, ref, inf) -> torch.Tensor:
+        """time-domain L1 loss.
+
+        Args:
+            ref: (Batch, T) or (Batch, T, C)
+            inf: (Batch, T) or (Batch, T, C)
+        Returns:
+            loss: (Batch,)
+        """
+        assert ref.shape == inf.shape, (ref.shape, inf.shape)
+
+        l1loss = abs(ref - inf)
+        if ref.dim() == 3:
+            l1loss = l1loss.mean(dim=[1, 2])
+        elif ref.dim() == 2:
+            l1loss = l1loss.mean(dim=1)
+        else:
+            raise ValueError(
+                "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
+            )
+        return l1loss

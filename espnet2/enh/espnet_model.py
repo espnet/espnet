@@ -160,10 +160,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             elif isinstance(criterion, FrequencyDomainLoss):
                 # for the time-frequency domain criterions
                 if criterion.compute_on_mask:
-                    # compute on mask
+                    # compute loss on masks
+                    if noise_ref is not None:
+                        noise_spec = self.encoder(noise_ref, speech_lengths)[0]
+                    else:
+                        noise_spec = None
                     tf_ref = criterion.create_mask_label(
                         feature_mix,
                         [self.encoder(sr, speech_lengths)[0] for sr in speech_ref],
+                        noise_spec=noise_spec,
                     )
                     tf_pre = [
                         others["mask_spk{}".format(spk + 1)]
