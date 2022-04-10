@@ -211,12 +211,10 @@ class Text2Speech:
 
         # apply vocoder (mel-to-wav)
         if self.vocoder is not None:
-            if self.prefer_normalized_feats and output_dict.get("feat_gen") is not None:
+            if self.prefer_normalized_feats or output_dict.get("feat_gen_denorm") is None:
                 input_feat = output_dict["feat_gen"]
-            elif output_dict.get("feat_gen_denorm") is not None:
-                input_feat = output_dict["feat_gen_denorm"]
             else:
-                input_feat = output_dict["feat_gen"]
+                input_feat = output_dict["feat_gen_denorm"]
             wav = self.vocoder(input_feat)
             output_dict.update(wav=wav)
 
