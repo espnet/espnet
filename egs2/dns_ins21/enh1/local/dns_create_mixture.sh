@@ -5,7 +5,7 @@
 . cmd.sh
 
 if [ $# -ne 2 ]; then
-  echo "Usage: <dns> <dns_wav> "
+  echo "Usage: $0 <dns> <dns_wav> "
   echo " where <dns> is dns directory,"
   echo " <dns_wav> is wav generation space."
   exit 1;
