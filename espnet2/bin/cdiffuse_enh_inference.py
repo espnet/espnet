@@ -162,12 +162,9 @@ class SeparateSpeech:
                 )
                 # b. Enhancement/Separation Forward
 
-                processed_wav = self.enh_model.forward_enhance(speech_seg, lengths_seg)
-                # feats, f_lens = self.enh_model.encoder(speech_seg, lengths_seg)
-                # feats, _, _ = self.enh_model.separator(feats, f_lens)
-                # processed_wav = [
-                #     self.enh_model.decoder(f, lengths_seg)[0] for f in feats
-                # ]
+                processed_wav, _, _, _ = self.enh_model.forward_enhance(
+                    speech_seg, lengths_seg
+                )
                 if speech_seg.dim() > 2:
                     # multi-channel speech
                     speech_seg_ = speech_seg[:, self.ref_channel]
@@ -220,12 +217,9 @@ class SeparateSpeech:
             waves = torch.unbind(waves, dim=0)
         else:
             # b. Enhancement/Separation Forward
-            waves = self.enh_model.forward_enhance(speech_mix, lengths)
-            # feats, f_lens = self.enh_model.encoder(speech_mix, lengths)
-            # feats, _, _ = self.enh_model.separator(feats, f_lens)
-            # waves = [self.enh_model.decoder(f, lengths)[0] for f in feats]
+            waves, _, _, _ = self.enh_model.forward_enhance(speech_mix, lengths)
 
-        assert len(waves) == self.num_spk, f"{len(waves)}, {self.num_spk}, {len(waves) == self.num_spk}"
+        assert len(waves) == self.num_spk, len(waves) == self.num_spk
         assert len(waves[0]) == batch_size, (len(waves[0]), batch_size)
         if self.normalize_output_wav:
             waves = [

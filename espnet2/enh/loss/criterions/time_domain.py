@@ -50,6 +50,7 @@ class CISDRLoss(TimeDomainLoss):
             inf, ref, compute_permutation=False, filter_length=self.filter_length
         )
 
+
 class TimeDomainL1(TimeDomainLoss):
     def __init__(self, eps=EPS):
         super().__init__()

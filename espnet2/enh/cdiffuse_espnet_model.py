@@ -20,7 +20,9 @@ from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.enh.espnet_model import ESPnetEnhancementModel as ESPnetEnhancementModelSupervised
+from espnet2.enh.espnet_model import (
+    ESPnetEnhancementModel as ESPnetEnhancementModelSupervised,
+)
 
 
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
@@ -37,27 +39,30 @@ class ESPnetEnhancementModel(ESPnetEnhancementModelSupervised, AbsESPnetModel):
         separator: AbsSeparator,
         decoder: AbsDecoder,
         loss_wrappers: List[AbsLossWrapper],
-        mask_type: Optional[str] = None, 
+        mask_type: Optional[str] = None,
         n_fft: int = 1024,
         hop_length: int = 256,
+        mix_noisy: float = 0.2,
         noise_schedule: list = np.linspace(1e-4, 0.035, 50).tolist(),
         inference_noise_schedule=[0.0001, 0.001, 0.01, 0.05, 0.2, 0.35],
-        fast_sampling= True,
+        fast_sampling=True,
         **kwargs,
     ):
         assert check_argument_types()
 
         super().__init__(
-            encoder = encoder,
-            separator = separator,
-            decoder = decoder,
-            loss_wrappers = loss_wrappers,
-            mask_type = mask_type,
+            encoder=encoder,
+            separator=separator,
+            decoder=decoder,
+            loss_wrappers=loss_wrappers,
+            mask_type=mask_type,
         )
-        # Conditioner 
+        # Conditioner
         self.hop_length = hop_length
-        self.conditioner = STFTEncoder(n_fft=n_fft, win_length=n_fft, hop_length=self.hop_length)
-        
+        self.conditioner = STFTEncoder(
+            n_fft=n_fft, win_length=n_fft, hop_length=self.hop_length
+        )
+
         beta = np.array(noise_schedule)
         noise_level = np.cumprod(1 - beta)
         self.noise_level = torch.tensor(noise_level.astype(np.float32))
@@ -65,9 +70,7 @@ class ESPnetEnhancementModel(ESPnetEnhancementModelSupervised, AbsESPnetModel):
             self.inference_schedule(noise_schedule, inference_noise_schedule)
         else:
             self.inference_schedule(noise_schedule, noise_schedule)
-
-        
-
+        self.mix_noisy = mix_noisy
 
     def inference_schedule(self, train_noise_schedule, inference_noise_schedule):
         training_noise_schedule = np.array(train_noise_schedule)
@@ -82,62 +85,81 @@ class ESPnetEnhancementModel(ESPnetEnhancementModelSupervised, AbsESPnetModel):
         self.T = []
         for s in range(len(inference_noise_schedule)):
             for t in range(len(training_noise_schedule) - 1):
-                if talpha_cum[t+1] <= alpha_cum[s] <= talpha_cum[t]:
-                    twiddle = (talpha_cum[t]**0.5 - alpha_cum[s]**0.5) / (talpha_cum[t]**0.5 - talpha_cum[t+1]**0.5)
+                if talpha_cum[t + 1] <= alpha_cum[s] <= talpha_cum[t]:
+                    twiddle = (talpha_cum[t] ** 0.5 - alpha_cum[s] ** 0.5) / (
+                        talpha_cum[t] ** 0.5 - talpha_cum[t + 1] ** 0.5
+                    )
                     self.T.append(t + twiddle)
                     break
         self.T = np.array(self.T, dtype=np.float32)
 
-
-        m = [0 for i in alpha] 
-        delta = [0 for i in alpha]  
-        d_x = [0 for i in alpha]  
-        d_y = [0 for i in alpha]  
-        delta_cond = [0 for i in alpha]  
-        self.delta_bar = [0 for i in alpha] 
-        self.c1 = [0 for i in alpha] 
-        self.c2 = [0 for i in alpha] 
+        m = [0 for i in alpha]
+        delta = [0 for i in alpha]
+        d_x = [0 for i in alpha]
+        d_y = [0 for i in alpha]
+        delta_cond = [0 for i in alpha]
+        self.delta_bar = [0 for i in alpha]
+        self.c1 = [0 for i in alpha]
+        self.c2 = [0 for i in alpha]
         self.c3 = [0 for i in alpha]
-        
-        for n in range(len(alpha)):
-            m[n] = min(((1- alpha_cum[n])/(alpha_cum[n]**0.5)),1)**0.5
-            m[-1] = 1    
 
         for n in range(len(alpha)):
-            delta[n] = max(1-(1+m[n]**2)*alpha_cum[n],0)
+            m[n] = min(((1 - alpha_cum[n]) / (alpha_cum[n] ** 0.5)), 1) ** 0.5
+            m[-1] = 1
 
         for n in range(len(alpha)):
-            if n > 0: 
-                d_x[n] = (1-m[n])/(1-m[n-1]) * (alpha[n]**0.5)
-                d_y[n] = (m[n]-(1-m[n])/(1-m[n-1])*m[n-1])*(alpha_cum[n]**0.5)
-                delta_cond[n] = delta[n] - (((1-m[n])/(1-m[n-1])))**2 * alpha[n] * delta[n-1]
-                self.delta_bar[n] = (delta_cond[n])* delta[n-1]/ delta[n]
+            delta[n] = max(1 - (1 + m[n] ** 2) * alpha_cum[n], 0)
+
+        for n in range(len(alpha)):
+            if n > 0:
+                d_x[n] = (1 - m[n]) / (1 - m[n - 1]) * (alpha[n] ** 0.5)
+                d_y[n] = (m[n] - (1 - m[n]) / (1 - m[n - 1]) * m[n - 1]) * (
+                    alpha_cum[n] ** 0.5
+                )
+                delta_cond[n] = (
+                    delta[n]
+                    - (((1 - m[n]) / (1 - m[n - 1]))) ** 2 * alpha[n] * delta[n - 1]
+                )
+                self.delta_bar[n] = (delta_cond[n]) * delta[n - 1] / delta[n]
             else:
-                d_x[n] = (1-m[n])* (alpha[n]**0.5)
-                d_y[n]= (m[n])*(alpha_cum[n]**0.5)
+                d_x[n] = (1 - m[n]) * (alpha[n] ** 0.5)
+                d_y[n] = (m[n]) * (alpha_cum[n] ** 0.5)
                 delta_cond[n] = 0
-                self.delta_bar[n] = 0 
+                self.delta_bar[n] = 0
 
         logging.info("beta: {}".format(beta))
-        logging.info("alpha_cum: {}".format(' '.join(map(str, talpha_cum))))
-        logging.info("gamma_cum: {}".format(' '.join(map(str, alpha_cum))))
-        logging.info("m: {}".format(' '.join(map(str, m))))
-        logging.info("delta: {}".format(' '.join(map(str, delta))))
-        logging.info("d_x: {}".format(' '.join(map(str, d_x))))
-        logging.info("d_y: {}".format(' '.join(map(str, d_y))))
-        logging.info("delta_cond: {}".format(' '.join(map(str, delta_cond))))
-        logging.info("self.delta_bar: {}".format(' '.join(map(str, self.delta_bar))))
+        logging.info("alpha_cum: {}".format(" ".join(map(str, talpha_cum))))
+        logging.info("gamma_cum: {}".format(" ".join(map(str, alpha_cum))))
+        logging.info("m: {}".format(" ".join(map(str, m))))
+        logging.info("delta: {}".format(" ".join(map(str, delta))))
+        logging.info("d_x: {}".format(" ".join(map(str, d_x))))
+        logging.info("d_y: {}".format(" ".join(map(str, d_y))))
+        logging.info("delta_cond: {}".format(" ".join(map(str, delta_cond))))
+        logging.info("self.delta_bar: {}".format(" ".join(map(str, self.delta_bar))))
 
         for n in range(len(alpha)):
-            if n >0:
-                self.c1[n] = (1-m[n])/(1-m[n-1])*(delta[n-1]/delta[n])*alpha[n]**0.5 + (1-m[n-1])*(delta_cond[n]/delta[n])/alpha[n]**0.5
-                self.c2[n] = (m[n-1] * delta[n] - (m[n] *(1-m[n]))/(1-m[n-1])*alpha[n]*delta[n-1])*(alpha_cum[n-1]**0.5/delta[n])
-                self.c3[n] = (1-m[n-1])*(delta_cond[n]/delta[n])*(1-alpha_cum[n])**0.5/(alpha[n])**0.5
+            if n > 0:
+                self.c1[n] = (1 - m[n]) / (1 - m[n - 1]) * (
+                    delta[n - 1] / delta[n]
+                ) * alpha[n] ** 0.5 + (1 - m[n - 1]) * (
+                    delta_cond[n] / delta[n]
+                ) / alpha[
+                    n
+                ] ** 0.5
+                self.c2[n] = (
+                    m[n - 1] * delta[n]
+                    - (m[n] * (1 - m[n])) / (1 - m[n - 1]) * alpha[n] * delta[n - 1]
+                ) * (alpha_cum[n - 1] ** 0.5 / delta[n])
+                self.c3[n] = (
+                    (1 - m[n - 1])
+                    * (delta_cond[n] / delta[n])
+                    * (1 - alpha_cum[n]) ** 0.5
+                    / (alpha[n]) ** 0.5
+                )
             else:
-                self.c1[n] = 1 / alpha[n]**0.5
-                self.c3[n] = self.c1[n] * beta[n] / (1 - alpha_cum[n])**0.5
-        
-        
+                self.c1[n] = 1 / alpha[n] ** 0.5
+                self.c3[n] = self.c1[n] * beta[n] / (1 - alpha_cum[n]) ** 0.5
+
     def forward(
         self,
         speech_mix: torch.Tensor,
@@ -209,15 +231,18 @@ class ESPnetEnhancementModel(ESPnetEnhancementModelSupervised, AbsESPnetModel):
         # for data-parallel
         speech_ref = speech_ref[..., : speech_lengths.max()]
         speech_ref = speech_ref.unbind(dim=1)
-        
+
         speech_mix = speech_mix[:, : speech_lengths.max()]
-        # import pdb 
-        # pdb.set_trace()
 
         # TODO(xkc09): Diffusion Process
-        speech_pre, feature_noisy, feature_pre, others, combine_noise, speech_lengths = self._diffusion_process(speech_mix, speech_ref[0], speech_lengths)
-
-        # l1loss = torch.nn.L1Loss()(combine_noise[0], speech_pre[0])
+        (
+            speech_pre,
+            feature_noisy,
+            feature_pre,
+            others,
+            combine_noise,
+            speech_lengths,
+        ) = self._diffusion_process(speech_mix, speech_ref[0], speech_lengths)
 
         loss, stats, weight = self.forward_loss(
             speech_pre,
@@ -231,75 +256,107 @@ class ESPnetEnhancementModel(ESPnetEnhancementModelSupervised, AbsESPnetModel):
         )
 
         return loss, stats, weight
-    
-    
+
     def _diffusion_process(self, speech_mix, speech_ref, speech_lengths):
-        # import pdb
-        # pdb.set_trace()
         spectrogram, _ = self.conditioner(speech_mix, speech_lengths)
-        spectrogram = torch.transpose(spectrogram.abs(),1,2)[:,:,:-1]
-        
-        #cut the audio files
-        speech_lengths = [self.hop_length * spectrogram.shape[-1] for i in speech_lengths] 
-        speech_mix = speech_mix[:,:speech_lengths[0]]
-        speech_ref = speech_ref[:,:speech_lengths[0]]
+        spectrogram = torch.transpose(spectrogram.abs(), 1, 2)[:, :, :-1]
+
+        # cut the audio files
+        speech_lengths = [
+            self.hop_length * spectrogram.shape[-1] for i in speech_lengths
+        ]
+        speech_mix = speech_mix[:, : speech_lengths[0]]
+        speech_ref = speech_ref[:, : speech_lengths[0]]
 
         # diffusion process
-        # import pdb
-        # pdb.set_trace()
-        t = torch.randint(0, len(self.noise_level), [len(speech_lengths)], device=speech_ref.device)
+        t = torch.randint(
+            0, len(self.noise_level), [len(speech_lengths)], device=speech_ref.device
+        )
         noise_scale = self.noise_level[t].unsqueeze(1).to(speech_ref.device)
         noise_scale_sqrt = noise_scale**0.5
-        m = (((1-self.noise_level[t])/self.noise_level[t]**0.5)**0.5).unsqueeze(1).to(speech_ref.device) 
-        noise = torch.randn(spectrogram.shape[0], self.hop_length * spectrogram.shape[-1], device=speech_mix.device)
-        # torch.randn_like(speech_ref)
-        
-        noisy_audio = (1-m) * noise_scale_sqrt  * speech_ref + m * noise_scale_sqrt * speech_mix  + (1.0 - (1+m**2) *noise_scale)**0.5 * noise
-        combine_noise = (m * noise_scale_sqrt * (speech_mix-speech_ref) + (1.0 - (1+m**2) *noise_scale)**0.5 * noise) / (1-noise_scale)**0.5
-        
-        #Null encoder/decoder
+        m = (
+            (((1 - self.noise_level[t]) / self.noise_level[t] ** 0.5) ** 0.5)
+            .unsqueeze(1)
+            .to(speech_ref.device)
+        )
+        noise = torch.randn_like(speech_ref)
+
+        noisy_audio = (
+            (1 - m) * noise_scale_sqrt * speech_ref
+            + m * noise_scale_sqrt * speech_mix
+            + (1.0 - (1 + m**2) * noise_scale) ** 0.5 * noise
+        )
+        combine_noise = (
+            m * noise_scale_sqrt * (speech_mix - speech_ref)
+            + (1.0 - (1 + m**2) * noise_scale) ** 0.5 * noise
+        ) / (1 - noise_scale) ** 0.5
+
+        # Null encoder/decoder
         feature_noisy, flens = self.encoder(noisy_audio, speech_lengths)
-        feature_pre, flens, others  = self.separator(feature_noisy, spectrogram, t, flens)
-        
+        feature_pre, flens, others = self.separator(
+            feature_noisy, spectrogram, t, flens
+        )
+
         if feature_pre is not None:
             speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
         else:
             # some models (e.g. neural beamformer trained with mask loss)
             # do not predict time-domain signal in the training stage
             speech_pre = None
-        # import pdb
-        # pdb.set_trace()
-        
-        return speech_pre, feature_noisy, feature_pre, others, [combine_noise], speech_lengths
-        
 
+        return (
+            speech_pre,
+            feature_noisy,
+            feature_pre,
+            others,
+            [combine_noise],
+            speech_lengths,
+        )
 
     def _reverse_process(self, speech_mix, speech_lengths):
         spectrogram, _ = self.conditioner(speech_mix, speech_lengths)
-        spectrogram = torch.transpose(spectrogram.abs(),1,2)[:,:,:]
+        spectrogram = torch.transpose(spectrogram.abs(), 1, 2)[:, :, :]
 
-        audio = torch.randn(spectrogram.shape[0], self.hop_length * spectrogram.shape[-1], device=speech_mix.device)
-        noisy_audio = torch.zeros(spectrogram.shape[0], self.hop_length * spectrogram.shape[-1], device=speech_mix.device)
-        noisy_audio[:,:speech_mix.shape[1]] = speech_mix
+        audio = torch.randn(
+            spectrogram.shape[0],
+            self.hop_length * spectrogram.shape[-1],
+            device=speech_mix.device,
+        )
+        noisy_audio = torch.zeros(
+            spectrogram.shape[0],
+            self.hop_length * spectrogram.shape[-1],
+            device=speech_mix.device,
+        )
+        noisy_audio[:, : speech_mix.shape[1]] = speech_mix
         audio = noisy_audio
-        gamma = [0]
         for n in range(len(self.delta_bar) - 1, -1, -1):
             if n > 0:
-                # import pdb
-                # pdb.set_trace()
-                predicted_noise, _, _ =  self.separator(audio, spectrogram, torch.tensor([self.T[n]], device=speech_mix.device),speech_lengths)
-                audio = self.c1[n] * audio + self.c2[n] * noisy_audio - self.c3[n] * predicted_noise.squeeze(1)
+                predicted_noise, _, _ = self.separator(
+                    audio,
+                    spectrogram,
+                    torch.tensor([self.T[n]], device=speech_mix.device),
+                    speech_lengths,
+                )
+                audio = (
+                    self.c1[n] * audio
+                    + self.c2[n] * noisy_audio
+                    - self.c3[n] * predicted_noise.squeeze(1)
+                )
                 noise = torch.randn_like(audio)
-                newsigma= self.delta_bar[n]**0.5 
+                newsigma = self.delta_bar[n] ** 0.5
                 audio += newsigma * noise
             else:
-                predicted_noise, _, _ =  self.separator(audio, spectrogram, torch.tensor([self.T[n]], device=speech_mix.device),speech_lengths)
+                predicted_noise, _, _ = self.separator(
+                    audio,
+                    spectrogram,
+                    torch.tensor([self.T[n]], device=speech_mix.device),
+                    speech_lengths,
+                )
                 audio = self.c1[n] * audio - self.c3[n] * predicted_noise.squeeze(1)
-                audio = (1-gamma[n])*audio+gamma[n]*noisy_audio
+                audio = (1 - self.mix_noisy) * audio + self.mix_noisy * noisy_audio
             audio = torch.clamp(audio, -1.0, 1.0)
-            
-        return [audio[:,:speech_mix.shape[1]]]
 
+        return [audio[:, : speech_mix.shape[1]]], speech_lengths, None
 
     def forward_enhance(
         self,
@@ -309,20 +366,17 @@ class ESPnetEnhancementModel(ESPnetEnhancementModelSupervised, AbsESPnetModel):
         # reverse process
         feature_mix, flens = self.encoder(speech_mix, speech_lengths)
 
+        feature_pre, flens, others = self._reverse_process(feature_mix, flens)
 
-        feature_pre = self._reverse_process(feature_mix,flens)
-
-
-        # feature_pre, flens, others = self.separator(feature_mix, flens)
         if feature_pre is not None:
             speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
         else:
             # some models (e.g. neural beamformer trained with mask loss)
             # do not predict time-domain signal in the training stage
             speech_pre = None
-        return speech_pre #, feature_mix, feature_pre, others
+        return speech_pre, feature_mix, feature_pre, others
 
-
+    # forward_loss can be removed after the enh_asr branch is merged
     def forward_loss(
         self,
         speech_pre: torch.Tensor,
@@ -345,8 +399,6 @@ class ESPnetEnhancementModel(ESPnetEnhancementModelSupervised, AbsESPnetModel):
                     # only select one channel as the reference
                     speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
                 # for the time domain criterions
-                # import pdb 
-                # pdb.set_trace()
                 l, s, o = loss_wrapper(speech_ref, speech_pre, o)
             elif isinstance(criterion, FrequencyDomainLoss):
                 # for the time-frequency domain criterions
