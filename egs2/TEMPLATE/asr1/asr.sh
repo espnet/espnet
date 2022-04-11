@@ -110,6 +110,8 @@ k2_config=./conf/decode_asr_transformer_with_k2.yaml
 
 use_streaming=false # Whether to use streaming decoding
 
+use_maskctc=false # Whether to use maskctc decoding
+
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -224,6 +226,7 @@ Options:
     --inference_asr_model # ASR model path for decoding (default="${inference_asr_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
     --use_streaming       # Whether to use streaming decoding (default="${use_streaming}").
+    --use_maskctc         # Whether to use maskctc decoding (default="${use_streaming}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -895,7 +898,7 @@ if ! "${skip_train}"; then
         if "${use_ngram}"; then
             log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
             cut -f 2- -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
-            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
+            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin
         else
             log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
         fi
@@ -1195,6 +1198,8 @@ if ! "${skip_eval}"; then
         else
           if "${use_streaming}"; then
               asr_inference_tool="espnet2.bin.asr_inference_streaming"
+          elif "${use_maskctc}"; then
+              asr_inference_tool="espnet2.bin.asr_inference_maskctc"
           else
               asr_inference_tool="espnet2.bin.asr_inference"
           fi

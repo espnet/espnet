@@ -151,6 +151,11 @@ we recommend using small model parameters and avoiding dynamic imports, file acc
 more running time, you can annotate your test with `@pytest.mark.execution_timeout(sec)`.
 - For test initialization (parameters, modules, etc), you can use pytest fixtures. Refer to  [pytest fixtures](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects) for more information.
 
+In addition, please follow the [PEP 8 convention](https://peps.python.org/pep-0008/) for the coding style and [Google's convention for docstrings](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods).
+Below are some specific points that should be taken care of in particular:
+- [import ordering](https://peps.python.org/pep-0008/#imports)
+- Avoid writing python2-style code. For example, `super().__init__()` is preferred over `super(CLASS_NAME, self).__init()__`.
+
 
 ### 4.2 Bash scripts
 
