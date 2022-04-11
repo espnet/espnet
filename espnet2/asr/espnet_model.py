@@ -81,11 +81,13 @@ class ESPnetASRModel(AbsESPnetModel):
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
+        self.blank_id = 0
         self.sos = vocab_size - 1
         self.eos = vocab_size - 1
         self.vocab_size = vocab_size
         self.ignore_id = ignore_id
         self.ctc_weight = ctc_weight
+        self.interctc_weight = interctc_weight
         self.token_list = token_list.copy()
         if transcript_token_list is not None:
             self.transcript_token_list = transcript_token_list.copy()
