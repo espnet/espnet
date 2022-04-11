@@ -10,6 +10,10 @@ class FixedOrderSolver(AbsLossWrapper):
         self.criterion = criterion
         self.weight = weight
 
+    @property
+    def type(self):
+        return "fixedorder"
+
     def forward(self, ref, inf, others={}):
         """An naive fixed-order solver
 
@@ -31,6 +35,6 @@ class FixedOrderSolver(AbsLossWrapper):
             loss += torch.mean(self.criterion(r, i)) / num_spk
 
         stats = dict()
-        stats[self.criterion.name] = loss.detach()
+        stats[f"{self.criterion.name}_{self.type}"] = loss.detach()
 
         return loss.mean(), stats, {}

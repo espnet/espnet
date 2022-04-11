@@ -13,6 +13,10 @@ class PITSolver(AbsLossWrapper):
         self.weight = weight
         self.independent_perm = independent_perm
 
+    @property
+    def type(self):
+        return "pit"
+
     def forward(self, ref, inf, others={}):
         """Permutation invariant training solver.
 
@@ -64,6 +68,6 @@ class PITSolver(AbsLossWrapper):
         loss = loss.mean()
 
         stats = dict()
-        stats[self.criterion.name] = loss.detach()
+        stats[f"{self.criterion.name}_{self.type}"] = loss.detach()
 
         return loss.mean(), stats, {"perm": perm}
