@@ -6,7 +6,6 @@ from typing import List
 from typing import Union
 
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
-from espnet.nets.pytorch_backend.nets_utils import get_activation
 from espnet.nets.pytorch_backend.transformer.attention import (
     MultiHeadedAttention,  # noqa: H301
     RelPositionMultiHeadedAttention,  # noqa: H301
@@ -22,6 +21,7 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.repeat import MultiSequential
+from espnet2.asr.transducer.activation import get_activation
 from espnet2.asr.transducer.encoder.blocks.conformer import Conformer
 from espnet2.asr.transducer.encoder.blocks.conv1d import Conv1d
 from espnet2.asr.transducer.encoder.blocks.conv2d_subsampling import (
@@ -74,6 +74,7 @@ def build_main_parameters(
     pos_wise_layer_type: str = "linear",
     pos_wise_act_type: str = "swish",
     conv_mod_act_type: str = "swish",
+    **activation_parameters,
 ) -> Dict[str, Any]:
     """Build encoder main parameters.
 
@@ -100,8 +101,12 @@ def build_main_parameters(
         "rel_selfattn" if "rel" in pos_enc_layer_type else "selfattn"
     )
 
-    main_params["pos_wise_act"] = get_activation(pos_wise_act_type)
-    main_params["conv_mod_act"] = get_activation(conv_mod_act_type)
+    main_params["pos_wise_act"] = get_activation(
+        pos_wise_act_type, **activation_parameters
+    )
+    main_params["conv_mod_act"] = get_activation(
+        conv_mod_act_type, **activation_parameters
+    )
 
     return main_params, "conformer"
 

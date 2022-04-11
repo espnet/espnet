@@ -2,7 +2,7 @@
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import get_activation
+from espnet2.asr.transducer.activation import get_activation
 
 
 class JointNetwork(torch.nn.Module):
@@ -23,7 +23,8 @@ class JointNetwork(torch.nn.Module):
         dim_encoder: int,
         dim_decoder: int,
         dim_joint_space: int = 256,
-        joint_act_type: str = "tanh",
+        joint_activation_type: str = "tanh",
+        **activation_parameters,
     ):
         """Joint network initializer."""
         super().__init__()
@@ -33,7 +34,9 @@ class JointNetwork(torch.nn.Module):
 
         self.lin_out = torch.nn.Linear(dim_joint_space, dim_output)
 
-        self.joint_activation = get_activation(joint_act_type)
+        self.joint_activation = get_activation(
+            joint_activation_type, **activation_parameters
+        )
 
     def forward(
         self,

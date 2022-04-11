@@ -35,7 +35,7 @@ class Encoder(torch.nn.Module):
         dim_input: int,
         body_conf: List[Dict[str, Any]],
         input_conf: Dict[str, Any] = {},
-        main_conf: Dict[str, str] = {},
+        main_conf: Dict[str, Any] = {},
     ):
         assert check_argument_types()
 
