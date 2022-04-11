@@ -3,7 +3,8 @@ import torch.nn as nn
 
 
 class MulCatBlock(nn.Module):
-    """The MulCat block that multiplies two RNN layers' outputs and concatenate it with the input Tensor.
+    """The MulCat block that multiplies two RNN layers' outputs
+        and concatenate it with the input Tensor.
 
     Args:
         input_size: int, dimension of the input feature. The input should have shape
@@ -12,7 +13,14 @@ class MulCatBlock(nn.Module):
         dropout: float, the dropout rate in the LSTM layer. (Default: 0.0)
         bidirectional: bool, whether the RNN layers are bidirectional. (Default: True)
     """
-    def __init__(self, input_size: int, hidden_size: int, dropout: float = 0.0, bidirectional: bool = True):
+
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        dropout: float = 0.0,
+        bidirectional: bool = True,
+    ):
         super(MulCatBlock, self).__init__()
 
         num_direction = int(bidirectional) + 1
@@ -80,8 +88,10 @@ class DPMulCat(nn.Module):
         dropout: float, the dropout rate in the LSTM layer. (Default: 0.0)
         bidirectional: bool, whether the RNN layers are bidirectional. (Default: True)
         num_layers: int, number of stacked MulCat blocks. (Default: 4)
-        input_normalize: bool, whether to apply GroupNorm on the input Tensor. (Default: False)
+        input_normalize: bool, whether to apply GroupNorm on the input Tensor.
+            (Default: False)
     """
+
     def __init__(
         self,
         input_size: int,
