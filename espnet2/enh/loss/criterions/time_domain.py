@@ -77,7 +77,8 @@ class SNRLoss(TimeDomainLoss):
 
 
 class SISNRLoss(TimeDomainLoss):
-    """
+    """SISNRLoss
+
     A more stable SI-SNR loss with clamp from `fast_bss_eval`.
     Thanks to Robin Scheibler for the implementation.
     We should consider import `fast_bss_eval` in the future PR.
@@ -93,7 +94,8 @@ class SISNRLoss(TimeDomainLoss):
         return "si_snr_loss"
 
     def _db_clamp_eps(self, db_max: float) -> float:
-        """
+        """_db_clamp_eps
+
         helper function to compute the clamping constant
         """
         e = 10.0 ** (-db_max / 10.0)
@@ -101,7 +103,8 @@ class SISNRLoss(TimeDomainLoss):
         return eps
 
     def _coherence_to_neg_sdr(self, coh: torch.Tensor) -> torch.Tensor:
-        """
+        """_coherence_to_neg_sdr
+
         This function transforms the squared cosine to negative SDR value.
         If provided clamp_db will limit the output to the range [-clamp_db, clamp_db].
         """
@@ -126,7 +129,8 @@ class SISNRLoss(TimeDomainLoss):
         ref: torch.Tensor,
         est: torch.Tensor,
     ) -> torch.Tensor:
-        """
+        """args:
+
         ref: Tensor, (..., n_samples)
             reference signal
         est: Tensor (..., n_samples)
