@@ -1,4 +1,4 @@
-## Use transfer learning or Self-Supervised pre-trained models for ASR in ESPnet2
+## Use transfer learning for ASR in ESPnet2
 
 In that tutorial, we will introduce several options to use pre-trained models/parameters for Automatic Speech Recognition (ASR) in ESPnet. Available options are : 
 - use a local model you (or a collegue) have already trained,
