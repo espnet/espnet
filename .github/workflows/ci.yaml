@@ -44,7 +44,7 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev bc sox
+          sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev bc sox python3-jsondiff
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}

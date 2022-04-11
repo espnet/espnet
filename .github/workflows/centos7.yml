@@ -36,7 +36,7 @@ jobs:
           # NOTE(kamo): cmake sndfile will be download using anacond:
           yum install -y git centos-release-scl bzip2 wget which unzip bc patch
           yum-config-manager --enable rhel-server-rhscl-7-rpms
-          yum install -y devtoolset-7-gcc-c++ devtoolset-7-make sox ncurses-devel libtool automake autoconf
+          yum install -y devtoolset-7-gcc-c++ devtoolset-7-make sox ncurses-devel libtool automake autoconf python3-jsonpatch
           localedef -f UTF-8 -i en_US en_US
       - name: install espnet
         run: |
