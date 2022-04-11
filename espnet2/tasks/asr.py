@@ -28,6 +28,8 @@ from espnet2.asr.decoder.transformer_decoder import (
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
+
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertPretrainEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
@@ -35,11 +37,15 @@ from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
     ContextualBlockTransformerEncoder,  # noqa: H301
 )
+from espnet2.asr.encoder.contextual_block_conformer_encoder import (
+    ContextualBlockConformerEncoder,  # noqa: H301
+)
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
@@ -61,6 +67,8 @@ from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.asr.transducer.joint_network import JointNetwork
+from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -84,6 +92,7 @@ frontend_choices = ClassChoices(
         default=DefaultFrontend,
         sliding_window=SlidingWindow,
         s3prl=S3prlFrontend,
+        fused=FusedFrontends,
     ),
     type_check=AbsFrontend,
     default="default",
@@ -121,11 +130,13 @@ encoder_choices = ClassChoices(
         conformer=ConformerEncoder,
         transformer=TransformerEncoder,
         contextual_block_transformer=ContextualBlockTransformerEncoder,
+        contextual_block_conformer=ContextualBlockConformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
         wav2vec2=FairSeqWav2Vec2Encoder,
         hubert=FairseqHubertEncoder,
         hubert_pretrain=FairseqHubertPretrainEncoder,
+        longformer=LongformerEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
@@ -161,6 +172,7 @@ decoder_choices = ClassChoices(
         dynamic_conv=DynamicConvolutionTransformerDecoder,
         dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
         rnn=RNNDecoder,
+        transducer=TransducerDecoder,
     ),
     type_check=AbsDecoder,
     default="rnn",
@@ -280,6 +292,12 @@ class ASRTask(AbsTask):
             action=NestedDictAction,
             default=get_default_kwargs(CTC),
             help="The keyword arguments for CTC class.",
+        )
+        group.add_argument(
+            "--joint_net_conf",
+            action=NestedDictAction,
+            default=None,
+            help="The keyword arguments for joint network class.",
         )
         group.add_argument(
             "--model_conf",
@@ -538,11 +556,27 @@ class ASRTask(AbsTask):
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
 
-        decoder = decoder_class(
-            vocab_size=vocab_size,
-            encoder_output_size=encoder_output_size,
-            **args.decoder_conf,
-        )
+        if args.decoder == "transducer":
+            decoder = decoder_class(
+                vocab_size,
+                embed_pad=0,
+                **args.decoder_conf,
+            )
+
+            joint_network = JointNetwork(
+                vocab_size,
+                encoder.output_size(),
+                decoder.dunits,
+                **args.joint_net_conf,
+            )
+        else:
+            decoder = decoder_class(
+                vocab_size=vocab_size,
+                encoder_output_size=encoder_output_size,
+                **args.decoder_conf,
+            )
+
+            joint_network = None
 
         if getattr(args, "decoder2", None) is not None:
             decoder2_class = decoder2_choices.get_class(args.decoder2)
@@ -556,11 +590,8 @@ class ASRTask(AbsTask):
 
         # 6. CTC
         ctc = CTC(
-            odim=vocab_size, encoder_output_sizse=encoder_output_size, **args.ctc_conf
+            odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
         )
-
-        # 7. RNN-T Decoder (Not implemented)
-        rnnt_decoder = None
 
         # 8. Build model
         if "transcript_token_list" in args:
