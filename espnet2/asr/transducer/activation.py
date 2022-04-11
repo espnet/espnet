@@ -25,7 +25,7 @@ def get_activation(
         smish_beta: Beta value for Smish variant formulation.
         softplus_beta: Beta value for softplus formulation in Mish.
         softplus_threshold: Values above this revert to a linear function in Mish.
-        swish_beta: Beta value for E-Swish variant formulation.
+        swish_beta: Beta value for Swish variant formulation.
 
     Returns:
         : Activation function.

@@ -373,7 +373,7 @@ The architecture is composed of three modules: encoder, decoder and joint networ
 For the encoder, we propose an unique encoder type encapsulating the following blocks: Conformer, Conv 1D and RNN. It is similar to the custom encoder in ESPnet1 with the exception that we also support RNN, meaning we don't need to set the parameter `encoder: [type]` here. Instead, the encoder architecture is defined by three parameters passed to `encoder_conf`:
 
   1. `input_conf` (**Dict**): The configuration for the input block.
-  2. `main_conf` (**Dict**): The main configuration for the parameters shared configuration across all blocks. Right now, only Conformer-related parameters are available.
+  2. `main_conf` (**Dict**): The main configuration for the parameters shared across all blocks.
   3. `body_conf` (**List[Dict]**): The list of configurations for each block of the encoder architecture but the input block.
 
 The first and second configuration are optional. If needed, fhe following parameters can be modified in each configuration:
@@ -383,6 +383,13 @@ The first and second configuration are optional. If needed, fhe following parame
       pos_enc_layer_type: Positional encoding layer type. (str, default = "abs_pos")
       pos_wise_act_type: Position-wise activation type. (str, default = "swish")
       conv_mod_act_type: Convolutional module activation type. (str, default = "swish")
+      hardtanh_min_val: Minimum value of the linear region range for HardTanh activation. (float, default = -1.0)
+      hardtanh_max_val: Maximum value of the linear region range for HardTanh. (float, default = 1.0)
+      smish_alpha: Alpha value for Smish variant activation fomulation. (float, default = 1.0)
+      smish_beta: Beta value for Smish variant activation formulation. (float, default = 1.0)
+      softplus_beta: Beta value for softplus activation formulation in Mish activation. (float, default = 1.0)
+      softplus_threshold: Values above this revert to a linear function in Mish activation. (int, default = 20)
+      swish_beta: Beta value for Swish variant activation formulation. (float, default = 20)
 
     input_conf:
       block_type: Input block type, either "conv2d" or "vgg". (str, default = "conv2d")
@@ -490,6 +497,8 @@ Currently, we only propose the standard joint network module composed of two thr
     joint_network_conf:
       dim_joint_space: Dimension of the joint space (int, default = 256).
       joint_act_type: Type of activation in the joint network (str, default = "tanh").
+
+The options related to the activation functions can also be modified through the parameters introduced in the Encoder section (See `main_conf` description).
 
 ### Multi-task learning
 
