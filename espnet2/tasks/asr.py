@@ -593,7 +593,7 @@ class ASRTask(AbsTask):
             odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
         )
 
-        # 8. Build model
+        # 7. Build model
         try:
             model_class = model_choices.get_class(args.model)
         except AttributeError:
