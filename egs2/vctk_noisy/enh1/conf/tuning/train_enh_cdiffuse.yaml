@@ -1,0 +1,48 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 100
+batch_type: folded
+batch_size: 2
+iterator_type: chunk
+chunk_length: 32000
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 1.0e-05
+patience: 14
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - t_mse
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 3
+model_conf:
+    loss_type: t_mse
+encoder: same
+decoder: same
+separator: cdiffuse
+separator_conf:
+    residual_layers: 30
+
+
+criterions: 
+  # The first criterion
+  - name: t_mse 
+    conf:
+        eps: 1.0e-08
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0

@@ -50,6 +50,50 @@ class CISDRLoss(TimeDomainLoss):
             inf, ref, compute_permutation=False, filter_length=self.filter_length
         )
 
+class TimeDomainL1(TimeDomainLoss):
+    def __init__(self, eps=EPS):
+        super().__init__()
+        self.eps = float(eps)
+
+    @property
+    def name(self) -> str:
+        return "l1_t_loss"
+
+    def forward(
+        self,
+        ref: torch.Tensor,
+        inf: torch.Tensor,
+    ) -> torch.Tensor:
+        # the return tensor should be shape of (batch,)
+
+        l1loss = abs(ref - inf)
+        l1loss = l1loss.mean(dim=[1])
+
+        return l1loss
+
+
+class TimeDomainMSE(TimeDomainLoss):
+    def __init__(self, eps=EPS):
+        super().__init__()
+        self.eps = float(eps)
+
+    @property
+    def name(self) -> str:
+        return "mse_t_loss"
+
+    def forward(
+        self,
+        ref: torch.Tensor,
+        inf: torch.Tensor,
+    ) -> torch.Tensor:
+        # the return tensor should be shape of (batch,)
+
+        noise = inf - ref
+        mseloss = noise**2
+        mseloss = mseloss.mean(dim=[1])
+
+        return mseloss
+
 
 class SNRLoss(TimeDomainLoss):
     def __init__(self, eps=EPS):
