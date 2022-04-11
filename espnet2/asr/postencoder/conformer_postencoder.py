@@ -1,9 +1,8 @@
-# Copyright 2020 Tomoki Hayashi
+#!/usr/bin/env python3
+#  2021, Carnegie Mellon University;  Siddhant Arora
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Conformer encoder definition."""
-
-from typing import List
+"""Conformers PostEncoder."""
 from typing import Optional
 from typing import Tuple
 
@@ -40,11 +39,14 @@ from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsamplin
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet2.asr.ctc import CTC
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
+import copy
 
 
-class ConformerEncoder(AbsEncoder):
+class ConformerPostEncoder(AbsPostEncoder):
+    """Hugging Face Transformers PostEncoder."""
+
     """Conformer encoder module.
 
     Args:
@@ -103,8 +105,6 @@ class ConformerEncoder(AbsEncoder):
         zero_triu: bool = False,
         cnn_module_kernel: int = 31,
         padding_idx: int = -1,
-        interctc_layer_idx: List[int] = [],
-        interctc_use_conditioning: bool = False,
     ):
         assert check_argument_types()
         super().__init__()
@@ -135,14 +135,13 @@ class ConformerEncoder(AbsEncoder):
             logging.warning(
                 "Using legacy_rel_pos and it will be deprecated in the future."
             )
+        elif pos_enc_layer_type == "None":
+            pos_enc_class = None
         else:
             raise ValueError("unknown pos_enc_layer: " + pos_enc_layer_type)
 
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
-                torch.nn.Linear(input_size, output_size),
-                torch.nn.LayerNorm(output_size),
-                torch.nn.Dropout(dropout_rate),
                 pos_enc_class(output_size, positional_dropout_rate),
             )
         elif input_layer == "conv2d":
@@ -183,12 +182,11 @@ class ConformerEncoder(AbsEncoder):
                 input_layer,
                 pos_enc_class(output_size, positional_dropout_rate),
             )
-        elif input_layer is None:
-            self.embed = torch.nn.Sequential(
-                pos_enc_class(output_size, positional_dropout_rate)
-            )
+        elif input_layer == "None":
+            self.embed = None
         else:
             raise ValueError("unknown input_layer: " + input_layer)
+
         self.normalize_before = normalize_before
         if positionwise_layer_type == "linear":
             positionwise_layer = PositionwiseFeedForward
@@ -266,39 +264,13 @@ class ConformerEncoder(AbsEncoder):
         if self.normalize_before:
             self.after_norm = LayerNorm(output_size)
 
-        self.interctc_layer_idx = interctc_layer_idx
-        if len(interctc_layer_idx) > 0:
-            assert 0 < min(interctc_layer_idx) and max(interctc_layer_idx) < num_blocks
-        self.interctc_use_conditioning = interctc_use_conditioning
-        self.conditioning_layer = None
-
-    def output_size(self) -> int:
-        return self._output_size
-
     def forward(
-        self,
-        xs_pad: torch.Tensor,
-        ilens: torch.Tensor,
-        prev_states: torch.Tensor = None,
-        return_pos: bool = False,
-        pre_postencoder_norm: bool = False,
-        ctc: CTC = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
-        """Calculate forward propagation.
-
-        Args:
-            xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
-            ilens (torch.Tensor): Input length (#batch).
-            prev_states (torch.Tensor): Not to be used now.
-
-        Returns:
-            torch.Tensor: Output tensor (#batch, L, output_size).
-            torch.Tensor: Output length (#batch).
-            torch.Tensor: Not to be used now.
-
-        """
-        masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
-
+        self, input: torch.Tensor, input_lengths: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Forward."""
+        xs_pad = input
+        masks = (~make_pad_mask(input_lengths)).to(input[0].device)
+        # print(mask)
         if (
             isinstance(self.embed, Conv2dSubsampling)
             or isinstance(self.embed, Conv2dSubsampling2)
@@ -314,48 +286,16 @@ class ConformerEncoder(AbsEncoder):
                     limit_size,
                 )
             xs_pad, masks = self.embed(xs_pad, masks)
+        elif self.embed is None:
+            xs_pad = xs_pad
         else:
             xs_pad = self.embed(xs_pad)
-
-        intermediate_outs = []
-        if len(self.interctc_layer_idx) == 0:
-            xs_pad, masks = self.encoders(xs_pad, masks)
-            if return_pos:
-                # try both
-                if pre_postencoder_norm:
-                    xs_pad = self.after_norm(xs_pad[0]), xs_pad[1]
-                else:
-                    xs_pad = xs_pad[0], xs_pad[1]
-                # xs_pad = xs_pad[0], xs_pad[1]
-            else:
-                if isinstance(xs_pad, tuple):
-                    xs_pad = xs_pad[0]
-                if self.normalize_before:
-                    xs_pad = self.after_norm(xs_pad)
-        else:
-            for layer_idx, encoder_layer in enumerate(self.encoders):
-                xs_pad, masks = encoder_layer(xs_pad, masks)
-
-                if layer_idx + 1 in self.interctc_layer_idx:
-                    encoder_out = xs_pad
-                    if isinstance(encoder_out, tuple):
-                        encoder_out = encoder_out[0]
-
-                    # intermediate outputs are also normalized
-                    if self.normalize_before:
-                        encoder_out = self.after_norm(encoder_out)
-
-                    intermediate_outs.append((layer_idx + 1, encoder_out))
-
-                    if self.interctc_use_conditioning:
-                        ctc_out = ctc.softmax(encoder_out)
-
-                        if isinstance(xs_pad, tuple):
-                            x, pos_emb = xs_pad
-                            x = x + self.conditioning_layer(ctc_out)
-                            xs_pad = (x, pos_emb)
-                        else:
-                            xs_pad = xs_pad + self.conditioning_layer(ctc_out)
+        # print("postencoder")
+        # print(xs_pad[0].shape)
+        # print(xs_pad[1].shape)
+        # print(masks.shape)
+        masks = masks.reshape(masks.shape[0], 1, masks.shape[1])
+        xs_pad, masks = self.encoders(xs_pad, masks)
 
         if isinstance(xs_pad, tuple):
             xs_pad = xs_pad[0]
@@ -363,6 +303,9 @@ class ConformerEncoder(AbsEncoder):
             xs_pad = self.after_norm(xs_pad)
 
         olens = masks.squeeze(1).sum(1)
-        if len(intermediate_outs) > 0:
-            return (xs_pad, intermediate_outs), olens, None
-        return xs_pad, olens, None
+
+        return xs_pad, olens
+
+    def output_size(self) -> int:
+        """Get the output size."""
+        return self._output_size

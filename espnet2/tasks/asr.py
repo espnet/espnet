@@ -28,8 +28,6 @@ from espnet2.asr.decoder.transformer_decoder import (
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
-from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
-
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertPretrainEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
@@ -37,28 +35,32 @@ from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
     ContextualBlockTransformerEncoder,  # noqa: H301
 )
-from espnet2.asr.encoder.contextual_block_conformer_encoder import (
-    ContextualBlockConformerEncoder,  # noqa: H301
-)
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.espnet_model import ESPnetASRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,  # noqa: H301
 )
+from espnet2.asr.postencoder.conformer_postencoder import (
+    ConformerPostEncoder,  # noqa: H301
+)
+from espnet2.asr.postencoder.transformer_postencoder import (
+    TransformerPostEncoder,  # noqa: H301
+)
+from espnet2.asr.postdecoder.abs_postdecoder import AbsPostDecoder
+from espnet2.asr.postdecoder.hugging_face_transformers_postdecoder import (
+    HuggingFaceTransformersPostDecoder,  # noqa: H301
+)
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet2.asr.transducer.joint_network import JointNetwork
-from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -82,16 +84,13 @@ frontend_choices = ClassChoices(
         default=DefaultFrontend,
         sliding_window=SlidingWindow,
         s3prl=S3prlFrontend,
-        fused=FusedFrontends,
     ),
     type_check=AbsFrontend,
     default="default",
 )
 specaug_choices = ClassChoices(
     name="specaug",
-    classes=dict(
-        specaug=SpecAug,
-    ),
+    classes=dict(specaug=SpecAug),
     type_check=AbsSpecAug,
     default=None,
     optional=True,
@@ -122,13 +121,11 @@ encoder_choices = ClassChoices(
         conformer=ConformerEncoder,
         transformer=TransformerEncoder,
         contextual_block_transformer=ContextualBlockTransformerEncoder,
-        contextual_block_conformer=ContextualBlockConformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
         wav2vec2=FairSeqWav2Vec2Encoder,
         hubert=FairseqHubertEncoder,
         hubert_pretrain=FairseqHubertPretrainEncoder,
-        longformer=LongformerEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
@@ -137,6 +134,19 @@ postencoder_choices = ClassChoices(
     name="postencoder",
     classes=dict(
         hugging_face_transformers=HuggingFaceTransformersPostEncoder,
+        conformer=ConformerPostEncoder,
+        transformer=TransformerPostEncoder,
+    ),
+    type_check=AbsPostEncoder,
+    default=None,
+    optional=True,
+)
+deliberationencoder_choices = ClassChoices(
+    name="deliberationencoder",
+    classes=dict(
+        hugging_face_transformers=HuggingFaceTransformersPostEncoder,
+        conformer=ConformerPostEncoder,
+        transformer=TransformerPostEncoder,
     ),
     type_check=AbsPostEncoder,
     default=None,
@@ -151,10 +161,31 @@ decoder_choices = ClassChoices(
         dynamic_conv=DynamicConvolutionTransformerDecoder,
         dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
         rnn=RNNDecoder,
-        transducer=TransducerDecoder,
     ),
     type_check=AbsDecoder,
     default="rnn",
+)
+decoder2_choices = ClassChoices(
+    "decoder2",
+    classes=dict(
+        transformer=TransformerDecoder,
+        lightweight_conv=LightweightConvolutionTransformerDecoder,
+        lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
+        dynamic_conv=DynamicConvolutionTransformerDecoder,
+        dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
+        rnn=RNNDecoder,
+    ),
+    type_check=AbsDecoder,
+    default="rnn",
+)
+postdecoder_choices = ClassChoices(
+    name="postdecoder",
+    classes=dict(
+        hugging_face_transformers=HuggingFaceTransformersPostDecoder,
+    ),
+    type_check=AbsPostDecoder,
+    default=None,
+    optional=True,
 )
 
 
@@ -176,8 +207,14 @@ class ASRTask(AbsTask):
         encoder_choices,
         # --postencoder and --postencoder_conf
         postencoder_choices,
+        # --deliberationencoder and --deliberationencoder_conf
+        deliberationencoder_choices,
         # --decoder and --decoder_conf
         decoder_choices,
+        # --decoder2 and --decoder2_conf
+        decoder2_choices,
+        # --postdecoder and --postdecoder_conf
+        postdecoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -197,6 +234,24 @@ class ASRTask(AbsTask):
             type=str_or_none,
             default=None,
             help="A text mapping int-id to token",
+        )
+        group.add_argument(
+            "--transcript_token_list",
+            type=str_or_none,
+            default=None,
+            help="A text mapping int-id to token for transcripts",
+        )
+        group.add_argument(
+            "--two_pass",
+            type=str2bool,
+            default=False,
+            help="Run 2-pass SLU",
+        )
+        group.add_argument(
+            "--pre_postencoder_norm",
+            type=str2bool,
+            default=False,
+            help="pre_postencoder_norm",
         )
         group.add_argument(
             "--init",
@@ -225,12 +280,6 @@ class ASRTask(AbsTask):
             action=NestedDictAction,
             default=get_default_kwargs(CTC),
             help="The keyword arguments for CTC class.",
-        )
-        group.add_argument(
-            "--joint_net_conf",
-            action=NestedDictAction,
-            default=None,
-            help="The keyword arguments for joint network class.",
         )
         group.add_argument(
             "--model_conf",
@@ -341,6 +390,9 @@ class ASRTask(AbsTask):
                 train=train,
                 token_type=args.token_type,
                 token_list=args.token_list,
+                transcript_token_list=None
+                if "transcript_token_list" not in args
+                else args.transcript_token_list,
                 bpemodel=args.bpemodel,
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
@@ -381,7 +433,7 @@ class ASRTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ()
+        retval = ("transcript",)
         assert check_return_type(retval)
         return retval
 
@@ -398,6 +450,18 @@ class ASRTask(AbsTask):
             token_list = list(args.token_list)
         else:
             raise RuntimeError("token_list must be str or list")
+        if "transcript_token_list" in args:
+            if args.transcript_token_list is not None:
+                if isinstance(args.transcript_token_list, str):
+                    with open(args.transcript_token_list, encoding="utf-8") as f:
+                        transcript_token_list = [line.rstrip() for line in f]
+
+                    # Overwriting token_list to keep it as "portable".
+                    args.transcript_token_list = list(transcript_token_list)
+                elif isinstance(args.token_list, (tuple, list)):
+                    transcript_token_list = list(args.transcript_token_list)
+                else:
+                    raise RuntimeError(" Transcript token_list must be str or list")
         vocab_size = len(token_list)
         logging.info(f"Vocabulary size: {vocab_size }")
 
@@ -453,51 +517,110 @@ class ASRTask(AbsTask):
         else:
             postencoder = None
 
+        if getattr(args, "deliberationencoder", None) is not None:
+            deliberationencoder_class = deliberationencoder_choices.get_class(
+                args.deliberationencoder
+            )
+            deliberationencoder = deliberationencoder_class(
+                input_size=encoder_output_size, **args.deliberationencoder_conf
+            )
+            encoder_output_size = deliberationencoder.output_size()
+        else:
+            deliberationencoder = None
+
+        if getattr(args, "postdecoder", None) is not None:
+            postdecoder_class = postdecoder_choices.get_class(args.postdecoder)
+            postdecoder = postdecoder_class(**args.postdecoder_conf)
+            encoder_output_size = encoder_output_size
+        else:
+            postdecoder = None
+
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
 
-        if args.decoder == "transducer":
-            decoder = decoder_class(
-                vocab_size,
-                embed_pad=0,
-                **args.decoder_conf,
-            )
+        decoder = decoder_class(
+            vocab_size=vocab_size,
+            encoder_output_size=encoder_output_size,
+            **args.decoder_conf,
+        )
 
-            joint_network = JointNetwork(
-                vocab_size,
-                encoder.output_size(),
-                decoder.dunits,
-                **args.joint_net_conf,
-            )
-        else:
-            decoder = decoder_class(
+        if getattr(args, "decoder2", None) is not None:
+            decoder2_class = decoder2_choices.get_class(args.decoder2)
+            decoder2 = decoder2_class(
                 vocab_size=vocab_size,
                 encoder_output_size=encoder_output_size,
-                **args.decoder_conf,
+                **args.decoder2_conf,
             )
-
-            joint_network = None
+        else:
+            decoder2 = None
 
         # 6. CTC
         ctc = CTC(
-            odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
+            odim=vocab_size, encoder_output_sizse=encoder_output_size, **args.ctc_conf
         )
 
+        # 7. RNN-T Decoder (Not implemented)
+        rnnt_decoder = None
+
         # 8. Build model
-        model = ESPnetASRModel(
-            vocab_size=vocab_size,
-            frontend=frontend,
-            specaug=specaug,
-            normalize=normalize,
-            preencoder=preencoder,
-            encoder=encoder,
-            postencoder=postencoder,
-            decoder=decoder,
-            ctc=ctc,
-            joint_network=joint_network,
-            token_list=token_list,
-            **args.model_conf,
-        )
+        if "transcript_token_list" in args:
+            if args.transcript_token_list is not None:
+                args.model_conf["transcript_token_list"] = transcript_token_list
+                args.model_conf["two_pass"] = args.two_pass
+                args.model_conf["pre_postencoder_norm"] = args.pre_postencoder_norm
+                model = ESPnetASRModel(
+                    vocab_size=vocab_size,
+                    frontend=frontend,
+                    specaug=specaug,
+                    normalize=normalize,
+                    preencoder=preencoder,
+                    encoder=encoder,
+                    postencoder=postencoder,
+                    deliberationencoder=deliberationencoder,
+                    decoder=decoder,
+                    decoder2=decoder2,
+                    postdecoder=postdecoder,
+                    ctc=ctc,
+                    rnnt_decoder=rnnt_decoder,
+                    token_list=token_list,
+                    **args.model_conf,
+                )
+            else:
+                model = ESPnetASRModel(
+                    vocab_size=vocab_size,
+                    frontend=frontend,
+                    specaug=specaug,
+                    normalize=normalize,
+                    preencoder=preencoder,
+                    encoder=encoder,
+                    postencoder=postencoder,
+                    deliberationencoder=deliberationencoder,
+                    decoder=decoder,
+                    decoder2=decoder2,
+                    postdecoder=postdecoder,
+                    ctc=ctc,
+                    rnnt_decoder=rnnt_decoder,
+                    token_list=token_list,
+                    **args.model_conf,
+                )
+        else:
+            model = ESPnetASRModel(
+                vocab_size=vocab_size,
+                frontend=frontend,
+                specaug=specaug,
+                normalize=normalize,
+                preencoder=preencoder,
+                encoder=encoder,
+                postencoder=postencoder,
+                deliberationencoder=deliberationencoder,
+                decoder=decoder,
+                decoder2=decoder2,
+                postdecoder=postdecoder,
+                ctc=ctc,
+                rnnt_decoder=rnnt_decoder,
+                token_list=token_list,
+                **args.model_conf,
+            )
 
         # FIXME(kamo): Should be done in model?
         # 9. Initialize
