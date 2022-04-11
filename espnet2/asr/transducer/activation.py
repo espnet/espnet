@@ -88,17 +88,25 @@ class Mish(torch.nn.Module):
     Args:
         beta: Beta value for softplus formulation.
         threshold: Values above this revert to a linear function.
+        use_builtin: Whether to use PyTorch activation function if available.
 
     """
 
-    def __init__(self, beta=1, threshold=20, use_builtin=False):
+    def __init__(
+        self,
+        softplus_beta: float = 1.0,
+        softplus_threshold: int = 20,
+        use_builtin: bool = False,
+    ):
         super().__init__()
 
         if use_builtin:
             self.mish = torch.nn.Mish()
         else:
             self.tanh = torch.nn.Tanh()
-            self.softplus = torch.nn.Softplus(beta=beta, threshold=threshold)
+            self.softplus = torch.nn.Softplus(
+                beta=softplus_beta, threshold=softplus_threshold
+            )
 
             self.mish = lambda x: x * self.tanh(self.softplus(x))
 
@@ -111,6 +119,11 @@ class Smish(torch.nn.Module):
     """Smish activation definition.
 
     Reference: https://www.mdpi.com/2079-9292/11/4/540/htm.
+
+    Args:
+        alpha: Alpha value for Smish activation fomulation.
+        beta: Beta value for Smish activation formulation.
+        use_builtin: Whether to use PyTorch activation function if available.
 
     """
 
@@ -140,10 +153,11 @@ class Swish(torch.nn.Module):
 
     Args:
         beta: Beta parameter for E-Swish variant.
+        use_builtin: Whether to use PyTorch function if available.
 
     """
 
-    def __init__(self, beta=1, use_builtin=False):
+    def __init__(self, beta: float = 1.0, use_builtin: bool = False):
         super().__init__()
 
         if use_builtin:
