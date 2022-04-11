@@ -77,7 +77,6 @@ class ESPnetASRModel(AbsESPnetModel):
         assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
-        assert rnnt_decoder is None, "Not implemented"
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
