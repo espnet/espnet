@@ -594,64 +594,32 @@ class ASRTask(AbsTask):
         )
 
         # 8. Build model
+        try:
+            model_class = model_choices.get_class(args.model)
+        except AttributeError:
+            model_class = model_choices.get_class("espnet")
         if "transcript_token_list" in args:
             if args.transcript_token_list is not None:
                 args.model_conf["transcript_token_list"] = transcript_token_list
                 args.model_conf["two_pass"] = args.two_pass
                 args.model_conf["pre_postencoder_norm"] = args.pre_postencoder_norm
-                model = ESPnetASRModel(
-                    vocab_size=vocab_size,
-                    frontend=frontend,
-                    specaug=specaug,
-                    normalize=normalize,
-                    preencoder=preencoder,
-                    encoder=encoder,
-                    postencoder=postencoder,
-                    deliberationencoder=deliberationencoder,
-                    decoder=decoder,
-                    decoder2=decoder2,
-                    postdecoder=postdecoder,
-                    ctc=ctc,
-                    rnnt_decoder=rnnt_decoder,
-                    token_list=token_list,
-                    **args.model_conf,
-                )
-            else:
-                model = ESPnetASRModel(
-                    vocab_size=vocab_size,
-                    frontend=frontend,
-                    specaug=specaug,
-                    normalize=normalize,
-                    preencoder=preencoder,
-                    encoder=encoder,
-                    postencoder=postencoder,
-                    deliberationencoder=deliberationencoder,
-                    decoder=decoder,
-                    decoder2=decoder2,
-                    postdecoder=postdecoder,
-                    ctc=ctc,
-                    rnnt_decoder=rnnt_decoder,
-                    token_list=token_list,
-                    **args.model_conf,
-                )
-        else:
-            model = ESPnetASRModel(
-                vocab_size=vocab_size,
-                frontend=frontend,
-                specaug=specaug,
-                normalize=normalize,
-                preencoder=preencoder,
-                encoder=encoder,
-                postencoder=postencoder,
-                deliberationencoder=deliberationencoder,
-                decoder=decoder,
-                decoder2=decoder2,
-                postdecoder=postdecoder,
-                ctc=ctc,
-                rnnt_decoder=rnnt_decoder,
-                token_list=token_list,
-                **args.model_conf,
-            )
+        model = model_class(
+            vocab_size=vocab_size,
+            frontend=frontend,
+            specaug=specaug,
+            normalize=normalize,
+            preencoder=preencoder,
+            encoder=encoder,
+            postencoder=postencoder,
+            deliberationencoder=deliberationencoder,
+            decoder=decoder,
+            decoder2=decoder2,
+            postdecoder=postdecoder,
+            ctc=ctc,
+            rnnt_decoder=rnnt_decoder,
+            token_list=token_list,
+            **args.model_conf,
+        )
 
         # FIXME(kamo): Should be done in model?
         # 9. Initialize
