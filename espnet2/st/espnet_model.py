@@ -411,7 +411,9 @@ class ESPnetSTModel(AbsESPnetModel):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
     ):
-        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.src_sos, self.src_eos, self.ignore_id)
+        ys_in_pad, ys_out_pad = add_sos_eos(
+            ys_pad, self.src_sos, self.src_eos, self.ignore_id
+        )
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
