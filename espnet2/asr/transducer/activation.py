@@ -7,8 +7,11 @@ import torch
 
 def get_activation(
     activation_type: str,
+    ftswish_threshold: float = -0.2,
+    ftswish_mean_shift: float = 0.0,
     hardtanh_min_val: int = -1.0,
     hardtanh_max_val: int = 1.0,
+    leakyrelu_neg_slope: float = 0.01,
     smish_alpha: float = 1.0,
     smish_beta: float = 1.0,
     softplus_beta: float = 1.0,
@@ -19,11 +22,14 @@ def get_activation(
 
     Args:
         activation_type: Activation type.
+        ftswish_threshold: Threshold value for FTSwish activation formulation.
+        ftswish_mean_shift: Mean shifting value for FTSwish activation formulation.
         hardtanh_min_val: Minimum value of the linear region range for HardTanh.
         hardtanh_max_val: Maximum value of the linear region range for HardTanh.
-        smish_alpha: Alpha value for Smish variant fomulation.
-        smish_beta: Beta value for Smish variant formulation.
-        softplus_beta: Beta value for softplus formulation in Mish.
+        leakyrelu_neg_slope: Negative slope value for LeakyReLU activation formulation.
+        smish_alpha: Alpha value for Smish activation fomulation.
+        smish_beta: Beta value for Smish activation formulation.
+        softplus_beta: Beta value for softplus activation formulation in Mish.
         softplus_threshold: Values above this revert to a linear function in Mish.
         swish_beta: Beta value for Swish variant formulation.
 
@@ -31,53 +37,67 @@ def get_activation(
         : Activation function.
 
     """
-
     torch_version = LooseVersion(torch.__version__)
 
-    activation_funcs = {
-        "gcu": GCU(),
-        "hardtanh": torch.nn.Hardtanh(hardtanh_min_val, hardtanh_max_val),
-        "listh": LiSTH(),
-        "mish": Mish(
-            softplus_beta, softplus_threshold, torch_version >= LooseVersion("1.9")
+    activations = {
+        "ftswish": (
+            FTSwish,
+            {"threshold": ftswish_threshold, "mean_shift": ftswish_mean_shift},
         ),
-        "relu": torch.nn.ReLU(),
-        "selu": torch.nn.SELU(),
-        "smish": Smish(smish_alpha, smish_beta),
-        "swish": Swish(swish_beta, torch_version >= LooseVersion("1.8")),
-        "tanh": torch.nn.Tanh(),
+        "hardtanh": (
+            torch.nn.Hardtanh,
+            {"min_val": hardtanh_min_val, "max_val": hardtanh_max_val},
+        ),
+        "leaky_relu": (torch.nn.LeakyReLU, {"negative_slope": leakyrelu_neg_slope}),
+        "mish": (
+            Mish,
+            {
+                "softplus_beta": softplus_beta,
+                "softplus_threshold": softplus_threshold,
+                "use_builtin": torch_version >= LooseVersion("1.9"),
+            },
+        ),
+        "relu": (torch.nn.ReLU, {}),
+        "selu": (torch.nn.SELU, {}),
+        "smish": (Smish, {"alpha": smish_alpha, "beta": smish_beta}),
+        "swish": (
+            Swish,
+            {"beta": swish_beta, "use_builtin": torch_version >= LooseVersion("1.8")},
+        ),
+        "tanh": (torch.nn.Tanh, {}),
     }
 
-    return activation_funcs[activation_type]
+    act_func, act_args = activations[activation_type]
+
+    return act_func(**act_args)
 
 
-class GCU(torch.nn.Module):
-    """Growing Cosine Unit definition.
+class FTSwish(torch.nn.Module):
+    """Flatten-T Swish activation definition.
 
-    Reference: https://arxiv.org/abs/2108.12943.
+    Reference: https://arxiv.org/abs/1812.06247
 
-    """
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward computation."""
-        return x * torch.cos(x)
-
-
-class LiSTH(torch.nn.Module):
-    """LiSTH activation definition.
-
-    Reference: https://arxiv.org/abs/1901.05894.
+    Args:
+        threshold: Threshold value for FTSwish activation formulation.
+        mean_shift: Mean shifting value for FTSwish activation formulation.
 
     """
 
-    def __init__(self):
+    def __init__(self, threshold: float = -0.2, mean_shift: float = 0):
         super().__init__()
 
-        self.tanh = torch.nn.Tanh()
+        self.threshold = threshold
+        self.mean_shift = mean_shift
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward computation."""
-        return x * self.tanh(x)
+        x = (x * torch.sigmoid(x)) + self.threshold
+        x = torch.where(x >= 0, x, torch.tensor([self.threshold], device=x.device))
+
+        if self.mean_shift != 0:
+            x.sub_(self.mean_shift)
+
+        return x
 
 
 class Mish(torch.nn.Module):
@@ -86,7 +106,7 @@ class Mish(torch.nn.Module):
     Reference: https://arxiv.org/abs/1908.08681.
 
     Args:
-        beta: Beta value for softplus formulation.
+        beta: Beta value for softplus activation formulation.
         threshold: Values above this revert to a linear function.
         use_builtin: Whether to use PyTorch activation function if available.
 

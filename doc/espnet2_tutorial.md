@@ -383,8 +383,11 @@ The first and second configuration are optional. If needed, fhe following parame
       pos_enc_layer_type: Positional encoding layer type. (str, default = "abs_pos")
       pos_wise_act_type: Position-wise activation type. (str, default = "swish")
       conv_mod_act_type: Convolutional module activation type. (str, default = "swish")
+      ftswish_threshold: Threshold value for FTSwish activation formulation.
+      ftswish_mean_shift: Mean shifting value for FTSwish activation formulation.
       hardtanh_min_val: Minimum value of the linear region range for HardTanh activation. (float, default = -1.0)
       hardtanh_max_val: Maximum value of the linear region range for HardTanh. (float, default = 1.0)
+      leakyrelu_neg_slope: Negative slope value for LeakyReLU activation formulation.
       smish_alpha: Alpha value for Smish variant activation fomulation. (float, default = 1.0)
       smish_beta: Beta value for Smish variant activation formulation. (float, default = 1.0)
       softplus_beta: Beta value for softplus activation formulation in Mish activation. (float, default = 1.0)

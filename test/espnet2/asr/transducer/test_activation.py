@@ -27,10 +27,9 @@ def prepare(model, input_size, vocab_size, batch_size):
 @pytest.mark.parametrize(
     "act_type, act_params",
     [
-        ("gcu", {}),
-        ("gcu", {}),
+        ("ftswish", {"ftswish_threshold": -0.25, "ftswish_mean_shift": -0.1}),
         ("hardtanh", {"hardtanh_min_val": -2, "hardtanh_max_val": 2}),
-        ("listh", {}),
+        ("leaky_relu", {"leakyrelu_neg_slope": 0.02}),
         ("mish", {"softplus_beta": 1.125, "softplus_threshold": 10}),
         ("relu", {}),
         ("selu", {}),
