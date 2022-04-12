@@ -76,7 +76,7 @@ inference_model=valid.loss.ave.pth
 download_model=
 
 # Evaluation related
-scoring_protocol="STOI SDR SAR SIR"
+scoring_protocol="STOI SDR SAR SIR SI_SNR"
 ref_channel=0
 inference_tag=  # Prefix to the result dir for decoding.
 inference_enh_config= # Config for enhancement.
