@@ -70,7 +70,7 @@ class StatelessDecoder(AbsDecoder):
     def score(
         self,
         label: torch.Tensor,
-        label_sequence: int,
+        label_sequence: List[int],
         state: None,
         cache: Dict[str, Any],
     ) -> Tuple[torch.Tensor, None]:

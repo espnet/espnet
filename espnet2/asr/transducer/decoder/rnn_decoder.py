@@ -136,7 +136,7 @@ class RNNDecoder(AbsDecoder):
     def score(
         self,
         label: torch.Tensor,
-        label_sequence: int,
+        label_sequence: List[int],
         dec_state: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]],
         cache: Dict[str, Any],
     ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]], torch.Tensor]:
