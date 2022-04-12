@@ -231,6 +231,8 @@
         <span class="c1"># note that eos is the same as sos (equivalent ID)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">src_sos</span> <span class="o">=</span> <span class="n">src_vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">src_eos</span> <span class="o">=</span> <span class="n">src_vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">src_vocab_size</span> <span class="o">=</span> <span class="n">src_vocab_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span> <span class="o">=</span> <span class="n">ignore_id</span>
@@ -562,7 +564,9 @@
         <span class="n">ys_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_pad_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_out_pad</span> <span class="o">=</span> <span class="n">add_sos_eos</span><span class="p">(</span><span class="n">ys_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">)</span>
+        <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_out_pad</span> <span class="o">=</span> <span class="n">add_sos_eos</span><span class="p">(</span>
+            <span class="n">ys_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_sos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_eos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span>
+        <span class="p">)</span>
         <span class="n">ys_in_lens</span> <span class="o">=</span> <span class="n">ys_pad_lens</span> <span class="o">+</span> <span class="mi">1</span>
 
         <span class="c1"># 1. Forward decoder</span>
@@ -573,7 +577,7 @@
         <span class="c1"># 2. Compute attention loss</span>
         <span class="n">loss_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion_asr</span><span class="p">(</span><span class="n">decoder_out</span><span class="p">,</span> <span class="n">ys_out_pad</span><span class="p">)</span>
         <span class="n">acc_att</span> <span class="o">=</span> <span class="n">th_accuracy</span><span class="p">(</span>
-            <span class="n">decoder_out</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">),</span>
+            <span class="n">decoder_out</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_vocab_size</span><span class="p">),</span>
             <span class="n">ys_out_pad</span><span class="p">,</span>
             <span class="n">ignore_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">,</span>
         <span class="p">)</span>
