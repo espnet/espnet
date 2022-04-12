@@ -106,11 +106,9 @@ def test_SeparateSpeech_invalid_inference_config(
     inference_config, invalid_inference_config
 ):
     with pytest.raises(AssertionError):
-        separate_speech = SeparateSpeech(
+        SeparateSpeech(
             train_config=None, model_file=None, inference_config=inference_config
         )
 
     with pytest.raises(AssertionError):
-        separate_speech = SeparateSpeech(
-            train_config=None, inference_config=invalid_inference_config
-        )
+        SeparateSpeech(train_config=None, inference_config=invalid_inference_config)

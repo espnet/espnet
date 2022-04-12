@@ -39,8 +39,7 @@ def test_tf_domain_criterion_forward(
         inf_spec = [complex_wrapper(torch.rand(*shape), torch.rand(*shape))]
         loss = criterion(ref_spec[0], inf_spec[0])
 
-    assert loss.shape == (batch,)
-    stats = {criterion.name: loss.detach()}
+    assert loss.shape == (batch,), "Invlid loss shape with " + criterion.name
 
 
 @pytest.mark.parametrize("input_ch", [1, 2])
@@ -55,8 +54,7 @@ def test_tf_coh_criterion_forward(input_ch):
     ref_spec = complex_wrapper(torch.rand(*shape), torch.rand(*shape))
 
     loss = criterion(ref_spec, inf_spec)
-    assert loss.shape == (batch,)
-    stats = {criterion.name: loss.detach()}
+    assert loss.shape == (batch,), "Invlid loss shape with " + criterion.name
 
 
 @pytest.mark.parametrize("input_ch", [1, 2])
@@ -71,10 +69,10 @@ def test_tf_coh_criterion_invalid_forward(input_ch):
     ref_spec = complex_wrapper(torch.rand(*shape), torch.rand(*shape))
 
     with pytest.raises(ValueError):
-        loss = criterion(ref_spec.real, inf_spec)
+        criterion(ref_spec.real, inf_spec)
 
     with pytest.raises(ValueError):
         if input_ch == 1:
-            loss = criterion(ref_spec[0], inf_spec[0])
+            criterion(ref_spec[0], inf_spec[0])
         else:
-            loss = criterion(ref_spec[0, 0], inf_spec[0, 0])
+            criterion(ref_spec[0, 0], inf_spec[0, 0])

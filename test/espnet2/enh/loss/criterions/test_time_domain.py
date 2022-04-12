@@ -18,8 +18,7 @@ def test_tf_domain_criterion_forward(criterion_class):
     ref = torch.rand(batch, 2000)
 
     loss = criterion(ref, inf)
-    assert loss.shape == (batch,)
-    stats = {criterion.name: loss.detach()}
+    assert loss.shape == (batch,), "Invlid loss shape with " + criterion.name
 
 
 @pytest.mark.parametrize("criterion_class", [TimeDomainL1, TimeDomainMSE])
@@ -34,8 +33,7 @@ def test_tf_domain_l1_l2_forward(criterion_class, input_ch):
     ref = torch.rand(*shape)
 
     loss = criterion(ref, inf)
-    assert loss.shape == (batch,)
-    stats = {criterion.name: loss.detach()}
+    assert loss.shape == (batch,), "Invlid loss shape with " + criterion.name
 
     with pytest.raises(ValueError):
         if input_ch == 1:
