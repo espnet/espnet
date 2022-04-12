@@ -88,7 +88,6 @@ def _create_mask_label(mix_spec, ref_spec, noise_spec=None, mask_type="IAM"):
             mask = new_complex_like(mix_spec, [mask_real, mask_imag])
         assert mask is not None, f"mask type {mask_type} not supported"
         mask_label.append(mask)
-    print([m.shape for m in mask_label])
     return mask_label
 
 

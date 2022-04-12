@@ -388,6 +388,7 @@ def inference(
     train_config: Optional[str],
     model_file: Optional[str],
     model_tag: Optional[str],
+    inference_config: Optional[str],
     allow_variable_data_keys: bool,
     segment_size: Optional[float],
     hop_size: Optional[float],
@@ -419,6 +420,7 @@ def inference(
     separate_speech_kwargs = dict(
         train_config=train_config,
         model_file=model_file,
+        inference_config=inference_config,
         segment_size=segment_size,
         hop_size=hop_size,
         normalize_segment_scale=normalize_segment_scale,
