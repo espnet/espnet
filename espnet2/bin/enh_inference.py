@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+from itertools import chain
 import logging
 from pathlib import Path
 import sys
@@ -15,6 +16,7 @@ import numpy as np
 import torch
 from tqdm import trange
 from typeguard import check_argument_types
+import yaml
 
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
@@ -24,6 +26,7 @@ from espnet2.fileio.sound_scp import SoundScpWriter
 from espnet2.tasks.enh import EnhancementTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
@@ -31,6 +34,59 @@ from espnet2.utils.types import str_or_none
 
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
+
+
+def get_train_config(train_config, model_file=None):
+    if train_config is None:
+        assert model_file is not None, (
+            "The argument 'model_file' must be provided "
+            "if the argument 'train_config' is not specified."
+        )
+        train_config = Path(model_file).parent / "config.yaml"
+    else:
+        train_config = Path(train_config)
+    return train_config
+
+
+def recursive_dict_update(dict_org, dict_patch, verbose=False, log_prefix=""):
+    """Update `dict_org` with `dict_patch` in-place recursively."""
+    for key, value in dict_patch.items():
+        if key not in dict_org:
+            if verbose:
+                logging.info(
+                    "Overwriting config: {}{}: None -> {}".format(
+                        log_prefix, key, value
+                    )
+                )
+            dict_org[key] = value
+        elif isinstance(value, dict):
+            recursive_dict_update(
+                dict_org[key], value, verbose=verbose, log_prefix=f"{key}."
+            )
+        else:
+            if verbose and dict_org[key] != value:
+                logging.info(
+                    "Overwriting config: [{}{}]: {} -> {}".format(
+                        log_prefix, key, dict_org[key], value
+                    )
+                )
+            dict_org[key] = value
+
+
+def build_model_from_args_and_file(args, model_file, device):
+    model = EnhancementTask.build_model(args)
+    if not isinstance(model, AbsESPnetModel):
+        raise RuntimeError(
+            f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
+        )
+    model.to(device)
+    if model_file is not None:
+        if device == "cuda":
+            # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
+            #   in PyTorch<=1.4
+            device = f"cuda:{torch.cuda.current_device()}"
+        model.load_state_dict(torch.load(model_file, map_location=device))
+    return model
 
 
 class SeparateSpeech:
@@ -49,6 +105,7 @@ class SeparateSpeech:
         self,
         train_config: Union[Path, str] = None,
         model_file: Union[Path, str] = None,
+        inference_config: Union[Path, str] = None,
         segment_size: Optional[float] = None,
         hop_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
@@ -61,9 +118,35 @@ class SeparateSpeech:
         assert check_argument_types()
 
         # 1. Build Enh model
-        enh_model, enh_train_args = EnhancementTask.build_model_from_file(
-            train_config, model_file, device
-        )
+        if inference_config is None:
+            enh_model, enh_train_args = EnhancementTask.build_model_from_file(
+                train_config, model_file, device
+            )
+        else:
+            # Overwrite model attributes
+            train_config = get_train_config(train_config, model_file=model_file)
+            with train_config.open("r", encoding="utf-8") as f:
+                train_args = yaml.safe_load(f)
+
+            with Path(inference_config).open("r", encoding="utf-8") as f:
+                infer_args = yaml.safe_load(f)
+
+            supported_keys = list(
+                chain(*[[k, k + "_conf"] for k in ("encoder", "separator", "decoder")])
+            )
+            for k in infer_args.keys():
+                if k not in supported_keys:
+                    raise ValueError(
+                        "Only the following top-level keys are supported: %s"
+                        % ", ".join(supported_keys)
+                    )
+
+            recursive_dict_update(train_args, infer_args, verbose=True)
+            enh_train_args = argparse.Namespace(**train_args)
+            enh_model = build_model_from_args_and_file(
+                enh_train_args, model_file, device
+            )
+
         enh_model.to(dtype=getattr(torch, dtype)).eval()
 
         self.device = device
@@ -466,6 +549,13 @@ def get_parser():
         type=str,
         help="Pretrained model tag. If specify this option, train_config and "
         "model_file will be overwritten",
+    )
+    group.add_argument(
+        "--inference_config",
+        type=str_or_none,
+        default=None,
+        help="Optional configuration file for overwriting enh model attributes "
+        "during inference",
     )
 
     group = parser.add_argument_group("Data loading related")

@@ -78,6 +78,7 @@ download_model=
 # Evaluation related
 scoring_protocol="STOI SDR SAR SIR"
 ref_channel=0
+inference_enh_config= # Config for enhancement.
 score_with_asr=false
 asr_exp=""       # asr model for scoring WER
 lm_exp=""       # lm model for scoring WER
@@ -151,8 +152,9 @@ Options:
     --init_param    # pretrained model path and module name (default="${init_param}")
 
     # Enhancement related
-    --inference_args   # Arguments for enhancement in the inference stage (default="${inference_args}")
-    --inference_model  # Enhancement model path for inference (default="${inference_model}").
+    --inference_args       # Arguments for enhancement in the inference stage (default="${inference_args}")
+    --inference_model      # Enhancement model path for inference (default="${inference_model}").
+    --inference_enh_config # Configuration file for overwriting some model attributes during SE inference. (default="${inference_enh_config}")
 
     # Evaluation related
     --scoring_protocol    # Metrics to be used for scoring (default="${scoring_protocol}")
@@ -646,6 +648,7 @@ if ! "${skip_eval}"; then
                     --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --train_config "${enh_exp}"/config.yaml \
+                    ${inference_enh_config:+--inference_config "$inference_enh_config"} \
                     --model_file "${enh_exp}"/"${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${inference_args}
