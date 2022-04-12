@@ -81,7 +81,7 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                     assert spk_id == spk1
                     # modify for min mode
                     if end <= length_sec:
-                        # making seg_id to have prefixes of spk_id 
+                        # making seg_id to have prefixes of spk_id
                         # to avoid sorting issue
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(end)
@@ -97,7 +97,7 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         )
                         spk2utt_cache[spk_id] = spk2utt_cache.get(spk_id, []) + [mix_id]
                     elif start < length_sec and end > length_sec:
-                        # making seg_id to have prefixes of spk_id 
+                        # making seg_id to have prefixes of spk_id
                         # to avoid sorting issue
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(length_sec)
@@ -117,7 +117,7 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                     assert spk_id == spk2
                     # modify for min mode
                     if end <= length_sec:
-                        # making seg_id to have prefixes of spk_id 
+                        # making seg_id to have prefixes of spk_id
                         # to avoid sorting issue
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(end)
@@ -133,7 +133,7 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         )
                         spk2utt_cache[spk_id] = spk2utt_cache.get(spk_id, []) + [mix_id]
                     elif start < length_sec and end > length_sec:
-                        # making seg_id to have prefixes of spk_id 
+                        # making seg_id to have prefixes of spk_id
                         # to avoid sorting issue
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(length_sec)
@@ -193,7 +193,7 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                     assert spk_id == spk1
                     # modify for min mode
                     if end <= length_sec:
-                        # making seg_id to have prefixes of spk_id 
+                        # making seg_id to have prefixes of spk_id
                         # to avoid sorting issue
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(end)
@@ -209,7 +209,7 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         )
                         spk2utt_cache[spk_id] = spk2utt_cache.get(spk_id, []) + [mix_id]
                     elif start < length_sec and end > length_sec:
-                        # making seg_id to have prefixes of spk_id 
+                        # making seg_id to have prefixes of spk_id
                         # to avoid sorting issue
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(length_sec)
@@ -229,7 +229,7 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                     assert spk_id == spk2
                     # modify for min mode
                     if end <= length_sec:
-                        # making seg_id to have prefixes of spk_id 
+                        # making seg_id to have prefixes of spk_id
                         # to avoid sorting issue
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(end)
@@ -245,7 +245,7 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         )
                         spk2utt_cache[spk_id] = spk2utt_cache.get(spk_id, []) + [mix_id]
                     elif start < length_sec and end > length_sec:
-                        # making seg_id to have prefixes of spk_id 
+                        # making seg_id to have prefixes of spk_id
                         # to avoid sorting issue
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(length_sec)
@@ -265,7 +265,7 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                     assert spk_id == spk3
                     # modify for min mode
                     if end <= length_sec:
-                        # making seg_id to have prefixes of spk_id 
+                        # making seg_id to have prefixes of spk_id
                         # to avoid sorting issue
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(end)
@@ -281,7 +281,7 @@ def process_metadata(metadata, target_dir, source_rttm, fs, num_spk):
                         )
                         spk2utt_cache[spk_id] = spk2utt_cache.get(spk_id, []) + [mix_id]
                     elif start < length_sec and end > length_sec:
-                        # making seg_id to have prefixes of spk_id 
+                        # making seg_id to have prefixes of spk_id
                         # to avoid sorting issue
                         seg_id = "{}-{}_{}_{}".format(
                             spk_id, mix_id, float2str(start), float2str(length_sec)
