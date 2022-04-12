@@ -209,7 +209,7 @@ def test_forward_with_beamformer_net(
     ch = 3
     inputs = random_speech[..., :ch].float()
     ilens = torch.LongTensor([16, 12])
-    speech_refs = [torch.randn(2, 16, ch, dtype=torch.float) for spk in range(num_spk)]
+    speech_refs = [torch.randn(2, 16, dtype=torch.float) for spk in range(num_spk)]
     noise_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
     dereverb_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
     encoder = STFTEncoder(
@@ -257,3 +257,51 @@ def test_forward_with_beamformer_net(
         "dereverb_ref1": dereverb_ref1,
     }
     loss, stats, weight = enh_model(**kwargs)
+
+
+@pytest.mark.parametrize("mask_type", ["IBM", "IRM"])
+@pytest.mark.parametrize("num_spk", [1, 2, 3])
+def test_invalid_case_for_masks(mask_type, num_spk):
+    ch = 3
+    inputs = random_speech[..., :ch].float()
+    ilens = torch.LongTensor([16, 12])
+    speech_refs = [torch.randn(2, 16, ch, dtype=torch.float) for spk in range(num_spk)]
+
+    encoder = STFTEncoder(n_fft=8, hop_length=2, use_builtin_complex=False)
+    decoder = STFTDecoder(n_fft=8, hop_length=2)
+
+    beamformer = NeuralBeamformer(
+        input_dim=5,
+        loss_type="mask_mse",
+        num_spk=num_spk,
+        use_wpe=True,
+        wlayers=2,
+        wunits=2,
+        wprojs=2,
+        use_dnn_mask_for_wpe=True,
+        multi_source_wpe=True,
+        use_beamformer=True,
+        blayers=2,
+        bunits=2,
+        bprojs=2,
+        badim=2,
+        ref_channel=0,
+        use_noise_mask=False,
+        beamformer_type="mvdr_souden",
+    )
+    enh_model = ESPnetEnhancementModel(
+        encoder=encoder,
+        decoder=decoder,
+        separator=beamformer,
+        loss_type="mask_mse",
+        mask_type=mask_type,
+        loss_wrappers=[pit_wrapper],
+    )
+
+    kwargs = {
+        "speech_mix": inputs,
+        "speech_mix_lengths": ilens,
+        **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(num_spk)},
+    }
+    with pytest.raises(ValueError):
+        loss, stats, weight = enh_model(**kwargs)

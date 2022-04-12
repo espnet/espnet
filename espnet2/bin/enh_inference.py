@@ -54,7 +54,7 @@ def recursive_dict_update(dict_org, dict_patch, verbose=False, log_prefix=""):
         if key not in dict_org:
             if verbose:
                 logging.info(
-                    "Overwriting config: {}{}: None -> {}".format(
+                    "Overwriting config: [{}{}]: None -> {}".format(
                         log_prefix, key, value
                     )
                 )

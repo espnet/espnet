@@ -3,11 +3,14 @@ from pathlib import Path
 
 import pytest
 import torch
+import yaml
 
 from espnet2.bin.enh_inference import get_parser
 from espnet2.bin.enh_inference import main
 from espnet2.bin.enh_inference import SeparateSpeech
+from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.tasks.enh import EnhancementTask
+from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 
 
@@ -31,6 +34,16 @@ def config_file(tmp_path: Path):
             str(tmp_path),
         ]
     )
+
+    with open(tmp_path / "config.yaml", "r") as f:
+        args = yaml.safe_load(f)
+
+    if args["encoder"] == "stft" and len(args["encoder_conf"]) == 0:
+        args["encoder_conf"] = get_default_kwargs(STFTEncoder)
+
+    with open(tmp_path / "config.yaml", "w") as f:
+        yaml_no_alias_safe_dump(args, f, indent=4, sort_keys=False)
+
     return tmp_path / "config.yaml"
 
 
@@ -46,6 +59,19 @@ def inference_config(tmp_path: Path):
     with open(tmp_path / "inference.yaml", "w") as f:
         yaml_no_alias_safe_dump(args, f, indent=4, sort_keys=False)
     return tmp_path / "inference.yaml"
+
+
+@pytest.fixture()
+def invalid_inference_config(tmp_path: Path):
+    # Write default configuration file
+    args = {
+        "encoder": "stft",
+        "encoder_conf": {"n_fft": 64, "hop_length": 32},
+        "xxx": "invalid",
+    }
+    with open(tmp_path / "invalid_inference.yaml", "w") as f:
+        yaml_no_alias_safe_dump(args, f, indent=4, sort_keys=False)
+    return tmp_path / "invalid_inference.yaml"
 
 
 @pytest.mark.execution_timeout(5)
@@ -74,3 +100,17 @@ def test_SeparateSpeech_with_inference_config(config_file, inference_config):
     )
     wav = torch.rand(2, 16000)
     separate_speech(wav, fs=8000)
+
+
+def test_SeparateSpeech_invalid_inference_config(
+    inference_config, invalid_inference_config
+):
+    with pytest.raises(AssertionError):
+        separate_speech = SeparateSpeech(
+            train_config=None, model_file=None, inference_config=inference_config
+        )
+
+    with pytest.raises(AssertionError):
+        separate_speech = SeparateSpeech(
+            train_config=None, inference_config=invalid_inference_config
+        )

@@ -40,6 +40,7 @@ def test_tf_domain_criterion_forward(
         loss = criterion(ref_spec[0], inf_spec[0])
 
     assert loss.shape == (batch,)
+    stats = {criterion.name: loss.detach()}
 
 
 @pytest.mark.parametrize("input_ch", [1, 2])
@@ -55,3 +56,25 @@ def test_tf_coh_criterion_forward(input_ch):
 
     loss = criterion(ref_spec, inf_spec)
     assert loss.shape == (batch,)
+    stats = {criterion.name: loss.detach()}
+
+
+@pytest.mark.parametrize("input_ch", [1, 2])
+def test_tf_coh_criterion_invalid_forward(input_ch):
+
+    criterion = FrequencyDomainAbsCoherence()
+    complex_wrapper = torch.complex if is_torch_1_9_plus else ComplexTensor
+
+    batch = 2
+    shape = (batch, 10, 200) if input_ch == 1 else (batch, 10, input_ch, 200)
+    inf_spec = complex_wrapper(torch.rand(*shape), torch.rand(*shape))
+    ref_spec = complex_wrapper(torch.rand(*shape), torch.rand(*shape))
+
+    with pytest.raises(ValueError):
+        loss = criterion(ref_spec.real, inf_spec)
+
+    with pytest.raises(ValueError):
+        if input_ch == 1:
+            loss = criterion(ref_spec[0], inf_spec[0])
+        else:
+            loss = criterion(ref_spec[0, 0], inf_spec[0, 0])
