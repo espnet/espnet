@@ -162,7 +162,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 if criterion.compute_on_mask:
                     # compute loss on masks
                     if noise_ref is not None:
-                        noise_spec = self.encoder(noise_ref.sum(dim=1), speech_lengths)[0]
+                        noise_spec = self.encoder(noise_ref.sum(1), speech_lengths)[0]
                     else:
                         noise_spec = None
                     tf_ref = criterion.create_mask_label(
