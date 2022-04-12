@@ -78,7 +78,7 @@ download_model=
 # Evaluation related
 scoring_protocol="STOI SDR SAR SIR SI_SNR"
 ref_channel=0
-inference_tag=  # Prefix to the result dir for decoding.
+inference_tag=  # Prefix to the result dir for ENH inference.
 inference_enh_config= # Config for enhancement.
 score_with_asr=false
 asr_exp=""       # asr model for scoring WER
