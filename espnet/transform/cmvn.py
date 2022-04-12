@@ -130,14 +130,14 @@ class UtteranceCMVN(object):
 
     def __call__(self, x, uttid=None):
         # x: [Time, Dim]
-        square_sums = (x ** 2).sum(axis=0)
+        square_sums = (x**2).sum(axis=0)
         mean = x.mean(axis=0)
 
         if self.norm_means:
             x = np.subtract(x, mean)
 
         if self.norm_vars:
-            var = square_sums / x.shape[0] - mean ** 2
+            var = square_sums / x.shape[0] - mean**2
             std = np.maximum(np.sqrt(var), self.std_floor)
             x = np.divide(x, std)
 

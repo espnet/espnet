@@ -1,0 +1,9 @@
+# best path decoding
+# if you want to use beam-search decoding with an LM, use '--api v2'
+batchsize: 0
+beam-size: 1
+penalty: 0.0
+maxlenratio: 0.0
+minlenratio: 0.0
+ctc-weight: 1.0
+lm-weight: 0.0

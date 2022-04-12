@@ -11,6 +11,7 @@ import numpy as np
 from scipy.signal import medfilt
 import humanfriendly
 
+
 def get_parser() -> argparse.Namespace:
     """Get argument parser."""
 
