@@ -382,12 +382,16 @@
         <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">decoder</span><span class="p">)(</span><span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">)</span>
 
         <span class="n">loss_wrappers</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">ctr</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">criterions</span><span class="p">:</span>
-            <span class="n">criterion</span> <span class="o">=</span> <span class="n">criterion_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])(</span><span class="o">**</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;conf&quot;</span><span class="p">])</span>
-            <span class="n">loss_wrapper</span> <span class="o">=</span> <span class="n">loss_wrapper_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;wrapper&quot;</span><span class="p">])(</span>
-                <span class="n">criterion</span><span class="o">=</span><span class="n">criterion</span><span class="p">,</span> <span class="o">**</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;wrapper_conf&quot;</span><span class="p">]</span>
-            <span class="p">)</span>
-            <span class="n">loss_wrappers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_wrapper</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;criterions&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># This check is for the compatibility when load models</span>
+            <span class="c1"># that packed by older version</span>
+            <span class="k">for</span> <span class="n">ctr</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">criterions</span><span class="p">:</span>
+                <span class="n">criterion</span> <span class="o">=</span> <span class="n">criterion_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])(</span><span class="o">**</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;conf&quot;</span><span class="p">])</span>
+                <span class="n">loss_wrapper</span> <span class="o">=</span> <span class="n">loss_wrapper_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;wrapper&quot;</span><span class="p">])(</span>
+                    <span class="n">criterion</span><span class="o">=</span><span class="n">criterion</span><span class="p">,</span> <span class="o">**</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;wrapper_conf&quot;</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">loss_wrappers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_wrapper</span><span class="p">)</span>
 
         <span class="c1"># 1. Build model</span>
         <span class="n">model</span> <span class="o">=</span> <span class="n">ESPnetEnhancementModel</span><span class="p">(</span>
