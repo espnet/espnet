@@ -72,11 +72,11 @@ init_param=
 
 # Enhancement related
 inference_args="--normalize_output_wav true"
-inference_model=valid.si_snr.ave.pth
+inference_model=valid.loss.ave.pth
 download_model=
 
 # Evaluation related
-scoring_protocol="STOI SDR SAR SIR"
+scoring_protocol="STOI SDR SAR SIR SI_SNR"
 ref_channel=0
 score_with_asr=false
 asr_exp=""       # asr model for scoring WER

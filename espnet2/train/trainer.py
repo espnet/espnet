@@ -253,9 +253,14 @@ class Trainer:
         ):
             from torch.utils.tensorboard import SummaryWriter
 
-            summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
+            train_summary_writer = SummaryWriter(
+                str(output_dir / "tensorboard" / "train")
+            )
+            valid_summary_writer = SummaryWriter(
+                str(output_dir / "tensorboard" / "valid")
+            )
         else:
-            summary_writer = None
+            train_summary_writer = None
 
         start_time = time.perf_counter()
         for iepoch in range(start_epoch, trainer_options.max_epoch + 1):
@@ -285,7 +290,7 @@ class Trainer:
                     iterator=train_iter_factory.build_iter(iepoch),
                     reporter=sub_reporter,
                     scaler=scaler,
-                    summary_writer=summary_writer,
+                    summary_writer=train_summary_writer,
                     options=trainer_options,
                     distributed_option=distributed_option,
                 )
@@ -305,7 +310,7 @@ class Trainer:
                         cls.plot_attention(
                             model=model,
                             output_dir=output_dir / "att_ws",
-                            summary_writer=summary_writer,
+                            summary_writer=train_summary_writer,
                             iterator=plot_attention_iter_factory.build_iter(iepoch),
                             reporter=sub_reporter,
                             options=trainer_options,
@@ -329,8 +334,9 @@ class Trainer:
                 logging.info(reporter.log_message())
                 if trainer_options.use_matplotlib:
                     reporter.matplotlib_plot(output_dir / "images")
-                if summary_writer is not None:
-                    reporter.tensorboard_add_scalar(summary_writer)
+                if train_summary_writer is not None:
+                    reporter.tensorboard_add_scalar(train_summary_writer, key1="train")
+                    reporter.tensorboard_add_scalar(valid_summary_writer, key1="valid")
                 if trainer_options.use_wandb:
                     reporter.wandb_log()
 
@@ -418,6 +424,7 @@ class Trainer:
                         output_dir=output_dir,
                         best_model_criterion=trainer_options.best_model_criterion,
                         nbest=keep_nbest_models,
+                        suffix=f"till{iepoch}epoch",
                     )
 
                 for e in range(1, iepoch):

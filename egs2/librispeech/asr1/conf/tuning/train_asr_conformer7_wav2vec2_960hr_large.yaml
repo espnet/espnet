@@ -1,8 +1,8 @@
-# Trained with Tesla V100-SXM2(32GB) x 8 GPUs. It takes about 1.5 days.
+# Trained with Ampere A6000(48GB) x 2 GPUs. It takes about 10 days.
 batch_type: numel
-batch_bins: 120000000
-accum_grad: 1
-max_epoch: 30
+batch_bins: 40000000
+accum_grad: 3
+max_epoch: 35
 patience: none
 init: none
 best_model_criterion:
@@ -10,7 +10,7 @@ best_model_criterion:
     - acc
     - max
 keep_nbest_models: 10
-
+unused_parameters: true
 freeze_param: [
 "frontend.upstream"
 ]
@@ -36,7 +36,7 @@ encoder_conf:
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
-    input_layer: conv2d
+    input_layer: conv2d2
     normalize_before: true
     macaron_style: true
     pos_enc_layer_type: "rel_pos"
