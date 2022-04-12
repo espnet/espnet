@@ -203,13 +203,13 @@ def test_forward_with_beamformer_net(
         # `mask_type` has no effect when `loss_type` is not "mask..."
         return
     if not is_torch_1_9_plus and use_builtin_complex:
-        # builtin complex support is only available in PyTorch 1.8+
+        # builtin complex support is only well supported in PyTorch 1.9+
         return
 
     ch = 3
     inputs = random_speech[..., :ch].float()
     ilens = torch.LongTensor([16, 12])
-    speech_refs = [torch.randn(2, 16, ch).float() for spk in range(num_spk)]
+    speech_refs = [torch.randn(2, 16, ch, dtype=torch.float) for spk in range(num_spk)]
     noise_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
     dereverb_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
     encoder = STFTEncoder(

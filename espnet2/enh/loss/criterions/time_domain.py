@@ -7,6 +7,7 @@ from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 
 
 class TimeDomainLoss(AbsEnhLoss, ABC):
+    """Base class for all frequence-domain Enhancement loss modules."""
     pass
 
 
