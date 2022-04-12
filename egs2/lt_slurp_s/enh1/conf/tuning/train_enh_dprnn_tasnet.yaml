@@ -1,0 +1,61 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 100
+batch_type: folded
+batch_size: 4 # batch_size 16 can be trained on 4 RTX 2080ti
+iterator_type: chunk
+chunk_length: 32000
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 0
+patience: 10
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: steplr
+scheduler_conf:
+    step_size: 2
+    gamma: 0.98
+
+encoder: conv
+encoder_conf:
+    channel: 64
+    kernel_size: 2
+    stride: 1
+decoder: conv
+decoder_conf:
+    channel: 64
+    kernel_size: 2
+    stride: 1
+separator: dprnn
+separator_conf:
+    num_spk: 1
+    layer: 6
+    rnn_type: lstm
+    bidirectional: True  # this is for the inter-block rnn
+    nonlinear: relu
+    unit: 128
+    segment_size: 250
+    dropout: 0.1
+    nonlinear: relu
+
+criterions: 
+  # The first criterion
+  - name: si_snr 
+    conf:
+      eps: 1.0e-7
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0
