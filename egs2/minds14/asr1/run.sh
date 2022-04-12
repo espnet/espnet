@@ -14,7 +14,6 @@ asr_config=conf/train.yaml
 
 ./asr.sh \
     --ngpu 1 \
-    --stage 1 \
     --use_lm false \
     --nbpe 500 \
     --token_type word\
