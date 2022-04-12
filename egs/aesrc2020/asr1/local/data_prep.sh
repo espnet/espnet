@@ -36,6 +36,9 @@ if [ -d $data/data_all ];then
     # blank
     sed -i 's:[ ][ ]*: :g' $data/data_all/trans_upper
     paste $data/data_all/uttlist $data/data_all/trans_upper > $data/data_all/text
+
+    # critally, must replace tab with space between uttid and text
+    sed -e "s/\t/ /g" -i $data/data_all/text
 fi
 
 echo "local/data_prep.sh succeeded"
