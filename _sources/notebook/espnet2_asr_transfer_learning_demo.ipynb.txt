@@ -1,0 +1,1037 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "transfer_learning.ipynb",
+      "provenance": [],
+      "collapsed_sections": []
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# **Use transfer learning for ASR in ESPnet2**\n"
+      ],
+      "metadata": {
+        "id": "yT6iLU2GtAT7"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Author : Dan Berrebbi (dberrebb@andrew.cmu.edu)\n",
+        "\n",
+        "\n",
+        "Date : April 11th, 2022\n",
+        "\n",
+        "\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "PXqzqpZeWNIH"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Abstract"
+      ],
+      "metadata": {
+        "id": "FFzdXpFcWvYF"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "\n",
+        "In that tutorial, we will introduce several options to use pre-trained models/parameters for Automatic Speech Recognition (ASR) in ESPnet2. Available options are : \n",
+        "- use a local model you (or a collegue) have already trained,\n",
+        "- use a trained model from [ESPnet repository on HuggingFace](https://huggingface.co/espnet).\n",
+        "\n",
+        "We note that this is done for ASR training, so at __stage 11__ of ESPnet2 models' recipe."
+      ],
+      "metadata": {
+        "id": "Av4X7lRXs1tj"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "\n",
+        "### Why using such (pre-)trained models ? \n",
+        "\n",
+        "Several projects may involve making use of previously trained models, this is the reason why we developed ESPnet repository on HuggingFace for instance.\n",
+        "Example of use cases are listed below (non-exhaustive):\n",
+        "- target a low resource language, a model trained from scratch may perform badly if trained with only few hours of data,\n",
+        "- study robustness to shifts (domain, language ... shifts) of a model,\n",
+        "- make use of massively trained multilingual models.\n",
+        "- ..."
+      ],
+      "metadata": {
+        "id": "BgSfIpDZs98g"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "soBzwx2dLUWs"
+      },
+      "source": [
+        "\n",
+        "# ESPnet installation (about 10 minutes in total)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Please use the gpu environnement provided by google colab for runing this notebook. "
+      ],
+      "metadata": {
+        "id": "GFVq9dKztO9v"
+      }
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "aroLlqHy-1df"
+      },
+      "outputs": [],
+      "source": [
+        "!git clone --depth 5 https://github.com/espnet/espnet"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# It takes 30 seconds\n",
+        "%cd /content/espnet/tools\n",
+        "!./setup_anaconda.sh anaconda espnet 3.9"
+      ],
+      "metadata": {
+        "id": "bSCplIfH-7Z1"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# It may take ~8 minutes\n",
+        "%cd /content/espnet/tools\n",
+        "!make CUDA_VERSION=10.2"
+      ],
+      "metadata": {
+        "id": "I6Y4PyfC_EH_"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "wDEDkS87NBAV"
+      },
+      "source": [
+        "\n",
+        "\n",
+        "# mini_an4 recipe as a transfer learning example\n",
+        "\n",
+        "In this example, we use the **mini_an4** data, which has only 4 utterances for training. This is of course too small to train an ASR model, but it enables to run all the decribed transfer learning models on a colab environnement. \n",
+        "After having run and understood those models/instructions, you can apply it to any other recipe of ESPnet2 or a new recipe that you build.\n",
+        "First, move to the recipe directory"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "%cd /content/espnet/egs2/mini_an4/asr1"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "broO9wWY_Ka5",
+        "outputId": "efb9910d-fb14-4261-a3f2-a5edbdb54e60"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "/content/espnet/egs2/mini_an4/asr1\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "**Add a configuration file**\n",
+        "\n",
+        "As the mini_an4 does not contain any configuration file for ASR model, we add one here."
+      ],
+      "metadata": {
+        "id": "0KneKJvcnqsj"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "config = {'accum_grad': 1,\n",
+        " 'batch_size': 1,\n",
+        " 'batch_type': 'folded',\n",
+        " 'best_model_criterion': [['valid', 'acc', 'max']],\n",
+        " 'decoder': 'transformer',\n",
+        " 'decoder_conf': {'dropout_rate': 0.1,\n",
+        "  'input_layer': 'embed',\n",
+        "  'linear_units': 2048,\n",
+        "  'num_blocks': 6},\n",
+        " 'encoder': 'transformer',\n",
+        " 'encoder_conf': {'attention_dropout_rate': 0.0,\n",
+        "  'attention_heads': 4,\n",
+        "  'dropout_rate': 0.1,\n",
+        "  'input_layer': 'conv2d',\n",
+        "  'linear_units': 2048,\n",
+        "  'num_blocks': 12,\n",
+        "  'output_size': 256},\n",
+        " 'grad_clip': 5,\n",
+        " 'init': 'xavier_uniform',\n",
+        " 'keep_nbest_models': 1,\n",
+        " 'max_epoch': 5,\n",
+        " 'model_conf': {'ctc_weight': 0.3,\n",
+        "  'length_normalized_loss': False,\n",
+        "  'lsm_weight': 0.1},\n",
+        " 'optim': 'adam',\n",
+        " 'optim_conf': {'lr': 1.0},\n",
+        " 'patience': 0,\n",
+        " 'scheduler': 'noamlr',\n",
+        " 'scheduler_conf': {'warmup_steps': 1000}}"
+      ],
+      "metadata": {
+        "id": "jkY1eytTpInn"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import yaml\n",
+        "with open(\"conf/train_asr.yaml\",\"w\") as f:\n",
+        "  yaml.dump(config, f)"
+      ],
+      "metadata": {
+        "id": "AUZPklbwpIq7"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Qi6mhBNGOzSf"
+      },
+      "source": [
+        "**Data preparation (stage 1 - stage 5)**"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!./asr.sh --stage 1 --stop_stage 5 --train-set \"train_nodev\" --valid-set \"train_dev\" --test_sets \"test\""
+      ],
+      "metadata": {
+        "id": "-4w_wayP_PWk"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "**Stage 10: ASR collect stats**:"
+      ],
+      "metadata": {
+        "id": "-yyoNZ3RnlK2"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# takes about 10 seconds\n",
+        "!./asr.sh --stage 10 --stop_stage 10 --train-set \"train_nodev\" --valid-set \"train_dev\" --test_sets \"test\" --asr_config \"conf/train_asr.yaml\""
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "_E20vCCoEyFN",
+        "outputId": "6e953341-75b9-4d9a-9cb9-dba5e949ab4c"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "2022-04-04T22:16:43 (asr.sh:252:main) ./asr.sh --stage 10 --stop_stage 10 --train-set train_nodev --valid-set train_dev --test_sets test --asr_config conf/train_asr.yaml\n",
+            "2022-04-04T22:16:43 (asr.sh:911:main) Stage 10: ASR collect stats: train_set=dump/raw/train_nodev, valid_set=dump/raw/train_dev\n",
+            "2022-04-04T22:16:43 (asr.sh:961:main) Generate 'exp/asr_stats_raw_bpe30/run.sh'. You can resume the process from stage 10 using this script\n",
+            "2022-04-04T22:16:43 (asr.sh:965:main) ASR collect-stats started... log: 'exp/asr_stats_raw_bpe30/logdir/stats.*.log'\n",
+            "/content/espnet/tools/anaconda/envs/espnet/bin/python3 /content/espnet/espnet2/bin/aggregate_stats_dirs.py --input_dir exp/asr_stats_raw_bpe30/logdir/stats.1 --output_dir exp/asr_stats_raw_bpe30\n",
+            "2022-04-04T22:16:48 (asr.sh:1480:main) Skip the uploading stage\n",
+            "2022-04-04T22:16:48 (asr.sh:1532:main) Skip the uploading to HuggingFace stage\n",
+            "2022-04-04T22:16:48 (asr.sh:1535:main) Successfully finished. [elapsed=5s]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "**Stage 11: ASR training (from scratch)** \n",
+        "\n",
+        "We train our model for only 5 epochs, just to have a pre-trained model.\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "TLTtTeX0qJS0"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# takes about 1-2 minutes\n",
+        "!./asr.sh --stage 11 --stop_stage 11 --train-set \"train_nodev\" --valid-set \"train_dev\" --test_sets \"test\" --asr_config \"conf/train_asr.yaml\" --asr_tag \"pre_trained_model\""
+      ],
+      "metadata": {
+        "id": "rgBaDYQCGm0d"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "**Stage 11.2 : ASR training over a pre-trained model** \n",
+        "\n",
+        "We train our new model over the previously trained model. (here as we use the same training data, this is not very useful, but again this is a toy example that is reproducible with any model.)\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "UzgHnIQQqeT1"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "\n",
+        "__Step 1__ : make sure your ASR model file has the proper ESPnet format (should be ok if trained with ESPnet). It just needs to be a \".pth\" (or \".pt\" or other extension) type pytorch model.\n",
+        "\n",
+        "__Step 2__ : add the parameter ```--pretrained_model path/to/your/pretrained/model/file.pth``` to run.sh. \n",
+        "\n",
+        "__Step 3__ : step 2 will initialize your new model with the parameters of the pre-trained model. Thus your new model will be trained with a strong initialization. However, if your new model have different parameter sizes for some parts of the model (e.g. last projection layer could be modified ...). This will lead to an error because of mismatches in size. To prevent this to happen, you can add the parameter ```--ignore_init_mismatch true``` in run.sh.\n",
+        "\n",
+        "__Step 4 (Optional)__ : if you only want to use some specific parts of the pre-trained model, or exclude specific parts, you can specify it in the ```--pretrained_model``` argument by passing the component names with the following syntax : ```--pretrained_model <file_path>:<src_key>:<dst_key>:<exclude_Keys>```. ```src_key``` are the parameters you want to keep from the pre-trained model. ```dst_key``` are the parameters you want to initialize in the new model with the ```src_key```parameters. And ```exclude_Keys``` are the parameters from the pre-trained model that you do not want to use. You can leave ```src_key``` and ```dst_key``` fields empty and just fill ```exclude_Keys``` with the parameters that you ant to drop. For instance, if you want to re-use encoder parameters but not decoder ones, syntax will be ```--pretrained_model <file_path>:::decoder```.  You can see the argument expected format in more details [here](https://github.com/espnet/espnet/blob/e76c78c0c661ab37cc081d46d9b059dcb31292fe/espnet2/torch_utils/load_pretrained_model.py#L43-L53).\n"
+      ],
+      "metadata": {
+        "id": "huVTqQR-tow2"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# takes about 1-2 minutes\n",
+        "!./asr.sh --stage 11 --stop_stage 11 --train-set \"train_nodev\" --valid-set \"train_dev\" \\\n",
+        "--test_sets \"test\" --asr_config \"conf/train_asr.yaml\" --asr_tag \"transfer_learning_with_pre_trained_model\"\\\n",
+        " --pretrained_model \"/content/espnet/egs2/mini_an4/asr1/exp/asr_train_asr_raw_bpe30/valid.acc.ave.pth\""
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "fuGpwpUuq4M3",
+        "outputId": "715f4d10-505a-4b23-c7d3-6efc7ad19b20"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "2022-04-04T22:23:12 (asr.sh:252:main) ./asr.sh --stage 11 --stop_stage 11 --train-set train_nodev --valid-set train_dev --test_sets test --asr_config conf/train_asr.yaml --asr_tag transfer_learning_with_pre_trained_model --pretrained_model /content/espnet/egs2/mini_an4/asr1/exp/asr_train_asr_raw_bpe30/valid.acc.ave.pth\n",
+            "2022-04-04T22:23:13 (asr.sh:1012:main) Stage 11: ASR Training: train_set=dump/raw/train_nodev, valid_set=dump/raw/train_dev\n",
+            "2022-04-04T22:23:13 (asr.sh:1079:main) Generate 'exp/asr_transfer_learning_with_pre_trained_model/run.sh'. You can resume the process from stage 11 using this script\n",
+            "2022-04-04T22:23:13 (asr.sh:1083:main) ASR training started... log: 'exp/asr_transfer_learning_with_pre_trained_model/train.log'\n",
+            "2022-04-04 22:23:13,470 (launch:95) INFO: /content/espnet/tools/anaconda/envs/espnet/bin/python3 /content/espnet/espnet2/bin/launch.py --cmd 'run.pl --name exp/asr_transfer_learning_with_pre_trained_model/train.log' --log exp/asr_transfer_learning_with_pre_trained_model/train.log --ngpu 1 --num_nodes 1 --init_file_prefix exp/asr_transfer_learning_with_pre_trained_model/.dist_init_ --multiprocessing_distributed true -- python3 -m espnet2.bin.asr_train --use_preprocessor true --bpemodel data/token_list/bpe_unigram30/bpe.model --token_type bpe --token_list data/token_list/bpe_unigram30/tokens.txt --non_linguistic_symbols none --cleaner none --g2p none --valid_data_path_and_name_and_type dump/raw/train_dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/train_dev/text,text,text --valid_shape_file exp/asr_stats_raw_bpe30/valid/speech_shape --valid_shape_file exp/asr_stats_raw_bpe30/valid/text_shape.bpe --resume true --init_param /content/espnet/egs2/mini_an4/asr1/exp/asr_train_asr_raw_bpe30/valid.acc.ave.pth --ignore_init_mismatch false --fold_length 80000 --fold_length 150 --output_dir exp/asr_transfer_learning_with_pre_trained_model --config conf/train_asr.yaml --frontend_conf fs=16k --normalize=global_mvn --normalize_conf stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz --train_data_path_and_name_and_type dump/raw/train_nodev/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_nodev/text,text,text --train_shape_file exp/asr_stats_raw_bpe30/train/speech_shape --train_shape_file exp/asr_stats_raw_bpe30/train/text_shape.bpe\n",
+            "2022-04-04 22:23:13,504 (launch:349) INFO: log file: exp/asr_transfer_learning_with_pre_trained_model/train.log\n",
+            "2022-04-04T22:24:24 (asr.sh:1480:main) Skip the uploading stage\n",
+            "2022-04-04T22:24:24 (asr.sh:1532:main) Skip the uploading to HuggingFace stage\n",
+            "2022-04-04T22:24:24 (asr.sh:1535:main) Successfully finished. [elapsed=72s]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "**Stage 11.3 : ASR training over a HuggingFace pre-trained model** \n",
+        "\n",
+        "We train our new model over the previously trained model from HuggingFace.\n",
+        "Any model can be used, here we take a model trained on Bengali as an example. It can be found at https://huggingface.co/espnet/bn_openslr53.\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "KNSePGHyrQ3P"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### Use a trained model from ESPnet repository on HuggingFace.\n",
+        "\n",
+        "[ESPnet repository on HuggingFace](https://huggingface.co/espnet) contains more than 200 pre-trained models, for a wide variety of languages and dataset, and we are actively expanding this repositories with new models every week! This enable any user to perform transfer learning with a wide variety of models without having to re-train them. \n",
+        "In order to use our pre-trained models, the first step is to download the \".pth\" model file from the [HugginFace page](https://huggingface.co/espnet). There are several easy way to do it, either by manually downloading them (e.g. ```wget https://huggingface.co/espnet/bn_openslr53/blob/main/exp/asr_train_asr_raw_bpe1000/41epoch.pth```), cloning it (```git clone https://huggingface.co/espnet/bn_openslr53```) or downloading it through an ESPnet recipe (described in the models' pages on HuggingFace): \n",
+        "```cd espnet\n",
+        "git checkout fa1b865352475b744c37f70440de1cc6b257ba70\n",
+        "pip install -e .\n",
+        "cd egs2/bn_openslr53/asr1\n",
+        "./run.sh --skip_data_prep false --skip_train true --download_model espnet/bn_openslr53\n",
+        "```\n",
+        "\n",
+        "Then, as you have the \".pth\" model file, you can follow the steps 1 to 4 from the previous section in order to use this pre-train model.\n"
+      ],
+      "metadata": {
+        "id": "nmlhBH9-t2ZV"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!wget https://huggingface.co/espnet/bn_openslr53/resolve/main/exp/asr_train_asr_raw_bpe1000/41epoch.pth"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "JaEuIEOV_VGx",
+        "outputId": "868e1635-2e1e-46cb-bcb8-7e90a02cc8ba"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "--2022-04-04 22:25:38--  https://huggingface.co/espnet/bn_openslr53/resolve/main/exp/asr_train_asr_raw_bpe1000/41epoch.pth\n",
+            "Resolving huggingface.co (huggingface.co)... 34.200.173.213, 34.197.58.156, 34.198.1.82, ...\n",
+            "Connecting to huggingface.co (huggingface.co)|34.200.173.213|:443... connected.\n",
+            "HTTP request sent, awaiting response... 302 Found\n",
+            "Location: https://cdn-lfs.huggingface.co/repos/93/20/93201c6e680320b347075e21105ff3d3fe5147b0fcab0126f2d3b56ed1eea0d1/6efee10b5e3904bb7a86f0bfa42761d015c2817695d78bc833c7a76c281433ac [following]\n",
+            "--2022-04-04 22:25:38--  https://cdn-lfs.huggingface.co/repos/93/20/93201c6e680320b347075e21105ff3d3fe5147b0fcab0126f2d3b56ed1eea0d1/6efee10b5e3904bb7a86f0bfa42761d015c2817695d78bc833c7a76c281433ac\n",
+            "Resolving cdn-lfs.huggingface.co (cdn-lfs.huggingface.co)... 108.159.227.69, 108.159.227.123, 108.159.227.71, ...\n",
+            "Connecting to cdn-lfs.huggingface.co (cdn-lfs.huggingface.co)|108.159.227.69|:443... connected.\n",
+            "HTTP request sent, awaiting response... 200 OK\n",
+            "Length: 111680269 (107M) [application/zip]\n",
+            "Saving to: ‘41epoch.pth’\n",
+            "\n",
+            "41epoch.pth         100%[===================>] 106.51M  68.0MB/s    in 1.6s    \n",
+            "\n",
+            "2022-04-04 22:25:40 (68.0 MB/s) - ‘41epoch.pth’ saved [111680269/111680269]\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "The next command line will raise an error because of the size mismatch of some parameters, as mentionned before (step3)."
+      ],
+      "metadata": {
+        "id": "ojnbWti7r-O2"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# will fail in about 5 seconds\n",
+        "!./asr.sh --stage 11 --stop_stage 11 --train-set \"train_nodev\" --valid-set \"train_dev\" \\\n",
+        "--test_sets \"test\" --asr_config \"conf/train_asr.yaml\" --asr_tag \"transfer_learning_with_pre_trained_model\"\\\n",
+        " --pretrained_model \"/content/espnet/egs2/mini_an4/asr1/41epoch.pth\""
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "IBxtg28RHuvX",
+        "outputId": "8c8878d1-940f-45d8-8203-0e1beeb063be"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "2022-04-04T22:26:29 (asr.sh:252:main) ./asr.sh --stage 11 --stop_stage 11 --train-set train_nodev --valid-set train_dev --test_sets test --asr_config conf/train_asr.yaml --asr_tag transfer_learning_with_pre_trained_model --pretrained_model /content/espnet/egs2/mini_an4/asr1/41epoch.pth\n",
+            "2022-04-04T22:26:29 (asr.sh:1012:main) Stage 11: ASR Training: train_set=dump/raw/train_nodev, valid_set=dump/raw/train_dev\n",
+            "2022-04-04T22:26:29 (asr.sh:1079:main) Generate 'exp/asr_transfer_learning_with_pre_trained_model/run.sh'. You can resume the process from stage 11 using this script\n",
+            "2022-04-04T22:26:29 (asr.sh:1083:main) ASR training started... log: 'exp/asr_transfer_learning_with_pre_trained_model/train.log'\n",
+            "2022-04-04 22:26:29,844 (launch:95) INFO: /content/espnet/tools/anaconda/envs/espnet/bin/python3 /content/espnet/espnet2/bin/launch.py --cmd 'run.pl --name exp/asr_transfer_learning_with_pre_trained_model/train.log' --log exp/asr_transfer_learning_with_pre_trained_model/train.log --ngpu 1 --num_nodes 1 --init_file_prefix exp/asr_transfer_learning_with_pre_trained_model/.dist_init_ --multiprocessing_distributed true -- python3 -m espnet2.bin.asr_train --use_preprocessor true --bpemodel data/token_list/bpe_unigram30/bpe.model --token_type bpe --token_list data/token_list/bpe_unigram30/tokens.txt --non_linguistic_symbols none --cleaner none --g2p none --valid_data_path_and_name_and_type dump/raw/train_dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/train_dev/text,text,text --valid_shape_file exp/asr_stats_raw_bpe30/valid/speech_shape --valid_shape_file exp/asr_stats_raw_bpe30/valid/text_shape.bpe --resume true --init_param /content/espnet/egs2/mini_an4/asr1/41epoch.pth --ignore_init_mismatch false --fold_length 80000 --fold_length 150 --output_dir exp/asr_transfer_learning_with_pre_trained_model --config conf/train_asr.yaml --frontend_conf fs=16k --normalize=global_mvn --normalize_conf stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz --train_data_path_and_name_and_type dump/raw/train_nodev/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_nodev/text,text,text --train_shape_file exp/asr_stats_raw_bpe30/train/speech_shape --train_shape_file exp/asr_stats_raw_bpe30/train/text_shape.bpe\n",
+            "2022-04-04 22:26:29,872 (launch:349) INFO: log file: exp/asr_transfer_learning_with_pre_trained_model/train.log\n",
+            "run.pl: job failed, log is in exp/asr_transfer_learning_with_pre_trained_model/train.log\n",
+            "Command '['run.pl', '--name', 'exp/asr_transfer_learning_with_pre_trained_model/train.log', '--gpu', '1', 'exp/asr_transfer_learning_with_pre_trained_model/train.log', 'python3', '-m', 'espnet2.bin.asr_train', '--use_preprocessor', 'true', '--bpemodel', 'data/token_list/bpe_unigram30/bpe.model', '--token_type', 'bpe', '--token_list', 'data/token_list/bpe_unigram30/tokens.txt', '--non_linguistic_symbols', 'none', '--cleaner', 'none', '--g2p', 'none', '--valid_data_path_and_name_and_type', 'dump/raw/train_dev/wav.scp,speech,sound', '--valid_data_path_and_name_and_type', 'dump/raw/train_dev/text,text,text', '--valid_shape_file', 'exp/asr_stats_raw_bpe30/valid/speech_shape', '--valid_shape_file', 'exp/asr_stats_raw_bpe30/valid/text_shape.bpe', '--resume', 'true', '--init_param', '/content/espnet/egs2/mini_an4/asr1/41epoch.pth', '--ignore_init_mismatch', 'false', '--fold_length', '80000', '--fold_length', '150', '--output_dir', 'exp/asr_transfer_learning_with_pre_trained_model', '--config', 'conf/train_asr.yaml', '--frontend_conf', 'fs=16k', '--normalize=global_mvn', '--normalize_conf', 'stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz', '--train_data_path_and_name_and_type', 'dump/raw/train_nodev/wav.scp,speech,sound', '--train_data_path_and_name_and_type', 'dump/raw/train_nodev/text,text,text', '--train_shape_file', 'exp/asr_stats_raw_bpe30/train/speech_shape', '--train_shape_file', 'exp/asr_stats_raw_bpe30/train/text_shape.bpe', '--ngpu', '1', '--multiprocessing_distributed', 'True']' returned non-zero exit status 1.\n",
+            "Traceback (most recent call last):\n",
+            "  File \"/content/espnet/tools/anaconda/envs/espnet/lib/python3.9/runpy.py\", line 197, in _run_module_as_main\n",
+            "    return _run_code(code, main_globals, None,\n",
+            "  File \"/content/espnet/tools/anaconda/envs/espnet/lib/python3.9/runpy.py\", line 87, in _run_code\n",
+            "    exec(code, run_globals)\n",
+            "  File \"/content/espnet/espnet2/bin/launch.py\", line 385, in <module>\n",
+            "    main()\n",
+            "  File \"/content/espnet/espnet2/bin/launch.py\", line 376, in main\n",
+            "    raise RuntimeError(\n",
+            "RuntimeError: \n",
+            "################### The last 1000 lines of exp/asr_transfer_learning_with_pre_trained_model/train.log ###################\n",
+            "# python3 -m espnet2.bin.asr_train --use_preprocessor true --bpemodel data/token_list/bpe_unigram30/bpe.model --token_type bpe --token_list data/token_list/bpe_unigram30/tokens.txt --non_linguistic_symbols none --cleaner none --g2p none --valid_data_path_and_name_and_type dump/raw/train_dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/train_dev/text,text,text --valid_shape_file exp/asr_stats_raw_bpe30/valid/speech_shape --valid_shape_file exp/asr_stats_raw_bpe30/valid/text_shape.bpe --resume true --init_param /content/espnet/egs2/mini_an4/asr1/41epoch.pth --ignore_init_mismatch false --fold_length 80000 --fold_length 150 --output_dir exp/asr_transfer_learning_with_pre_trained_model --config conf/train_asr.yaml --frontend_conf fs=16k --normalize=global_mvn --normalize_conf stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz --train_data_path_and_name_and_type dump/raw/train_nodev/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_nodev/text,text,text --train_shape_file exp/asr_stats_raw_bpe30/train/speech_shape --train_shape_file exp/asr_stats_raw_bpe30/train/text_shape.bpe --ngpu 1 --multiprocessing_distributed True \n",
+            "# Started at Mon Apr  4 22:26:29 UTC 2022\n",
+            "#\n",
+            "/content/espnet/tools/anaconda/envs/espnet/bin/python3 /content/espnet/espnet2/bin/asr_train.py --use_preprocessor true --bpemodel data/token_list/bpe_unigram30/bpe.model --token_type bpe --token_list data/token_list/bpe_unigram30/tokens.txt --non_linguistic_symbols none --cleaner none --g2p none --valid_data_path_and_name_and_type dump/raw/train_dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/train_dev/text,text,text --valid_shape_file exp/asr_stats_raw_bpe30/valid/speech_shape --valid_shape_file exp/asr_stats_raw_bpe30/valid/text_shape.bpe --resume true --init_param /content/espnet/egs2/mini_an4/asr1/41epoch.pth --ignore_init_mismatch false --fold_length 80000 --fold_length 150 --output_dir exp/asr_transfer_learning_with_pre_trained_model --config conf/train_asr.yaml --frontend_conf fs=16k --normalize=global_mvn --normalize_conf stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz --train_data_path_and_name_and_type dump/raw/train_nodev/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_nodev/text,text,text --train_shape_file exp/asr_stats_raw_bpe30/train/speech_shape --train_shape_file exp/asr_stats_raw_bpe30/train/text_shape.bpe --ngpu 1 --multiprocessing_distributed True\n",
+            "[a7588ebdfd24] 2022-04-04 22:26:32,466 (asr:411) INFO: Vocabulary size: 30\n",
+            "/content/espnet/espnet2/schedulers/noam_lr.py:40: UserWarning: NoamLR is deprecated. Use WarmupLR(warmup_steps=1000) with Optimizer(lr=0.0017677669529663688)\n",
+            "  warnings.warn(\n",
+            "[a7588ebdfd24] 2022-04-04 22:26:34,960 (abs_task:1157) INFO: pytorch.version=1.10.1, cuda.available=True, cudnn.version=7605, cudnn.benchmark=False, cudnn.deterministic=True\n",
+            "[a7588ebdfd24] 2022-04-04 22:26:34,966 (abs_task:1158) INFO: Model structure:\n",
+            "ESPnetASRModel(\n",
+            "  (frontend): DefaultFrontend(\n",
+            "    (stft): Stft(n_fft=512, win_length=512, hop_length=128, center=True, normalized=False, onesided=True)\n",
+            "    (frontend): Frontend()\n",
+            "    (logmel): LogMel(sr=16000, n_fft=512, n_mels=80, fmin=0, fmax=8000.0, htk=False)\n",
+            "  )\n",
+            "  (normalize): GlobalMVN(stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz, norm_means=True, norm_vars=True)\n",
+            "  (encoder): TransformerEncoder(\n",
+            "    (embed): Conv2dSubsampling(\n",
+            "      (conv): Sequential(\n",
+            "        (0): Conv2d(1, 256, kernel_size=(3, 3), stride=(2, 2))\n",
+            "        (1): ReLU()\n",
+            "        (2): Conv2d(256, 256, kernel_size=(3, 3), stride=(2, 2))\n",
+            "        (3): ReLU()\n",
+            "      )\n",
+            "      (out): Sequential(\n",
+            "        (0): Linear(in_features=4864, out_features=256, bias=True)\n",
+            "        (1): PositionalEncoding(\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "        )\n",
+            "      )\n",
+            "    )\n",
+            "    (encoders): MultiSequential(\n",
+            "      (0): EncoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (1): EncoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (2): EncoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (3): EncoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (4): EncoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (5): EncoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (6): EncoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (7): EncoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (8): EncoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (9): EncoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (10): EncoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (11): EncoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "    )\n",
+            "    (after_norm): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "  )\n",
+            "  (decoder): TransformerDecoder(\n",
+            "    (embed): Sequential(\n",
+            "      (0): Embedding(30, 256)\n",
+            "      (1): PositionalEncoding(\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "    )\n",
+            "    (after_norm): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "    (output_layer): Linear(in_features=256, out_features=30, bias=True)\n",
+            "    (decoders): MultiSequential(\n",
+            "      (0): DecoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (src_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm3): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (1): DecoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (src_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm3): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (2): DecoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (src_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm3): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (3): DecoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (src_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm3): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (4): DecoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (src_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm3): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "      (5): DecoderLayer(\n",
+            "        (self_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (src_attn): MultiHeadedAttention(\n",
+            "          (linear_q): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_k): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_v): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (linear_out): Linear(in_features=256, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.0, inplace=False)\n",
+            "        )\n",
+            "        (feed_forward): PositionwiseFeedForward(\n",
+            "          (w_1): Linear(in_features=256, out_features=2048, bias=True)\n",
+            "          (w_2): Linear(in_features=2048, out_features=256, bias=True)\n",
+            "          (dropout): Dropout(p=0.1, inplace=False)\n",
+            "          (activation): ReLU()\n",
+            "        )\n",
+            "        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (norm3): LayerNorm((256,), eps=1e-12, elementwise_affine=True)\n",
+            "        (dropout): Dropout(p=0.1, inplace=False)\n",
+            "      )\n",
+            "    )\n",
+            "  )\n",
+            "  (criterion_att): LabelSmoothingLoss(\n",
+            "    (criterion): KLDivLoss()\n",
+            "  )\n",
+            "  (ctc): CTC(\n",
+            "    (ctc_lo): Linear(in_features=256, out_features=30, bias=True)\n",
+            "    (ctc_loss): CTCLoss()\n",
+            "  )\n",
+            ")\n",
+            "\n",
+            "Model summary:\n",
+            "    Class Name: ESPnetASRModel\n",
+            "    Total Number of model parameters: 27.12 M\n",
+            "    Number of trainable parameters: 27.12 M (100.0%)\n",
+            "    Size: 108.46 MB\n",
+            "    Type: torch.float32\n",
+            "[a7588ebdfd24] 2022-04-04 22:26:34,966 (abs_task:1161) INFO: Optimizer:\n",
+            "Adam (\n",
+            "Parameter Group 0\n",
+            "    amsgrad: False\n",
+            "    betas: (0.9, 0.999)\n",
+            "    eps: 1e-08\n",
+            "    initial_lr: 1.0\n",
+            "    lr: 1.7677669529663689e-06\n",
+            "    weight_decay: 0\n",
+            ")\n",
+            "[a7588ebdfd24] 2022-04-04 22:26:34,966 (abs_task:1162) INFO: Scheduler: NoamLR(model_size=320, warmup_steps=1000)\n",
+            "[a7588ebdfd24] 2022-04-04 22:26:34,966 (abs_task:1171) INFO: Saving the configuration in exp/asr_transfer_learning_with_pre_trained_model/config.yaml\n",
+            "[a7588ebdfd24] 2022-04-04 22:26:34,977 (abs_task:1228) INFO: Loading pretrained params from /content/espnet/egs2/mini_an4/asr1/41epoch.pth\n",
+            "Traceback (most recent call last):\n",
+            "  File \"/content/espnet/tools/anaconda/envs/espnet/lib/python3.9/runpy.py\", line 197, in _run_module_as_main\n",
+            "    return _run_code(code, main_globals, None,\n",
+            "  File \"/content/espnet/tools/anaconda/envs/espnet/lib/python3.9/runpy.py\", line 87, in _run_code\n",
+            "    exec(code, run_globals)\n",
+            "  File \"/content/espnet/espnet2/bin/asr_train.py\", line 23, in <module>\n",
+            "    main()\n",
+            "  File \"/content/espnet/espnet2/bin/asr_train.py\", line 19, in main\n",
+            "    ASRTask.main(cmd=cmd)\n",
+            "  File \"/content/espnet/espnet2/tasks/abs_task.py\", line 1019, in main\n",
+            "    cls.main_worker(args)\n",
+            "  File \"/content/espnet/espnet2/tasks/abs_task.py\", line 1229, in main_worker\n",
+            "    load_pretrained_model(\n",
+            "  File \"/content/espnet/espnet2/torch_utils/load_pretrained_model.py\", line 117, in load_pretrained_model\n",
+            "    obj.load_state_dict(dst_state)\n",
+            "  File \"/content/espnet/tools/anaconda/envs/espnet/lib/python3.9/site-packages/torch/nn/modules/module.py\", line 1482, in load_state_dict\n",
+            "    raise RuntimeError('Error(s) in loading state_dict for {}:\\n\\t{}'.format(\n",
+            "RuntimeError: Error(s) in loading state_dict for ESPnetASRModel:\n",
+            "\tsize mismatch for decoder.embed.0.weight: copying a param with shape torch.Size([1000, 256]) from checkpoint, the shape in current model is torch.Size([30, 256]).\n",
+            "\tsize mismatch for decoder.output_layer.weight: copying a param with shape torch.Size([1000, 256]) from checkpoint, the shape in current model is torch.Size([30, 256]).\n",
+            "\tsize mismatch for decoder.output_layer.bias: copying a param with shape torch.Size([1000]) from checkpoint, the shape in current model is torch.Size([30]).\n",
+            "\tsize mismatch for ctc.ctc_lo.weight: copying a param with shape torch.Size([1000, 256]) from checkpoint, the shape in current model is torch.Size([30, 256]).\n",
+            "\tsize mismatch for ctc.ctc_lo.bias: copying a param with shape torch.Size([1000]) from checkpoint, the shape in current model is torch.Size([30]).\n",
+            "# Accounting: time=6 threads=1\n",
+            "# Ended (code 1) at Mon Apr  4 22:26:35 UTC 2022, elapsed time 6 seconds\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "To solve this issue, as mentionned, we can use the ``` --ignore_init_mismatch \"true\" ``` parameter.\n"
+      ],
+      "metadata": {
+        "id": "iGoeZ_tfsRQy"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# takes about 1-2 minutes\n",
+        "!./asr.sh --stage 11 --stop_stage 11 --train-set \"train_nodev\" --valid-set \"train_dev\" \\\n",
+        "--test_sets \"test\" --asr_config \"conf/train_asr.yaml\" --asr_tag \"transfer_learning_with_pre_trained_model_from_HF\"\\\n",
+        " --pretrained_model \"/content/espnet/egs2/mini_an4/asr1/41epoch.pth\" --ignore_init_mismatch \"true\" "
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "b0gXEHGRHy9N",
+        "outputId": "9583594a-8a4c-4572-8e4d-5ab8eba6d1b4"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "2022-04-04T22:35:41 (asr.sh:252:main) ./asr.sh --stage 11 --stop_stage 11 --train-set train_nodev --valid-set train_dev --test_sets test --asr_config conf/train_asr.yaml --asr_tag transfer_learning_with_pre_trained_model_from_HF --pretrained_model /content/espnet/egs2/mini_an4/asr1/41epoch.pth --ignore_init_mismatch true\n",
+            "2022-04-04T22:35:42 (asr.sh:1012:main) Stage 11: ASR Training: train_set=dump/raw/train_nodev, valid_set=dump/raw/train_dev\n",
+            "2022-04-04T22:35:42 (asr.sh:1079:main) Generate 'exp/asr_transfer_learning_with_pre_trained_model_from_HF/run.sh'. You can resume the process from stage 11 using this script\n",
+            "2022-04-04T22:35:42 (asr.sh:1083:main) ASR training started... log: 'exp/asr_transfer_learning_with_pre_trained_model_from_HF/train.log'\n",
+            "2022-04-04 22:35:42,611 (launch:95) INFO: /content/espnet/tools/anaconda/envs/espnet/bin/python3 /content/espnet/espnet2/bin/launch.py --cmd 'run.pl --name exp/asr_transfer_learning_with_pre_trained_model_from_HF/train.log' --log exp/asr_transfer_learning_with_pre_trained_model_from_HF/train.log --ngpu 1 --num_nodes 1 --init_file_prefix exp/asr_transfer_learning_with_pre_trained_model_from_HF/.dist_init_ --multiprocessing_distributed true -- python3 -m espnet2.bin.asr_train --use_preprocessor true --bpemodel data/token_list/bpe_unigram30/bpe.model --token_type bpe --token_list data/token_list/bpe_unigram30/tokens.txt --non_linguistic_symbols none --cleaner none --g2p none --valid_data_path_and_name_and_type dump/raw/train_dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/train_dev/text,text,text --valid_shape_file exp/asr_stats_raw_bpe30/valid/speech_shape --valid_shape_file exp/asr_stats_raw_bpe30/valid/text_shape.bpe --resume true --init_param /content/espnet/egs2/mini_an4/asr1/41epoch.pth --ignore_init_mismatch true --fold_length 80000 --fold_length 150 --output_dir exp/asr_transfer_learning_with_pre_trained_model_from_HF --config conf/train_asr.yaml --frontend_conf fs=16k --normalize=global_mvn --normalize_conf stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz --train_data_path_and_name_and_type dump/raw/train_nodev/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_nodev/text,text,text --train_shape_file exp/asr_stats_raw_bpe30/train/speech_shape --train_shape_file exp/asr_stats_raw_bpe30/train/text_shape.bpe\n",
+            "2022-04-04 22:35:42,653 (launch:349) INFO: log file: exp/asr_transfer_learning_with_pre_trained_model_from_HF/train.log\n",
+            "2022-04-04T22:37:09 (asr.sh:1480:main) Skip the uploading stage\n",
+            "2022-04-04T22:37:09 (asr.sh:1532:main) Skip the uploading to HuggingFace stage\n",
+            "2022-04-04T22:37:09 (asr.sh:1535:main) Successfully finished. [elapsed=88s]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "__Additional note about the ```--ignore_init_mismatch true``` option :__ This option is very convenient because in lots of transfer learning use cases, you will aim to use a model trained on a language X (e.g. X=English) for another language Y. Language Y may have a vocabulary (set of tokens) different from language X, for instance if you target Y=Totonac, a Mexican low resource language, your model may be stronger if you use a different set of bpes/tokens thatn the one used to train the English model. In that situation, the last layer (projection to vocabulary space) of your ASR model needs to be initialized from scratch and may be different in shape than the one of the English model. For that reason, you should use the ```--ignore_init_mismatch true``` option. It also enables to handle the case where the scripts are differents from languages X to Y."
+      ],
+      "metadata": {
+        "id": "LzHtrFPIVwAT"
+      }
+    }
+  ]
+}

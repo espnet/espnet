@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Use transfer learning for ASR in ESPnet2 &mdash; ESPnet 202204 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ESPnet2 real streaming Transformer demonstration" href="espnet2_streaming_asr_demo.html" />
+    <link rel="prev" title="ESPnet2-ASR realtime demonstration" href="espnet2_asr_realtime_demo.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> ESPnet
+          </a>
+              <div class="version">
+                202204
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="#Abstract">Abstract</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Why-using-such-(pre-)trained-models-?">Why using such (pre-)trained models ?</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Use-a-trained-model-from-ESPnet-repository-on-HuggingFace.">Use a trained model from ESPnet repository on HuggingFace.</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial_2021_CMU_11751_18781.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial_2021_CMU_11751_18781.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial_2021_CMU_11751_18781.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial_2021_CMU_11751_18781.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+      <li><strong>Use transfer learning for ASR in ESPnet2</strong></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebook/espnet2_asr_transfer_learning_demo.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt .copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+div.rendered_html th {
+  font-weight: bold;
+}
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="Use-transfer-learning-for-ASR-in-ESPnet2">
+<h1><strong>Use transfer learning for ASR in ESPnet2</strong><a class="headerlink" href="#Use-transfer-learning-for-ASR-in-ESPnet2" title="Permalink to this headline">¶</a></h1>
+<p>Author : Dan Berrebbi (<a class="reference external" href="mailto:dberrebb&#37;&#52;&#48;andrew&#46;cmu&#46;edu">dberrebb<span>&#64;</span>andrew<span>&#46;</span>cmu<span>&#46;</span>edu</a>)</p>
+<p>Date : April 11th, 2022</p>
+</section>
+<section id="Abstract">
+<h1>Abstract<a class="headerlink" href="#Abstract" title="Permalink to this headline">¶</a></h1>
+<p>In that tutorial, we will introduce several options to use pre-trained models/parameters for Automatic Speech Recognition (ASR) in ESPnet2. Available options are : - use a local model you (or a collegue) have already trained, - use a trained model from <a class="reference external" href="https://huggingface.co/espnet">ESPnet repository on HuggingFace</a>.</p>
+<p>We note that this is done for ASR training, so at <strong>stage 11</strong> of ESPnet2 models’ recipe.</p>
+<section id="Why-using-such-(pre-)trained-models-?">
+<h2>Why using such (pre-)trained models ?<a class="headerlink" href="#Why-using-such-(pre-)trained-models-?" title="Permalink to this headline">¶</a></h2>
+<p>Several projects may involve making use of previously trained models, this is the reason why we developed ESPnet repository on HuggingFace for instance. Example of use cases are listed below (non-exhaustive): - target a low resource language, a model trained from scratch may perform badly if trained with only few hours of data, - study robustness to shifts (domain, language … shifts) of a model, - make use of massively trained multilingual models. - …</p>
+</section>
+</section>
+<section id="ESPnet-installation-(about-10-minutes-in-total)">
+<h1>ESPnet installation (about 10 minutes in total)<a class="headerlink" href="#ESPnet-installation-(about-10-minutes-in-total)" title="Permalink to this headline">¶</a></h1>
+<p>Please use the gpu environnement provided by google colab for runing this notebook.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!git clone --depth 5 https://github.com/espnet/espnet
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It takes 30 seconds
+%cd /content/espnet/tools
+!./setup_anaconda.sh anaconda espnet 3.9
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It may take ~8 minutes
+%cd /content/espnet/tools
+!make CUDA_VERSION=10.2
+</pre></div>
+</div>
+</div>
+</section>
+<section id="mini_an4-recipe-as-a-transfer-learning-example">
+<h1>mini_an4 recipe as a transfer learning example<a class="headerlink" href="#mini_an4-recipe-as-a-transfer-learning-example" title="Permalink to this headline">¶</a></h1>
+<p>In this example, we use the <strong>mini_an4</strong> data, which has only 4 utterances for training. This is of course too small to train an ASR model, but it enables to run all the decribed transfer learning models on a colab environnement. After having run and understood those models/instructions, you can apply it to any other recipe of ESPnet2 or a new recipe that you build. First, move to the recipe directory</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="n">cd</span> <span class="o">/</span><span class="n">content</span><span class="o">/</span><span class="n">espnet</span><span class="o">/</span><span class="n">egs2</span><span class="o">/</span><span class="n">mini_an4</span><span class="o">/</span><span class="n">asr1</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+/content/espnet/egs2/mini_an4/asr1
+</pre></div></div>
+</div>
+<p><strong>Add a configuration file</strong></p>
+<p>As the mini_an4 does not contain any configuration file for ASR model, we add one here.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;accum_grad&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+ <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+ <span class="s1">&#39;batch_type&#39;</span><span class="p">:</span> <span class="s1">&#39;folded&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;best_model_criterion&#39;</span><span class="p">:</span> <span class="p">[[</span><span class="s1">&#39;valid&#39;</span><span class="p">,</span> <span class="s1">&#39;acc&#39;</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">]],</span>
+ <span class="s1">&#39;decoder&#39;</span><span class="p">:</span> <span class="s1">&#39;transformer&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;decoder_conf&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;dropout_rate&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+  <span class="s1">&#39;input_layer&#39;</span><span class="p">:</span> <span class="s1">&#39;embed&#39;</span><span class="p">,</span>
+  <span class="s1">&#39;linear_units&#39;</span><span class="p">:</span> <span class="mi">2048</span><span class="p">,</span>
+  <span class="s1">&#39;num_blocks&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">},</span>
+ <span class="s1">&#39;encoder&#39;</span><span class="p">:</span> <span class="s1">&#39;transformer&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;encoder_conf&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;attention_dropout_rate&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+  <span class="s1">&#39;attention_heads&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+  <span class="s1">&#39;dropout_rate&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+  <span class="s1">&#39;input_layer&#39;</span><span class="p">:</span> <span class="s1">&#39;conv2d&#39;</span><span class="p">,</span>
+  <span class="s1">&#39;linear_units&#39;</span><span class="p">:</span> <span class="mi">2048</span><span class="p">,</span>
+  <span class="s1">&#39;num_blocks&#39;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span>
+  <span class="s1">&#39;output_size&#39;</span><span class="p">:</span> <span class="mi">256</span><span class="p">},</span>
+ <span class="s1">&#39;grad_clip&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+ <span class="s1">&#39;init&#39;</span><span class="p">:</span> <span class="s1">&#39;xavier_uniform&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;keep_nbest_models&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+ <span class="s1">&#39;max_epoch&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+ <span class="s1">&#39;model_conf&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;ctc_weight&#39;</span><span class="p">:</span> <span class="mf">0.3</span><span class="p">,</span>
+  <span class="s1">&#39;length_normalized_loss&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+  <span class="s1">&#39;lsm_weight&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
+ <span class="s1">&#39;optim&#39;</span><span class="p">:</span> <span class="s1">&#39;adam&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;optim_conf&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;lr&#39;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span>
+ <span class="s1">&#39;patience&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+ <span class="s1">&#39;scheduler&#39;</span><span class="p">:</span> <span class="s1">&#39;noamlr&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;scheduler_conf&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;warmup_steps&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">}}</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">yaml</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;conf/train_asr.yaml&quot;</span><span class="p">,</span><span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+  <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p><strong>Data preparation (stage 1 - stage 5)</strong></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!./asr.sh --stage 1 --stop_stage 5 --train-set &quot;train_nodev&quot; --valid-set &quot;train_dev&quot; --test_sets &quot;test&quot;
+</pre></div>
+</div>
+</div>
+<p><strong>Stage 10: ASR collect stats</strong>:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># takes about 10 seconds
+!./asr.sh --stage 10 --stop_stage 10 --train-set &quot;train_nodev&quot; --valid-set &quot;train_dev&quot; --test_sets &quot;test&quot; --asr_config &quot;conf/train_asr.yaml&quot;
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2022-04-04T22:16:43 (asr.sh:252:main) ./asr.sh --stage 10 --stop_stage 10 --train-set train_nodev --valid-set train_dev --test_sets test --asr_config conf/train_asr.yaml
+2022-04-04T22:16:43 (asr.sh:911:main) Stage 10: ASR collect stats: train_set=dump/raw/train_nodev, valid_set=dump/raw/train_dev
+2022-04-04T22:16:43 (asr.sh:961:main) Generate &#39;exp/asr_stats_raw_bpe30/run.sh&#39;. You can resume the process from stage 10 using this script
+2022-04-04T22:16:43 (asr.sh:965:main) ASR collect-stats started... log: &#39;exp/asr_stats_raw_bpe30/logdir/stats.*.log&#39;
+/content/espnet/tools/anaconda/envs/espnet/bin/python3 /content/espnet/espnet2/bin/aggregate_stats_dirs.py --input_dir exp/asr_stats_raw_bpe30/logdir/stats.1 --output_dir exp/asr_stats_raw_bpe30
+2022-04-04T22:16:48 (asr.sh:1480:main) Skip the uploading stage
+2022-04-04T22:16:48 (asr.sh:1532:main) Skip the uploading to HuggingFace stage
+2022-04-04T22:16:48 (asr.sh:1535:main) Successfully finished. [elapsed=5s]
+</pre></div></div>
+</div>
+<p><strong>Stage 11: ASR training (from scratch)</strong></p>
+<p>We train our model for only 5 epochs, just to have a pre-trained model.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># takes about 1-2 minutes
+!./asr.sh --stage 11 --stop_stage 11 --train-set &quot;train_nodev&quot; --valid-set &quot;train_dev&quot; --test_sets &quot;test&quot; --asr_config &quot;conf/train_asr.yaml&quot; --asr_tag &quot;pre_trained_model&quot;
+</pre></div>
+</div>
+</div>
+<p><strong>Stage 11.2 : ASR training over a pre-trained model</strong></p>
+<p>We train our new model over the previously trained model. (here as we use the same training data, this is not very useful, but again this is a toy example that is reproducible with any model.)</p>
+<p><strong>Step 1</strong> : make sure your ASR model file has the proper ESPnet format (should be ok if trained with ESPnet). It just needs to be a “.pth” (or “.pt” or other extension) type pytorch model.</p>
+<p><strong>Step 2</strong> : add the parameter <code class="docutils literal notranslate"><span class="pre">--pretrained_model</span> <span class="pre">path/to/your/pretrained/model/file.pth</span></code> to run.sh.</p>
+<p><strong>Step 3</strong> : step 2 will initialize your new model with the parameters of the pre-trained model. Thus your new model will be trained with a strong initialization. However, if your new model have different parameter sizes for some parts of the model (e.g. last projection layer could be modified …). This will lead to an error because of mismatches in size. To prevent this to happen, you can add the parameter <code class="docutils literal notranslate"><span class="pre">--ignore_init_mismatch</span> <span class="pre">true</span></code> in run.sh.</p>
+<p><strong>Step 4 (Optional)</strong> : if you only want to use some specific parts of the pre-trained model, or exclude specific parts, you can specify it in the <code class="docutils literal notranslate"><span class="pre">--pretrained_model</span></code> argument by passing the component names with the following syntax : <code class="docutils literal notranslate"><span class="pre">--pretrained_model</span> <span class="pre">&lt;file_path&gt;:&lt;src_key&gt;:&lt;dst_key&gt;:&lt;exclude_Keys&gt;</span></code>. <code class="docutils literal notranslate"><span class="pre">src_key</span></code> are the parameters you want to keep from the pre-trained model. <code class="docutils literal notranslate"><span class="pre">dst_key</span></code> are the parameters you want to initialize in the new model with the <code class="docutils literal notranslate"><span class="pre">src_key</span></code>parameters. And
+<code class="docutils literal notranslate"><span class="pre">exclude_Keys</span></code> are the parameters from the pre-trained model that you do not want to use. You can leave <code class="docutils literal notranslate"><span class="pre">src_key</span></code> and <code class="docutils literal notranslate"><span class="pre">dst_key</span></code> fields empty and just fill <code class="docutils literal notranslate"><span class="pre">exclude_Keys</span></code> with the parameters that you ant to drop. For instance, if you want to re-use encoder parameters but not decoder ones, syntax will be <code class="docutils literal notranslate"><span class="pre">--pretrained_model</span> <span class="pre">&lt;file_path&gt;:::decoder</span></code>. You can see the argument expected format in more details
+<a class="reference external" href="https://github.com/espnet/espnet/blob/e76c78c0c661ab37cc081d46d9b059dcb31292fe/espnet2/torch_utils/load_pretrained_model.py#L43-L53">here</a>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># takes about 1-2 minutes
+!./asr.sh --stage 11 --stop_stage 11 --train-set &quot;train_nodev&quot; --valid-set &quot;train_dev&quot; \
+--test_sets &quot;test&quot; --asr_config &quot;conf/train_asr.yaml&quot; --asr_tag &quot;transfer_learning_with_pre_trained_model&quot;\
+ --pretrained_model &quot;/content/espnet/egs2/mini_an4/asr1/exp/asr_train_asr_raw_bpe30/valid.acc.ave.pth&quot;
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2022-04-04T22:23:12 (asr.sh:252:main) ./asr.sh --stage 11 --stop_stage 11 --train-set train_nodev --valid-set train_dev --test_sets test --asr_config conf/train_asr.yaml --asr_tag transfer_learning_with_pre_trained_model --pretrained_model /content/espnet/egs2/mini_an4/asr1/exp/asr_train_asr_raw_bpe30/valid.acc.ave.pth
+2022-04-04T22:23:13 (asr.sh:1012:main) Stage 11: ASR Training: train_set=dump/raw/train_nodev, valid_set=dump/raw/train_dev
+2022-04-04T22:23:13 (asr.sh:1079:main) Generate &#39;exp/asr_transfer_learning_with_pre_trained_model/run.sh&#39;. You can resume the process from stage 11 using this script
+2022-04-04T22:23:13 (asr.sh:1083:main) ASR training started... log: &#39;exp/asr_transfer_learning_with_pre_trained_model/train.log&#39;
+2022-04-04 22:23:13,470 (launch:95) INFO: /content/espnet/tools/anaconda/envs/espnet/bin/python3 /content/espnet/espnet2/bin/launch.py --cmd &#39;run.pl --name exp/asr_transfer_learning_with_pre_trained_model/train.log&#39; --log exp/asr_transfer_learning_with_pre_trained_model/train.log --ngpu 1 --num_nodes 1 --init_file_prefix exp/asr_transfer_learning_with_pre_trained_model/.dist_init_ --multiprocessing_distributed true -- python3 -m espnet2.bin.asr_train --use_preprocessor true --bpemodel data/token_list/bpe_unigram30/bpe.model --token_type bpe --token_list data/token_list/bpe_unigram30/tokens.txt --non_linguistic_symbols none --cleaner none --g2p none --valid_data_path_and_name_and_type dump/raw/train_dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/train_dev/text,text,text --valid_shape_file exp/asr_stats_raw_bpe30/valid/speech_shape --valid_shape_file exp/asr_stats_raw_bpe30/valid/text_shape.bpe --resume true --init_param /content/espnet/egs2/mini_an4/asr1/exp/asr_train_asr_raw_bpe30/valid.acc.ave.pth --ignore_init_mismatch false --fold_length 80000 --fold_length 150 --output_dir exp/asr_transfer_learning_with_pre_trained_model --config conf/train_asr.yaml --frontend_conf fs=16k --normalize=global_mvn --normalize_conf stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz --train_data_path_and_name_and_type dump/raw/train_nodev/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_nodev/text,text,text --train_shape_file exp/asr_stats_raw_bpe30/train/speech_shape --train_shape_file exp/asr_stats_raw_bpe30/train/text_shape.bpe
+2022-04-04 22:23:13,504 (launch:349) INFO: log file: exp/asr_transfer_learning_with_pre_trained_model/train.log
+2022-04-04T22:24:24 (asr.sh:1480:main) Skip the uploading stage
+2022-04-04T22:24:24 (asr.sh:1532:main) Skip the uploading to HuggingFace stage
+2022-04-04T22:24:24 (asr.sh:1535:main) Successfully finished. [elapsed=72s]
+</pre></div></div>
+</div>
+<p><strong>Stage 11.3 : ASR training over a HuggingFace pre-trained model</strong></p>
+<p>We train our new model over the previously trained model from HuggingFace. Any model can be used, here we take a model trained on Bengali as an example. It can be found at <a class="reference external" href="https://huggingface.co/espnet/bn_openslr53">https://huggingface.co/espnet/bn_openslr53</a>.</p>
+<section id="Use-a-trained-model-from-ESPnet-repository-on-HuggingFace.">
+<h2>Use a trained model from ESPnet repository on HuggingFace.<a class="headerlink" href="#Use-a-trained-model-from-ESPnet-repository-on-HuggingFace." title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="https://huggingface.co/espnet">ESPnet repository on HuggingFace</a> contains more than 200 pre-trained models, for a wide variety of languages and dataset, and we are actively expanding this repositories with new models every week! This enable any user to perform transfer learning with a wide variety of models without having to re-train them. In order to use our pre-trained models, the first step is to download the “.pth” model file from the <a class="reference external" href="https://huggingface.co/espnet">HugginFace page</a>.
+There are several easy way to do it, either by manually downloading them (e.g. <code class="docutils literal notranslate"><span class="pre">wget</span> <span class="pre">https://huggingface.co/espnet/bn_openslr53/blob/main/exp/asr_train_asr_raw_bpe1000/41epoch.pth</span></code>), cloning it (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://huggingface.co/espnet/bn_openslr53</span></code>) or downloading it through an ESPnet recipe (described in the models’ pages on HuggingFace):
+<code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">espnet</span> <span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">fa1b865352475b744c37f70440de1cc6b257ba70</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">.</span> <span class="pre">cd</span> <span class="pre">egs2/bn_openslr53/asr1</span> <span class="pre">./run.sh</span> <span class="pre">--skip_data_prep</span> <span class="pre">false</span> <span class="pre">--skip_train</span> <span class="pre">true</span> <span class="pre">--download_model</span> <span class="pre">espnet/bn_openslr53</span></code></p>
+<p>Then, as you have the “.pth” model file, you can follow the steps 1 to 4 from the previous section in order to use this pre-train model.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!wget https://huggingface.co/espnet/bn_openslr53/resolve/main/exp/asr_train_asr_raw_bpe1000/41epoch.pth
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+--2022-04-04 22:25:38--  https://huggingface.co/espnet/bn_openslr53/resolve/main/exp/asr_train_asr_raw_bpe1000/41epoch.pth
+Resolving huggingface.co (huggingface.co)... 34.200.173.213, 34.197.58.156, 34.198.1.82, ...
+Connecting to huggingface.co (huggingface.co)|34.200.173.213|:443... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: https://cdn-lfs.huggingface.co/repos/93/20/93201c6e680320b347075e21105ff3d3fe5147b0fcab0126f2d3b56ed1eea0d1/6efee10b5e3904bb7a86f0bfa42761d015c2817695d78bc833c7a76c281433ac [following]
+--2022-04-04 22:25:38--  https://cdn-lfs.huggingface.co/repos/93/20/93201c6e680320b347075e21105ff3d3fe5147b0fcab0126f2d3b56ed1eea0d1/6efee10b5e3904bb7a86f0bfa42761d015c2817695d78bc833c7a76c281433ac
+Resolving cdn-lfs.huggingface.co (cdn-lfs.huggingface.co)... 108.159.227.69, 108.159.227.123, 108.159.227.71, ...
+Connecting to cdn-lfs.huggingface.co (cdn-lfs.huggingface.co)|108.159.227.69|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 111680269 (107M) [application/zip]
+Saving to: ‘41epoch.pth’
+
+41epoch.pth         100%[===================&gt;] 106.51M  68.0MB/s    in 1.6s
+
+2022-04-04 22:25:40 (68.0 MB/s) - ‘41epoch.pth’ saved [111680269/111680269]
+
+</pre></div></div>
+</div>
+<p>The next command line will raise an error because of the size mismatch of some parameters, as mentionned before (step3).</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># will fail in about 5 seconds
+!./asr.sh --stage 11 --stop_stage 11 --train-set &quot;train_nodev&quot; --valid-set &quot;train_dev&quot; \
+--test_sets &quot;test&quot; --asr_config &quot;conf/train_asr.yaml&quot; --asr_tag &quot;transfer_learning_with_pre_trained_model&quot;\
+ --pretrained_model &quot;/content/espnet/egs2/mini_an4/asr1/41epoch.pth&quot;
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2022-04-04T22:26:29 (asr.sh:252:main) ./asr.sh --stage 11 --stop_stage 11 --train-set train_nodev --valid-set train_dev --test_sets test --asr_config conf/train_asr.yaml --asr_tag transfer_learning_with_pre_trained_model --pretrained_model /content/espnet/egs2/mini_an4/asr1/41epoch.pth
+2022-04-04T22:26:29 (asr.sh:1012:main) Stage 11: ASR Training: train_set=dump/raw/train_nodev, valid_set=dump/raw/train_dev
+2022-04-04T22:26:29 (asr.sh:1079:main) Generate &#39;exp/asr_transfer_learning_with_pre_trained_model/run.sh&#39;. You can resume the process from stage 11 using this script
+2022-04-04T22:26:29 (asr.sh:1083:main) ASR training started... log: &#39;exp/asr_transfer_learning_with_pre_trained_model/train.log&#39;
+2022-04-04 22:26:29,844 (launch:95) INFO: /content/espnet/tools/anaconda/envs/espnet/bin/python3 /content/espnet/espnet2/bin/launch.py --cmd &#39;run.pl --name exp/asr_transfer_learning_with_pre_trained_model/train.log&#39; --log exp/asr_transfer_learning_with_pre_trained_model/train.log --ngpu 1 --num_nodes 1 --init_file_prefix exp/asr_transfer_learning_with_pre_trained_model/.dist_init_ --multiprocessing_distributed true -- python3 -m espnet2.bin.asr_train --use_preprocessor true --bpemodel data/token_list/bpe_unigram30/bpe.model --token_type bpe --token_list data/token_list/bpe_unigram30/tokens.txt --non_linguistic_symbols none --cleaner none --g2p none --valid_data_path_and_name_and_type dump/raw/train_dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/train_dev/text,text,text --valid_shape_file exp/asr_stats_raw_bpe30/valid/speech_shape --valid_shape_file exp/asr_stats_raw_bpe30/valid/text_shape.bpe --resume true --init_param /content/espnet/egs2/mini_an4/asr1/41epoch.pth --ignore_init_mismatch false --fold_length 80000 --fold_length 150 --output_dir exp/asr_transfer_learning_with_pre_trained_model --config conf/train_asr.yaml --frontend_conf fs=16k --normalize=global_mvn --normalize_conf stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz --train_data_path_and_name_and_type dump/raw/train_nodev/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_nodev/text,text,text --train_shape_file exp/asr_stats_raw_bpe30/train/speech_shape --train_shape_file exp/asr_stats_raw_bpe30/train/text_shape.bpe
+2022-04-04 22:26:29,872 (launch:349) INFO: log file: exp/asr_transfer_learning_with_pre_trained_model/train.log
+run.pl: job failed, log is in exp/asr_transfer_learning_with_pre_trained_model/train.log
+Command &#39;[&#39;run.pl&#39;, &#39;--name&#39;, &#39;exp/asr_transfer_learning_with_pre_trained_model/train.log&#39;, &#39;--gpu&#39;, &#39;1&#39;, &#39;exp/asr_transfer_learning_with_pre_trained_model/train.log&#39;, &#39;python3&#39;, &#39;-m&#39;, &#39;espnet2.bin.asr_train&#39;, &#39;--use_preprocessor&#39;, &#39;true&#39;, &#39;--bpemodel&#39;, &#39;data/token_list/bpe_unigram30/bpe.model&#39;, &#39;--token_type&#39;, &#39;bpe&#39;, &#39;--token_list&#39;, &#39;data/token_list/bpe_unigram30/tokens.txt&#39;, &#39;--non_linguistic_symbols&#39;, &#39;none&#39;, &#39;--cleaner&#39;, &#39;none&#39;, &#39;--g2p&#39;, &#39;none&#39;, &#39;--valid_data_path_and_name_and_type&#39;, &#39;dump/raw/train_dev/wav.scp,speech,sound&#39;, &#39;--valid_data_path_and_name_and_type&#39;, &#39;dump/raw/train_dev/text,text,text&#39;, &#39;--valid_shape_file&#39;, &#39;exp/asr_stats_raw_bpe30/valid/speech_shape&#39;, &#39;--valid_shape_file&#39;, &#39;exp/asr_stats_raw_bpe30/valid/text_shape.bpe&#39;, &#39;--resume&#39;, &#39;true&#39;, &#39;--init_param&#39;, &#39;/content/espnet/egs2/mini_an4/asr1/41epoch.pth&#39;, &#39;--ignore_init_mismatch&#39;, &#39;false&#39;, &#39;--fold_length&#39;, &#39;80000&#39;, &#39;--fold_length&#39;, &#39;150&#39;, &#39;--output_dir&#39;, &#39;exp/asr_transfer_learning_with_pre_trained_model&#39;, &#39;--config&#39;, &#39;conf/train_asr.yaml&#39;, &#39;--frontend_conf&#39;, &#39;fs=16k&#39;, &#39;--normalize=global_mvn&#39;, &#39;--normalize_conf&#39;, &#39;stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz&#39;, &#39;--train_data_path_and_name_and_type&#39;, &#39;dump/raw/train_nodev/wav.scp,speech,sound&#39;, &#39;--train_data_path_and_name_and_type&#39;, &#39;dump/raw/train_nodev/text,text,text&#39;, &#39;--train_shape_file&#39;, &#39;exp/asr_stats_raw_bpe30/train/speech_shape&#39;, &#39;--train_shape_file&#39;, &#39;exp/asr_stats_raw_bpe30/train/text_shape.bpe&#39;, &#39;--ngpu&#39;, &#39;1&#39;, &#39;--multiprocessing_distributed&#39;, &#39;True&#39;]&#39; returned non-zero exit status 1.
+Traceback (most recent call last):
+  File &#34;/content/espnet/tools/anaconda/envs/espnet/lib/python3.9/runpy.py&#34;, line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File &#34;/content/espnet/tools/anaconda/envs/espnet/lib/python3.9/runpy.py&#34;, line 87, in _run_code
+    exec(code, run_globals)
+  File &#34;/content/espnet/espnet2/bin/launch.py&#34;, line 385, in &lt;module&gt;
+    main()
+  File &#34;/content/espnet/espnet2/bin/launch.py&#34;, line 376, in main
+    raise RuntimeError(
+RuntimeError:
+################### The last 1000 lines of exp/asr_transfer_learning_with_pre_trained_model/train.log ###################
+# python3 -m espnet2.bin.asr_train --use_preprocessor true --bpemodel data/token_list/bpe_unigram30/bpe.model --token_type bpe --token_list data/token_list/bpe_unigram30/tokens.txt --non_linguistic_symbols none --cleaner none --g2p none --valid_data_path_and_name_and_type dump/raw/train_dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/train_dev/text,text,text --valid_shape_file exp/asr_stats_raw_bpe30/valid/speech_shape --valid_shape_file exp/asr_stats_raw_bpe30/valid/text_shape.bpe --resume true --init_param /content/espnet/egs2/mini_an4/asr1/41epoch.pth --ignore_init_mismatch false --fold_length 80000 --fold_length 150 --output_dir exp/asr_transfer_learning_with_pre_trained_model --config conf/train_asr.yaml --frontend_conf fs=16k --normalize=global_mvn --normalize_conf stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz --train_data_path_and_name_and_type dump/raw/train_nodev/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_nodev/text,text,text --train_shape_file exp/asr_stats_raw_bpe30/train/speech_shape --train_shape_file exp/asr_stats_raw_bpe30/train/text_shape.bpe --ngpu 1 --multiprocessing_distributed True
+# Started at Mon Apr  4 22:26:29 UTC 2022
+#
+/content/espnet/tools/anaconda/envs/espnet/bin/python3 /content/espnet/espnet2/bin/asr_train.py --use_preprocessor true --bpemodel data/token_list/bpe_unigram30/bpe.model --token_type bpe --token_list data/token_list/bpe_unigram30/tokens.txt --non_linguistic_symbols none --cleaner none --g2p none --valid_data_path_and_name_and_type dump/raw/train_dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/train_dev/text,text,text --valid_shape_file exp/asr_stats_raw_bpe30/valid/speech_shape --valid_shape_file exp/asr_stats_raw_bpe30/valid/text_shape.bpe --resume true --init_param /content/espnet/egs2/mini_an4/asr1/41epoch.pth --ignore_init_mismatch false --fold_length 80000 --fold_length 150 --output_dir exp/asr_transfer_learning_with_pre_trained_model --config conf/train_asr.yaml --frontend_conf fs=16k --normalize=global_mvn --normalize_conf stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz --train_data_path_and_name_and_type dump/raw/train_nodev/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_nodev/text,text,text --train_shape_file exp/asr_stats_raw_bpe30/train/speech_shape --train_shape_file exp/asr_stats_raw_bpe30/train/text_shape.bpe --ngpu 1 --multiprocessing_distributed True
+[a7588ebdfd24] 2022-04-04 22:26:32,466 (asr:411) INFO: Vocabulary size: 30
+/content/espnet/espnet2/schedulers/noam_lr.py:40: UserWarning: NoamLR is deprecated. Use WarmupLR(warmup_steps=1000) with Optimizer(lr=0.0017677669529663688)
+  warnings.warn(
+[a7588ebdfd24] 2022-04-04 22:26:34,960 (abs_task:1157) INFO: pytorch.version=1.10.1, cuda.available=True, cudnn.version=7605, cudnn.benchmark=False, cudnn.deterministic=True
+[a7588ebdfd24] 2022-04-04 22:26:34,966 (abs_task:1158) INFO: Model structure:
+ESPnetASRModel(
+  (frontend): DefaultFrontend(
+    (stft): Stft(n_fft=512, win_length=512, hop_length=128, center=True, normalized=False, onesided=True)
+    (frontend): Frontend()
+    (logmel): LogMel(sr=16000, n_fft=512, n_mels=80, fmin=0, fmax=8000.0, htk=False)
+  )
+  (normalize): GlobalMVN(stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz, norm_means=True, norm_vars=True)
+  (encoder): TransformerEncoder(
+    (embed): Conv2dSubsampling(
+      (conv): Sequential(
+        (0): Conv2d(1, 256, kernel_size=(3, 3), stride=(2, 2))
+        (1): ReLU()
+        (2): Conv2d(256, 256, kernel_size=(3, 3), stride=(2, 2))
+        (3): ReLU()
+      )
+      (out): Sequential(
+        (0): Linear(in_features=4864, out_features=256, bias=True)
+        (1): PositionalEncoding(
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+      )
+    )
+    (encoders): MultiSequential(
+      (0): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (1): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (2): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (3): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (4): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (5): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (6): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (7): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (8): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (9): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (10): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (11): EncoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (after_norm): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+  )
+  (decoder): TransformerDecoder(
+    (embed): Sequential(
+      (0): Embedding(30, 256)
+      (1): PositionalEncoding(
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+    (after_norm): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+    (output_layer): Linear(in_features=256, out_features=30, bias=True)
+    (decoders): MultiSequential(
+      (0): DecoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (src_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm3): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (1): DecoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (src_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm3): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (2): DecoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (src_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm3): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (3): DecoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (src_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm3): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (4): DecoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (src_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm3): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+      (5): DecoderLayer(
+        (self_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (src_attn): MultiHeadedAttention(
+          (linear_q): Linear(in_features=256, out_features=256, bias=True)
+          (linear_k): Linear(in_features=256, out_features=256, bias=True)
+          (linear_v): Linear(in_features=256, out_features=256, bias=True)
+          (linear_out): Linear(in_features=256, out_features=256, bias=True)
+          (dropout): Dropout(p=0.0, inplace=False)
+        )
+        (feed_forward): PositionwiseFeedForward(
+          (w_1): Linear(in_features=256, out_features=2048, bias=True)
+          (w_2): Linear(in_features=2048, out_features=256, bias=True)
+          (dropout): Dropout(p=0.1, inplace=False)
+          (activation): ReLU()
+        )
+        (norm1): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm2): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (norm3): LayerNorm((256,), eps=1e-12, elementwise_affine=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+      )
+    )
+  )
+  (criterion_att): LabelSmoothingLoss(
+    (criterion): KLDivLoss()
+  )
+  (ctc): CTC(
+    (ctc_lo): Linear(in_features=256, out_features=30, bias=True)
+    (ctc_loss): CTCLoss()
+  )
+)
+
+Model summary:
+    Class Name: ESPnetASRModel
+    Total Number of model parameters: 27.12 M
+    Number of trainable parameters: 27.12 M (100.0%)
+    Size: 108.46 MB
+    Type: torch.float32
+[a7588ebdfd24] 2022-04-04 22:26:34,966 (abs_task:1161) INFO: Optimizer:
+Adam (
+Parameter Group 0
+    amsgrad: False
+    betas: (0.9, 0.999)
+    eps: 1e-08
+    initial_lr: 1.0
+    lr: 1.7677669529663689e-06
+    weight_decay: 0
+)
+[a7588ebdfd24] 2022-04-04 22:26:34,966 (abs_task:1162) INFO: Scheduler: NoamLR(model_size=320, warmup_steps=1000)
+[a7588ebdfd24] 2022-04-04 22:26:34,966 (abs_task:1171) INFO: Saving the configuration in exp/asr_transfer_learning_with_pre_trained_model/config.yaml
+[a7588ebdfd24] 2022-04-04 22:26:34,977 (abs_task:1228) INFO: Loading pretrained params from /content/espnet/egs2/mini_an4/asr1/41epoch.pth
+Traceback (most recent call last):
+  File &#34;/content/espnet/tools/anaconda/envs/espnet/lib/python3.9/runpy.py&#34;, line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File &#34;/content/espnet/tools/anaconda/envs/espnet/lib/python3.9/runpy.py&#34;, line 87, in _run_code
+    exec(code, run_globals)
+  File &#34;/content/espnet/espnet2/bin/asr_train.py&#34;, line 23, in &lt;module&gt;
+    main()
+  File &#34;/content/espnet/espnet2/bin/asr_train.py&#34;, line 19, in main
+    ASRTask.main(cmd=cmd)
+  File &#34;/content/espnet/espnet2/tasks/abs_task.py&#34;, line 1019, in main
+    cls.main_worker(args)
+  File &#34;/content/espnet/espnet2/tasks/abs_task.py&#34;, line 1229, in main_worker
+    load_pretrained_model(
+  File &#34;/content/espnet/espnet2/torch_utils/load_pretrained_model.py&#34;, line 117, in load_pretrained_model
+    obj.load_state_dict(dst_state)
+  File &#34;/content/espnet/tools/anaconda/envs/espnet/lib/python3.9/site-packages/torch/nn/modules/module.py&#34;, line 1482, in load_state_dict
+    raise RuntimeError(&#39;Error(s) in loading state_dict for {}:\n\t{}&#39;.format(
+RuntimeError: Error(s) in loading state_dict for ESPnetASRModel:
+        size mismatch for decoder.embed.0.weight: copying a param with shape torch.Size([1000, 256]) from checkpoint, the shape in current model is torch.Size([30, 256]).
+        size mismatch for decoder.output_layer.weight: copying a param with shape torch.Size([1000, 256]) from checkpoint, the shape in current model is torch.Size([30, 256]).
+        size mismatch for decoder.output_layer.bias: copying a param with shape torch.Size([1000]) from checkpoint, the shape in current model is torch.Size([30]).
+        size mismatch for ctc.ctc_lo.weight: copying a param with shape torch.Size([1000, 256]) from checkpoint, the shape in current model is torch.Size([30, 256]).
+        size mismatch for ctc.ctc_lo.bias: copying a param with shape torch.Size([1000]) from checkpoint, the shape in current model is torch.Size([30]).
+# Accounting: time=6 threads=1
+# Ended (code 1) at Mon Apr  4 22:26:35 UTC 2022, elapsed time 6 seconds
+
+</pre></div></div>
+</div>
+<p>To solve this issue, as mentionned, we can use the <code class="docutils literal notranslate"><span class="pre">--ignore_init_mismatch</span> <span class="pre">&quot;true&quot;</span></code> parameter.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># takes about 1-2 minutes
+!./asr.sh --stage 11 --stop_stage 11 --train-set &quot;train_nodev&quot; --valid-set &quot;train_dev&quot; \
+--test_sets &quot;test&quot; --asr_config &quot;conf/train_asr.yaml&quot; --asr_tag &quot;transfer_learning_with_pre_trained_model_from_HF&quot;\
+ --pretrained_model &quot;/content/espnet/egs2/mini_an4/asr1/41epoch.pth&quot; --ignore_init_mismatch &quot;true&quot;
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2022-04-04T22:35:41 (asr.sh:252:main) ./asr.sh --stage 11 --stop_stage 11 --train-set train_nodev --valid-set train_dev --test_sets test --asr_config conf/train_asr.yaml --asr_tag transfer_learning_with_pre_trained_model_from_HF --pretrained_model /content/espnet/egs2/mini_an4/asr1/41epoch.pth --ignore_init_mismatch true
+2022-04-04T22:35:42 (asr.sh:1012:main) Stage 11: ASR Training: train_set=dump/raw/train_nodev, valid_set=dump/raw/train_dev
+2022-04-04T22:35:42 (asr.sh:1079:main) Generate &#39;exp/asr_transfer_learning_with_pre_trained_model_from_HF/run.sh&#39;. You can resume the process from stage 11 using this script
+2022-04-04T22:35:42 (asr.sh:1083:main) ASR training started... log: &#39;exp/asr_transfer_learning_with_pre_trained_model_from_HF/train.log&#39;
+2022-04-04 22:35:42,611 (launch:95) INFO: /content/espnet/tools/anaconda/envs/espnet/bin/python3 /content/espnet/espnet2/bin/launch.py --cmd &#39;run.pl --name exp/asr_transfer_learning_with_pre_trained_model_from_HF/train.log&#39; --log exp/asr_transfer_learning_with_pre_trained_model_from_HF/train.log --ngpu 1 --num_nodes 1 --init_file_prefix exp/asr_transfer_learning_with_pre_trained_model_from_HF/.dist_init_ --multiprocessing_distributed true -- python3 -m espnet2.bin.asr_train --use_preprocessor true --bpemodel data/token_list/bpe_unigram30/bpe.model --token_type bpe --token_list data/token_list/bpe_unigram30/tokens.txt --non_linguistic_symbols none --cleaner none --g2p none --valid_data_path_and_name_and_type dump/raw/train_dev/wav.scp,speech,sound --valid_data_path_and_name_and_type dump/raw/train_dev/text,text,text --valid_shape_file exp/asr_stats_raw_bpe30/valid/speech_shape --valid_shape_file exp/asr_stats_raw_bpe30/valid/text_shape.bpe --resume true --init_param /content/espnet/egs2/mini_an4/asr1/41epoch.pth --ignore_init_mismatch true --fold_length 80000 --fold_length 150 --output_dir exp/asr_transfer_learning_with_pre_trained_model_from_HF --config conf/train_asr.yaml --frontend_conf fs=16k --normalize=global_mvn --normalize_conf stats_file=exp/asr_stats_raw_bpe30/train/feats_stats.npz --train_data_path_and_name_and_type dump/raw/train_nodev/wav.scp,speech,sound --train_data_path_and_name_and_type dump/raw/train_nodev/text,text,text --train_shape_file exp/asr_stats_raw_bpe30/train/speech_shape --train_shape_file exp/asr_stats_raw_bpe30/train/text_shape.bpe
+2022-04-04 22:35:42,653 (launch:349) INFO: log file: exp/asr_transfer_learning_with_pre_trained_model_from_HF/train.log
+2022-04-04T22:37:09 (asr.sh:1480:main) Skip the uploading stage
+2022-04-04T22:37:09 (asr.sh:1532:main) Skip the uploading to HuggingFace stage
+2022-04-04T22:37:09 (asr.sh:1535:main) Successfully finished. [elapsed=88s]
+</pre></div></div>
+</div>
+<p><strong>Additional note about the ``–ignore_init_mismatch true`` option :</strong> This option is very convenient because in lots of transfer learning use cases, you will aim to use a model trained on a language X (e.g. X=English) for another language Y. Language Y may have a vocabulary (set of tokens) different from language X, for instance if you target Y=Totonac, a Mexican low resource language, your model may be stronger if you use a different set of bpes/tokens thatn the one used to train the English
+model. In that situation, the last layer (projection to vocabulary space) of your ASR model needs to be initialized from scratch and may be different in shape than the one of the English model. For that reason, you should use the <code class="docutils literal notranslate"><span class="pre">--ignore_init_mismatch</span> <span class="pre">true</span></code> option. It also enables to handle the case where the scripts are differents from languages X to Y.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="espnet2_asr_realtime_demo.html" class="btn btn-neutral float-left" title="ESPnet2-ASR realtime demonstration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="espnet2_streaming_asr_demo.html" class="btn btn-neutral float-right" title="ESPnet2 real streaming Transformer demonstration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
