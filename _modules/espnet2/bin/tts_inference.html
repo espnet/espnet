@@ -241,6 +241,7 @@
         <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
         <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">777</span><span class="p">,</span>
         <span class="n">always_fix_seed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">prefer_normalized_feats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Initialize Text2Speech module.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
@@ -263,6 +264,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">always_fix_seed</span> <span class="o">=</span> <span class="n">always_fix_seed</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vocoder</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefer_normalized_feats</span> <span class="o">=</span> <span class="n">prefer_normalized_feats</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tts</span><span class="o">.</span><span class="n">require_vocoder</span><span class="p">:</span>
             <span class="n">vocoder</span> <span class="o">=</span> <span class="n">TTSTask</span><span class="o">.</span><span class="n">build_vocoder_from_file</span><span class="p">(</span>
                 <span class="n">vocoder_config</span><span class="p">,</span> <span class="n">vocoder_file</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">device</span>
@@ -358,10 +360,10 @@
 
         <span class="c1"># apply vocoder (mel-to-wav)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;feat_gen_denorm&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">input_feat</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen_denorm&quot;</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefer_normalized_feats</span> <span class="ow">or</span> <span class="n">output_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;feat_gen_denorm&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">input_feat</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">input_feat</span> <span class="o">=</span> <span class="n">output_dict</span><span class="p">[</span><span class="s2">&quot;feat_gen_denorm&quot;</span><span class="p">]</span>
             <span class="n">wav</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocoder</span><span class="p">(</span><span class="n">input_feat</span><span class="p">)</span>
             <span class="n">output_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">wav</span><span class="o">=</span><span class="n">wav</span><span class="p">)</span>
 
