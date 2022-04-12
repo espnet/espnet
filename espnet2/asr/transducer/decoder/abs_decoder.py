@@ -42,7 +42,7 @@ class AbsDecoder(torch.nn.Module, ABC):
     def score(
         self,
         label: torch.Tensor,
-        label_sequence: int,
+        label_sequence: List[int],
         dec_state: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]],
         cache: Dict[str, Any],
     ) -> Optional[
