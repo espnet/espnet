@@ -17,7 +17,6 @@ nbpe=150
 
 ./asr.sh \
     --ngpu 1 \
-    --nj 1 \
     --audio_format "flac" \
     --use_lm false \
     --token_type bpe \
