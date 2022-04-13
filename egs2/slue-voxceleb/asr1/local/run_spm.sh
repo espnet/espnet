@@ -2,7 +2,7 @@
 # It takes the data prepared using token type word as input
 # It then trains a bpe model with "nbpe" number of tokens on the train transcript i.e. text after first word (intent)
 # It then encodes the transcript for train, valid and test using the trained bpe model 
-nbpe=500 #try 100, 500, 1000
+nbpe=1000 #try 100, 500, 1000
 bpemode=bpe #try unigram, bpe
 
 new_data=data_${bpemode}_${nbpe}

@@ -7,6 +7,7 @@ AISHELL3=downloads
 AISHELL4=downloads
 ALFFA=downloads
 AN4=downloads
+AUDIOSET=
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
@@ -47,6 +48,7 @@ MISP2021=
 LIBRIMIX=downloads
 LIBRITTS=
 LJSPEECH=downloads
+MUSAN=
 NSC=
 JMD=downloads
 JSSS=downloads
@@ -128,6 +130,10 @@ PRIMEWORDS_CHINESE=downloads
 SEAME=
 BENGALI=downloads
 IWSLT14=
+MALAYALAM=downloads
+ST_CMDS=downloads
+MS_INDIC_IS18=
+MARATHI=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
@@ -162,6 +168,7 @@ if [[ "$(hostname)" == tir* ]]; then
     PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
     FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
     DSING=/projects/tir5/data/speech_corpora/sing_300x30x2
+    MS_INDIC_IS18=/projects/tir6/general/cnariset/corpora/microsoft_speech_corpus_indian_languages
 fi
 
 # For only JHU environment
@@ -269,4 +276,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     IWSLT21LR=downloads/iwslt21
     TOTONAC=downloads
     GOOGLEI18N=downloads
+    MALAYALAM=
+
 fi

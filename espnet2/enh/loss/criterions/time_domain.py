@@ -1,6 +1,5 @@
 from abc import ABC
 
-import fast_bss_eval
 import ci_sdr
 import torch
 
@@ -31,12 +30,9 @@ class CISDRLoss(TimeDomainLoss):
         loss: (Batch,)
     """
 
-    def __init__(self, filter_length=512, clamp_db=None, use_cg_iter=None, load_diag=None):
+    def __init__(self, filter_length=512):
         super().__init__()
         self.filter_length = filter_length
-        self.clamp_db = clamp_db
-        self.use_cg_iter = use_cg_iter
-        self.load_diag = load_diag
 
     @property
     def name(self) -> str:
@@ -50,21 +46,9 @@ class CISDRLoss(TimeDomainLoss):
 
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
 
-        return fast_bss_eval.sdr_loss(
-            inf[:, None, :],
-            ref[:, None, :],
-            filter_length=self.filter_length,
-            clamp_db=self.clamp_db,
-            load_diag=self.load_diag,
-            use_cg_iter=self.use_cg_iter,
-            pairwise=False
-            )[:, 0]
-
-        """
         return ci_sdr.pt.ci_sdr_loss(
             inf, ref, compute_permutation=False, filter_length=self.filter_length
         )
-        """
 
 
 class SNRLoss(TimeDomainLoss):
