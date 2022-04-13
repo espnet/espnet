@@ -13,9 +13,9 @@ from espnet2.enh.loss.criterions.time_domain import SNRLoss
 def test_tf_domain_criterion_forward(criterion_class):
 
     if criterion_class is SDRLoss and LooseVersion(torch.__version__) < LooseVersion(
-        "1.7.0"
+        "1.8.0"
     ):
-        # Skip test SDRLoss when torch version is old.
+        # Skip test for SDRLoss when torch version is old.
         return
 
     criterion = criterion_class()

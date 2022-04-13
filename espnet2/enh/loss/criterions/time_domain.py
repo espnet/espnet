@@ -113,8 +113,8 @@ class SDRLoss(TimeDomainLoss):
     ):
         super().__init__()
 
-        assert LooseVersion(torch.__version__) >= LooseVersion("1.7.0"), (
-            "The SDR loss with `fast_bss_eavl` is only supported with torch 1.7+, "
+        assert LooseVersion(torch.__version__) >= LooseVersion("1.8.0"), (
+            "The SDR loss with `fast_bss_eavl` is only supported with torch 1.8+, "
             "You may consider use `ci-sdr` instead."
         )
 
@@ -161,7 +161,7 @@ class SDRLoss(TimeDomainLoss):
 
 
 class SISNRLoss(TimeDomainLoss):
-    """SI-SNR (SI-SDR) loss
+    """SI-SNR (or named SI-SDR) loss
 
     A more stable SI-SNR loss with clamp from `fast_bss_eval`.
 
@@ -174,16 +174,66 @@ class SISNRLoss(TimeDomainLoss):
             Deprecated. Keeped for compatibility.
     """
 
-    def __init__(self, clamp_db=None, zero_mean=True, eps=None):
+    def __init__(self, clamp_db=None, zero_mean=True, eps=1e-6):
         super().__init__()
         self.clamp_db = clamp_db
         self.zero_mean = zero_mean
-        if eps is not None:
-            logging.warning("Eps is deprecated in si_snr loss, set clamp_db instead.")
+        self.eps = eps
 
     @property
     def name(self) -> str:
         return "si_snr_loss"
+
+    def legacy_forward(
+        self,
+        ref: torch.Tensor,
+        inf: torch.Tensor,
+    ) -> torch.Tensor:
+        """Forward function
+
+        Args:
+
+            ref: Tensor, (..., n_samples)
+                reference signal
+            inf: Tensor (..., n_samples)
+                estimated signal
+
+        Returns:
+            loss: (...,)
+                the SI-SDR loss (negative si-sdr)
+        """
+        # TODO(chenda): keeped for torch version < 1.5, will be removed in the future.
+
+        # the return tensor should be shape of (batch,)
+        assert ref.size() == inf.size()
+        B, T = ref.size()
+
+        # Step 1. Zero-mean norm
+        mean_target = torch.sum(ref, dim=1, keepdim=True) / T
+        mean_estimate = torch.sum(inf, dim=1, keepdim=True) / T
+        zero_mean_target = ref - mean_target
+        zero_mean_estimate = inf - mean_estimate
+
+        # Step 2. SI-SNR with order
+        # reshape to use broadcast
+        s_target = zero_mean_target  # [B, T]
+        s_estimate = zero_mean_estimate  # [B, T]
+        # s_target = <s', s>s / ||s||^2
+        pair_wise_dot = torch.sum(s_estimate * s_target, dim=1, keepdim=True)  # [B, 1]
+        s_target_energy = (
+            torch.sum(s_target**2, dim=1, keepdim=True) + self.eps
+        )  # [B, 1]
+        pair_wise_proj = pair_wise_dot * s_target / s_target_energy  # [B, T]
+        # e_noise = s' - s_target
+        e_noise = s_estimate - pair_wise_proj  # [B, T]
+
+        # SI-SNR = 10 * log_10(||s_target||^2 / ||e_noise||^2)
+        pair_wise_si_snr = torch.sum(pair_wise_proj**2, dim=1) / (
+            torch.sum(e_noise**2, dim=1) + self.eps
+        )
+        pair_wise_si_snr = 10 * torch.log10(pair_wise_si_snr + self.eps)  # [B]
+
+        return -1 * pair_wise_si_snr
 
     def forward(
         self,
@@ -203,6 +253,13 @@ class SISNRLoss(TimeDomainLoss):
             loss: (...,)
                 the SI-SDR loss (negative si-sdr)
         """
+
+        if LooseVersion(torch.__version__) < LooseVersion("1.5.0"):
+            logging.warning(
+                "torch version is lower than 1.5.0, "
+                "computing si_snr without fast_bss_eval"
+            )
+            return self.legacy_forward(ref=ref, inf=est)
 
         si_snr = fast_bss_eval.si_sdr_loss(
             est=est,
