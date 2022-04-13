@@ -15,7 +15,7 @@ val_scheduler_criterion:
 - loss
 best_model_criterion:
 -   - valid
-    - ci_snr
+    - si_snr
     - max
 -   - valid
     - loss
@@ -50,8 +50,8 @@ separator_conf:
     use_iva: True
     bnet_type: blstmp
     blayers: 3
-    bunits: 256
-    bprojs: 256
+    bunits: 300
+    bprojs: 300
     badim: 160
     ref_channel: 4
     bdropout_rate: 0.0
@@ -62,12 +62,8 @@ separator_conf:
 
 criterions: 
   # The first criterion
-  - name: ci_sdr 
-    conf:
-      clamp_db: 30
-      use_cg_iter: null
-      load_diag: null
-      filter_length: 4
+  - name: si_snr 
+    conf: {}
     # the wrapper for the current criterion
     # for single-talker case, we simplely use fixed_order wrapper
     wrapper: fixed_order
