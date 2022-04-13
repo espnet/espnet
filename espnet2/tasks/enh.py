@@ -233,7 +233,10 @@ class EnhancementTask(AbsTask):
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
 
         loss_wrappers = []
-        if args.criterions is not None:
+
+        if getattr(args, "criterions", None) is not None:
+            # This check is for the compatibility when load models
+            # that packed by older version
             for ctr in args.criterions:
                 criterion = criterion_choices.get_class(ctr["name"])(**ctr["conf"])
                 loss_wrapper = loss_wrapper_choices.get_class(ctr["wrapper"])(
