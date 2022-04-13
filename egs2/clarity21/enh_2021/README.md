@@ -21,6 +21,7 @@ For more info on Clarity CEC1 see https://claritychallenge.github.io/clarity_CEC
 ## ..
 
 config: conf/tuning/train_enh_beamformer_mvdr.yaml
+huggingface_link: https://huggingface.co/popcornell/clarity21_train_enh_beamformer_mvdr
 
 |dataset|STOI|SAR|SDR|SIR|
 |---|---|---|---|---|
