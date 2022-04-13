@@ -10,7 +10,7 @@ For more info on Clarity CEC1 see https://claritychallenge.github.io/clarity_CEC
 
 # RESULTS
 ## Environments
-- date: `Tue Apr  5 16:36:29 UTC 2022`
+- date: `Tue Apr 12 20:54:54 UTC 2022`
 - python version: `3.9.7 (default, Sep 16 2021, 13:09:58)  [GCC 7.5.0]`
 - espnet version: `espnet 0.10.5a1`
 - pytorch version: `pytorch 1.10.1`
@@ -18,12 +18,13 @@ For more info on Clarity CEC1 see https://claritychallenge.github.io/clarity_CEC
   - Commit date: `Sat Mar 26 22:35:44 2022 +0100`
 
 
-## enh_train_enh_beamformer_mvdr_raw
+## ..
 
 config: conf/tuning/train_enh_beamformer_mvdr.yaml
 
 |dataset|STOI|SAR|SDR|SIR|
 |---|---|---|---|---|
-|enhanced_dev|0.94|11.74|11.74|0.00|
+|enhanced_dev|0.96|13.02|13.02|0.00|
+
 
 
