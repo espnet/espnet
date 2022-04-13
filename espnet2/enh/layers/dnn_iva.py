@@ -21,12 +21,11 @@ is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
 class DNN_IVA(torch.nn.Module):
-    """DNN mask based Beamformer.
+    """DNN mask based blind source separation using the AuxIVA-ISS algorithm.
 
     Citation:
-        Multichannel End-to-end Speech Recognition; T. Ochiai et al., 2017;
-        http://proceedings.mlr.press/v70/ochiai17a/ochiai17a.pdf
-
+        Fast and Stable Blind Source Separation with Rank-1 Updates; R. Scheibler and N. Ono, 2020;
+        https://ieeexplore.ieee.org/document/9053556
     """
 
     def __init__(
