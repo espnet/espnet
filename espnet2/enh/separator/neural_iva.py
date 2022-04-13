@@ -30,8 +30,8 @@ class NeuralIVA(AbsSeparator):
         wnonlinear: str = "crelu",
         multi_source_wpe: bool = True,
         wnormalization: bool = False,
-        # Beamformer options
-        use_beamformer: bool = True,
+        # IVA options
+        use_iva: bool = True,
         bnet_type: str = "blstmp",
         blayers: int = 3,
         bunits: int = 300,
@@ -41,6 +41,9 @@ class NeuralIVA(AbsSeparator):
         bnonlinear: str = "sigmoid",
         bdropout_rate: float = 0.0,
         iva_iterations: int = 20,
+        iva_train_iterations: int = None,
+        iva_train_channels: int = None,
+        use_dmc: bool = False,
         # For numerical stability
         diagonal_loading: bool = True,
         diag_eps_wpe: float = 1e-7,
@@ -54,7 +57,7 @@ class NeuralIVA(AbsSeparator):
 
         self._num_spk = num_spk
 
-        self.use_beamformer = use_beamformer
+        self.use_iva = use_iva
         self.use_wpe = use_wpe
 
         if self.use_wpe:
@@ -89,7 +92,7 @@ class NeuralIVA(AbsSeparator):
             self.wpe = None
 
         self.ref_channel = ref_channel
-        if self.use_beamformer:
+        if self.use_iva:
             self.beamformer = DNN_IVA(
                 bidim=input_dim,
                 btype=bnet_type,
@@ -104,6 +107,9 @@ class NeuralIVA(AbsSeparator):
                 mask_flooring=mask_flooring,
                 flooring_thres=flooring_thres_bf,
                 iva_iterations=iva_iterations,
+                iva_train_iterations=iva_train_iterations,
+                iva_train_channels=iva_train_channels,
+                use_dmc=use_dmc,
             )
         else:
             self.beamformer = None
@@ -176,7 +182,7 @@ class NeuralIVA(AbsSeparator):
                         others["mask_dereverb1"] = mask_w.squeeze(-2)
 
             # 2. Beamformer
-            if self.use_beamformer:
+            if self.use_iva:
                 powers = None
 
                 # enhanced: (B, T, C, F) -> (B, T, F)

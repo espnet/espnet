@@ -45,6 +45,9 @@ class DNN_IVA(torch.nn.Module):
         mask_flooring: bool = False,
         flooring_thres: float = 1e-6,
         iva_iterations: int = 15,
+        iva_train_iterations: int = None,
+        iva_train_channels: int = None,
+        use_dmc: bool = False,
     ):
         super().__init__()
         self.mask = MaskEstimator(
@@ -57,9 +60,6 @@ class DNN_IVA(torch.nn.Module):
             nmask=1,
             nonlinear=nonlinear,
         )
-        self.ref = (
-            AttentionReference(bidim, badim, eps=eps) if ref_channel < 0 else None
-        )
         self.ref_channel = ref_channel
 
         assert num_spk >= 1, num_spk
@@ -71,6 +71,12 @@ class DNN_IVA(torch.nn.Module):
         self.mask_flooring = mask_flooring
         self.flooring_thres = flooring_thres
         self.iterations = iva_iterations
+        if iva_train_iterations is None:
+            self.train_iterations = iva_iterations
+        else:
+            self.train_iterations = iva_train_iterations
+        self.train_channels = iva_train_channels
+        self.use_dmc = use_dmc
 
     def compute_mask(self, X):
         """
@@ -96,6 +102,7 @@ class DNN_IVA(torch.nn.Module):
         ilens: torch.LongTensor,
         powers: Optional[List[torch.Tensor]] = None,
         oracle_masks: Optional[List[torch.Tensor]] = None,
+        iterations: Optional[int] = None,
     ) -> Tuple[Union[torch.Tensor, ComplexTensor], torch.LongTensor, torch.Tensor]:
         """DNN_IVA forward function.
 
@@ -120,14 +127,25 @@ class DNN_IVA(torch.nn.Module):
         data = data.permute(0, 2, 3, 1)
         # data_d = to_double(data)
 
+        if iterations is None:
+            if self.training:
+                iterations = self.train_iterations
+            else:
+                iterations = self.iterations
+
+
         data = torch.view_as_complex(torch.stack((data.real, data.imag), dim=-1))
+
+        if self.training: 
+            if self.train_channels is not None and data.shape[-3] > self.train_channels:
+                data = data[..., :self.train_channels, :, :]
 
         self.current_ilens = ilens
 
         enhanced = auxiva_iss(
             data,
             n_src=self.num_spk,
-            n_iter=self.iterations,
+            n_iter=iterations,
             model=self.compute_mask,
             eps=self.eps,
             proj_back_mic=self.ref_channel,

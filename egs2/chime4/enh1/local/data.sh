@@ -64,7 +64,7 @@ odir="${PWD}/local/nn-gev/data"; mkdir -p "${odir}"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data Simulation"
 
-    if command -v octave &> /dev/null; then
+    if command -v matlab &> /dev/null; then
         log "Using matlab"
         matlab_cmd="matlab -nodisplay -nosplash -r"
     elif command -v octave &> /dev/null; then

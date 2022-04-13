@@ -2,10 +2,11 @@ optim: adam
 init: xavier_uniform
 max_epoch: 70
 batch_type: folded
-batch_size: 8
+batch_size: 10
 num_workers: 4
+grad_clip: 1
 optim_conf:
-    lr: 1.0e-03
+    lr: 1.0e-04
     eps: 1.0e-08
     weight_decay: 0
 patience: 4
@@ -24,7 +25,7 @@ scheduler: reducelronplateau
 scheduler_conf:
     mode: min
     factor: 0.5
-    patience: 1
+    patience: 3
 encoder: stft
 encoder_conf:
     n_fft: 512
@@ -46,7 +47,7 @@ separator_conf:
     taps: 5
     delay: 3
     use_dnn_mask_for_wpe: True
-    use_beamformer: True
+    use_iva: True
     bnet_type: blstmp
     blayers: 3
     bunits: 256
@@ -54,17 +55,19 @@ separator_conf:
     badim: 160
     ref_channel: 4
     bdropout_rate: 0.0
-    iva_iterations: 5
-
+    iva_iterations: 3
+    iva_train_iterations: 3
+    iva_train_channels: 6
+    use_dmc: False
 
 criterions: 
   # The first criterion
   - name: ci_sdr 
     conf:
       clamp_db: 30
-      use_cg_iter: 10
-      load_diag: 0.0001
-      filter_length: 512
+      use_cg_iter: null
+      load_diag: null
+      filter_length: 4
     # the wrapper for the current criterion
     # for single-talker case, we simplely use fixed_order wrapper
     wrapper: fixed_order

@@ -53,7 +53,7 @@ def divide(num, denom, eps=1e-7):
 
 
 def hermite(A: torch.Tensor, dim1: Optional[int] = -2, dim2: Optional[int] = -1):
-    if A.dtype in complex_types:
+    if A.dtype in [torch.complex64, torch.complex128]:
         return torch.conj(A.transpose(dim1, dim2))
     else:
         return A.transpose(dim1, dim2)
@@ -163,10 +163,10 @@ def eigh_2x2(
         # now fill the eigenvectors
         eigenvectors = A.new_zeros(A.shape)
         # vector corresponding to small eigenvalue
-        eigenvectors[..., 0, 0] = multiply(ev1, b12) - a12
+        eigenvectors[..., 0, 0] = ev1 * b12 - a12
         eigenvectors[..., 1, 0] = a11 - ev1 * b11
         # vector corresponding to large eigenvalue
-        eigenvectors[..., 0, 1] = multiply(ev2, b12) - a12
+        eigenvectors[..., 0, 1] = ev2 * b12 - a12
         eigenvectors[..., 1, 1] = a11 - ev2 * b11
 
     else:
@@ -354,7 +354,6 @@ def spatial_model_update_ip2(
     scale = torch.clamp(torch.sqrt(torch.clamp(scale, min=1e-7)), min=eps)
     eigvec = eigvec / scale
 
-
     if W is not None:
         W = hermite(eigvec)
         if A is not None:
@@ -365,6 +364,44 @@ def spatial_model_update_ip2(
     return X, W, A
 
 
+def demix(W, X_original):
+    return torch.einsum("...fcd,...dfn->...cfn", W, X_original)
+
+
+def auxiva_iss_one_step(X, W, A, model, eps, two_chan_ip2, X_original):
+    n_chan = W.shape[-1]
+
+    # shape: (n_chan, n_freq, n_frames)
+    # model takes as input a tensor of shape (..., n_frequencies, n_frames)
+    weights = model(X)
+
+    # we normalize the sources to have source to have unit variance prior to
+    # computing the model
+    g = torch.clamp(torch.mean(mag_sq(X), dim=(-2, -1), keepdim=True), min=1e-5)
+    X = divide(X, torch.sqrt(g))
+    weights = weights * g
+
+    if n_chan == 2 and two_chan_ip2:
+        # Here are the exact/fast updates for two channels using the GEVD
+        X, W, A = spatial_model_update_ip2(X_original, weights, W=W, A=A, eps=eps)
+
+    else:
+        # Iterative Source Steering updates
+        X, W, A = spatial_model_update_iss(X, weights, W=W, A=A, eps=eps)
+
+    return X, W, A
+
+
+def auxiva_iss_one_step_dmc(W, A, model, eps, two_chan_ip2, X_original):
+    """
+    wrapper that does not take the separated signal as input
+    to use with demixing matrix checkpointing
+    """
+    X = demix(W, X_original)
+    X, W, A = auxiva_iss(X, W, A, model, eps, two_chan_ip2, X_original)
+    return W, A
+
+
 def auxiva_iss(
     X: torch.Tensor,
     n_iter: Optional[int] = 20,
@@ -373,6 +410,7 @@ def auxiva_iss(
     eps: Optional[float] = 1e-6,
     two_chan_ip2: Optional[bool] = True,
     proj_back_mic: Optional[bool] = 0,
+    use_dmc: Optional[bool] = False,
     checkpoints_iter: Optional[List[int]] = None,
     checkpoints_list: Optional[List] = None,
 ) -> torch.Tensor:
@@ -399,6 +437,8 @@ def auxiva_iss(
         Ignored when using more than 2 channels.
     proj_back_mic: int
         The microphone index to use as a reference when adjusting the scale and delay
+    use_dmc: bool, optional
+        If True, use checkpointing of the demixing matrix to save memory
     checkpoints_iter: List of int
         Optionally, we can keep intermediate results for later analysis
         Should be used together with checkpoints_list
@@ -420,10 +460,10 @@ def auxiva_iss(
     # for now, only supports determined case
     assert callable(model)
 
-    if n_chan == 2 and two_chan_ip2:
-        Xo = X
+    # keep track of original input signal
+    X_original = X.clone()
 
-    if proj_back_mic is not None:
+    if proj_back_mic is not None or use_dmc:
         assert (
             0 <= proj_back_mic < n_chan
         ), "The reference microphone index must be between 0 and # channels - 1."
@@ -437,25 +477,30 @@ def auxiva_iss(
     for epoch in range(n_iter):
 
         if checkpoints_iter is not None and epoch in checkpoints_iter:
+            if use_dmc:
+                X = demix(W, X_original)
             checkpoints_list.append(X)
 
-        # shape: (n_chan, n_freq, n_frames)
-        # model takes as input a tensor of shape (..., n_frequencies, n_frames)
-        weights = model(X)
-
-        # we normalize the sources to have source to have unit variance prior to
-        # computing the model
-        g = torch.clamp(torch.mean(mag_sq(X), dim=(-2, -1), keepdim=True), min=1e-5)
-        X = divide(X, torch.sqrt(g))
-        weights = weights * g
-
-        if n_chan == 2 and two_chan_ip2:
-            # Here are the exact/fast updates for two channels using the GEVD
-            X, W, A = spatial_model_update_ip2(Xo, weights, W=W, A=A, eps=eps)
-
+        if use_dmc:
+            # use demixing matrix checkpointing
+            model_params = [p for p in self.model.parameters()]
+            W, A = torch.utils.checkpoint.checkpoint(
+                auxiva_iss_one_step_dmc,
+                W,
+                A,
+                model,
+                eps,
+                two_chan_ip2,
+                X_original,
+                *model_params,
+                preserve_rng_state=True
+            )
         else:
-            # Iterative Source Steering updates
-            X, W, A = spatial_model_update_iss(X, weights, W=W, A=A, eps=eps)
+            # use vanilla backprop
+            X, W, A = auxiva_iss_one_step(X, W, A, model, eps, two_chan_ip2, X_original)
+
+    if use_dmc:
+        X = demix(W, X_original)
 
     if proj_back_mic is not None:
         a = A[..., :, [proj_back_mic], :].moveaxis(-1, -3)
