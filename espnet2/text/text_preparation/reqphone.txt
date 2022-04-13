@@ -1,0 +1,31 @@
+# librosa==0.7.2
+pydub>=0.23.1
+pyrubberband==0.3.0
+num2words==0.5.10
+polyglot==16.7.4
+pymorphy2==0.9.1
+pymorphy2-dicts-ru==2.4.417127.4579844
+phonenumberslite==8.12.9
+prometheus-client>=0.10.1
+prometheus-flask-exporter>=0.18.2
+PyStemmer
+
+h5py==2.10.0
+numba==0.48.0
+inflect==0.2.5
+Unidecode==1.0.22
+pillow==6.1.0
+# pyicu==2.4.2
+pycld2==0.41
+morfessor==2.0.6
+lxml==4.4.2
+
+git+https://github.com/Desklop/russian_g2p.git
+git+https://github.com/Desklop/DAWG.git
+git+https://github.com/Desklop/rnnmorph.git
+git+https://github.com/Desklop/RNNoise_Wrapper.git
+git+https://github.com/Desklop/WebRTCVAD_Wrapper.git
+git+https://github.com/Desklop/StressRNN.git
+
+stress_dictionary/dist/stress_dictionary-1.0.1-py3-none-any.whl
+accentizer_from_morpher/accentizer-0.0.26-py3-none-any.whl

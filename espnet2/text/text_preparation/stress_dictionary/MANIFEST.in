@@ -1,0 +1,1 @@
+recursive-include stress_dictionary/dicts *.json

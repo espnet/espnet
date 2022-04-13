@@ -1,0 +1,3 @@
+include README.md
+recursive-include wikipedia_accent_parser/*.py
+recursive-include wikipedia_accent_parser/*.json
