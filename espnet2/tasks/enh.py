@@ -233,12 +233,13 @@ class EnhancementTask(AbsTask):
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
 
         loss_wrappers = []
-        for ctr in args.criterions:
-            criterion = criterion_choices.get_class(ctr["name"])(**ctr["conf"])
-            loss_wrapper = loss_wrapper_choices.get_class(ctr["wrapper"])(
-                criterion=criterion, **ctr["wrapper_conf"]
-            )
-            loss_wrappers.append(loss_wrapper)
+        if args.criterions is not None:
+            for ctr in args.criterions:
+                criterion = criterion_choices.get_class(ctr["name"])(**ctr["conf"])
+                loss_wrapper = loss_wrapper_choices.get_class(ctr["wrapper"])(
+                    criterion=criterion, **ctr["wrapper_conf"]
+                )
+                loss_wrappers.append(loss_wrapper)
 
         # 1. Build model
         model = ESPnetEnhancementModel(
