@@ -177,6 +177,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainL1</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainMSE</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">CISDRLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SDRLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SISNRLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SNRLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.abs_wrapper</span> <span class="kn">import</span> <span class="n">AbsLossWrapper</span>
@@ -248,6 +249,7 @@
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;criterions&quot;</span><span class="p">,</span>
     <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
         <span class="n">snr</span><span class="o">=</span><span class="n">SNRLoss</span><span class="p">,</span>
+        <span class="n">sdr</span><span class="o">=</span><span class="n">SDRLoss</span><span class="p">,</span>
         <span class="n">ci_sdr</span><span class="o">=</span><span class="n">CISDRLoss</span><span class="p">,</span>
         <span class="n">si_snr</span><span class="o">=</span><span class="n">SISNRLoss</span><span class="p">,</span>
         <span class="n">mse</span><span class="o">=</span><span class="n">FrequencyDomainMSE</span><span class="p">,</span>

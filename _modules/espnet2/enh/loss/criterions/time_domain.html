@@ -152,9 +152,12 @@
              
   <h1>Source code for espnet2.enh.loss.criterions.time_domain</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span>
+<span class="kn">import</span> <span class="nn">logging</span>
 
 <span class="kn">import</span> <span class="nn">ci_sdr</span>
+<span class="kn">import</span> <span class="nn">fast_bss_eval</span>
 <span class="kn">import</span> <span class="nn">torch</span>
+
 
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.abs_loss</span> <span class="kn">import</span> <span class="n">AbsEnhLoss</span>
 
@@ -229,10 +232,101 @@
         <span class="k">return</span> <span class="o">-</span><span class="n">snr</span></div></div>
 
 
-<div class="viewcode-block" id="SISNRLoss"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SISNRLoss">[docs]</a><span class="k">class</span> <span class="nc">SISNRLoss</span><span class="p">(</span><span class="n">TimeDomainLoss</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">EPS</span><span class="p">):</span>
+<div class="viewcode-block" id="SDRLoss"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SDRLoss">[docs]</a><span class="k">class</span> <span class="nc">SDRLoss</span><span class="p">(</span><span class="n">TimeDomainLoss</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;SDR loss</span>
+
+<span class="sd">    filter_length: int</span>
+<span class="sd">        The length of the distortion filter allowed (default: ``512``)</span>
+<span class="sd">    use_cg_iter:</span>
+<span class="sd">        If provided, an iterative method is used to solve for the distortion</span>
+<span class="sd">        filter coefficients instead of direct Gaussian elimination.</span>
+<span class="sd">        This can speed up the computation of the metrics in case the filters</span>
+<span class="sd">        are long. Using a value of 10 here has been shown to provide</span>
+<span class="sd">        good accuracy in most cases and is sufficient when using this</span>
+<span class="sd">        loss to train neural separation networks.</span>
+<span class="sd">    clamp_db: float</span>
+<span class="sd">        clamp the output value in  [-clamp_db, clamp_db]</span>
+<span class="sd">    zero_mean: bool</span>
+<span class="sd">        When set to True, the mean of all signals is subtracted prior.</span>
+<span class="sd">    load_diag:</span>
+<span class="sd">        If provided, this small value is added to the diagonal coefficients of</span>
+<span class="sd">        the system metrics when solving for the filter coefficients.</span>
+<span class="sd">        This can help stabilize the metric in the case where some of the reference</span>
+<span class="sd">        signals may sometimes be zero</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">filter_length</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
+        <span class="n">use_cg_iter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">clamp_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">zero_mean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">load_diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_length</span> <span class="o">=</span> <span class="n">filter_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_cg_iter</span> <span class="o">=</span> <span class="n">use_cg_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clamp_db</span> <span class="o">=</span> <span class="n">clamp_db</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zero_mean</span> <span class="o">=</span> <span class="n">zero_mean</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">load_diag</span> <span class="o">=</span> <span class="n">load_diag</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;sdr_loss&quot;</span>
+
+<div class="viewcode-block" id="SDRLoss.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SDRLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ref</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">est</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The forward function</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref: Tensor, (..., n_samples)</span>
+<span class="sd">                reference signal</span>
+<span class="sd">            est: Tensor (..., n_samples)</span>
+<span class="sd">                estimated signal</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: (...,)</span>
+<span class="sd">                the SDR loss (negative sdr)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sdr_loss</span> <span class="o">=</span> <span class="n">fast_bss_eval</span><span class="o">.</span><span class="n">sdr_loss</span><span class="p">(</span>
+            <span class="n">est</span><span class="o">=</span><span class="n">est</span><span class="p">,</span>
+            <span class="n">ref</span><span class="o">=</span><span class="n">ref</span><span class="p">,</span>
+            <span class="n">filter_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">filter_length</span><span class="p">,</span>
+            <span class="n">use_cg_iter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_cg_iter</span><span class="p">,</span>
+            <span class="n">zero_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">zero_mean</span><span class="p">,</span>
+            <span class="n">clamp_db</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">clamp_db</span><span class="p">,</span>
+            <span class="n">load_diag</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">load_diag</span><span class="p">,</span>
+            <span class="n">pairwise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">sdr_loss</span></div></div>
+
+
+<div class="viewcode-block" id="SISNRLoss"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SISNRLoss">[docs]</a><span class="k">class</span> <span class="nc">SISNRLoss</span><span class="p">(</span><span class="n">TimeDomainLoss</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;SI-SNR (or named SI-SDR) loss</span>
+
+<span class="sd">    A more stable SI-SNR loss with clamp from `fast_bss_eval`.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        clamp_db: float</span>
+<span class="sd">            clamp the output value in  [-clamp_db, clamp_db]</span>
+<span class="sd">        zero_mean: bool</span>
+<span class="sd">            When set to True, the mean of all signals is subtracted prior.</span>
+<span class="sd">        eps: float</span>
+<span class="sd">            Deprecated. Keeped for compatibility.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clamp_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">zero_mean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clamp_db</span> <span class="o">=</span> <span class="n">clamp_db</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zero_mean</span> <span class="o">=</span> <span class="n">zero_mean</span>
+        <span class="k">if</span> <span class="n">eps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Eps is deprecated in si_snr loss, set clamp_db instead.&quot;</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -241,38 +335,31 @@
 <div class="viewcode-block" id="SISNRLoss.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SISNRLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">ref</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">inf</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">est</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="c1"># the return tensor should be shape of (batch,)</span>
-        <span class="k">assert</span> <span class="n">ref</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">==</span> <span class="n">inf</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
-        <span class="n">B</span><span class="p">,</span> <span class="n">T</span> <span class="o">=</span> <span class="n">ref</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+        <span class="sd">&quot;&quot;&quot;Forward function</span>
 
-        <span class="c1"># Step 1. Zero-mean norm</span>
-        <span class="n">mean_target</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">/</span> <span class="n">T</span>
-        <span class="n">mean_estimate</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">inf</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">/</span> <span class="n">T</span>
-        <span class="n">zero_mean_target</span> <span class="o">=</span> <span class="n">ref</span> <span class="o">-</span> <span class="n">mean_target</span>
-        <span class="n">zero_mean_estimate</span> <span class="o">=</span> <span class="n">inf</span> <span class="o">-</span> <span class="n">mean_estimate</span>
+<span class="sd">        Args:</span>
 
-        <span class="c1"># Step 2. SI-SNR with order</span>
-        <span class="c1"># reshape to use broadcast</span>
-        <span class="n">s_target</span> <span class="o">=</span> <span class="n">zero_mean_target</span>  <span class="c1"># [B, T]</span>
-        <span class="n">s_estimate</span> <span class="o">=</span> <span class="n">zero_mean_estimate</span>  <span class="c1"># [B, T]</span>
-        <span class="c1"># s_target = &lt;s&#39;, s&gt;s / ||s||^2</span>
-        <span class="n">pair_wise_dot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">s_estimate</span> <span class="o">*</span> <span class="n">s_target</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># [B, 1]</span>
-        <span class="n">s_target_energy</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">s_target</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span>
-        <span class="p">)</span>  <span class="c1"># [B, 1]</span>
-        <span class="n">pair_wise_proj</span> <span class="o">=</span> <span class="n">pair_wise_dot</span> <span class="o">*</span> <span class="n">s_target</span> <span class="o">/</span> <span class="n">s_target_energy</span>  <span class="c1"># [B, T]</span>
-        <span class="c1"># e_noise = s&#39; - s_target</span>
-        <span class="n">e_noise</span> <span class="o">=</span> <span class="n">s_estimate</span> <span class="o">-</span> <span class="n">pair_wise_proj</span>  <span class="c1"># [B, T]</span>
+<span class="sd">            ref: Tensor, (..., n_samples)</span>
+<span class="sd">                reference signal</span>
+<span class="sd">            est: Tensor (..., n_samples)</span>
+<span class="sd">                estimated signal</span>
 
-        <span class="c1"># SI-SNR = 10 * log_10(||s_target||^2 / ||e_noise||^2)</span>
-        <span class="n">pair_wise_si_snr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pair_wise_proj</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">e_noise</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: (...,)</span>
+<span class="sd">                the SI-SDR loss (negative si-sdr)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">si_snr</span> <span class="o">=</span> <span class="n">fast_bss_eval</span><span class="o">.</span><span class="n">si_sdr_loss</span><span class="p">(</span>
+            <span class="n">est</span><span class="o">=</span><span class="n">est</span><span class="p">,</span>
+            <span class="n">ref</span><span class="o">=</span><span class="n">ref</span><span class="p">,</span>
+            <span class="n">zero_mean</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">zero_mean</span><span class="p">,</span>
+            <span class="n">clamp_db</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">clamp_db</span><span class="p">,</span>
+            <span class="n">pairwise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">pair_wise_si_snr</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">pair_wise_si_snr</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span>  <span class="c1"># [B]</span>
 
-        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">pair_wise_si_snr</span></div></div>
+        <span class="k">return</span> <span class="n">si_snr</span></div></div>
 </pre></div>
 
            </div>

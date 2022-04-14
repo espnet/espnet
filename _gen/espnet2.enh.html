@@ -1381,21 +1381,114 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="espnet2.enh.loss.criterions.time_domain.SISNRLoss">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">SISNRLoss</code><span class="sig-paren">(</span><em class="sig-param">eps=1.1920928955078125e-07</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#SISNRLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SISNRLoss" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.enh.loss.criterions.time_domain.SDRLoss">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">SDRLoss</code><span class="sig-paren">(</span><em class="sig-param">filter_length=512</em>, <em class="sig-param">use_cg_iter=None</em>, <em class="sig-param">clamp_db=None</em>, <em class="sig-param">zero_mean=True</em>, <em class="sig-param">load_diag=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#SDRLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SDRLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainLoss" title="espnet2.enh.loss.criterions.time_domain.TimeDomainLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.time_domain.TimeDomainLoss</span></code></a></p>
+<p>SDR loss</p>
+<dl class="simple">
+<dt>filter_length: int</dt><dd><p>The length of the distortion filter allowed (default: <code class="docutils literal notranslate"><span class="pre">512</span></code>)</p>
+</dd>
+<dt>use_cg_iter:</dt><dd><p>If provided, an iterative method is used to solve for the distortion
+filter coefficients instead of direct Gaussian elimination.
+This can speed up the computation of the metrics in case the filters
+are long. Using a value of 10 here has been shown to provide
+good accuracy in most cases and is sufficient when using this
+loss to train neural separation networks.</p>
+</dd>
+<dt>clamp_db: float</dt><dd><p>clamp the output value in  [-clamp_db, clamp_db]</p>
+</dd>
+<dt>zero_mean: bool</dt><dd><p>When set to True, the mean of all signals is subtracted prior.</p>
+</dd>
+<dt>load_diag:</dt><dd><p>If provided, this small value is added to the diagonal coefficients of
+the system metrics when solving for the filter coefficients.
+This can help stabilize the metric in the case where some of the reference
+signals may sometimes be zero</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.enh.loss.criterions.time_domain.SDRLoss.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">ref: torch.Tensor</em>, <em class="sig-param">est: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#SDRLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SDRLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>The forward function</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> – Tensor, (…, n_samples)
+reference signal</p></li>
+<li><p><strong>est</strong> – Tensor (…, n_samples)
+estimated signal</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>(…,)</dt><dd><p>the SDR loss (negative sdr)</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>loss</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.loss.criterions.time_domain.SDRLoss.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SDRLoss.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.loss.criterions.time_domain.SISNRLoss">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">SISNRLoss</code><span class="sig-paren">(</span><em class="sig-param">clamp_db=None</em>, <em class="sig-param">zero_mean=True</em>, <em class="sig-param">eps=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#SISNRLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SISNRLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainLoss" title="espnet2.enh.loss.criterions.time_domain.TimeDomainLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.time_domain.TimeDomainLoss</span></code></a></p>
+<p>SI-SNR (or named SI-SDR) loss</p>
+<p>A more stable SI-SNR loss with clamp from <cite>fast_bss_eval</cite>.</p>
+<dl class="attribute">
+<dt id="espnet2.enh.loss.criterions.time_domain.SISNRLoss.clamp_db">
+<code class="sig-name descname">clamp_db</code><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SISNRLoss.clamp_db" title="Permalink to this definition">¶</a></dt>
+<dd><p>float
+clamp the output value in  [-clamp_db, clamp_db]</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.enh.loss.criterions.time_domain.SISNRLoss.zero_mean">
+<code class="sig-name descname">zero_mean</code><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SISNRLoss.zero_mean" title="Permalink to this definition">¶</a></dt>
+<dd><p>bool
+When set to True, the mean of all signals is subtracted prior.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.enh.loss.criterions.time_domain.SISNRLoss.eps">
+<code class="sig-name descname">eps</code><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SISNRLoss.eps" title="Permalink to this definition">¶</a></dt>
+<dd><p>float
+Deprecated. Keeped for compatibility.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="espnet2.enh.loss.criterions.time_domain.SISNRLoss.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">ref: torch.Tensor</em>, <em class="sig-param">inf: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#SISNRLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SISNRLoss.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</div>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">ref: torch.Tensor</em>, <em class="sig-param">est: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#SISNRLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SISNRLoss.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward function</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref</strong> – Tensor, (…, n_samples)
+reference signal</p></li>
+<li><p><strong>est</strong> – Tensor (…, n_samples)
+estimated signal</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>(…,)</dt><dd><p>the SI-SDR loss (negative si-sdr)</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>loss</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
