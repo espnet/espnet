@@ -8,13 +8,26 @@ from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 
 class PITSolver(AbsLossWrapper):
     def __init__(self, criterion: AbsEnhLoss, weight=1.0, independent_perm=True):
+        """Permutation Invariant Training Solver.
+
+        Args:
+            criterion (AbsEnhLoss): an instance of AbsEnhLoss
+            weight (float): weight (between 0 and 1) of current loss
+                for multi-task learning.
+            independent_perm (bool):
+                If True, PIT will be performed in forward to find the best permutation;
+                If False, the permutation from the last LossWrapper output will be
+                inherited.
+                NOTE (wangyou): You should be careful about the ordering of loss
+                    wrappers defined in the yaml config, if this argument is False.
+        """
         super().__init__()
         self.criterion = criterion
         self.weight = weight
         self.independent_perm = independent_perm
 
     def forward(self, ref, inf, others={}):
-        """Permutation invariant training solver.
+        """PITSolver forward.
 
         Args:
             ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk

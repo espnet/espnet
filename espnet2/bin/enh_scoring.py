@@ -63,18 +63,14 @@ def scoring(
             if ref.ndim > inf.ndim:
                 # multi-channel reference and single-channel output
                 ref = ref[..., ref_channel]
-                assert ref.shape == inf.shape, (ref.shape, inf.shape)
             elif ref.ndim < inf.ndim:
                 # single-channel reference and multi-channel output
-                raise ValueError(
-                    "Reference must be multi-channel when the \
-                    network output is multi-channel."
-                )
+                inf = inf[..., ref_channel]
             elif ref.ndim == inf.ndim == 3:
                 # multi-channel reference and output
                 ref = ref[..., ref_channel]
                 inf = inf[..., ref_channel]
-
+            assert ref.shape == inf.shape, (ref.shape, inf.shape)
             sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
 
             for i in range(num_spk):

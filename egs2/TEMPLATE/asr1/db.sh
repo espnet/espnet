@@ -130,6 +130,7 @@ PRIMEWORDS_CHINESE=downloads
 SEAME=
 BENGALI=downloads
 IWSLT14=
+MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
@@ -275,4 +276,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     IWSLT21LR=downloads/iwslt21
     TOTONAC=downloads
     GOOGLEI18N=downloads
+    MALAYALAM=
+
 fi
