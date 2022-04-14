@@ -1,0 +1,98 @@
+diff --git a/requirements.txt b/requirements.txt
+index 8054697..3012192 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -3,5 +3,4 @@ numpy
+ pystoi
+ pesq
+ scipy
+-pyrirgen
+ librosa
+diff --git a/simulation/mix_wav.py b/simulation/mix_wav.py
+index 1cd05c1..d1cb9b6 100644
+--- a/simulation/mix_wav.py
++++ b/simulation/mix_wav.py
+@@ -79,8 +79,8 @@ def clip_data(data, start, segment_length):
+             tgt[st:st+data.shape[0]] += data
+             st = segment_length//3 * 2
+             tgt[st:st+data.shape[0]] += data
+-        
+-        else:
++
++        elif data_len < segment_length//2:
+             """
+             padding to A_A
+             """
+@@ -92,25 +92,60 @@ def clip_data(data, start, segment_length):
+             tgt[:segment_length//2] += data
+             st = segment_length//2
+             tgt[st:st+data.shape[0]] += data
+-    
++
++        elif data_len < segment_length:
++            # (wangyou) in case of outliers
++            """same as (start == -1)--if"""
++            if data_len % 4 == 0:
++                tgt[:data_len] += data
++                tgt[data_len:] += data[:segment_length-data_len]
++            elif data_len % 4 == 1:
++                tgt[:data_len] += data
++            elif data_len % 4 == 2:
++                tgt[-data_len:] += data
++            elif data_len % 4 == 3:
++                tgt[(segment_length-data_len)//2:(segment_length-data_len)//2+data_len] += data
++
++        else:
++            # (wangyou) in case of outliers
++            """same as (start == -1)--else"""
++            if data_len % 4 == 0 or data_len % 4 == 3:
++                tgt += data[(data_len-segment_length)//2:(data_len-segment_length)//2+segment_length]
++            elif data_len % 4 == 1:
++                tgt += data[:segment_length]
++            elif data_len % 4 == 2:
++                tgt += data[-segment_length:]
++
+     elif start == -1:
+         '''
+         this means segment_length < data_len*2
+         padding to A_A
+         '''
+-        if data_len % 4 == 0:
+-            tgt[:data_len] += data
+-            tgt[data_len:] += data[:segment_length-data_len]
+-        elif data_len % 4 == 1:
+-            tgt[:data_len] += data
+-        elif data_len % 4 == 2:
+-            tgt[-data_len:] += data
+-        elif data_len % 4 == 3:
+-            tgt[(segment_length-data_len)//2:(segment_length-data_len)//2+data_len] += data
+-    
++        if data_len < segment_length:
++            if data_len % 4 == 0:
++                tgt[:data_len] += data
++                tgt[data_len:] += data[:segment_length-data_len]
++            elif data_len % 4 == 1:
++                tgt[:data_len] += data
++            elif data_len % 4 == 2:
++                tgt[-data_len:] += data
++            elif data_len % 4 == 3:
++                tgt[(segment_length-data_len)//2:(segment_length-data_len)//2+data_len] += data
++
++        else:
++            # (wangyou) in case of outliers
++            if data_len % 4 == 0 or data_len % 4 == 3:
++                tgt += data[(data_len-segment_length)//2:(data_len-segment_length)//2+segment_length]
++            elif data_len % 4 == 1:
++                tgt += data[:segment_length]
++            elif data_len % 4 == 2:
++                tgt += data[-segment_length:]
++
+     else:
++        if start + segment_length > data_len:
++            data = np.pad(data, [0, start + segment_length - data_len], 'constant')
+         tgt += data[start:start+segment_length]
+-    
++
+     return tgt
+ 
+ def rms(data):
