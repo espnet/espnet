@@ -1,5 +1,3 @@
-from distutils.version import LooseVersion
-
 import pytest
 import torch
 
@@ -11,12 +9,6 @@ from espnet2.enh.loss.criterions.time_domain import SNRLoss
 
 @pytest.mark.parametrize("criterion_class", [CISDRLoss, SISNRLoss, SNRLoss, SDRLoss])
 def test_tf_domain_criterion_forward(criterion_class):
-
-    if criterion_class is SDRLoss and LooseVersion(torch.__version__) < LooseVersion(
-        "1.8.0"
-    ):
-        # Skip test for SDRLoss when torch version is old.
-        return
 
     criterion = criterion_class()
 
