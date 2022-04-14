@@ -253,21 +253,28 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ####################################################
     # prepare noise lists for training and development #
     ####################################################
-    # NOTE: local/audioset.name and local/musan.name are adapted from
-    #       https://github.com/ConferencingSpeech/ConferencingSpeech2021/tree/master/selected_lists/train
-    #       while adding the category information in the second column
+    wget -O "${outdir}/data/audioset.name" https://raw.githubusercontent.com/ConferencingSpeech/ConferencingSpeech2021/master/selected_lists/train/audioset.name
+    wget -O "${outdir}/data/musan.name" https://raw.githubusercontent.com/ConferencingSpeech/ConferencingSpeech2021/master/selected_lists/train/musan.name
+
+    # append category information to the raw audio list
+    sed -i -e 's/\(\(\w\+\-\)\+\w\+\)-[0-9]\+\.wav/\0 \1/g' "${outdir}/data/musan.name"
+    python local/prepare_audioset_category_list.py \
+        "${outdir}/data/audioset.name" \
+        --audioset_dir "$AUDIOSET" \
+        --output_file "${outdir}/data/audioset.name"
+
     python local/prepare_data_list.py \
         --outfile "${outdir}/data/musan.lst" \
         --audiodirs "$MUSAN" \
         --audio-format "wav" \
-        "local/musan.name"
+        "${outdir}/data/musan.name"
 
     python local/prepare_data_list.py \
         --outfile "${outdir}/data/audioset.lst" \
         --audiodirs "$AUDIOSET" \
         --audio-format "wav" \
         --ignore-missing-files True \
-        "local/audioset.name"
+        "${outdir}/data/audioset.name"
 
     # This script will generate train_musan.lst and dev_musan.lst under "${outdir}/data/"
     # 988 = 945 (train) + 43 (dev)
