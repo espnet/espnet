@@ -90,6 +90,9 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         self.ignore_id = ignore_id
         self.token_list = token_list.copy()
 
+        self.sym_space = sym_space
+        self.sym_blank = sym_blank
+
         self.frontend = frontend
         self.specaug = specaug
         self.normalize = normalize
@@ -98,18 +101,11 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         self.decoder = decoder
         self.joint_network = joint_network
 
-        if self.training:
-            from warprnnt_pytorch import RNNTLoss
+        self.criterion_transducer = None
+        self.error_calculator = None
 
-            self.criterion_transducer = RNNTLoss(
-                blank=self.blank_id,
-                reduction="mean",
-                fastemit_lambda=fastemit_lambda,
-            )
-        self.transducer_weight = transducer_weight
-
-        self.use_auxiliary_ctc = self.training and auxiliary_ctc_weight > 0
-        self.use_auxiliary_lm_loss = self.training and auxiliary_lm_loss_weight > 0
+        self.use_auxiliary_ctc = auxiliary_ctc_weight > 0
+        self.use_auxiliary_lm_loss = auxiliary_lm_loss_weight > 0
 
         if self.use_auxiliary_ctc:
             self.ctc_lin = torch.nn.Linear(encoder.dim_output, vocab_size)
@@ -117,26 +113,16 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         if self.use_auxiliary_lm_loss:
             self.lm_lin = torch.nn.Linear(decoder.dim_output, vocab_size)
-
             self.lm_loss_smoothing = auxiliary_lm_loss_smoothing
+
+        self.transducer_weight = transducer_weight
+        self.fastemit_lambda = fastemit_lambda
 
         self.auxiliary_ctc_weight = auxiliary_ctc_weight
         self.auxiliary_lm_loss_weight = auxiliary_lm_loss_weight
 
-        if report_cer or report_wer:
-            from espnet2.asr.transducer.error_calculator import ErrorCalculator
-
-            self.error_calculator = ErrorCalculator(
-                decoder,
-                joint_network,
-                token_list,
-                sym_space,
-                sym_blank,
-                report_cer=report_cer,
-                report_wer=report_wer,
-            )
-        else:
-            self.error_calculator = None
+        self.report_cer = report_cer
+        self.report_wer = report_wer
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
@@ -357,6 +343,22 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             wer_transducer: Word Error Rate for Transducer.
 
         """
+        if self.criterion_transducer is None:
+            try:
+                from warprnnt_pytorch import RNNTLoss
+
+                self.criterion_transducer = RNNTLoss(
+                    blank=self.blank_id,
+                    reduction="mean",
+                    fastemit_lambda=self.fastemit_lambda,
+                )
+            except ImportError:
+                logging.error(
+                    "warp-rnnt was not installed."
+                    "Please consult the installation documentation."
+                )
+                exit(1)
+
         loss_transducer = self.criterion_transducer(
             joint_out,
             target,
@@ -364,7 +366,20 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             u_len,
         )
 
-        if not self.training and self.error_calculator is not None:
+        if not self.training and (self.report_cer or self.report_wer):
+            if self.error_calculator is None:
+                from espnet2.asr.transducer.error_calculator import ErrorCalculator
+
+                self.error_calculator = ErrorCalculator(
+                    self.decoder,
+                    self.joint_network,
+                    self.token_list,
+                    self.sym_space,
+                    self.sym_blank,
+                    report_cer=self.report_cer,
+                    report_wer=self.report_wer,
+                )
+
             cer_transducer, wer_transducer = self.error_calculator(encoder_out, target)
 
             return loss_transducer, cer_transducer, wer_transducer
