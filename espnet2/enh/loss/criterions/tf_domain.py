@@ -43,20 +43,21 @@ def _create_mask_label(mix_spec, ref_spec, noise_spec=None, mask_type="IAM"):
     mask_label = []
     if ref_spec[0].ndim < mix_spec.ndim:
         # (B, T, F) -> (B, T, 1, F)
-        ref_spec = [r.unsqueeze(2) for r in ref_spec]
+        ref_spec = [r.unsqueeze(2).expand_as(mix_spec.real) for r in ref_spec]
     for idx, r in enumerate(ref_spec):
         mask = None
         if mask_type == "IBM":
             if noise_spec is None:
-                raise ValueError("noise_spec should not be None")
-            flags = [abs(r) >= abs(n) for n in ref_spec + [noise_spec]]
+                flags = [abs(r) >= abs(n) for n in ref_spec]
+            else:
+                flags = [abs(r) >= abs(n) for n in ref_spec + [noise_spec]]
             mask = reduce(lambda x, y: x * y, flags)
             mask = mask.int()
         elif mask_type == "IRM":
-            if noise_spec is None:
-                raise ValueError("noise_spec should not be None")
             beta = 0.5
-            res_spec = sum(n for i, n in enumerate(ref_spec) if i != idx) + noise_spec
+            res_spec = sum(n for i, n in enumerate(ref_spec) if i != idx)
+            if noise_spec is not None:
+                res_spec += noise_spec
             mask = (abs(r).pow(2) / (abs(res_spec).pow(2) + EPS)).pow(beta)
         elif mask_type == "IAM":
             mask = abs(r) / (abs(mix_spec) + EPS)
