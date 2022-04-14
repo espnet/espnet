@@ -418,7 +418,7 @@ class ASRTransducerTask(AbsTask):
             **args.joint_network_conf,
         )
 
-        # 8. Build model
+        # 7. Build model
         model = ESPnetASRTransducerModel(
             vocab_size=vocab_size,
             token_list=token_list,
@@ -431,7 +431,7 @@ class ASRTransducerTask(AbsTask):
             **args.model_conf,
         )
 
-        # 9. Initialize
+        # 8. Initialize
         if args.init is not None:
             initialize(model, args.init)
 
