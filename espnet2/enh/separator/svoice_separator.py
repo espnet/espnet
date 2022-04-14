@@ -1,12 +1,10 @@
-import math
 from collections import OrderedDict
 from typing import List
 from typing import Tuple
-
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 from espnet2.enh.layers.dpmulcat import DPMulCat
 from espnet2.enh.layers.dprnn import split_feature, merge_feature
 from espnet2.enh.separator.abs_separator import AbsSeparator
@@ -21,13 +19,14 @@ def overlap_and_add(signal, frame_step):
     Args:
         signal: A [..., frames, frame_length] Tensor. All dimensions may be unknown,
             and rank must be at least 2.
-        frame_step: An integer denoting overlap offsets. Must be less than or equal
-            to frame_length.
+        frame_step: An integer denoting overlap offsets.
+            Must be less than or equal to frame_length.
     Returns:
-        A Tensor with shape [..., output_size] containing the overlap-added frames of
-        signal's inner-most two dimensions.
+        A Tensor with shape [..., output_size] containing the
+            overlap-added frames of signal's inner-most two dimensions.
         output_size = (frames - 1) * frame_step + frame_length
-    Based on https://github.com/tensorflow/tensorflow/blob/r1.12/tensorflow/contrib/signal/python/ops/reconstruction_ops.py
+    Based on
+        https://github.com/tensorflow/tensorflow/blob/r1.12/tensorflow/contrib/signal/python/ops/reconstruction_ops.py
     """
     outer_dimensions = signal.size()[:-2]
     frames, frame_length = signal.size()[-2:]
@@ -170,7 +169,7 @@ class SVoiceSeparator(AbsSeparator):
             output_ii = self.decoder(output_ii)
             T_est = output_ii.size(-1)
             output_ii = F.pad(output_ii, (0, T_mix - T_est))
-            output_ii = [est for est in output_ii.unbind(dim=1)]
+            output_ii = list(output_ii.unbind(dim=1))
             if self.training:
                 outputs.append(output_ii)
             else:

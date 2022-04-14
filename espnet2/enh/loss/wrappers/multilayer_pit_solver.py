@@ -1,3 +1,5 @@
+import torch
+
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
@@ -21,7 +23,8 @@ class MultiLayerPITSolver(AbsLossWrapper):
 
         Args:
             ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk
-            infs (List[List[torch.Tensor]]): [(batch, ...), ...] x n_layer
+            infs (Union[List[torch.Tensor], List[List[torch.Tensor]]]):
+                [(batch, ...), ...]
 
         Returns:
             loss: (torch.Tensor): minimum loss with the best permutation
@@ -29,8 +32,14 @@ class MultiLayerPITSolver(AbsLossWrapper):
             others: dict, in this PIT solver, permutation order will be returned
         """
         losses = 0.0
-        for idx, inf in enumerate(infs):
-            loss, stats, others = self.solver(ref, inf, others)
-            losses = loss * (idx + 1) * (1.0 / len(infs))
-        losses = losses / len(infs)
+        # In validation, the model only estimates waveforms in the last layer.
+        # The shape of infs is List[torch.Tensor]
+        if torch.is_tensor(infs[0]) and len(infs) == len(ref):
+            loss, stats, others = self.solver(ref, infs, others)
+            losses = loss
+        else:
+            for idx, inf in enumerate(infs):
+                loss, stats, others = self.solver(ref, inf, others)
+                losses = losses + loss * (idx + 1) * (1.0 / len(infs))
+            losses = losses / len(infs)
         return losses, stats, others
