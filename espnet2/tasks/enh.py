@@ -25,6 +25,7 @@ from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainAbsCoherence
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import CISDRLoss
+from espnet2.enh.loss.criterions.time_domain import SDRLoss
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.criterions.time_domain import SNRLoss
 from espnet2.enh.loss.criterions.time_domain import TimeDomainL1
@@ -98,6 +99,7 @@ criterion_choices = ClassChoices(
     name="criterions",
     classes=dict(
         snr=SNRLoss,
+        sdr=SDRLoss,
         ci_sdr=CISDRLoss,
         si_snr=SISNRLoss,
         coh=FrequencyDomainAbsCoherence,
