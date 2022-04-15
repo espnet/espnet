@@ -1,15 +1,16 @@
 batch_type: folded
 batch_size: 32
 accum_grad: 8
-max_epoch: 100
+max_epoch: 300
 patience: none
 init: none
 best_model_criterion:
 -   - valid
-    - acc_mlm
-    - max
+    - cer_ctc
+    - min
 keep_nbest_models: 10
 
+# specify model type as "maskctc"
 model: maskctc
 model_conf:
     ctc_weight: 0.3
@@ -28,6 +29,7 @@ encoder_conf:
     input_layer: conv2d
     normalize_before: true
 
+# Masked Language Model (MLM)-based decoder
 decoder: mlm
 decoder_conf:
     attention_heads: 4
