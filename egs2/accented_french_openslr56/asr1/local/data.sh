@@ -216,7 +216,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     mkdir -p data/devtest
 
     FILE=${ACCENTED_FR}/African_Accented_French/transcripts/devtest/ca16_read/new_conditioned.txt
-    DEV_TEST_FOLDER=${ACCENTED_FR}/African_Accented_French/speech/devtest/ca16
 
     # .split('_') starts at 1, put in aux file, aux is the folder
     cut -d '_' -f 3 "$FILE" > aux
