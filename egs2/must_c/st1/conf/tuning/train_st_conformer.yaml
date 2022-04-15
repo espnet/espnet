@@ -64,7 +64,7 @@ optim: adam
 optim_conf:
     lr: 0.002
     weight_decay: 0.000001
-scheduler: noamlr
+scheduler: warmuplr
 scheduler_conf:
     warmup_steps: 25000
 
