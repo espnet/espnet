@@ -7,9 +7,11 @@ set -o pipefail
 
 
 
-asr_config=conf/tuning/train_asr_conformer5.yaml
+asr_config=conf/tuning/train_asr_transformer.yaml
+
 inference_config=conf/decode_asr.yaml
 lm_config=conf/train_lm_transformer.yaml
+
 use_lm=false
 use_wordlm=false
 
@@ -24,12 +26,11 @@ use_wordlm=false
     --feats_type raw \
     --inference_asr_model "valid.acc.ave_10best.pth" \
     --feats_normalize "utterance_mvn" \
-    --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --train_set "train" \
     --valid_set "dev" \
-    --test_sets "dev" \
+    --test_sets "devtest test" \
     --expdir "exp" \
     --bpe_train_text "data/train/text" \
     --lm_train_text "data/train/text" "$@"
