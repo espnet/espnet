@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-lang=te 
+lang=te #te, ta
 
 train_set=train_"$(echo "${lang}" | tr - _)"
 train_dev=dev_"$(echo "${lang}" | tr - _)"
@@ -15,15 +15,8 @@ asr_config=conf/train_asr.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
-if [[ "zh" == *"${lang}"* ]]; then
-  nbpe=2500
-elif [[ "fr" == *"${lang}"* ]]; then
-  nbpe=350
-elif [[ "es" == *"${lang}"* ]]; then
-  nbpe=235
-else
-  nbpe=150
-fi
+nbpe=200
+
 
 ./asr.sh \
     --ngpu 4 \

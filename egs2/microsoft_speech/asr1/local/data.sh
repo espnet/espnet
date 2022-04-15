@@ -11,8 +11,7 @@
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
-lang=en # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk 
-
+lang=te  # te, ta
  . utils/parse_options.sh || exit 1;
 
 log() {
@@ -21,7 +20,6 @@ log() {
 }
 
 
-#mkdir -p ${MICROSOFT_SPEECH_CORPUS}
 if [ -z "${MICROSOFT_SPEECH_CORPUS}" ]; then
     log "Fill the value of 'MICROSOFT_SPEECH_CORPUS' of db.sh"
     exit 1
@@ -35,8 +33,6 @@ set -e
 set -u
 set -o pipefail
 
-#echo $MICROSOFT_SPEECH_CORPUS
-#echo $lang
 
 log "data preparation started"
 
