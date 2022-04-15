@@ -1,32 +1,40 @@
 from collections import OrderedDict
+import math
 from typing import List
 from typing import Tuple
-import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from espnet2.enh.layers.dpmulcat import DPMulCat
-from espnet2.enh.layers.dprnn import split_feature, merge_feature
+from espnet2.enh.layers.dprnn import merge_feature
+from espnet2.enh.layers.dprnn import split_feature
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
 def overlap_and_add(signal, frame_step):
     """Reconstructs a signal from a framed representation.
+
     Adds potentially overlapping frames of a signal with shape
     `[..., frames, frame_length]`, offsetting subsequent frames by `frame_step`.
     The resulting tensor has shape `[..., output_size]` where
         output_size = (frames - 1) * frame_step + frame_length
+
     Args:
         signal: A [..., frames, frame_length] Tensor. All dimensions may be unknown,
             and rank must be at least 2.
         frame_step: An integer denoting overlap offsets.
             Must be less than or equal to frame_length.
+
     Returns:
         A Tensor with shape [..., output_size] containing the
             overlap-added frames of signal's inner-most two dimensions.
         output_size = (frames - 1) * frame_step + frame_length
+
     Based on
-        https://github.com/tensorflow/tensorflow/blob/r1.12/tensorflow/contrib/signal/python/ops/reconstruction_ops.py
+
+https://github.com/tensorflow/tensorflow/blob/r1.12/tensorflow/contrib/signal/python/ops/reconstruction_ops.py
     """
     outer_dimensions = signal.size()[:-2]
     frames, frame_length = signal.size()[-2:]
@@ -88,6 +96,11 @@ class Decoder(nn.Module):
 class SVoiceSeparator(AbsSeparator):
     """SVoice model for speech separation.
 
+    Reference:
+        Voice Separation with an Unknown Number of Multiple Speakers;
+        E. Nachmani et al., 2020;
+        https://arxiv.org/abs/2003.01531
+
     Args:
         enc_dim: int, dimension of the encoder module's output. (Default: 128)
         kernel_size: int, the kernel size of Conv1D layer in both encoder and
@@ -103,7 +116,7 @@ class SVoiceSeparator(AbsSeparator):
 
     def __init__(
         self,
-        placeholder: int,
+        input_dim: int,
         enc_dim: int,
         kernel_size: int,
         hidden_size: int,

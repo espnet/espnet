@@ -108,8 +108,8 @@ config: conf/tuning/train_enh_dc_crn_mapping_snr.yaml
  - config: conf/tuning/train_enh_svoice.yaml
  - Pretrained model: https://huggingface.co/Zhaoheng/svoice_wsj0_2mix
 
-|dataset|STOI|SAR|SDR|SIR|
-|---|---|---|---|---|
-|enhanced_cv_min_8k|0.97|21.44|20.98|32.21|
-|enhanced_tt_min_8k|0.98|21.41|20.96|32.27|
+|dataset|STOI|SAR|SDR|SIR|SI_SNR|
+|---|---|---|---|---|---|
+|enhanced_cv_min_8k|0.97|21.44|20.98|32.21|20.67|
+|enhanced_tt_min_8k|0.98|21.41|20.96|32.27|20.66|
 

@@ -3,12 +3,11 @@ import torch.nn as nn
 
 
 class MulCatBlock(nn.Module):
-    """The MulCat block that multiplies two RNN layers' outputs
-        and concatenate it with the input Tensor.
+    """The MulCat block.
 
     Args:
-        input_size: int, dimension of the input feature. The input should have shape
-            (batch, seq_len, input_size).
+        input_size: int, dimension of the input feature.
+            The input should have shape (batch, seq_len, input_size).
         hidden_size: int, dimension of the hidden state.
         dropout: float, the dropout rate in the LSTM layer. (Default: 0.0)
         bidirectional: bool, whether the RNN layers are bidirectional. (Default: True)
@@ -21,7 +20,7 @@ class MulCatBlock(nn.Module):
         dropout: float = 0.0,
         bidirectional: bool = True,
     ):
-        super(MulCatBlock, self).__init__()
+        super().__init__()
 
         num_direction = int(bidirectional) + 1
 
@@ -48,6 +47,16 @@ class MulCatBlock(nn.Module):
         self.block_projection = nn.Linear(input_size * 2, input_size)
 
     def forward(self, input):
+        """Compute output after MulCatBlock.
+
+        Args:
+            input (torch.Tensor): The input feature.
+                Tensor of shape (batch, time, feature_dim)
+
+        Returns:
+            (torch.Tensor): The output feature after MulCatBlock.
+                Tensor of shape (batch, time, feature_dim)
+        """
         orig_shape = input.shape
         # run rnn module
         rnn_output, _ = self.rnn(input)
@@ -80,8 +89,8 @@ class DPMulCat(nn.Module):
     """Dual-path RNN module with MulCat blocks.
 
     Args:
-        input_size: int, dimension of the input feature. The input should have shape
-            (batch, seq_len, input_size).
+        input_size: int, dimension of the input feature.
+            The input should have shape (batch, seq_len, input_size).
         hidden_size: int, dimension of the hidden state.
         output_size: int, dimension of the output size.
         num_spk: int, the number of speakers in the output.
@@ -103,7 +112,7 @@ class DPMulCat(nn.Module):
         bidirectional: bool = True,
         input_normalize: bool = False,
     ):
-        super(DPMulCat, self).__init__()
+        super().__init__()
 
         self.rows_grnn = nn.ModuleList([])
         self.cols_grnn = nn.ModuleList([])
@@ -135,6 +144,18 @@ class DPMulCat(nn.Module):
         )
 
     def forward(self, input):
+        """Compute output after DPMulCat module.
+
+        Args:
+            input (torch.Tensor): The input feature.
+                Tensor of shape (batch, N, dim1, dim2)
+                Apply RNN on dim1 first and then dim2
+
+        Returns:
+            (list(torch.Tensor) or list(list(torch.Tensor))
+                In training mode, the module returns output of each DPMulCat block.
+                In eval mode, the module only returns output in the last block.
+        """
         batch_size, _, d1, d2 = input.shape
         output = input
         output_all = []
@@ -148,7 +169,7 @@ class DPMulCat(nn.Module):
             )
             row_output = self.rows_normalization[i](row_output)
             # apply a skip connection
-            output += row_output
+            output = output + row_output
             col_input = (
                 output.permute(0, 2, 3, 1).contiguous().view(batch_size * d1, d2, -1)
             )
@@ -158,7 +179,7 @@ class DPMulCat(nn.Module):
             )
             col_output = self.cols_normalization[i](col_output).contiguous()
             # apply a skip connection
-            output += col_output
+            output = output + col_output
 
             # if training mode, it returns the output Tensor from all layers.
             # Otherwise, it only returns the one from the last layer.
