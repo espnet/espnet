@@ -42,8 +42,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     unzip -o my_mm_female.zip
     rm -f my_mm_female.zip
 
-    #mv es_pr_female/* .
-    #rm -rf es_pr_female
     cd $workspace
 fi
 
