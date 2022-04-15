@@ -1,4 +1,4 @@
-# RNN-T Conformer
+# Conformer-RNN Transducer
 
 ## Environments
 - date: `Fri Mar 25 04:35:42 EDT 2022`
