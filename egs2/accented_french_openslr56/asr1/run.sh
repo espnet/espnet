@@ -12,9 +12,6 @@ asr_config=conf/tuning/train_asr_transformer.yaml
 inference_config=conf/decode_asr.yaml
 lm_config=conf/train_lm_transformer.yaml
 
-use_lm=false
-use_wordlm=false
-
 ./asr.sh \
     --ngpu 1 \
     --use_lm false \
