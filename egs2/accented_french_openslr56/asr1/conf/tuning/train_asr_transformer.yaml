@@ -3,8 +3,8 @@
 encoder: transformer
 encoder_conf:
     input_layer: "conv2d2"
-    num_blocks: 3
-    linear_units: 256
+    num_blocks: 12
+    linear_units: 2048
     dropout_rate: 0.1
     output_size: 256  # dimension of attention
     attention_heads: 4
@@ -15,8 +15,8 @@ encoder_conf:
 decoder: transformer
 decoder_conf:
     input_layer: "embed"
-    num_blocks: 2
-    linear_units: 256
+    num_blocks: 6
+    linear_units: 2048
     dropout_rate: 0.1
 
 # hybrid CTC/attention
