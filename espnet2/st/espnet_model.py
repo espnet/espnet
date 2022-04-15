@@ -78,6 +78,8 @@ class ESPnetSTModel(AbsESPnetModel):
         # note that eos is the same as sos (equivalent ID)
         self.sos = vocab_size - 1
         self.eos = vocab_size - 1
+        self.src_sos = src_vocab_size - 1
+        self.src_eos = src_vocab_size - 1
         self.vocab_size = vocab_size
         self.src_vocab_size = src_vocab_size
         self.ignore_id = ignore_id
@@ -409,7 +411,9 @@ class ESPnetSTModel(AbsESPnetModel):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
     ):
-        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
+        ys_in_pad, ys_out_pad = add_sos_eos(
+            ys_pad, self.src_sos, self.src_eos, self.ignore_id
+        )
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
@@ -420,7 +424,7 @@ class ESPnetSTModel(AbsESPnetModel):
         # 2. Compute attention loss
         loss_att = self.criterion_asr(decoder_out, ys_out_pad)
         acc_att = th_accuracy(
-            decoder_out.view(-1, self.vocab_size),
+            decoder_out.view(-1, self.src_vocab_size),
             ys_out_pad,
             ignore_label=self.ignore_id,
         )
