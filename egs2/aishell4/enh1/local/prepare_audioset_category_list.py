@@ -48,7 +48,9 @@ def prepare_audioset_category(audio_list, audioset_dir, output_file, skip_csv_ro
         ytid = re.sub(r"(.*)_\d+\.\d+", r"\1", Path(audio).stem)
         ret.append("%s %s\n" % (ytid, utt2category[ytid]))
 
-    with Path(output_file).open("w") as f:
+    outfile = Path(output_file)
+    outfile.parent.mkdir(parents=True, exist_ok=True)
+    with outfile.open("w") as f:
         for line in ret:
             f.write(line)
 
