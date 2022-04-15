@@ -39,11 +39,13 @@ log "data preparation started"
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "sub-stage 0: Download Data to downloads"
 
+    (
     cd ${ACCENTED_FR}
     wget https://www.openslr.org/resources/57/African_Accented_French.tar.gz
     tar -xvf African_Accented_French.tar.gz
     rm -r African_Accented_French.tar.gz
-    cd ..
+    )
+
 fi
 
 # some samples are missing (less than 0.1%), we use the following scripts to clean the datasets
@@ -118,7 +120,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     paste -d ' ' uttid3 uttid3 > auxutt3
 
     # train yaounde answers
-    cat  ${ACCENTED_FR}/African_Accented_French/transcripts/train/yaounde/fn_text.txt | tail -2098 >  ${ACCENTED_FR}/African_Accented_French/transcripts/train/yaounde/fn_answers_text.txt
+    tail -2098 ${ACCENTED_FR}/African_Accented_French/transcripts/train/yaounde/fn_text.txt >  ${ACCENTED_FR}/African_Accented_French/transcripts/train/yaounde/fn_answers_text.txt
     FILE=${ACCENTED_FR}/African_Accented_French/transcripts/train/yaounde/fn_answers_text.txt
 
     # .split('_') starts at 1, put in aux file, aux is the folder
