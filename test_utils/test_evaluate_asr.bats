@@ -15,7 +15,7 @@ EOF
 
 @test "evaluate_asr" {
     cd egs2/mini_an4/asr1
-    model_tag="kamo-naoyuki/mini_an4_asr_train_raw_bpe_valid.acc.best"
+    model_tag="espnet/kamo-naoyuki-mini_an4_asr_train_raw_bpe_valid.acc.best"
     scripts/utils/evaluate_asr.sh \
         --stop-stage 3 \
         --model_tag "${model_tag}" \
