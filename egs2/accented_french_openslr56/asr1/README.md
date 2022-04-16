@@ -17,6 +17,9 @@
 |decode_asr_asr_model_valid.acc.ave_10best/devtest|481|3172|97.4|1.6|1.0|0.2|2.8|15.0|
 |decode_asr_asr_model_valid.acc.ave_10best/test|515|2941|85.2|13.4|1.3|9.1|23.9|58.4|
 
+Results are better for the devtest set as the sets are composed of very different accents. 
+Indeed, devtest is only made of Gbon accent while the test set is a mix of Gabon and Cameroon.
+
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
