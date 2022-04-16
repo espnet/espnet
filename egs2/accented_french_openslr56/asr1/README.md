@@ -33,4 +33,3 @@ Indeed, devtest is only made of Gbon accent while the test set is a mix of Gabon
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave_10best/devtest|481|7555|98.1|0.6|1.4|0.3|2.2|15.0|
 |decode_asr_asr_model_valid.acc.ave_10best/test|515|7998|88.9|6.7|4.5|1.3|12.4|58.4|
-
