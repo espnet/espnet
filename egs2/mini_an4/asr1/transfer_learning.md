@@ -29,7 +29,7 @@ __Additional note about the ```--ignore_init_mismatch true``` option :__ This op
 
 ### 2. Use a trained model from ESPnet repository on HuggingFace.
 
-[ESPnet repository on HuggingFace](https://huggingface.co/espnet) contains more than 200 pre-trained models, for a wide variety of languages and dataset, and we are actively expanding this repositories with new models every week! This enable any user to perform transfer learning with a wide variety of models without having to re-train them. 
+[ESPnet repository on HuggingFace](https://huggingface.co/espnet) contains more than 200 pre-trained models, for a wide variety of languages and dataset, and we are actively expanding this repositories with new models every week! This enables any user to perform transfer learning with a wide variety of models without having to re-train them. 
 In order to use our pre-trained models, the first step is to download the ".pth" model file from the [HugginFace page](https://huggingface.co/espnet). There are several easy way to do it, either by manually downloading them (e.g. ```wget https://huggingface.co/espnet/bn_openslr53/blob/main/exp/asr_train_asr_raw_bpe1000/41epoch.pth```), cloning it (```git clone https://huggingface.co/espnet/bn_openslr53```) or downloading it through an ESPnet recipe (described in the models' pages on HuggingFace): 
 ```cd espnet
 git checkout fa1b865352475b744c37f70440de1cc6b257ba70
