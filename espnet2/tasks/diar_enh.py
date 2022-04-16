@@ -105,7 +105,7 @@ diar_encoder_choices = ClassChoices(
         rnn=RNNEncoder,
     ),
     type_check=DiarAbsEncoder,
-    default="rnn",
+    default="transformer",
 )
 diar_decoder_choices = ClassChoices(
     "diar_decoder",
@@ -319,28 +319,7 @@ class DiarEnhTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> ESPnetDiarEnhModel:
         assert check_argument_types()
 
-        # 1. frontend
-        if args.frontend is not None:
-            frontend_class = frontend_choices.get_class(args.frontend)
-            frontend = frontend_class(**args.frontend_conf)
-        else:
-            frontend = None
-
-        # 2. Data augmentation for spectrogram
-        if args.specaug is not None:
-            specaug_class = specaug_choices.get_class(args.specaug)
-            specaug = specaug_class(**args.specaug_conf)
-        else:
-            specaug = None
-
-        # 3. Normalization layer
-        if args.normalize is not None:
-            normalize_class = normalize_choices.get_class(args.normalize)
-            normalize = normalize_class(**args.normalize_conf)
-        else:
-            normalize = None
-
-        # 4. Label Aggregator layer
+        # 1. Label Aggregator layer
         label_aggregator_class = label_aggregator_choices.get_class(
             args.label_aggregator
         )
@@ -355,10 +334,12 @@ class DiarEnhTask(AbsTask):
         separator = separator_choices.get_class(args.separator)(
             enh_encoder.output_dim, **args.separator_conf
         )
+        input_size = separator.output_dim
 
         # mask_module
         mask_module_class = mask_module_choices.get_class(args.mask_module)
         mask_module = mask_module_class(
+            input_dim=enh_encoder.output_dim,
             **args.mask_module_conf,
         )
 
@@ -367,10 +348,33 @@ class DiarEnhTask(AbsTask):
             **args.enh_decoder_conf
         )
 
+        # 2. frontend
+        if args.frontend is not None:
+            frontend_class = frontend_choices.get_class(args.frontend)
+            frontend = frontend_class(**args.frontend_conf)
+            input_size = input_size + frontend.output_size()
+        else:
+            frontend = None
+
+        # 3. Data augmentation for spectrogram
+        if args.specaug is not None:
+            specaug_class = specaug_choices.get_class(args.specaug)
+            specaug = specaug_class(**args.specaug_conf)
+        else:
+            specaug = None
+
+        # 4. Normalization layer
+        if args.normalize is not None:
+            normalize_class = normalize_choices.get_class(args.normalize)
+            normalize = normalize_class(**args.normalize_conf)
+        else:
+            normalize = None
+
         # 5. diar_encoder
         diar_encoder_class = diar_encoder_choices.get_class(args.diar_encoder)
         # Note(jiatong): Diarization may not use subsampling when processing
         diar_encoder = diar_encoder_class(
+            input_size=input_size,
             **args.diar_encoder_conf,
         )
 

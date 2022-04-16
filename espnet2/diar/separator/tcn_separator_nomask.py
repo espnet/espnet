@@ -49,6 +49,8 @@ class TCNSeparator(AbsSeparator):
             causal=causal,
         )
 
+        self._output_dim = bottleneck_dim
+
     def forward(
         self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -73,3 +75,7 @@ class TCNSeparator(AbsSeparator):
         feats = feats.transpose(1, 2)  # B, L, bottleneck_dim
 
         return feats, ilens
+
+    @property
+    def output_dim(self) -> int:
+        return self._output_dim

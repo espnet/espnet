@@ -19,7 +19,7 @@ class MultiMask(AbsMask):
     def __init__(
         self,
         input_dim: int,
-        bottleneck_dim: int,
+        bottleneck_dim: int = 128,
         max_num_spk: int = 3,
         mask_nonlinear="relu",
     ):

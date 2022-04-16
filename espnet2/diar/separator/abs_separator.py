@@ -14,3 +14,8 @@ class AbsSeparator(torch.nn.Module, ABC):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
 
         raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def output_dim(self) -> int:
+        raise NotImplementedError
