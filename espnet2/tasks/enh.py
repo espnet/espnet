@@ -89,7 +89,9 @@ decoder_choices = ClassChoices(
 
 loss_wrapper_choices = ClassChoices(
     name="loss_wrappers",
-    classes=dict(pit=PITSolver, fixed_order=FixedOrderSolver, multilayer_pit=MultiLayerPITSolver),
+    classes=dict(
+        pit=PITSolver, fixed_order=FixedOrderSolver, multilayer_pit=MultiLayerPITSolver
+    ),
     type_check=AbsLossWrapper,
     default=None,
 )
