@@ -1,3 +1,7 @@
+# This script removes very few examples (less than 0.1%) of the train and devtest sets
+# Those few examples contained corrupted utterance Id or empty transcripts.
+
+
 import os
 
 base = "downloads/African_Accented_French/"

@@ -1,3 +1,14 @@
+# This script is normalizing the test set :
+# It removes punctuation as it is not needed for ASR task
+# It also removes capital letters.
+# This is not the case for the other sets (train, dev and devtest)
+# Those sets are already normalized
+
+# Example :
+# Before : Oui, qu'est-ce que vous voulez?
+# After : oui qu'est-ce que vous voulez
+
+
 f = open("downloads/African_Accented_French/transcripts/test/ca16/prompts.txt")
 
 new_f = open(
