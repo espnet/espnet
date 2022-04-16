@@ -39,7 +39,7 @@ clean_mandarin=${dns}/datasets/clean/mandarin_speech
 
 # acoustic params
 rir_table_csv=${dns}/datasets/acoustic_params_wideband/RIR_table_simple.csv
-clean_speech_t60_csv=${dns}/datasets/acoustic_params/cleanspeech_table_t60_c50.csv
+clean_speech_t60_csv=${dns}/datasets/acoustic_params_wideband/cleanspeech_table_t60_c50.csv
 
 # outputs
 noisy_wav=${dns_wav}/noisy
