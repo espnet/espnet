@@ -17,7 +17,7 @@ Paper: [EEND-SS: Joint End-to-End Neural Speaker Diarization and Speech Separati
 - median filtering: 11 frames
 
 ## Notes
-- "LMF" refers to the model using the concatenation of TCN Bottleneck features and log-mel filterbank features. *To use this option, add `frontend: default` and replace `input_size: 128` of `diar_encoder_conf:` with `input_size: 208` (frontend_dim (80) + bottleneck_dim (128)) in [conf/tuning/train_diar_enh_convtasnet_2.yaml](conf/tuning/train_diar_enh_convtasnet_2.yaml) or [conf/tuning/train_diar_enh_convtasnet_adapt.yaml](conf/tuning/train_diar_enh_convtasnet_adapt.yaml)*.
+- "LMF" refers to the model using the concatenation of TCN Bottleneck features and log-mel filterbank features. *To use this option, add `frontend: default` in [conf/tuning/train_diar_enh_convtasnet_2.yaml](conf/tuning/train_diar_enh_convtasnet_2.yaml) or [conf/tuning/train_diar_enh_convtasnet_adapt.yaml](conf/tuning/train_diar_enh_convtasnet_adapt.yaml)*.
 - "PP" refers to the post-processing applied to the separated audio signals using the speaker activity (diarization result) during inference. *To use this option, add `multiply_diar_result: True` in  [conf/tuning/decode_diar_enh.yaml](conf/tuning/decode_diar_enh.yaml) or [conf/tuning/decode_diar_enh_adapt.yaml](conf/tuning/decode_diar_enh_adapt.yaml)*.
 
 ### Libri2Mix (2 Speakers)

@@ -47,11 +47,10 @@ separator_conf:
     kernel: 3
     causal: False
     norm_type: "gLN"
-mask_module: mask
+mask_module: multi_mask
 mask_module_conf:
     max_num_spk: 3
     mask_nonlinear: relu
-    input_dim: 512
     bottleneck_dim: 128
 label_aggregator: label_aggregator
 label_aggregator_conf:
@@ -62,8 +61,6 @@ label_aggregator_conf:
 # frontend: default # uncomment this line to use concatenated log-mel filterbank and bottleneck features
 diar_encoder: transformer
 diar_encoder_conf:
-    input_size: 128 # same as bottleneck_dim
-    # input_size: 208 # use this line instead of above if "frontend: default". frontend_dim (80) + bottleneck_dim (128)
     input_layer: "conv2d8"
     num_blocks: 4
     linear_units: 512
