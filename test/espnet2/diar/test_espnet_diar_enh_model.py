@@ -4,13 +4,13 @@ import pytest
 import torch
 
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.enh.decoder.conv_decoder import ConvDecoder
-from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.diar.attractor.rnn_attractor import RnnAttractor
 from espnet2.diar.decoder.linear_decoder import LinearDecoder
 from espnet2.diar.espnet_diar_enh_model import ESPnetDiarEnhModel
 from espnet2.diar.layers.multi_mask import MultiMask
 from espnet2.diar.separator.tcn_separator_nomask import TCNSeparator
+from espnet2.enh.decoder.conv_decoder import ConvDecoder
+from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
