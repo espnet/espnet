@@ -36,6 +36,7 @@ requirements = {
         # ENH
         "ci_sdr",
         "pytorch_wpe",
+        "fast-bss-eval==0.1.3",
     ],
     # train: The modules invoked when training only.
     "train": [
