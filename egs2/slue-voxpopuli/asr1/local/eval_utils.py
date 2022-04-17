@@ -6,18 +6,21 @@ import editdistance
 
 def get_ner_scores(all_gt, all_predictions):
     """
-    Evalutes per-label and overall (micro and macro) metrics of precision, recall, and fscore
+    Evalutes per-label and overall (micro and macro) metrics
+    of precision, recall, and fscore
     Input:
         all_gt/all_predictions:
             List of list of tuples: (label, phrase, identifier)
             Each list of tuples correspond to a sentence:
                 label: entity tag
                 phrase: entity phrase
-                tuple_identifier: identifier to differentiate repeating (label, phrase) pairs
+                tuple_identifier: identifier to differentiate
+                repeating (label, phrase) pairs
     Returns:
         Dictionary of metrics
     Example:
-        List of GT (label, phrase) pairs of a sentence: [(GPE, "eu"), (DATE, "today"), (GPE, "eu")]
+        List of GT (label, phrase) pairs of a sentence:
+        [(GPE, "eu"), (DATE, "today"), (GPE, "eu")]
         all_gt: [(GPE, "eu", 0), (DATE, "today", 0), (GPE, "eu", 1)]
     """
     metrics = {}
