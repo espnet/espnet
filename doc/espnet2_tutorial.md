@@ -403,7 +403,7 @@ The first and second configuration are optional. If needed, fhe following parame
 The only mandatory configuration is `body_conf`, defining the encoder body architecture block by block. Each block has its own set of mandatory and optional parameters depending on the type, defined by `block_type`:
 
     # Conv 1D
-    - **block_type: conv1d**
+    - block_type: conv1d
       dim_output: Output dimension. (int)
       kernel_size: Size of the context window. (int or Tuple)
       stride (optional): Stride of the sliding blocks. (int or tuple, default = 1)
@@ -415,7 +415,7 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       dropout_rate (optional): Dropout rate for the Conv1d outputs. (float, default = 0.0)
 
     # RNN
-    - **block_type: rnn**
+    - block_type: rnn
       dim_hidden: Hidden dimension. (int)
       dim_proj (optional): Projection dimension, where 0 means no projection layers. (int, default = 0)
       rnn_type (optional): Type of RNN units (str, default = "lstm")
@@ -424,7 +424,7 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       dropout_rate (optional): Dropout rate for the RNN outputs. (float, default = 0.0)
 
     # Conformer
-    - **block_type: conformer**
+    - block_type: conformer
       dim_hidden: Hidden (and output) dimension. (int)
       dim_linear: Dimension of feed-forward module. (int)
       heads (optional): Number of heads in multi-head attention. (int, default = 4)
@@ -434,7 +434,7 @@ The only mandatory configuration is `body_conf`, defining the encoder body archi
       dropout_rate_att (optional: Dropout rate for the attention module. (float, default = 0.0)
       dropout_rate_pos_wise (optional): Dropout rate for the position-wise module. (float, default = 0.0)
 
-In addition, each block has a parameter `num_blocks` to build N consecutive times the defined block. This is useful if you want to use a group of blocks sharing the same parameters without writing each configuration.
+In addition, each block has a parameter `num_blocks` to build **N** times the defined block (int, default = 1). This is useful if you want to use a group of blocks sharing the same parameters without writing each configuration.
 
 **Example 1: conv 2D + 2x Conv 1D + 14x Conformer.**
 
