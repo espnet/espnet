@@ -38,17 +38,79 @@ def config_file(tmp_path: Path):
 @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize("batch_size", [1])
 @pytest.mark.parametrize(
-    "input_size, segment_size, normalize_segment_scale, num_spk",
-    [(16000, None, False, 2), (35000, 2.4, False, 2), (34000, 2.4, True, 2)],
+    "input_size, segment_size, normalize_segment_scale, num_spk, multiply_diar_result",
+    [
+        (16000, None, False, 2, False),
+        (35000, 2.4, False, 2, False),
+        (34000, 2.4, True, 2, True),
+    ],
 )
 def test_DiarSepSpeech(
-    config_file, batch_size, input_size, segment_size, normalize_segment_scale, num_spk
+    config_file,
+    batch_size,
+    input_size,
+    segment_size,
+    normalize_segment_scale,
+    num_spk,
+    multiply_diar_result,
 ):
     diarize_speech = DiarSepSpeech(
         train_config=config_file,
         segment_size=segment_size,
         normalize_segment_scale=normalize_segment_scale,
         num_spk=num_spk,
+        multiply_diar_result=multiply_diar_result,
     )
     wav = torch.rand(batch_size, input_size)
+    diarize_speech(wav, fs=8000)
+
+
+@pytest.fixture()
+def config_file2(tmp_path: Path):
+    # Write default configuration file
+    DiarEnhTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path),
+            "--attractor",
+            "rnn",
+            "--attractor_conf",
+            "unit=256",
+            "--num_spk",
+            "2",
+        ]
+    )
+    return tmp_path / "config.yaml"
+
+
+@pytest.mark.execution_timeout(5)
+@pytest.mark.parametrize("batch_size", [1])
+@pytest.mark.parametrize(
+    "input_size2, segment_size2, normalize_segment_scale2, num_spk2",
+    [
+        (16000, None, False, None),
+        (35000, 2.4, False, None),
+        (34000, 2.4, True, None),
+        (16000, None, False, 2),
+        (35000, 2.4, False, 2),
+        (34000, 2.4, True, 2),
+    ],
+)
+def test_DiarSepSpeech2(
+    config_file2,
+    batch_size,
+    input_size2,
+    segment_size2,
+    normalize_segment_scale2,
+    num_spk2,
+):
+    diarize_speech = DiarSepSpeech(
+        train_config=config_file2,
+        segment_size=segment_size2,
+        normalize_segment_scale=normalize_segment_scale2,
+        num_spk=num_spk2,
+    )
+    wav = torch.rand(batch_size, input_size2)
     diarize_speech(wav, fs=8000)
