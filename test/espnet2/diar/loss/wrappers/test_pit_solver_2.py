@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.diar.loss.wrappers.pit_solver_2 import PITSolver2
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 
 
 @pytest.mark.parametrize("num_spk", [1, 2, 3])
