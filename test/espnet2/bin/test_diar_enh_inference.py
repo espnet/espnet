@@ -38,13 +38,14 @@ def config_file(tmp_path: Path):
 @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize("batch_size", [1])
 @pytest.mark.parametrize(
-    "input_size, segment_size, hop_size, normalize_segment_scale, num_spk, multiply_diar_result",
+    "input_size, segment_size, hop_size, normalize_segment_scale, num_spk",
     [
-        (16000, None, None, False, 2, False),
-        (35000, 2.4, 1.2, False, 2, False),
-        (34000, 2.4, 1.2, True, 2, True),
+        (16000, None, None, False, 2),
+        (35000, 2.4, 1.2, False, 2),
+        (34000, 2.4, 1.2, True, 2),
     ],
 )
+@pytest.mark.parametrize("multiply_diar_result", [True, False])
 def test_DiarSepSpeech(
     config_file,
     batch_size,
@@ -90,16 +91,14 @@ def config_file2(tmp_path: Path):
 @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize("batch_size", [1])
 @pytest.mark.parametrize(
-    "input_size2, segment_size2, hop_size2, normalize_segment_scale2, num_spk2",
+    "input_size2, segment_size2, hop_size2, normalize_segment_scale2",
     [
-        (16000, None, None, False, None),
-        (35000, 2.4, 1.2, False, None),
-        (34000, 2.4, 1.2, True, None),
-        (16000, None, None, False, 2),
-        (35000, 2.4, 1.2, False, 2),
-        (34000, 2.4, 1.2, True, 2),
+        (16000, None, None, False),
+        (35000, 2.4, 1.2, False),
+        (34000, 2.4, 1.2, True),
     ],
 )
+@pytest.mark.parametrize("num_spk2", [None, 2])
 def test_DiarSepSpeech2(
     config_file2,
     batch_size,
