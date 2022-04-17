@@ -17,8 +17,8 @@ asr_config=conf/tuning/train_asr_bert_conformer_deliberation.yaml
     --use_transcript true \
     --use_lm false \
     --nbpe 5000 \
-    --stage 13 \
-    --stop_stage 18 \
+    --stage 1 \
+    --stop_stage 1 \
     --pretrained_model ../../slurp_new/asr1/exp/asr_train_asr_conformer_raw_en_word/valid.acc.ave_10best.pth:encoder:encoder\
     --token_type word\
     --feats_type raw\

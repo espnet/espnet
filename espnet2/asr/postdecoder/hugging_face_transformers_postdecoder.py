@@ -6,7 +6,13 @@
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.asr.postdecoder.abs_postdecoder import AbsPostDecoder
-from transformers import AutoModel, AutoTokenizer
+
+try:
+    from transformers import AutoModel, AutoTokenizer
+
+    is_transformers_available = True
+except ImportError:
+    is_transformers_available = False
 from typeguard import check_argument_types
 from typing import Tuple
 
@@ -26,6 +32,12 @@ class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
         """Initialize the module."""
         assert check_argument_types()
         super().__init__()
+        if not is_transformers_available:
+            raise ImportError(
+                "`transformers` is not available. Please install it via `pip install"
+                " transformers` or `cd /path/to/espnet/tools && . ./activate_python.sh"
+                " && ./installers/install_transformers.sh`."
+            )
 
         self.model = AutoModel.from_pretrained(model_name_or_path)
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -164,25 +176,3 @@ def _extend_attention_mask(mask: torch.Tensor) -> torch.Tensor:
     mask = mask[:, None, None, :]
     mask = (1.0 - mask) * -10000.0
     return mask
-
-
-# tokenizer = AutoTokenizer.from_pretrained(
-#     "bert-base-uncased",
-#     use_fast=True,
-# )
-# max_length = 128
-# transcript_data=['increase the heating in the bathroom']
-# model1=HuggingFaceTransformersPostDecoder("bert-base-cased")
-# transcript_input_id_features,\
-# transcript_input_mask_features, \
-# transcript_segment_ids_feature,\
-# transcript_position_ids_feature = model1.convert_examples_to_features(transcript_data, max_length)
-# # transcript_input_id_features[0][:8]=[101,  2773,  1103, 11187,  1107,  1103,  5056,   102]
-# # intent_input_id_features,\
-# # intent_input_mask_features, \
-# # intent_segment_ids_feature = convert_examples_to_features(intent_data, max_length, tokenizer)
-# print(transcript_position_ids_feature)
-# loss=model1(torch.LongTensor(transcript_input_id_features),
-# torch.LongTensor(transcript_input_mask_features),
-# torch.LongTensor(transcript_segment_ids_feature))
-# print(loss)

@@ -494,7 +494,7 @@ class ESPnetASRModel(AbsESPnetModel):
             # No frontend and no feature extract
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
-    
+
     def nll(
         self,
         encoder_out: torch.Tensor,
