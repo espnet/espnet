@@ -74,7 +74,7 @@ def get_train_dev_trs():
                     train_utts.append(utt_id)
                     train_transcriptions.append(line)
                 utt_idx += 1
-            except:
+            except Exception as e:
                 print(f"Cannot process {line}")
     return (
         train_transcriptions,
@@ -102,7 +102,7 @@ def get_test_trs():
                 test_utts.append(utt_id)
                 test_transcriptions.append(line)
                 utt_idx += 1
-            except:
+            except Exception as e:
                 print(f"Cannot process {line}")
     return test_transcriptions, test_fnames, test_utts
 
