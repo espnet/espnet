@@ -317,7 +317,7 @@ class ESPnetDiarEnhModel(AbsESPnetModel):
 
         # stats for diarization
         stats = dict(
-            loss_att=loss_att.detach(),
+            loss_att=loss_att.detach() if self.attractor is not None else 0.0,
             loss_diar=loss_diar.detach(),
             sad_mr=sad_mr,
             sad_fr=sad_fr,
