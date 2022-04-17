@@ -59,7 +59,6 @@ class ESPnetASRModel(AbsESPnetModel):
         decoder2: Optional[AbsDecoder],
         ctc: CTC,
         joint_network: Optional[torch.nn.Module],
-        rnnt_decoder: None,
         transcript_token_list: Union[Tuple[str, ...], List[str]] = None,
         ctc_weight: float = 0.5,
         interctc_weight: float = 0.0,
@@ -372,8 +371,6 @@ class ESPnetASRModel(AbsESPnetModel):
             encoder_out, encoder_out_lens, _ = self.encoder(
                 feats,
                 feats_lengths,
-                return_pos=False,
-                pre_postencoder_norm=self.pre_postencoder_norm,
             )
         intermediate_outs = None
         if isinstance(encoder_out, tuple):

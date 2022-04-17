@@ -625,7 +625,7 @@ class ASRTask(AbsTask):
             decoder2=decoder2,
             postdecoder=postdecoder,
             ctc=ctc,
-            rnnt_decoder=rnnt_decoder,
+            joint_network=joint_network,
             token_list=token_list,
             **args.model_conf,
         )
