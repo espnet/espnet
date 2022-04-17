@@ -15,7 +15,7 @@ from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 @pytest.mark.parametrize("segment_size", [2])
 @pytest.mark.parametrize("bidirectional", [False])
 @pytest.mark.parametrize("input_normalize", [False])
-def test_fasnet_separator_forward_backward_real(
+def test_svoice_separator_forward_backward(
     input_dim,
     enc_dim,
     kernel_size,
@@ -39,7 +39,7 @@ def test_fasnet_separator_forward_backward_real(
     )
     model.train()
 
-    x = torch.rand(2, 8000)
+    x = torch.rand(2, 800)
     x_lens = torch.tensor([400, 300], dtype=torch.long)
 
     separated, _, _ = model(x, ilens=x_lens)
@@ -50,8 +50,8 @@ def test_fasnet_separator_forward_backward_real(
     separated[0][0].mean().backward()
 
 
-def test_fasnet_separator_output_train():
-    x = torch.rand(2, 8000)
+def test_svoice_separator_output_train():
+    x = torch.rand(2, 800)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     for num_spk in range(1, 3):
@@ -73,8 +73,8 @@ def test_fasnet_separator_output_train():
         assert x[0].shape == waveforms[0][0][0].shape
 
 
-def test_fasnet_separator_output_eval():
-    x = torch.rand(2, 8000)
+def test_svoice_separator_output_eval():
+    x = torch.rand(2, 800)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 
     for num_spk in range(1, 3):
