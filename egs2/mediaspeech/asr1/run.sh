@@ -5,8 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-lid=false # whether to use language id as additional label
-
 train_set="mediaspeech_train"
 train_dev="mediaspeech_dev"
 test_set="mediaspeech_test"
@@ -37,4 +35,4 @@ nbpe=235
     --valid_set "${train_dev}" \
     --test_sets "${test_set}" \
     --lm_train_text "data/${train_set}/text" \
-    --local_score_opts "--score_lang_id ${lid}" "$@"
+    --local_score_opts "$@"
