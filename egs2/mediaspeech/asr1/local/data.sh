@@ -27,9 +27,6 @@ set -o pipefail
 . utils/parse_options.sh
 
 log "data preparation started"
-
-# mkdir -p ${JAVA}
-log "data preparation started"
 mkdir -p ${MEDIASPEECH}
 if [ -z "${MEDIASPEECH}" ]; then
     log "Fill the value of 'MEDIASPEECH' of db.sh"
