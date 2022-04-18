@@ -1,6 +1,7 @@
 # Set the path of your corpus
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
+ACCENTED_FR=downloads
 AIDATATANG_200ZH=downloads
 AISHELL=downloads
 AISHELL3=downloads
@@ -67,6 +68,7 @@ TSUKUYOMI=downloads
 VOXFORGE=downloads
 AMI=
 COMMONVOICE=downloads
+MICROSOFT_SPEECH_CORPUS=
 BABEL_101=
 BABEL_102=
 BABEL_103=
@@ -131,6 +133,7 @@ PRIMEWORDS_CHINESE=downloads
 SEAME=
 BENGALI=downloads
 IWSLT14=
+BURMESE=downloads
 MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
