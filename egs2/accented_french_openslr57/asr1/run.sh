@@ -6,7 +6,6 @@ set -u
 set -o pipefail
 
 
-
 asr_config=conf/tuning/train_asr_transformer.yaml
 
 inference_config=conf/decode_asr.yaml
@@ -28,6 +27,5 @@ lm_config=conf/train_lm_transformer.yaml
     --train_set "train" \
     --valid_set "dev" \
     --test_sets "devtest test" \
-    --expdir "exp" \
     --bpe_train_text "data/train/text" \
     --lm_train_text "data/train/text" "$@"
