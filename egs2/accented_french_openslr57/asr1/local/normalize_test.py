@@ -10,19 +10,17 @@
 
 import argparse
 
-parser = argparse.ArgumentParser(description='Normalize test text.')
-parser.add_argument('--path_test',  type=str,
-                    help='path of test text file')
-
+parser = argparse.ArgumentParser(description="Normalize test text.")
+parser.add_argument("--path_test", type=str, help="path of test text file")
 
 
 def main(cmd=None):
     args = parser.parse_args(cmd)
 
-    path=args.path_test
-    f = open(path+"prompts.txt")
+    path = args.path_test
+    f = open(path + "prompts.txt")
 
-    new_f = open(path+"new_prompts.txt", "w")
+    new_f = open(path + "new_prompts.txt", "w")
 
     for row in f:
         uttid = row.split(" ")[0]

@@ -5,21 +5,18 @@ import argparse
 import os
 
 
-parser = argparse.ArgumentParser(description='Normalize test text.')
-parser.add_argument('--folder',  type=str,
-                    help='path of download folder')
-parser.add_argument('--train',  type=str,
-                    help='path of train folder')
-parser.add_argument('--devtest',  type=str,
-                    help='path of devtest folder')                    
+parser = argparse.ArgumentParser(description="Normalize test text.")
+parser.add_argument("--folder", type=str, help="path of download folder")
+parser.add_argument("--train", type=str, help="path of train folder")
+parser.add_argument("--devtest", type=str, help="path of devtest folder")
 
 
 def main(cmd=None):
     args = parser.parse_args(cmd)
 
-    base=args.folder
-    train=args.train
-    devtest=args.devtest
+    base = args.folder
+    train = args.train
+    devtest = args.devtest
 
     existing = []
     for _, _, f in os.walk(base + "speech/train/ca16"):
@@ -60,6 +57,7 @@ def main(cmd=None):
     for row in old_f:
         if row.split(" ")[0] in existing:
             new_f.write(row)
+
 
 if __name__ == "__main__":
     main()
