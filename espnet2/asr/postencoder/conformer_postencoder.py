@@ -3,7 +3,6 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Conformers PostEncoder."""
-from typing import Optional
 from typing import Tuple
 
 import logging
@@ -39,9 +38,7 @@ from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsamplin
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-import copy
 
 
 class ConformerPostEncoder(AbsPostEncoder):

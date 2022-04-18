@@ -4,7 +4,6 @@
 
 """Hugging Face Transformers PostEncoder."""
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.asr.postdecoder.abs_postdecoder import AbsPostDecoder
 
 try:
@@ -14,9 +13,7 @@ try:
 except ImportError:
     is_transformers_available = False
 from typeguard import check_argument_types
-from typing import Tuple
 
-import copy
 import logging
 import torch
 
@@ -47,36 +44,6 @@ class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
         logging.info("Pretrained Transformers model parameters reloaded!")
         self.out_linear = torch.nn.Linear(self.model.config.hidden_size, output_size)
         self.output_size_dim = output_size
-        # if hasattr(model, "encoder"):
-        #     self.transformer = model.encoder
-        # else:
-        #     self.transformer = model
-
-        # if hasattr(self.transformer, "embed_tokens"):
-        #     del self.transformer.embed_tokens
-        # if hasattr(self.transformer, "wte"):
-        #     del self.transformer.wte
-        # if hasattr(self.transformer, "word_embedding"):
-        #     del self.transformer.word_embedding
-
-        # self.pretrained_params = copy.deepcopy(self.transformer.state_dict())
-
-        # if (
-        #     self.transformer.config.is_encoder_decoder
-        #     or self.transformer.config.model_type in ["xlnet", "t5"]
-        # ):
-        #     self.use_inputs_embeds = True
-        #     self.extend_attention_mask = False
-        # elif self.transformer.config.model_type == "gpt2":
-        #     self.use_inputs_embeds = True
-        #     self.extend_attention_mask = True
-        # else:
-        #     self.use_inputs_embeds = False
-        #     self.extend_attention_mask = True
-
-        # self.linear_in = torch.nn.Linear(
-        #     input_size, self.transformer.config.hidden_size
-        # )
 
     def forward(
         self,
@@ -86,34 +53,6 @@ class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
         transcript_position_ids: torch.LongTensor,
     ) -> torch.Tensor:
         """Forward."""
-        # input = self.linear_in(input)
-
-        # args = {"return_dict": True}
-
-        # mask = (~make_pad_mask(input_lengths)).to(input.device).float()
-
-        # if self.extend_attention_mask:
-        #     args["attention_mask"] = _extend_attention_mask(mask)
-        # else:
-        #     args["attention_mask"] = mask
-
-        # if self.use_inputs_embeds:
-        #     args["inputs_embeds"] = input
-        # else:
-        #     args["hidden_states"] = input
-
-        # if self.transformer.config.model_type == "mpnet":
-        #     args["head_mask"] = [None for _ in self.transformer.layer]
-
-        # output = self.transformer(**args).last_hidden_state
-        # print(transcript_input_ids)
-        # print(transcript_input_ids.size())
-        # print(transcript_attention_mask)
-        # print(transcript_attention_mask.shape)
-        # print(transcript_token_type_ids)
-        # print(transcript_token_type_ids.shape)
-        # print(self.model.config)
-        # print(self.model.embeddings.position_embeddings.weight.data.shape)
         transcript_outputs = self.model(
             input_ids=transcript_input_ids,
             position_ids=transcript_position_ids,
@@ -122,11 +61,6 @@ class HuggingFaceTransformersPostDecoder(AbsPostDecoder):
         )
 
         return self.out_linear(transcript_outputs.last_hidden_state)
-        # return self.out_linear(transcript_outputs.pooler_output)
-
-    # def reload_pretrained_parameters(self):
-    #     self.transformer.load_state_dict(self.pretrained_params)
-    #     logging.info("Pretrained Transformers model parameters reloaded!")
 
     def output_size(self) -> int:
         """Get the output size."""

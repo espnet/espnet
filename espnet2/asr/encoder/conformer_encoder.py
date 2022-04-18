@@ -310,7 +310,6 @@ class ConformerEncoder(AbsEncoder):
 
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
-        print(return_pos)
 
         if (
             isinstance(self.embed, Conv2dSubsampling)

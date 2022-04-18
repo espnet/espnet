@@ -26,7 +26,6 @@ from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsamplin
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-import copy
 
 
 class TransformerPostEncoder(AbsPostEncoder):

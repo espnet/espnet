@@ -6,7 +6,6 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
-import numpy as np
 
 import torch
 from typeguard import check_argument_types
@@ -388,16 +387,10 @@ class ESPnetASRModel(AbsESPnetModel):
         if self.postdecoder is not None:
             if self.encoder._output_size != self.postdecoder.output_size_dim:
                 encoder_out = self.uniform_linear(encoder_out)
-            # print(transcript_pad.shape)
-            # print(self.transcript_token_list)
-            # print(self.transcript_token_list)
-            # print(transcript_pad)
             transcript_list = [
                 " ".join([self.transcript_token_list[int(k)] for k in k1 if k != -1])
                 for k1 in transcript_pad
             ]
-            # print("ok1")
-            # transcript_len_list=[len(k) for k in transcript_list]
             (
                 transcript_input_id_features,
                 transcript_input_mask_features,
@@ -405,31 +398,20 @@ class ESPnetASRModel(AbsESPnetModel):
                 transcript_position_ids_feature,
                 input_id_length,
             ) = self.postdecoder.convert_examples_to_features(transcript_list, 128)
-            # print("ok")
-            # print(np.array(transcript_input_id_features).shape)
-            # print(transcript_input_id_features)
             bert_encoder_out = self.postdecoder(
                 torch.LongTensor(transcript_input_id_features).to(device=device),
                 torch.LongTensor(transcript_input_mask_features).to(device=device),
                 torch.LongTensor(transcript_segment_ids_feature).to(device=device),
                 torch.LongTensor(transcript_position_ids_feature).to(device=device),
             )
-            # print(bert_encoder_out.shape)
-            # print(encoder_out.shape)
             bert_encoder_lens = torch.LongTensor(input_id_length).to(device=device)
             bert_encoder_out = bert_encoder_out[:, : torch.max(bert_encoder_lens)]
-            # print(encoder_out_lens.shape)
-            # print(bert_encoder_lens)
             final_encoder_out_lens = encoder_out_lens + bert_encoder_lens
-            # print(final_encoder_out_lens)
             max_lens = torch.max(final_encoder_out_lens)
-            # print(max_lens)
             encoder_new_out = torch.zeros(
                 (encoder_out.shape[0], max_lens, encoder_out.shape[2])
             ).to(device=device)
             for k in range(len(encoder_out)):
-                # print(encoder_out[k,:encoder_out_lens[k]].shape)
-
                 encoder_new_out[k] = torch.cat(
                     (
                         encoder_out[k, : encoder_out_lens[k]],
@@ -440,25 +422,12 @@ class ESPnetASRModel(AbsESPnetModel):
                     ),
                     0,
                 )
-            # # encoder_new_out=encoder_new_out.requires_grad_(True)
-            # print(encoder_new_out.shape)
-            # bert_encoder_out=bert_encoder_out.view(bert_encoder_out.shape[0],1,bert_encoder_out.shape[1])
-            # bert_encoder_out=bert_encoder_out.expand(bert_encoder_out.shape[0],encoder_out.shape[1],bert_encoder_out.shape[2])
-            # print(bert_encoder_out.shape)
-            # encoder_out=torch.cat((encoder_out,\
-            #         bert_encoder_out),1)
             if self.deliberationencoder is not None:
                 encoder_new_out, final_encoder_out_lens = self.deliberationencoder(
                     encoder_new_out, final_encoder_out_lens
                 )
             encoder_out = encoder_new_out
             encoder_out_lens = final_encoder_out_lens
-            # encoder_out_lens[:]=encoder_out_lens.max()+torch.max(bert_encoder_lens)
-            # print(encoder_out_lens)
-            # exit()
-            # print(torch.argmax(decoder_out_prob, dim=2))
-            # print([self.token_list[k] for k in ys_out_pad[0]])
-            # exit()
 
         assert encoder_out.size(0) == speech.size(0), (
             encoder_out.size(),
