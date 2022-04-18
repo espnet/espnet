@@ -8,20 +8,33 @@
 # Before : Oui, qu'est-ce que vous voulez?
 # After : oui qu'est-ce que vous voulez
 
+import argparse
 
-f = open("downloads/African_Accented_French/transcripts/test/ca16/prompts.txt")
+parser = argparse.ArgumentParser(description='Normalize test text.')
+parser.add_argument('--path_test',  type=str,
+                    help='path of test text file')
 
-new_f = open(
-    "downloads/African_Accented_French/transcripts/test/ca16/new_prompts.txt", "w"
-)
 
-for row in f:
-    uttid = row.split(" ")[0]
-    utt = " ".join(row.split(" ")[1:])
-    utt = utt.split("\n")[0]
-    utt = utt.lower()
-    utt = utt.strip(".?!")
-    utt = utt.replace(",", "")
-    utt = utt.replace(";", "")
 
-    new_f.write(uttid + " " + utt + "\n")
+def main(cmd=None):
+    args = parser.parse_args(cmd)
+
+    path=args.path_test
+    f = open(path+"prompts.txt")
+
+    new_f = open(path+"new_prompts.txt", "w")
+
+    for row in f:
+        uttid = row.split(" ")[0]
+        utt = " ".join(row.split(" ")[1:])
+        utt = utt.split("\n")[0]
+        utt = utt.lower()
+        utt = utt.strip(".?!")
+        utt = utt.replace(",", "")
+        utt = utt.replace(";", "")
+
+        new_f.write(uttid + " " + utt + "\n")
+
+
+if __name__ == "__main__":
+    main()

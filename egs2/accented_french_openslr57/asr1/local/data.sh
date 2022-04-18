@@ -49,8 +49,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 # some samples are missing (less than 0.1%), we use the following scripts to clean the datasets
-python3 local/normalize_test.py
-python3 local/remove_missing.py
+python3 local/normalize_test.py --path_test "${ACCENTED_FR}/African_Accented_French/transcripts/test/ca16/"
+python3 local/remove_missing.py --folder "downloads/African_Accented_French/" --train "transcripts/train/" --devtest "transcripts/devtest/"
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
