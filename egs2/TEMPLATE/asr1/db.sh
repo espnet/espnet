@@ -131,6 +131,7 @@ PRIMEWORDS_CHINESE=downloads
 SEAME=
 BENGALI=downloads
 IWSLT14=
+BURMESE=downloads
 MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
