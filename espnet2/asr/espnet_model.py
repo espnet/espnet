@@ -469,7 +469,9 @@ class ESPnetASRModel(AbsESPnetModel):
         ys_pad_lens: torch.Tensor,
     ) -> torch.Tensor:
         """Compute negative log likelihood(nll) from transformer-decoder
+
         Normally, this function is called in batchify_nll.
+
         Args:
             encoder_out: (Batch, Length, Dim)
             encoder_out_lens: (Batch,)
@@ -506,6 +508,7 @@ class ESPnetASRModel(AbsESPnetModel):
         batch_size: int = 100,
     ):
         """Compute negative log likelihood(nll) from transformer-decoder
+
         To avoid OOM, this fuction seperate the input into batches.
         Then call nll for each batch and combine and return results.
         Args:
@@ -605,14 +608,17 @@ class ESPnetASRModel(AbsESPnetModel):
         labels: torch.Tensor,
     ):
         """Compute Transducer loss.
+
         Args:
             encoder_out: Encoder output sequences. (B, T, D_enc)
             encoder_out_lens: Encoder output sequences lengths. (B,)
             labels: Label ID sequences. (B, L)
+
         Return:
             loss_transducer: Transducer loss value.
             cer_transducer: Character error rate for Transducer.
             wer_transducer: Word Error Rate for Transducer.
+
         """
         decoder_in, target, t_len, u_len = get_transducer_task_io(
             labels,

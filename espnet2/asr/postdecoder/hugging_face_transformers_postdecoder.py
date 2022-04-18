@@ -7,7 +7,8 @@
 from espnet2.asr.postdecoder.abs_postdecoder import AbsPostDecoder
 
 try:
-    from transformers import AutoModel, AutoTokenizer
+    from transformers import AutoModel
+    from transformers import AutoTokenizer
 
     is_transformers_available = True
 except ImportError:
