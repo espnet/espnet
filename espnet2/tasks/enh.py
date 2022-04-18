@@ -24,6 +24,7 @@ from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import CISDRLoss
+from espnet2.enh.loss.criterions.time_domain import SDRLoss
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.criterions.time_domain import SNRLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
@@ -95,6 +96,7 @@ criterion_choices = ClassChoices(
     name="criterions",
     classes=dict(
         snr=SNRLoss,
+        sdr=SDRLoss,
         ci_sdr=CISDRLoss,
         si_snr=SISNRLoss,
         mse=FrequencyDomainMSE,
@@ -233,12 +235,16 @@ class EnhancementTask(AbsTask):
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
 
         loss_wrappers = []
-        for ctr in args.criterions:
-            criterion = criterion_choices.get_class(ctr["name"])(**ctr["conf"])
-            loss_wrapper = loss_wrapper_choices.get_class(ctr["wrapper"])(
-                criterion=criterion, **ctr["wrapper_conf"]
-            )
-            loss_wrappers.append(loss_wrapper)
+
+        if getattr(args, "criterions", None) is not None:
+            # This check is for the compatibility when load models
+            # that packed by older version
+            for ctr in args.criterions:
+                criterion = criterion_choices.get_class(ctr["name"])(**ctr["conf"])
+                loss_wrapper = loss_wrapper_choices.get_class(ctr["wrapper"])(
+                    criterion=criterion, **ctr["wrapper_conf"]
+                )
+                loss_wrappers.append(loss_wrapper)
 
         # 1. Build model
         model = ESPnetEnhancementModel(

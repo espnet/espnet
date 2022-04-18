@@ -36,12 +36,12 @@ if ! "${python_36_plus}"; then
     exit 1
 else
 
-    if $(pt_plus 1.6.1); then
-        pip install git+https://github.com/roshansh-cmu/longformer.git
-        pip install datasets bert-score
-	pip install git+https://github.com/Maluuba/nlg-eval.git@master 
+    if $(pt_plus 1.8.0); then
+        python -m pip install git+https://github.com/roshansh-cmu/longformer.git
+        python -m pip install datasets bert-score
+        python -m pip install git+https://github.com/Maluuba/nlg-eval.git@master
     else
-        echo "[WARNING] Longformer requires pytorch>=1.6.1"
+        echo "[WARNING] Longformer requires pytorch>=1.8.*"
     fi
 
 fi
