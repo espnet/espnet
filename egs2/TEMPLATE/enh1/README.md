@@ -40,6 +40,7 @@ Format scp files such as `wav.scp`. The scp files include:
   + `spk{}.scp`: wav file list of speech reference signals. {} can be 1, 2, ..., depending on the number of speakers in the input signal in `wav.scp`.
   + `noise{}.scp` (optional): wav file list of noise reference signals. {} can be 1, 2, ..., depending on the number of noise types in the input signal in `wav.scp`. The file(s) are required when `--use_noise_ref true` is specified. Also related to the variable `noise_type_num`.
   + `dereverb{}.scp` (optional): wav file list of dereverberation reference signals (for training a dereverberation model). This file is required when `--use_dereverb_ref true` is specified. Also related to the variable `dereverb_ref_num`.
+  + `utt2category`: (optional) the category info of each utterance. This file can help the batch sampler to load the same category utterances in each batch. One usage case is that users want to load the simulation data and real data in different batches.
 
 #### Stage 4: Remove short data
 This stage is same as that in ASR recipe.

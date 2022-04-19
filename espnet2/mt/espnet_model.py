@@ -120,6 +120,7 @@ class ESPnetMTModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         src_text: torch.Tensor,
         src_text_lengths: torch.Tensor,
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
@@ -128,6 +129,7 @@ class ESPnetMTModel(AbsESPnetModel):
             text_lengths: (Batch,)
             src_text: (Batch, length)
             src_text_lengths: (Batch,)
+            kwargs: "utt_id" is among the input.
         """
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
@@ -171,6 +173,7 @@ class ESPnetMTModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         src_text: torch.Tensor,
         src_text_lengths: torch.Tensor,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         if self.extract_feats_in_collect_stats:
             feats, feats_lengths = self._extract_feats(src_text, src_text_lengths)
