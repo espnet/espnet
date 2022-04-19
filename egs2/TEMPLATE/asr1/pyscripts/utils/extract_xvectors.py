@@ -105,7 +105,7 @@ def main(argv):
                 xvectors.append(embeds)
 
             # Speaker Normalization
-            xvectors = np.mean(np.concatenate(xvectors, 0), 0)
+            embeds = np.mean(np.stack(xvectors, 0), 0)
             writer_spk[speaker] = embeds
         writer_utt.close()
         writer_spk.close()
