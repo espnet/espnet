@@ -250,6 +250,7 @@
         <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Frontend + Encoder + Calc loss</span>
 
@@ -258,6 +259,7 @@
 <span class="sd">            speech_lengths: (Batch, )</span>
 <span class="sd">            text: (Batch, Length)</span>
 <span class="sd">            text_lengths: (Batch,)</span>
+<span class="sd">            kwargs: &quot;utt_id&quot; is among the input.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">shape</span>
         <span class="c1"># Check that batch_size is unified</span>
@@ -297,6 +299,7 @@
         <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_feats</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;feats&quot;</span><span class="p">:</span> <span class="n">feats</span><span class="p">,</span> <span class="s2">&quot;feats_lengths&quot;</span><span class="p">:</span> <span class="n">feats_lengths</span><span class="p">}</span></div>

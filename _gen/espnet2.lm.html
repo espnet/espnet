@@ -208,12 +208,12 @@ Then call nll for each batch and combine and return results.
 
 <dl class="method">
 <dt id="espnet2.lm.espnet_model.ESPnetLanguageModel.collect_feats">
-<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/lm/espnet_model.html#ESPnetLanguageModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.espnet_model.ESPnetLanguageModel.collect_feats" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/lm/espnet_model.html#ESPnetLanguageModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.espnet_model.ESPnetLanguageModel.collect_feats" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="espnet2.lm.espnet_model.ESPnetLanguageModel.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/lm/espnet_model.html#ESPnetLanguageModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.espnet_model.ESPnetLanguageModel.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/lm/espnet_model.html#ESPnetLanguageModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.lm.espnet_model.ESPnetLanguageModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines the computation performed at every call.</p>
 <p>Should be overridden by all subclasses.</p>
 <div class="admonition note">

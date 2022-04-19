@@ -156,6 +156,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -230,6 +231,7 @@
 <span class="sd">                            because the chunk-iterator does not have the</span>
 <span class="sd">                            speech_lengths returned. see in</span>
 <span class="sd">                            espnet2/iterators/chunk_iter_factory.py</span>
+<span class="sd">            kwargs: &quot;utt_id&quot; is among the input.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># clean speech signal of each speaker</span>
         <span class="n">speech_ref</span> <span class="o">=</span> <span class="p">[</span>
@@ -289,6 +291,28 @@
         <span class="n">speech_mix</span> <span class="o">=</span> <span class="n">speech_mix</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
 
         <span class="c1"># model forward</span>
+        <span class="n">speech_pre</span><span class="p">,</span> <span class="n">feature_mix</span><span class="p">,</span> <span class="n">feature_pre</span><span class="p">,</span> <span class="n">others</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_enhance</span><span class="p">(</span>
+            <span class="n">speech_mix</span><span class="p">,</span> <span class="n">speech_lengths</span>
+        <span class="p">)</span>
+
+        <span class="c1"># loss computation</span>
+        <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_loss</span><span class="p">(</span>
+            <span class="n">speech_pre</span><span class="p">,</span>
+            <span class="n">speech_lengths</span><span class="p">,</span>
+            <span class="n">feature_mix</span><span class="p">,</span>
+            <span class="n">feature_pre</span><span class="p">,</span>
+            <span class="n">others</span><span class="p">,</span>
+            <span class="n">speech_ref</span><span class="p">,</span>
+            <span class="n">noise_ref</span><span class="p">,</span>
+            <span class="n">dereverb_speech_ref</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span></div>
+
+<div class="viewcode-block" id="ESPnetEnhancementModel.forward_enhance"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.forward_enhance">[docs]</a>    <span class="k">def</span> <span class="nf">forward_enhance</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">speech_mix</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="n">feature_mix</span><span class="p">,</span> <span class="n">flens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
         <span class="n">feature_pre</span><span class="p">,</span> <span class="n">flens</span><span class="p">,</span> <span class="n">others</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">separator</span><span class="p">(</span><span class="n">feature_mix</span><span class="p">,</span> <span class="n">flens</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">feature_pre</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -297,7 +321,19 @@
             <span class="c1"># some models (e.g. neural beamformer trained with mask loss)</span>
             <span class="c1"># do not predict time-domain signal in the training stage</span>
             <span class="n">speech_pre</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">speech_pre</span><span class="p">,</span> <span class="n">feature_mix</span><span class="p">,</span> <span class="n">feature_pre</span><span class="p">,</span> <span class="n">others</span></div>
 
+<div class="viewcode-block" id="ESPnetEnhancementModel.forward_loss"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_model.ESPnetEnhancementModel.forward_loss">[docs]</a>    <span class="k">def</span> <span class="nf">forward_loss</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">speech_pre</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">feature_mix</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">feature_pre</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">others</span><span class="p">:</span> <span class="n">OrderedDict</span><span class="p">,</span>
+        <span class="n">speech_ref</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">noise_ref</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dereverb_speech_ref</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="n">loss</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="n">o</span> <span class="o">=</span> <span class="p">{}</span>
@@ -338,6 +374,7 @@
         <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
 
         <span class="c1"># force_gatherable: to-device and to-tensor if scalar for DataParallel</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">speech_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">force_gatherable</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">loss</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span></div>
 

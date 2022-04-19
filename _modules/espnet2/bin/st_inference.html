@@ -176,6 +176,7 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.scorers.length_bonus</span> <span class="kn">import</span> <span class="n">LengthBonus</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_utils</span> <span class="kn">import</span> <span class="n">get_commandline_args</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.datadir_writer</span> <span class="kn">import</span> <span class="n">DatadirWriter</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.enh_s2t</span> <span class="kn">import</span> <span class="n">EnhS2TTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.lm</span> <span class="kn">import</span> <span class="n">LMTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.st</span> <span class="kn">import</span> <span class="n">STTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.build_tokenizer</span> <span class="kn">import</span> <span class="n">build_tokenizer</span>
@@ -220,14 +221,29 @@
         <span class="n">ngram_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span>
         <span class="n">penalty</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">nbest</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">enh_s2t_task</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
+        <span class="n">task</span> <span class="o">=</span> <span class="n">STTask</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">enh_s2t_task</span> <span class="k">else</span> <span class="n">EnhS2TTask</span>
+
         <span class="c1"># 1. Build ST model</span>
         <span class="n">scorers</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">st_model</span><span class="p">,</span> <span class="n">st_train_args</span> <span class="o">=</span> <span class="n">STTask</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
+        <span class="n">st_model</span><span class="p">,</span> <span class="n">st_train_args</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
             <span class="n">st_train_config</span><span class="p">,</span> <span class="n">st_model_file</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">enh_s2t_task</span><span class="p">:</span>
+            <span class="n">st_model</span><span class="o">.</span><span class="n">inherite_attributes</span><span class="p">(</span>
+                <span class="n">inherite_s2t_attrs</span><span class="o">=</span><span class="p">[</span>
+                    <span class="s2">&quot;ctc&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;decoder&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;eos&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;joint_network&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;sos&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;token_list&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;use_transducer_decoder&quot;</span><span class="p">,</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
         <span class="n">st_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
 
         <span class="n">decoder</span> <span class="o">=</span> <span class="n">st_model</span><span class="o">.</span><span class="n">decoder</span>
@@ -443,6 +459,7 @@
     <span class="n">token_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">bpemodel</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">allow_variable_data_keys</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">enh_s2t_task</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -483,6 +500,7 @@
         <span class="n">ngram_weight</span><span class="o">=</span><span class="n">ngram_weight</span><span class="p">,</span>
         <span class="n">penalty</span><span class="o">=</span><span class="n">penalty</span><span class="p">,</span>
         <span class="n">nbest</span><span class="o">=</span><span class="n">nbest</span><span class="p">,</span>
+        <span class="n">enh_s2t_task</span><span class="o">=</span><span class="n">enh_s2t_task</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">speech2text</span> <span class="o">=</span> <span class="n">Speech2Text</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
         <span class="n">model_tag</span><span class="o">=</span><span class="n">model_tag</span><span class="p">,</span>

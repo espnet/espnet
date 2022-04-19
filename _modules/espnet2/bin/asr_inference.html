@@ -184,6 +184,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.transducer.beam_search_transducer</span> <span class="kn">import</span> <span class="n">Hypothesis</span> <span class="k">as</span> <span class="n">TransHypothesis</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.datadir_writer</span> <span class="kn">import</span> <span class="n">DatadirWriter</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">ASRTask</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.enh_s2t</span> <span class="kn">import</span> <span class="n">EnhS2TTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.lm</span> <span class="kn">import</span> <span class="n">LMTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.build_tokenizer</span> <span class="kn">import</span> <span class="n">build_tokenizer</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.token_id_converter</span> <span class="kn">import</span> <span class="n">TokenIDConverter</span>
@@ -230,14 +231,29 @@
         <span class="n">penalty</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">nbest</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">enh_s2t_task</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
+        <span class="n">task</span> <span class="o">=</span> <span class="n">ASRTask</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">enh_s2t_task</span> <span class="k">else</span> <span class="n">EnhS2TTask</span>
+
         <span class="c1"># 1. Build ASR model</span>
         <span class="n">scorers</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">asr_model</span><span class="p">,</span> <span class="n">asr_train_args</span> <span class="o">=</span> <span class="n">ASRTask</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
+        <span class="n">asr_model</span><span class="p">,</span> <span class="n">asr_train_args</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
             <span class="n">asr_train_config</span><span class="p">,</span> <span class="n">asr_model_file</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">enh_s2t_task</span><span class="p">:</span>
+            <span class="n">asr_model</span><span class="o">.</span><span class="n">inherite_attributes</span><span class="p">(</span>
+                <span class="n">inherite_s2t_attrs</span><span class="o">=</span><span class="p">[</span>
+                    <span class="s2">&quot;ctc&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;decoder&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;eos&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;joint_network&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;sos&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;token_list&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;use_transducer_decoder&quot;</span><span class="p">,</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
         <span class="n">asr_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
 
         <span class="n">decoder</span> <span class="o">=</span> <span class="n">asr_model</span><span class="o">.</span><span class="n">decoder</span>
@@ -501,6 +517,7 @@
     <span class="n">allow_variable_data_keys</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">transducer_conf</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
     <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">enh_s2t_task</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -544,6 +561,7 @@
         <span class="n">penalty</span><span class="o">=</span><span class="n">penalty</span><span class="p">,</span>
         <span class="n">nbest</span><span class="o">=</span><span class="n">nbest</span><span class="p">,</span>
         <span class="n">streaming</span><span class="o">=</span><span class="n">streaming</span><span class="p">,</span>
+        <span class="n">enh_s2t_task</span><span class="o">=</span><span class="n">enh_s2t_task</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">speech2text</span> <span class="o">=</span> <span class="n">Speech2Text</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
         <span class="n">model_tag</span><span class="o">=</span><span class="n">model_tag</span><span class="p">,</span>
@@ -684,6 +702,12 @@
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Pretrained model tag. If specify this option, *_train_config and &quot;</span>
         <span class="s2">&quot;*_file will be overwritten&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--enh_s2t_task&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;enhancement and asr joint model&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Beam-search related&quot;</span><span class="p">)</span>

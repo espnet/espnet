@@ -193,7 +193,7 @@
 <p>Encoder-Decoder model</p>
 <dl class="method">
 <dt id="espnet2.mt.espnet_model.ESPnetMTModel.collect_feats">
-<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">src_text: torch.Tensor</em>, <em class="sig-param">src_text_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/mt/espnet_model.html#ESPnetMTModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.mt.espnet_model.ESPnetMTModel.collect_feats" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">collect_feats</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">src_text: torch.Tensor</em>, <em class="sig-param">src_text_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Dict[str, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/mt/espnet_model.html#ESPnetMTModel.collect_feats"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.mt.espnet_model.ESPnetMTModel.collect_feats" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -212,7 +212,7 @@
 
 <dl class="method">
 <dt id="espnet2.mt.espnet_model.ESPnetMTModel.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">src_text: torch.Tensor</em>, <em class="sig-param">src_text_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/mt/espnet_model.html#ESPnetMTModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.mt.espnet_model.ESPnetMTModel.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">src_text: torch.Tensor</em>, <em class="sig-param">src_text_lengths: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/mt/espnet_model.html#ESPnetMTModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.mt.espnet_model.ESPnetMTModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Frontend + Encoder + Decoder + Calc loss</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -221,6 +221,7 @@
 <li><p><strong>text_lengths</strong> – (Batch,)</p></li>
 <li><p><strong>src_text</strong> – (Batch, length)</p></li>
 <li><p><strong>src_text_lengths</strong> – (Batch,)</p></li>
+<li><p><strong>kwargs</strong> – “utt_id” is among the input.</p></li>
 </ul>
 </dd>
 </dl>

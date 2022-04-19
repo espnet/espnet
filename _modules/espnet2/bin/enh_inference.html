@@ -175,6 +175,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.pit_solver</span> <span class="kn">import</span> <span class="n">PITSolver</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.sound_scp</span> <span class="kn">import</span> <span class="n">SoundScpWriter</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.enh</span> <span class="kn">import</span> <span class="n">EnhancementTask</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.enh_s2t</span> <span class="kn">import</span> <span class="n">EnhS2TTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">to_device</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.set_all_random_seed</span> <span class="kn">import</span> <span class="n">set_all_random_seed</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils</span> <span class="kn">import</span> <span class="n">config_argparse</span>
@@ -210,13 +211,19 @@
         <span class="n">normalize_output_wav</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+        <span class="n">enh_s2t_task</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
+        <span class="n">task</span> <span class="o">=</span> <span class="n">EnhancementTask</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">enh_s2t_task</span> <span class="k">else</span> <span class="n">EnhS2TTask</span>
+
         <span class="c1"># 1. Build Enh model</span>
-        <span class="n">enh_model</span><span class="p">,</span> <span class="n">enh_train_args</span> <span class="o">=</span> <span class="n">EnhancementTask</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
+        <span class="n">enh_model</span><span class="p">,</span> <span class="n">enh_train_args</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
             <span class="n">train_config</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">enh_s2t_task</span><span class="p">:</span>
+            <span class="n">enh_model</span> <span class="o">=</span> <span class="n">enh_model</span><span class="o">.</span><span class="n">enh_model</span>
+
         <span class="n">enh_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
@@ -465,6 +472,7 @@
     <span class="n">show_progressbar</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">ref_channel</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
     <span class="n">normalize_output_wav</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">enh_s2t_task</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -497,6 +505,7 @@
         <span class="n">normalize_output_wav</span><span class="o">=</span><span class="n">normalize_output_wav</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">enh_s2t_task</span><span class="o">=</span><span class="n">enh_s2t_task</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">separate_speech</span> <span class="o">=</span> <span class="n">SeparateSpeech</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
         <span class="n">model_tag</span><span class="o">=</span><span class="n">model_tag</span><span class="p">,</span>
@@ -617,6 +626,12 @@
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Pretrained model tag. If specify this option, train_config and &quot;</span>
         <span class="s2">&quot;model_file will be overwritten&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--enh_s2t_task&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;enhancement and asr joint model&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Data loading related&quot;</span><span class="p">)</span>

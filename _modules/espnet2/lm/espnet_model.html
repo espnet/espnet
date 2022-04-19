@@ -267,7 +267,10 @@
         <span class="k">return</span> <span class="n">nll</span><span class="p">,</span> <span class="n">x_lengths</span></div>
 
 <div class="viewcode-block" id="ESPnetLanguageModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.lm.html#espnet2.lm.espnet_model.ESPnetLanguageModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="n">nll</span><span class="p">,</span> <span class="n">y_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nll</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span><span class="p">)</span>
         <span class="n">ntokens</span> <span class="o">=</span> <span class="n">y_lengths</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
@@ -279,7 +282,10 @@
         <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span></div>
 
 <div class="viewcode-block" id="ESPnetLanguageModel.collect_feats"><a class="viewcode-back" href="../../../_gen/espnet2.lm.html#espnet2.lm.espnet_model.ESPnetLanguageModel.collect_feats">[docs]</a>    <span class="k">def</span> <span class="nf">collect_feats</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">{}</span></div></div>
 </pre></div>

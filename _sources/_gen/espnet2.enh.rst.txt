@@ -4,6 +4,17 @@ espnet2.enh package
 
 
 
+.. _espnet2.enh.espnet_enh_s2t_model:
+
+espnet2.enh.espnet_enh_s2t_model
+--------------------------------
+
+.. automodule:: espnet2.enh.espnet_enh_s2t_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.espnet_model:
 
 espnet2.enh.espnet_model

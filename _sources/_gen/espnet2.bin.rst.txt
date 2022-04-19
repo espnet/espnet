@@ -103,6 +103,17 @@ espnet2.bin.st_inference
     :show-inheritance:
 
 
+.. _espnet2.bin.enh_s2t_train:
+
+espnet2.bin.enh_s2t_train
+-------------------------
+
+.. automodule:: espnet2.bin.enh_s2t_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.enh_train:
 
 espnet2.bin.enh_train

@@ -315,6 +315,7 @@ Input/output arguments:
                         [--word_lm_train_config WORD_LM_TRAIN_CONFIG]
                         [--word_lm_file WORD_LM_FILE]
                         [--ngram_file NGRAM_FILE] [--model_tag MODEL_TAG]
+                        [--enh_s2t_task ENH_S2T_TASK]
                         [--batch_size BATCH_SIZE] [--nbest NBEST]
                         [--beam_size BEAM_SIZE] [--penalty PENALTY]
                         [--maxlenratio MAXLENRATIO]
@@ -361,6 +362,8 @@ The model configuration related:
                         Pretrained model tag. If specify this option,
                         *_train_config and *_file will be overwritten
                         (default: None)
+  --enh_s2t_task ENH_S2T_TASK
+                        enhancement and asr joint model (default: False)
 
 Beam-search related:
   --batch_size BATCH_SIZE
@@ -1501,6 +1504,7 @@ Optimizer related:
                         [--normalize_output_wav NORMALIZE_OUTPUT_WAV]
                         [--train_config TRAIN_CONFIG]
                         [--model_file MODEL_FILE] [--model_tag MODEL_TAG]
+                        [--enh_s2t_task ENH_S2T_TASK]
                         [--batch_size BATCH_SIZE]
                         [--segment_size SEGMENT_SIZE] [--hop_size HOP_SIZE]
                         [--normalize_segment_scale NORMALIZE_SEGMENT_SCALE]
@@ -1541,6 +1545,8 @@ The model configuration related:
                         Pretrained model tag. If specify this option,
                         train_config and model_file will be overwritten
                         (default: None)
+  --enh_s2t_task ENH_S2T_TASK
+                        enhancement and asr joint model (default: False)
 
 Data loading related:
   --batch_size BATCH_SIZE
@@ -1566,8 +1572,554 @@ SeparateSpeech related:
 </pre></div>
 </div>
 </section>
+<section id="enh-s2t-train-py">
+<span id="id9"></span><h1>enh_s2t_train.py<a class="headerlink" href="#enh-s2t-train-py" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: enh_s2t_train.py [-h] [--config CONFIG] [--print_config]
+                        [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                        [--dry_run DRY_RUN]
+                        [--iterator_type {sequence,chunk,task,none}]
+                        [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
+                        [--num_workers NUM_WORKERS]
+                        [--num_att_plot NUM_ATT_PLOT]
+                        [--dist_backend DIST_BACKEND]
+                        [--dist_init_method DIST_INIT_METHOD]
+                        [--dist_world_size DIST_WORLD_SIZE]
+                        [--dist_rank DIST_RANK] [--local_rank LOCAL_RANK]
+                        [--dist_master_addr DIST_MASTER_ADDR]
+                        [--dist_master_port DIST_MASTER_PORT]
+                        [--dist_launcher {slurm,mpi,None}]
+                        [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
+                        [--unused_parameters UNUSED_PARAMETERS]
+                        [--sharded_ddp SHARDED_DDP]
+                        [--cudnn_enabled CUDNN_ENABLED]
+                        [--cudnn_benchmark CUDNN_BENCHMARK]
+                        [--cudnn_deterministic CUDNN_DETERMINISTIC]
+                        [--collect_stats COLLECT_STATS]
+                        [--write_collected_feats WRITE_COLLECTED_FEATS]
+                        [--max_epoch MAX_EPOCH] [--patience PATIENCE]
+                        [--val_scheduler_criterion VAL_SCHEDULER_CRITERION VAL_SCHEDULER_CRITERION]
+                        [--early_stopping_criterion EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION]
+                        [--best_model_criterion BEST_MODEL_CRITERION [BEST_MODEL_CRITERION ...]]
+                        [--keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]]
+                        [--nbest_averaging_interval NBEST_AVERAGING_INTERVAL]
+                        [--grad_clip GRAD_CLIP]
+                        [--grad_clip_type GRAD_CLIP_TYPE]
+                        [--grad_noise GRAD_NOISE] [--accum_grad ACCUM_GRAD]
+                        [--no_forward_run NO_FORWARD_RUN] [--resume RESUME]
+                        [--train_dtype {float16,float32,float64}]
+                        [--use_amp USE_AMP] [--log_interval LOG_INTERVAL]
+                        [--use_matplotlib USE_MATPLOTLIB]
+                        [--use_tensorboard USE_TENSORBOARD]
+                        [--use_wandb USE_WANDB]
+                        [--wandb_project WANDB_PROJECT] [--wandb_id WANDB_ID]
+                        [--wandb_entity WANDB_ENTITY]
+                        [--wandb_name WANDB_NAME]
+                        [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
+                        [--detect_anomaly DETECT_ANOMALY]
+                        [--pretrain_path PRETRAIN_PATH]
+                        [--init_param [INIT_PARAM [INIT_PARAM ...]]]
+                        [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
+                        [--freeze_param [FREEZE_PARAM [FREEZE_PARAM ...]]]
+                        [--num_iters_per_epoch NUM_ITERS_PER_EPOCH]
+                        [--batch_size BATCH_SIZE]
+                        [--valid_batch_size VALID_BATCH_SIZE]
+                        [--batch_bins BATCH_BINS]
+                        [--valid_batch_bins VALID_BATCH_BINS]
+                        [--train_shape_file TRAIN_SHAPE_FILE]
+                        [--valid_shape_file VALID_SHAPE_FILE]
+                        [--batch_type {unsorted,sorted,folded,length,numel}]
+                        [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
+                        [--fold_length FOLD_LENGTH]
+                        [--sort_in_batch {descending,ascending}]
+                        [--sort_batch {descending,ascending}]
+                        [--multiple_iterator MULTIPLE_ITERATOR]
+                        [--chunk_length CHUNK_LENGTH]
+                        [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
+                        [--num_cache_chunks NUM_CACHE_CHUNKS]
+                        [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
+                        [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
+                        [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
+                        [--max_cache_size MAX_CACHE_SIZE]
+                        [--max_cache_fd MAX_CACHE_FD]
+                        [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
+                        [--optim_conf OPTIM_CONF]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler_conf SCHEDULER_CONF]
+                        [--token_list TOKEN_LIST]
+                        [--src_token_list SRC_TOKEN_LIST]
+                        [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
+                        [--input_size INPUT_SIZE] [--ctc_conf CTC_CONF]
+                        [--enh_criterions ENH_CRITERIONS]
+                        [--enh_model_conf ENH_MODEL_CONF]
+                        [--asr_model_conf ASR_MODEL_CONF]
+                        [--st_model_conf ST_MODEL_CONF]
+                        [--subtask_series {enh,asr,st} [{enh,asr,st} ...]]
+                        [--model_conf MODEL_CONF]
+                        [--use_preprocessor USE_PREPROCESSOR]
+                        [--token_type {bpe,char,word,phn}]
+                        [--bpemodel BPEMODEL]
+                        [--src_token_type {bpe,char,word,phn}]
+                        [--src_bpemodel SRC_BPEMODEL]
+                        [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
+                        [--cleaner {None,tacotron,jaconv,vietnamese}]
+                        [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space}]
+                        [--enh_encoder {stft,conv,same}]
+                        [--enh_encoder_conf ENH_ENCODER_CONF]
+                        [--enh_separator {rnn,skim,tcn,dc_crn,dprnn,dccrn,transformer,conformer,wpe_beamformer,asteroid,fasnet}]
+                        [--enh_separator_conf ENH_SEPARATOR_CONF]
+                        [--enh_decoder {stft,conv,same}]
+                        [--enh_decoder_conf ENH_DECODER_CONF]
+                        [--frontend {default,sliding_window,s3prl,fused}]
+                        [--frontend_conf FRONTEND_CONF]
+                        [--specaug {specaug,None}]
+                        [--specaug_conf SPECAUG_CONF]
+                        [--normalize {global_mvn,utterance_mvn,None}]
+                        [--normalize_conf NORMALIZE_CONF]
+                        [--asr_preencoder {sinc,linear,None}]
+                        [--asr_preencoder_conf ASR_PREENCODER_CONF]
+                        [--asr_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer}]
+                        [--asr_encoder_conf ASR_ENCODER_CONF]
+                        [--asr_postencoder {hugging_face_transformers,None}]
+                        [--asr_postencoder_conf ASR_POSTENCODER_CONF]
+                        [--asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm}]
+                        [--asr_decoder_conf ASR_DECODER_CONF]
+                        [--st_preencoder {sinc,linear,None}]
+                        [--st_preencoder_conf ST_PREENCODER_CONF]
+                        [--st_encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain}]
+                        [--st_encoder_conf ST_ENCODER_CONF]
+                        [--st_postencoder {hugging_face_transformers,None}]
+                        [--st_postencoder_conf ST_POSTENCODER_CONF]
+                        [--st_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}]
+                        [--st_decoder_conf ST_DECODER_CONF]
+                        [--st_extra_asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}]
+                        [--st_extra_asr_decoder_conf ST_EXTRA_ASR_DECODER_CONF]
+                        [--st_extra_mt_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}]
+                        [--st_extra_mt_decoder_conf ST_EXTRA_MT_DECODER_CONF]
+
+base parser
+
+optional arguments:
+  --config CONFIG       Give config file in yaml format (default: None)
+  --non_linguistic_symbols NON_LINGUISTIC_SYMBOLS
+                        non_linguistic_symbols file path (default: None)
+  --cleaner {None,tacotron,jaconv,vietnamese}
+                        Apply text cleaning (default: None)
+  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space}
+                        Specify g2p method if --token_type=phn (default: None)
+
+Common configuration:
+  --print_config        Print the config file and exit (default: False)
+  --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
+                        The verbose level of logging (default: INFO)
+  --dry_run DRY_RUN     Perform process without training (default: False)
+  --iterator_type {sequence,chunk,task,none}
+                        Specify iterator type (default: sequence)
+  --output_dir OUTPUT_DIR
+  --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
+  --seed SEED           Random seed (default: 0)
+  --num_workers NUM_WORKERS
+                        The number of workers used for DataLoader (default: 1)
+  --num_att_plot NUM_ATT_PLOT
+                        The number images to plot the outputs from attention. This option makes sense only when attention-based model. We can also disable the attention plot by setting it 0 (default: 3)
+
+distributed training related:
+  --dist_backend DIST_BACKEND
+                        distributed backend (default: nccl)
+  --dist_init_method DIST_INIT_METHOD
+                        if init_method=&quot;env://&quot;, env values of &quot;MASTER_PORT&quot;, &quot;MASTER_ADDR&quot;, &quot;WORLD_SIZE&quot;, and &quot;RANK&quot; are referred. (default: env://)
+  --dist_world_size DIST_WORLD_SIZE
+                        number of nodes for distributed training (default: None)
+  --dist_rank DIST_RANK
+                        node rank for distributed training (default: None)
+  --local_rank LOCAL_RANK
+                        local rank for distributed training. This option is used if --multiprocessing_distributed=false (default: None)
+  --dist_master_addr DIST_MASTER_ADDR
+                        The master address for distributed training. This value is used when dist_init_method == &#39;env://&#39; (default: None)
+  --dist_master_port DIST_MASTER_PORT
+                        The master port for distributed trainingThis value is used when dist_init_method == &#39;env://&#39; (default: None)
+  --dist_launcher {slurm,mpi,None}
+                        The launcher type for distributed training (default: None)
+  --multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED
+                        Use multi-processing distributed training to launch N processes per node, which has N GPUs. This is the fastest way to use PyTorch for either single node or multi node data parallel training (default: False)
+  --unused_parameters UNUSED_PARAMETERS
+                        Whether to use the find_unused_parameters in torch.nn.parallel.DistributedDataParallel  (default: False)
+  --sharded_ddp SHARDED_DDP
+                        Enable sharded training provided by fairscale (default: False)
+
+cudnn mode related:
+  --cudnn_enabled CUDNN_ENABLED
+                        Enable CUDNN (default: True)
+  --cudnn_benchmark CUDNN_BENCHMARK
+                        Enable cudnn-benchmark mode (default: False)
+  --cudnn_deterministic CUDNN_DETERMINISTIC
+                        Enable cudnn-deterministic mode (default: True)
+
+collect stats mode related:
+  --collect_stats COLLECT_STATS
+                        Perform on &quot;collect stats&quot; mode (default: False)
+  --write_collected_feats WRITE_COLLECTED_FEATS
+                        Write the output features from the model when &quot;collect stats&quot; mode (default: False)
+
+Trainer related:
+  --max_epoch MAX_EPOCH
+                        The maximum number epoch to train (default: 40)
+  --patience PATIENCE   Number of epochs to wait without improvement before stopping the training (default: None)
+  --val_scheduler_criterion VAL_SCHEDULER_CRITERION VAL_SCHEDULER_CRITERION
+                        The criterion used for the value given to the lr scheduler. Give a pair referring the phase, &quot;train&quot; or &quot;valid&quot;,and the criterion name. The mode specifying &quot;min&quot; or &quot;max&quot; can be changed by --scheduler_conf (default: (&#39;valid&#39;, &#39;loss&#39;))
+  --early_stopping_criterion EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION
+                        The criterion used for judging of early stopping. Give a pair referring the phase, &quot;train&quot; or &quot;valid&quot;,the criterion name and the mode, &quot;min&quot; or &quot;max&quot;, e.g. &quot;acc,max&quot;. (default: (&#39;valid&#39;, &#39;loss&#39;, &#39;min&#39;))
+  --best_model_criterion BEST_MODEL_CRITERION [BEST_MODEL_CRITERION ...]
+                        The criterion used for judging of the best model. Give a pair referring the phase, &quot;train&quot; or &quot;valid&quot;,the criterion name, and the mode, &quot;min&quot; or &quot;max&quot;, e.g. &quot;acc,max&quot;. (default: [(&#39;train&#39;, &#39;loss&#39;, &#39;min&#39;), (&#39;valid&#39;, &#39;loss&#39;, &#39;min&#39;), (&#39;train&#39;, &#39;acc&#39;, &#39;max&#39;), (&#39;valid&#39;, &#39;acc&#39;, &#39;max&#39;)])
+  --keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]
+                        Remove previous snapshots excluding the n-best scored epochs (default: [10])
+  --nbest_averaging_interval NBEST_AVERAGING_INTERVAL
+                        The epoch interval to apply model averaging and save nbest models (default: 0)
+  --grad_clip GRAD_CLIP
+                        Gradient norm threshold to clip (default: 5.0)
+  --grad_clip_type GRAD_CLIP_TYPE
+                        The type of the used p-norm for gradient clip. Can be inf (default: 2.0)
+  --grad_noise GRAD_NOISE
+                        The flag to switch to use noise injection to gradients during training (default: False)
+  --accum_grad ACCUM_GRAD
+                        The number of gradient accumulation (default: 1)
+  --no_forward_run NO_FORWARD_RUN
+                        Just only iterating data loading without model forwarding and training (default: False)
+  --resume RESUME       Enable resuming if checkpoint is existing (default: False)
+  --train_dtype {float16,float32,float64}
+                        Data type for training. (default: float32)
+  --use_amp USE_AMP     Enable Automatic Mixed Precision. This feature requires pytorch&gt;=1.6 (default: False)
+  --log_interval LOG_INTERVAL
+                        Show the logs every the number iterations in each epochs at the training phase. If None is given, it is decided according the number of training samples automatically . (default: None)
+  --use_matplotlib USE_MATPLOTLIB
+                        Enable matplotlib logging (default: True)
+  --use_tensorboard USE_TENSORBOARD
+                        Enable tensorboard logging (default: True)
+  --use_wandb USE_WANDB
+                        Enable wandb logging (default: False)
+  --wandb_project WANDB_PROJECT
+                        Specify wandb project (default: None)
+  --wandb_id WANDB_ID   Specify wandb id (default: None)
+  --wandb_entity WANDB_ENTITY
+                        Specify wandb entity (default: None)
+  --wandb_name WANDB_NAME
+                        Specify wandb run name (default: None)
+  --wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL
+                        Set the model log period (default: -1)
+  --detect_anomaly DETECT_ANOMALY
+                        Set torch.autograd.set_detect_anomaly (default: False)
+
+Pretraining model related:
+  --pretrain_path PRETRAIN_PATH
+                        This option is obsoleted (default: None)
+  --init_param [INIT_PARAM [INIT_PARAM ...]]
+                        Specify the file path used for initialization of parameters. The format is &#39;&lt;file_path&gt;:&lt;src_key&gt;:&lt;dst_key&gt;:&lt;exclude_keys&gt;&#39;, where file_path is the model file path, src_key specifies the key of model states to be used in the model file, dst_key specifies the attribute of the model to be initialized, and exclude_keys excludes keys of model states for the initialization.e.g.
+                          # Load all parameters  --init_param some/where/model.pth
+                          # Load only decoder parameters  --init_param some/where/model.pth:decoder:decoder
+                          # Load only decoder parameters excluding decoder.embed  --init_param some/where/model.pth:decoder:decoder:decoder.embed
+                          --init_param some/where/model.pth:decoder:decoder:decoder.embed
+                         (default: [])
+  --ignore_init_mismatch IGNORE_INIT_MISMATCH
+                        Ignore size mismatch when loading pre-trained model (default: False)
+  --freeze_param [FREEZE_PARAM [FREEZE_PARAM ...]]
+                        Freeze parameters (default: [])
+
+BatchSampler related:
+  --num_iters_per_epoch NUM_ITERS_PER_EPOCH
+                        Restrict the number of iterations for training per epoch (default: None)
+  --batch_size BATCH_SIZE
+                        The mini-batch size used for training. Used if batch_type=&#39;unsorted&#39;, &#39;sorted&#39;, or &#39;folded&#39;. (default: 20)
+  --valid_batch_size VALID_BATCH_SIZE
+                        If not given, the value of --batch_size is used (default: None)
+  --batch_bins BATCH_BINS
+                        The number of batch bins. Used if batch_type=&#39;length&#39; or &#39;numel&#39; (default: 1000000)
+  --valid_batch_bins VALID_BATCH_BINS
+                        If not given, the value of --batch_bins is used (default: None)
+  --train_shape_file TRAIN_SHAPE_FILE
+  --valid_shape_file VALID_SHAPE_FILE
+
+Sequence iterator related:
+  --batch_type {unsorted,sorted,folded,length,numel}
+                        &quot;unsorted&quot;:
+                        UnsortedBatchSampler has nothing in particular feature and just creates mini-batches which has constant batch_size. This sampler doesn&#39;t require any length information for each feature. &#39;key_file&#39; is just a text file which describes each sample name.
+
+                            utterance_id_a
+                            utterance_id_b
+                            utterance_id_c
+
+                        The fist column is referred, so &#39;shape file&#39; can be used, too.
+
+                            utterance_id_a 100,80
+                            utterance_id_b 400,80
+                            utterance_id_c 512,80
+
+                        &quot;sorted&quot;:
+                        SortedBatchSampler sorts samples by the length of the first input  in order to make each sample in a mini-batch has close length. This sampler requires a text file which describes the length for each sample
+
+                            utterance_id_a 1000
+                            utterance_id_b 1453
+                            utterance_id_c 1241
+
+                        The first element of feature dimensions is referred, so &#39;shape_file&#39; can be also used.
+
+                            utterance_id_a 1000,80
+                            utterance_id_b 1453,80
+                            utterance_id_c 1241,80
+
+                        &quot;folded&quot;:
+                        FoldedBatchSampler supports variable batch_size. The batch_size is decided by
+                            batch_size = base_batch_size // (L // fold_length)
+                        L is referred to the largest length of samples in the mini-batch. This samples requires length information as same as SortedBatchSampler
+
+                        &quot;length&quot;:
+                        LengthBatchSampler supports variable batch_size. This sampler makes mini-batches which have same number of &#39;bins&#39; as possible counting by the total lengths of each feature in the mini-batch. This sampler requires a text file which describes the length for each sample.
+
+                            utterance_id_a 1000
+                            utterance_id_b 1453
+                            utterance_id_c 1241
+
+                        The first element of feature dimensions is referred, so &#39;shape_file&#39; can be also used.
+
+                            utterance_id_a 1000,80
+                            utterance_id_b 1453,80
+                            utterance_id_c 1241,80
+
+                        &quot;numel&quot;:
+                        NumElementsBatchSampler supports variable batch_size. Just like LengthBatchSampler, this sampler makes mini-batches which have same number of &#39;bins&#39; as possible counting by the total number of elements of each feature instead of the length. Thus this sampler requires the full information of the dimension of the features.
+
+                            utterance_id_a 1000,80
+                            utterance_id_b 1453,80
+                            utterance_id_c 1241,80
+
+                         (default: folded)
+  --valid_batch_type {unsorted,sorted,folded,length,numel,None}
+                        If not given, the value of --batch_type is used (default: None)
+  --fold_length FOLD_LENGTH
+  --sort_in_batch {descending,ascending}
+                        Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --sort_batch {descending,ascending}
+                        Sort mini-batches by the sample lengths (default: descending)
+  --multiple_iterator MULTIPLE_ITERATOR
+                        Use multiple iterator mode (default: False)
+
+Chunk iterator related:
+  --chunk_length CHUNK_LENGTH
+                        Specify chunk length. e.g. &#39;300&#39;, &#39;300,400,500&#39;, or &#39;300-400&#39;.If multiple numbers separated by command are given, one of them is selected randomly for each samples. If two numbers are given with &#39;-&#39;, it indicates the range of the choices. Note that if the sequence length is shorter than the all chunk_lengths, the sample is discarded.  (default: 500)
+  --chunk_shift_ratio CHUNK_SHIFT_RATIO
+                        Specify the shift width of chunks. If it&#39;s less than 1, allows the overlapping and if bigger than 1, there are some gaps between each chunk. (default: 0.5)
+  --num_cache_chunks NUM_CACHE_CHUNKS
+                        Shuffle in the specified number of chunks and generate mini-batches More larger this value, more randomness can be obtained. (default: 1024)
+
+Dataset related:
+  --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
+                        Give three words splitted by comma. It&#39;s used for the training data. e.g. &#39;--train_data_path_and_name_and_type some/path/a.scp,foo,sound&#39;. The first value, some/path/a.scp, indicates the file path, and the second, foo, is the key name used for the mini-batch data, and the last, sound, decides the file type. This option is repeatable, so you can input any number of features for your task. Supported file types are as follows:
+
+                        &quot;sound&quot;:
+                        Audio format types which supported by sndfile wav, flac, etc.
+
+                           utterance_id_a a.wav
+                           utterance_id_b b.wav
+                           ...
+
+                        &quot;kaldi_ark&quot;:
+                        Kaldi-ark file type.
+
+                           utterance_id_A /some/where/a.ark:123
+                           utterance_id_B /some/where/a.ark:456
+                           ...
+
+                        &quot;npy&quot;:
+                        Npy file format.
+
+                           utterance_id_A /some/where/a.npy
+                           utterance_id_B /some/where/b.npy
+                           ...
+
+                        &quot;text_int&quot;:
+                        A text file in which is written a sequence of interger numbers separated by space.
+
+                           utterance_id_A 12 0 1 3
+                           utterance_id_B 3 3 1
+                           ...
+
+                        &quot;csv_int&quot;:
+                        A text file in which is written a sequence of interger numbers separated by comma.
+
+                           utterance_id_A 100,80
+                           utterance_id_B 143,80
+                           ...
+
+                        &quot;text_float&quot;:
+                        A text file in which is written a sequence of float numbers separated by space.
+
+                           utterance_id_A 12. 3.1 3.4 4.4
+                           utterance_id_B 3. 3.12 1.1
+                           ...
+
+                        &quot;csv_float&quot;:
+                        A text file in which is written a sequence of float numbers separated by comma.
+
+                           utterance_id_A 12.,3.1,3.4,4.4
+                           utterance_id_B 3.,3.12,1.1
+                           ...
+
+                        &quot;text&quot;:
+                        Return text as is. The text must be converted to ndarray by &#39;preprocess&#39;.
+
+                           utterance_id_A hello world
+                           utterance_id_B foo bar
+                           ...
+
+                        &quot;hdf5&quot;:
+                        A HDF5 file which contains arrays at the first level or the second level.   &gt;&gt;&gt; f = h5py.File(&#39;file.h5&#39;)
+                           &gt;&gt;&gt; array1 = f[&#39;utterance_id_A&#39;]
+                           &gt;&gt;&gt; array2 = f[&#39;utterance_id_B&#39;]
+
+
+                        &quot;rand_float&quot;:
+                        Generate random float-ndarray which has the given shapes in the file.
+
+                           utterance_id_A 3,4
+                           utterance_id_B 10,4
+                           ...
+
+                        &quot;rand_int_\d+_\d+&quot;:
+                        e.g. &#39;rand_int_0_10&#39;. Generate random int-ndarray which has the given shapes in the path. Give the lower and upper value by the file type. e.g. rand_int_0_10 -&gt; Generate integers from 0 to 10.
+
+                           utterance_id_A 3,4
+                           utterance_id_B 10,4
+                           ...
+
+                        &quot;rttm&quot;:
+                        rttm file loader, currently support for speaker diarization
+
+                            SPEAKER file1 1 0 1023 &lt;NA&gt; &lt;NA&gt; spk1 &lt;NA&gt;    SPEAKER file1 2 4000 3023 &lt;NA&gt; &lt;NA&gt; spk2 &lt;NA&gt;    SPEAKER file1 3 500 4023 &lt;NA&gt; &lt;NA&gt; spk1 &lt;NA&gt;    END     file1 &lt;NA&gt; 4023 &lt;NA&gt; &lt;NA&gt; &lt;NA&gt; &lt;NA&gt;   ...
+
+                         (default: [])
+  --valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE
+  --allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS
+                        Allow the arbitrary keys for mini-batch with ignoring the task requirements (default: False)
+  --max_cache_size MAX_CACHE_SIZE
+                        The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
+  --max_cache_fd MAX_CACHE_FD
+                        The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is &#39;kaldi_ark&#39;. (default: 32)
+  --valid_max_cache_size VALID_MAX_CACHE_SIZE
+                        The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
+
+Optimizer related:
+  --optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}
+                        The optimizer type (default: adadelta)
+  --optim_conf OPTIM_CONF
+                        The keyword arguments for optimizer (default: {})
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+                        The lr scheduler type (default: None)
+  --scheduler_conf SCHEDULER_CONF
+                        The keyword arguments for lr scheduler (default: {})
+
+  Task related
+
+  --token_list TOKEN_LIST
+                        A text mapping int-id to token (default: None)
+  --src_token_list SRC_TOKEN_LIST
+                        A text mapping int-id to token (for source language) (default: None)
+  --init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}
+                        The initialization method (default: None)
+  --input_size INPUT_SIZE
+                        The number of input dimension of the feature (default: None)
+  --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: True})
+  --enh_criterions ENH_CRITERIONS
+                        The criterions binded with the loss wrappers. (default: [{&#39;name&#39;: &#39;si_snr&#39;, &#39;conf&#39;: {}, &#39;wrapper&#39;: &#39;fixed_order&#39;, &#39;wrapper_conf&#39;: {}}])
+  --enh_model_conf ENH_MODEL_CONF
+                        The keyword arguments for enh submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None})
+  --asr_model_conf ASR_MODEL_CONF
+                        The keyword arguments for asr submodel class. (default: {&#39;ctc_weight&#39;: 0.5, &#39;interctc_weight&#39;: 0.0, &#39;ignore_id&#39;: -1, &#39;lsm_weight&#39;: 0.0, &#39;length_normalized_loss&#39;: False, &#39;report_cer&#39;: True, &#39;report_wer&#39;: True, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;extract_feats_in_collect_stats&#39;: True})
+  --st_model_conf ST_MODEL_CONF
+                        The keyword arguments for st submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None})
+  --subtask_series {enh,asr,st} [{enh,asr,st} ...]
+                        The series of subtasks in the pipeline. (default: (&#39;enh&#39;, &#39;asr&#39;))
+  --model_conf MODEL_CONF
+                        The keyword arguments for model class. (default: {&#39;permutation_by_enh&#39;: True, &#39;calc_enh_loss&#39;: True, &#39;bypass_enh_prob&#39;: 0})
+
+  Preprocess related
+
+  --use_preprocessor USE_PREPROCESSOR
+                        Apply preprocessing to data or not (default: False)
+  --token_type {bpe,char,word,phn}
+                        The text will be tokenized in the specified level token (default: bpe)
+  --bpemodel BPEMODEL   The model file of sentencepiece (default: None)
+  --src_token_type {bpe,char,word,phn}
+                        The source text will be tokenized in the specified level token (default: bpe)
+  --src_bpemodel SRC_BPEMODEL
+                        The model file of sentencepiece (for source language) (default: None)
+  --enh_encoder {stft,conv,same}
+                        The enh_encoder type (default: stft)
+  --enh_encoder_conf ENH_ENCODER_CONF
+                        The keyword arguments for enh_encoder (default: {})
+  --enh_separator {rnn,skim,tcn,dc_crn,dprnn,dccrn,transformer,conformer,wpe_beamformer,asteroid,fasnet}
+                        The enh_separator type (default: rnn)
+  --enh_separator_conf ENH_SEPARATOR_CONF
+                        The keyword arguments for enh_separator (default: {})
+  --enh_decoder {stft,conv,same}
+                        The enh_decoder type (default: stft)
+  --enh_decoder_conf ENH_DECODER_CONF
+                        The keyword arguments for enh_decoder (default: {})
+  --frontend {default,sliding_window,s3prl,fused}
+                        The frontend type (default: default)
+  --frontend_conf FRONTEND_CONF
+                        The keyword arguments for frontend (default: {})
+  --specaug {specaug,None}
+                        The specaug type (default: None)
+  --specaug_conf SPECAUG_CONF
+                        The keyword arguments for specaug (default: {})
+  --normalize {global_mvn,utterance_mvn,None}
+                        The normalize type (default: utterance_mvn)
+  --normalize_conf NORMALIZE_CONF
+                        The keyword arguments for normalize (default: {})
+  --asr_preencoder {sinc,linear,None}
+                        The asr_preencoder type (default: None)
+  --asr_preencoder_conf ASR_PREENCODER_CONF
+                        The keyword arguments for asr_preencoder (default: {})
+  --asr_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,longformer}
+                        The asr_encoder type (default: rnn)
+  --asr_encoder_conf ASR_ENCODER_CONF
+                        The keyword arguments for asr_encoder (default: {})
+  --asr_postencoder {hugging_face_transformers,None}
+                        The asr_postencoder type (default: None)
+  --asr_postencoder_conf ASR_POSTENCODER_CONF
+                        The keyword arguments for asr_postencoder (default: {})
+  --asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,mlm}
+                        The asr_decoder type (default: rnn)
+  --asr_decoder_conf ASR_DECODER_CONF
+                        The keyword arguments for asr_decoder (default: {})
+  --st_preencoder {sinc,linear,None}
+                        The st_preencoder type (default: None)
+  --st_preencoder_conf ST_PREENCODER_CONF
+                        The keyword arguments for st_preencoder (default: {})
+  --st_encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain}
+                        The st_encoder type (default: rnn)
+  --st_encoder_conf ST_ENCODER_CONF
+                        The keyword arguments for st_encoder (default: {})
+  --st_postencoder {hugging_face_transformers,None}
+                        The st_postencoder type (default: None)
+  --st_postencoder_conf ST_POSTENCODER_CONF
+                        The keyword arguments for st_postencoder (default: {})
+  --st_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}
+                        The st_decoder type (default: rnn)
+  --st_decoder_conf ST_DECODER_CONF
+                        The keyword arguments for st_decoder (default: {})
+  --st_extra_asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}
+                        The st_extra_asr_decoder type (default: rnn)
+  --st_extra_asr_decoder_conf ST_EXTRA_ASR_DECODER_CONF
+                        The keyword arguments for st_extra_asr_decoder (default: {})
+  --st_extra_mt_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}
+                        The st_extra_mt_decoder type (default: rnn)
+  --st_extra_mt_decoder_conf ST_EXTRA_MT_DECODER_CONF
+                        The keyword arguments for st_extra_mt_decoder (default: {})
+</pre></div>
+</div>
+</section>
 <section id="enh-scoring-py">
-<span id="id9"></span><h1>enh_scoring.py<a class="headerlink" href="#enh-scoring-py" title="Permalink to this headline">¶</a></h1>
+<span id="id10"></span><h1>enh_scoring.py<a class="headerlink" href="#enh-scoring-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: enh_scoring.py [-h] [--config CONFIG]
                       [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                       --output_dir OUTPUT_DIR
@@ -1594,7 +2146,7 @@ Input data related:
 </div>
 </section>
 <section id="enh-train-py">
-<span id="id10"></span><h1>enh_train.py<a class="headerlink" href="#enh-train-py" title="Permalink to this headline">¶</a></h1>
+<span id="id11"></span><h1>enh_train.py<a class="headerlink" href="#enh-train-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: enh_train.py [-h] [--config CONFIG] [--print_config]
                     [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                     [--dry_run DRY_RUN]
@@ -2014,7 +2566,7 @@ Optimizer related:
 </div>
 </section>
 <section id="gan-tts-train-py">
-<span id="id11"></span><h1>gan_tts_train.py<a class="headerlink" href="#gan-tts-train-py" title="Permalink to this headline">¶</a></h1>
+<span id="id12"></span><h1>gan_tts_train.py<a class="headerlink" href="#gan-tts-train-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: gan_tts_train.py [-h] [--config CONFIG] [--print_config]
                         [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                         [--dry_run DRY_RUN]
@@ -2489,7 +3041,7 @@ Optimizer related:
 </div>
 </section>
 <section id="hubert-train-py">
-<span id="id12"></span><h1>hubert_train.py<a class="headerlink" href="#hubert-train-py" title="Permalink to this headline">¶</a></h1>
+<span id="id13"></span><h1>hubert_train.py<a class="headerlink" href="#hubert-train-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: hubert_train.py [-h] [--config CONFIG] [--print_config]
                        [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                        [--dry_run DRY_RUN]
@@ -2970,7 +3522,7 @@ Optimizer related:
 </div>
 </section>
 <section id="launch-py">
-<span id="id13"></span><h1>launch.py<a class="headerlink" href="#launch-py" title="Permalink to this headline">¶</a></h1>
+<span id="id14"></span><h1>launch.py<a class="headerlink" href="#launch-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: launch.py [-h] [--cmd CMD] [--log LOG]
                  [--max_num_log_files MAX_NUM_LOG_FILES] [--ngpu NGPU]
                  [--num_nodes NUM_NODES | --host HOST] [--envfile ENVFILE]
@@ -3022,7 +3574,7 @@ optional arguments:
 </div>
 </section>
 <section id="lm-calc-perplexity-py">
-<span id="id14"></span><h1>lm_calc_perplexity.py<a class="headerlink" href="#lm-calc-perplexity-py" title="Permalink to this headline">¶</a></h1>
+<span id="id15"></span><h1>lm_calc_perplexity.py<a class="headerlink" href="#lm-calc-perplexity-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: lm_calc_perplexity.py [-h] [--config CONFIG]
                              [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                              --output_dir OUTPUT_DIR [--ngpu NGPU]
@@ -3065,7 +3617,7 @@ The model configuration related:
 </div>
 </section>
 <section id="lm-train-py">
-<span id="id15"></span><h1>lm_train.py<a class="headerlink" href="#lm-train-py" title="Permalink to this headline">¶</a></h1>
+<span id="id16"></span><h1>lm_train.py<a class="headerlink" href="#lm-train-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: lm_train.py [-h] [--config CONFIG] [--print_config]
                    [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                    [--dry_run DRY_RUN]
@@ -3483,7 +4035,7 @@ Optimizer related:
 </div>
 </section>
 <section id="mt-inference-py">
-<span id="id16"></span><h1>mt_inference.py<a class="headerlink" href="#mt-inference-py" title="Permalink to this headline">¶</a></h1>
+<span id="id17"></span><h1>mt_inference.py<a class="headerlink" href="#mt-inference-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: mt_inference.py [-h] [--config CONFIG]
                        [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                        --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -3574,7 +4126,7 @@ Text converter related:
 </div>
 </section>
 <section id="mt-train-py">
-<span id="id17"></span><h1>mt_train.py<a class="headerlink" href="#mt-train-py" title="Permalink to this headline">¶</a></h1>
+<span id="id18"></span><h1>mt_train.py<a class="headerlink" href="#mt-train-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: mt_train.py [-h] [--config CONFIG] [--print_config]
                    [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                    [--dry_run DRY_RUN]
@@ -4028,20 +4580,20 @@ Optimizer related:
 </div>
 </section>
 <section id="pack-py">
-<span id="id18"></span><h1>pack.py<a class="headerlink" href="#pack-py" title="Permalink to this headline">¶</a></h1>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: pack.py [-h] {asr,st,tts,enh,diar} ...
+<span id="id19"></span><h1>pack.py<a class="headerlink" href="#pack-py" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: pack.py [-h] {asr,st,tts,enh,diar,enh_s2t} ...
 
 Pack input files to archive format
 
 positional arguments:
-  {asr,st,tts,enh,diar}
+  {asr,st,tts,enh,diar,enh_s2t}
 
 optional arguments:
 </pre></div>
 </div>
 </section>
 <section id="split-scps-py">
-<span id="id19"></span><h1>split_scps.py<a class="headerlink" href="#split-scps-py" title="Permalink to this headline">¶</a></h1>
+<span id="id20"></span><h1>split_scps.py<a class="headerlink" href="#split-scps-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: split_scps.py [-h]
                      [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                      --scps SCPS [SCPS ...] [--names NAMES [NAMES ...]]
@@ -4064,7 +4616,7 @@ optional arguments:
 </div>
 </section>
 <section id="st-inference-py">
-<span id="id20"></span><h1>st_inference.py<a class="headerlink" href="#st-inference-py" title="Permalink to this headline">¶</a></h1>
+<span id="id21"></span><h1>st_inference.py<a class="headerlink" href="#st-inference-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: st_inference.py [-h] [--config CONFIG]
                        [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                        --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -4155,7 +4707,7 @@ Text converter related:
 </div>
 </section>
 <section id="st-train-py">
-<span id="id21"></span><h1>st_train.py<a class="headerlink" href="#st-train-py" title="Permalink to this headline">¶</a></h1>
+<span id="id22"></span><h1>st_train.py<a class="headerlink" href="#st-train-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: st_train.py [-h] [--config CONFIG] [--print_config]
                    [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                    [--dry_run DRY_RUN]
@@ -4652,7 +5204,7 @@ Optimizer related:
 </div>
 </section>
 <section id="tokenize-text-py">
-<span id="id22"></span><h1>tokenize_text.py<a class="headerlink" href="#tokenize-text-py" title="Permalink to this headline">¶</a></h1>
+<span id="id23"></span><h1>tokenize_text.py<a class="headerlink" href="#tokenize-text-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: tokenize_text.py [-h]
                         [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                         --input INPUT --output OUTPUT [--field FIELD]
@@ -4711,7 +5263,7 @@ write_vocabulary mode related:
 </div>
 </section>
 <section id="tts-inference-py">
-<span id="id23"></span><h1>tts_inference.py<a class="headerlink" href="#tts-inference-py" title="Permalink to this headline">¶</a></h1>
+<span id="id24"></span><h1>tts_inference.py<a class="headerlink" href="#tts-inference-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: tts_inference.py [-h] [--config CONFIG]
                         [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                         --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -4810,7 +5362,7 @@ Vocoder related:
 </div>
 </section>
 <section id="tts-train-py">
-<span id="id24"></span><h1>tts_train.py<a class="headerlink" href="#tts-train-py" title="Permalink to this headline">¶</a></h1>
+<span id="id25"></span><h1>tts_train.py<a class="headerlink" href="#tts-train-py" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: tts_train.py [-h] [--config CONFIG] [--print_config]
                     [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
                     [--dry_run DRY_RUN]
