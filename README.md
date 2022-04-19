@@ -688,6 +688,8 @@ See the module documentation for more information.
 It is recommended to use models with RNN-based encoders (such as BLSTMP) for aligning large audio files;
 rather than using Transformer models that have a high memory consumption on longer audio data.
 The sample rate of the audio must be consistent with that of the data used in training; adjust with `sox` if needed.
+  
+Also, we can use this tool to provide token-level segmentation information if we prepare a list of tokens instead of that of utterances in the `text` file. See the discussion in https://github.com/espnet/espnet/issues/4278#issuecomment-1100756463.
 
 </div></details>
 
