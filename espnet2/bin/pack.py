@@ -20,6 +20,13 @@ class STPackedContents(PackedContents):
     files = ["st_model_file"]
     yaml_files = ["st_train_config"]
 
+class MTPackedContents(PackedContents):
+    files = ["mt_model_file"]
+    yaml_files = ["mt_train_config"]
+
+class NLUPackedContents(PackedContents):
+    files = ["nlu_model_file"]
+    yaml_files = ["nlu_train_config"]
 
 class TTSPackedContents(PackedContents):
     files = ["model_file"]
@@ -59,6 +66,8 @@ def get_parser() -> argparse.ArgumentParser:
     for name, contents in [
         ("asr", ASRPackedContents),
         ("st", STPackedContents),
+        ("mt", MTPackedContents),
+        ("nlu", NLUPackedContents),
         ("tts", TTSPackedContents),
         ("enh", EnhPackedContents),
         ("diar", DiarPackedContents),
