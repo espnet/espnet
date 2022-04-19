@@ -80,9 +80,6 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
 - Streaming Transformer/Conformer ASR with blockwise synchronous beam search.
 - Restricted Self-Attention based on [Longformer](https://arxiv.org/abs/2004.05150) as an encoder for long sequences 
 
-### SUM: Speech Summarization
-- End to End Speech Summarization Recipe for Instructional Videos using Restricted Self-Attention [[Sharma et al., 2022]](https://arxiv.org/abs/2110.06263)
-
 Demonstration
 - Real-time ASR demo with ESPnet2  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_asr_realtime_demo.ipynb)
 - [Gradio](https://github.com/gradio-app/gradio) Web Demo on [Huggingface Spaces](https://huggingface.co/docs/hub/spaces). Check out the [Web Demo](https://huggingface.co/spaces/akhaliq/espnet2_asr)
@@ -141,7 +138,6 @@ To train the neural vocoder, please check the following repositories:
 Demonstration
 - Interactive SE demo with ESPnet2 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing)
 
-
 ### ST: Speech Translation & MT: Machine Translation
 - **State-of-the-art performance** in several ST benchmarks (comparable/superior to cascaded ASR and MT)
 - Transformer based end-to-end ST (new!)
@@ -155,6 +151,9 @@ Demonstration
 - Predicting intent by directly classifying it as one of intent or decoding by character
 - Transformer & RNN based encoder-decoder model
 - Establish SOTA results with spectral augmentation (Performs better than reported results of pretrained model on Fluent Speech Command Dataset)
+
+### SUM: Speech Summarization
+- End to End Speech Summarization Recipe for Instructional Videos using Restricted Self-Attention [[Sharma et al., 2022]](https://arxiv.org/abs/2110.06263)
 
 ### DNN Framework
 - Flexible network architecture thanks to chainer and pytorch
