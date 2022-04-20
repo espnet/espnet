@@ -24,6 +24,7 @@ from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.fileio.sound_scp import SoundScpWriter
 from espnet2.tasks.enh import EnhancementTask
+from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -73,8 +74,8 @@ def recursive_dict_update(dict_org, dict_patch, verbose=False, log_prefix=""):
             dict_org[key] = value
 
 
-def build_model_from_args_and_file(args, model_file, device):
-    model = EnhancementTask.build_model(args)
+def build_model_from_args_and_file(task, args, model_file, device):
+    model = task.build_model(args)
     if not isinstance(model, AbsESPnetModel):
         raise RuntimeError(
             f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
@@ -114,12 +115,16 @@ class SeparateSpeech:
         normalize_output_wav: bool = False,
         device: str = "cpu",
         dtype: str = "float32",
+        enh_s2t_task: bool = False,
     ):
         assert check_argument_types()
 
+        task = EnhancementTask if not enh_s2t_task else EnhS2TTask
+
         # 1. Build Enh model
+
         if inference_config is None:
-            enh_model, enh_train_args = EnhancementTask.build_model_from_file(
+            enh_model, enh_train_args = task.build_model_from_file(
                 train_config, model_file, device
             )
         else:
@@ -131,9 +136,11 @@ class SeparateSpeech:
             with Path(inference_config).open("r", encoding="utf-8") as f:
                 infer_args = yaml.safe_load(f)
 
-            supported_keys = list(
-                chain(*[[k, k + "_conf"] for k in ("encoder", "separator", "decoder")])
-            )
+            if enh_s2t_task:
+                arg_list = ("enh_encoder", "enh_separator", "enh_decoder")
+            else:
+                arg_list = ("encoder", "separator", "decoder")
+            supported_keys = list(chain(*[[k, k + "_conf"] for k in arg_list]))
             for k in infer_args.keys():
                 if k not in supported_keys:
                     raise ValueError(
@@ -144,9 +151,11 @@ class SeparateSpeech:
             recursive_dict_update(train_args, infer_args, verbose=True)
             enh_train_args = argparse.Namespace(**train_args)
             enh_model = build_model_from_args_and_file(
-                enh_train_args, model_file, device
+                task, enh_train_args, model_file, device
             )
 
+        if enh_s2t_task:
+            enh_model = enh_model.enh_model
         enh_model.to(dtype=getattr(torch, dtype)).eval()
 
         self.device = device
@@ -396,6 +405,7 @@ def inference(
     show_progressbar: bool,
     ref_channel: Optional[int],
     normalize_output_wav: bool,
+    enh_s2t_task: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -429,6 +439,7 @@ def inference(
         normalize_output_wav=normalize_output_wav,
         device=device,
         dtype=dtype,
+        enh_s2t_task=enh_s2t_task,
     )
     separate_speech = SeparateSpeech.from_pretrained(
         model_tag=model_tag,
@@ -558,6 +569,12 @@ def get_parser():
         default=None,
         help="Optional configuration file for overwriting enh model attributes "
         "during inference",
+    )
+    group.add_argument(
+        "--enh_s2t_task",
+        type=str2bool,
+        default=False,
+        help="enhancement and asr joint model",
     )
 
     group = parser.add_argument_group("Data loading related")

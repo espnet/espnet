@@ -10,6 +10,7 @@ from espnet2.bin.asr_inference import get_parser
 from espnet2.bin.asr_inference import main
 from espnet2.bin.asr_inference import Speech2Text
 from espnet2.tasks.asr import ASRTask
+from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
 
 
@@ -110,6 +111,41 @@ def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
         lm_train_config=lm_config_file,
         beam_size=1,
         streaming=True,
+    )
+    speech = np.random.randn(100000)
+    results = speech2text(speech)
+    for text, token, token_int, hyp in results:
+        assert isinstance(text, str)
+        assert isinstance(token[0], str)
+        assert isinstance(token_int[0], int)
+        assert isinstance(hyp, Hypothesis)
+
+
+@pytest.fixture()
+def enh_asr_config_file(tmp_path: Path, token_list):
+    # Write default configuration file
+    EnhS2TTask.main(
+        cmd=[
+            "--dry_run",
+            "true",
+            "--output_dir",
+            str(tmp_path / "enh_asr"),
+            "--token_list",
+            str(token_list),
+            "--token_type",
+            "char",
+        ]
+    )
+    return tmp_path / "enh_asr" / "config.yaml"
+
+
+@pytest.mark.execution_timeout(5)
+def test_EnhS2T_Speech2Text(enh_asr_config_file, lm_config_file):
+    speech2text = Speech2Text(
+        asr_train_config=enh_asr_config_file,
+        lm_train_config=lm_config_file,
+        beam_size=1,
+        enh_s2t_task=True,
     )
     speech = np.random.randn(100000)
     results = speech2text(speech)
