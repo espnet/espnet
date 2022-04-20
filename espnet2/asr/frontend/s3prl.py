@@ -86,10 +86,10 @@ class S3prlFrontend(AbsFrontend):
 
         from s3prl.upstream.interfaces import Featurizer
 
-        if self.multilayer_feature is None:
-            feature_selection = "last_hidden_state"
-        else:
+        if self.multilayer_feature:
             feature_selection = "hidden_states"
+        else:
+            feature_selection = "last_hidden_state"
         s3prl_featurizer = Featurizer(
             upstream=s3prl_upstream,
             feature_selection=feature_selection,
@@ -123,8 +123,7 @@ class S3prlFrontend(AbsFrontend):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         wavs = [wav[: input_lengths[i]] for i, wav in enumerate(input)]
         self.upstream.eval()
-        with torch.no_grad():
-            feats = self.upstream(wavs)
+        feats = self.upstream(wavs)
         feats = self.featurizer(wavs, feats)
 
         if self.args.tile_factor != 1:
