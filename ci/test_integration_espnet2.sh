@@ -110,7 +110,7 @@ for t in ${feats_types}; do
     ./run.sh --stage 2 --stop-stage 4 --feats-type "${t}" --python "${python}"
 done
 for t in ${token_types}; do
-    ./run.sh --stage 5 --stop-stage 5 --token-type "${t}" --python "${python}"
+    ./run.sh --stage 5 --stop-stage 5 --tgt_token_type "${t}" --src_token_type "${t}" --python "${python}"
 done
 for t in ${feats_types}; do
     for t2 in ${token_types}; do
