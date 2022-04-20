@@ -13,6 +13,7 @@ DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
 DNS=
+DNS3=
 DSING=downloads
 WSJ0=
 WSJ1=
