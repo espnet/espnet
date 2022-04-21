@@ -45,7 +45,6 @@ inference_config=conf/decode_mt.yaml
 
 # verify language directions
 is_exist=false
-is_low_resource=false
 if [[ ${src_lang} == en ]]; then
     tgt_langs=de_ca_zh-CN_fa_et_mn_tr_ar_sv-SE_lv_sl_ta_ja_id_cy
     for lang in $(echo ${tgt_langs} | tr '_' ' '); do
