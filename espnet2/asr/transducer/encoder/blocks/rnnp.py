@@ -126,7 +126,9 @@ class RNNP(torch.nn.Module):
             sequence = pack_padded_sequence(
                 sequence, sequence_len.cpu(), batch_first=True
             )
-            self.rnn[block].flatten_parameters()
+
+            if self.training:
+                self.rnn[block].flatten_parameters()
 
             sequence, states = self.rnn[block](sequence, states)
 

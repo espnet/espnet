@@ -96,7 +96,7 @@ class StatelessDecoder(AbsDecoder):
 
             cache[str_labels] = (dec_embed, state)
 
-        return dec_embed[0][0], None
+        return dec_embed[0], None
 
     def batch_score(
         self,

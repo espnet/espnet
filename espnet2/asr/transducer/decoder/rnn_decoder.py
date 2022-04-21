@@ -164,7 +164,7 @@ class RNNDecoder(AbsDecoder):
 
             cache[str_labels] = (dec_out, dec_state)
 
-        return dec_out[0][0], dec_state
+        return dec_out[0], dec_state
 
     def batch_score(
         self,

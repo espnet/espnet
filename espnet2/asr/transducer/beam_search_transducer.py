@@ -236,6 +236,7 @@ class BeamSearchTransducer:
 
         """
         beam_k = min(self.beam_size, (self.dim_vocab - 1))
+        max_t = len(enc_out)
 
         kept_hyps = [
             Hypothesis(
@@ -244,7 +245,7 @@ class BeamSearchTransducer:
         ]
         cache = {}
 
-        for enc_out_t in enc_out:
+        for t in range(max_t):
             hyps = kept_hyps
             kept_hyps = []
 
@@ -260,9 +261,9 @@ class BeamSearchTransducer:
                 )
 
                 logp = torch.log_softmax(
-                    self.joint_network(enc_out_t, dec_out),
+                    self.joint_network(enc_out[t : t + 1, :], dec_out),
                     dim=-1,
-                )
+                ).squeeze(0)
                 top_k = logp[1:].topk(beam_k, dim=-1)
 
                 kept_hyps.append(

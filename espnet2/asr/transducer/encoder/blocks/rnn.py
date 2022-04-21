@@ -80,7 +80,9 @@ class RNN(torch.nn.Module):
 
         """
         sequence = pack_padded_sequence(sequence, sequence_len.cpu(), batch_first=True)
-        self.rnn.flatten_parameters()
+
+        if self.training:
+            self.rnn.flatten_parameters()
 
         sequence, _ = self.rnn(sequence)
 
