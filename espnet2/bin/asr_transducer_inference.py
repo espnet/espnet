@@ -3,6 +3,7 @@
 """ Inference class definition for Transducer models."""
 
 import argparse
+from distutils.version import LooseVersion
 import logging
 from pathlib import Path
 import sys
@@ -59,6 +60,9 @@ class Speech2Text:
         beam_size: Size of beam during search.
         dtype: Data type.
         lm_weight: Language model weight.
+        quantize_asr_model: Whether to apply dynamic quantization to ASR model.
+        quantize_modules: List of module names to apply dynamic quantization on.
+        quantize_dtype: Dynamic quantization data type.
         nbest: Number of final hypothesis.
 
     """
@@ -76,6 +80,9 @@ class Speech2Text:
         beam_size: int = 5,
         dtype: str = "float32",
         lm_weight: float = 1.0,
+        quantize_asr_model: bool = False,
+        quantize_modules: List[str] = None,
+        quantize_dtype: str = "qint8",
         nbest: int = 1,
     ):
         assert check_argument_types()
@@ -84,7 +91,32 @@ class Speech2Text:
         asr_model, asr_train_args = ASRTransducerTask.build_model_from_file(
             asr_train_config, asr_model_file, device
         )
-        asr_model.to(dtype=getattr(torch, dtype)).eval()
+        if quantize_asr_model:
+            if quantize_modules is not None:
+                if not all([q in ["LSTM", "Linear"] for q in quantize_modules]):
+                    raise ValueError(
+                        "Only 'Linear' and 'LSTM' modules are currently supported"
+                        " by PyTorch and in --quantize_modules"
+                    )
+
+                q_config = set([getattr(torch.nn, q) for q in quantize_modules])
+            else:
+                q_config = {torch.nn.Linear}
+
+            if quantize_dtype == "float16" and (
+                torch.__version__ < LooseVersion("1.5.0")
+            ):
+                raise ValueError(
+                    "float16 dtype for dynamic quantization is not supported with torch"
+                    " version < 1.5.0. Switching to qint8 dtype instead."
+                )
+            q_dtype = getattr(torch, quantize_dtype)
+
+            asr_model = torch.quantization.quantize_dynamic(
+                asr_model, q_config, dtype=q_dtype
+            ).eval()
+        else:
+            asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         token_list = asr_model.token_list
 
@@ -107,6 +139,7 @@ class Speech2Text:
             beam_size,
             lm=lm_scorer,
             lm_weight=lm_weight,
+            nbest=nbest,
             **beam_search_config,
         )
 
@@ -255,6 +288,9 @@ def inference(
     bpemodel: Optional[str],
     key_file: Optional[str],
     allow_variable_data_keys: bool,
+    quantize_asr_model: Optional[bool],
+    quantize_modules: Optional[List[str]],
+    quantize_dtype: Optional[str],
 ):
     """Transducer model inference.
 
@@ -278,8 +314,11 @@ def inference(
         model_tag: Model tag.
         token_type: Type of token units.
         bpemodel: BPE model path.
-        key_file:
-        allow_variable_data_keys:
+        key_file: File key.
+        allow_variable_data_keys: Whether to allow variable data keys.
+        quantize_asr_model: Whether to apply dynamic quantization to ASR model.
+        quantize_modules: List of module names to apply dynamic quantization on.
+        quantize_dtype: Dynamic quantization data type.
 
     """
     assert check_argument_types()
@@ -316,6 +355,9 @@ def inference(
         beam_size=beam_size,
         lm_weight=lm_weight,
         nbest=nbest,
+        quantize_asr_model=quantize_asr_model,
+        quantize_modules=quantize_modules,
+        quantize_dtype=quantize_dtype,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -478,6 +520,31 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+
+    group = parser.add_argument_group("Dynamic quantization related")
+    parser.add_argument(
+        "--quantize_asr_model",
+        type=bool,
+        default=False,
+        help="Apply dynamic quantization to ASR model.",
+    )
+    parser.add_argument(
+        "--quantize_modules",
+        nargs="*",
+        default=None,
+        help="""Module names to apply dynamic quantization on.
+        The module names are provided as a list, where each name is separated
+        by a comma (e.g.: --quantize-config=[Linear,LSTM,GRU]).
+        Each specified name should be an attribute of 'torch.nn', e.g.:
+        torch.nn.Linear, torch.nn.LSTM, torch.nn.GRU, ...""",
+    )
+    parser.add_argument(
+        "--quantize_dtype",
+        type=str,
+        default="qint8",
+        choices=["float16", "qint8"],
+        help="Dtype for dynamic quantization.",
     )
 
     return parser
