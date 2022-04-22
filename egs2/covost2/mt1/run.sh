@@ -80,7 +80,6 @@ fi
     --use_lm false \
     --feats_type raw \
     --audio_format "flac.ark" \
-    --use_lm false \
     --token_joint false \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
