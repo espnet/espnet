@@ -1,6 +1,7 @@
 from typing import Mapping
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 from typeguard import check_argument_types
 from typeguard import check_return_type
@@ -36,7 +37,7 @@ class ClassChoices:
         self,
         name: str,
         classes: Mapping[str, type],
-        type_check: type = None,
+        type_check: Union[Tuple, type] = None,
         default: str = None,
         optional: bool = False,
     ):

@@ -1,10 +1,7 @@
 import torch
 
-from espnet2.diar.decoder.abs_decoder import AbsDecoder
-
-
-class LinearDecoder(AbsDecoder):
-    """Linear decoder for speaker diarization"""
+class LinearDecoder(torch.nn.Module):
+    """Linear decoder for token classification"""
 
     def __init__(
         self,

@@ -45,6 +45,8 @@ class ESPnetNLUModel(AbsESPnetModel):
         encoder: AbsEncoder,
         postencoder: Optional[AbsPostEncoder],
         decoder: AbsDecoder,
+        token_decoder: Optional[torch.nn.Module],
+        token_loss_weight: float = 1.0,
         src_vocab_size: int = 0,
         src_token_list: Union[Tuple[str, ...], List[str]] = [],
         ignore_id: int = -1,
@@ -66,6 +68,7 @@ class ESPnetNLUModel(AbsESPnetModel):
         self.src_vocab_size = src_vocab_size
         self.ignore_id = ignore_id
         self.token_list = token_list.copy()
+        self.token_loss_weight = token_loss_weight
 
         if share_decoder_input_output_embed:
             if decoder.output_layer is not None:
@@ -94,14 +97,28 @@ class ESPnetNLUModel(AbsESPnetModel):
         self.preencoder = preencoder
         self.postencoder = postencoder
         self.encoder = encoder
-        self.decoder = decoder
+        
+        if token_loss_weight > 0.0:
+            self.token_decoder = token_decoder
+            self.criterion_token_nlu = LabelSmoothingLoss(
+                size=vocab_size,
+                padding_idx=ignore_id,
+                smoothing=lsm_weight,
+                normalize_length=True,
+            )
+        else:
+            self.token_decoder = None
 
-        self.criterion_nlu = LabelSmoothingLoss(
-            size=vocab_size,
-            padding_idx=ignore_id,
-            smoothing=lsm_weight,
-            normalize_length=length_normalized_loss,
-        )
+        if token_loss_weight < 1.0:
+            self.decoder = decoder
+            self.criterion_att_nlu = LabelSmoothingLoss(
+                size=vocab_size,
+                padding_idx=ignore_id,
+                smoothing=lsm_weight,
+                normalize_length=length_normalized_loss,
+            )
+        else:
+            self.decoder = None
 
         # TODO(sdalmia) NLU error calculator
         self.nlu_error_calculator = None
@@ -140,21 +157,37 @@ class ESPnetNLUModel(AbsESPnetModel):
         text = text[:, : text_lengths.max()]
         src_text = src_text[:, : src_text_lengths.max()]
 
+        if src_text_lengths.sum() / len(src_text_lengths) != src_text_lengths[0]:
+            import pdb;pdb.set_trace()
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(src_text, src_text_lengths)
 
-        # 2a. Attention-decoder branch (NLU)
-        loss_nlu_att, acc_nlu_att = self._calc_nlu_att_loss(
-            encoder_out, encoder_out_lens, text, text_lengths
-        )
+        stats = dict()
+
+        loss = 0
+        # 2a. Token-decoder branch (NLU)
+        if self.token_decoder is not None:
+            loss_nlu_token, acc_nlu_token = self._calc_nlu_token_loss(
+                encoder_out, encoder_out_lens, text, text_lengths
+            )
+            # Collect Token decoder branch stats
+            stats["token_loss"] = loss_nlu_token.detach() if loss_nlu_token is not None else None
+            stats["token_acc"] = acc_nlu_token
+            loss = loss + loss_nlu_token * self.token_loss_weight
+
+        # 2b. Attention-decoder branch (NLU)
+        if self.decoder is not None:
+            loss_nlu_att, acc_nlu_att = self._calc_nlu_att_loss(
+                encoder_out, encoder_out_lens, text, text_lengths
+            )
+            # Collect Att decoder branch stats
+            stats["att_loss"] = loss_nlu_att.detach() if loss_nlu_att is not None else None
+            stats["att_acc"] = acc_nlu_att
+            loss = loss + loss_nlu_att * (1. - self.token_loss_weight)
 
         # 3. Loss computation
-        loss = loss_nlu_att
-
-        stats = dict(
-            loss=loss.detach(),
-            acc=acc_nlu_att,
-        )
+        stats["loss"]=loss.detach()
+        stats["acc"]= acc_nlu_att if self.decoder is not None else acc_nlu_token
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -243,6 +276,28 @@ class ESPnetNLUModel(AbsESPnetModel):
             feats, feats_lengths = src_text, src_text_lengths
         return feats, feats_lengths
 
+    def _calc_nlu_token_loss(
+        self,
+        encoder_out: torch.Tensor,
+        encoder_out_lens: torch.Tensor,
+        ys_pad: torch.Tensor,
+        ys_pad_lens: torch.Tensor,
+    ):
+        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
+        ys_in_lens = ys_pad_lens + 1
+        # 1. Forward decoder
+        decoder_out = self.token_decoder(encoder_out, encoder_out_lens)
+
+        # 2. Compute attention loss
+        loss_token = self.criterion_token_nlu(decoder_out, ys_in_pad)
+        acc_token = th_accuracy(
+            decoder_out.view(-1, self.vocab_size),
+            ys_in_pad,
+            ignore_label=self.sos,
+        )
+
+        return loss_token, acc_token
+
     def _calc_nlu_att_loss(
         self,
         encoder_out: torch.Tensor,
@@ -259,7 +314,7 @@ class ESPnetNLUModel(AbsESPnetModel):
         )
 
         # 2. Compute attention loss
-        loss_att = self.criterion_nlu(decoder_out, ys_out_pad)
+        loss_att = self.criterion_att_nlu(decoder_out, ys_out_pad)
         acc_att = th_accuracy(
             decoder_out.view(-1, self.vocab_size),
             ys_out_pad,

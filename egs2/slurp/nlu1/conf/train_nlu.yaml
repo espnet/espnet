@@ -15,17 +15,20 @@ encoder_conf:
     input_layer: null
     normalize_before: true
 
-decoder: transformer
-decoder_conf:
-    attention_heads: 4
-    linear_units: 1024
-    num_blocks: 6
-    dropout_rate: 0.3
-    positional_dropout_rate: 0.3
-    self_attention_dropout_rate: 0.3
-    src_attention_dropout_rate: 0.3
+token_decoder: linear
+
+# decoder: transformer
+# decoder_conf:
+#     attention_heads: 4
+#     linear_units: 1024
+#     num_blocks: 6
+#     dropout_rate: 0.3
+#     positional_dropout_rate: 0.3
+#     self_attention_dropout_rate: 0.3
+#     src_attention_dropout_rate: 0.3
 
 model_conf:
+    token_loss_weight: 1.0
     lsm_weight: 0.1
     length_normalized_loss: false
 
@@ -33,7 +36,7 @@ num_att_plot: 1
 log_interval: 100
 num_workers: 2
 batch_type: numel
-batch_bins: 400000
+batch_bins: 40000000
 accum_grad: 1
 max_epoch: 200
 patience: none

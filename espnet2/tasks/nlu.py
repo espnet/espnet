@@ -24,6 +24,7 @@ from espnet2.asr.decoder.transformer_decoder import (
 from espnet2.asr.decoder.transformer_decoder import (
     LightweightConvolutionTransformerDecoder,  # noqa: H301
 )
+from espnet2.nlu.token_classification import LinearDecoder
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
@@ -108,6 +109,14 @@ decoder_choices = ClassChoices(
     type_check=AbsDecoder,
     default="rnn",
 )
+token_decoder_choices = ClassChoices(
+    "token_decoder",
+    classes=dict(
+        linear=LinearDecoder,
+    ),
+    type_check=torch.nn.Module,
+    default="linear",
+)
 
 
 class NLUTask(AbsTask):
@@ -126,6 +135,8 @@ class NLUTask(AbsTask):
         postencoder_choices,
         # --decoder and --decoder_conf
         decoder_choices,
+        # --token_decoder and --token_decoder_conf
+        token_decoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -365,12 +376,18 @@ class NLUTask(AbsTask):
 
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
-
         decoder = decoder_class(
             vocab_size=vocab_size,
             encoder_output_size=encoder_output_size,
             **args.decoder_conf,
         )
+
+        token_decoder_class = token_decoder_choices.get_class(args.token_decoder)
+        token_decoder = token_decoder_class(
+                encoder_output_size=encoder_output_size,
+                num_labels=vocab_size,
+                **args.token_decoder_conf,
+            )
 
         # 8. Build model
         model = ESPnetNLUModel(
@@ -381,6 +398,7 @@ class NLUTask(AbsTask):
             encoder=encoder,
             postencoder=postencoder,
             decoder=decoder,
+            token_decoder=token_decoder,
             token_list=token_list,
             src_token_list=src_token_list,
             **args.model_conf,

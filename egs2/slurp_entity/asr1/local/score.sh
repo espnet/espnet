@@ -17,7 +17,6 @@ if [ $# -lt 1 ]; then
 fi
 . ./db.sh
 
-SLURP="/ocean/projects/cis210027p/siddhana/slurp"
 asr_expdir=$1
 
 if [ $# -gt 1 ]; then

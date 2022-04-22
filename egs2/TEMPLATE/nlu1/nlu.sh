@@ -346,7 +346,7 @@ if [ -z "${nlu_tag}" ]; then
     if [ "${lang}" != noinfo ]; then
         nlu_tag+="_${lang}_${tgt_token_type}_${tgt_case}"
     else
-        nlu_tag+="_${tgt_token_type}_${tgt_case}"
+        nlu_tag+="_${tgt_type}_${tgt_token_type}_${tgt_case}"
     fi
     if [ "${tgt_token_type}" = bpe ]; then
         nlu_tag+="${tgt_nbpe}"
@@ -1143,18 +1143,6 @@ if ! "${skip_eval}"; then
                     --cleaner "${cleaner}" \
             >"${_scoredir}/ref.trn"
 
-            #paste \
-            #    <(<"${_data}/text.${tgt_case}.${tgt_type}" \
-            #        ${python} -m espnet2.bin.tokenize_text  \
-            #            -f 2- --input - --output - \
-            #            --token_type word \
-            #            --non_linguistic_symbols "${nlsyms_txt}" \
-            #            --remove_non_linguistic_symbols true \
-            #            --cleaner "${cleaner}" \
-            #            ) \
-            #    <(<"${_data}/text.${tgt_case}.${tgt_type}" awk '{ print "(" $2 "-" $1 ")" }') \
-            #        >"${_scoredir}/ref.trn.org"
-
             # NOTE(kamo): Don't use cleaner for hyp
             <"${_dir}/text"  \
                     ${python} -m espnet2.bin.tokenize_text  \
@@ -1163,21 +1151,6 @@ if ! "${skip_eval}"; then
                     --non_linguistic_symbols "${nlsyms_txt}" \
                     --remove_non_linguistic_symbols true \
             >"${_scoredir}/hyp.trn"
-
-            #paste \
-            #    <(<"${_dir}/text"  \
-            #            ${python} -m espnet2.bin.tokenize_text  \
-            #                -f 2- --input - --output - \
-            #                --token_type word \
-            #                --non_linguistic_symbols "${nlsyms_txt}" \
-            #                --remove_non_linguistic_symbols true \
-            #                ) \
-            #    <(<"${_data}/text.${tgt_case}.${tgt_type}" awk '{ print "(" $2 "-" $1 ")" }') \
-            #        >"${_scoredir}/hyp.trn.org"
-            
-            # remove utterance id
-            #perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
-            #perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
 
             # detokenizer
             detokenizer.perl -l ${tgt_type} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
