@@ -191,6 +191,17 @@ espnet2.enh.separator.conformer_separator
     :show-inheritance:
 
 
+.. _espnet2.enh.separator.svoice_separator:
+
+espnet2.enh.separator.svoice_separator
+--------------------------------------
+
+.. automodule:: espnet2.enh.separator.svoice_separator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.encoder.abs_encoder:
 
 espnet2.enh.encoder.abs_encoder
@@ -389,6 +400,17 @@ espnet2.enh.loss.wrappers.abs_wrapper
     :show-inheritance:
 
 
+.. _espnet2.enh.loss.wrappers.multilayer_pit_solver:
+
+espnet2.enh.loss.wrappers.multilayer_pit_solver
+-----------------------------------------------
+
+.. automodule:: espnet2.enh.loss.wrappers.multilayer_pit_solver
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.loss.wrappers.fixed_order:
 
 espnet2.enh.loss.wrappers.fixed_order
@@ -516,6 +538,17 @@ espnet2.enh.layers.dnn_beamformer
 ---------------------------------
 
 .. automodule:: espnet2.enh.layers.dnn_beamformer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.dpmulcat:
+
+espnet2.enh.layers.dpmulcat
+---------------------------
+
+.. automodule:: espnet2.enh.layers.dpmulcat
     :members:
     :undoc-members:
     :show-inheritance:
