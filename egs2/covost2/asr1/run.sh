@@ -89,7 +89,7 @@ fi
     --token_type bpe \
     --nbpe $nbpe \
     --feats_type raw \
-    --speed_perturb_factors ${speed_perturb_factors} \
+    --speed_perturb_factors "${speed_perturb_factors}" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
