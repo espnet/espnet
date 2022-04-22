@@ -4,20 +4,24 @@ import pytest
 import torch
 
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
+from espnet2.enh.decoder.null_decoder import NullDecoder
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.encoder.conv_encoder import ConvEncoder
+from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
+from espnet2.enh.loss.wrappers.multilayer_pit_solver import MultiLayerPITSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
 from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
+from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 
@@ -53,6 +57,10 @@ conv_decoder = ConvDecoder(
     stride=18,
 )
 
+null_encoder = NullEncoder()
+
+null_decoder = NullDecoder()
+
 rnn_separator = RNNSeparator(
     input_dim=17,
     layer=1,
@@ -64,6 +72,18 @@ dc_crn_separator = DC_CRNSeparator(input_dim=17, input_channels=[2, 2, 4])
 dccrn_separator = DCCRNSeparator(input_dim=17, num_spk=1, kernel_num=[32, 64, 128])
 
 dprnn_separator = DPRNNSeparator(input_dim=17, layer=1, unit=10, segment_size=4)
+
+svoice_separator = SVoiceSeparator(
+    input_dim=17,
+    enc_dim=4,
+    kernel_size=4,
+    hidden_size=4,
+    num_spk=2,
+    num_layers=2,
+    segment_size=4,
+    bidirectional=False,
+    input_normalize=False,
+)
 
 tcn_separator = TCNSeparator(
     input_dim=17,
@@ -87,6 +107,7 @@ tf_mse_loss = FrequencyDomainMSE()
 tf_l1_loss = FrequencyDomainL1()
 
 pit_wrapper = PITSolver(criterion=si_snr_loss)
+multilayer_pit_solver = MultiLayerPITSolver(criterion=si_snr_loss)
 fix_order_solver = FixedOrderSolver(criterion=tf_mse_loss)
 
 
@@ -118,6 +139,44 @@ def test_single_channel_model(encoder, decoder, separator, training, loss_wrappe
         # skip because DCCRNSeparator and DC_CRNSeparator only work
         # for complex spectrum features
         return
+    inputs = torch.randn(2, 300)
+    ilens = torch.LongTensor([300, 200])
+    speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]
+    enh_model = ESPnetEnhancementModel(
+        encoder=encoder,
+        separator=separator,
+        decoder=decoder,
+        loss_wrappers=loss_wrappers,
+    )
+
+    if training:
+        enh_model.train()
+    else:
+        enh_model.eval()
+
+    kwargs = {
+        "speech_mix": inputs,
+        "speech_mix_lengths": ilens,
+        **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(2)},
+    }
+    loss, stats, weight = enh_model(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "encoder, decoder",
+    [
+        (null_encoder, null_decoder),
+    ],
+)
+@pytest.mark.parametrize(
+    "separator",
+    [
+        svoice_separator,
+    ],
+)
+@pytest.mark.parametrize("training", [True, False])
+@pytest.mark.parametrize("loss_wrappers", [[multilayer_pit_solver]])
+def test_svoice_model(encoder, decoder, separator, training, loss_wrappers):
     inputs = torch.randn(2, 300)
     ilens = torch.LongTensor([300, 200])
     speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]
