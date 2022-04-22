@@ -47,7 +47,7 @@ class BeamSearchTransducer:
         max_sym_exp: int = 3,
         u_max: int = 50,
         nstep: int = 2,
-        expansion_gamma: int = 2.3,
+        expansion_gamma: float = 2.3,
         expansion_beta: int = 2,
         score_norm: bool = False,
         nbest: int = 1,
@@ -583,9 +583,9 @@ class BeamSearchTransducer:
                             list_exp.append(new_hyp)
 
                 if not list_exp:
-                    kept_hyps = sorted(list_b, key=lambda x: x.score, reverse=True)[
-                        : self.beam_size
-                    ]
+                    kept_hyps = self.recombine_hyps(
+                        sorted(list_b, key=lambda x: x.score, reverse=True)
+                    )[: self.beam_size]
 
                     break
                 else:
@@ -629,8 +629,10 @@ class BeamSearchTransducer:
                                 hyp.lm_state = beam_lm_states[i]
                                 hyp.lm_score = beam_lm_scores[i]
 
-                        kept_hyps = sorted(
-                            list_b + list_exp, key=lambda x: x.score, reverse=True
+                        kept_hyps = self.recombine_hyps(
+                            sorted(
+                                list_b + list_exp, key=lambda x: x.score, reverse=True
+                            )
                         )[: self.beam_size]
 
         return self.sort_nbest(kept_hyps)
