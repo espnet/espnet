@@ -159,9 +159,9 @@ def test_Speech2Text_quantization(asr_config_file, lm_config_file, quantize_para
             quantize_asr_model=True,
             **quantize_params,
         )
-    speech = np.random.randn(100000)
 
-    _ = speech2text(speech)
+        speech = np.random.randn(100000)
+        _ = speech2text(speech)
 
 
 def test_Speech2Text_quantization_wrong_module(asr_config_file, lm_config_file):
