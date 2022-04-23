@@ -6,6 +6,8 @@ from typing import Dict
 from typing import List
 from typing import NamedTuple
 from typing import Tuple
+from typing import Union
+import numpy as np
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
@@ -123,6 +125,8 @@ class BatchBeamSearch(BeamSearch):
         for k, d in self.scorers.items():
             init_states[k] = d.batch_init_state(x)
             init_scores[k] = 0.0
+        # print(init_scores)
+        # print(init_states)
         return self.batchfy(
             [
                 Hypothesis(
@@ -130,6 +134,41 @@ class BatchBeamSearch(BeamSearch):
                     scores=init_scores,
                     states=init_states,
                     yseq=torch.tensor([self.sos], device=x.device),
+                )
+            ]
+        )
+
+    def init_hyp_tag(self, x: torch.Tensor, tgt_tag: Union[torch.Tensor, np.ndarray], hypothesis: BatchHypothesis) -> BatchHypothesis:
+        """Get an initial hypothesis data.
+
+        Args:
+            x (torch.Tensor): The encoder output feature
+
+        Returns:
+            Hypothesis: The initial hypothesis.
+
+        """
+        scores = dict()
+        states = dict()
+        prev_hyps = self.unbatchfy(hypothesis)
+        for k, d in self.part_scorers.items():
+            scores[k], states[k] = d.batch_score_partial(
+                hypothesis.yseq, tgt_tag, hypothesis.states[k], x
+            )
+            scores[k]+=prev_hyps[0].scores[k]
+        for k, d in self.full_scorers.items():
+            score, state= d.batch_score(
+                hypothesis.yseq, hypothesis.states[k], x
+            )
+            scores[k]=score[0][tgt_tag]+prev_hyps[0].scores[k]
+            states[k]=state[0]
+        return self.batchfy(
+            [
+                Hypothesis(
+                    score=0.0,
+                    scores=scores,
+                    states=states,
+                    yseq=torch.tensor([self.sos, tgt_tag], device=x.device),
                 )
             ]
         )

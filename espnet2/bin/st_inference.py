@@ -69,6 +69,7 @@ class Speech2Text:
         penalty: float = 0.0,
         nbest: int = 1,
         enh_s2t_task: bool = False,
+        run_multilingual: bool = False,
     ):
         assert check_argument_types()
 
@@ -188,10 +189,13 @@ class Speech2Text:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
+        self.run_multilingual = run_multilingual
 
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
+        self, speech: Union[torch.Tensor, np.ndarray],
+        tgt_tag: Optional[Union[torch.Tensor, np.ndarray]],
+        src_tag: Optional[Union[torch.Tensor, np.ndarray]],
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
         """Inference
 
@@ -221,9 +225,16 @@ class Speech2Text:
         assert len(enc) == 1, len(enc)
 
         # c. Passed the encoder result and the beam search
-        nbest_hyps = self.beam_search(
-            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
-        )
+        if tgt_tag is None:
+            nbest_hyps = self.beam_search(
+                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            )
+        else:
+            print("Multilingual")
+            print(self.run_multilingual)
+            nbest_hyps = self.beam_search(
+                x=enc[0], tgt_tag=tgt_tag, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            )
         nbest_hyps = nbest_hyps[: self.nbest]
 
         results = []
@@ -306,7 +317,8 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
-    enh_s2t_task: bool,
+    run_multilingual: bool,
+    enh_s2t_task: Optional[bool] = False,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -348,6 +360,7 @@ def inference(
         penalty=penalty,
         nbest=nbest,
         enh_s2t_task=enh_s2t_task,
+        run_multilingual=run_multilingual,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -447,6 +460,7 @@ def get_parser():
     group.add_argument("--key_file", type=str_or_none)
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
+    group.add_argument("--run_multilingual", type=str2bool, default=False)
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
         "--st_train_config",

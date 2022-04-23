@@ -85,3 +85,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     cp data/fisher_dev/text.tc.en.0 data/dev/text.tc.en
     cp data/fisher_dev/text.lc.rm.en.0 data/dev/text.lc.rm.en
 fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "stage 2: Combine train and dev set"
+    python local/create_tags.py
+fi

@@ -8,12 +8,14 @@ from typing import List
 from typing import NamedTuple
 from typing import Tuple
 from typing import Union
+from typing import Optional
 
 import torch
 
 from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.scorer_interface import PartialScorerInterface
 from espnet.nets.scorer_interface import ScorerInterface
+import numpy as np
 
 
 class Hypothesis(NamedTuple):
@@ -131,6 +133,27 @@ class BeamSearch(torch.nn.Module):
                 scores=init_scores,
                 states=init_states,
                 yseq=torch.tensor([self.sos], device=x.device),
+            )
+        ]
+
+    def init_hyp_tag(self, x: torch.Tensor, tgt_tag: Union[torch.Tensor, np.ndarray], hypothesis: List[Hypothesis]) -> List[Hypothesis]:
+        """Get an initial hypothesis data after tagging.
+
+        Args:
+            x (torch.Tensor): The encoder output feature
+            tgt_tag, running_hyps)
+
+        Returns:
+            Hypothesis: The initial hypothesis.
+
+        """
+        scores, states = self.score_partial(hypothesis, torch.tensor(tgt_tag, device=x.device), x)
+        return [
+            Hypothesis(
+                score=0.0,
+                scores=scores,
+                states=states,
+                yseq=torch.tensor([self.sos, tgt_tag], device=x.device),
             )
         ]
 
@@ -334,7 +357,7 @@ class BeamSearch(torch.nn.Module):
         return best_hyps
 
     def forward(
-        self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0
+        self, x: torch.Tensor, tgt_tag: Optional[Union[torch.Tensor, np.ndarray]], maxlenratio: float = 0.0, minlenratio: float = 0.0
     ) -> List[Hypothesis]:
         """Perform beam search.
 
@@ -365,6 +388,8 @@ class BeamSearch(torch.nn.Module):
 
         # main loop of prefix search
         running_hyps = self.init_hyp(x)
+        if tgt_tag is not None:
+            running_hyps = self.init_hyp_tag(x, tgt_tag, running_hyps)
         ended_hyps = []
         for i in range(maxlen):
             logging.debug("position " + str(i))
@@ -406,7 +431,7 @@ class BeamSearch(torch.nn.Module):
         if self.token_list is not None:
             logging.info(
                 "best hypo: "
-                + "".join([self.token_list[x] for x in best.yseq[1:-1]])
+                + "".join([self.token_list[x] for x in best.yseq[2:-1]])
                 + "\n"
             )
         return nbest_hyps

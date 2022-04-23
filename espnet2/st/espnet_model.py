@@ -78,6 +78,7 @@ class ESPnetSTModel(AbsESPnetModel):
         # note that eos is the same as sos (equivalent ID)
         self.sos = vocab_size - 1
         self.eos = vocab_size - 1
+        self.tgt_tag = vocab_size - 2
         self.src_sos = src_vocab_size - 1
         self.src_eos = src_vocab_size - 1
         self.vocab_size = vocab_size
@@ -159,6 +160,28 @@ class ESPnetSTModel(AbsESPnetModel):
 
         # TODO(jiatong): add multilingual related functions
 
+    def add_sos_eos_mt(self, ys_pad, tgt_tag, sos, eos, ignore_id):
+        """Add <sos> and <eos> labels.
+
+        :param torch.Tensor ys_pad: batch of padded target sequences (B, Lmax)
+        :param int sos: index of <sos>
+        :param int eos: index of <eos>
+        :param int ignore_id: index of padding
+        :return: padded tensor (B, Lmax)
+        :rtype: torch.Tensor
+        :return: padded tensor (B, Lmax)
+        :rtype: torch.Tensor
+        """
+        from espnet.nets.pytorch_backend.nets_utils import pad_list
+
+        _sos = ys_pad.new([sos])
+        _eos = ys_pad.new([eos])
+        ys = [y[y != ignore_id] for y in ys_pad]  # parse padded ys
+        ys_tag = [torch.cat([tgt_tag[i], ys[i]], dim=0) for i in range(len(ys))]
+        ys_in = [torch.cat([_sos, y], dim=0) for y in ys_tag]
+        ys_out = [torch.cat([y, _eos], dim=0) for y in ys_tag]
+        return pad_list(ys_in, eos), pad_list(ys_out, ignore_id)
+    
     def forward(
         self,
         speech: torch.Tensor,
@@ -167,6 +190,10 @@ class ESPnetSTModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         src_text: Optional[torch.Tensor],
         src_text_lengths: Optional[torch.Tensor],
+        tgt_tag: Optional[torch.Tensor],
+        tgt_tag_lengths: Optional[torch.Tensor],
+        src_tag: Optional[torch.Tensor],
+        src_tag_lengths: Optional[torch.Tensor],
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
@@ -210,7 +237,7 @@ class ESPnetSTModel(AbsESPnetModel):
 
         # 2a. Attention-decoder branch (ST)
         loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
-            encoder_out, encoder_out_lens, text, text_lengths, st=True
+            encoder_out, encoder_out_lens, text, text_lengths, tgt_tag, st=True
         )
 
         # 2b. CTC branch
@@ -375,10 +402,16 @@ class ESPnetSTModel(AbsESPnetModel):
         encoder_out_lens: torch.Tensor,
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
+        tgt_tag: torch.Tensor,
         st: bool = True,
     ):
-        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
-        ys_in_lens = ys_pad_lens + 1
+        if tgt_tag is None:
+            ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
+            ys_in_lens = ys_pad_lens + 1
+        else:
+            ys_in_pad, ys_out_pad = self.add_sos_eos_mt(ys_pad, tgt_tag, self.sos, self.eos, self.ignore_id)
+            ys_in_lens = ys_pad_lens + 2
+        
 
         # 1. Forward decoder
         if st:

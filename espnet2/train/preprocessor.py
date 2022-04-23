@@ -440,7 +440,12 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
             noise_db_range=noise_db_range,
             speech_volume_normalize=speech_volume_normalize,
         )
-
+        print(text_name)
+        if "src_tag" in text_name:
+            self.tag_name_arr=["tgt_tag","src_tag"]
+            text_name=[j for j in text_name if j not in self.tag_name_arr]
+        else:
+            self.tag_name_arr=None
         assert (
             len(token_type) == len(token_list) == len(bpemodel) == len(text_name)
         ), "token_type, token_list, bpemodel, or processing text_name mismatched"
@@ -472,7 +477,6 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
             else:
                 self.tokenizer.append(None)
                 self.token_id_converter.append(None)
-
         self.text_cleaner = TextCleaner(text_cleaner)
         self.text_name = text_name  # override the text_name from CommonPreprocessor
 
@@ -487,5 +491,9 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                 tokens = self.tokenizer[i].text2tokens(text)
                 text_ints = self.token_id_converter[i].tokens2ids(tokens)
                 data[text_name] = np.array(text_ints, dtype=np.int64)
+            if self.tag_name_arr is not None:
+                text=data[self.tag_name_arr[i]]
+                text_ints = [self.token_id_converter[i].token2id[text]]
+                data[self.tag_name_arr[i]] = np.array(text_ints, dtype=np.int64)
         assert check_return_type(data)
         return data

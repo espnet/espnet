@@ -105,6 +105,9 @@ feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_st=1            # Number of splitting for lm corpus.
 src_lang=es                # source language abbrev. id (e.g., es)
 tgt_lang=en                # target language abbrev. id (e.g., en)
+src_tags=                # source tags
+tgt_tags=                # target tags
+run_multilingual=false # run with multiple tags
 
 # Upload model related
 hf_repo=
@@ -182,6 +185,7 @@ Options:
     --oov                     # Out of vocabulary symbol (default="${oov}").
     --blank                   # CTC blank symbol (default="${blank}").
     --sos_eos                 # sos and eos symbole (default="${sos_eos}").
+    --prompt_symbol                 # sos and eos symbole (default="${sos_eos}").
     --token_joint=false       # Whether to use a single bpe system for both source and target languages.
                               # if set as true, will use tgt_* for processing (default="${token_joint}").
     --src_token_type=bpe      # Tokenization type (char or bpe) for source languages. (default="${src_token_type}").
@@ -225,6 +229,9 @@ Options:
     --num_splits_st    # Number of splitting for lm corpus.  (default="${num_splits_st}").
     --src_lang=        # source language abbrev. id (e.g., es). (default="${src_lang}")
     --tgt_lang=        # target language abbrev. id (e.g., en). (default="${tgt_lang}")
+    --src_tags=        # source language abbrev. id (e.g., es). (default="${src_tags}")
+    --tgt_tags=        # target language abbrev. id (e.g., en). (default="${tgt_tags}")
+    --run_multilingual= # run for multiple languages
 
     # Decoding related
     --inference_tag       # Suffix to the result dir for decoding (default="${inference_tag}").
@@ -294,7 +301,11 @@ else
 fi
 
 # Extra files for translation process
-utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}"
+if "${run_multilingual}"; then
+    utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang} src_file.txt tgt_file.txt"
+else
+    utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}"
+fi
 # Use the same text as ST for bpe training if not specified.
 [ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
 [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
@@ -771,6 +782,9 @@ if ! "${skip_data_prep}"; then
             echo "${oov}"
             # Remove <unk>, <s>, </s> from the vocabulary
             <"${tgt_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+            for tag in ${tgt_tags}; do
+                echo "${tag}"
+            done
             echo "${sos_eos}"
             } > "${tgt_token_list}"
 
@@ -847,6 +861,9 @@ if ! "${skip_data_prep}"; then
                 echo "${oov}"
                 # Remove <unk>, <s>, </s> from the vocabulary
                 <"${src_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+                for tag in ${src_tags}; do
+                    echo "${tag}"
+                done
                 echo "${sos_eos}"
                 } > "${src_token_list}"
 
@@ -1145,29 +1162,60 @@ if ! "${skip_train}"; then
 
         # TODO(jiatong): fix different bpe model
         # shellcheck disable=SC2086
-        ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m espnet2.bin.st_train \
-                --collect_stats true \
-                --use_preprocessor true \
-                --bpemodel "${tgt_bpemodel}" \
-                --src_bpemodel "${src_bpemodel}" \
-                --token_type "${tgt_token_type}" \
-                --src_token_type "${src_token_type}" \
-                --token_list "${tgt_token_list}" \
-                --src_token_list "${src_token_list}" \
-                --non_linguistic_symbols "${nlsyms_txt}" \
-                --cleaner "${cleaner}" \
-                --g2p "${g2p}" \
-                --train_data_path_and_name_and_type "${_st_train_dir}/${_scp},speech,${_type}" \
-                --train_data_path_and_name_and_type "${_st_train_dir}/text.${tgt_case}.${tgt_lang},text,text" \
-                --train_data_path_and_name_and_type "${_st_train_dir}/text.${src_case}.${src_lang},src_text,text" \
-                --valid_data_path_and_name_and_type "${_st_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
-                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
-                --train_shape_file "${_logdir}/train.JOB.scp" \
-                --valid_shape_file "${_logdir}/valid.JOB.scp" \
-                --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${st_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+        if "${run_multilingual}"; then
+            ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
+                ${python} -m espnet2.bin.st_train \
+                    --collect_stats true \
+                    --use_preprocessor true \
+                    --bpemodel "${tgt_bpemodel}" \
+                    --src_bpemodel "${src_bpemodel}" \
+                    --token_type "${tgt_token_type}" \
+                    --src_token_type "${src_token_type}" \
+                    --token_list "${tgt_token_list}" \
+                    --src_token_list "${src_token_list}" \
+                    --non_linguistic_symbols "${nlsyms_txt}" \
+                    --cleaner "${cleaner}" \
+                    --g2p "${g2p}" \
+                    --run_multilingual "${run_multilingual}" \
+                    --train_data_path_and_name_and_type "${_st_train_dir}/${_scp},speech,${_type}" \
+                    --train_data_path_and_name_and_type "${_st_train_dir}/text.${tgt_case}.${tgt_lang},text,text" \
+                    --train_data_path_and_name_and_type "${_st_train_dir}/text.${src_case}.${src_lang},src_text,text" \
+                    --train_data_path_and_name_and_type "${_st_train_dir}/tgt_file.txt,tgt_tag,text" \
+                    --train_data_path_and_name_and_type "${_st_train_dir}/src_file.txt,src_tag,text" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/${_scp},speech,${_type}" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/tgt_file.txt,tgt_tag,text" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/src_file.txt,src_tag,text" \
+                    --train_shape_file "${_logdir}/train.JOB.scp" \
+                    --valid_shape_file "${_logdir}/valid.JOB.scp" \
+                    --output_dir "${_logdir}/stats.JOB" \
+                    ${_opts} ${st_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+        else
+            ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
+                ${python} -m espnet2.bin.st_train \
+                    --collect_stats true \
+                    --use_preprocessor true \
+                    --bpemodel "${tgt_bpemodel}" \
+                    --src_bpemodel "${src_bpemodel}" \
+                    --token_type "${tgt_token_type}" \
+                    --src_token_type "${src_token_type}" \
+                    --token_list "${tgt_token_list}" \
+                    --src_token_list "${src_token_list}" \
+                    --non_linguistic_symbols "${nlsyms_txt}" \
+                    --cleaner "${cleaner}" \
+                    --g2p "${g2p}" \
+                    --train_data_path_and_name_and_type "${_st_train_dir}/${_scp},speech,${_type}" \
+                    --train_data_path_and_name_and_type "${_st_train_dir}/text.${tgt_case}.${tgt_lang},text,text" \
+                    --train_data_path_and_name_and_type "${_st_train_dir}/text.${src_case}.${src_lang},src_text,text" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/${_scp},speech,${_type}" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
+                    --train_shape_file "${_logdir}/train.JOB.scp" \
+                    --valid_shape_file "${_logdir}/valid.JOB.scp" \
+                    --output_dir "${_logdir}/stats.JOB" \
+                    ${_opts} ${st_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+        fi
 
         # 4. Aggregate shape files
         _opts=
@@ -1271,6 +1319,13 @@ if ! "${skip_train}"; then
             _opts+="--train_shape_file ${st_stats_dir}/train/src_text_shape.${src_token_type} "
         fi
 
+        if "${run_multilingual}"; then
+            _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/tgt_file.txt,tgt_tag,text " 
+            _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/src_file.txt,src_tag,text "
+            _opts+="--train_shape_file ${st_stats_dir}/train/tgt_tag_shape "
+            _opts+="--train_shape_file ${st_stats_dir}/train/src_tag_shape "
+        fi
+
         log "Generate '${st_exp}/run.sh'. You can resume the process from stage 11 using this script"
         mkdir -p "${st_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${st_exp}/run.sh"; chmod +x "${st_exp}/run.sh"
 
@@ -1283,40 +1338,84 @@ if ! "${skip_train}"; then
             jobname="${st_exp}/train.log"
         fi
 
-        # TODO(jiatong): fix bpe
-        # shellcheck disable=SC2086
-        ${python} -m espnet2.bin.launch \
-            --cmd "${cuda_cmd} --name ${jobname}" \
-            --log "${st_exp}"/train.log \
-            --ngpu "${ngpu}" \
-            --num_nodes "${num_nodes}" \
-            --init_file_prefix "${st_exp}"/.dist_init_ \
-            --multiprocessing_distributed true -- \
-            ${python} -m espnet2.bin.st_train \
-                --use_preprocessor true \
-                --bpemodel "${tgt_bpemodel}" \
-                --token_type "${tgt_token_type}" \
-                --token_list "${tgt_token_list}" \
-                --src_bpemodel "${src_bpemodel}" \
-                --src_token_type "${src_token_type}" \
-                --src_token_list "${src_token_list}" \
-                --non_linguistic_symbols "${nlsyms_txt}" \
-                --cleaner "${cleaner}" \
-                --g2p "${g2p}" \
-                --valid_data_path_and_name_and_type "${_st_valid_dir}/${_scp},speech,${_type}" \
-                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
-                --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
-                --valid_shape_file "${st_stats_dir}/valid/speech_shape" \
-                --valid_shape_file "${st_stats_dir}/valid/text_shape.${tgt_token_type}" \
-                --valid_shape_file "${st_stats_dir}/valid/src_text_shape.${src_token_type}" \
-                --resume true \
-                --init_param ${pretrained_asr} \
-                --ignore_init_mismatch ${ignore_init_mismatch} \
-                --fold_length "${_fold_length}" \
-                --fold_length "${st_text_fold_length}" \
-                --fold_length "${st_text_fold_length}" \
-                --output_dir "${st_exp}" \
-                ${_opts} ${st_args}
+        if "${run_multilingual}"; then
+            # TODO(jiatong): fix bpe
+            # shellcheck disable=SC2086
+            ${python} -m espnet2.bin.launch \
+                --cmd "${cuda_cmd} --name ${jobname}" \
+                --log "${st_exp}"/train.log \
+                --ngpu "${ngpu}" \
+                --num_nodes "${num_nodes}" \
+                --init_file_prefix "${st_exp}"/.dist_init_ \
+                --multiprocessing_distributed true -- \
+                ${python} -m espnet2.bin.st_train \
+                    --use_preprocessor true \
+                    --bpemodel "${tgt_bpemodel}" \
+                    --token_type "${tgt_token_type}" \
+                    --token_list "${tgt_token_list}" \
+                    --src_bpemodel "${src_bpemodel}" \
+                    --src_token_type "${src_token_type}" \
+                    --src_token_list "${src_token_list}" \
+                    --non_linguistic_symbols "${nlsyms_txt}" \
+                    --cleaner "${cleaner}" \
+                    --g2p "${g2p}" \
+                    --run_multilingual "${run_multilingual}" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/${_scp},speech,${_type}" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/tgt_file.txt,tgt_tag,text" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/src_file.txt,src_tag,text" \
+                    --valid_shape_file "${st_stats_dir}/valid/speech_shape" \
+                    --valid_shape_file "${st_stats_dir}/valid/text_shape.${tgt_token_type}" \
+                    --valid_shape_file "${st_stats_dir}/valid/src_text_shape.${src_token_type}" \
+                    --valid_shape_file "${st_stats_dir}/valid/tgt_tag_shape"\
+                    --valid_shape_file "${st_stats_dir}/valid/src_tag_shape"\
+                    --resume true \
+                    --init_param ${pretrained_asr} \
+                    --ignore_init_mismatch ${ignore_init_mismatch} \
+                    --fold_length "${_fold_length}" \
+                    --fold_length "${st_text_fold_length}" \
+                    --fold_length "${st_text_fold_length}" \
+                    --fold_length "${st_text_fold_length}" \
+                    --fold_length "${st_text_fold_length}" \
+                    --output_dir "${st_exp}" \
+                    ${_opts} ${st_args}
+        else
+            # TODO(jiatong): fix bpe
+            # shellcheck disable=SC2086
+            ${python} -m espnet2.bin.launch \
+                --cmd "${cuda_cmd} --name ${jobname}" \
+                --log "${st_exp}"/train.log \
+                --ngpu "${ngpu}" \
+                --num_nodes "${num_nodes}" \
+                --init_file_prefix "${st_exp}"/.dist_init_ \
+                --multiprocessing_distributed true -- \
+                ${python} -m espnet2.bin.st_train \
+                    --use_preprocessor true \
+                    --bpemodel "${tgt_bpemodel}" \
+                    --token_type "${tgt_token_type}" \
+                    --token_list "${tgt_token_list}" \
+                    --src_bpemodel "${src_bpemodel}" \
+                    --src_token_type "${src_token_type}" \
+                    --src_token_list "${src_token_list}" \
+                    --non_linguistic_symbols "${nlsyms_txt}" \
+                    --cleaner "${cleaner}" \
+                    --g2p "${g2p}" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/${_scp},speech,${_type}" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${tgt_case}.${tgt_lang},text,text" \
+                    --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text" \
+                    --valid_shape_file "${st_stats_dir}/valid/speech_shape" \
+                    --valid_shape_file "${st_stats_dir}/valid/text_shape.${tgt_token_type}" \
+                    --valid_shape_file "${st_stats_dir}/valid/src_text_shape.${src_token_type}" \
+                    --resume true \
+                    --init_param ${pretrained_asr} \
+                    --ignore_init_mismatch ${ignore_init_mismatch} \
+                    --fold_length "${_fold_length}" \
+                    --fold_length "${st_text_fold_length}" \
+                    --fold_length "${st_text_fold_length}" \
+                    --output_dir "${st_exp}" \
+                    ${_opts} ${st_args}
+        fi
 
     fi
 else
@@ -1423,16 +1522,32 @@ if ! "${skip_eval}"; then
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/st_inference.*.log'"
             # shellcheck disable=SC2086
-            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/st_inference.JOB.log \
-                ${python} -m ${st_inference_tool} \
-                    --batch_size ${batch_size} \
-                    --ngpu "${_ngpu}" \
-                    --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
-                    --key_file "${_logdir}"/keys.JOB.scp \
-                    --st_train_config "${st_exp}"/config.yaml \
-                    --st_model_file "${st_exp}"/"${inference_st_model}" \
-                    --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args}
+            if "${run_multilingual}"; then
+                ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/st_inference.JOB.log \
+                    ${python} -m ${st_inference_tool} \
+                        --batch_size ${batch_size} \
+                        --ngpu "${_ngpu}" \
+                        --run_multilingual "${run_multilingual}" \
+                        --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
+                        --data_path_and_name_and_type "${_data}/tgt_file.txt,tgt_tag,text" \
+                        --data_path_and_name_and_type "${_data}/src_file.txt,src_tag,text" \
+                        --key_file "${_logdir}"/keys.JOB.scp \
+                        --st_train_config "${st_exp}"/config.yaml \
+                        --st_model_file "${st_exp}"/"${inference_st_model}" \
+                        --output_dir "${_logdir}"/output.JOB \
+                        ${_opts} ${inference_args}
+            else
+                ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/st_inference.JOB.log \
+                    ${python} -m ${st_inference_tool} \
+                        --batch_size ${batch_size} \
+                        --ngpu "${_ngpu}" \
+                        --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
+                        --key_file "${_logdir}"/keys.JOB.scp \
+                        --st_train_config "${st_exp}"/config.yaml \
+                        --st_model_file "${st_exp}"/"${inference_st_model}" \
+                        --output_dir "${_logdir}"/output.JOB \
+                        ${_opts} ${inference_args}
+            fi
 
             # 3. Concatenates the output files from each jobs
             for f in token token_int score text; do

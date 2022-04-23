@@ -7,10 +7,13 @@ set -o pipefail
 
 src_lang=es
 tgt_lang=en
+src_tags="<tag_es>"
+tgt_tags="<tag_en>"
 
 train_set=train
 train_dev=dev
 test_set="fisher_dev fisher_dev2 fisher_test callhome_devtest callhome_evltest"
+local_data_opts="--stage 3"
 
 st_config=conf/train_st.yaml
 inference_config=conf/decode_st.yaml
@@ -26,10 +29,16 @@ tgt_case=lc.rm
     --audio_format "flac.ark" \
     --use_lm false \
     --token_joint false \
-    --nj 40 \
+    --stage 11\
+    --stop_stage 11\
+    --run_multilingual true \
+    --nj 30 \
     --fs 8k \
+    --local_data_opts "${local_data_opts}" \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
+    --src_tags ${src_tags} \
+    --tgt_tags ${tgt_tags} \
     --src_token_type "bpe" \
     --src_nbpe $src_nbpe \
     --tgt_token_type "bpe" \

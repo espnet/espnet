@@ -263,6 +263,12 @@ class STTask(AbsTask):
             help="Apply preprocessing to data or not",
         )
         group.add_argument(
+            "--run_multilingual",
+            type=str2bool,
+            default=False,
+            help="Run multilingual training",
+        )
+        group.add_argument(
             "--token_type",
             type=str,
             default="bpe",
@@ -390,7 +396,9 @@ class STTask(AbsTask):
                 if hasattr(args, "speech_volume_normalize")
                 else None,
                 speech_name="speech",
-                text_name=["text", "src_text"],
+                text_name=["text", "src_text","tgt_tag","src_tag"]
+                if args.run_multilingual
+                else ["text", "src_text"],
             )
         else:
             retval = None
@@ -413,9 +421,9 @@ class STTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("src_text",)
+            retval = ("src_text","tgt_tag","src_tag")
         else:
-            retval = ()
+            retval = ("tgt_tag","src_tag")
         assert check_return_type(retval)
         return retval
 
