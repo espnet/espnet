@@ -107,7 +107,6 @@ def test_enh_asr_model(
         normalize=None,
         preencoder=None,
         postencoder=None,
-        joint_network=None,
     )
     enh_s2t_model = ESPnetEnhS2TModel(
         enh_model=enh_model,
