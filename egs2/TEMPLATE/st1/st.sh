@@ -619,7 +619,7 @@ if ! "${skip_data_prep}"; then
 
         elif  [ "${feats_type}" = extracted ]; then
             log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}"
-            # Assumming you don't have wav.scp, but feats.scp is created by local/data.sh instead.
+            # Assuming you don't have wav.scp, but feats.scp is created by local/data.sh instead.
 
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then

@@ -22,6 +22,7 @@ from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.fileio.sound_scp import SoundScpWriter
 from espnet2.tasks.enh import EnhancementTask
+from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
@@ -57,13 +58,19 @@ class SeparateSpeech:
         normalize_output_wav: bool = False,
         device: str = "cpu",
         dtype: str = "float32",
+        enh_s2t_task: bool = False,
     ):
         assert check_argument_types()
 
+        task = EnhancementTask if not enh_s2t_task else EnhS2TTask
+
         # 1. Build Enh model
-        enh_model, enh_train_args = EnhancementTask.build_model_from_file(
+        enh_model, enh_train_args = task.build_model_from_file(
             train_config, model_file, device
         )
+        if enh_s2t_task:
+            enh_model = enh_model.enh_model
+
         enh_model.to(dtype=getattr(torch, dtype)).eval()
 
         self.device = device
@@ -312,6 +319,7 @@ def inference(
     show_progressbar: bool,
     ref_channel: Optional[int],
     normalize_output_wav: bool,
+    enh_s2t_task: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -344,6 +352,7 @@ def inference(
         normalize_output_wav=normalize_output_wav,
         device=device,
         dtype=dtype,
+        enh_s2t_task=enh_s2t_task,
     )
     separate_speech = SeparateSpeech.from_pretrained(
         model_tag=model_tag,
@@ -464,6 +473,12 @@ def get_parser():
         type=str,
         help="Pretrained model tag. If specify this option, train_config and "
         "model_file will be overwritten",
+    )
+    group.add_argument(
+        "--enh_s2t_task",
+        type=str2bool,
+        default=False,
+        help="enhancement and asr joint model",
     )
 
     group = parser.add_argument_group("Data loading related")
