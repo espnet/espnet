@@ -5,8 +5,8 @@
 - python version: `3.7.4 (default, Aug 13 2019, 20:35:49)  [GCC 7.3.0]`
 - espnet version: `espnet 202204`
 - pytorch version: `pytorch 1.10.1+cu111`
-- Git hash: ``
-  - Commit date: ``
+- Git hash: `a8e5d3d0ef346728a1be74166d4030370b7386cf`
+  - Commit date: `Sun Apr 24 04:35:33 2022 +0900`
 
 
 ## enh_train_enh_tcn_tf_raw
