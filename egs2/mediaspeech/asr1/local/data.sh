@@ -19,9 +19,9 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
-mkdir -p ${COMMONVOICE}
-if [ -z "${COMMONVOICE}" ]; then
-    log "Fill the value of 'COMMONVOICE' of db.sh"
+mkdir -p ${MEDIASPEECH}
+if [ -z "${MEDIASPEECH}" ]; then
+    log "Fill the value of 'MEDIASPEECH' of db.sh"
     exit 1
 fi
 
@@ -34,18 +34,17 @@ set -o pipefail
 log "data preparation started"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
-    log "stage1: Download data to ${COMMONVOICE}"
-    log "The default data of this recipe is from commonvoice 5.1, for newer version, you need to register at \
-         https://commonvoice.mozilla.org/"
-    local/download_and_untar.sh ${COMMONVOICE} ${data_url} FR.tgz
+    log "stage1: Download data to ${MEDIASPEECH}"
+    log "The default data of this recipe is from mediaspeech - french 
+    local/download_and_untar.sh ${MEDIASPEECH} ${data_url} FR.tgz
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "stage2: Preparing data for commonvoice"
+    log "stage2: Preparing data for mediaspeech"
     ### Task dependent. You have to make data the following preparation part by yourself.
     mkdir -p data/{train_as,dev_as,test_as,validated_as}
     python3 local/data_prep.py \
-        --data_path ${COMMONVOICE}/FR \
+        --data_path ${MEDIASPEECH}/FR \
         --train_dir data/train_as \
         --dev_dir data/dev_as \
         --test_dir data/test_as \
