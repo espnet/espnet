@@ -31,6 +31,7 @@ from espnet2.asr.transducer.beam_search_transducer import (
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
+from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
@@ -77,14 +78,29 @@ class Speech2Text:
         penalty: float = 0.0,
         nbest: int = 1,
         streaming: bool = False,
+        enh_s2t_task: bool = False,
     ):
         assert check_argument_types()
 
+        task = ASRTask if not enh_s2t_task else EnhS2TTask
+
         # 1. Build ASR model
         scorers = {}
-        asr_model, asr_train_args = ASRTask.build_model_from_file(
+        asr_model, asr_train_args = task.build_model_from_file(
             asr_train_config, asr_model_file, device
         )
+        if enh_s2t_task:
+            asr_model.inherite_attributes(
+                inherite_s2t_attrs=[
+                    "ctc",
+                    "decoder",
+                    "eos",
+                    "joint_network",
+                    "sos",
+                    "token_list",
+                    "use_transducer_decoder",
+                ]
+            )
         asr_model.to(dtype=getattr(torch, dtype)).eval()
 
         decoder = asr_model.decoder
@@ -136,6 +152,7 @@ class Speech2Text:
                 decoder=1.0 - ctc_weight,
                 ctc=ctc_weight,
                 lm=lm_weight,
+                ngram=ngram_weight,
                 length_bonus=penalty,
             )
             beam_search = BeamSearch(
@@ -347,6 +364,7 @@ def inference(
     allow_variable_data_keys: bool,
     transducer_conf: Optional[dict],
     streaming: bool,
+    enh_s2t_task: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -390,6 +408,7 @@ def inference(
         penalty=penalty,
         nbest=nbest,
         streaming=streaming,
+        enh_s2t_task=enh_s2t_task,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -530,6 +549,12 @@ def get_parser():
         type=str,
         help="Pretrained model tag. If specify this option, *_train_config and "
         "*_file will be overwritten",
+    )
+    group.add_argument(
+        "--enh_s2t_task",
+        type=str2bool,
+        default=False,
+        help="enhancement and asr joint model",
     )
 
     group = parser.add_argument_group("Beam-search related")

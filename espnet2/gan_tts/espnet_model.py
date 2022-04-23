@@ -74,6 +74,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
         forward_generator: bool = True,
+        **kwargs,
     ) -> Dict[str, Any]:
         """Return generator or discriminator loss with dict format.
 
@@ -92,6 +93,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
             forward_generator (bool): Whether to forward generator.
+            kwargs: "utt_id" is among the input.
 
         Returns:
             Dict[str, Any]:
@@ -176,6 +178,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Calculate features and return them as a dict.
 

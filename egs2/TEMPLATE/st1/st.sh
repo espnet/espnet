@@ -325,7 +325,7 @@ if "${token_joint}"; then
     src_bpetoken_list="${tgt_bpetoken_list}"
     src_chartoken_list="${tgt_chartoken_list}"
 else
-    src_bpedir="${token_listdir}/src_bpe_${tgt_bpemode}${tgt_nbpe}"
+    src_bpedir="${token_listdir}/src_bpe_${src_bpemode}${src_nbpe}"
     src_bpeprefix="${src_bpedir}"/bpe
     src_bpemodel="${src_bpeprefix}".model
     src_bpetoken_list="${src_bpedir}"/tokens.txt
@@ -618,7 +618,7 @@ if ! "${skip_data_prep}"; then
 
         elif  [ "${feats_type}" = extracted ]; then
             log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}"
-            # Assumming you don't have wav.scp, but feats.scp is created by local/data.sh instead.
+            # Assuming you don't have wav.scp, but feats.scp is created by local/data.sh instead.
 
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then

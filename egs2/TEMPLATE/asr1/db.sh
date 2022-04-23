@@ -1,16 +1,20 @@
 # Set the path of your corpus
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
+ACCENTED_FR=downloads
 AIDATATANG_200ZH=downloads
 AISHELL=downloads
 AISHELL3=downloads
 AISHELL4=downloads
 ALFFA=downloads
 AN4=downloads
+AUDIOSET=
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
 DNS=
+DNS2=
+DNS3=
 DSING=downloads
 WSJ0=
 WSJ1=
@@ -48,6 +52,7 @@ MISP2021=
 LIBRIMIX=downloads
 LIBRITTS=
 LJSPEECH=downloads
+MUSAN=
 NSC=
 JMD=downloads
 JSSS=downloads
@@ -65,6 +70,7 @@ TSUKUYOMI=downloads
 VOXFORGE=downloads
 AMI=
 COMMONVOICE=downloads
+MICROSOFT_SPEECH_CORPUS=
 BABEL_101=
 BABEL_102=
 BABEL_103=
@@ -129,6 +135,11 @@ PRIMEWORDS_CHINESE=downloads
 SEAME=
 BENGALI=downloads
 IWSLT14=
+BURMESE=downloads
+MALAYALAM=downloads
+ST_CMDS=downloads
+MS_INDIC_IS18=
+MARATHI=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
@@ -163,6 +174,7 @@ if [[ "$(hostname)" == tir* ]]; then
     PRIMEWORDS_CHINESE=/projects/tir5/data/speech_corpora/Primewords_Chinese
     FISHER_CALLHOME_SPANISH=/projects/tir5/data/speech_corpora/fisher_callhome_spanish
     DSING=/projects/tir5/data/speech_corpora/sing_300x30x2
+    MS_INDIC_IS18=/projects/tir6/general/cnariset/corpora/microsoft_speech_corpus_indian_languages
 fi
 
 # For only JHU environment
@@ -271,4 +283,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     IWSLT21LR=downloads/iwslt21
     TOTONAC=downloads
     GOOGLEI18N=downloads
+    MALAYALAM=
+
 fi
