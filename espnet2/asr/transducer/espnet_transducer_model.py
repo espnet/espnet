@@ -132,6 +132,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Forward architecture and compute loss(es).
 
@@ -140,6 +141,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             speech_lengths: Speech sequences lengths. (B,)
             text: Label ID sequences. (B, L)
             text_lengths: Label ID sequences lengths. (B,)
+            kwargs: Contains "utts_id".
 
         Return:
             loss: Main loss value.
@@ -226,6 +228,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Collect features sequences and features lengths sequences.
 
@@ -234,6 +237,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             speech_lengths: Speech sequences lengths. (B,)
             text: Label ID sequences. (B, L)
             text_lengths: Label ID sequences lengths. (B,)
+            kwargs: Contains "utts_id".
 
         Return:
             {}: "feats": Features sequences. (B, T, D_feats),
