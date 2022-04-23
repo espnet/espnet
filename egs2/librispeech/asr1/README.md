@@ -1,3 +1,37 @@
+# Conformer-RNN Transducer
+
+## Environments
+- date: `Fri Mar 25 04:35:42 EDT 2022`
+- python version: `3.9.5 (default, Jun  4 2021, 12:28:51)  [GCC 7.5.0]`
+- espnet version: `espnet 0.10.7a1`
+- pytorch version: `pytorch 1.8.1+cu111`
+- Git hash: `21d19be00089678ca27f7fce474ef8d787689512`
+  - Commit date: `Wed Mar 16 08:06:52 2022 -0400`
+- ASR config: [conf/train_rnnt_conformer.yaml](conf/train_rnnt_conformer.yaml)
+- Pretrained model: [https://huggingface.co/espnet/chai_librispeech_asr_train_rnnt_conformer_raw_en_bpe5000_sp](https://huggingface.co/espnet/chai_librispeech_asr_train_rnnt_conformer_raw_en_bpe5000_sp)
+
+## asr_train_rnnt_conformer_ngpu4_raw_en_bpe5000_sp
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_rnnt_conformer_asr_model_valid.loss.ave_10best/test_clean|2620|52576|97.2|2.5|0.3|0.3|3.1|35.2|
+|decode_rnnt_conformer_asr_model_valid.loss.ave_10best/test_other|2939|52343|93.4|6.0|0.6|0.8|7.4|56.3|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_rnnt_conformer_asr_model_valid.loss.ave_10best/test_clean|2620|281530|99.3|0.4|0.3|0.3|1.0|35.2|
+|decode_rnnt_conformer_asr_model_valid.loss.ave_10best/test_other|2939|272758|97.7|1.4|1.0|0.9|3.2|56.3|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_rnnt_conformer_asr_model_valid.loss.ave_10best/test_clean|2620|65818|96.6|2.4|1.0|0.5|3.9|35.2|
+|decode_rnnt_conformer_asr_model_valid.loss.ave_10best/test_other|2939|65101|92.1|5.9|2.0|1.3|9.2|56.3|
+
 # Self-supervised learning features [HuBERT_large_ll60k, Conformer, utt_mvn](conf/tuning/train_asr_conformer7_hubert_ll60k_large.yaml) with [Transformer-LM](conf/tuning/train_lm_transformer2.yaml)
 
 ## Environments
