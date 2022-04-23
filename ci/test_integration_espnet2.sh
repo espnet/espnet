@@ -118,7 +118,7 @@ for t in ${feats_types}; do
         if ! ./run.sh --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --tgt_token_type "${t2}" --src_token_type "${t2}" \
             --st-args "--max_epoch=1" --lm-args "--max_epoch=1" --inference_args "--beam_size 5" --python "${python}"
         then
-            cat exp/st_train_st_raw_bpe_lc.rm30_max_epoch1/inference_beam_size1_st_model_valid.acc.ave/train_dev/logdir/st_inference.1.log
+            cat exp/st_train_st_raw_bpe_lc.rm30_max_epoch1/inference_beam_size5_st_model_valid.acc.ave/train_dev/logdir/st_inference.1.log
         fi
     done
 done
