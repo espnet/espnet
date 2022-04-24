@@ -95,7 +95,13 @@ class BeamSearchTransducer:
             self.nstep = nstep if nstep > 1 else 2
             self.prefix_alpha = prefix_alpha
             self.expansion_gamma = expansion_gamma
-            self.expansion_beta = expansion_beta
+
+            assert self.vocab_size >= beam_size + expansion_beta, (
+                "beam_size (%d) + expansion_beta (%d) "
+                "should be smaller or equal to vocabulary size (%d)."
+                % (beam_size, expansion_beta, self.vocab_size)
+            )
+            self.max_candidates = beam_size + expansion_beta
 
             self.search_algorithm = self.modified_adaptive_expansion_search
         else:
@@ -782,13 +788,17 @@ class BeamSearchTransducer:
             for n in range(self.nstep):
                 beam_dec_out = torch.stack([h.dec_out[-1] for h in hyps])
 
-                beam_logp = torch.log_softmax(
+                beam_logp, beam_idx = torch.log_softmax(
                     self.joint_network(beam_enc_out, beam_dec_out)
                     / self.softmax_temperature,
                     dim=-1,
-                )
+                ).topk(self.max_candidates, dim=-1)
+
                 k_expansions = select_k_expansions(
-                    hyps, beam_logp, beam, self.expansion_gamma, self.expansion_beta
+                    hyps,
+                    beam_idx,
+                    beam_logp,
+                    self.expansion_gamma,
                 )
 
                 list_exp = []
