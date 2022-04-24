@@ -147,8 +147,8 @@ class SVoiceSeparator(AbsSeparator):
         )
 
     def forward(
-        self, 
-        input: torch.Tensor, 
+        self,
+        input: torch.Tensor,
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
     ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
