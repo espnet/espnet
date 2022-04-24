@@ -39,8 +39,8 @@ from espnet2.enh.separator.conformer_separator import ConformerSeparator
 from espnet2.enh.separator.dan_separator import DANSeparator
 from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
 from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
-from espnet2.enh.separator.dpcl_separator import DPCLSeparator
 from espnet2.enh.separator.dpcl_e2e_separator import DPCLE2ESeparator
+from espnet2.enh.separator.dpcl_separator import DPCLSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.fasnet_separator import FaSNetSeparator
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
