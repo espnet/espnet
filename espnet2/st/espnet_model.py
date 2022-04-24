@@ -78,6 +78,8 @@ class ESPnetSTModel(AbsESPnetModel):
         # note that eos is the same as sos (equivalent ID)
         self.sos = vocab_size - 1
         self.eos = vocab_size - 1
+        self.src_sos = src_vocab_size - 1
+        self.src_eos = src_vocab_size - 1
         self.vocab_size = vocab_size
         self.src_vocab_size = src_vocab_size
         self.ignore_id = ignore_id
@@ -165,6 +167,7 @@ class ESPnetSTModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         src_text: Optional[torch.Tensor],
         src_text_lengths: Optional[torch.Tensor],
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
@@ -175,6 +178,7 @@ class ESPnetSTModel(AbsESPnetModel):
             text_lengths: (Batch,)
             src_text: (Batch, length)
             src_text_lengths: (Batch,)
+            kwargs: "utt_id" is among the input.
         """
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
@@ -285,6 +289,7 @@ class ESPnetSTModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         src_text: Optional[torch.Tensor],
         src_text_lengths: Optional[torch.Tensor],
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         if self.extract_feats_in_collect_stats:
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
@@ -409,7 +414,9 @@ class ESPnetSTModel(AbsESPnetModel):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
     ):
-        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
+        ys_in_pad, ys_out_pad = add_sos_eos(
+            ys_pad, self.src_sos, self.src_eos, self.ignore_id
+        )
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
@@ -420,7 +427,7 @@ class ESPnetSTModel(AbsESPnetModel):
         # 2. Compute attention loss
         loss_att = self.criterion_asr(decoder_out, ys_out_pad)
         acc_att = th_accuracy(
-            decoder_out.view(-1, self.vocab_size),
+            decoder_out.view(-1, self.src_vocab_size),
             ys_out_pad,
             ignore_label=self.ignore_id,
         )
