@@ -553,7 +553,7 @@ if ! "${skip_data_prep}"; then
                     # shellcheck disable=SC2086
                     scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                         --out-filename "${spk}.scp" \
-                        --ref_channels "0" \
+                        --ref_channels "${ref_channel}" \
                         --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
                         "data/${dset}/${spk}.scp" "${data_feats}${_suf}/${dset}" \
                         "${data_feats}${_suf}/${dset}/logs/${spk}" "${data_feats}${_suf}/${dset}/data/${spk}"
@@ -1259,6 +1259,7 @@ if ! "${skip_eval}"; then
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/asr_inference.JOB.log \
                 ${python} -m ${asr_inference_tool} \
+                    --enh_s2t_task true \
                     --batch_size ${batch_size} \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
