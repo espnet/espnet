@@ -15,8 +15,8 @@
 - Pretrained model: https://huggingface.co/espnet/dns_icassp21_enh_train_enh_tcn_tf_raw
 
 
-|dataset|STOI|SAR|SDR|SIR|SI_SNR|
+|dataset|STOI|SDR|SI_SNR|
 |---|---|---|---|---|---|
-|enhanced_cv_synthetic|0.93|18.96|18.96|0.00|18.79|
-|enhanced_tt_synthetic_track_1|0.77|14.19|14.19|0.00|12.15|
+|enhanced_cv_synthetic|0.93|18.96|18.79|
+|enhanced_tt_synthetic_track_1|0.77|14.19|12.15|
 
