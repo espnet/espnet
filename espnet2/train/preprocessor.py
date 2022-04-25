@@ -130,6 +130,7 @@ class CommonPreprocessor(AbsPreprocessor):
         train: bool,
         token_type: str = None,
         token_list: Union[Path, str, Iterable[str]] = None,
+        transcript_token_list: Union[Path, str, Iterable[str]] = None,
         bpemodel: Union[Path, str, Iterable[str]] = None,
         text_cleaner: Collection[str] = None,
         g2p_type: str = None,
@@ -171,6 +172,20 @@ class CommonPreprocessor(AbsPreprocessor):
                 token_list=token_list,
                 unk_symbol=unk_symbol,
             )
+            if transcript_token_list is not None:
+                print("using transcript")
+                self.transcript_tokenizer = build_tokenizer(
+                    token_type="word",
+                    bpemodel=bpemodel,
+                    delimiter=delimiter,
+                    space_symbol=space_symbol,
+                    non_linguistic_symbols=non_linguistic_symbols,
+                    g2p_type=g2p_type,
+                )
+                self.transcript_token_id_converter = TokenIDConverter(
+                    token_list=transcript_token_list,
+                    unk_symbol=unk_symbol,
+                )
         else:
             self.text_cleaner = None
             self.tokenizer = None
@@ -311,6 +326,12 @@ class CommonPreprocessor(AbsPreprocessor):
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
             data[self.text_name] = np.array(text_ints, dtype=np.int64)
+        if "transcript" in data and self.tokenizer is not None:
+            text = data["transcript"]
+            text = self.text_cleaner(text)
+            tokens = self.transcript_tokenizer.text2tokens(text)
+            text_ints = self.transcript_token_id_converter.tokens2ids(tokens)
+            data["transcript"] = np.array(text_ints, dtype=np.int64)
         assert check_return_type(data)
         return data
 

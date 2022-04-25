@@ -23,7 +23,9 @@ for subset in ["train", "devel", "test"]:
     odir = os.path.join("data", subset)
     os.makedirs(odir, exist_ok=True)
     asr_transcript_file = open(
-        "../../slurp_new/asr1/exp/asr_train_asr_conformer_raw_en_word/inference_asr_model_valid.acc.ave_10best/"
+        "/ocean/projects/cis210027p/siddhana/espnet/egs2/slurp_new/asr1/"
+        + "exp/asr_train_asr_conformer_raw_en_word/"
+        + "inference_asr_model_valid.acc.ave_10best/"
         + subset
         + "/score_wer/hyp.trn",
         "r",

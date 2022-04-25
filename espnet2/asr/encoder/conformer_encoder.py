@@ -332,18 +332,6 @@ class ConformerEncoder(AbsEncoder):
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
             xs_pad, masks = self.encoders(xs_pad, masks)
-            if return_pos:
-                # try both
-                if pre_postencoder_norm:
-                    xs_pad = self.after_norm(xs_pad[0]), xs_pad[1]
-                else:
-                    xs_pad = xs_pad[0], xs_pad[1]
-                # xs_pad = xs_pad[0], xs_pad[1]
-            else:
-                if isinstance(xs_pad, tuple):
-                    xs_pad = xs_pad[0]
-                if self.normalize_before:
-                    xs_pad = self.after_norm(xs_pad)
         else:
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs_pad, masks = encoder_layer(xs_pad, masks)
@@ -369,10 +357,19 @@ class ConformerEncoder(AbsEncoder):
                         else:
                             xs_pad = xs_pad + self.conditioning_layer(ctc_out)
 
-        if isinstance(xs_pad, tuple):
-            xs_pad = xs_pad[0]
-        if self.normalize_before:
-            xs_pad = self.after_norm(xs_pad)
+        # This was not found helpful but keep this for now
+        if return_pos:
+            # try both
+            if pre_postencoder_norm:
+                xs_pad = self.after_norm(xs_pad[0]), xs_pad[1]
+            else:
+                xs_pad = xs_pad[0], xs_pad[1]
+            # xs_pad = xs_pad[0], xs_pad[1]
+        else:
+            if isinstance(xs_pad, tuple):
+                xs_pad = xs_pad[0]
+            if self.normalize_before:
+                xs_pad = self.after_norm(xs_pad)
 
         olens = masks.squeeze(1).sum(1)
         if len(intermediate_outs) > 0:
