@@ -265,3 +265,59 @@ class FrequencyDomainAbsCoherence(FrequencyDomainLoss):
         else:
             raise ValueError("`ref` and `inf` must be complex tensors.")
         return coh_loss
+
+
+class FrequencyDomainCrossEntropy(FrequencyDomainLoss):
+    def __init__(self, compute_on_mask=False, mask_type=None):
+        super().__init__()
+        self._compute_on_mask = False
+        self._mask_type = None
+
+    @property
+    def compute_on_mask(self) -> bool:
+        return self._compute_on_mask
+
+    @property
+    def mask_type(self) -> str:
+        return self._mask_type
+
+    @property
+    def name(self) -> str:
+        if self.compute_on_mask:
+            return f"CE_on_{self.mask_type}"
+        else:
+            return "CE_on_Spec"
+
+    def forward(self, ref, inf) -> torch.Tensor:
+        """time-frequency cross-entropy loss.
+
+        Args:
+            ref: (Batch, T) or (Batch, T, C)
+            inf: (Batch, T, nclass) or (Batch, T, C, nclass)
+        Returns:
+            loss: (Batch,)
+        """
+        assert ref.shape[0] == inf.shape[0] and ref.shape[1] == inf.shape[1], (
+            ref.shape,
+            inf.shape,
+        )
+
+        if ref.dim() == 2:
+            loss = torch.nn.functional.cross_entropy(
+                inf.permute(0, 2, 1), ref, reduction="none"
+            ).mean(dim=1)
+        elif ref.dim() == 3:
+            loss = torch.nn.functional.cross_entropy(
+                inf.permute(0, 3, 1, 2), ref, reduction="none"
+            ).mean(dim=[1, 2])
+        else:
+            raise ValueError(
+                "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
+            )
+
+        with torch.no_grad():
+            pred = inf.argmax(-1)
+            acc = (pred == ref).float().mean()
+            self.stats = {"acc": float(acc.cpu() * 100)}
+
+        return loss

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from itertools import permutations
 
 import torch
@@ -43,9 +44,20 @@ class PITSolver(AbsLossWrapper):
         assert len(ref) == len(inf), (len(ref), len(inf))
         num_spk = len(ref)
 
+        stats = defaultdict(list)
+
+        def pre_hook(func, *args, **kwargs):
+            ret = func(*args, **kwargs)
+            for k, v in getattr(self.criterion, "stats", {}).items():
+                stats[k].append(v)
+            return ret
+
         def pair_loss(permutation):
             return sum(
-                [self.criterion(ref[s], inf[t]) for s, t in enumerate(permutation)]
+                [
+                    pre_hook(self.criterion, ref[s], inf[t])
+                    for s, t in enumerate(permutation)
+                ]
             ) / len(permutation)
 
         if self.independent_perm or perm is None:
@@ -64,8 +76,10 @@ class PITSolver(AbsLossWrapper):
                 [
                     torch.tensor(
                         [
-                            self.criterion(
-                                ref[s][batch].unsqueeze(0), inf[t][batch].unsqueeze(0)
+                            pre_hook(
+                                self.criterion,
+                                ref[s][batch].unsqueeze(0),
+                                inf[t][batch].unsqueeze(0),
                             )
                             for s, t in enumerate(p)
                         ]
@@ -76,7 +90,8 @@ class PITSolver(AbsLossWrapper):
 
         loss = loss.mean()
 
-        stats = dict()
+        for k, v in stats.items():
+            stats[k] = sum(v) / len(v) if v else 0
         stats[self.criterion.name] = loss.detach()
 
-        return loss.mean(), stats, {"perm": perm}
+        return loss.mean(), dict(stats), {"perm": perm}

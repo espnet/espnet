@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import torch
 
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
@@ -26,11 +28,14 @@ class FixedOrderSolver(AbsLossWrapper):
         num_spk = len(ref)
 
         loss = 0.0
-
+        stats = defaultdict(list)
         for r, i in zip(ref, inf):
             loss += torch.mean(self.criterion(r, i)) / num_spk
+            for k, v in getattr(self.criterion, "stats", {}).items():
+                stats[k].append(v)
 
-        stats = dict()
+        for k, v in stats.items():
+            stats[k] = sum(v) / len(v) if v else 0
         stats[self.criterion.name] = loss.detach()
 
-        return loss.mean(), stats, {}
+        return loss.mean(), dict(stats), {}

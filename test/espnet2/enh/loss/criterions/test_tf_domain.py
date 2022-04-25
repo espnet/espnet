@@ -5,6 +5,7 @@ import torch
 from torch_complex import ComplexTensor
 
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainAbsCoherence
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainCrossEntropy
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 
@@ -76,3 +77,19 @@ def test_tf_coh_criterion_invalid_forward(input_ch):
             criterion(ref_spec[0], inf_spec[0])
         else:
             criterion(ref_spec[0, 0], inf_spec[0, 0])
+
+
+@pytest.mark.parametrize("input_ch", [1, 2])
+def test_tf_ce_criterion_forward(input_ch):
+
+    criterion = FrequencyDomainCrossEntropy()
+
+    batch = 2
+    ncls = 200
+    shape = (batch, 10, ncls) if input_ch == 1 else (batch, 10, input_ch, ncls)
+    label_shape = (batch, 10) if input_ch == 1 else (batch, 10, input_ch)
+    inf_spec = torch.rand(*shape)
+    ref_spec = torch.randint(0, ncls, label_shape)
+
+    loss = criterion(ref_spec, inf_spec)
+    assert loss.shape == (batch,), "Invlid loss shape with " + criterion.name
