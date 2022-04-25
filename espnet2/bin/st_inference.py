@@ -23,6 +23,7 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.st import STTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -67,14 +68,29 @@ class Speech2Text:
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
         nbest: int = 1,
+        enh_s2t_task: bool = False,
     ):
         assert check_argument_types()
 
+        task = STTask if not enh_s2t_task else EnhS2TTask
+
         # 1. Build ST model
         scorers = {}
-        st_model, st_train_args = STTask.build_model_from_file(
+        st_model, st_train_args = task.build_model_from_file(
             st_train_config, st_model_file, device
         )
+        if enh_s2t_task:
+            st_model.inherite_attributes(
+                inherite_s2t_attrs=[
+                    "ctc",
+                    "decoder",
+                    "eos",
+                    "joint_network",
+                    "sos",
+                    "token_list",
+                    "use_transducer_decoder",
+                ]
+            )
         st_model.to(dtype=getattr(torch, dtype)).eval()
 
         decoder = st_model.decoder
@@ -290,6 +306,7 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
+    enh_s2t_task: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -330,6 +347,7 @@ def inference(
         ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
+        enh_s2t_task=enh_s2t_task,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
