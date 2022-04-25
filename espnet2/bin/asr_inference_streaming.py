@@ -211,6 +211,16 @@ class Speech2TextStreaming:
         if prev_states is not None:
             buf = prev_states["waveform_buffer"]
             speech = torch.cat([buf, speech], dim=0)
+        
+        if speech.size(0) <= self.win_length:
+            if is_final:
+                pad = torch.zeros(self.win_length - speech.size(0))
+                speech = torch.cat([speech, pad], dim=0)
+            else:
+                feats = None 
+                feats_lengths = None
+                next_states = {"waveform_buffer": speech.clone()}
+                return feats, feats_lengths, next_states            
 
         if is_final:
             speech_to_process = speech
@@ -304,21 +314,24 @@ class Speech2TextStreaming:
         feats, feats_lengths, self.frontend_states = self.apply_frontend(
             speech, self.frontend_states, is_final=is_final
         )
-        enc, _, self.encoder_states = self.asr_model.encoder(
-            feats,
-            feats_lengths,
-            self.encoder_states,
-            is_final=is_final,
-            infer_mode=True,
-        )
-        nbest_hyps = self.beam_search(
-            x=enc[0],
-            maxlenratio=self.maxlenratio,
-            minlenratio=self.minlenratio,
-            is_final=is_final,
-        )
+        if feats is not None:
+            enc, _, self.encoder_states = self.asr_model.encoder(
+                feats,
+                feats_lengths,
+                self.encoder_states,
+                is_final=is_final,
+                infer_mode=True,
+            )
+            nbest_hyps = self.beam_search(
+                x=enc[0],
+                maxlenratio=self.maxlenratio,
+                minlenratio=self.minlenratio,
+                is_final=is_final,
+            )
+            ret = self.assemble_hyps(nbest_hyps)
+        else:
+            ret = []
 
-        ret = self.assemble_hyps(nbest_hyps)
         if is_final:
             self.reset()
         return ret
