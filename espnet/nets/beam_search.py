@@ -357,7 +357,7 @@ class BeamSearch(torch.nn.Module):
         return best_hyps
 
     def forward(
-        self, x: torch.Tensor, tgt_tag: Optional[Union[torch.Tensor, np.ndarray]], maxlenratio: float = 0.0, minlenratio: float = 0.0
+        self, x: torch.Tensor, tgt_tag: Optional[Union[torch.Tensor, np.ndarray]] = None, maxlenratio: float = 0.0, minlenratio: float = 0.0
     ) -> List[Hypothesis]:
         """Perform beam search.
 
@@ -429,11 +429,18 @@ class BeamSearch(torch.nn.Module):
         logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
         logging.info(f"total number of ended hypotheses: {len(nbest_hyps)}")
         if self.token_list is not None:
-            logging.info(
-                "best hypo: "
-                + "".join([self.token_list[x] for x in best.yseq[2:-1]])
-                + "\n"
-            )
+            if tgt_tag is not None:
+                logging.info(
+                    "best hypo: "
+                    + "".join([self.token_list[x] for x in best.yseq[2:-1]])
+                    + "\n"
+                )
+            else:
+                logging.info(
+                    "best hypo: "
+                    + "".join([self.token_list[x] for x in best.yseq[1:-1]])
+                    + "\n"
+                )
         return nbest_hyps
 
     def post_process(
