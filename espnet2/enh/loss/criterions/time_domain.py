@@ -217,7 +217,7 @@ class TimeDomainMSE(TimeDomainLoss):
 
     @property
     def name(self) -> str:
-        return "time_MSE_loss"
+        return "TD_MSE_loss"
 
     def forward(self, ref, inf) -> torch.Tensor:
         """Time-domain MSE loss forward.
@@ -248,7 +248,7 @@ class TimeDomainL1(TimeDomainLoss):
 
     @property
     def name(self) -> str:
-        return "time_L1_loss"
+        return "TD_L1_loss"
 
     def forward(self, ref, inf) -> torch.Tensor:
         """Time-domain L1 loss forward.
