@@ -14,7 +14,6 @@ SECONDS=0
 
 stage=1
 stop_stage=100000
-fs=16k
 log "$0 $*"
 . utils/parse_options.sh
 
