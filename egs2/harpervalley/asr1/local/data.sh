@@ -46,7 +46,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ -n "$(ls data/tmp/)" ]; then
         rm -r data/tmp/
     fi
-    for file in ${HARPERVALLEY}/data/transcript/*.json; do
+    for file in "${HARPERVALLEY}"/data/transcript/*.json; do
         filename=$(basename "${file%.*}")
         dirname="${HARPERVALLEY}/data/"
         python3 local/data_prep.py --source_dir "$dirname" \
