@@ -1,6 +1,7 @@
 # Set the path of your corpus
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
+ACCENTED_FR=downloads
 AIDATATANG_200ZH=downloads
 AISHELL=downloads
 AISHELL3=downloads
@@ -12,6 +13,8 @@ DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
 DNS=
+DNS2=
+DNS3=
 DSING=downloads
 WSJ0=
 WSJ1=
@@ -66,6 +69,7 @@ TSUKUYOMI=downloads
 VOXFORGE=downloads
 AMI=
 COMMONVOICE=downloads
+MICROSOFT_SPEECH_CORPUS=
 BABEL_101=
 BABEL_102=
 BABEL_103=
@@ -130,6 +134,7 @@ PRIMEWORDS_CHINESE=downloads
 SEAME=
 BENGALI=downloads
 IWSLT14=
+BURMESE=downloads
 MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
