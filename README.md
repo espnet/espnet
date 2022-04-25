@@ -133,7 +133,7 @@ To train the neural vocoder, please check the following repositories:
 - Multi-speaker speech separation
 - Unified encoder-separator-decoder structure for time-domain and frequency-domain models
   - Encoder/Decoder: STFT/iSTFT, Convolution/Transposed-Convolution
-  - Separators: BLSTM, Transformer, Conformer, [TasNet](https://arxiv.org/abs/1809.07454), [DPRNN](https://arxiv.org/abs/1910.06379), [DC-CRN](https://web.cse.ohio-state.edu/~wang.77/papers/TZW.taslp21.pdf), [DCCRN](https://arxiv.org/abs/2008.00264), [Deep Clustering](https://ieeexplore.ieee.org/document/7471631), [Deep Attractor Network](https://pubmed.ncbi.nlm.nih.gov/29430212/), Neural Beamformers, etc.
+  - Separators: BLSTM, Transformer, Conformer, [TasNet](https://arxiv.org/abs/1809.07454), [DPRNN](https://arxiv.org/abs/1910.06379), [SkiM](https://arxiv.org/abs/2201.10800), [SVoice](https://arxiv.org/abs/2011.02329), [DC-CRN](https://web.cse.ohio-state.edu/~wang.77/papers/TZW.taslp21.pdf), [DCCRN](https://arxiv.org/abs/2008.00264), [Deep Clustering](https://ieeexplore.ieee.org/document/7471631), [Deep Attractor Network](https://pubmed.ncbi.nlm.nih.gov/29430212/), [FaSNet](https://arxiv.org/abs/1909.13387), [iFaSNet](https://arxiv.org/abs/1910.14104), Neural Beamformers, etc.
 - Flexible ASR integration: working as an individual task or as the ASR frontend
 - Easy to import pretrained models from [Asteroid](https://github.com/asteroid-team/asteroid)
   - Both the pre-trained models from Asteroid and the specific configuration are supported.
