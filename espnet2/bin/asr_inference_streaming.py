@@ -211,16 +211,16 @@ class Speech2TextStreaming:
         if prev_states is not None:
             buf = prev_states["waveform_buffer"]
             speech = torch.cat([buf, speech], dim=0)
-        
+
         if speech.size(0) <= self.win_length:
             if is_final:
                 pad = torch.zeros(self.win_length - speech.size(0))
                 speech = torch.cat([speech, pad], dim=0)
             else:
-                feats = None 
+                feats = None
                 feats_lengths = None
                 next_states = {"waveform_buffer": speech.clone()}
-                return feats, feats_lengths, next_states            
+                return feats, feats_lengths, next_states
 
         if is_final:
             speech_to_process = speech
