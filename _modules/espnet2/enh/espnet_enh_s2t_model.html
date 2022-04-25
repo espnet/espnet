@@ -199,6 +199,9 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">permutation_by_enh</span> <span class="o">=</span> <span class="n">permutation_by_enh</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">calc_enh_loss</span> <span class="o">=</span> <span class="n">calc_enh_loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extract_feats_in_collect_stats</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">extract_feats_in_collect_stats</span>
+        <span class="p">)</span>
 
 <div class="viewcode-block" id="ESPnetEnhS2TModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
