@@ -35,7 +35,7 @@ log "data preparation started"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
     log "stage1: Download data to ${MEDIASPEECH}"
-    log "The default data of this recipe is from mediaspeech - french 
+    log "The default data of this recipe is from mediaspeech - french"
     local/download_and_untar.sh ${MEDIASPEECH} ${data_url} FR.tgz
 fi
 
