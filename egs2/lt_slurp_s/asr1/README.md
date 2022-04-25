@@ -14,7 +14,7 @@
 - token_type: word
 
 |dataset|Snt|Intent Classification (%)|
-|---|---|---|---|---|---|---|---|---|
+|---|---|---|
 |inference_asr_model_valid.acc.ave_10best/test|6099|77.8|
 |inference_asr_model_valid.acc.ave_10best/test_qut|6099|76.7|
 |inference_asr_model_valid.acc.best/test|6099|74.2|
