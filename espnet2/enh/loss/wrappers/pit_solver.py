@@ -65,12 +65,24 @@ class PITSolver(AbsLossWrapper):
             device = ref[0].device
             all_permutations = list(permutations(range(num_spk)))
             losses = torch.stack([pair_loss(p) for p in all_permutations], dim=1)
-            loss, perm = torch.min(losses, dim=1)
+            loss, perm_ = torch.min(losses, dim=1)
             perm = torch.index_select(
                 torch.tensor(all_permutations, device=device, dtype=torch.long),
                 0,
-                perm,
+                perm_,
             )
+            # remove stats from unused permutations
+            for k, v in stats.items():
+                # (B, len(all_permutations), ...)
+                new_v = torch.stack(v, dim=1)
+                if new_v.dim() > 2:
+                    shapes = [1 for _ in range(new_v.dim() - 2)]
+                    perm0 = perm_.view(perm_.shape[0], 1, *shapes).expand(
+                        -1, -1, *new_v.shape[2:]
+                    )
+                else:
+                    perm0 = perm_.unsqueeze(1)
+                stats[k] = new_v.gather(1, perm0).unbind(1)
         else:
             loss = torch.tensor(
                 [
@@ -91,7 +103,7 @@ class PITSolver(AbsLossWrapper):
         loss = loss.mean()
 
         for k, v in stats.items():
-            stats[k] = sum(v) / len(v) if v else 0
+            stats[k] = torch.stack(v, dim=1).mean()
         stats[self.criterion.name] = loss.detach()
 
         return loss.mean(), dict(stats), {"perm": perm}

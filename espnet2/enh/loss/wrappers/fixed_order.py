@@ -35,7 +35,7 @@ class FixedOrderSolver(AbsLossWrapper):
                 stats[k].append(v)
 
         for k, v in stats.items():
-            stats[k] = sum(v) / len(v) if v else 0
+            stats[k] = torch.stack(v, dim=1).mean()
         stats[self.criterion.name] = loss.detach()
 
         return loss.mean(), dict(stats), {}

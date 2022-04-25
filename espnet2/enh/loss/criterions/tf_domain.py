@@ -331,7 +331,11 @@ class FrequencyDomainCrossEntropy(FrequencyDomainLoss):
 
         with torch.no_grad():
             pred = inf.argmax(-1)
-            acc = (pred == ref).float().mean()
-            self.stats = {"acc": float(acc.cpu() * 100)}
+            acc = (pred == ref).float()
+            if ref.dim() == 2:
+                acc = acc.mean(dim=1)
+            elif ref.dim() == 3:
+                acc = acc.mean(dim=[1, 2])
+            self.stats = {"acc": acc.cpu() * 100}
 
         return loss
