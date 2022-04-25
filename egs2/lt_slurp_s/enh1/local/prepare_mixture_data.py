@@ -2,9 +2,9 @@
 
 import json
 import os
-import sys
-import subprocess
 import re
+import subprocess
+import sys
 
 slurp_dir = sys.argv[1]
 slurp_s_dir = sys.argv[2]
@@ -21,8 +21,8 @@ with open(os.path.join(slurp_dir, "dataset", "slurp", "metadata" + ".json")) as 
 libritrans_dirs = {
     "train": ["tr"],
     "devel": ["cv"],
-    "lt_test": ["cv"],  # ["tt"],
-    "lt_test_qut": ["cv"],  # ["tt_qut"],
+    "lt_test": ["tt"],
+    "lt_test_qut": ["tt_qut"],
 }
 
 slurp_dirs = {

@@ -12,7 +12,6 @@ test_sets="lt_test lt_test_qut slurp_test slurp_test_qut"
 sample_rate=16000
 
 ./enh.sh \
-    --stage 1 \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
