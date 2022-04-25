@@ -117,10 +117,17 @@ class FrequencyDomainLoss(AbsEnhLoss, ABC):
 
 
 class FrequencyDomainMSE(FrequencyDomainLoss):
-    def __init__(self, compute_on_mask=False, mask_type="IBM"):
+    def __init__(self, compute_on_mask=False, mask_type="IBM", name=None):
         super().__init__()
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type
+
+        if name is not None:
+            self._name = name
+        elif self.compute_on_mask:
+            self._name = f"MSE_on_{self.mask_type}"
+        else:
+            self._name = "MSE_on_Spec"
 
     @property
     def compute_on_mask(self) -> bool:
@@ -132,10 +139,7 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
 
     @property
     def name(self) -> str:
-        if self.compute_on_mask:
-            return f"MSE_on_{self.mask_type}"
-        else:
-            return "MSE_on_Spec"
+        return self._name
 
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency MSE loss.
@@ -165,10 +169,17 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
 
 
 class FrequencyDomainL1(FrequencyDomainLoss):
-    def __init__(self, compute_on_mask=False, mask_type="IBM"):
+    def __init__(self, compute_on_mask=False, mask_type="IBM", name=None):
         super().__init__()
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type
+
+        if name is not None:
+            self._name = name
+        elif self.compute_on_mask:
+            self._name = f"L1_on_{self.mask_type}"
+        else:
+            self._name = "L1_on_Spec"
 
     @property
     def compute_on_mask(self) -> bool:
@@ -180,10 +191,7 @@ class FrequencyDomainL1(FrequencyDomainLoss):
 
     @property
     def name(self) -> str:
-        if self.compute_on_mask:
-            return f"L1_on_{self.mask_type}"
-        else:
-            return "L1_on_Spec"
+        return self._name
 
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency L1 loss.
@@ -216,10 +224,12 @@ class FrequencyDomainL1(FrequencyDomainLoss):
 
 
 class FrequencyDomainAbsCoherence(FrequencyDomainLoss):
-    def __init__(self, compute_on_mask=False, mask_type=None):
+    def __init__(self, compute_on_mask=False, mask_type=None, name=None):
         super().__init__()
         self._compute_on_mask = False
         self._mask_type = None
+
+        self._name = "Coherence_on_Spec" if name is None else name
 
     @property
     def compute_on_mask(self) -> bool:
@@ -231,7 +241,7 @@ class FrequencyDomainAbsCoherence(FrequencyDomainLoss):
 
     @property
     def name(self) -> str:
-        return "Coherence_on_Spec"
+        return self._name
 
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency absolute coherence loss.
@@ -268,10 +278,17 @@ class FrequencyDomainAbsCoherence(FrequencyDomainLoss):
 
 
 class FrequencyDomainCrossEntropy(FrequencyDomainLoss):
-    def __init__(self, compute_on_mask=False, mask_type=None):
+    def __init__(self, compute_on_mask=False, mask_type=None, name=None):
         super().__init__()
         self._compute_on_mask = False
         self._mask_type = None
+
+        if name is not None:
+            self._name = name
+        elif self.compute_on_mask:
+            self._name = f"CE_on_{self.mask_type}"
+        else:
+            self._name = "CE_on_Spec"
 
     @property
     def compute_on_mask(self) -> bool:
@@ -283,10 +300,7 @@ class FrequencyDomainCrossEntropy(FrequencyDomainLoss):
 
     @property
     def name(self) -> str:
-        if self.compute_on_mask:
-            return f"CE_on_{self.mask_type}"
-        else:
-            return "CE_on_Spec"
+        return self._name
 
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency cross-entropy loss.
