@@ -16,7 +16,7 @@ from espnet2.asr_transducer.joint_network import JointNetwork
         ({"report_cer": True, "report_wer": True}, StatelessDecoder, {}),
     ],
 )
-def test_error_calculator(report_opts, decoder_class, decoder_opts):
+def test_error_calculator_transducer(report_opts, decoder_class, decoder_opts):
     token_list = ["<blank>", "a", "b", "c", "<space>"]
     dim_vocab = len(token_list)
 
