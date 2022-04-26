@@ -1,31 +1,34 @@
 import pytest
 import torch
 
-from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
-from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
-from espnet2.asr_transducer.error_calculator import ErrorCalculator
+from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
+from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
 from espnet2.asr_transducer.joint_network import JointNetwork
 
 
 @pytest.mark.parametrize(
-    "report_opts, decoder_class, decoder_opts",
+    "report_opts",
     [
-        ({"report_cer": False, "report_wer": False}, RNNDecoder, {"dim_hidden": 4}),
-        ({"report_cer": True, "report_wer": True}, RNNDecoder, {"dim_hidden": 4}),
-        ({"report_cer": False, "report_wer": False}, StatelessDecoder, {}),
-        ({"report_cer": True, "report_wer": True}, StatelessDecoder, {}),
+        {"report_cer": False, "report_wer": False},
+        {"report_cer": True, "report_wer": True},
     ],
 )
-def test_error_calculator(report_opts, decoder_class, decoder_opts):
+def test_error_calculator(report_opts):
     token_list = ["<blank>", "a", "b", "c", "<space>"]
-    dim_vocab = len(token_list)
+    vocab_size = len(token_list)
 
-    dim_encoder = 4
+    encoder_output_size = 4
+    decoder_output_size = 4
 
-    decoder = decoder_class(dim_vocab, dim_embedding=4, **decoder_opts)
-    joint_net = JointNetwork(dim_vocab, dim_encoder, 4, dim_joint_space=2)
+    decoder = TransducerDecoder(
+        vocab_size,
+        hidden_size=decoder_output_size,
+    )
+    joint_net = JointNetwork(
+        vocab_size, encoder_output_size, decoder_output_size, dim_joint_space=2
+    )
 
-    error_calc = ErrorCalculator(
+    error_calc = ErrorCalculatorTransducer(
         decoder,
         joint_net,
         token_list,
@@ -34,8 +37,8 @@ def test_error_calculator(report_opts, decoder_class, decoder_opts):
         **report_opts,
     )
 
-    enc_out = torch.randn(4, 30, dim_encoder)
-    target = torch.randint(0, dim_vocab, [4, 20], dtype=torch.int32)
+    enc_out = torch.randn(4, 30, encoder_output_size)
+    target = torch.randint(0, vocab_size, [4, 20], dtype=torch.int32)
 
     with torch.no_grad():
         _, _ = error_calc(enc_out, target)
