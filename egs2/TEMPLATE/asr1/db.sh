@@ -130,7 +130,6 @@ JDCINAL=downloads
 GRABO=downloads
 WENETSPEECH=
 SPEECHCOMMANDS=downloads
-<<<<<<< HEAD
 TOTONAC=downloads
 PRIMEWORDS_CHINESE=downloads
 SEAME=
@@ -178,12 +177,7 @@ if [[ "$(hostname)" == tir* ]]; then
     DSING=/projects/tir5/data/speech_corpora/sing_300x30x2
     MS_INDIC_IS18=/projects/tir6/general/cnariset/corpora/microsoft_speech_corpus_indian_languages
 fi
-=======
-TALROMUR=/work/gunnar/talromur
->>>>>>> 07d151cce (add talromur to db.sh)
-=======
 TALROMUR=downloads
->>>>>>> 2f2ed4bfd (Add talromur recipe)
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
