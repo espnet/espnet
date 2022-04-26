@@ -218,7 +218,7 @@ class Speech2TextStreaming:
                 pad = torch.zeros(self.win_length - speech.size(0))
                 speech = torch.cat([speech, pad], dim=0)
             else:
-                feats = None 
+                feats = None
                 feats_lengths = None
                 next_states = {"waveform_buffer": speech.clone()}
                 return feats, feats_lengths, next_states
@@ -315,7 +315,7 @@ class Speech2TextStreaming:
         feats, feats_lengths, self.frontend_states = self.apply_frontend(
             speech, self.frontend_states, is_final=is_final
         )
-        
+
         if not feats is None:
             enc, _, self.encoder_states = self.asr_model.encoder(
                 feats,
