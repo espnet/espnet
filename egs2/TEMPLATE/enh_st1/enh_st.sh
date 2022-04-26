@@ -134,6 +134,8 @@ dereverb_ref_num=1
 enh_inference_args="--normalize_output_wav true"
 scoring_protocol="STOI SDR SAR SIR SI_SNR"
 ref_channel=0
+inference_enh_tag=      # Prefix to the result dir for ENH inference.
+inference_enh_config=   # Config for enhancement.
 
 # Enh Training data related
 use_dereverb_ref=false
@@ -152,8 +154,6 @@ nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
 g2p=none         # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
-score_opts=                # The options given to sclite scoring
-local_score_opts=          # The options given to local/score.sh.
 enh_st_speech_fold_length=800 # fold_length for speech data during ST training.
 enh_st_text_fold_length=150   # fold_length for text data during ST training.
 lm_fold_length=150         # fold_length for LM training.
@@ -513,6 +513,14 @@ if [ -z "${inference_tag}" ]; then
     fi
 fi
 
+if [ -z "${inference_enh_tag}" ]; then
+    if [ -n "${inference_enh_config}" ]; then
+        inference_enh_tag="$(basename "${inference_enh_config}" .yaml)"
+    else
+        inference_enh_tag=enhanced
+    fi
+fi
+
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -579,7 +587,10 @@ if ! "${skip_data_prep}"; then
                 expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
                     # with regex to suuport multi-references
-                    for single_file in $(ls data/"${dset}"/${extra_file}*); do
+                    for single_file in "data/${dset}/${extra_file}"*; do
+                        if [ ! -f "${single_file}" ]; then
+                            continue
+                        fi
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
                     done 
@@ -731,7 +742,7 @@ if ! "${skip_data_prep}"; then
             log "Merge src and target data if joint BPE"
 
             cat $tgt_bpe_train_text > ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
-            [ ! -z "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >> ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+            [ -n "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >> ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
             # Set the new text as the target text
             tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
         fi
@@ -1436,7 +1447,7 @@ if ! "${skip_eval}"; then
                     --st_train_config "${enh_st_exp}"/config.yaml \
                     --st_model_file "${enh_st_exp}"/"${inference_enh_st_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args}
+                    ${_opts} ${st_inference_args}
 
             # 3. Concatenates the output files from each jobs
             for f in token token_int score text; do
@@ -1461,12 +1472,12 @@ if ! "${skip_eval}"; then
         _opts=
 
         # 2. Generate run.sh
-        log "Generate '${enh_st_exp}/${inference_tag}/run.sh'. You can resume the process from stage 13 using this script"
-        mkdir -p "${enh_st_exp}/${inference_tag}"; echo "${run_args} --stage 13 \"\$@\"; exit \$?" > "${enh_st_exp}/${inference_tag}/run.sh"; chmod +x "${enh_st_exp}/${inference_tag}/run.sh"
+        log "Generate '${enh_st_exp}/run_enhance.sh'. You can resume the process from stage 13 using this script"
+        mkdir -p "${enh_st_exp}"; echo "${run_args} --stage 13 \"\$@\"; exit \$?" > "${enh_st_exp}/run_enhance.sh"; chmod +x "${enh_st_exp}/run_enhance.sh"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${enh_st_exp}/${inference_tag}/${dset}"
+            _dir="${enh_st_exp}/${inference_enh_tag}_${dset}"
             _logdir="${_dir}/logdir"
             mkdir -p "${_logdir}"
 
@@ -1498,6 +1509,7 @@ if ! "${skip_eval}"; then
                     --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --train_config "${enh_st_exp}"/config.yaml \
+                    ${inference_enh_config:+--inference_config "$inference_enh_config"} \
                     --model_file "${enh_st_exp}"/"${inference_enh_st_model}" \
                     --output_dir "${_logdir}"/output.JOB \
                     ${_opts} ${enh_inference_args}
@@ -1522,7 +1534,7 @@ if ! "${skip_eval}"; then
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${st_exp}/${inference_tag}/${dset}"
+            _dir="${enh_st_exp}/${inference_tag}/${dset}"
 
             # TODO(jiatong): add asr scoring and inference
 
@@ -1638,17 +1650,17 @@ if ! "${skip_eval}"; then
         # for score_obs in true false; do
         for score_obs in true false; do
             # Peform only at the first time for observation
-            if "${score_obs}" && [ -e "${data_feats}/RESULTS.md" ]; then
-                log "${data_feats}/RESULTS.md already exists. The scoring for observation will be skipped"
+            if "${score_obs}" && [ -e "${data_feats}/RESULTS_enh.md" ]; then
+                log "${data_feats}/RESULTS_enh.md already exists. The scoring for observation will be skipped"
                 continue
             fi
 
             for dset in ${test_sets}; do
                 _data="${data_feats}/${dset}"
                 if "${score_obs}"; then
-                    _dir="${data_feats}/${dset}/scoring_enh"
+                    _dir="${data_feats}/${dset}/scoring"
                 else
-                    _dir="${enh_st_exp}/${inference_tag}/${dset}/scoring_enh"
+                    _dir="${enh_st_exp}/${inference_enh_tag}_${dset}/scoring"
                 fi
 
                 _logdir="${_dir}/logdir"
@@ -1674,7 +1686,7 @@ if ! "${skip_eval}"; then
                         # To compute the score of observation, input original wav.scp
                         _inf_scp+="--inf_scp ${data_feats}/${dset}/wav.scp "
                     else
-                        _inf_scp+="--inf_scp ${enh_st_exp}/${inference_tag}/${dset}/spk${spk}.scp "
+                        _inf_scp+="--inf_scp ${enh_st_exp}/${inference_enh_tag}_${dset}/spk${spk}.scp "
                     fi
                 done
 
@@ -1710,7 +1722,7 @@ if ! "${skip_eval}"; then
             ./scripts/utils/show_enh_score.sh "${_dir}/../.." > "${_dir}/../../RESULTS_enh.md"
         done
         log "Evaluation result for observation: ${data_feats}/RESULTS_enh.md"
-        log "Evaluation result for enhancement: ${enh_asr_exp}/enhanced/RESULTS_enh.md"
+        log "Evaluation result for enhancement: ${enh_st_exp}/RESULTS_enh.md"
 
     fi
 else
