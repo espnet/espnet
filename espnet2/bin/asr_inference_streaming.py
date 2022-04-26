@@ -41,17 +41,17 @@ from typing import Union
 
 class Speech2TextStreaming:
     """Speech2TextStreaming class
-    
+
     Details in "Streaming Transformer ASR with Blockwise Synchronous Beam Search"
     (https://arxiv.org/abs/2006.14941)
-    
+
     Examples:
         >>> import soundfile
         >>> speech2text = Speech2TextStreaming("asr_config.yml", "asr.pth")
         >>> audio, rate = soundfile.read("speech.wav")
         >>> speech2text(audio)
         [(text, token, token_int, hypothesis object), ...]
-        
+
     """
 
     def __init__(
@@ -298,12 +298,12 @@ class Speech2TextStreaming:
         self, speech: Union[torch.Tensor, np.ndarray], is_final: bool = True
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
         """Inference
-        
+
         Args:
             data: Input speech data
         Returns:
             text, token, token_int, hyp
-            
+
         """
         assert check_argument_types()
 
