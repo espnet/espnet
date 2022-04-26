@@ -174,12 +174,15 @@
 <span class="kn">from</span> <span class="nn">espnet2.enh.encoder.stft_encoder</span> <span class="kn">import</span> <span class="n">STFTEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetEnhancementModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.abs_loss</span> <span class="kn">import</span> <span class="n">AbsEnhLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainAbsCoherence</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainL1</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainMSE</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">CISDRLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SDRLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SISNRLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SNRLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">TimeDomainL1</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">TimeDomainMSE</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.abs_wrapper</span> <span class="kn">import</span> <span class="n">AbsLossWrapper</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.fixed_order</span> <span class="kn">import</span> <span class="n">FixedOrderSolver</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.multilayer_pit_solver</span> <span class="kn">import</span> <span class="n">MultiLayerPITSolver</span>
@@ -217,18 +220,18 @@
 <span class="n">separator_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;separator&quot;</span><span class="p">,</span>
     <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">asteroid</span><span class="o">=</span><span class="n">AsteroidModel_Converter</span><span class="p">,</span>
+        <span class="n">conformer</span><span class="o">=</span><span class="n">ConformerSeparator</span><span class="p">,</span>
+        <span class="n">dc_crn</span><span class="o">=</span><span class="n">DC_CRNSeparator</span><span class="p">,</span>
+        <span class="n">dccrn</span><span class="o">=</span><span class="n">DCCRNSeparator</span><span class="p">,</span>
+        <span class="n">dprnn</span><span class="o">=</span><span class="n">DPRNNSeparator</span><span class="p">,</span>
+        <span class="n">fasnet</span><span class="o">=</span><span class="n">FaSNetSeparator</span><span class="p">,</span>
         <span class="n">rnn</span><span class="o">=</span><span class="n">RNNSeparator</span><span class="p">,</span>
         <span class="n">skim</span><span class="o">=</span><span class="n">SkiMSeparator</span><span class="p">,</span>
         <span class="n">svoice</span><span class="o">=</span><span class="n">SVoiceSeparator</span><span class="p">,</span>
         <span class="n">tcn</span><span class="o">=</span><span class="n">TCNSeparator</span><span class="p">,</span>
-        <span class="n">dc_crn</span><span class="o">=</span><span class="n">DC_CRNSeparator</span><span class="p">,</span>
-        <span class="n">dprnn</span><span class="o">=</span><span class="n">DPRNNSeparator</span><span class="p">,</span>
-        <span class="n">dccrn</span><span class="o">=</span><span class="n">DCCRNSeparator</span><span class="p">,</span>
         <span class="n">transformer</span><span class="o">=</span><span class="n">TransformerSeparator</span><span class="p">,</span>
-        <span class="n">conformer</span><span class="o">=</span><span class="n">ConformerSeparator</span><span class="p">,</span>
         <span class="n">wpe_beamformer</span><span class="o">=</span><span class="n">NeuralBeamformer</span><span class="p">,</span>
-        <span class="n">asteroid</span><span class="o">=</span><span class="n">AsteroidModel_Converter</span><span class="p">,</span>
-        <span class="n">fasnet</span><span class="o">=</span><span class="n">FaSNetSeparator</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsSeparator</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;rnn&quot;</span><span class="p">,</span>
@@ -253,12 +256,17 @@
 <span class="n">criterion_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;criterions&quot;</span><span class="p">,</span>
     <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
-        <span class="n">snr</span><span class="o">=</span><span class="n">SNRLoss</span><span class="p">,</span>
-        <span class="n">sdr</span><span class="o">=</span><span class="n">SDRLoss</span><span class="p">,</span>
         <span class="n">ci_sdr</span><span class="o">=</span><span class="n">CISDRLoss</span><span class="p">,</span>
+        <span class="n">coh</span><span class="o">=</span><span class="n">FrequencyDomainAbsCoherence</span><span class="p">,</span>
+        <span class="n">sdr</span><span class="o">=</span><span class="n">SDRLoss</span><span class="p">,</span>
         <span class="n">si_snr</span><span class="o">=</span><span class="n">SISNRLoss</span><span class="p">,</span>
-        <span class="n">mse</span><span class="o">=</span><span class="n">FrequencyDomainMSE</span><span class="p">,</span>
+        <span class="n">snr</span><span class="o">=</span><span class="n">SNRLoss</span><span class="p">,</span>
         <span class="n">l1</span><span class="o">=</span><span class="n">FrequencyDomainL1</span><span class="p">,</span>
+        <span class="n">l1_fd</span><span class="o">=</span><span class="n">FrequencyDomainL1</span><span class="p">,</span>
+        <span class="n">l1_td</span><span class="o">=</span><span class="n">TimeDomainL1</span><span class="p">,</span>
+        <span class="n">mse</span><span class="o">=</span><span class="n">FrequencyDomainMSE</span><span class="p">,</span>
+        <span class="n">mse_fd</span><span class="o">=</span><span class="n">FrequencyDomainMSE</span><span class="p">,</span>
+        <span class="n">mse_td</span><span class="o">=</span><span class="n">TimeDomainMSE</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsEnhLoss</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>

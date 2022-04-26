@@ -151,7 +151,8 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.enh.loss.wrappers.pit_solver</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">permutations</span>
+<span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">permutations</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
@@ -161,13 +162,26 @@
 
 <div class="viewcode-block" id="PITSolver"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.wrappers.pit_solver.PITSolver">[docs]</a><span class="k">class</span> <span class="nc">PITSolver</span><span class="p">(</span><span class="n">AbsLossWrapper</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">criterion</span><span class="p">:</span> <span class="n">AbsEnhLoss</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">independent_perm</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Permutation Invariant Training Solver.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            criterion (AbsEnhLoss): an instance of AbsEnhLoss</span>
+<span class="sd">            weight (float): weight (between 0 and 1) of current loss</span>
+<span class="sd">                for multi-task learning.</span>
+<span class="sd">            independent_perm (bool):</span>
+<span class="sd">                If True, PIT will be performed in forward to find the best permutation;</span>
+<span class="sd">                If False, the permutation from the last LossWrapper output will be</span>
+<span class="sd">                inherited.</span>
+<span class="sd">                NOTE (wangyou): You should be careful about the ordering of loss</span>
+<span class="sd">                    wrappers defined in the yaml config, if this argument is False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">criterion</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">independent_perm</span> <span class="o">=</span> <span class="n">independent_perm</span>
 
 <div class="viewcode-block" id="PITSolver.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.wrappers.pit_solver.PITSolver.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">,</span> <span class="n">others</span><span class="o">=</span><span class="p">{}):</span>
-        <span class="sd">&quot;&quot;&quot;Permutation invariant training solver.</span>
+        <span class="sd">&quot;&quot;&quot;PITSolver forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk</span>
@@ -183,9 +197,20 @@
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">inf</span><span class="p">),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">inf</span><span class="p">))</span>
         <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
 
+        <span class="n">stats</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">pre_hook</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">,</span> <span class="s2">&quot;stats&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">stats</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">ret</span>
+
         <span class="k">def</span> <span class="nf">pair_loss</span><span class="p">(</span><span class="n">permutation</span><span class="p">):</span>
             <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span>
-                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span><span class="n">ref</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">inf</span><span class="p">[</span><span class="n">t</span><span class="p">])</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">permutation</span><span class="p">)]</span>
+                <span class="p">[</span>
+                    <span class="n">pre_hook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">,</span> <span class="n">ref</span><span class="p">[</span><span class="n">s</span><span class="p">],</span> <span class="n">inf</span><span class="p">[</span><span class="n">t</span><span class="p">])</span>
+                    <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">permutation</span><span class="p">)</span>
+                <span class="p">]</span>
             <span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">permutation</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">independent_perm</span> <span class="ow">or</span> <span class="n">perm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -193,19 +218,33 @@
             <span class="n">device</span> <span class="o">=</span> <span class="n">ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span>
             <span class="n">all_permutations</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">permutations</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">)))</span>
             <span class="n">losses</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">pair_loss</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">all_permutations</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">loss</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">losses</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">loss</span><span class="p">,</span> <span class="n">perm_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">losses</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">perm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">index_select</span><span class="p">(</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">all_permutations</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">),</span>
                 <span class="mi">0</span><span class="p">,</span>
-                <span class="n">perm</span><span class="p">,</span>
+                <span class="n">perm_</span><span class="p">,</span>
             <span class="p">)</span>
+            <span class="c1"># remove stats from unused permutations</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">stats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="c1"># (B, len(all_permutations), ...)</span>
+                <span class="n">new_v</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">new_v</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">shapes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">new_v</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)]</span>
+                    <span class="n">perm0</span> <span class="o">=</span> <span class="n">perm_</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">perm_</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="n">shapes</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
+                        <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="n">new_v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">perm0</span> <span class="o">=</span> <span class="n">perm_</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">stats</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_v</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">perm0</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">new_v</span><span class="o">.</span><span class="n">device</span><span class="p">))</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
                 <span class="p">[</span>
                     <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
                         <span class="p">[</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span>
-                                <span class="n">ref</span><span class="p">[</span><span class="n">s</span><span class="p">][</span><span class="n">batch</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">inf</span><span class="p">[</span><span class="n">t</span><span class="p">][</span><span class="n">batch</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                            <span class="n">pre_hook</span><span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">,</span>
+                                <span class="n">ref</span><span class="p">[</span><span class="n">s</span><span class="p">][</span><span class="n">batch</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                <span class="n">inf</span><span class="p">[</span><span class="n">t</span><span class="p">][</span><span class="n">batch</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
                             <span class="p">)</span>
                             <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
                         <span class="p">]</span>
@@ -216,10 +255,11 @@
 
         <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 
-        <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">stats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">stats</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
         <span class="n">stats</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
 
-        <span class="k">return</span> <span class="n">loss</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">stats</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;perm&quot;</span><span class="p">:</span> <span class="n">perm</span><span class="p">}</span></div></div>
+        <span class="k">return</span> <span class="n">loss</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="nb">dict</span><span class="p">(</span><span class="n">stats</span><span class="p">),</span> <span class="p">{</span><span class="s2">&quot;perm&quot;</span><span class="p">:</span> <span class="n">perm</span><span class="p">}</span></div></div>
 </pre></div>
 
            </div>

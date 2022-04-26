@@ -153,6 +153,7 @@
   <h1>Source code for espnet2.bin.enh_inference</h1><div class="highlight"><pre>
 <span></span><span class="ch">#!/usr/bin/env python3</span>
 <span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">import</span> <span class="nn">sys</span>
@@ -168,6 +169,7 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">trange</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
 
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_utils</span> <span class="kn">import</span> <span class="n">get_commandline_args</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainMSE</span>
@@ -178,6 +180,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.tasks.enh_s2t</span> <span class="kn">import</span> <span class="n">EnhS2TTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">to_device</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.set_all_random_seed</span> <span class="kn">import</span> <span class="n">set_all_random_seed</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils</span> <span class="kn">import</span> <span class="n">config_argparse</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2triple_str</span>
@@ -185,6 +188,59 @@
 
 
 <span class="n">EPS</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">())</span><span class="o">.</span><span class="n">eps</span>
+
+
+<div class="viewcode-block" id="get_train_config"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.enh_inference.get_train_config">[docs]</a><span class="k">def</span> <span class="nf">get_train_config</span><span class="p">(</span><span class="n">train_config</span><span class="p">,</span> <span class="n">model_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">train_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">model_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;The argument &#39;model_file&#39; must be provided &quot;</span>
+            <span class="s2">&quot;if the argument &#39;train_config&#39; is not specified.&quot;</span>
+        <span class="p">)</span>
+        <span class="n">train_config</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;config.yaml&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">train_config</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">train_config</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">train_config</span></div>
+
+
+<div class="viewcode-block" id="recursive_dict_update"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.enh_inference.recursive_dict_update">[docs]</a><span class="k">def</span> <span class="nf">recursive_dict_update</span><span class="p">(</span><span class="n">dict_org</span><span class="p">,</span> <span class="n">dict_patch</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">log_prefix</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update `dict_org` with `dict_patch` in-place recursively.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">dict_patch</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dict_org</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Overwriting config: [</span><span class="si">{}{}</span><span class="s2">]: None -&gt; </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">log_prefix</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">dict_org</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">recursive_dict_update</span><span class="p">(</span>
+                <span class="n">dict_org</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">value</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span> <span class="n">log_prefix</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="n">dict_org</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">!=</span> <span class="n">value</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Overwriting config: [</span><span class="si">{}{}</span><span class="s2">]: </span><span class="si">{}</span><span class="s2"> -&gt; </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">log_prefix</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">dict_org</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">value</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">dict_org</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="build_model_from_args_and_file"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.enh_inference.build_model_from_args_and_file">[docs]</a><span class="k">def</span> <span class="nf">build_model_from_args_and_file</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">build_model</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">AbsESPnetModel</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;model must inherit </span><span class="si">{</span><span class="n">AbsESPnetModel</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">model_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">device</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+            <span class="c1"># NOTE(kamo): &quot;cuda&quot; for torch.load always indicates cuda:0</span>
+            <span class="c1">#   in PyTorch&lt;=1.4</span>
+            <span class="n">device</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;cuda:</span><span class="si">{</span><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_device</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_file</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">model</span></div>
 
 
 <div class="viewcode-block" id="SeparateSpeech"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.enh_inference.SeparateSpeech">[docs]</a><span class="k">class</span> <span class="nc">SeparateSpeech</span><span class="p">:</span>
@@ -203,6 +259,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">train_config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">model_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">inference_config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">segment_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">hop_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">normalize_segment_scale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -218,12 +275,40 @@
         <span class="n">task</span> <span class="o">=</span> <span class="n">EnhancementTask</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">enh_s2t_task</span> <span class="k">else</span> <span class="n">EnhS2TTask</span>
 
         <span class="c1"># 1. Build Enh model</span>
-        <span class="n">enh_model</span><span class="p">,</span> <span class="n">enh_train_args</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
-            <span class="n">train_config</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">device</span>
-        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">inference_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">enh_model</span><span class="p">,</span> <span class="n">enh_train_args</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
+                <span class="n">train_config</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">device</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Overwrite model attributes</span>
+            <span class="n">train_config</span> <span class="o">=</span> <span class="n">get_train_config</span><span class="p">(</span><span class="n">train_config</span><span class="p">,</span> <span class="n">model_file</span><span class="o">=</span><span class="n">model_file</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">train_config</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">train_args</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">Path</span><span class="p">(</span><span class="n">inference_config</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">infer_args</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">enh_s2t_task</span><span class="p">:</span>
+                <span class="n">arg_list</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;enh_encoder&quot;</span><span class="p">,</span> <span class="s2">&quot;enh_separator&quot;</span><span class="p">,</span> <span class="s2">&quot;enh_decoder&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">arg_list</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;encoder&quot;</span><span class="p">,</span> <span class="s2">&quot;separator&quot;</span><span class="p">,</span> <span class="s2">&quot;decoder&quot;</span><span class="p">)</span>
+            <span class="n">supported_keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="p">[[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="s2">&quot;_conf&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">arg_list</span><span class="p">]))</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">infer_args</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">supported_keys</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;Only the following top-level keys are supported: </span><span class="si">%s</span><span class="s2">&quot;</span>
+                        <span class="o">%</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">supported_keys</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+            <span class="n">recursive_dict_update</span><span class="p">(</span><span class="n">train_args</span><span class="p">,</span> <span class="n">infer_args</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">enh_train_args</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">(</span><span class="o">**</span><span class="n">train_args</span><span class="p">)</span>
+            <span class="n">enh_model</span> <span class="o">=</span> <span class="n">build_model_from_args_and_file</span><span class="p">(</span>
+                <span class="n">task</span><span class="p">,</span> <span class="n">enh_train_args</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">device</span>
+            <span class="p">)</span>
+
         <span class="k">if</span> <span class="n">enh_s2t_task</span><span class="p">:</span>
             <span class="n">enh_model</span> <span class="o">=</span> <span class="n">enh_model</span><span class="o">.</span><span class="n">enh_model</span>
-
         <span class="n">enh_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
@@ -465,6 +550,7 @@
     <span class="n">train_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">model_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">model_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">inference_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">allow_variable_data_keys</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">segment_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
     <span class="n">hop_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
@@ -497,6 +583,7 @@
     <span class="n">separate_speech_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
         <span class="n">train_config</span><span class="o">=</span><span class="n">train_config</span><span class="p">,</span>
         <span class="n">model_file</span><span class="o">=</span><span class="n">model_file</span><span class="p">,</span>
+        <span class="n">inference_config</span><span class="o">=</span><span class="n">inference_config</span><span class="p">,</span>
         <span class="n">segment_size</span><span class="o">=</span><span class="n">segment_size</span><span class="p">,</span>
         <span class="n">hop_size</span><span class="o">=</span><span class="n">hop_size</span><span class="p">,</span>
         <span class="n">normalize_segment_scale</span><span class="o">=</span><span class="n">normalize_segment_scale</span><span class="p">,</span>
@@ -530,13 +617,15 @@
     <span class="p">)</span>
 
     <span class="c1"># 4. Start for-loop</span>
+    <span class="n">output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
     <span class="n">writers</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">separate_speech</span><span class="o">.</span><span class="n">num_spk</span><span class="p">):</span>
         <span class="n">writers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">SoundScpWriter</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/wavs/</span><span class="si">{</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/spk</span><span class="si">{</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">.scp&quot;</span><span class="p">)</span>
         <span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">keys</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">loader</span><span class="p">):</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">] Enhancing </span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="nb">dict</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">),</span> <span class="n">keys</span>
         <span class="n">_bs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
@@ -626,6 +715,13 @@
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Pretrained model tag. If specify this option, train_config and &quot;</span>
         <span class="s2">&quot;model_file will be overwritten&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--inference_config&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Optional configuration file for overwriting enh model attributes &quot;</span>
+        <span class="s2">&quot;during inference&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--enh_s2t_task&quot;</span><span class="p">,</span>

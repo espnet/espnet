@@ -1536,6 +1536,7 @@ Optimizer related:
                         [--normalize_output_wav NORMALIZE_OUTPUT_WAV]
                         [--train_config TRAIN_CONFIG]
                         [--model_file MODEL_FILE] [--model_tag MODEL_TAG]
+                        [--inference_config INFERENCE_CONFIG]
                         [--enh_s2t_task ENH_S2T_TASK]
                         [--batch_size BATCH_SIZE]
                         [--segment_size SEGMENT_SIZE] [--hop_size HOP_SIZE]
@@ -1577,6 +1578,9 @@ The model configuration related:
                         Pretrained model tag. If specify this option,
                         train_config and model_file will be overwritten
                         (default: None)
+  --inference_config INFERENCE_CONFIG
+                        Optional configuration file for overwriting enh model
+                        attributes during inference (default: None)
   --enh_s2t_task ENH_S2T_TASK
                         enhancement and asr joint model (default: False)
 
@@ -1698,7 +1702,7 @@ SeparateSpeech related:
                         [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space}]
                         [--enh_encoder {stft,conv,same}]
                         [--enh_encoder_conf ENH_ENCODER_CONF]
-                        [--enh_separator {rnn,skim,svoice,tcn,dc_crn,dprnn,dccrn,transformer,conformer,wpe_beamformer,asteroid,fasnet}]
+                        [--enh_separator {asteroid,conformer,dc_crn,dccrn,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer}]
                         [--enh_separator_conf ENH_SEPARATOR_CONF]
                         [--enh_decoder {stft,conv,same}]
                         [--enh_decoder_conf ENH_DECODER_CONF]
@@ -2087,7 +2091,7 @@ Optimizer related:
                         The enh_encoder type (default: stft)
   --enh_encoder_conf ENH_ENCODER_CONF
                         The keyword arguments for enh_encoder (default: {})
-  --enh_separator {rnn,skim,svoice,tcn,dc_crn,dprnn,dccrn,transformer,conformer,wpe_beamformer,asteroid,fasnet}
+  --enh_separator {asteroid,conformer,dc_crn,dccrn,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer}
                         The enh_separator type (default: rnn)
   --enh_separator_conf ENH_SEPARATOR_CONF
                         The keyword arguments for enh_separator (default: {})
@@ -2252,7 +2256,7 @@ Input data related:
                     [--model_conf MODEL_CONF] [--criterions CRITERIONS]
                     [--use_preprocessor USE_PREPROCESSOR]
                     [--encoder {stft,conv,same}] [--encoder_conf ENCODER_CONF]
-                    [--separator {rnn,skim,svoice,tcn,dc_crn,dprnn,dccrn,transformer,conformer,wpe_beamformer,asteroid,fasnet}]
+                    [--separator {asteroid,conformer,dc_crn,dccrn,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer}]
                     [--separator_conf SEPARATOR_CONF]
                     [--decoder {stft,conv,same}] [--decoder_conf DECODER_CONF]
 
@@ -2586,7 +2590,7 @@ Optimizer related:
                         The encoder type (default: stft)
   --encoder_conf ENCODER_CONF
                         The keyword arguments for encoder (default: {})
-  --separator {rnn,skim,svoice,tcn,dc_crn,dprnn,dccrn,transformer,conformer,wpe_beamformer,asteroid,fasnet}
+  --separator {asteroid,conformer,dc_crn,dccrn,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer}
                         The separator type (default: rnn)
   --separator_conf SEPARATOR_CONF
                         The keyword arguments for separator (default: {})

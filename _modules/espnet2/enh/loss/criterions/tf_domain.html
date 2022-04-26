@@ -158,6 +158,7 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">complex_norm</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">is_complex</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">new_complex_like</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.abs_loss</span> <span class="kn">import</span> <span class="n">AbsEnhLoss</span>
@@ -168,12 +169,14 @@
 <span class="n">EPS</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">())</span><span class="o">.</span><span class="n">eps</span>
 
 
-<span class="k">def</span> <span class="nf">_create_mask_label</span><span class="p">(</span><span class="n">mix_spec</span><span class="p">,</span> <span class="n">ref_spec</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="s2">&quot;IAM&quot;</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_create_mask_label</span><span class="p">(</span><span class="n">mix_spec</span><span class="p">,</span> <span class="n">ref_spec</span><span class="p">,</span> <span class="n">noise_spec</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="s2">&quot;IAM&quot;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create mask label.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        mix_spec: ComplexTensor(B, T, [C,] F)</span>
 <span class="sd">        ref_spec: List[ComplexTensor(B, T, [C,] F), ...]</span>
+<span class="sd">        noise_spec: ComplexTensor(B, T, [C,] F)</span>
+<span class="sd">            only used for IBM and IRM</span>
 <span class="sd">        mask_type: str</span>
 <span class="sd">    Returns:</span>
 <span class="sd">        labels: List[Tensor(B, T, [C,] F), ...] or List[ComplexTensor(B, T, F), ...]</span>
@@ -191,16 +194,24 @@
         <span class="s2">&quot;CIRM&quot;</span><span class="p">,</span>
     <span class="p">],</span> <span class="sa">f</span><span class="s2">&quot;mask type </span><span class="si">{</span><span class="n">mask_type</span><span class="si">}</span><span class="s2"> not supported&quot;</span>
     <span class="n">mask_label</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ref_spec</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">ref_spec</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="n">mix_spec</span><span class="o">.</span><span class="n">ndim</span><span class="p">:</span>
+        <span class="c1"># (B, T, F) -&gt; (B, T, 1, F)</span>
+        <span class="n">ref_spec</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">mix_spec</span><span class="o">.</span><span class="n">real</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ref_spec</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ref_spec</span><span class="p">):</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">mask_type</span> <span class="o">==</span> <span class="s2">&quot;IBM&quot;</span><span class="p">:</span>
-            <span class="n">flags</span> <span class="o">=</span> <span class="p">[</span><span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ref_spec</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">noise_spec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">flags</span> <span class="o">=</span> <span class="p">[</span><span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ref_spec</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">flags</span> <span class="o">=</span> <span class="p">[</span><span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ref_spec</span> <span class="o">+</span> <span class="p">[</span><span class="n">noise_spec</span><span class="p">]]</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="p">,</span> <span class="n">flags</span><span class="p">)</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">int</span><span class="p">()</span>
         <span class="k">elif</span> <span class="n">mask_type</span> <span class="o">==</span> <span class="s2">&quot;IRM&quot;</span><span class="p">:</span>
-            <span class="c1"># TODO(Wangyou): need to fix this,</span>
-            <span class="c1">#  as noise referecens are provided separately</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="nb">sum</span><span class="p">(([</span><span class="nb">abs</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ref_spec</span><span class="p">]))</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>
+            <span class="n">beta</span> <span class="o">=</span> <span class="mf">0.5</span>
+            <span class="n">res_spec</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">n</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ref_spec</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">idx</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">noise_spec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">res_spec</span> <span class="o">+=</span> <span class="n">noise_spec</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">res_spec</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">))</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">beta</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">mask_type</span> <span class="o">==</span> <span class="s2">&quot;IAM&quot;</span><span class="p">:</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">mix_spec</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -235,6 +246,7 @@
 
 
 <div class="viewcode-block" id="FrequencyDomainLoss"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss">[docs]</a><span class="k">class</span> <span class="nc">FrequencyDomainLoss</span><span class="p">(</span><span class="n">AbsEnhLoss</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for all frequence-domain Enhancement loss modules.&quot;&quot;&quot;</span>
 
     <span class="c1"># The loss will be computed on mask or on spectrum</span>
     <span class="nd">@property</span>
@@ -248,17 +260,27 @@
     <span class="k">def</span> <span class="nf">mask_type</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">pass</span>
 
-<div class="viewcode-block" id="FrequencyDomainLoss.create_mask_label"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss.create_mask_label">[docs]</a>    <span class="k">def</span> <span class="nf">create_mask_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mix_spec</span><span class="p">,</span> <span class="n">ref_spec</span><span class="p">):</span>
+<div class="viewcode-block" id="FrequencyDomainLoss.create_mask_label"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss.create_mask_label">[docs]</a>    <span class="k">def</span> <span class="nf">create_mask_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mix_spec</span><span class="p">,</span> <span class="n">ref_spec</span><span class="p">,</span> <span class="n">noise_spec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">_create_mask_label</span><span class="p">(</span>
-            <span class="n">mix_spec</span><span class="o">=</span><span class="n">mix_spec</span><span class="p">,</span> <span class="n">ref_spec</span><span class="o">=</span><span class="n">ref_spec</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_type</span>
+            <span class="n">mix_spec</span><span class="o">=</span><span class="n">mix_spec</span><span class="p">,</span>
+            <span class="n">ref_spec</span><span class="o">=</span><span class="n">ref_spec</span><span class="p">,</span>
+            <span class="n">noise_spec</span><span class="o">=</span><span class="n">noise_spec</span><span class="p">,</span>
+            <span class="n">mask_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_type</span><span class="p">,</span>
         <span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="FrequencyDomainMSE"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE">[docs]</a><span class="k">class</span> <span class="nc">FrequencyDomainMSE</span><span class="p">(</span><span class="n">FrequencyDomainLoss</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compute_on_mask</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="s2">&quot;IBM&quot;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compute_on_mask</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="s2">&quot;IBM&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_compute_on_mask</span> <span class="o">=</span> <span class="n">compute_on_mask</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_mask_type</span> <span class="o">=</span> <span class="n">mask_type</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_on_mask</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;MSE_on_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_type</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;MSE_on_Spec&quot;</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">compute_on_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -270,10 +292,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_on_mask</span><span class="p">:</span>
-            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;MSE_on_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_type</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="s2">&quot;MSE_on_Spec&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
 
 <div class="viewcode-block" id="FrequencyDomainMSE.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;time-frequency MSE loss.</span>
@@ -303,10 +322,17 @@
 
 
 <div class="viewcode-block" id="FrequencyDomainL1"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainL1">[docs]</a><span class="k">class</span> <span class="nc">FrequencyDomainL1</span><span class="p">(</span><span class="n">FrequencyDomainLoss</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compute_on_mask</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="s2">&quot;IBM&quot;</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compute_on_mask</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="s2">&quot;IBM&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_compute_on_mask</span> <span class="o">=</span> <span class="n">compute_on_mask</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_mask_type</span> <span class="o">=</span> <span class="n">mask_type</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_on_mask</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;L1_on_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_type</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;L1_on_Spec&quot;</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">compute_on_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -318,10 +344,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_on_mask</span><span class="p">:</span>
-            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;L1_on_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_type</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="s2">&quot;L1_on_Spec&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
 
 <div class="viewcode-block" id="FrequencyDomainL1.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainL1.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;time-frequency L1 loss.</span>
@@ -351,6 +374,124 @@
                 <span class="s2">&quot;Invalid input shape: ref=</span><span class="si">{}</span><span class="s2">, inf=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">l1loss</span></div></div>
+
+
+<div class="viewcode-block" id="FrequencyDomainAbsCoherence"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence">[docs]</a><span class="k">class</span> <span class="nc">FrequencyDomainAbsCoherence</span><span class="p">(</span><span class="n">FrequencyDomainLoss</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compute_on_mask</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compute_on_mask</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mask_type</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;Coherence_on_Spec&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">compute_on_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_on_mask</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mask_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask_type</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+
+<div class="viewcode-block" id="FrequencyDomainAbsCoherence.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;time-frequency absolute coherence loss.</span>
+
+<span class="sd">        Reference:</span>
+<span class="sd">            Independent Vector Analysis with Deep Neural Network Source Priors;</span>
+<span class="sd">            Li et al 2020; https://arxiv.org/abs/2008.11273</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref: (Batch, T, F) or (Batch, T, C, F)</span>
+<span class="sd">            inf: (Batch, T, F) or (Batch, T, C, F)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: (Batch,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">ref</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_complex</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span> <span class="ow">and</span> <span class="n">is_complex</span><span class="p">(</span><span class="n">inf</span><span class="p">):</span>
+            <span class="c1"># sqrt( E[|inf|^2] * E[|ref|^2] )</span>
+            <span class="n">denom</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">complex_norm</span><span class="p">(</span><span class="n">ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">complex_norm</span><span class="p">(</span><span class="n">inf</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">ref</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span>
+            <span class="p">)</span>
+            <span class="n">coh</span> <span class="o">=</span> <span class="p">(</span><span class="n">inf</span> <span class="o">*</span> <span class="n">ref</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">/</span> <span class="n">denom</span>
+            <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">coh_loss</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">coh</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">coh_loss</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">coh</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Invalid input shape: ref=</span><span class="si">{}</span><span class="s2">, inf=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`ref` and `inf` must be complex tensors.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">coh_loss</span></div></div>
+
+
+<div class="viewcode-block" id="FrequencyDomainCrossEntropy"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainCrossEntropy">[docs]</a><span class="k">class</span> <span class="nc">FrequencyDomainCrossEntropy</span><span class="p">(</span><span class="n">FrequencyDomainLoss</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compute_on_mask</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mask_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_compute_on_mask</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mask_type</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_on_mask</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;CE_on_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_type</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;CE_on_Spec&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">compute_on_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_on_mask</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mask_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask_type</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+
+<div class="viewcode-block" id="FrequencyDomainCrossEntropy.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainCrossEntropy.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;time-frequency cross-entropy loss.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref: (Batch, T) or (Batch, T, C)</span>
+<span class="sd">            inf: (Batch, T, nclass) or (Batch, T, C, nclass)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: (Batch,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span>
+            <span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+            <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span>
+                <span class="n">inf</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">ref</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span>
+                <span class="n">inf</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">ref</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid input shape: ref=</span><span class="si">{}</span><span class="s2">, inf=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">pred</span> <span class="o">=</span> <span class="n">inf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">acc</span> <span class="o">=</span> <span class="p">(</span><span class="n">pred</span> <span class="o">==</span> <span class="n">ref</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">acc</span> <span class="o">=</span> <span class="n">acc</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">acc</span> <span class="o">=</span> <span class="n">acc</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stats</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;acc&quot;</span><span class="p">:</span> <span class="n">acc</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span> <span class="o">*</span> <span class="mi">100</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">loss</span></div></div>
 </pre></div>
 
            </div>

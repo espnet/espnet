@@ -163,6 +163,8 @@
 
 
 <div class="viewcode-block" id="TimeDomainLoss"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.TimeDomainLoss">[docs]</a><span class="k">class</span> <span class="nc">TimeDomainLoss</span><span class="p">(</span><span class="n">AbsEnhLoss</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for all time-domain Enhancement loss modules.&quot;&quot;&quot;</span>
+
     <span class="k">pass</span></div>
 
 
@@ -186,13 +188,15 @@
 <span class="sd">        loss: (Batch,)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filter_length</span><span class="o">=</span><span class="mi">512</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filter_length</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">filter_length</span> <span class="o">=</span> <span class="n">filter_length</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;ci_sdr_loss&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;ci_sdr_loss&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
 
 <div class="viewcode-block" id="CISDRLoss.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.CISDRLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -208,13 +212,15 @@
 
 
 <div class="viewcode-block" id="SNRLoss"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SNRLoss">[docs]</a><span class="k">class</span> <span class="nc">SNRLoss</span><span class="p">(</span><span class="n">TimeDomainLoss</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">EPS</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="n">EPS</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eps</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;snr_loss&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;snr_loss&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
 
 <div class="viewcode-block" id="SNRLoss.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SNRLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -233,7 +239,7 @@
 
 
 <div class="viewcode-block" id="SDRLoss"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SDRLoss">[docs]</a><span class="k">class</span> <span class="nc">SDRLoss</span><span class="p">(</span><span class="n">TimeDomainLoss</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;SDR loss</span>
+    <span class="sd">&quot;&quot;&quot;SDR loss.</span>
 
 <span class="sd">    filter_length: int</span>
 <span class="sd">        The length of the distortion filter allowed (default: ``512``)</span>
@@ -262,6 +268,7 @@
         <span class="n">clamp_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">zero_mean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">load_diag</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
@@ -271,16 +278,18 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">zero_mean</span> <span class="o">=</span> <span class="n">zero_mean</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">load_diag</span> <span class="o">=</span> <span class="n">load_diag</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;sdr_loss&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;sdr_loss&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
 
 <div class="viewcode-block" id="SDRLoss.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SDRLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">ref</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">est</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;The forward function</span>
+        <span class="sd">&quot;&quot;&quot;SDR forward.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            ref: Tensor, (..., n_samples)</span>
@@ -321,23 +330,25 @@
 <span class="sd">            Deprecated. Keeped for compatibility.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clamp_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">zero_mean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clamp_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">zero_mean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">clamp_db</span> <span class="o">=</span> <span class="n">clamp_db</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">zero_mean</span> <span class="o">=</span> <span class="n">zero_mean</span>
         <span class="k">if</span> <span class="n">eps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Eps is deprecated in si_snr loss, set clamp_db instead.&quot;</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;si_snr_loss&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;si_snr_loss&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
 
 <div class="viewcode-block" id="SISNRLoss.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SISNRLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">ref</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">est</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Forward function</span>
+        <span class="sd">&quot;&quot;&quot;SI-SNR forward.</span>
 
 <span class="sd">        Args:</span>
 
@@ -360,6 +371,70 @@
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">si_snr</span></div></div>
+
+
+<div class="viewcode-block" id="TimeDomainMSE"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.TimeDomainMSE">[docs]</a><span class="k">class</span> <span class="nc">TimeDomainMSE</span><span class="p">(</span><span class="n">TimeDomainLoss</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;TD_MSE_loss&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+
+<div class="viewcode-block" id="TimeDomainMSE.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.TimeDomainMSE.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Time-domain MSE loss forward.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref: (Batch, T) or (Batch, T, C)</span>
+<span class="sd">            inf: (Batch, T) or (Batch, T, C)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: (Batch,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">ref</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="n">mseloss</span> <span class="o">=</span> <span class="p">(</span><span class="n">ref</span> <span class="o">-</span> <span class="n">inf</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">mseloss</span> <span class="o">=</span> <span class="n">mseloss</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">mseloss</span> <span class="o">=</span> <span class="n">mseloss</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid input shape: ref=</span><span class="si">{}</span><span class="s2">, inf=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">mseloss</span></div></div>
+
+
+<div class="viewcode-block" id="TimeDomainL1"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.TimeDomainL1">[docs]</a><span class="k">class</span> <span class="nc">TimeDomainL1</span><span class="p">(</span><span class="n">TimeDomainLoss</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot;TD_L1_loss&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+
+<div class="viewcode-block" id="TimeDomainL1.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.TimeDomainL1.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Time-domain L1 loss forward.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ref: (Batch, T) or (Batch, T, C)</span>
+<span class="sd">            inf: (Batch, T) or (Batch, T, C)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            loss: (Batch,)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">ref</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="n">l1loss</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ref</span> <span class="o">-</span> <span class="n">inf</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">l1loss</span> <span class="o">=</span> <span class="n">l1loss</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">ref</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">l1loss</span> <span class="o">=</span> <span class="n">l1loss</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid input shape: ref=</span><span class="si">{}</span><span class="s2">, inf=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">inf</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">l1loss</span></div></div>
 </pre></div>
 
            </div>

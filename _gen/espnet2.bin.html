@@ -1261,7 +1261,7 @@ start with the prefix “parallel_wavegan/”.</p></li>
 <span id="id20"></span><h2>espnet2.bin.enh_inference<a class="headerlink" href="#espnet2-bin-enh-inference" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.enh_inference"></span><dl class="class">
 <dt id="espnet2.bin.enh_inference.SeparateSpeech">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">SeparateSpeech</code><span class="sig-paren">(</span><em class="sig-param">train_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">model_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">segment_size: Optional[float] = None</em>, <em class="sig-param">hop_size: Optional[float] = None</em>, <em class="sig-param">normalize_segment_scale: bool = False</em>, <em class="sig-param">show_progressbar: bool = False</em>, <em class="sig-param">ref_channel: Optional[int] = None</em>, <em class="sig-param">normalize_output_wav: bool = False</em>, <em class="sig-param">device: str = 'cpu'</em>, <em class="sig-param">dtype: str = 'float32'</em>, <em class="sig-param">enh_s2t_task: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#SeparateSpeech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.SeparateSpeech" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">SeparateSpeech</code><span class="sig-paren">(</span><em class="sig-param">train_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">model_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">inference_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">segment_size: Optional[float] = None</em>, <em class="sig-param">hop_size: Optional[float] = None</em>, <em class="sig-param">normalize_segment_scale: bool = False</em>, <em class="sig-param">show_progressbar: bool = False</em>, <em class="sig-param">ref_channel: Optional[int] = None</em>, <em class="sig-param">normalize_output_wav: bool = False</em>, <em class="sig-param">device: str = 'cpu'</em>, <em class="sig-param">dtype: str = 'float32'</em>, <em class="sig-param">enh_s2t_task: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#SeparateSpeech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.SeparateSpeech" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>SeparateSpeech class</p>
 <p class="rubric">Examples</p>
@@ -1314,8 +1314,18 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="espnet2.bin.enh_inference.build_model_from_args_and_file">
+<code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">build_model_from_args_and_file</code><span class="sig-paren">(</span><em class="sig-param">task</em>, <em class="sig-param">args</em>, <em class="sig-param">model_file</em>, <em class="sig-param">device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#build_model_from_args_and_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.build_model_from_args_and_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="espnet2.bin.enh_inference.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.enh_inference.get_train_config">
+<code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">get_train_config</code><span class="sig-paren">(</span><em class="sig-param">train_config</em>, <em class="sig-param">model_file=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#get_train_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.get_train_config" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -1325,13 +1335,19 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 
 <dl class="function">
 <dt id="espnet2.bin.enh_inference.inference">
-<code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, fs: int, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], train_config: Optional[str], model_file: Optional[str], model_tag: Optional[str], allow_variable_data_keys: bool, segment_size: Optional[float], hop_size: Optional[float], normalize_segment_scale: bool, show_progressbar: bool, ref_channel: Optional[int], normalize_output_wav: bool, enh_s2t_task: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, fs: int, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], train_config: Optional[str], model_file: Optional[str], model_tag: Optional[str], inference_config: Optional[str], allow_variable_data_keys: bool, segment_size: Optional[float], hop_size: Optional[float], normalize_segment_scale: bool, show_progressbar: bool, ref_channel: Optional[int], normalize_output_wav: bool, enh_s2t_task: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.inference" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="espnet2.bin.enh_inference.main">
 <code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.main" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.enh_inference.recursive_dict_update">
+<code class="sig-prename descclassname">espnet2.bin.enh_inference.</code><code class="sig-name descname">recursive_dict_update</code><span class="sig-paren">(</span><em class="sig-param">dict_org</em>, <em class="sig-param">dict_patch</em>, <em class="sig-param">verbose=False</em>, <em class="sig-param">log_prefix=''</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference.html#recursive_dict_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference.recursive_dict_update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update <cite>dict_org</cite> with <cite>dict_patch</cite> in-place recursively.</p>
+</dd></dl>
 
 </section>
 <section id="espnet2-bin-gan-tts-train">

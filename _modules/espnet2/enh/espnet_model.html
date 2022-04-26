@@ -241,8 +241,8 @@
         <span class="n">speech_ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="s2">&quot;noise_ref1&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="c1"># noise signal (optional, required when using</span>
-            <span class="c1"># frontend models with beamformering)</span>
+            <span class="c1"># noise signal (optional, required when using beamforming-based</span>
+            <span class="c1"># frontend models)</span>
             <span class="n">noise_ref</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;noise_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_noise_type</span><span class="p">)</span>
             <span class="p">]</span>
@@ -349,10 +349,15 @@
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">criterion</span><span class="p">,</span> <span class="n">FrequencyDomainLoss</span><span class="p">):</span>
                 <span class="c1"># for the time-frequency domain criterions</span>
                 <span class="k">if</span> <span class="n">criterion</span><span class="o">.</span><span class="n">compute_on_mask</span><span class="p">:</span>
-                    <span class="c1"># compute on mask</span>
+                    <span class="c1"># compute loss on masks</span>
+                    <span class="k">if</span> <span class="n">noise_ref</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">noise_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">noise_ref</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">speech_lengths</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">noise_spec</span> <span class="o">=</span> <span class="kc">None</span>
                     <span class="n">tf_ref</span> <span class="o">=</span> <span class="n">criterion</span><span class="o">.</span><span class="n">create_mask_label</span><span class="p">(</span>
                         <span class="n">feature_mix</span><span class="p">,</span>
                         <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">sr</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">sr</span> <span class="ow">in</span> <span class="n">speech_ref</span><span class="p">],</span>
+                        <span class="n">noise_spec</span><span class="o">=</span><span class="n">noise_spec</span><span class="p">,</span>
                     <span class="p">)</span>
                     <span class="n">tf_pre</span> <span class="o">=</span> <span class="p">[</span>
                         <span class="n">others</span><span class="p">[</span><span class="s2">&quot;mask_spk</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
@@ -368,6 +373,9 @@
                     <span class="n">tf_pre</span> <span class="o">=</span> <span class="n">feature_pre</span>
 
                 <span class="n">l</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">o</span> <span class="o">=</span> <span class="n">loss_wrapper</span><span class="p">(</span><span class="n">tf_ref</span><span class="p">,</span> <span class="n">tf_pre</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Unsupported loss type: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">criterion</span><span class="p">))</span>
+
             <span class="n">loss</span> <span class="o">+=</span> <span class="n">l</span> <span class="o">*</span> <span class="n">loss_wrapper</span><span class="o">.</span><span class="n">weight</span>
             <span class="n">stats</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
 
