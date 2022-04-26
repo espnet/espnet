@@ -85,8 +85,10 @@ class Speech2Text:
                     "ctc",
                     "decoder",
                     "eos",
+                    "joint_network",
                     "sos",
                     "token_list",
+                    "use_transducer_decoder",
                 ]
             )
         st_model.to(dtype=getattr(torch, dtype)).eval()
