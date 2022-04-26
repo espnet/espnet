@@ -529,6 +529,9 @@ if ! "${skip_data_prep}"; then
                 for extra_file in ${utt_extra_files}; do
                     # with regex to suuport multi-references
                     for single_file in "data/${dset}/${extra_file}"*; do
+                        if [ ! -f "${single_file}" ]; then
+                            continue
+                        fi
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
                     done
