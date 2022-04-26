@@ -139,6 +139,7 @@ MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
+HARPERVALLEY=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
