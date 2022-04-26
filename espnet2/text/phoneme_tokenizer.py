@@ -368,18 +368,14 @@ class is_g2p:
     ):
         self.dialect = dialect
         self.syllabify = syllabify
-        self.word_sep = word_sep
         self.use_dict = use_dict
         from ice_g2p.transcriber import Transcriber
 
-        self.transcriber = Transcriber(use_dict=self.use_dict, use_syll=self.syllabify)
+        self.transcriber = Transcriber(use_dict=self.use_dict, syllab_symbol='.', stress_label=True, word_sep=word_sep, lang_detect=True)
 
     def process_string(self, input_str: str) -> str:
         transcribed = self.transcriber.transcribe(
             input_str,
-            use_syll=self.syllabify,
-            use_dict=self.use_dict,
-            word_sep=self.word_sep,
         ).split()
         return transcribed
 
