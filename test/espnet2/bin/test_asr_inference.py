@@ -108,7 +108,7 @@ def asr_config_file_streaming(tmp_path: Path, token_list):
     return tmp_path / "asr_streaming" / "config.yaml"
 
 
-@pytest.mark.execution_timeout(10)
+@pytest.mark.execution_timeout(200)
 def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
     speech2text = Speech2TextStreaming(
         asr_train_config=asr_config_file_streaming,
