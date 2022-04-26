@@ -36,17 +36,24 @@ def main():
     text = {line.split()[0]: " ".join(line.split()[1:]) for line in lines}
     if cleaner is not None:
         text = {k: cleaner(v) for k, v in text.items()}
-    with tqdm_joblib(tqdm(total=len(text.values()), desc="Phonemizing")) as progress_bar:
+    with tqdm_joblib(
+        tqdm(total=len(text.values()), desc="Phonemizing")
+    ) as progress_bar:
         phns_list = Parallel(n_jobs=args.nj)(
-            [delayed(phoneme_tokenizer.text2tokens)(sentence) for sentence in text.values()]
+            [
+                delayed(phoneme_tokenizer.text2tokens)(sentence)
+                for sentence in text.values()
+            ]
         )
     with codecs.open(args.out_text, "w", encoding="utf8") as g:
         for utt_id, phns in zip(text.keys(), phns_list):
             g.write(f"{utt_id} " + " ".join(phns) + "\n")
 
+
 @contextlib.contextmanager
 def tqdm_joblib(tqdm_object):
     """Context manager to patch joblib to report into tqdm progress bar given as argument"""
+
     class TqdmBatchCompletionCallback(parallel.BatchCompletionCallBack):
         def __call__(self, *args, **kwargs):
             tqdm_object.update(n=self.batch_size)
@@ -59,6 +66,7 @@ def tqdm_joblib(tqdm_object):
     finally:
         parallel.BatchCompletionCallBack = old_batch_callback
         tqdm_object.close()
+
 
 if __name__ == "__main__":
     main()
