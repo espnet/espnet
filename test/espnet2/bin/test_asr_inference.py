@@ -74,7 +74,7 @@ def lm_config_file(tmp_path: Path, token_list):
 
 @pytest.mark.execution_timeout(5)
 def test_Speech2Text(asr_config_file, lm_config_file):
-    speech2text = Speech2TextStreaming(
+    speech2text = Speech2Text(
         asr_train_config=asr_config_file, lm_train_config=lm_config_file, beam_size=1
     )
     speech = np.random.randn(100000)
