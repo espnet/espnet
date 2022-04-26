@@ -198,7 +198,10 @@ minlenratio: 0.3
 
 ### Transducer
 
-***Important: If you encounter any issue related to Transducer loss, please open an issue in [our fork of warp-transducer](https://github.com/b-flo/warp-transducer).***
+> ***Disclaimer 1: Currently, two versions of Transducer models exist within ESPnet2: one under `asr` and the other under `asr_transducer`. The first one is designed as a supplement of CTC-Attention models while the second is designed purely for the Transducer task.***
+> ***The following section is dedicated to the introduction of the second version. In that regards, it should be noted that 1) most features described here are not available for the first version and 2) some unmentionned high-level features or behavior may differ between the versions.***
+
+> ***Disclaimer 2: If you encounter any issue related to Transducer loss, please open an issue in [our fork of warp-transducer](https://github.com/b-flo/warp-transducer).***
 
 ESPnet supports models trained with Transducer loss, aka Transducer models. To train such model, the following should be set in the training config:
 
