@@ -4,12 +4,16 @@ import string
 
 import pytest
 import torch
+import yaml
 
 from espnet2.bin.enh_inference import get_parser
 from espnet2.bin.enh_inference import main
 from espnet2.bin.enh_inference import SeparateSpeech
+from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.tasks.enh import EnhancementTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
+from espnet2.utils.get_default_kwargs import get_default_kwargs
+from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 
 
 def test_get_parser():
@@ -32,6 +36,16 @@ def config_file(tmp_path: Path):
             str(tmp_path / "enh"),
         ]
     )
+
+    with open(tmp_path / "enh" / "config.yaml", "r") as f:
+        args = yaml.safe_load(f)
+
+    if args["encoder"] == "stft" and len(args["encoder_conf"]) == 0:
+        args["encoder_conf"] = get_default_kwargs(STFTEncoder)
+
+    with open(tmp_path / "enh" / "config.yaml", "w") as f:
+        yaml_no_alias_safe_dump(args, f, indent=4, sort_keys=False)
+
     return tmp_path / "enh" / "config.yaml"
 
 
@@ -52,6 +66,56 @@ def test_SeparateSpeech(
     )
     wav = torch.rand(batch_size, input_size)
     separate_speech(wav, fs=8000)
+
+
+@pytest.fixture()
+def enh_inference_config(tmp_path: Path):
+    # Write default configuration file
+    args = {
+        "encoder": "stft",
+        "encoder_conf": {"n_fft": 64, "hop_length": 32},
+        "decoder": "stft",
+        "decoder_conf": {"n_fft": 64, "hop_length": 32},
+    }
+    (tmp_path / "enh").mkdir(parents=True, exist_ok=True)
+    with open(tmp_path / "enh" / "inference.yaml", "w") as f:
+        yaml_no_alias_safe_dump(args, f, indent=4, sort_keys=False)
+    return tmp_path / "enh" / "inference.yaml"
+
+
+@pytest.fixture()
+def invalid_enh_inference_config(tmp_path: Path):
+    # Write default configuration file
+    args = {
+        "encoder": "stft",
+        "encoder_conf": {"n_fft": 64, "hop_length": 32},
+        "xxx": "invalid",
+    }
+    (tmp_path / "enh").mkdir(parents=True, exist_ok=True)
+    with open(tmp_path / "enh" / "invalid_inference.yaml", "w") as f:
+        yaml_no_alias_safe_dump(args, f, indent=4, sort_keys=False)
+    return tmp_path / "enh" / "invalid_inference.yaml"
+
+
+@pytest.mark.execution_timeout(5)
+def test_SeparateSpeech_with_inference_config(config_file, enh_inference_config):
+    separate_speech = SeparateSpeech(
+        train_config=config_file, inference_config=enh_inference_config
+    )
+    wav = torch.rand(2, 16000)
+    separate_speech(wav, fs=8000)
+
+
+def test_SeparateSpeech_invalid_inference_config(
+    enh_inference_config, invalid_enh_inference_config
+):
+    with pytest.raises(AssertionError):
+        SeparateSpeech(
+            train_config=None, model_file=None, inference_config=enh_inference_config
+        )
+
+    with pytest.raises(AssertionError):
+        SeparateSpeech(train_config=None, inference_config=invalid_enh_inference_config)
 
 
 @pytest.fixture()
@@ -80,6 +144,16 @@ def enh_s2t_config_file(tmp_path: Path, token_list):
             "char",
         ]
     )
+
+    with open(tmp_path / "enh_s2t" / "config.yaml", "r") as f:
+        args = yaml.safe_load(f)
+
+    if args["enh_encoder"] == "stft" and len(args["enh_encoder_conf"]) == 0:
+        args["enh_encoder_conf"] = get_default_kwargs(STFTEncoder)
+
+    with open(tmp_path / "enh_s2t" / "config.yaml", "w") as f:
+        yaml_no_alias_safe_dump(args, f, indent=4, sort_keys=False)
+
     return tmp_path / "enh_s2t" / "config.yaml"
 
 
@@ -106,3 +180,64 @@ def test_enh_s2t_SeparateSpeech(
     )
     wav = torch.rand(batch_size, input_size)
     separate_speech(wav, fs=8000)
+
+
+@pytest.fixture()
+def enh_s2t_inference_config(tmp_path: Path):
+    # Write default configuration file
+    args = {
+        "enh_encoder": "stft",
+        "enh_encoder_conf": {"n_fft": 64, "hop_length": 32},
+        "enh_decoder": "stft",
+        "enh_decoder_conf": {"n_fft": 64, "hop_length": 32},
+    }
+    (tmp_path / "enh_s2t").mkdir(parents=True, exist_ok=True)
+    with open(tmp_path / "enh_s2t" / "inference.yaml", "w") as f:
+        yaml_no_alias_safe_dump(args, f, indent=4, sort_keys=False)
+    return tmp_path / "enh_s2t" / "inference.yaml"
+
+
+@pytest.fixture()
+def invalid_enh_s2t_inference_config(tmp_path: Path):
+    # Write default configuration file
+    args = {
+        "enh_encoder": "stft",
+        "enh_encoder_conf": {"n_fft": 64, "hop_length": 32},
+        "xxx": "invalid",
+    }
+    (tmp_path / "enh_s2t").mkdir(parents=True, exist_ok=True)
+    with open(tmp_path / "enh_s2t" / "invalid_inference.yaml", "w") as f:
+        yaml_no_alias_safe_dump(args, f, indent=4, sort_keys=False)
+    return tmp_path / "enh_s2t" / "invalid_inference.yaml"
+
+
+@pytest.mark.execution_timeout(5)
+def test_enh_s2t_SeparateSpeech_with_inference_config(
+    enh_s2t_config_file, enh_s2t_inference_config
+):
+    separate_speech = SeparateSpeech(
+        train_config=enh_s2t_config_file,
+        inference_config=enh_s2t_inference_config,
+        enh_s2t_task=True,
+    )
+    wav = torch.rand(2, 16000)
+    separate_speech(wav, fs=8000)
+
+
+def test_enh_s2t_SeparateSpeech_invalid_inference_config(
+    enh_s2t_inference_config, invalid_enh_s2t_inference_config
+):
+    with pytest.raises(AssertionError):
+        SeparateSpeech(
+            train_config=None,
+            model_file=None,
+            inference_config=enh_s2t_inference_config,
+            enh_s2t_task=True,
+        )
+
+    with pytest.raises(AssertionError):
+        SeparateSpeech(
+            train_config=None,
+            inference_config=invalid_enh_s2t_inference_config,
+            enh_s2t_task=True,
+        )

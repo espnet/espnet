@@ -147,7 +147,7 @@ def test_EnhS2T_Speech2Text(enh_asr_config_file, lm_config_file):
         beam_size=1,
         enh_s2t_task=True,
     )
-    speech = np.random.randn(100000)
+    speech = np.random.randn(48000)
     results = speech2text(speech)
     for text, token, token_int, hyp in results:
         assert isinstance(text, str)

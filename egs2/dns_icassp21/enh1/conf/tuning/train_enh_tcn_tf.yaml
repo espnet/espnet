@@ -2,7 +2,7 @@ optim: adam
 init: xavier_uniform
 max_epoch: 100
 batch_type: folded
-batch_size: 4
+batch_size: 128
 num_workers: 4
 optim_conf:
     lr: 1.0e-03
@@ -37,7 +37,7 @@ decoder_conf:
 separator: tcn
 separator_conf:
     num_spk: 1
-    layer: 8
+    layer: 4
     stack: 3
     bottleneck_dim: 128
     hidden_dim: 512
