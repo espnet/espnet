@@ -108,7 +108,7 @@ def asr_config_file_streaming(tmp_path: Path, token_list):
     return tmp_path / "asr_streaming" / "config.yaml"
 
 
-@pytest.mark.execution_timeout(200)
+@pytest.mark.execution_timeout(300)
 def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
     speech2text = Speech2TextStreaming(
         asr_train_config=asr_config_file_streaming,
@@ -116,7 +116,7 @@ def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
         beam_size=1,
     )
     speech = np.random.randn(100000)
-    for sim_chunk_length in [512, 1024, 2048]:
+    for sim_chunk_length in [512, 1024]:
         if (len(speech) // sim_chunk_length) > 1:
             for i in range(len(speech) // sim_chunk_length):
                 speech2text(
