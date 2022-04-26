@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from espnet2.asr.transducer.decoder.rnn_decoder import RNNDecoder
-from espnet2.asr.transducer.decoder.stateless_decoder import StatelessDecoder
+from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
 
 
 def prepare():

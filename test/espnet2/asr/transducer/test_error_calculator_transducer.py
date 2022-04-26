@@ -1,10 +1,10 @@
 import pytest
 import torch
 
-from espnet2.asr.transducer.decoder.rnn_decoder import RNNDecoder
-from espnet2.asr.transducer.decoder.stateless_decoder import StatelessDecoder
-from espnet2.asr.transducer.error_calculator import ErrorCalculator
-from espnet2.asr.transducer.joint_network import JointNetwork
+from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
+from espnet2.asr_transducer.error_calculator import ErrorCalculator
+from espnet2.asr_transducer.joint_network import JointNetwork
 
 
 @pytest.mark.parametrize(

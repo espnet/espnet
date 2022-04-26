@@ -6,7 +6,7 @@ from typing import Union
 
 import torch
 
-from espnet2.asr.transducer.utils import sub_factor_to_params
+from espnet2.asr_transducer.utils import sub_factor_to_params
 
 
 class Conv2dSubsampling(torch.nn.Module):

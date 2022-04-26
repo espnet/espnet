@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
-from espnet2.asr.transducer.beam_search_transducer import Hypothesis
-from espnet2.asr.transducer.decoder.rnn_decoder import RNNDecoder
-from espnet2.asr.transducer.decoder.stateless_decoder import StatelessDecoder
-from espnet2.asr.transducer.joint_network import JointNetwork
+from espnet2.asr_transducer.beam_search_transducer import BeamSearchTransducer
+from espnet2.asr_transducer.beam_search_transducer import Hypothesis
+from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
+from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 
 

@@ -2,7 +2,7 @@
 
 import torch
 
-from espnet2.asr.transducer.activation import get_activation
+from espnet2.asr_transducer.activation import get_activation
 
 
 class JointNetwork(torch.nn.Module):

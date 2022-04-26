@@ -14,10 +14,10 @@ from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-from espnet2.asr.transducer.decoder.abs_decoder import AbsDecoder
-from espnet2.asr.transducer.encoder.encoder import Encoder
-from espnet2.asr.transducer.joint_network import JointNetwork
-from espnet2.asr.transducer.utils import get_transducer_task_io
+from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
+from espnet2.asr_transducer.encoder.encoder import Encoder
+from espnet2.asr_transducer.joint_network import JointNetwork
+from espnet2.asr_transducer.utils import get_transducer_task_io
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -372,7 +372,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         if not self.training and (self.report_cer or self.report_wer):
             if self.error_calculator is None:
-                from espnet2.asr.transducer.error_calculator import ErrorCalculator
+                from espnet2.asr_transducer.error_calculator import ErrorCalculator
 
                 self.error_calculator = ErrorCalculator(
                     self.decoder,

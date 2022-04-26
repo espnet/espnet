@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from espnet2.asr.transducer.encoder.encoder import Encoder
-from espnet2.asr.transducer.utils import TooShortUttError
+from espnet2.asr_transducer.encoder.encoder import Encoder
+from espnet2.asr_transducer.utils import TooShortUttError
 
 
 @pytest.mark.parametrize(

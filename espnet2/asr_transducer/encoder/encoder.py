@@ -10,13 +10,13 @@ import torch
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet2.asr.transducer.encoder.building import build_body_blocks
-from espnet2.asr.transducer.encoder.building import build_input_block
-from espnet2.asr.transducer.encoder.building import build_main_parameters
-from espnet2.asr.transducer.encoder.validation import validate_architecture
-from espnet2.asr.transducer.encoder.validation import validate_positional_information
-from espnet2.asr.transducer.utils import check_short_utt
-from espnet2.asr.transducer.utils import TooShortUttError
+from espnet2.asr_transducer.encoder.building import build_body_blocks
+from espnet2.asr_transducer.encoder.building import build_input_block
+from espnet2.asr_transducer.encoder.building import build_main_parameters
+from espnet2.asr_transducer.encoder.validation import validate_architecture
+from espnet2.asr_transducer.encoder.validation import validate_positional_information
+from espnet2.asr_transducer.utils import check_short_utt
+from espnet2.asr_transducer.utils import TooShortUttError
 
 
 class Encoder(torch.nn.Module):

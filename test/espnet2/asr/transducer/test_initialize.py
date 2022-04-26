@@ -1,11 +1,11 @@
 import pytest
 
 from espnet2.asr.frontend.default import DefaultFrontend
-from espnet2.asr.transducer.decoder.rnn_decoder import RNNDecoder
-from espnet2.asr.transducer.encoder.encoder import Encoder
-from espnet2.asr.transducer.espnet_transducer_model import ESPnetASRTransducerModel
-from espnet2.asr.transducer.initialize import initialize
-from espnet2.asr.transducer.joint_network import JointNetwork
+from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr_transducer.encoder.encoder import Encoder
+from espnet2.asr_transducer.espnet_transducer_model import ESPnetASRTransducerModel
+from espnet2.asr_transducer.initialize import initialize
+from espnet2.asr_transducer.joint_network import JointNetwork
 
 
 @pytest.mark.parametrize(

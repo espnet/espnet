@@ -1,10 +1,10 @@
 import pytest
 import torch
 
-from espnet2.asr.transducer.decoder.stateless_decoder import StatelessDecoder
-from espnet2.asr.transducer.encoder.encoder import Encoder
-from espnet2.asr.transducer.espnet_transducer_model import ESPnetASRTransducerModel
-from espnet2.asr.transducer.joint_network import JointNetwork
+from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
+from espnet2.asr_transducer.encoder.encoder import Encoder
+from espnet2.asr_transducer.espnet_transducer_model import ESPnetASRTransducerModel
+from espnet2.asr_transducer.joint_network import JointNetwork
 
 
 def prepare(model, input_size, vocab_size, batch_size):

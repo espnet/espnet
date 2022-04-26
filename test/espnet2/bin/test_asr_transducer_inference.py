@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.asr.transducer.beam_search_transducer import Hypothesis
+from espnet2.asr_transducer.beam_search_transducer import Hypothesis
 from espnet2.bin.asr_transducer_inference import get_parser
 from espnet2.bin.asr_transducer_inference import main
 from espnet2.bin.asr_transducer_inference import Speech2Text

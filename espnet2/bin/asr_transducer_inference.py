@@ -20,11 +20,11 @@ from typeguard import check_argument_types
 from typeguard import check_return_type
 from typing import List
 
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
-from espnet2.asr.transducer.beam_search_transducer import ExtendedHypothesis
-from espnet2.asr.transducer.beam_search_transducer import Hypothesis
+from espnet2.asr_transducer.beam_search_transducer import BeamSearchTransducer
+from espnet2.asr_transducer.beam_search_transducer import ExtendedHypothesis
+from espnet2.asr_transducer.beam_search_transducer import Hypothesis
+from espnet2.asr_transducer.utils import TooShortUttError
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr_transducer import ASRTransducerTask
 from espnet2.tasks.lm import LMTask

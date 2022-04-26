@@ -5,7 +5,7 @@ from typing import Dict
 from typing import List
 from typing import Tuple
 
-from espnet2.asr.transducer.utils import sub_factor_to_params
+from espnet2.asr_transducer.utils import sub_factor_to_params
 
 
 def validate_positional_information(

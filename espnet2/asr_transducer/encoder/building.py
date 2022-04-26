@@ -21,15 +21,15 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.repeat import MultiSequential
-from espnet2.asr.transducer.activation import get_activation
-from espnet2.asr.transducer.encoder.blocks.conformer import Conformer
-from espnet2.asr.transducer.encoder.blocks.conv1d import Conv1d
-from espnet2.asr.transducer.encoder.blocks.conv2d_subsampling import (
+from espnet2.asr_transducer.activation import get_activation
+from espnet2.asr_transducer.encoder.blocks.conformer import Conformer
+from espnet2.asr_transducer.encoder.blocks.conv1d import Conv1d
+from espnet2.asr_transducer.encoder.blocks.conv2d_subsampling import (
     Conv2dSubsampling,  # noqa: H301
 )
-from espnet2.asr.transducer.encoder.blocks.rnn import RNN
-from espnet2.asr.transducer.encoder.blocks.rnnp import RNNP
-from espnet2.asr.transducer.encoder.blocks.vgg2l import VGG2L
+from espnet2.asr_transducer.encoder.blocks.rnn import RNN
+from espnet2.asr_transducer.encoder.blocks.rnnp import RNNP
+from espnet2.asr_transducer.encoder.blocks.vgg2l import VGG2L
 from espnet2.train.class_choices import ClassChoices
 
 pos_enc_choices = ClassChoices(

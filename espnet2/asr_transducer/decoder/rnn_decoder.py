@@ -10,9 +10,9 @@ from typing import Union
 import torch
 from typeguard import check_argument_types
 
-from espnet2.asr.transducer.beam_search_transducer import ExtendedHypothesis
-from espnet2.asr.transducer.beam_search_transducer import Hypothesis
-from espnet2.asr.transducer.decoder.abs_decoder import AbsDecoder
+from espnet2.asr_transducer.beam_search_transducer import ExtendedHypothesis
+from espnet2.asr_transducer.beam_search_transducer import Hypothesis
+from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
 
 
 class RNNDecoder(AbsDecoder):

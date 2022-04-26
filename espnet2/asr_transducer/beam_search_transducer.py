@@ -11,8 +11,8 @@ from typing import Union
 import numpy as np
 import torch
 
-from espnet2.asr.transducer.decoder.abs_decoder import AbsDecoder
-from espnet2.asr.transducer.joint_network import JointNetwork
+from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
+from espnet2.asr_transducer.joint_network import JointNetwork
 
 
 @dataclass
