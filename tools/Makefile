@@ -1,5 +1,5 @@
-# PyTorch version: 1.3.1, 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1 and 1.10.0 are tested.
-TH_VERSION := 1.10.0
+# PyTorch version: 1.3.1, 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1, 1.10.0 and 1.10.1 are tested.
+TH_VERSION := 1.10.1
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -30,10 +30,10 @@ all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_inst
 
 ifneq ($(strip $(CHAINER_VERSION)),)
 python: activate_python.sh espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
-extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done
+extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done
 else
 python: activate_python.sh espnet.done pytorch.done fairscale.done torch_optimizer.done
-extra: warp-ctc.done warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done
+extra: warp-ctc.done warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done
 endif
 
 
@@ -93,8 +93,12 @@ sph2pipe.done:
 
 pytorch.done: activate_python.sh
 ifeq ($(strip $(USE_CONDA)),)
+	# NOTE(kan-bayashi): Temporary fixed numpy version
+	. ./activate_python.sh && pip install "numpy<=1.21.3"
 	. ./activate_python.sh && ./installers/install_torch.sh "false" "${TH_VERSION}" "${CUDA_VERSION}"
 else
+	# NOTE(kan-bayashi): Temporary fixed numpy version
+	. ./activate_python.sh && conda install -y "numpy<=1.21.3"
 	. ./activate_python.sh && ./installers/install_torch.sh "true" "${TH_VERSION}" "${CUDA_VERSION}"
 endif
 	touch pytorch.done
@@ -145,6 +149,10 @@ phonemizer.done: espnet.done conda_packages.done
 	. ./activate_python.sh && ./installers/install_phonemizer.sh
 	touch phonemizer.done
 
+speechbrain.done: espnet.done conda_packages.done
+	. ./activate_python.sh && ./installers/install_speechbrain.sh
+	touch speechbrain.done
+
 moses.done:
 	git clone --depth 1 https://github.com/moses-smt/mosesdecoder.git moses
 	touch moses.done
@@ -188,7 +196,7 @@ s3prl.done: espnet.done
 k2.done: espnet.done
 	. ./activate_python.sh && ./installers/install_k2.sh
 	touch k2.done
-	
+
 gtn.done: espnet.done
 	. ./activate_python.sh && ./installers/install_gtn.sh
 	touch gtn.done
@@ -196,6 +204,10 @@ gtn.done: espnet.done
 transformers.done: espnet.done
 	. ./activate_python.sh && ./installers/install_transformers.sh
 	touch transformers.done
+
+longformer.done: espnet.done
+	. ./activate_python.sh && ./installers/install_longformer.sh
+	touch longformer.done
 
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py

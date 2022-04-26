@@ -61,13 +61,12 @@ def convert_rttm_text(
                 utt_id, path
             )
 
-            array, rate = soundfile.read(wav_path, always_2d=True)
-            assert rate == sampling_rate
-            shape = array.shape[0]
+            sf = soundfile.SoundFile(wav_path)
+            assert sf.samplerate == sampling_rate
             output_handler.write(
                 (
                     "{} {} <NA> <NA> {} <NA> <NA> <NA> <NA>\n".format(
-                        "END", utt_id, shape
+                        "END", utt_id, sf.frames
                     )
                 )
             )

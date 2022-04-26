@@ -293,7 +293,7 @@ def recombine_hyps(hyps: List[Hypothesis]) -> List[Hypothesis]:
         else:
             final.append(hyp)
 
-    return hyps
+    return final
 
 
 def pad_sequence(labels: List[int], pad_id: int) -> List[int]:

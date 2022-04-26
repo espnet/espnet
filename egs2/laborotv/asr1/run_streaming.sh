@@ -18,7 +18,8 @@ inference_asr_model=valid.acc.ave.pth
 speed_perturb_factors="0.9 1.0 1.1"
 
 # NOTE: The default settings require 4 GPUs with 32 GB memory
-./asr_streaming.sh \
+./asr.sh \
+    --use_streaming true \
     --ngpu 4 \
     --nj 128 \
     --inference_nj 256 \

@@ -14,6 +14,7 @@ from typeguard import check_return_type
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.decoder.mlm_decoder import MLMDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.transformer_decoder import (
     DynamicConvolution2DTransformerDecoder,  # noqa: H301
@@ -28,6 +29,8 @@ from espnet2.asr.decoder.transformer_decoder import (
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.longformer_encoder import LongformerEncoder
+
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertPretrainEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
@@ -46,6 +49,7 @@ from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
+from espnet2.asr.maskctc_model import MaskCTCModel
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,  # noqa: H301
@@ -55,12 +59,15 @@ from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.asr.transducer.joint_network import JointNetwork
+from espnet2.asr.transducer.transducer_decoder import TransducerDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
@@ -85,7 +92,9 @@ frontend_choices = ClassChoices(
 )
 specaug_choices = ClassChoices(
     name="specaug",
-    classes=dict(specaug=SpecAug),
+    classes=dict(
+        specaug=SpecAug,
+    ),
     type_check=AbsSpecAug,
     default=None,
     optional=True,
@@ -99,6 +108,15 @@ normalize_choices = ClassChoices(
     type_check=AbsNormalize,
     default="utterance_mvn",
     optional=True,
+)
+model_choices = ClassChoices(
+    "model",
+    classes=dict(
+        espnet=ESPnetASRModel,
+        maskctc=MaskCTCModel,
+    ),
+    type_check=AbsESPnetModel,
+    default="espnet",
 )
 preencoder_choices = ClassChoices(
     name="preencoder",
@@ -122,6 +140,7 @@ encoder_choices = ClassChoices(
         wav2vec2=FairSeqWav2Vec2Encoder,
         hubert=FairseqHubertEncoder,
         hubert_pretrain=FairseqHubertPretrainEncoder,
+        longformer=LongformerEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
@@ -144,6 +163,8 @@ decoder_choices = ClassChoices(
         dynamic_conv=DynamicConvolutionTransformerDecoder,
         dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
         rnn=RNNDecoder,
+        transducer=TransducerDecoder,
+        mlm=MLMDecoder,
     ),
     type_check=AbsDecoder,
     default="rnn",
@@ -162,6 +183,8 @@ class ASRTask(AbsTask):
         specaug_choices,
         # --normalize and --normalize_conf
         normalize_choices,
+        # --model and --model_conf
+        model_choices,
         # --preencoder and --preencoder_conf
         preencoder_choices,
         # --encoder and --encoder_conf
@@ -219,10 +242,10 @@ class ASRTask(AbsTask):
             help="The keyword arguments for CTC class.",
         )
         group.add_argument(
-            "--model_conf",
+            "--joint_net_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ESPnetASRModel),
-            help="The keyword arguments for model class.",
+            default=None,
+            help="The keyword arguments for joint network class.",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
@@ -442,22 +465,39 @@ class ASRTask(AbsTask):
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
 
-        decoder = decoder_class(
-            vocab_size=vocab_size,
-            encoder_output_size=encoder_output_size,
-            **args.decoder_conf,
-        )
+        if args.decoder == "transducer":
+            decoder = decoder_class(
+                vocab_size,
+                embed_pad=0,
+                **args.decoder_conf,
+            )
+
+            joint_network = JointNetwork(
+                vocab_size,
+                encoder.output_size(),
+                decoder.dunits,
+                **args.joint_net_conf,
+            )
+        else:
+            decoder = decoder_class(
+                vocab_size=vocab_size,
+                encoder_output_size=encoder_output_size,
+                **args.decoder_conf,
+            )
+
+            joint_network = None
 
         # 6. CTC
         ctc = CTC(
-            odim=vocab_size, encoder_output_sizse=encoder_output_size, **args.ctc_conf
+            odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
         )
 
-        # 7. RNN-T Decoder (Not implemented)
-        rnnt_decoder = None
-
-        # 8. Build model
-        model = ESPnetASRModel(
+        # 7. Build model
+        try:
+            model_class = model_choices.get_class(args.model)
+        except AttributeError:
+            model_class = model_choices.get_class("espnet")
+        model = model_class(
             vocab_size=vocab_size,
             frontend=frontend,
             specaug=specaug,
@@ -467,13 +507,13 @@ class ASRTask(AbsTask):
             postencoder=postencoder,
             decoder=decoder,
             ctc=ctc,
-            rnnt_decoder=rnnt_decoder,
+            joint_network=joint_network,
             token_list=token_list,
             **args.model_conf,
         )
 
         # FIXME(kamo): Should be done in model?
-        # 9. Initialize
+        # 8. Initialize
         if args.init is not None:
             initialize(model, args.init)
 
