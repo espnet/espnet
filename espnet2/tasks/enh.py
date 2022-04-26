@@ -49,9 +49,11 @@ from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.preprocessor import EnhPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
+from espnet2.utils.types import float_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
@@ -182,7 +184,74 @@ class EnhancementTask(AbsTask):
             "--use_preprocessor",
             type=str2bool,
             default=False,
-            help="Apply preprocessing to data or not",
+            help="Whether to apply preprocessing to data or not",
+        )
+        parser.add_argument(
+            "--speech_volume_normalize",
+            type=float_or_none,
+            default=None,
+            help="Scale the maximum amplitude to the given value.",
+        )
+        parser.add_argument(
+            "--rir_scp",
+            type=str_or_none,
+            default=None,
+            help="The file path of rir scp file.",
+        )
+        parser.add_argument(
+            "--rir_apply_prob",
+            type=float,
+            default=1.0,
+            help="THe probability for applying RIR convolution.",
+        )
+        parser.add_argument(
+            "--noise_scp",
+            type=str_or_none,
+            default=None,
+            help="The file path of noise scp file.",
+        )
+        parser.add_argument(
+            "--noise_apply_prob",
+            type=float,
+            default=1.0,
+            help="The probability applying Noise adding.",
+        )
+        parser.add_argument(
+            "--noise_db_range",
+            type=str,
+            default="13_15",
+            help="The range of noise decibel level.",
+        )
+        parser.add_argument(
+            "--use_reverberant_ref",
+            type=str2bool,
+            default=False,
+            help="Whether to use reverberant speech references "
+            "instead of anechoic ones",
+        )
+        parser.add_argument(
+            "--num_spk",
+            type=int,
+            default=1,
+            help="Number of speakers in the input signal.",
+        )
+        parser.add_argument(
+            "--num_noise_type",
+            type=int,
+            default=1,
+            help="Number of noise types.",
+        )
+        parser.add_argument(
+            "--sample_rate",
+            type=int,
+            default=8000,
+            help="Sampling rate of the data (in Hz).",
+        )
+        parser.add_argument(
+            "--force_single_channel",
+            type=str2bool,
+            default=False,
+            help="Whether to force all data to be single-channel.",
         )
 
         for class_choices in cls.class_choices_list:
@@ -206,7 +275,23 @@ class EnhancementTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
-        retval = None
+        if args.use_preprocessor:
+            retval = EnhPreprocessor(
+                train=train,
+                rir_scp=args.rir_scp,
+                rir_apply_prob=args.rir_apply_prob,
+                noise_scp=args.noise_scp,
+                noise_apply_prob=args.noise_apply_prob,
+                noise_db_range=args.noise_db_range,
+                speech_volume_normalize=args.speech_volume_normalize,
+                use_reverberant_ref=args.use_reverberant_ref,
+                num_spk=args.num_spk,
+                num_noise_type=args.num_noise_type,
+                sample_rate=args.sample_rate,
+                force_single_channel=args.force_single_channel,
+            )
+        else:
+            retval = None
         assert check_return_type(retval)
         return retval
 
