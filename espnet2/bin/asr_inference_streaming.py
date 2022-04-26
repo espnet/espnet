@@ -316,7 +316,7 @@ class Speech2TextStreaming:
             speech, self.frontend_states, is_final=is_final
         )
 
-        if not feats is None:
+        if feats is not None:
             enc, _, self.encoder_states = self.asr_model.encoder(
                 feats,
                 feats_lengths,
