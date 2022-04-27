@@ -413,7 +413,7 @@ def auxiva_iss(
     use_dmc: Optional[bool] = False,
     checkpoints_iter: Optional[List[int]] = None,
     checkpoints_list: Optional[List] = None,
-) -> torch.Tensor:
+) -> Union[torch.Tensor, ComplexTensor]:
 
     """Blind source separation based on independent vector analysis with
     alternating updates of the mixing vectors.
