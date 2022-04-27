@@ -8,7 +8,6 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
-from pprint import pformat
 
 import numpy as np
 import torch
@@ -273,6 +272,12 @@ class BeamSearchTransducer:
         cache_lm = {}
 
         def make_lm_tokens(yseq: List[int]) -> torch.Tensor:
+            """Make LM tokens from a list of tokens
+
+            If the first token is <blank>, then replace it with <sos>.
+            Return token sequence tensor for LM scoring.
+
+            """
             if len(yseq) and yseq[0] == self.blank_id:
                 return torch.LongTensor(
                     [self.sos] + yseq[1:], device=self.decoder.device
@@ -281,6 +286,11 @@ class BeamSearchTransducer:
                 return torch.LongTensor(yseq, device=self.decoder.device)
 
         def clear_lm_cache(hyps):
+            """Clear LM cache
+
+            Keep cache for sequences in input hyps and clear outdated hypothesis.
+
+            """
             keep_yseq = set([tuple(hyp.yseq) for hyp in hyps])
             dump_yseq = [yseq for yseq in cache_lm if yseq not in keep_yseq]
             for yseq in dump_yseq:
@@ -294,12 +304,12 @@ class BeamSearchTransducer:
             if self.token_list is not None:
                 logging.debug(
                     "\n"
-                    + pformat(
+                    + "\n".join(
                         [
                             (
                                 "hypo: "
                                 + "".join([self.token_list[x] for x in hyp.yseq[1:]]),
-                                f"hyp_sc: {round(float(hyp.score), 1)}",
+                                f"score: {round(float(hyp.score), 2)}",
                             )
                             for hyp in sorted(hyps, key=lambda x: x.score, reverse=True)
                         ]
