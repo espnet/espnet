@@ -359,7 +359,7 @@
         <span class="c1"># NOTE(kamo): add_arguments(..., required=True) can&#39;t be used</span>
         <span class="c1"># to provide --print_config mode. Instead of it, do as</span>
         <span class="n">required</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_default</span><span class="p">(</span><span class="s2">&quot;required&quot;</span><span class="p">)</span>
-        <span class="n">required</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;src_token_list&quot;</span><span class="p">,</span> <span class="s2">&quot;token_list&quot;</span><span class="p">]</span>
+        <span class="n">required</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;token_list&quot;</span><span class="p">]</span>
 
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--token_list&quot;</span><span class="p">,</span>

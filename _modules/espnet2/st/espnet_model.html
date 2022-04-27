@@ -206,9 +206,9 @@
         <span class="n">decoder</span><span class="p">:</span> <span class="n">AbsDecoder</span><span class="p">,</span>
         <span class="n">extra_asr_decoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsDecoder</span><span class="p">],</span>
         <span class="n">extra_mt_decoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsDecoder</span><span class="p">],</span>
-        <span class="n">ctc</span><span class="p">:</span> <span class="n">CTC</span><span class="p">,</span>
-        <span class="n">src_vocab_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
-        <span class="n">src_token_list</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[],</span>
+        <span class="n">ctc</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CTC</span><span class="p">],</span>
+        <span class="n">src_vocab_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">src_token_list</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]],</span>
         <span class="n">asr_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">mt_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">mtlalpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
