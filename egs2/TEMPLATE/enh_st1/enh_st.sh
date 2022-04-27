@@ -1439,6 +1439,7 @@ if ! "${skip_eval}"; then
             # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/st_inference.JOB.log \
                 ${python} -m ${st_inference_tool} \
+                    --enh_s2t_task true \
                     --batch_size ${batch_size} \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \

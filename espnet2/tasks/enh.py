@@ -32,6 +32,7 @@ from espnet2.enh.loss.criterions.time_domain import TimeDomainL1
 from espnet2.enh.loss.criterions.time_domain import TimeDomainMSE
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
+from espnet2.enh.loss.wrappers.multilayer_pit_solver import MultiLayerPITSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.separator.asteroid_models import AsteroidModel_Converter
@@ -43,6 +44,7 @@ from espnet2.enh.separator.fasnet_separator import FaSNetSeparator
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.skim_separator import SkiMSeparator
+from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 from espnet2.tasks.abs_task import AbsTask
@@ -75,6 +77,7 @@ separator_choices = ClassChoices(
         fasnet=FaSNetSeparator,
         rnn=RNNSeparator,
         skim=SkiMSeparator,
+        svoice=SVoiceSeparator,
         tcn=TCNSeparator,
         transformer=TransformerSeparator,
         wpe_beamformer=NeuralBeamformer,
@@ -92,7 +95,9 @@ decoder_choices = ClassChoices(
 
 loss_wrapper_choices = ClassChoices(
     name="loss_wrappers",
-    classes=dict(pit=PITSolver, fixed_order=FixedOrderSolver),
+    classes=dict(
+        pit=PITSolver, fixed_order=FixedOrderSolver, multilayer_pit=MultiLayerPITSolver
+    ),
     type_check=AbsLossWrapper,
     default=None,
 )

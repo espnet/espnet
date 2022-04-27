@@ -46,6 +46,9 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
 
         self.permutation_by_enh = permutation_by_enh
         self.calc_enh_loss = calc_enh_loss
+        self.extract_feats_in_collect_stats = (
+            self.s2t_model.extract_feats_in_collect_stats
+        )
 
     def forward(
         self,

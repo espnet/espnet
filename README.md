@@ -77,6 +77,9 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
 - Self-supervised learning representations as features, using upstream models in [S3PRL](https://github.com/s3prl/s3prl) in frontend.
   - Set `frontend` to be `s3prl`
   - Select any upstream model by setting the `frontend_conf` to the corresponding name.
+- Transfer Learning : 
+  - easy usage and transfers from models previously trained by your group, or models from [ESPnet huggingface repository](https://huggingface.co/espnet).
+  - [Documentation](https://github.com/espnet/espnet/tree/master/egs2/mini_an4/asr1/transfer_learning.md) and [toy example runnable on colab](https://github.com/espnet/notebook/blob/master/espnet2_asr_transfer_learning_demo.ipynb).
 - Streaming Transformer/Conformer ASR with blockwise synchronous beam search.
 - Restricted Self-Attention based on [Longformer](https://arxiv.org/abs/2004.05150) as an encoder for long sequences 
 
@@ -148,9 +151,31 @@ Demonstration
 - End-to-end VC based on cascaded ASR+TTS (Baseline system for Voice Conversion Challenge 2020!)
 
 ### SLU: Speech Language Understanding
-- Predicting intent by directly classifying it as one of intent or decoding by character
-- Transformer & RNN based encoder-decoder model
-- Establish SOTA results with spectral augmentation (Performs better than reported results of pretrained model on Fluent Speech Command Dataset)
+- Architecture
+    - Transformer based Encoder
+    - Conformer based Encoder
+    - RNN based Decoder
+    - Transformer based Decoder
+- Support Multitasking with ASR
+    - Predict both intent and ASR transcript
+- Support Multitasking with NLU
+    - Deliberation encoder based 2 pass model
+- Support using pretrained ASR models
+    - Hubert
+    - Wav2vec2
+    - VQ-APC
+    - TERA and more ...
+- Support using pretrained NLP models
+    - BERT
+    - MPNet And more...
+- Various language support
+    - En / Jp / Zn / Nl / And more...
+- Supports using context from previous utterances
+- Supports using other tasks like SE in pipeline manner
+Demonstration
+- Performing noisy spoken language understanding using speech enhancement model followed by spoken language understanding model.  [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/14nCrJ05vJcQX0cJuXjbMVFWUHJ3Wfb6N?usp=sharing)
+- Integrated to [Huggingface Spaces](https://huggingface.co/spaces) with [Gradio](https://github.com/gradio-app/gradio). See SLU demo on multiple languages: [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Siddhant/ESPnet2-SLU)
+
 
 ### SUM: Speech Summarization
 - End to End Speech Summarization Recipe for Instructional Videos using Restricted Self-Attention [[Sharma et al., 2022]](https://arxiv.org/abs/2110.06263)
@@ -531,11 +556,33 @@ You can download converted samples of the cascade ASR+TTS baseline system [here]
 
 ### SLU results
 
-<details><summary>ESPnet2</summary><div>
+<details><summary>expand</summary><div>
 
-- Transformer based SLU for Fluent Speech Command Dataset
 
-In SLU, The objective is to infer the meaning or intent of spoken utterance. The [Fluent Speech Command Dataset](https://fluent.ai/fluent-speech-commands-a-dataset-for-spoken-language-understanding-research/) describes an intent as combination of 3 slot values: action, object and location. You can see baseline results on this dataset [here](https://github.com/espnet/espnet/blob/master/egs2/fsc/asr1/RESULTS.md)
+We list the performance on various SLU tasks and dataset using the metric reported in the original dataset paper
+
+| Task                                                              | Dataset                                                              |    Metric     |     Result     |                                                                              Pretrained Model                                         |
+| ----------------------------------------------------------------- | :-------------: | :-------------: | :-------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| Intent Classification                                                 |     SLURP     |       Acc       |       86.3       |                [link](https://github.com/espnet/espnet/tree/master/egs2/slurp/asr1/README.md)                |
+| Intent Classification                                                   |     FSC     |       Acc       |       99.6       |                [link](https://github.com/espnet/espnet/tree/master/egs2/fsc/asr1/README.md)                |
+| Intent Classification                                                  |     FSC Unseen Speaker Set     |       Acc       |       98.6       |                [link](https://github.com/espnet/espnet/tree/master/egs2/fsc_unseen/asr1/README.md)                |
+| Intent Classification                                                   |     FSC Unseen Utterance Set     |       Acc       |       86.4       |                [link](https://github.com/espnet/espnet/tree/master/egs2/fsc_unseen/asr1/README.md)                |
+| Intent Classification                                                   |     FSC Challenge Speaker Set     |       Acc       |       97.5       |                [link](https://github.com/espnet/espnet/tree/master/egs2/fsc_challenge/asr1/README.md)                |
+| Intent Classification                                                   |     FSC Challenge Utterance Set     |       Acc       |       78.5       |                [link](https://github.com/espnet/espnet/tree/master/egs2/fsc_challenge/asr1/README.md)                |
+| Intent Classification                                                   |     SNIPS     |       F1       |       91.7       |                [link](https://github.com/espnet/espnet/tree/master/egs2/snips/asr1/README.md)                |
+| Intent Classification                                                   |     Grabo (Nl)   |       Acc       |       97.2       |                [link](https://github.com/espnet/espnet/tree/master/egs2/grabo/asr1/README.md)                |
+| Intent Classification                                                   |     CAT SLU MAP (Zn)     |       Acc       |       78.9       |                [link](https://github.com/espnet/espnet/tree/master/egs2/catslu/asr1/README.md)                |
+| Intent Classification                                                  |     Google Speech Commands    |       Acc       |       98.4       |                [link](https://github.com/espnet/espnet/tree/master/egs2/speechcommands/asr1/README.md)                |
+| Slot Filling                                                  |     SLURP     |       SLU-F1       |       71.9       |                [link](https://github.com/espnet/espnet/tree/master/egs2/slurp_entity/asr1/README.md)                |
+| Dialogue  Act Classification                                                 |     Switchboard     |       Acc       |       67.5       |                [link](https://github.com/espnet/espnet/tree/master/egs2/swbd_da/asr1/README.md)                |
+| Dialogue  Act Classification                                                 |     Jdcinal (Jp)    |       Acc       |       67.4       |                [link](https://github.com/espnet/espnet/tree/master/egs2/jdcinal/asr1/README.md)                |
+| Emotion Recognition                                                  |     IEMOCAP     |       Acc       |       69.4       |                [link](https://github.com/espnet/espnet/tree/master/egs2/iemocap/asr1/README.md)                |
+| Emotion Recognition                                                  |     swbd_sentiment     |       Macro F1       |       61.4       |                [link](https://github.com/espnet/espnet/tree/master/egs2/swbd_sentiment/asr1/README.md)                | 
+| Emotion Recognition                                                  |     slue_voxceleb     |       Macro F1       |       44.0       |                [link](https://github.com/espnet/espnet/tree/master/egs2/slue-voxceleb/asr1/README.md)                | 
+
+ 
+If you want to check the results of the other recipes, please check `egs2/<name_of_recipe>/asr1/RESULTS.md`.
+
 
 
 </div></details>
