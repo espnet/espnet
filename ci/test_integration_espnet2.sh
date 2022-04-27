@@ -61,7 +61,6 @@ cd "${cwd}"
 cd ./egs2/mini_an4/tts1
 echo "==== [ESPnet2] TTS ==="
 ./run.sh --ngpu 0 --stage 1 --stop-stage 8 --skip-upload false  --train-args "--max_epoch 1" --python "${python}"
-
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 
@@ -168,9 +167,6 @@ if python3 -c 'import torch as t; from distutils.version import LooseVersion as 
     done
     for f in egs2/*/ssl1/conf/train*.yaml; do
         ${python} -m espnet2.bin.hubert_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
-    done
-    for f in egs2/*/st1/conf/train_st*.yaml; do
-        ${python} -m espnet2.bin.st_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list --src_token_list dummy_token_list
     done
 fi
 
