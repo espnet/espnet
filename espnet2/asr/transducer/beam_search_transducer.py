@@ -1,12 +1,14 @@
 """Search algorithms for Transducer models."""
 
 from dataclasses import dataclass
+import logging
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
+from pprint import pformat
 
 import numpy as np
 import torch
@@ -61,6 +63,8 @@ class BeamSearchTransducer:
         expansion_beta: int = 2,
         score_norm: bool = True,
         nbest: int = 1,
+        sos: int = None,
+        token_list: List[str] = None,
     ):
         """Initialize Transducer search module.
 
@@ -84,6 +88,9 @@ class BeamSearchTransducer:
         """
         self.decoder = decoder
         self.joint_network = joint_network
+
+        self.sos = sos
+        self.token_list = token_list
 
         self.beam_size = beam_size
         self.hidden_size = decoder.dunits
@@ -121,6 +128,8 @@ class BeamSearchTransducer:
         self.use_lm = lm is not None
         self.lm = lm
         self.lm_weight = lm_weight
+        if self.use_lm:
+            assert self.sos is not None, f"Invalid <SOS> token index specified as input"
 
         self.score_norm = score_norm
         self.nbest = nbest
@@ -160,6 +169,15 @@ class BeamSearchTransducer:
         else:
             hyps.sort(key=lambda x: x.score, reverse=True)
 
+        best= hyps[0]
+        logging.info(f"total log probability: {best.score:.2f}")
+        logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
+        if self.token_list is not None:
+            logging.info(
+                "best hypo: "
+                + "".join([self.token_list[x] for x in best.yseq[1:]])
+                + "\n"
+            )
         return hyps[: self.nbest]
 
     def prefix_search(
@@ -244,6 +262,7 @@ class BeamSearchTransducer:
             nbest_hyps: N-best hypothesis.
 
         """
+        logging.info("decoder input length: " + str(enc_out.shape[0]))
         beam = min(self.beam_size, self.vocab_size)
         beam_k = min(beam, (self.vocab_size - 1))
 
@@ -251,11 +270,36 @@ class BeamSearchTransducer:
 
         kept_hyps = [Hypothesis(score=0.0, yseq=[self.blank_id], dec_state=dec_state)]
         cache = {}
+        cache_lm = {}
+
+        def make_lm_tokens(yseq: List[int]) -> torch.Tensor:
+            if len(yseq) and yseq[0] == self.blank_id:
+                return torch.LongTensor([self.sos] + yseq[1:], device=self.decoder.device)
+            else:
+                return torch.LongTensor(yseq, device=self.decoder.device)
+
+        def clear_lm_cache(hyps):
+            keep_yseq = set([tuple(hyp.yseq) for hyp in hyps])
+            dump_yseq = [yseq for yseq in cache_lm if yseq not in keep_yseq]
+            for yseq in dump_yseq: cache_lm.pop(yseq);
 
         for enc_out_t in enc_out:
+            clear_lm_cache(kept_hyps)
             hyps = kept_hyps
             kept_hyps = []
 
+            if self.token_list is not None:
+                logging.debug(
+                    "\n" + pformat(
+                        [
+                            (
+                                "hypo: " + "".join([self.token_list[x] for x in hyp.yseq[1:]]),
+                                f"hyp_sc: {round(float(hyp.score), 1)}", 
+                            )
+                            for  hyp in sorted(hyps, key=lambda x: x.score, reverse=True)
+                        ]
+                    )
+                )
             while True:
                 max_hyp = max(hyps, key=lambda x: x.score)
                 hyps.remove(max_hyp)
@@ -278,9 +322,13 @@ class BeamSearchTransducer:
                 )
 
                 if self.use_lm:
-                    lm_scores, lm_state = self.lm.score(
-                        lm_tokens, max_hyp.lm_state, None
-                    )
+                    if tuple(max_hyp.yseq) not in cache_lm:
+                        lm_scores, lm_state = self.lm.score(
+                            make_lm_tokens(max_hyp.yseq), max_hyp.lm_state, None
+                        )
+                        cache_lm[tuple(max_hyp.yseq)] = (lm_scores, lm_state)
+                    else:
+                        lm_scores, lm_state = cache_lm[tuple(max_hyp.yseq)]
                 else:
                     lm_state = max_hyp.lm_state
 

@@ -142,6 +142,8 @@ class Speech2Text:
                 beam_size=beam_size,
                 lm=scorers["lm"] if "lm" in scorers else None,
                 lm_weight=lm_weight,
+                sos=asr_model.sos,
+                token_list=token_list,
                 **transducer_conf,
             )
             beam_search = None
