@@ -60,14 +60,14 @@ if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
 	asr_tag="transducer_${t}"
 
 	echo "==== [RNN-T] feats_type=raw, token_types=${t}, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-	./run.sh --asr_transducer true --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
+	./run.sh --asr_task "asr_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
 		 --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" --inference_asr_model "valid.loss.best.pth" \
 		 --asr-tag "${asr_tag}_rnn" --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 \
 		 --encoder_conf body_conf='[{'block_type': 'rnn', 'dim_hidden': 30}]' --decoder_conf='{'dim_embedding': 30, 'dim_hidden': 30}' \
 		 --joint_network_conf dim_joint_space=30"
 
 	echo "==== [Conformer-RNN-T] feats_type=raw, token_types=${t}, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-	./run.sh --asr_transducer true --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
+	./run.sh --asr_task "asr_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
 		 --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" --inference_asr_model "valid.loss.best.pth" \
 		 --asr-tag "${asr_tag}_conformer" --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 \
 		 --encoder_conf body_conf='[{'block_type': 'conformer', 'dim_hidden': 30, 'dim_linear': 30, 'heads': 2}]' \
