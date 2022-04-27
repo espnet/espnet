@@ -25,7 +25,7 @@ class DPCLE2ESeparator(AbsSeparator):
         dropout: float = 0.0,
         alpha: float = 5.0,
         max_iteration: int = 500,
-        threshold: float = 1.0e-05
+        threshold: float = 1.0e-05,
     ):
         """Deep Clustering End-to-End Separator
 
