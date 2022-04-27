@@ -61,6 +61,7 @@ cd "${cwd}"
 cd ./egs2/mini_an4/tts1
 echo "==== [ESPnet2] TTS ==="
 ./run.sh --ngpu 0 --stage 1 --stop-stage 8 --skip-upload false  --train-args "--max_epoch 1" --python "${python}"
+
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 
@@ -95,6 +96,16 @@ if python3 -c "import fairseq" &> /dev/null; then
     cd ./egs2/mini_an4/ssl1
     echo "==== [ESPnet2] SSL1/HUBERT ==="
     ./run.sh --ngpu 0 --stage 1 --stop-stage 7 --feats-type "raw" --token_type "word" --skip-upload false --pt-args "--max_epoch=1" --pretrain_start_iter 0 --pretrain_stop_iter 1 --python "${python}"
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data
+    cd "${cwd}"
+fi
+
+# [ESPnet2] test enh_asr1 recipe
+if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
+    cd ./egs2/mini_an4/enh_asr1
+    echo "==== [ESPnet2] ENH_ASR ==="
+    ./run.sh --ngpu 0 --stage 0 --stop-stage 15 --skip-upload_hf false --feats-type "raw" --spk-num 1 --enh_asr_args "--max_epoch=1 --enh_separator_conf num_spk=1" --python "${python}"
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
     cd "${cwd}"
