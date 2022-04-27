@@ -415,42 +415,39 @@ def auxiva_iss(
     checkpoints_list: Optional[List] = None,
 ) -> torch.Tensor:
 
-    """
-    Blind source separation based on independent vector analysis with
-    alternating updates of the mixing vectors
+    """Blind source separation based on independent vector analysis with
+    alternating updates of the mixing vectors.
 
-    Parameters
-    ----------
-    X: Tensor, shape (..., n_channels, n_frequencies, n_frames)
-        STFT representation of the signal
-    n_iter: int, optional
-        The number of iterations (default 20)
-    n_src: int, optional
-        When n_src is less than the number of channels, the n_src most energetic
-        are selected for the output
-    model: SourceModel
-        The model of source distribution (default: Laplace)
-    eps: float
-        A small constant to make divisions and the like numerically stable
-    two_chan_ip2: bool
-        For the 2 channel case, use the more efficient IP2 algorithm (default: True).
-        Ignored when using more than 2 channels.
-    proj_back_mic: int
-        The microphone index to use as a reference when adjusting the scale and delay
-    use_dmc: bool, optional
-        If True, use checkpointing of the demixing matrix to save memory
-    checkpoints_iter: List of int
-        Optionally, we can keep intermediate results for later analysis
-        Should be used together with checkpoints_list
-    checkpoints_list: List
-        An empty list can be passed and the intermediate signals are
-        appended to the list for iterations numbers contained in checkpoints_iter
+    Args:
+        X (torch.Tensor/ComplexTensor): shape (..., n_channels, n_frequencies, n_frames)
+            STFT representation of the signal.
+        n_iter (int) : optional
+            The number of iterations (default 20).
+        n_src (int): optional
+            When n_src is less than the number of channels, the n_src most energetic
+            are selected for the output.
+        model: SourceModel
+            The model of source distribution (default: Laplace).
+        eps (float):
+            A small constant to make divisions and the like numerically stable.
+        two_chan_ip2 (bool):
+            For the 2 channel case, use the more efficient IP2 algorithm (default: True).
+            Ignored when using more than 2 channels.
+        proj_back_mic (int):
+            The microphone index to use as a reference when adjusting the scale and delay.
+        use_dmc (bool): optional
+            If True, use checkpointing of the demixing matrix to save memory
+        checkpoints_iter (List[int]):
+            Optionally, we can keep intermediate results for later analysis.
+            Should be used together with checkpoints_list.
+        checkpoints_list (List):
+            An empty list can be passed and the intermediate signals are
+            appended to the list for iterations numbers contained in checkpoints_iter.
 
-    Returns
-    -------
-    X: Tensor, shape (..., n_channels, n_frequencies, n_frames)
-        STFT representation of the signal after separation
-    """
+    Returns:
+        X (torch.Tensor/ComplexTensor): shape (..., n_channels, n_frequencies, n_frames)
+            STFT representation of the signal after separation.
+    """  # noqa: H405
 
     n_chan, n_freq, n_frames = X.shape[-3:]
 
