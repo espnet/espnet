@@ -565,9 +565,10 @@ class EnhPreprocessor(CommonPreprocessor):
     def _apply_to_all_signals(self, data_dict, func):
         data_dict[self.speech_name] = func(data_dict[self.speech_name])
 
-        noise_name = self.noise_ref_name_prefix + "1"
-        if noise_name in data_dict:
-            data_dict[noise_name] = func(data_dict[noise_name])
+        for n in range(self.num_noise_type):
+            noise_name = self.noise_ref_name_prefix + str(n + 1)
+            if noise_name in data_dict:
+                data_dict[noise_name] = func(data_dict[noise_name])
 
         for spk in range(self.num_spk):
             speech_ref_name = self.speech_ref_name_prefix + str(spk + 1)
@@ -669,7 +670,6 @@ class EnhPreprocessor(CommonPreprocessor):
                 for n in range(1, self.num_noise_type):
                     name = self.noise_ref_name_prefix + str(n + 1)
                     data.pop(name, None)
-                self.num_noise_type = 1
                 data[self.noise_ref_name_prefix + "1"] = noise.T
 
             speech_mix = speech_mix.T
