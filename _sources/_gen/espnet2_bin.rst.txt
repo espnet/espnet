@@ -4502,11 +4502,11 @@ st_inference.py
                            [--lm_train_config LM_TRAIN_CONFIG] [--lm_file LM_FILE]
                            [--word_lm_train_config WORD_LM_TRAIN_CONFIG]
                            [--word_lm_file WORD_LM_FILE] [--ngram_file NGRAM_FILE]
-                           [--model_tag MODEL_TAG] [--batch_size BATCH_SIZE]
-                           [--nbest NBEST] [--beam_size BEAM_SIZE]
-                           [--penalty PENALTY] [--maxlenratio MAXLENRATIO]
-                           [--minlenratio MINLENRATIO] [--lm_weight LM_WEIGHT]
-                           [--ngram_weight NGRAM_WEIGHT]
+                           [--model_tag MODEL_TAG] [--enh_s2t_task ENH_S2T_TASK]
+                           [--batch_size BATCH_SIZE] [--nbest NBEST]
+                           [--beam_size BEAM_SIZE] [--penalty PENALTY]
+                           [--maxlenratio MAXLENRATIO] [--minlenratio MINLENRATIO]
+                           [--lm_weight LM_WEIGHT] [--ngram_weight NGRAM_WEIGHT]
                            [--token_type {char,bpe,None}] [--bpemodel BPEMODEL]
     
     ST Decoding
@@ -4546,6 +4546,8 @@ st_inference.py
                             Pretrained model tag. If specify this option,
                             *_train_config and *_file will be overwritten
                             (default: None)
+      --enh_s2t_task ENH_S2T_TASK
+                            enhancement and asr joint model (default: False)
     
     Beam-search related:
       --batch_size BATCH_SIZE
