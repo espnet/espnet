@@ -343,9 +343,13 @@ To enable online decoding, the argument `--use_streaming true` should be added t
 
 ## Transducer ASR
 
-ESPnet2 supports models trained with the (RNN-)Tranducer loss, aka Transducer models. This kind of model is defined independently from the other ASR models. For that, we rely on `ESPnetASRTransducerModel` instead of `ESPnetASRModel` and a new task called `ASRTransducerTask` is used in place of `ASRTask`.
+> ***Important***: If you encounter any issue related to Transducer loss, please open an issue in [our fork of warp-transducer](https://github.com/b-flo/warp-transducer).
 
-**Note:** For the user, it means two things. One, some features or modules may not be supported depending on the model used. Second, the usage of some common ASR features or modules may differ between the models. In addition, some core modules (e.g.: `preencoder` or `postencoder`) or features (e.g.: streaming) were intentionally removed until further testing, specifically for the Transducer model.
+ESPnet2 supports models trained with the (RNN-)Tranducer loss, aka Transducer models. Currently, two versions of these models exist within ESPnet2: one under `asr` and the other under `asr_transducer`. The first one is designed as a supplement of CTC-Attention ASR models while the second is designed independently and purely for the Transducer task. For that, we rely on `ESPnetASRTransducerModel` instead of `ESPnetASRModel` and a new task called `ASRTransducerTask` is used in place of `ASRTask`.
+
+For the user, it means two things. One, some features or modules may not be supported depending on the version used. Second, the usage of some common ASR features or modules may differ between the models. In addition, some core modules (e.g.: `preencoder` or `postencoder`) or features (e.g.: streaming) were intentionally removed until further notice. New versions are under way.
+
+***The following sections of this tutorial are dedicated to the introduction of the second version***. In that regards, the user should keep in mind that most features described here are not be available in the first version.
 
 ### General usage
 
