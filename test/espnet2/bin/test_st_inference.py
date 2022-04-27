@@ -65,9 +65,7 @@ def st_config_file(tmp_path: Path, token_list, src_token_list):
 
 @pytest.mark.execution_timeout(5)
 def test_Speech2Text(st_config_file):
-    speech2text = Speech2Text(
-        st_train_config=st_config_file, beam_size=1
-    )
+    speech2text = Speech2Text(st_train_config=st_config_file, beam_size=1)
     speech = np.random.randn(1000)
     results = speech2text(speech)
     for text, token, token_int, hyp in results:
@@ -75,5 +73,3 @@ def test_Speech2Text(st_config_file):
         assert isinstance(token[0], str)
         assert isinstance(token_int[0], int)
         assert isinstance(hyp, Hypothesis)
-
-
