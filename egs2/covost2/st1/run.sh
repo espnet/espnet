@@ -91,11 +91,10 @@ fi
 ./st.sh \
     --ngpu 1 \
     --local_data_opts "--stage 0 --src_lang ${src_lang} --tgt_lang ${tgt_lang}" \
-    --speed_perturb_factors ${speed_perturb_factors} \
+    --speed_perturb_factors "${speed_perturb_factors}" \
     --use_lm false \
     --feats_type raw \
     --audio_format "flac.ark" \
-    --use_lm false \
     --token_joint false \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \

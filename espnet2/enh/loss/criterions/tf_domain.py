@@ -5,6 +5,7 @@ from functools import reduce
 
 import torch
 
+from espnet2.enh.layers.complex_utils import complex_norm
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.layers.complex_utils import new_complex_like
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
@@ -15,12 +16,14 @@ is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
-def _create_mask_label(mix_spec, ref_spec, mask_type="IAM"):
+def _create_mask_label(mix_spec, ref_spec, noise_spec=None, mask_type="IAM"):
     """Create mask label.
 
     Args:
         mix_spec: ComplexTensor(B, T, [C,] F)
         ref_spec: List[ComplexTensor(B, T, [C,] F), ...]
+        noise_spec: ComplexTensor(B, T, [C,] F)
+            only used for IBM and IRM
         mask_type: str
     Returns:
         labels: List[Tensor(B, T, [C,] F), ...] or List[ComplexTensor(B, T, F), ...]
@@ -38,16 +41,24 @@ def _create_mask_label(mix_spec, ref_spec, mask_type="IAM"):
         "CIRM",
     ], f"mask type {mask_type} not supported"
     mask_label = []
-    for r in ref_spec:
+    if ref_spec[0].ndim < mix_spec.ndim:
+        # (B, T, F) -> (B, T, 1, F)
+        ref_spec = [r.unsqueeze(2).expand_as(mix_spec.real) for r in ref_spec]
+    for idx, r in enumerate(ref_spec):
         mask = None
         if mask_type == "IBM":
-            flags = [abs(r) >= abs(n) for n in ref_spec]
+            if noise_spec is None:
+                flags = [abs(r) >= abs(n) for n in ref_spec]
+            else:
+                flags = [abs(r) >= abs(n) for n in ref_spec + [noise_spec]]
             mask = reduce(lambda x, y: x * y, flags)
             mask = mask.int()
         elif mask_type == "IRM":
-            # TODO(Wangyou): need to fix this,
-            #  as noise referecens are provided separately
-            mask = abs(r) / (sum(([abs(n) for n in ref_spec])) + EPS)
+            beta = 0.5
+            res_spec = sum(n for i, n in enumerate(ref_spec) if i != idx)
+            if noise_spec is not None:
+                res_spec += noise_spec
+            mask = (abs(r).pow(2) / (abs(res_spec).pow(2) + EPS)).pow(beta)
         elif mask_type == "IAM":
             mask = abs(r) / (abs(mix_spec) + EPS)
             mask = mask.clamp(min=0, max=1)
@@ -82,6 +93,7 @@ def _create_mask_label(mix_spec, ref_spec, mask_type="IAM"):
 
 
 class FrequencyDomainLoss(AbsEnhLoss, ABC):
+    """Base class for all frequence-domain Enhancement loss modules."""
 
     # The loss will be computed on mask or on spectrum
     @property
@@ -95,17 +107,27 @@ class FrequencyDomainLoss(AbsEnhLoss, ABC):
     def mask_type() -> str:
         pass
 
-    def create_mask_label(self, mix_spec, ref_spec):
+    def create_mask_label(self, mix_spec, ref_spec, noise_spec=None):
         return _create_mask_label(
-            mix_spec=mix_spec, ref_spec=ref_spec, mask_type=self.mask_type
+            mix_spec=mix_spec,
+            ref_spec=ref_spec,
+            noise_spec=noise_spec,
+            mask_type=self.mask_type,
         )
 
 
 class FrequencyDomainMSE(FrequencyDomainLoss):
-    def __init__(self, compute_on_mask=False, mask_type="IBM"):
+    def __init__(self, compute_on_mask=False, mask_type="IBM", name=None):
         super().__init__()
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type
+
+        if name is not None:
+            self._name = name
+        elif self.compute_on_mask:
+            self._name = f"MSE_on_{self.mask_type}"
+        else:
+            self._name = "MSE_on_Spec"
 
     @property
     def compute_on_mask(self) -> bool:
@@ -117,10 +139,7 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
 
     @property
     def name(self) -> str:
-        if self.compute_on_mask:
-            return f"MSE_on_{self.mask_type}"
-        else:
-            return "MSE_on_Spec"
+        return self._name
 
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency MSE loss.
@@ -150,10 +169,17 @@ class FrequencyDomainMSE(FrequencyDomainLoss):
 
 
 class FrequencyDomainL1(FrequencyDomainLoss):
-    def __init__(self, compute_on_mask=False, mask_type="IBM"):
+    def __init__(self, compute_on_mask=False, mask_type="IBM", name=None):
         super().__init__()
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type
+
+        if name is not None:
+            self._name = name
+        elif self.compute_on_mask:
+            self._name = f"L1_on_{self.mask_type}"
+        else:
+            self._name = "L1_on_Spec"
 
     @property
     def compute_on_mask(self) -> bool:
@@ -165,10 +191,7 @@ class FrequencyDomainL1(FrequencyDomainLoss):
 
     @property
     def name(self) -> str:
-        if self.compute_on_mask:
-            return f"L1_on_{self.mask_type}"
-        else:
-            return "L1_on_Spec"
+        return self._name
 
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency L1 loss.
@@ -198,3 +221,121 @@ class FrequencyDomainL1(FrequencyDomainLoss):
                 "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
             )
         return l1loss
+
+
+class FrequencyDomainAbsCoherence(FrequencyDomainLoss):
+    def __init__(self, compute_on_mask=False, mask_type=None, name=None):
+        super().__init__()
+        self._compute_on_mask = False
+        self._mask_type = None
+
+        self._name = "Coherence_on_Spec" if name is None else name
+
+    @property
+    def compute_on_mask(self) -> bool:
+        return self._compute_on_mask
+
+    @property
+    def mask_type(self) -> str:
+        return self._mask_type
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def forward(self, ref, inf) -> torch.Tensor:
+        """time-frequency absolute coherence loss.
+
+        Reference:
+            Independent Vector Analysis with Deep Neural Network Source Priors;
+            Li et al 2020; https://arxiv.org/abs/2008.11273
+
+        Args:
+            ref: (Batch, T, F) or (Batch, T, C, F)
+            inf: (Batch, T, F) or (Batch, T, C, F)
+        Returns:
+            loss: (Batch,)
+        """
+        assert ref.shape == inf.shape, (ref.shape, inf.shape)
+
+        if is_complex(ref) and is_complex(inf):
+            # sqrt( E[|inf|^2] * E[|ref|^2] )
+            denom = (
+                complex_norm(ref, dim=1) * complex_norm(inf, dim=1) / ref.size(1) + EPS
+            )
+            coh = (inf * ref.conj()).mean(dim=1).abs() / denom
+            if ref.dim() == 3:
+                coh_loss = 1.0 - coh.mean(dim=1)
+            elif ref.dim() == 4:
+                coh_loss = 1.0 - coh.mean(dim=[1, 2])
+            else:
+                raise ValueError(
+                    "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
+                )
+        else:
+            raise ValueError("`ref` and `inf` must be complex tensors.")
+        return coh_loss
+
+
+class FrequencyDomainCrossEntropy(FrequencyDomainLoss):
+    def __init__(self, compute_on_mask=False, mask_type=None, name=None):
+        super().__init__()
+        self._compute_on_mask = False
+        self._mask_type = None
+
+        if name is not None:
+            self._name = name
+        elif self.compute_on_mask:
+            self._name = f"CE_on_{self.mask_type}"
+        else:
+            self._name = "CE_on_Spec"
+
+    @property
+    def compute_on_mask(self) -> bool:
+        return self._compute_on_mask
+
+    @property
+    def mask_type(self) -> str:
+        return self._mask_type
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def forward(self, ref, inf) -> torch.Tensor:
+        """time-frequency cross-entropy loss.
+
+        Args:
+            ref: (Batch, T) or (Batch, T, C)
+            inf: (Batch, T, nclass) or (Batch, T, C, nclass)
+        Returns:
+            loss: (Batch,)
+        """
+        assert ref.shape[0] == inf.shape[0] and ref.shape[1] == inf.shape[1], (
+            ref.shape,
+            inf.shape,
+        )
+
+        if ref.dim() == 2:
+            loss = torch.nn.functional.cross_entropy(
+                inf.permute(0, 2, 1), ref, reduction="none"
+            ).mean(dim=1)
+        elif ref.dim() == 3:
+            loss = torch.nn.functional.cross_entropy(
+                inf.permute(0, 3, 1, 2), ref, reduction="none"
+            ).mean(dim=[1, 2])
+        else:
+            raise ValueError(
+                "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
+            )
+
+        with torch.no_grad():
+            pred = inf.argmax(-1)
+            acc = (pred == ref).float()
+            if ref.dim() == 2:
+                acc = acc.mean(dim=1)
+            elif ref.dim() == 3:
+                acc = acc.mean(dim=[1, 2])
+            self.stats = {"acc": acc.cpu() * 100}
+
+        return loss

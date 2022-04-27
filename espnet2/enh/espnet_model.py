@@ -88,8 +88,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_ref = torch.stack(speech_ref, dim=1)
 
         if "noise_ref1" in kwargs:
-            # noise signal (optional, required when using
-            # frontend models with beamformering)
+            # noise signal (optional, required when using beamforming-based
+            # frontend models)
             noise_ref = [
                 kwargs["noise_ref{}".format(n + 1)] for n in range(self.num_noise_type)
             ]
@@ -196,10 +196,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             elif isinstance(criterion, FrequencyDomainLoss):
                 # for the time-frequency domain criterions
                 if criterion.compute_on_mask:
-                    # compute on mask
+                    # compute loss on masks
+                    if noise_ref is not None:
+                        noise_spec = self.encoder(noise_ref.sum(1), speech_lengths)[0]
+                    else:
+                        noise_spec = None
                     tf_ref = criterion.create_mask_label(
                         feature_mix,
                         [self.encoder(sr, speech_lengths)[0] for sr in speech_ref],
+                        noise_spec=noise_spec,
                     )
                     tf_pre = [
                         others["mask_spk{}".format(spk + 1)]
@@ -215,6 +220,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     tf_pre = feature_pre
 
                 l, s, o = loss_wrapper(tf_ref, tf_pre, o)
+            else:
+                raise NotImplementedError("Unsupported loss type: %s" % str(criterion))
+
             loss += l * loss_wrapper.weight
             stats.update(s)
 

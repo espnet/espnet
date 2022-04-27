@@ -52,18 +52,16 @@ def test_cat(dim):
         assert complex_module.allclose(ret, ret2)
 
 
-@pytest.mark.parametrize("dim", [0, 1, 2])
+@pytest.mark.parametrize("dim", [None, 0, 1, 2])
 @pytest.mark.skipif(not is_torch_1_9_plus, reason="Require torch 1.9.0+")
 def test_complex_norm(dim):
     mat = ComplexTensor(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
     mat_th = torch.complex(mat.real, mat.imag)
     norm = complex_norm(mat, dim=dim, keepdim=True)
     norm_th = complex_norm(mat_th, dim=dim, keepdim=True)
-    assert (
-        torch.allclose(norm, norm_th)
-        and norm.ndim == mat.ndim
-        and mat.numel() == norm.numel() * mat.size(dim)
-    )
+    assert torch.allclose(norm, norm_th)
+    if dim is not None:
+        assert norm.ndim == mat.ndim and mat.numel() == norm.numel() * mat.size(dim)
 
 
 @pytest.mark.parametrize("real_vec", [True, False])
