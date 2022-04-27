@@ -144,7 +144,6 @@ echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_fe
 rm -rf exp dump data
 cd "${cwd}"
 
-
 # [ESPnet2] Validate configuration files
 echo "<blank>" > dummy_token_list
 echo "==== [ESPnet2] Validation configuration files ==="
