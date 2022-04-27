@@ -306,11 +306,9 @@ class BeamSearchTransducer:
                     "\n"
                     + "\n".join(
                         [
-                            (
-                                "hypo: "
-                                + "".join([self.token_list[x] for x in hyp.yseq[1:]]),
-                                f"score: {round(float(hyp.score), 2)}",
-                            )
+                            "hypo: "
+                            + "".join([self.token_list[x] for x in hyp.yseq[1:]])
+                            + f", score: {round(float(hyp.score), 2)}"
                             for hyp in sorted(hyps, key=lambda x: x.score, reverse=True)
                         ]
                     )
