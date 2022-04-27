@@ -1,10 +1,9 @@
 """Utility functions for Transducer models."""
 
+from typing import List
 from typing import Tuple
 
 import torch
-
-from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 class TooShortUttError(Exception):
@@ -93,6 +92,31 @@ def get_transducer_task_io(
         u_len: Label lengths. (B,)
 
     """
+
+    def pad_list(labels: List[torch.Tensor], padding_value: int = 0):
+        """Create padded batch of labels from a list of labels sequences.
+
+        Args:
+            labels: Labels sequences. [B x (?)]
+            padding_value: Padding value.
+
+        Returns:
+            labels: Batch of padded labels sequences. (B,)
+
+        """
+        batch_size = len(labels)
+
+        padded = (
+            labels[0]
+            .new(batch_size, max(x.size(0) for x in labels), *labels[0].size()[1:])
+            .fill_(padding_value)
+        )
+
+        for i in range(batch_size):
+            padded[i, : labels[i].size(0)] = labels[i]
+
+        return padded
+
     device = labels.device
 
     labels_unpad = [y[y != ignore_id] for y in labels]
