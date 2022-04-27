@@ -15,7 +15,12 @@ from espnet2.lm.transformer_lm import TransformerLM
     [
         {"search_type": "greedy"},
         {"search_type": "default", "score_norm": False, "nbest": 4},
-        {"search_type": "default", "score_norm": False, "nbest": 4, "lm": "TransformerLM"},
+        {
+            "search_type": "default",
+            "score_norm": False,
+            "nbest": 4,
+            "lm": "TransformerLM",
+        },
         {"search_type": "alsd", "u_max": 20},
         {"search_type": "tsd", "max_sym_exp": 3},
         {"search_type": "nsc", "nstep": 2, "lm": None},
