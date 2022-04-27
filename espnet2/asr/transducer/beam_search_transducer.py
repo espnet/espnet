@@ -129,7 +129,7 @@ class BeamSearchTransducer:
         self.lm = lm
         self.lm_weight = lm_weight
         if self.use_lm:
-            assert self.sos is not None, f"Invalid <SOS> token index specified as input"
+            assert self.sos is not None, "Invalid <SOS> token index specified as input"
 
         self.score_norm = score_norm
         self.nbest = nbest
