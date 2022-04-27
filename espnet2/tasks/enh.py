@@ -191,68 +191,68 @@ class EnhancementTask(AbsTask):
             default=False,
             help="Whether to apply preprocessing to data or not",
         )
-        parser.add_argument(
+        group.add_argument(
             "--speech_volume_normalize",
             type=float_or_none,
             default=None,
             help="Scale the maximum amplitude to the given value.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--rir_scp",
             type=str_or_none,
             default=None,
             help="The file path of rir scp file.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--rir_apply_prob",
             type=float,
             default=1.0,
             help="THe probability for applying RIR convolution.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--noise_scp",
             type=str_or_none,
             default=None,
             help="The file path of noise scp file.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--noise_apply_prob",
             type=float,
             default=1.0,
             help="The probability applying Noise adding.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--noise_db_range",
             type=str,
             default="13_15",
             help="The range of noise decibel level.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--use_reverberant_ref",
             type=str2bool,
             default=False,
             help="Whether to use reverberant speech references "
             "instead of anechoic ones",
         )
-        parser.add_argument(
+        group.add_argument(
             "--num_spk",
             type=int,
             default=1,
             help="Number of speakers in the input signal.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--num_noise_type",
             type=int,
             default=1,
             help="Number of noise types.",
         )
-        parser.add_argument(
+        group.add_argument(
             "--sample_rate",
             type=int,
             default=8000,
             help="Sampling rate of the data (in Hz).",
         )
-        parser.add_argument(
+        group.add_argument(
             "--force_single_channel",
             type=str2bool,
             default=False,
@@ -283,17 +283,32 @@ class EnhancementTask(AbsTask):
         if args.use_preprocessor:
             retval = EnhPreprocessor(
                 train=train,
-                rir_scp=args.rir_scp,
-                rir_apply_prob=args.rir_apply_prob,
-                noise_scp=args.noise_scp,
-                noise_apply_prob=args.noise_apply_prob,
-                noise_db_range=args.noise_db_range,
-                speech_volume_normalize=args.speech_volume_normalize,
-                use_reverberant_ref=args.use_reverberant_ref,
-                num_spk=args.num_spk,
-                num_noise_type=args.num_noise_type,
-                sample_rate=args.sample_rate,
-                force_single_channel=args.force_single_channel,
+                # NOTE(kamo): Check attribute existence for backward compatibility
+                rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
+                rir_apply_prob=args.rir_apply_prob
+                if hasattr(args, "rir_apply_prob")
+                else 1.0,
+                noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
+                noise_apply_prob=args.noise_apply_prob
+                if hasattr(args, "noise_apply_prob")
+                else 1.0,
+                noise_db_range=args.noise_db_range
+                if hasattr(args, "noise_db_range")
+                else "13_15",
+                speech_volume_normalize=args.speech_volume_normalize
+                if hasattr(args, "rir_scp")
+                else None,
+                use_reverberant_ref=args.use_reverberant_ref
+                if hasattr(args, "use_reverberant_ref")
+                else None,
+                num_spk=args.num_spk if hasattr(args, "num_spk") else 1,
+                num_noise_type=args.num_noise_type
+                if hasattr(args, "num_noise_type")
+                else 1,
+                sample_rate=args.sample_rate if hasattr(args, "sample_rate") else 8000,
+                force_single_channel=args.force_single_channel
+                if hasattr(args, "force_single_channel")
+                else False,
             )
         else:
             retval = None
