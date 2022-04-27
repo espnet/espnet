@@ -346,6 +346,7 @@ class FrequencyDomainAbsCoherence(FrequencyDomainLoss):
         Reference:
             Independent Vector Analysis with Deep Neural Network Source Priors;
             Li et al 2020; https://arxiv.org/abs/2008.11273
+
         Args:
             ref: (Batch, T, F) or (Batch, T, C, F)
             inf: (Batch, T, F) or (Batch, T, C, F)

@@ -15,6 +15,7 @@ from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
 from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.separator.abs_separator import AbsSeparator
+from espnet2.enh.separator.dan_separator import DANSeparator
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
@@ -135,9 +136,11 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_ref = speech_ref[..., : speech_lengths.max()]
         speech_ref = speech_ref.unbind(dim=1)
         additional = {}
-        additional["feature_ref"] = [
-            self.encoder(r, speech_lengths)[0] for r in speech_ref
-        ]
+        # Additional data is required in Deep Attractor Network
+        if isinstance(self.separator, DANSeparator):
+            additional["feature_ref"] = [
+                self.encoder(r, speech_lengths)[0] for r in speech_ref
+            ]
 
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
