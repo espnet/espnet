@@ -95,6 +95,7 @@ pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
 feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_asr=1           # Number of splitting for lm corpus.
+
 # Upload model related
 hf_repo=
 
@@ -904,6 +905,7 @@ if ! "${skip_train}"; then
             log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
         fi
     fi
+
 
     if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
         _asr_train_dir="${data_feats}/${train_set}"
