@@ -21,6 +21,7 @@ from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainAbsCoherence
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainDPCL
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
@@ -28,6 +29,8 @@ from espnet2.enh.loss.criterions.time_domain import CISDRLoss
 from espnet2.enh.loss.criterions.time_domain import SDRLoss
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.criterions.time_domain import SNRLoss
+from espnet2.enh.loss.criterions.time_domain import TimeDomainL1
+from espnet2.enh.loss.criterions.time_domain import TimeDomainMSE
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.dpcl_solver import DPCLSolver
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
@@ -69,21 +72,21 @@ encoder_choices = ClassChoices(
 separator_choices = ClassChoices(
     name="separator",
     classes=dict(
+        asteroid=AsteroidModel_Converter,
+        conformer=ConformerSeparator,
+        dc_crn=DC_CRNSeparator,
+        dccrn=DCCRNSeparator,
+        dprnn=DPRNNSeparator,
+        fasnet=FaSNetSeparator,
         rnn=RNNSeparator,
         skim=SkiMSeparator,
         svoice=SVoiceSeparator,
         tcn=TCNSeparator,
-        dc_crn=DC_CRNSeparator,
-        dprnn=DPRNNSeparator,
-        dccrn=DCCRNSeparator,
         transformer=TransformerSeparator,
-        conformer=ConformerSeparator,
         dpcl=DPCLSeparator,
         dpcl_e2e=DPCLE2ESeparator,
         dan=DANSeparator,
         wpe_beamformer=NeuralBeamformer,
-        asteroid=AsteroidModel_Converter,
-        fasnet=FaSNetSeparator,
     ),
     type_check=AbsSeparator,
     default="rnn",
@@ -111,13 +114,18 @@ loss_wrapper_choices = ClassChoices(
 criterion_choices = ClassChoices(
     name="criterions",
     classes=dict(
-        snr=SNRLoss,
-        sdr=SDRLoss,
         ci_sdr=CISDRLoss,
+        coh=FrequencyDomainAbsCoherence,
+        sdr=SDRLoss,
         si_snr=SISNRLoss,
-        mse=FrequencyDomainMSE,
+        snr=SNRLoss,
         l1=FrequencyDomainL1,
         dpcl=FrequencyDomainDPCL,
+        l1_fd=FrequencyDomainL1,
+        l1_td=TimeDomainL1,
+        mse=FrequencyDomainMSE,
+        mse_fd=FrequencyDomainMSE,
+        mse_td=TimeDomainMSE,
     ),
     type_check=AbsEnhLoss,
     default=None,

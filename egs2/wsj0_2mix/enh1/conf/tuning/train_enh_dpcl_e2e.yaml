@@ -61,5 +61,6 @@ separator_conf:
     emb_D: 40
     alpha: 5.0
     max_iteration: 100
+    threshold: 1.0e-05
 
 

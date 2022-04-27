@@ -9,7 +9,7 @@ class DPCLSolver(AbsLossWrapper):
         self.weight = weight
 
     def forward(self, ref, inf, others={}):
-        """An naive DPCL solver
+        """A naive DPCL solver
 
         Args:
             ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk
@@ -19,7 +19,7 @@ class DPCLSolver(AbsLossWrapper):
 
         Returns:
             loss: (torch.Tensor): minimum loss with the best permutation
-            stats: dict, for collecting training status
+            stats: (dict), for collecting training status
             others: reserved
         """
         assert "tf_embedding" in others

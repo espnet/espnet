@@ -25,6 +25,7 @@ class DPCLE2ESeparator(AbsSeparator):
         dropout: float = 0.0,
         alpha: float = 5.0,
         max_iteration: int = 500,
+        threshold: float = 1.0e-05
     ):
         """Deep Clustering End-to-End Separator
 
@@ -46,6 +47,7 @@ class DPCLE2ESeparator(AbsSeparator):
             dropout: float, dropout ratio. Default is 0.
             alpha: float, the clustering hardness parameter.
             max_iteration: int, the max iterations of soft kmeans.
+            threshold: float, the threshold to end the soft k-means process.
         """
         super().__init__()
 
@@ -85,6 +87,7 @@ class DPCLE2ESeparator(AbsSeparator):
         self.D = emb_D
         self.alpha = alpha
         self.max_iteration = max_iteration
+        self.threshold = threshold
 
     def forward(
         self,
@@ -148,7 +151,7 @@ class DPCLE2ESeparator(AbsSeparator):
                 ) / (torch.sum(gamma[:, :, i].unsqueeze(2), dim=1) + 1.0e-8)
 
             if (
-                torch.pow(new_centers - centers, 2).sum() < 1.0e-5
+                torch.pow(new_centers - centers, 2).sum() < self.threshold
                 or count > self.max_iteration
             ):
                 break
