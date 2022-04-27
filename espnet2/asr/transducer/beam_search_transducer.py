@@ -169,7 +169,7 @@ class BeamSearchTransducer:
         else:
             hyps.sort(key=lambda x: x.score, reverse=True)
 
-        best= hyps[0]
+        best = hyps[0]
         logging.info(f"total log probability: {best.score:.2f}")
         logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
         if self.token_list is not None:
@@ -274,14 +274,17 @@ class BeamSearchTransducer:
 
         def make_lm_tokens(yseq: List[int]) -> torch.Tensor:
             if len(yseq) and yseq[0] == self.blank_id:
-                return torch.LongTensor([self.sos] + yseq[1:], device=self.decoder.device)
+                return torch.LongTensor(
+                    [self.sos] + yseq[1:], device=self.decoder.device
+                )
             else:
                 return torch.LongTensor(yseq, device=self.decoder.device)
 
         def clear_lm_cache(hyps):
             keep_yseq = set([tuple(hyp.yseq) for hyp in hyps])
             dump_yseq = [yseq for yseq in cache_lm if yseq not in keep_yseq]
-            for yseq in dump_yseq: cache_lm.pop(yseq);
+            for yseq in dump_yseq:
+                cache_lm.pop(yseq)
 
         for enc_out_t in enc_out:
             clear_lm_cache(kept_hyps)
@@ -290,13 +293,15 @@ class BeamSearchTransducer:
 
             if self.token_list is not None:
                 logging.debug(
-                    "\n" + pformat(
+                    "\n"
+                    + pformat(
                         [
                             (
-                                "hypo: " + "".join([self.token_list[x] for x in hyp.yseq[1:]]),
-                                f"hyp_sc: {round(float(hyp.score), 1)}", 
+                                "hypo: "
+                                + "".join([self.token_list[x] for x in hyp.yseq[1:]]),
+                                f"hyp_sc: {round(float(hyp.score), 1)}",
                             )
-                            for  hyp in sorted(hyps, key=lambda x: x.score, reverse=True)
+                            for hyp in sorted(hyps, key=lambda x: x.score, reverse=True)
                         ]
                     )
                 )
