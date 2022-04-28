@@ -1,0 +1,90 @@
+# minibatch related
+batch_type: folded
+batch_size: 32
+accum_grad: 1
+grad_clip: 5
+max_epoch: 50
+patience: none
+# The initialization method for model parameters
+init: xavier_uniform
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+unused_parameters: true
+# SSL-based frontend is fixed during training for training efficiency,
+# however, the gradients are backprogated through frontend to the enhancement.
+freeze_param: [
+    "frontend.upstream"
+]
+
+# network architecture
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: wavlm_large  # Note: If the upstream is changed, please change the input_size in the preencoder.
+    download_dir: ./hub
+    multilayer_feature: True
+
+preencoder: linear
+preencoder_conf:
+    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+    output_size: 128
+
+# encoder related
+encoder: transformer
+encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv2d2
+    normalize_before: true
+
+# decoder related
+decoder: transformer
+decoder_conf:
+    input_layer: embed
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.0
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    extract_feats_in_collect_stats: false
+
+optim: adam
+optim_conf:
+    lr: 0.001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 20000
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 100
+    num_freq_mask: 4
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2
+
