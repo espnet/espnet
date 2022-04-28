@@ -100,40 +100,6 @@ if python3 -c "import fairseq" &> /dev/null; then
     cd "${cwd}"
 fi
 
-# [ESPnet2] test st recipe
-cd ./egs2/mini_an4/st1
-echo "==== [ESPnet2] ST ==="
-./run.sh --stage 1 --stop-stage 1
-feats_types="raw fbank_pitch"
-token_types="bpe char"
-for t in ${feats_types}; do
-    ./run.sh --stage 2 --stop-stage 4 --feats-type "${t}" --python "${python}"
-done
-for t in ${token_types}; do
-    ./run.sh --stage 5 --stop-stage 5 --tgt_token_type "${t}" --src_token_type "${t}" --python "${python}"
-done
-for t in ${feats_types}; do 
-    for t2 in ${token_types}; do
-        echo "==== feats_type=${t}, token_types=${t2} ==="
-        ./run.sh --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --tgt_token_type "${t2}" --src_token_type "${t2}" \
-            --st-args "--max_epoch=1" --lm-args "--max_epoch=1" --inference_args "--beam_size 5" --python "${python}"
-    done
-done
-echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --tgt_token_type "bpe" --src_token_type "bpe" \
-    --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --inference_args "--beam_size 5" --python "${python}" \
-    --st-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1"
-
-echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-./run.sh --use_streaming true --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "raw" --tgt_token_type "bpe" --src_token_type "bpe" \
-    --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --inference_args "--beam_size 5" --python "${python}" \
-    --st-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --encoder=contextual_block_transformer --decoder=transformer
-                --encoder_conf block_size=40 --encoder_conf hop_size=16 --encoder_conf look_ahead=16"
-
-# Remove generated files in order to reduce the disk usage
-rm -rf exp dump data
-cd "${cwd}"
-
 # [ESPnet2] test enh_asr1 recipe
 if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
     cd ./egs2/mini_an4/enh_asr1
