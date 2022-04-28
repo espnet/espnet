@@ -33,7 +33,7 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
-from espnet2.bin.st_md_inference import inference_md 
+from espnet2.bin.st_md_inference import inference_md
 
 
 class Speech2Text:
@@ -68,6 +68,7 @@ class Speech2Text:
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
         nbest: int = 1,
+        st_ctc_weight: float = 0.0,
     ):
         assert check_argument_types()
 
@@ -106,10 +107,16 @@ class Speech2Text:
             ngram = None
         scorers["ngram"] = ngram
 
+        if st_ctc_weight > 0:
+            assert hasattr(st_model, "encoder_hier")
+            st_ctc = CTCPrefixScorer(ctc=st_model.mt_ctc, eos=st_model.eos)
+            scorers.update(ctc=st_ctc)
+
         # 4. Build BeamSearch object
         weights = dict(
             decoder=1.0,
             lm=lm_weight,
+            ctc=st_ctc_weight,
             ngram=ngram_weight,
             length_bonus=penalty,
         )
@@ -283,6 +290,7 @@ def inference(
     penalty: float,
     nbest: int,
     num_workers: int,
+    st_ctc_weight: float,
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
@@ -338,6 +346,7 @@ def inference(
         ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
+        st_ctc_weight=st_ctc_weight,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
