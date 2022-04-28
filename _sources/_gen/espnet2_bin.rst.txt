@@ -1886,7 +1886,7 @@ enh_s2t_train.py
       --subtask_series {enh,asr,st} [{enh,asr,st} ...]
                             The series of subtasks in the pipeline. (default: ('enh', 'asr'))
       --model_conf MODEL_CONF
-                            The keyword arguments for model class. (default: {'permutation_by_enh': True, 'calc_enh_loss': True, 'bypass_enh_prob': 0})
+                            The keyword arguments for model class. (default: {'calc_enh_loss': True, 'bypass_enh_prob': 0})
     
       Preprocess related
     

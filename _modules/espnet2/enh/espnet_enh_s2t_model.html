@@ -185,7 +185,6 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">enh_model</span><span class="p">:</span> <span class="n">ESPnetEnhancementModel</span><span class="p">,</span>
         <span class="n">s2t_model</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">ESPnetASRModel</span><span class="p">,</span> <span class="n">ESPnetSTModel</span><span class="p">],</span>
-        <span class="n">permutation_by_enh</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">calc_enh_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">bypass_enh_prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># 0 means do not bypass enhancement for all data</span>
     <span class="p">):</span>
@@ -197,7 +196,6 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">bypass_enh_prob</span> <span class="o">=</span> <span class="n">bypass_enh_prob</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">permutation_by_enh</span> <span class="o">=</span> <span class="n">permutation_by_enh</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">calc_enh_loss</span> <span class="o">=</span> <span class="n">calc_enh_loss</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">extract_feats_in_collect_stats</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">extract_feats_in_collect_stats</span>
