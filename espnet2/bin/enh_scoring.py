@@ -75,14 +75,17 @@ def scoring(
 
             for i in range(num_spk):
                 stoi_score = stoi(ref[i], inf[int(perm[i])], fs_sig=sample_rate)
+                estoi_score = stoi(
+                    ref[i], inf[int(perm[i])], fs_sig=sample_rate, extended=True
+                )
                 si_snr_score = -float(
                     si_snr_loss(
                         torch.from_numpy(ref[i][None, ...]),
                         torch.from_numpy(inf[int(perm[i])][None, ...]),
                     )
                 )
-
-                writer[f"STOI_spk{i + 1}"][key] = str(stoi_score)
+                writer[f"STOI_spk{i + 1}"][key] = str(stoi_score * 100)  # in percentage
+                writer[f"ESTOI_spk{i + 1}"][key] = str(estoi_score * 100)
                 writer[f"SI_SNR_spk{i + 1}"][key] = str(si_snr_score)
                 writer[f"SDR_spk{i + 1}"][key] = str(sdr[i])
                 writer[f"SAR_spk{i + 1}"][key] = str(sar[i])
