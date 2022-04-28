@@ -226,11 +226,14 @@ class FrequencyDomainL1(FrequencyDomainLoss):
 
 
 class FrequencyDomainDPCL(FrequencyDomainLoss):
-    def __init__(self, compute_on_mask=False, mask_type="IBM", loss_type="dpcl"):
+    def __init__(
+        self, compute_on_mask=False, mask_type="IBM", loss_type="dpcl", name=None
+    ):
         super().__init__()
         self._compute_on_mask = compute_on_mask
         self._mask_type = mask_type
         self._loss_type = loss_type
+        self._name = "dpcl" if name is None else name
 
     @property
     def compute_on_mask(self) -> bool:
@@ -242,7 +245,7 @@ class FrequencyDomainDPCL(FrequencyDomainLoss):
 
     @property
     def name(self) -> str:
-        return "dpcl"
+        return self._name
 
     def forward(self, ref, inf) -> torch.Tensor:
         """time-frequency Deep Clustering loss.
