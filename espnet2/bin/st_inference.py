@@ -202,8 +202,14 @@ class Speech2Text:
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
-        enc, _ = self.st_model.encode(**batch)
+        enc, enc_lens = self.st_model.encode(**batch)
         assert len(enc) == 1, len(enc)
+
+        # hier enc
+        if hasattr(self.st_model, "encoder_hier"):
+            enc_hier, enc_hier_lens, _ = self.st_model.encoder_hier(enc, enc_lens)
+            enc = enc_hier
+            enc_lens = enc_hier_lens
 
         # c. Passed the encoder result and the beam search
         nbest_hyps = self.beam_search(
@@ -291,6 +297,7 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
+    **kwargs
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -610,6 +617,7 @@ def main(cmd=None):
         kwargs.pop("use_multidecoder", None)
         inference_md(**kwargs)
     else:
+        kwargs.pop("use_multidecoder", None)
         inference(**kwargs)
 
 
