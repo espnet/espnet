@@ -7,51 +7,91 @@
 - pytorch version: `pytorch 1.8.1`
 - Git hash: `44971ff962aae30c962226f1ba3d87de057ac00e`
   - Commit date: `Wed Apr 27 10:13:03 2022 -0400`
-- Pretrained model: https://huggingface.co/espnet/simpleoier_chime4_enh_asr_train_enh_asr_convtasnet_fbank_transformer_raw_en_char
 
-## enh_asr_train_enh_asr_convtasnet_fbank_transformer_raw_en_char
+## enh_asr_train_enh_asr_convtasnet_init_noenhloss_wavlm_transformer_init_lr1e-4_accum1_adam_specaug_bypass0_raw_en_char
+- Pretrained model: https://huggingface.co/espnet/simpleoier_chime4_enh_asr_convtasnet_init_noenhloss_wavlm_transformer_init_raw_en_char
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_beamformit_2mics|1640|27119|93.0|5.2|1.8|0.6|7.7|53.3|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_beamformit_5mics|1640|27119|93.9|4.5|1.6|0.5|6.7|49.9|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_isolated_1ch_track|1640|27119|91.8|6.0|2.2|0.8|9.0|57.7|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_beamformit_2mics|1640|27120|92.2|6.0|1.9|0.7|8.6|55.5|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_beamformit_5mics|1640|27120|93.6|4.9|1.5|0.6|7.1|51.6|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_isolated_1ch_track|1640|27120|89.9|7.6|2.4|1.0|11.1|59.7|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_beamformit_2mics|1320|21409|86.7|9.7|3.5|1.3|14.5|64.7|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_beamformit_5mics|1320|21409|89.2|7.9|2.9|1.0|11.8|61.2|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_isolated_1ch_track|1320|21409|84.6|11.4|4.0|1.5|17.0|69.4|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_beamformit_2mics|1320|21416|86.0|10.5|3.5|1.5|15.5|67.5|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_beamformit_5mics|1320|21416|88.1|8.9|3.1|1.2|13.1|64.8|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_isolated_1ch_track|1320|21416|82.8|13.1|4.1|1.9|19.1|69.4|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_isolated_1ch_track|1640|27119|98.3|1.3|0.4|0.2|1.9|21.8|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_beamformit_2mics|1640|27119|98.5|1.2|0.3|0.2|1.7|19.6|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_beamformit_5mics|1640|27119|98.6|1.1|0.3|0.2|1.5|18.7|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_isolated_1ch_track|1640|27120|97.2|2.1|0.7|0.3|3.1|28.9|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_beamformit_2mics|1640|27120|97.9|1.5|0.5|0.2|2.3|25.2|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_beamformit_5mics|1640|27120|98.4|1.2|0.4|0.1|1.7|19.9|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_isolated_1ch_track|1320|21409|96.7|2.6|0.7|0.4|3.7|31.6|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_beamformit_2mics|1320|21409|97.4|2.0|0.6|0.3|2.9|27.3|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_beamformit_5mics|1320|21409|97.8|1.8|0.4|0.2|2.5|24.3|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_isolated_1ch_track|1320|21416|94.6|3.7|1.6|0.5|5.9|37.3|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_beamformit_2mics|1320|21416|96.6|2.5|1.0|0.3|3.7|32.5|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_beamformit_5mics|1320|21416|97.5|1.9|0.7|0.3|2.9|28.9|
 
 ### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_beamformit_2mics|1640|160390|96.6|1.4|2.0|0.6|4.0|53.3|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_beamformit_5mics|1640|160390|97.1|1.1|1.8|0.5|3.4|49.9|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_isolated_1ch_track|1640|160390|95.9|1.7|2.3|0.8|4.8|57.7|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_beamformit_2mics|1640|160400|95.9|1.7|2.3|0.7|4.8|55.5|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_beamformit_5mics|1640|160400|96.8|1.4|1.9|0.6|3.8|51.6|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_isolated_1ch_track|1640|160400|94.7|2.5|2.9|1.0|6.3|59.7|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_beamformit_2mics|1320|126796|92.8|3.2|4.0|1.2|8.4|64.7|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_beamformit_5mics|1320|126796|94.3|2.4|3.3|1.0|6.6|61.2|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_isolated_1ch_track|1320|126796|91.5|3.8|4.6|1.6|10.0|69.4|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_beamformit_2mics|1320|126812|92.2|3.5|4.2|1.7|9.5|67.5|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_beamformit_5mics|1320|126812|93.7|2.7|3.5|1.4|7.7|64.8|
-|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_isolated_1ch_track|1320|126812|90.3|4.8|4.9|2.2|11.9|69.4|
-
-### TER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_isolated_1ch_track|1640|160390|99.4|0.2|0.4|0.2|0.8|21.8|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_beamformit_2mics|1640|160390|99.5|0.2|0.3|0.2|0.7|19.6|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_beamformit_5mics|1640|160390|99.6|0.1|0.3|0.2|0.6|18.7|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_isolated_1ch_track|1640|160400|98.8|0.5|0.7|0.3|1.5|28.9|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_beamformit_2mics|1640|160400|99.2|0.3|0.5|0.2|1.1|25.2|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_beamformit_5mics|1640|160400|99.5|0.2|0.3|0.1|0.7|19.9|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_isolated_1ch_track|1320|126796|98.6|0.6|0.8|0.4|1.8|31.7|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_beamformit_2mics|1320|126796|98.9|0.4|0.7|0.3|1.4|27.3|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_beamformit_5mics|1320|126796|99.1|0.4|0.5|0.2|1.1|24.3|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_isolated_1ch_track|1320|126812|97.0|1.2|1.9|0.6|3.7|37.3|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_beamformit_2mics|1320|126812|98.2|0.6|1.1|0.4|2.1|32.5|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_beamformit_5mics|1320|126812|98.8|0.4|0.8|0.3|1.5|28.9|
 
 ### Enhancement
 
-|dataset|STOI|SAR|SDR|SI_SNR|
-|---|---|---|---|---|
-|dt05_simu_isolated_1ch_track|0.87|7.14|7.14|4.51|
-|et05_simu_isolated_1ch_track|0.85|7.47|7.47|3.02|
+|dataset|STOI|SDR|SI_SNR|
+|---|---|---|---|
+|dt05_simu_isolated_1ch_track|0.86|4.97|1.77|
+|et05_simu_isolated_1ch_track|0.85|5.45|0.88|
+
+
+## enh_asr_train_enh_asr_convtasnet_fbank_transformer_raw_en_char
+- Pretrained model: https://huggingface.co/espnet/simpleoier_chime4_enh_asr_train_enh_asr_convtasnet_fbank_transformer_raw_en_char
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_isolated_1ch_track|1640|27119|91.8|6.0|2.2|0.8|9.0|57.7|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_beamformit_2mics|1640|27119|93.0|5.2|1.8|0.6|7.7|53.3|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_beamformit_5mics|1640|27119|93.9|4.5|1.6|0.5|6.7|49.9|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_isolated_1ch_track|1640|27120|89.9|7.6|2.4|1.0|11.1|59.7|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_beamformit_2mics|1640|27120|92.2|6.0|1.9|0.7|8.6|55.5|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_beamformit_5mics|1640|27120|93.6|4.9|1.5|0.6|7.1|51.6|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_isolated_1ch_track|1320|21409|84.6|11.4|4.0|1.5|17.0|69.4|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_beamformit_2mics|1320|21409|86.7|9.7|3.5|1.3|14.5|64.7|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_beamformit_5mics|1320|21409|89.2|7.9|2.9|1.0|11.8|61.2|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_isolated_1ch_track|1320|21416|82.8|13.1|4.1|1.9|19.1|69.4|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_beamformit_2mics|1320|21416|86.0|10.5|3.5|1.5|15.5|67.5|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_beamformit_5mics|1320|21416|88.1|8.9|3.1|1.2|13.1|64.8|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_isolated_1ch_track|1640|160390|95.9|1.7|2.3|0.8|4.8|57.7|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_beamformit_2mics|1640|160390|96.6|1.4|2.0|0.6|4.0|53.3|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_real_beamformit_5mics|1640|160390|97.1|1.1|1.8|0.5|3.4|49.9|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_isolated_1ch_track|1640|160400|94.7|2.5|2.9|1.0|6.3|59.7|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_beamformit_2mics|1640|160400|95.9|1.7|2.3|0.7|4.8|55.5|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/dt05_simu_beamformit_5mics|1640|160400|96.8|1.4|1.9|0.6|3.8|51.6|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_isolated_1ch_track|1320|126796|91.5|3.8|4.6|1.6|10.0|69.4|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_beamformit_2mics|1320|126796|92.8|3.2|4.0|1.2|8.4|64.7|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_real_beamformit_5mics|1320|126796|94.3|2.4|3.3|1.0|6.6|61.2|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_isolated_1ch_track|1320|126812|90.3|4.8|4.9|2.2|11.9|69.4|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_beamformit_2mics|1320|126812|92.2|3.5|4.2|1.7|9.5|67.5|
+|decode_asr_transformer_normalize_output_wavtrue_lm_lm_train_lm_transformer_en_char_valid.loss.ave_enh_asr_model_valid.acc.ave/et05_simu_beamformit_5mics|1320|126812|93.7|2.7|3.5|1.4|7.7|64.8|
+
+### Enhancement
+
+|dataset|STOI|SDR|SI_SNR|
+|---|---|---|---|
+|dt05_simu_isolated_1ch_track|0.87|7.14|4.51|
+|et05_simu_isolated_1ch_track|0.85|7.47|3.02|
