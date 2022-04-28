@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from distutils.version import LooseVersion
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -10,25 +9,30 @@ import torch
 from torch_complex.tensor import ComplexTensor
 
 from espnet.nets.pytorch_backend.rnn.encoders import RNN
-from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
-
-
-class RNNSeparator(AbsSeparator):
+class DPCLSeparator(AbsSeparator):
     def __init__(
         self,
         input_dim: int,
         rnn_type: str = "blstm",
         num_spk: int = 2,
-        nonlinear: str = "sigmoid",
-        layer: int = 3,
+        nonlinear: str = "tanh",
+        layer: int = 2,
         unit: int = 512,
+        emb_D: int = 40,
         dropout: float = 0.0,
     ):
-        """RNN Separator
+        """Deep Clustering Separator.
+
+        References:
+            [1] Deep clustering: Discriminative embeddings for segmentation and
+                separation; John R. Hershey. et al., 2016;
+                https://ieeexplore.ieee.org/document/7471631
+            [2] Manifold-Aware Deep Clustering: Maximizing Angles Between Embedding
+                Vectors Based on Regular Simplex; Tanaka, K. et al., 2021;
+                https://www.isca-speech.org/archive/interspeech_2021/tanaka21_interspeech.html
 
         Args:
             input_dim: input feature dimension
@@ -39,13 +43,14 @@ class RNNSeparator(AbsSeparator):
                        select from 'relu', 'tanh', 'sigmoid'
             layer: int, number of stacked RNN layers. Default is 3.
             unit: int, dimension of the hidden state.
+            emb_D: int, dimension of the feature vector for a tf-bin.
             dropout: float, dropout ratio. Default is 0.
-        """
+        """  # noqa: E501
         super().__init__()
 
         self._num_spk = num_spk
 
-        self.rnn = RNN(
+        self.blstm = RNN(
             idim=input_dim,
             elayers=layer,
             cdim=unit,
@@ -54,9 +59,7 @@ class RNNSeparator(AbsSeparator):
             typ=rnn_type,
         )
 
-        self.linear = torch.nn.ModuleList(
-            [torch.nn.Linear(unit, input_dim) for _ in range(self.num_spk)]
-        )
+        self.linear = torch.nn.Linear(unit, input_dim * emb_D)
 
         if nonlinear not in ("sigmoid", "relu", "tanh"):
             raise ValueError("Not supporting nonlinear={}".format(nonlinear))
@@ -67,6 +70,8 @@ class RNNSeparator(AbsSeparator):
             "tanh": torch.nn.Tanh(),
         }[nonlinear]
 
+        self.D = emb_D
+
     def forward(
         self,
         input: Union[torch.Tensor, ComplexTensor],
@@ -76,7 +81,7 @@ class RNNSeparator(AbsSeparator):
         """Forward.
 
         Args:
-            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, N]
+            input (torch.Tensor or ComplexTensor): Encoded feature [B, T, F]
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data included in model
                 NOTE: not used in this model
@@ -84,33 +89,50 @@ class RNNSeparator(AbsSeparator):
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]
             ilens (torch.Tensor): (B,)
-            others predicted data, e.g. masks: OrderedDict[
-                'mask_spk1': torch.Tensor(Batch, Frames, Freq),
-                'mask_spk2': torch.Tensor(Batch, Frames, Freq),
-                ...
-                'mask_spkn': torch.Tensor(Batch, Frames, Freq),
+            others predicted data, e.g. tf_embedding: OrderedDict[
+                'tf_embedding': learned embedding of all T-F bins (B, T * F, D),
             ]
         """
-
         # if complex spectrum,
-        if is_complex(input):
+        if isinstance(input, ComplexTensor):
             feature = abs(input)
         else:
             feature = input
+        B, T, F = input.shape
+        # x:(B, T, F)
+        x, ilens, _ = self.blstm(feature, ilens)
+        # x:(B, T, F*D)
+        x = self.linear(x)
+        # x:(B, T, F*D)
+        x = self.nonlinear(x)
+        tf_embedding = x.view(B, -1, self.D)
 
-        x, ilens, _ = self.rnn(feature, ilens)
-
-        masks = []
-
-        for linear in self.linear:
-            y = linear(x)
-            y = self.nonlinear(y)
-            masks.append(y)
-
-        masked = [input * m for m in masks]
+        if self.training:
+            masked = None
+        else:
+            # K-means for batch
+            centers = tf_embedding[:, : self._num_spk, :].detach()
+            dist = torch.empty(B, T * F, self._num_spk, device=tf_embedding.device)
+            last_label = torch.zeros(B, T * F, device=tf_embedding.device)
+            while True:
+                for i in range(self._num_spk):
+                    dist[:, :, i] = torch.sum(
+                        (tf_embedding - centers[:, i, :].unsqueeze(1)) ** 2, dim=2
+                    )
+                label = dist.argmin(dim=2)
+                if torch.sum(label != last_label) == 0:
+                    break
+                last_label = label
+                for b in range(B):
+                    for i in range(self._num_spk):
+                        centers[b, i] = tf_embedding[b, label[b] == i].mean(dim=0)
+            label = label.view(B, T, F)
+            masked = []
+            for i in range(self._num_spk):
+                masked.append(input * (label == i))
 
         others = OrderedDict(
-            zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
+            {"tf_embedding": tf_embedding},
         )
 
         return masked, ilens, others
