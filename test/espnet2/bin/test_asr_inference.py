@@ -115,9 +115,9 @@ def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
     asr_train_config = yaml.full_load(asr_train_config)
     asr_train_config["frontend"] = "default"
     asr_train_config["encoder_conf"] = {
-         "look_ahead": 16,
-         "hop_size": 16,
-         "block_size": 40,
+        "look_ahead": 16,
+        "hop_size": 16,
+        "block_size": 40,
     }
     # Change the configuration file
     with open(asr_config_file_streaming, "w", encoding="utf-8") as files:
