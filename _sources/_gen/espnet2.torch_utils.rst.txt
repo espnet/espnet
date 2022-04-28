@@ -4,23 +4,45 @@ espnet2.torch_utils package
 
 
 
-.. _espnet2.torch_utils.device_funcs:
+.. _espnet2.torch_utils.forward_adaptor:
 
-espnet2.torch_utils.device_funcs
---------------------------------
+espnet2.torch_utils.forward_adaptor
+-----------------------------------
 
-.. automodule:: espnet2.torch_utils.device_funcs
+.. automodule:: espnet2.torch_utils.forward_adaptor
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.torch_utils.add_gradient_noise:
+.. _espnet2.torch_utils.model_summary:
 
-espnet2.torch_utils.add_gradient_noise
---------------------------------------
+espnet2.torch_utils.model_summary
+---------------------------------
 
-.. automodule:: espnet2.torch_utils.add_gradient_noise
+.. automodule:: espnet2.torch_utils.model_summary
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.torch_utils.initialize:
+
+espnet2.torch_utils.initialize
+------------------------------
+
+.. automodule:: espnet2.torch_utils.initialize
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.torch_utils.pytorch_version:
+
+espnet2.torch_utils.pytorch_version
+-----------------------------------
+
+.. automodule:: espnet2.torch_utils.pytorch_version
     :members:
     :undoc-members:
     :show-inheritance:
@@ -48,6 +70,17 @@ espnet2.torch_utils.recursive_op
     :show-inheritance:
 
 
+.. _espnet2.torch_utils.add_gradient_noise:
+
+espnet2.torch_utils.add_gradient_noise
+--------------------------------------
+
+.. automodule:: espnet2.torch_utils.add_gradient_noise
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.torch_utils.load_pretrained_model:
 
 espnet2.torch_utils.load_pretrained_model
@@ -59,12 +92,12 @@ espnet2.torch_utils.load_pretrained_model
     :show-inheritance:
 
 
-.. _espnet2.torch_utils.model_summary:
+.. _espnet2.torch_utils.device_funcs:
 
-espnet2.torch_utils.model_summary
----------------------------------
+espnet2.torch_utils.device_funcs
+--------------------------------
 
-.. automodule:: espnet2.torch_utils.model_summary
+.. automodule:: espnet2.torch_utils.device_funcs
     :members:
     :undoc-members:
     :show-inheritance:
@@ -76,39 +109,6 @@ espnet2.torch_utils.__init__
 ----------------------------
 
 .. automodule:: espnet2.torch_utils.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.torch_utils.pytorch_version:
-
-espnet2.torch_utils.pytorch_version
------------------------------------
-
-.. automodule:: espnet2.torch_utils.pytorch_version
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.torch_utils.initialize:
-
-espnet2.torch_utils.initialize
-------------------------------
-
-.. automodule:: espnet2.torch_utils.initialize
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.torch_utils.forward_adaptor:
-
-espnet2.torch_utils.forward_adaptor
------------------------------------
-
-.. automodule:: espnet2.torch_utils.forward_adaptor
     :members:
     :undoc-members:
     :show-inheritance:
