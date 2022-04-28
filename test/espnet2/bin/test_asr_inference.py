@@ -149,7 +149,7 @@ def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
     # Test edge case
     file = open(asr_config_file_streaming, "r", encoding="utf-8")
     asr_train_config = file.read()
-    asr_train_config = yaml.load(asr_train_config)
+    asr_train_config = yaml.full_load(asr_train_config)
     asr_train_config["frontend"] = "default"
     asr_train_config["frontend_conf"] = {
         "n_fft": 256,
