@@ -134,6 +134,9 @@ if python3 -c 'import torch as t; from distutils.version import LooseVersion as 
     for f in egs2/*/ssl1/conf/train*.yaml; do
         ${python} -m espnet2.bin.hubert_train --config "${f}" --iterator_type none --normalize none --dry_run true --output_dir out --token_list dummy_token_list
     done
+    for f in egs2/*/enh_asr1/conf/train_enh_asr*.yaml; do
+        ${python} -m espnet2.bin.enh_s2t_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
+    done
 fi
 
 # These files must be same each other.
