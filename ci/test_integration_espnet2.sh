@@ -100,16 +100,6 @@ if python3 -c "import fairseq" &> /dev/null; then
     cd "${cwd}"
 fi
 
-# [ESPnet2] test enh_asr1 recipe
-if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
-    cd ./egs2/mini_an4/enh_asr1
-    echo "==== [ESPnet2] ENH_ASR ==="
-    ./run.sh --ngpu 0 --stage 0 --stop-stage 15 --skip-upload_hf false --feats-type "raw" --spk-num 1 --enh_asr_args "--max_epoch=1 --enh_separator_conf num_spk=1" --python "${python}"
-    # Remove generated files in order to reduce the disk usage
-    rm -rf exp dump data
-    cd "${cwd}"
-fi
-
 # [ESPnet2] test st recipe
 cd ./egs2/mini_an4/st1
 echo "==== [ESPnet2] ST ==="
@@ -143,6 +133,16 @@ echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_fe
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"
+
+# [ESPnet2] test enh_asr1 recipe
+if python -c 'import torch as t; from distutils.version import LooseVersion as L; assert L(t.__version__) >= L("1.2.0")' &> /dev/null;  then
+    cd ./egs2/mini_an4/enh_asr1
+    echo "==== [ESPnet2] ENH_ASR ==="
+    ./run.sh --ngpu 0 --stage 0 --stop-stage 15 --skip-upload_hf false --feats-type "raw" --spk-num 1 --enh_asr_args "--max_epoch=1 --enh_separator_conf num_spk=1" --python "${python}"
+    # Remove generated files in order to reduce the disk usage
+    rm -rf exp dump data
+    cd "${cwd}"
+fi
 
 # [ESPnet2] Validate configuration files
 echo "<blank>" > dummy_token_list
