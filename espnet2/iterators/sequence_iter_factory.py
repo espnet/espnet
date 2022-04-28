@@ -1,3 +1,5 @@
+from functools import partial
+import random
 from typing import Any
 from typing import Sequence
 from typing import Union
@@ -8,6 +10,13 @@ from typeguard import check_argument_types
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.samplers.abs_sampler import AbsSampler
+
+
+def worker_init_fn(worker_id, base_seed=0):
+    """Set random seed for each worker in DataLoader."""
+    seed = base_seed + worker_id
+    random.seed(seed)
+    np.random.seed(seed)
 
 
 class RawSampler(AbsSampler):
@@ -139,5 +148,6 @@ class SequenceIterFactory(AbsIterFactory):
             batch_sampler=batches,
             num_workers=self.num_workers,
             pin_memory=self.pin_memory,
+            worker_init_fn=partial(worker_init_fn, base_seed=epoch + self.seed),
             **kwargs,
         )
