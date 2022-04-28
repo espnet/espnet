@@ -572,7 +572,8 @@ class EnhPreprocessor(CommonPreprocessor):
 
         for spk in range(self.num_spk):
             speech_ref_name = self.speech_ref_name_prefix + str(spk + 1)
-            data_dict[speech_ref_name] = func(data_dict[speech_ref_name])
+            if self.train or speech_ref_name in data_dict:
+                data_dict[speech_ref_name] = func(data_dict[speech_ref_name])
 
             dereverb_ref_name = self.dereverb_ref_name_prefix + str(spk + 1)
             if dereverb_ref_name in data_dict:
