@@ -554,13 +554,18 @@ class EnhPreprocessor(CommonPreprocessor):
             # (Nmic, Time)
             return signal[None, :] if signal.ndim == 1 else signal.T
 
-    def _get_early_signal(self, speech, rir):
+    def _get_early_signal(self, speech, rir, power):
         predelay = 50  # milliseconds
         dt = np.argmax(rir, axis=1).min()
         et = dt + (predelay * self.sample_rate) // 1000
         rir_early = rir[:, :et]
-        speech2 = scipy.signal.convolve(speech, rir_early, mode="full")
-        return speech2[:, : speech.shape[1]]
+        speech2 = scipy.signal.convolve(speech, rir_early, mode="full")[
+            :, : speech.shape[1]
+        ]
+        # Reverse mean power to the original power
+        power2 = (speech2[detect_non_silence(speech2)] ** 2).mean()
+        speech2 = np.sqrt(power / max(power2, 1e-10)) * speech2
+        return speech2
 
     def _apply_to_all_signals(self, data_dict, func):
         data_dict[self.speech_name] = func(data_dict[self.speech_name])
@@ -640,7 +645,7 @@ class EnhPreprocessor(CommonPreprocessor):
                             if spk == 0 or len(dereverb_speech_ref) > 1:
                                 dereverb_name = self.dereverb_ref_name_prefix + suffix
                                 data[dereverb_name] = self._get_early_signal(
-                                    speech_ref[spk], rir_ref[spk]
+                                    speech_ref[spk], rir_ref[spk], power_ref[spk]
                                 ).T
                 else:
                     for spk in range(self.num_spk):
@@ -648,7 +653,7 @@ class EnhPreprocessor(CommonPreprocessor):
                         speech_ref_name = self.speech_ref_name_prefix + suffix
                         # clean speech with early reflections (Time, Nmic)
                         data[speech_ref_name] = self._get_early_signal(
-                            speech_ref[spk], rir_ref[spk]
+                            speech_ref[spk], rir_ref[spk], power_ref[spk]
                         ).T
 
                         if dereverb_speech_ref is not None:
