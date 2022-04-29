@@ -310,9 +310,10 @@ class BeamSearchTransducer:
                         lm_scores, lm_state = self.lm.score(
                             torch.LongTensor(
                                 [self.sos] + max_hyp.yseq[1:],
-                                device=self.decoder.device
+                                device=self.decoder.device,
                             ),
-                            max_hyp.lm_state, None
+                            max_hyp.lm_state,
+                            None,
                         )
                         cache_lm[tuple(max_hyp.yseq)] = (lm_scores, lm_state)
                     else:
