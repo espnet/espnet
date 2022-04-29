@@ -62,7 +62,6 @@ class BeamSearchTransducer:
         expansion_beta: int = 2,
         score_norm: bool = True,
         nbest: int = 1,
-        sos: int = None,
         token_list: List[str] = None,
     ):
         """Initialize Transducer search module.
@@ -88,12 +87,12 @@ class BeamSearchTransducer:
         self.decoder = decoder
         self.joint_network = joint_network
 
-        self.sos = sos
-        self.token_list = token_list
-
         self.beam_size = beam_size
         self.hidden_size = decoder.dunits
         self.vocab_size = decoder.odim
+
+        self.sos = self.vocab_size - 1
+        self.token_list = token_list
 
         self.blank_id = decoder.blank_id
 
@@ -127,8 +126,6 @@ class BeamSearchTransducer:
         self.use_lm = lm is not None
         self.lm = lm
         self.lm_weight = lm_weight
-        if self.use_lm:
-            assert self.sos is not None, "Invalid <SOS> token index specified as input"
 
         self.score_norm = score_norm
         self.nbest = nbest
@@ -271,33 +268,7 @@ class BeamSearchTransducer:
         cache = {}
         cache_lm = {}
 
-        def make_lm_tokens(yseq: List[int]) -> torch.Tensor:
-            """Make LM tokens from a list of tokens
-
-            If the first token is <blank>, then replace it with <sos>.
-            Return token sequence tensor for LM scoring.
-
-            """
-            if len(yseq) and yseq[0] == self.blank_id:
-                return torch.LongTensor(
-                    [self.sos] + yseq[1:], device=self.decoder.device
-                )
-            else:
-                return torch.LongTensor(yseq, device=self.decoder.device)
-
-        def clear_lm_cache(hyps):
-            """Clear LM cache
-
-            Keep cache for sequences in input hyps and clear outdated hypothesis.
-
-            """
-            keep_yseq = set([tuple(hyp.yseq) for hyp in hyps])
-            dump_yseq = [yseq for yseq in cache_lm if yseq not in keep_yseq]
-            for yseq in dump_yseq:
-                cache_lm.pop(yseq)
-
         for enc_out_t in enc_out:
-            clear_lm_cache(kept_hyps)
             hyps = kept_hyps
             kept_hyps = []
 
@@ -337,7 +308,11 @@ class BeamSearchTransducer:
                 if self.use_lm:
                     if tuple(max_hyp.yseq) not in cache_lm:
                         lm_scores, lm_state = self.lm.score(
-                            make_lm_tokens(max_hyp.yseq), max_hyp.lm_state, None
+                            torch.LongTensor(
+                                [self.sos] + max_hyp.yseq[1:],
+                                device=self.decoder.device
+                            ),
+                            max_hyp.lm_state, None
                         )
                         cache_lm[tuple(max_hyp.yseq)] = (lm_scores, lm_state)
                     else:

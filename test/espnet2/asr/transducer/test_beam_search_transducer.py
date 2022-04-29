@@ -53,7 +53,6 @@ def test_transducer_beam_search(rnn_type, search_params):
         joint_net,
         beam_size=beam_size,
         lm=lm,
-        sos=vocab_size - 1,
         token_list=token_list,
         **search_params,
     )
