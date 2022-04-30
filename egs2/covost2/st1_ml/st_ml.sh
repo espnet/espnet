@@ -96,6 +96,7 @@ st_tag=        # Suffix to the result dir for st model training.
 st_exp=        # Specify the directory path for ST experiment.
                # If this option is specified, st_tag is ignored.
 st_stats_dir=  # Specify the directory path for ST statistics.
+stats_tag=     # Suffix to the stats dir for st model training.
 st_config=     # Config for st model training.
 st_args=       # Arguments for st model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in st config.
@@ -250,7 +251,6 @@ Options:
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
     --cleaner       # Text cleaner (default="${cleaner}").
     --g2p           # g2p method (default="${g2p}").
-    --lang          # The language type of corpus (default=${lang}).
     --score_opts             # The options given to sclite scoring (default="{score_opts}").
     --local_score_opts       # The options given to local/score.sh (default="{local_score_opts}").
     --st_speech_fold_length # fold_length for speech data during ST training (default="${st_speech_fold_length}").
@@ -390,8 +390,8 @@ if [ -z "${st_tag}" ]; then
     else
         st_tag="train_${feats_type}"
     fi
-    if [ "${lang}" != noinfo ]; then
-        st_tag+="_${lang}_${tgt_token_type}_${tgt_case}"
+    if [ "${lang_pairs}" != noinfo ]; then
+        st_tag+="_${lang_pairs}_${tgt_token_type}_${tgt_case}"
     else
         st_tag+="_${tgt_token_type}_${tgt_case}"
     fi
@@ -412,8 +412,8 @@ if [ -z "${lm_tag}" ]; then
     else
         lm_tag="train"
     fi
-    if [ "${lang}" != noinfo ]; then
-        lm_tag+="_${lang}_${lm_token_type}"
+    if [ "${lang_pairs}" != noinfo ]; then
+        lm_tag+="_${lang_pairs}_${lm_token_type}"
     else
         lm_tag+="_${lm_token_type}"
     fi
@@ -428,8 +428,8 @@ fi
 
 # The directory used for collect-stats mode
 if [ -z "${st_stats_dir}" ]; then
-    if [ "${lang}" != noinfo ]; then
-        st_stats_dir="${expdir}/st_stats_${feats_type}_${lang}_${tgt_token_type}"
+    if [ "${lang_pairs}" != noinfo ]; then
+        st_stats_dir="${expdir}/st_stats_${feats_type}_${lang_pairs}_${tgt_token_type}"
     else
         st_stats_dir="${expdir}/st_stats_${feats_type}_${tgt_token_type}"
     fi
@@ -439,10 +439,13 @@ if [ -z "${st_stats_dir}" ]; then
     if [ -n "${speed_perturb_factors}" ]; then
         st_stats_dir+="_sp"
     fi
+    if [ ! -z "${stats_tag}" ]; then
+        st_stats_dir+="_${stats_tag}"
+    fi
 fi
 if [ -z "${lm_stats_dir}" ]; then
-    if [ "${lang}" != noinfo ]; then
-        lm_stats_dir="${expdir}/lm_stats_${lang}_${lm_token_type}"
+    if [ "${lang_pairs}" != noinfo ]; then
+        lm_stats_dir="${expdir}/lm_stats_${lang_pairs}_${lm_token_type}"
     else
         lm_stats_dir="${expdir}/lm_stats_${lm_token_type}"
     fi

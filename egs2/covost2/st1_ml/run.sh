@@ -46,7 +46,6 @@ speed_perturb_factors="0.9 1.0 1.1"
 
 ./st_ml.sh \
     --ngpu 1 \
-    --run_multilingual true \
     --local_data_opts "--stage 5 --lang_pairs ${lang_pairs}" \
     --speed_perturb_factors "${speed_perturb_factors}" \
     --use_lm false \
