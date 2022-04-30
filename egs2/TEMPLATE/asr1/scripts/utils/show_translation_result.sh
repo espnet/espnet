@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 mindepth=0
-maxdepth=3
+maxdepth=1
 case=tc
 
 . utils/parse_options.sh
@@ -44,24 +44,27 @@ cat << EOF
 
 EOF
 
+# only show BLEU score for now
 metrics="bleu"
-
 while IFS= read -r expdir; do
     if ls "${expdir}"/*/*/score_*/result.${case}.txt &> /dev/null; then
         echo "## $(basename ${expdir})"
-        for type in $metrics; do
-                	cat << EOF
+        for type in ${metrics}; do
+            cat << EOF
+
 ### ${type^^}
 
-|dataset|bleu_score|verbose_score|
+|dataset|score|verbose_score|
 |---|---|---|
 EOF
-    data=$(echo "${expdir}"/*/*/score_*/result.${case}.txt | cut -d '/' -f4)
-    bleu=$(sed -n '5p' "${expdir}"/*/*/score_*/result.${case}.txt | cut -d ' ' -f 3 | tr -d ',')
-    verbose=$(sed -n '7p' "${expdir}"/*/*/score_*/result.${case}.txt | cut -d ' ' -f 3- | tr -d '",')
-    echo "${data}|${bleu}|${verbose}"
 
+            for result in ${expdir}/*/*/score_${type}/result.${case}.txt; do
+                inference_tag=$(echo "${result}" | rev | cut -d/ -f4 | rev)
+                test_set=$(echo "${result}" | rev | cut -d/ -f3 | rev)
+                score=$(sed -n '5p' "${result}" | cut -d ' ' -f 3 | tr -d ',')
+                verbose=$(sed -n '7p' "${result}" | cut -d ' ' -f 3- | tr -d '",')
+                echo "|${inference_tag}/${test_set}|${score}|${verbose}|"
+            done
         done
     fi
-
 done < <(find ${exp} -mindepth ${mindepth} -maxdepth ${maxdepth} -type d)
