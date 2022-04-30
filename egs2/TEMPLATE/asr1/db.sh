@@ -13,6 +13,8 @@ DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
 DNS=
+DNS2=
+DNS3=
 DSING=downloads
 WSJ0=
 WSJ1=
@@ -44,6 +46,7 @@ LIBRILIGHT_LIMITED=
 FSC=
 SLURP=
 VOXCELEB=
+MEDIASPEECH=downloads
 MINI_LIBRISPEECH=downloads
 MISP2021=
 LIBRIMIX=downloads
@@ -137,6 +140,7 @@ MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
+HARPERVALLEY=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
@@ -214,6 +218,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     FSC=
     SNIPS= # smart-light-en-closed-field data path
     SLURP=
+    MEDIASPEECH=downloads
     MINI_LIBRISPEECH=downloads
     LIBRITTS=
     LJSPEECH=downloads
