@@ -58,7 +58,7 @@ while IFS= read -r expdir; do
 |---|---|---|
 EOF
 
-            for result in "${expdir}"/*/*/"score_${type}"/"result.${case}.txt"; do
+            for result in "${expdir}"/*/*/score_${type}/result.${case}.txt; do
                 inference_tag=$(echo "${result}" | rev | cut -d/ -f4 | rev)
                 test_set=$(echo "${result}" | rev | cut -d/ -f3 | rev)
                 score=$(sed -n '5p' "${result}" | cut -d ' ' -f 3 | tr -d ',')
