@@ -128,6 +128,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     extra_files+="text.lc.rm.src text.lc.rm.tgt "
     extra_files+="text.tc.src text.tc.tgt "
     extra_files+="src_file.txt tgt_file.txt"
+
     for set in train dev test; do
         data_dirs=
         for lang_pair in $(echo ${lang_pairs} | tr '_' ' '); do
@@ -145,9 +146,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             awk -v token="<${src_lang}>" '{$2=token; print}' ${data_dir}/utt2spk > ${data_dir}/src_file.txt
             awk -v token="<${tgt_lang}>" '{$2=token; print}' ${data_dir}/utt2spk > ${data_dir}/tgt_file.txt
 
+            if [ "${set}" = "dev" ] || [ "${set}" = "test" ]; then
+                utils/combine_data.sh --extra-files "${extra_files}" data/${set}.${lang_pair} ${data_dir}
+            fi
+
             data_dirs+="${data_dir} "
         done
-        utils/combine_data.sh --extra-files "${extra_files}" data/${set}.${lang_pairs} ${data_dirs}
+        if [ "${set}" = "train" ] || [ "${set}" = "dev" ]; then
+            utils/combine_data.sh --extra-files "${extra_files}" data/${set}.${lang_pairs} ${data_dirs}
+        fi
     done
 fi
 
