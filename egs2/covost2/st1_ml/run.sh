@@ -40,6 +40,7 @@ train_dev=dev.${lang_pairs}
 test_sets=
 for lang_pair in $(echo ${lang_pairs} | tr '_' ' '); do
     test_sets+="test.${lang_pair} dev.${lang_pair} "
+done
 
 st_config=conf/tuning/train_transformer_st.yaml 
 inference_config=conf/decode_st.yaml
