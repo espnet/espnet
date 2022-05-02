@@ -33,7 +33,7 @@ lang_pairs="es2en_es2pt" # src2tgt_src2tgt_....
 src_nbpe=1000
 tgt_nbpe=1000
 src_case=lc.rm
-tgt_case=lc.rm
+tgt_case=tc
 
 train_set=train.${lang_pairs}
 train_dev=dev.${lang_pairs}
