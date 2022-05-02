@@ -4,7 +4,7 @@
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 set -e
 set -u
-set -o pipefailf
+set -o pipefail
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
