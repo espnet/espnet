@@ -242,7 +242,10 @@ class Speech2Text:
             assert isinstance(hyp, Hypothesis), type(hyp)
 
             # remove sos/eos and get results
-            token_int = hyp.yseq[1:-1].tolist()
+            if tgt_tag is None:
+                token_int = hyp.yseq[1:-1].tolist()
+            else:
+                token_int = hyp.yseq[2:-1].tolist()
 
             # remove blank symbol id, which is assumed to be 0
             token_int = list(filter(lambda x: x != 0, token_int))

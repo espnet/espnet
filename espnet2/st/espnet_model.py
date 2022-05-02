@@ -266,11 +266,11 @@ class ESPnetSTModel(AbsESPnetModel):
 
         # 2d. Attention-decoder branch (extra MT)
         if self.mt_weight > 0:
-            loss_mt_att, acc_mt_att = self._calc_mt_att_loss(
-                encoder_out, encoder_out_lens, text, text_lengths, st=False
+            loss_mt_att, acc_mt_att, bleu_mt_att = self._calc_mt_att_loss(
+                encoder_out, encoder_out_lens, text, text_lengths, tgt_tag, st=False
             )
         else:
-            loss_mt_att, acc_mt_att = 0, None
+            loss_mt_att, acc_mt_att, bleu_mt_att = 0, None, None
 
         # 3. Loss computation
         asr_ctc_weight = self.mtlalpha

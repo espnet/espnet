@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 # language related
-lang_pairs="en2de_de2en" # src2tgt_src2tgt_....
+lang_pairs="es2en_es2pt" # src2tgt_src2tgt_....
 # English (en)
 # French (fr)
 # German (de)
@@ -33,7 +33,7 @@ lang_pairs="en2de_de2en" # src2tgt_src2tgt_....
 src_nbpe=1000
 tgt_nbpe=1000
 src_case=lc.rm
-tgt_case=lc.rm
+tgt_case=tc
 
 train_set=train.${lang_pairs}
 train_dev=dev.${lang_pairs}
@@ -46,7 +46,7 @@ speed_perturb_factors="0.9 1.0 1.1"
 
 ./st_ml.sh \
     --ngpu 1 \
-    --local_data_opts "--stage 5 --lang_pairs ${lang_pairs}" \
+    --local_data_opts "--stage 1 --lang_pairs ${lang_pairs}" \
     --speed_perturb_factors "${speed_perturb_factors}" \
     --use_lm false \
     --feats_type raw \
