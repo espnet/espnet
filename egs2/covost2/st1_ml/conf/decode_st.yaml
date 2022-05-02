@@ -2,4 +2,3 @@ batch_size: 1
 beam_size: 10
 nbest: 1
 lm_weight: 0.0
-

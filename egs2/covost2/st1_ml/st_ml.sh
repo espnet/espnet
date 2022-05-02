@@ -860,7 +860,7 @@ if ! "${skip_data_prep}"; then
                 for lang_pair in $(echo ${lang_pairs} | tr '_' ' '); do
                     lang=$(echo ${lang_pair} | cut -f 1 -d"2")
                     echo "<${lang}>"
-                done
+                done | uniq
                 # Remove <unk>, <s>, </s> from the vocabulary
                 <"${src_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
                 echo "${sos_eos}"
@@ -1598,8 +1598,10 @@ if ! "${skip_eval}"; then
             perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
 
             # detokenizer
-            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
-            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
+            local/multilingual_detokenizer.py "${_data}/tgt_file.txt" "${_scoredir}/ref.trn" "${_scoredir}/ref.trn.detok"
+            local/multilingual_detokenizer.py "${_data}/tgt_file.txt" "${_scoredir}/hyp.trn" "${_scoredir}/hyp.trn.detok"
+            # detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
+            # detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
 
             if [ ${tgt_case} = "tc" ]; then
                 echo "Case sensitive BLEU result (single-reference)" >> ${_scoredir}/result.tc.txt
@@ -1622,7 +1624,7 @@ if ! "${skip_eval}"; then
             log "Write a case-insensitve BLEU (single-reference) result in ${_scoredir}/result.lc.txt"
 
             # process multi-references cases
-            multi_references=$(ls "${_data}/text.${tgt_case}.${tgt_lang}".* || echo "")
+            multi_references=$(ls "${_data}/text.${tgt_case}.tgt".* || echo "")
             if [ "${multi_references}" != "" ]; then
                 case_sensitive_refs=""
                 case_insensitive_refs=""
@@ -1642,7 +1644,9 @@ if ! "${skip_eval}"; then
                     
                     # 
                     perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
-                    detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
+                    local/multilingual_detokenizer.py "${_data}/tgt_file.txt" \
+                        "${_scoredir}/ref.trn.${ref_idx}" "${_scoredir}/ref.trn.detok.${ref_idx}"
+                    # detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
                     remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
                     case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
                     case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
