@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 # language related
-lang_pairs="en2de_de2en" # src2tgt_src2tgt_....
+lang_pairs="es2fr" # src2tgt_src2tgt_....
 # English (en)
 # French (fr)
 # German (de)
@@ -33,14 +33,11 @@ lang_pairs="en2de_de2en" # src2tgt_src2tgt_....
 src_nbpe=1000
 tgt_nbpe=1000
 src_case=lc.rm
-tgt_case=lc.rm
+tgt_case=tc
 
 train_set=train.${lang_pairs}
 train_dev=dev.${lang_pairs}
-test_sets=
-for lang_pair in $(echo ${lang_pairs} | tr '_' ' '); do
-    test_sets+="test.${lang_pair} dev.${lang_pair} "
-done
+test_set="test.${lang_pairs} dev.${lang_pairs}"
 
 st_config=conf/tuning/train_transformer_st.yaml 
 inference_config=conf/decode_st.yaml
@@ -49,7 +46,7 @@ speed_perturb_factors="0.9 1.0 1.1"
 
 ./st_ml.sh \
     --ngpu 1 \
-    --local_data_opts "--stage 5 --lang_pairs ${lang_pairs}" \
+    --local_data_opts "--stage 1 --lang_pairs ${lang_pairs}" \
     --speed_perturb_factors "${speed_perturb_factors}" \
     --use_lm false \
     --feats_type raw \
@@ -66,7 +63,7 @@ speed_perturb_factors="0.9 1.0 1.1"
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
-    --test_sets "${test_sets}" \
+    --test_sets "${test_set}" \
     --src_bpe_train_text "data/${train_set}/text.${src_case}.src" \
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.tgt" \
     --lm_train_text "data/${train_set}/text.${tgt_case}.tgt"  "$@"

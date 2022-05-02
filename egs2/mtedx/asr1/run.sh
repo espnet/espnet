@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 # language related
-src_lang=de
+src_lang=es
 tgt_lang=en
 # English (en)
 # French (fr)
@@ -71,7 +71,11 @@ if [[ ${is_exist} == false ]]; then
     echo "No language direction: ${src_lang} to ${tgt_lang}" && exit 1;
 fi
 
-speed_perturb_factors="0.8 0.9 1.0 1.1 1.2"
+if [ ${is_low_resource} = true ]; then
+    speed_perturb_factors="0.9 1.0 1.1"
+else
+    speed_perturb_factors="0.8 0.9 1.0 1.1 1.2"
+fi
 
 if [ ${src_lang} == ja ] || [ ${src_lang} == zh-CN ]; then
     nbpe=4000
@@ -79,9 +83,7 @@ fi
 
 ./asr.sh \
     --ngpu 1 \
-    --local_data_opts "--stage 2 --src_lang ${src_lang} --tgt_lang ${tgt_lang}" \
-    --stage 11\
-    --stop_stage 11\
+    --local_data_opts "--stage 0 --src_lang ${src_lang} --tgt_lang ${tgt_lang}" \
     --use_lm false \
     --lm_config "${lm_config}" \
     --token_type bpe \
