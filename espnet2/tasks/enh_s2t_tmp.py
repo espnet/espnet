@@ -15,9 +15,19 @@ from typeguard import check_return_type
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.espnet_model import ESPnetASRModel
-from espnet2.diar.espnet_model import ESPnetDiarizationModel
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.diar.espnet_model import ESPnetDiarModel
+from espnet2.diar.layers.abs_mask import AbsMask
+from espnet2.diar.layers.multi_mask import MultiMask
+from espnet2.diar.loss.wrappers.pit_solver_2 import PITSolver2
+from espnet2.diar.separator.abs_separator import AbsSeparator
+from espnet2.diar.separator.tcn_separator_nomask import TCNSeparator
 from espnet2.enh.espnet_enh_s2t_model import ESPnetEnhS2TModel
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
+from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
+from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
+from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.asr import decoder_choices as asr_decoder_choices_
@@ -27,18 +37,14 @@ from espnet2.tasks.asr import normalize_choices
 from espnet2.tasks.asr import postencoder_choices as asr_postencoder_choices_
 from espnet2.tasks.asr import preencoder_choices as asr_preencoder_choices_
 from espnet2.tasks.asr import specaug_choices
-from espnet2.tasks.diar import attractor_choices as diar_attractor_choices_
-from espnet2.tasks.diar import decoder_choices as diar_decoder_choices_
 from espnet2.tasks.diar import DiarizationTask
+from espnet2.tasks.diar import attractor_choices
+from espnet2.tasks.diar import decoder_choices as diar_decoder_choices_
 from espnet2.tasks.diar import encoder_choices as diar_encoder_choices_
-from espnet2.tasks.diar import frontend_choices as diar_front_end_choices_
 from espnet2.tasks.diar import label_aggregator_choices
-from espnet2.tasks.diar import normalize_choices as diar_normalize_choices_
-from espnet2.tasks.diar import specaug_choices as diar_specaug_choices_
 from espnet2.tasks.enh import decoder_choices as enh_decoder_choices_
 from espnet2.tasks.enh import encoder_choices as enh_encoder_choices_
 from espnet2.tasks.enh import EnhancementTask
-from espnet2.tasks.enh import mask_module_choices as enh_mask_module_choices_
 from espnet2.tasks.enh import separator_choices as enh_separator_choices_
 from espnet2.tasks.st import decoder_choices as st_decoder_choices_
 from espnet2.tasks.st import encoder_choices as st_encoder_choices_
@@ -49,6 +55,7 @@ from espnet2.tasks.st import preencoder_choices as st_preencoder_choices_
 from espnet2.tasks.st import STTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
+from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.preprocessor import CommonPreprocessor_multi
@@ -68,8 +75,6 @@ enh_decoder_choices = copy.deepcopy(enh_decoder_choices_)
 enh_decoder_choices.name = "enh_decoder"
 enh_separator_choices = copy.deepcopy(enh_separator_choices_)
 enh_separator_choices.name = "enh_separator"
-enh_mask_module_choices = copy.deepcopy(enh_mask_module_choices_)
-enh_mask_module_choices.name = "enh_mask_module"
 
 # ASR (also SLU)
 asr_preencoder_choices = copy.deepcopy(asr_preencoder_choices_)
@@ -95,20 +100,50 @@ st_extra_asr_decoder_choices.name = "st_extra_asr_decoder"
 st_extra_mt_decoder_choices = copy.deepcopy(st_extra_mt_decoder_choices_)
 st_extra_mt_decoder_choices.name = "st_extra_mt_decoder"
 
-# DIAR
-diar_frontend_choices = copy.deepcopy(diar_front_end_choices_)
-diar_frontend_choices.name = "diar_frontend"
-diar_specaug_choices = copy.deepcopy(diar_specaug_choices_)
+# Diarization
+diar_frontend_choices = ClassChoices(
+    name="diar_frontend",
+    classes=dict(
+        default=DefaultFrontend,
+    ),
+    type_check=AbsFrontend,
+    default=None,
+    optional=True,
+)
+diar_specaug_choices = copy.deepcopy(specaug_choices)
 diar_specaug_choices.name = "diar_specaug"
-diar_normalize_choices = copy.deepcopy(diar_normalize_choices_)
+diar_normalize_choices = copy.deepcopy(normalize_choices)
 diar_normalize_choices.name = "diar_normalize"
 diar_encoder_choices = copy.deepcopy(diar_encoder_choices_)
 diar_encoder_choices.name = "diar_encoder"
 diar_decoder_choices = copy.deepcopy(diar_decoder_choices_)
 diar_decoder_choices.name = "diar_decoder"
-diar_attractor_choices = copy.deepcopy(diar_attractor_choices_)
-diar_attractor_choices.name = "diar_attractor"
 
+# Separation (using "sep" to differenciate from "enh")
+sep_encoder_choices = copy.deepcopy(enh_encoder_choices_)
+sep_encoder_choices.name = "sep_encoder"
+sep_decoder_choices = copy.deepcopy(enh_decoder_choices_)
+sep_decoder_choices.name = "sep_decoder"
+sep_separator_choices = ClassChoices(
+    name="sep_separator",
+    classes=dict(
+        tcn=TCNSeparator,
+    ),
+    type_check=AbsSeparator,
+    default="tcn",
+)
+sep_mask_module_choices = ClassChoices(
+    name="sep_mask_module",
+    classes=dict(multi_mask=MultiMask),
+    type_check=AbsMask,
+    default="multi_mask",
+)
+sep_loss_wrapper_choices = ClassChoices(
+    name="sep_loss_wrappers",
+    classes=dict(pit=PITSolver, fixed_order=FixedOrderSolver, pit2=PITSolver2),
+    type_check=AbsLossWrapper,
+    default=None,
+)
 
 MAX_REFERENCE_NUM = 100
 
@@ -116,7 +151,6 @@ name2task = dict(
     enh=EnhancementTask,
     asr=ASRTask,
     st=STTask,
-    diar=DiarizationTask,
 )
 
 # More can be added to the following attributes
@@ -125,8 +159,6 @@ enh_attributes = [
     "encoder_conf",
     "separator",
     "separator_conf",
-    "mask_module",
-    "mask_module_conf",
     "decoder",
     "decoder_conf",
     "criterions",
@@ -178,22 +210,34 @@ st_attributes = [
 ]
 
 diar_attributes = [
-    "input_size",
     "num_spk",
+    "input_size",
     "frontend",
     "frontend_conf",
     "specaug",
     "specaug_conf",
     "normalize",
     "normalize_conf",
+    "label_aggregator",
+    "label_aggregator_choices",
     "encoder",
     "encoder_conf",
     "decoder",
     "decoder_conf",
     "attractor",
     "attractor_conf",
-    "label_aggregator",
-    "label_aggregator_conf",
+]
+
+sep_attributes = [
+    "encoder",
+    "encoder_conf",
+    "separator",
+    "separator_conf",
+    "mask_module",
+    "mask_module_conf",
+    "decoder",
+    "decoder_conf",
+    "criterions",
 ]
 
 
@@ -209,8 +253,6 @@ class EnhS2TTask(AbsTask):
         enh_separator_choices,
         # --enh_decoder and --enh_decoder_conf
         enh_decoder_choices,
-        # --enh_mask_module and --enh_mask_module_conf
-        enh_mask_module_choices,
         # --frontend and --frontend_conf
         frontend_choices,
         # --specaug and --specaug_conf
@@ -249,8 +291,16 @@ class EnhS2TTask(AbsTask):
         diar_decoder_choices,
         # --label_aggregator and --label_aggregator_conf
         label_aggregator_choices,
-        # --diar_attractor and --diar_attractor_conf
-        diar_attractor_choices,
+        # --attractor and --attractor_conf
+        attractor_choices,
+        # --sep_encoder and --sep_encoder_conf
+        sep_encoder_choices,
+        # --sep_separator and --sep_separator_conf
+        sep_separator_choices,
+        # --sep_mask_module and --sep_mask_module_conf
+        sep_mask_module_choices,
+        # --sep_decoder and --sep_decoder_conf
+        sep_decoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -262,8 +312,6 @@ class EnhS2TTask(AbsTask):
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
-        required = parser.get_default("required")
-        required += ["token_list"]
 
         group.add_argument(
             "--token_list",
@@ -321,10 +369,24 @@ class EnhS2TTask(AbsTask):
         )
 
         group.add_argument(
+            "--sep_criterions",
+            action=NestedDictAction,
+            default=[
+                {
+                    "name": "si_snr",
+                    "conf": {},
+                    "wrapper": "fixed_order",
+                    "wrapper_conf": {},
+                },
+            ],
+            help="The criterions binded with the sep loss wrappers.",
+        )
+
+        group.add_argument(
             "--num_spk",
             type=int_or_none,
             default=None,
-            help="The number of speakers (for each recording) for diar submodel class",
+            help="The number of speakers (for each recording) used in diar and sep",
         )
 
         group.add_argument(
@@ -349,9 +411,16 @@ class EnhS2TTask(AbsTask):
         )
 
         group.add_argument(
+            "--sep_model_conf",
+            action=NestedDictAction,
+            default=get_default_kwargs(ESPnetEnhancementModel),
+            help="The keyword arguments for sep submodel class.",
+        )
+
+        group.add_argument(
             "--diar_model_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ESPnetDiarizationModel),
+            default=get_default_kwargs(ESPnetDiarModel),
             help="The keyword arguments for diar submodel class.",
         )
 
@@ -360,7 +429,7 @@ class EnhS2TTask(AbsTask):
             type=str,
             nargs="+",
             default=("enh", "asr"),
-            choices=["enh", "asr", "st", "diar"],
+            choices=["enh", "asr", "st", "sep", "diar"],
             help="The series of subtasks in the pipeline.",
         )
 
@@ -496,7 +565,7 @@ class EnhS2TTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("speech", "speech_ref1", "text")
+            retval = ("speech", "speech_ref1")
         else:
             # Recognition mode
             retval = ("speech",)
@@ -506,7 +575,9 @@ class EnhS2TTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ["dereverb_ref1"]
+        retval = ["text"]  # for enh_{asr,st}
+        retval += ["spk_labels"]  # for sep_diar
+        retval += ["dereverb_ref1"]
         retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval += ["noise_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval += ["src_text"]
@@ -534,16 +605,21 @@ class EnhS2TTask(AbsTask):
 
             if subtask in ["asr", "st"]:
                 m_subtask = "s2t"
-            elif subtask in ["enh", "diar"]:
+            elif subtask in ["enh", "sep", "diar"]:
                 m_subtask = subtask
             else:
                 raise ValueError(f"{subtask} not supported.")
 
             logging.info(f"Building {subtask} task model, using config: {subtask_conf}")
 
-            model_conf[f"{m_subtask}_model"] = name2task[subtask].build_model(
-                argparse.Namespace(**subtask_conf)
-            )
+            if m_subtask in ["diar", "sep"]:
+                model_conf[f"{m_subtask}_model"] = eval(f"{subtask}_build_model")(
+                    argparse.Namespace(**subtask_conf)
+                )
+            else:  # this is for "s2t" and "enh"
+                model_conf[f"{m_subtask}_model"] = name2task[subtask].build_model(
+                    argparse.Namespace(**subtask_conf)
+                )
 
         # 8. Build model
         model = ESPnetEnhS2TModel(**model_conf)

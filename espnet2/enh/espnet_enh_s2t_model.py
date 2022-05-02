@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from distutils.version import LooseVersion
+from inspect import BoundArguments
 import logging
 import random
 from typing import Dict
@@ -11,6 +12,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.asr.espnet_model import ESPnetASRModel
+from espnet2.diar.espnet_model import ESPnetDiarizationModel
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.st.espnet_model import ESPnetSTModel
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -32,7 +34,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         self,
         enh_model: ESPnetEnhancementModel,
         s2t_model: Union[ESPnetASRModel, ESPnetSTModel],
-        permutation_by_enh: bool = True,
+        diar_model: ESPnetDiarizationModel,
         calc_enh_loss: bool = True,
         bypass_enh_prob: float = 0,  # 0 means do not bypass enhancement for all data
     ):
@@ -41,10 +43,10 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         super().__init__()
         self.enh_model = enh_model
         self.s2t_model = s2t_model  # ASR or ST model
+        self.diar_model = diar_model  # DIAR model
 
         self.bypass_enh_prob = bypass_enh_prob
 
-        self.permutation_by_enh = permutation_by_enh
         self.calc_enh_loss = calc_enh_loss
         self.extract_feats_in_collect_stats = (
             self.s2t_model.extract_feats_in_collect_stats
@@ -99,7 +101,14 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         speech_ref = None
         if self.calc_enh_loss:
             assert "speech_ref1" in kwargs
-            speech_ref = [kwargs["speech_ref1"]]  # [(Batch, samples)] x num_spkr
+            # Take the number of speakers from text (= spk_label [Batch, length, num_spk] ) if it is 3-D.
+            # This is to handle flexible number of speakers. Used only in "enh + diar" task for now.
+            num_spk = text.shape[2] if text.dim() == 3 else self.enh_model.num_spk
+            speech_ref = [
+                kwargs["speech_ref{}".format(spk + 1)] for spk in range(num_spk)
+            ]
+            # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
+            speech_ref = torch.stack(speech_ref, dim=1)
 
         # Calculating enhancement loss
         utt_id = kwargs.get("utt_id", None)
@@ -141,7 +150,9 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
                 feature_mix,
                 feature_pre,
                 others,
-            ) = self.enh_model.forward_enhance(speech, speech_lengths)
+                bottleneck_feats,
+                bottleneck_feats_lengths,
+            ) = self.enh_model.forward_enhance(speech, speech_lengths, num_spk)
             # loss computation
             if not skip_enhloss_flag:
                 loss_enh, _, _ = self.enh_model.forward_loss(
@@ -174,6 +185,15 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
                 text_lengths,
                 src_text,
                 src_text_lengths,
+            )
+        elif isinstance(self.diar_model, ESPnetDiarizationModel):  # DIAR
+            loss_asr, stats, weight = self.diar_model(
+                speech=speech,
+                speech_lengths=speech_lengths,
+                spk_label=text,
+                spk_label_lengths=text_lengths,
+                bottleneck_feats=bottleneck_feats,
+                bottleneck_feats_lengths=bottleneck_feats_lengths,
             )
         else:
             raise NotImplementedError(f"{type(self.s2t_model)} is not supported yet.")
@@ -226,14 +246,48 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
         """
-        speech_pre, feature_mix, feature_pre, others = self.enh_model.forward_enhance(
-            speech, speech_lengths
+        (
+            speech_pre,
+            feature_mix,
+            feature_pre,
+            others,
+            _,
+            _,
+        ) = self.enh_model.forward_enhance(
+            speech, speech_lengths, self.enh_model.num_spk
         )
         encoder_out, encoder_out_lens = self.s2t_model.encode(
             speech_pre[0], speech_lengths
         )
 
         return encoder_out, encoder_out_lens
+
+    def encode_diar(
+        self, speech: torch.Tensor, speech_lengths: torch.Tensor, num_spk: int
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Frontend + Encoder. Note that this method is used by diar_inference.py
+
+        Args:
+            speech: (Batch, Length, ...)
+            speech_lengths: (Batch, )
+            num_spk: int
+        """
+        (
+            speech_pre,
+            _,
+            _,
+            _,
+            bottleneck_feats,
+            bottleneck_feats_lengths,
+        ) = self.enh_model.forward_enhance(speech, speech_lengths, num_spk)
+        encoder_out, encoder_out_lens = self.diar_model.encode(
+            speech,
+            speech_lengths,
+            bottleneck_feats,
+            bottleneck_feats_lengths,
+        )
+
+        return encoder_out, encoder_out_lens, speech_pre
 
     def nll(
         self,
@@ -265,6 +319,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         self,
         inherite_enh_attrs: List[str] = [],
         inherite_s2t_attrs: List[str] = [],
+        inherite_diar_attrs: List[str] = [],
     ):
         assert check_argument_types()
 
@@ -274,3 +329,6 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         if len(inherite_s2t_attrs) > 0:
             for attr in inherite_s2t_attrs:
                 setattr(self, attr, getattr(self.s2t_model, attr, None))
+        if len(inherite_diar_attrs) > 0:
+            for attr in inherite_diar_attrs:
+                setattr(self, attr, getattr(self.diar_model, attr, None))

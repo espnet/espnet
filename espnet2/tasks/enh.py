@@ -11,6 +11,10 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet2.diar.layers.abs_mask import AbsMask
+from espnet2.diar.layers.multi_mask import MultiMask
+from espnet2.diar.loss.wrappers.flexible_spk_pit_solver import FlexibleSpkPITSolver
+from espnet2.diar.separator.tcn_separator_nomask import TCNSeparatorNomask
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
@@ -79,9 +83,17 @@ separator_choices = ClassChoices(
         tcn=TCNSeparator,
         transformer=TransformerSeparator,
         wpe_beamformer=NeuralBeamformer,
+        tcn_nomask=TCNSeparatorNomask,
     ),
     type_check=AbsSeparator,
     default="rnn",
+)
+
+mask_module_choices = ClassChoices(
+    name="mask_module",
+    classes=dict(multi_mask=MultiMask),
+    type_check=AbsMask,
+    default="multi_mask",
 )
 
 decoder_choices = ClassChoices(
@@ -94,7 +106,10 @@ decoder_choices = ClassChoices(
 loss_wrapper_choices = ClassChoices(
     name="loss_wrappers",
     classes=dict(
-        pit=PITSolver, fixed_order=FixedOrderSolver, multilayer_pit=MultiLayerPITSolver
+        pit=PITSolver,
+        fixed_order=FixedOrderSolver,
+        multilayer_pit=MultiLayerPITSolver,
+        flexiblespk_pit=FlexibleSpkPITSolver,
     ),
     type_check=AbsLossWrapper,
     default=None,
@@ -133,6 +148,8 @@ class EnhancementTask(AbsTask):
         separator_choices,
         # --decoder and --decoder_conf
         decoder_choices,
+        # --mask_module and --mask_module_conf
+        mask_module_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -246,6 +263,13 @@ class EnhancementTask(AbsTask):
             encoder.output_dim, **args.separator_conf
         )
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
+        if args.separator.endswith("nomask"):
+            mask_module = mask_module_choices.get_class(args.mask_module)(
+                input_dim=encoder.output_dim,
+                **args.mask_module_conf,
+            )
+        else:
+            mask_module = None
 
         loss_wrappers = []
 
@@ -265,7 +289,8 @@ class EnhancementTask(AbsTask):
             separator=separator,
             decoder=decoder,
             loss_wrappers=loss_wrappers,
-            **args.model_conf
+            mask_module=mask_module,
+            **args.model_conf,
         )
 
         # FIXME(kamo): Should be done in model?

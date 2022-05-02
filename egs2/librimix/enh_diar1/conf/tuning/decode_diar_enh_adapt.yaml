@@ -1,0 +1,5 @@
+fs: 8000
+segment_size: 3.0
+hop_size: 2.0
+normalize_output_wav: True
+#multiply_diar_result: True # Post-processing for refining separated speech signals using diarization result 
