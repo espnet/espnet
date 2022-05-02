@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 # language related
-lang_pairs="es2en_es2pt" # src2tgt_src2tgt_....
+lang_pairs="es2fr" # src2tgt_src2tgt_....
 # English (en)
 # French (fr)
 # German (de)

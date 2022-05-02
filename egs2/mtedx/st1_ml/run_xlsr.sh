@@ -33,13 +33,13 @@ lang_pairs="es2en_es2pt" # src2tgt_src2tgt_....
 src_nbpe=1000
 tgt_nbpe=1000
 src_case=lc.rm
-tgt_case=tc
+tgt_case=lc.rm
 
 train_set=train.${lang_pairs}
 train_dev=dev.${lang_pairs}
 test_set="test.${lang_pairs} dev.${lang_pairs}"
 
-st_config=conf/tuning/train_transformer_st.yaml 
+st_config=conf/tuning/train_xlsr53_conformer_st.yaml
 inference_config=conf/decode_st.yaml
 
 speed_perturb_factors="0.9 1.0 1.1"
@@ -60,6 +60,8 @@ speed_perturb_factors="0.9 1.0 1.1"
     --src_case ${src_case} \
     --tgt_case ${tgt_case} \
     --st_config "${st_config}" \
+    --stats_tag "xlsr" \
+    --feats_normalize "utterance_mvn" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
