@@ -780,7 +780,7 @@ if ! "${skip_data_prep}"; then
             for lang_pair in $(echo ${lang_pairs} | tr '_' ' '); do
                 lang=$(echo ${lang_pair} | cut -f 2 -d"2")
                 echo "<${lang}>"
-            done
+            done | uniq
             # Remove <unk>, <s>, </s> from the vocabulary
             <"${tgt_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
             echo "${sos_eos}"
