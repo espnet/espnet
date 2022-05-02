@@ -69,6 +69,7 @@ TSUKUYOMI=downloads
 VOXFORGE=downloads
 AMI=
 COMMONVOICE=downloads
+COVOST2=downloads
 MICROSOFT_SPEECH_CORPUS=
 BABEL_101=
 BABEL_102=
@@ -139,6 +140,7 @@ MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
+MULTILINGUAL_TEDX=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
