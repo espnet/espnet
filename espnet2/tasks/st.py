@@ -575,6 +575,8 @@ class STTask(AbsTask):
         decoder_class = decoder_choices.get_class(args.decoder)
         if args.decoder == "transformer_md":
             speech_attn=True
+        else:
+            speech_attn=False
 
         decoder = decoder_class(
             vocab_size=vocab_size,
@@ -773,6 +775,7 @@ class STTask(AbsTask):
                     extra_mt_decoder=extra_mt_decoder,
                     token_list=token_list,
                     src_token_list=src_token_list,
+                    speech_attn=speech_attn,
                     **args.model_conf,
                 )
             else:

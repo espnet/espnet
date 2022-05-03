@@ -56,6 +56,7 @@ class ESPnetSTHierModel(AbsESPnetModel):
         extra_mt_decoder: Optional[AbsDecoder],
         ctc: CTC,
         mt_ctc: CTC,
+        speech_attn: bool = False,
         src_vocab_size: int = 0,
         src_token_list: Union[Tuple[str, ...], List[str]] = [],
         asr_weight: float = 0.0,
@@ -89,6 +90,7 @@ class ESPnetSTHierModel(AbsESPnetModel):
         self.mtlalpha = mtlalpha
         self.mt_mtlalpha = mt_mtlalpha
         self.token_list = token_list.copy()
+        self.speech_attn = speech_attn
 
         self.frontend = frontend
         self.specaug = specaug
@@ -221,9 +223,15 @@ class ESPnetSTHierModel(AbsESPnetModel):
         encoder_hier_out, encoder_hier_out_lens, _ = self.encoder_hier(encoder_out, encoder_out_lens)
 
         # 2a. Attention-decoder branch (ST)
-        loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
-            encoder_hier_out, encoder_hier_out_lens, text, text_lengths, st=True
-        )
+        if self.speech_attn:
+            loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
+                encoder_hier_out, encoder_hier_out_lens, text, text_lengths, \
+                    st=True, int_encoder_out=encoder_out, int_encoder_out_lens=encoder_out_lens
+            )
+        else:
+            loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
+                encoder_hier_out, encoder_hier_out_lens, text, text_lengths, st=True
+            )
 
         # 2b. CTC branch
         if self.asr_weight > 0:
@@ -404,15 +412,22 @@ class ESPnetSTHierModel(AbsESPnetModel):
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
         st: bool = True,
+        int_encoder_out: torch.Tensor = None,
+        int_encoder_out_lens: torch.Tensor = None,
     ):
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
         if st:
-            decoder_out, _ = self.decoder(
-                encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
-            )
+            if self.speech_attn:
+                decoder_out, _ = self.decoder(
+                    encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens, int_encoder_out, int_encoder_out_lens
+                )
+            else:
+                decoder_out, _ = self.decoder(
+                    encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
+                )
         else:
             decoder_out, _ = self.extra_mt_decoder(
                 encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
