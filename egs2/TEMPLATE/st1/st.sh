@@ -323,7 +323,7 @@ else
     token_listdir=data/token_list
 fi
 # The tgt bpedir is set for all cases when using bpe
-tgt_bpedir="${token_listdir}/tgt_bpe_${tgt_bpemode}${tgt_nbpe}"
+tgt_bpedir="${token_listdir}/tgt_bpe_${tgt_bpemode}${tgt_nbpe}_${src_lang}_${tgt_lang}"
 tgt_bpeprefix="${tgt_bpedir}"/bpe
 tgt_bpemodel="${tgt_bpeprefix}".model
 tgt_bpetoken_list="${tgt_bpedir}"/tokens.txt
@@ -336,7 +336,7 @@ if "${token_joint}"; then
     src_bpetoken_list="${tgt_bpetoken_list}"
     src_chartoken_list="${tgt_chartoken_list}"
 else
-    src_bpedir="${token_listdir}/src_bpe_${src_bpemode}${src_nbpe}"
+    src_bpedir="${token_listdir}/src_bpe_${src_bpemode}${src_nbpe}_${src_lang}_${tgt_lang}"
     src_bpeprefix="${src_bpedir}"/bpe
     src_bpemodel="${src_bpeprefix}".model
     src_bpetoken_list="${src_bpedir}"/tokens.txt
@@ -727,8 +727,8 @@ if ! "${skip_data_prep}"; then
             fi
 
             # Remove empty text
-            <"${data_feats}/org/${dset}/text" \
-                awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
+            # <"${data_feats}/org/${dset}/text" \
+            #     awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text"
 
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"

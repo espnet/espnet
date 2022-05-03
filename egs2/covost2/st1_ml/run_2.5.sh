@@ -42,7 +42,7 @@ for lang_pair in $(echo ${lang_pairs} | tr '_' ' '); do
     test_sets+="test.${lang_pair} dev.${lang_pair} "
 done
 
-st_config=conf/tuning/train_transformer_st_librispeech_lr0.5_actual.yaml 
+st_config=conf/tuning/train_transformer_st_librispeech_lr0.5.yaml 
 inference_config=conf/decode_st.yaml
 
 speed_perturb_factors="0.9 1.0 1.1"

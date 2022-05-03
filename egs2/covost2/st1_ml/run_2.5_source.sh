@@ -42,7 +42,7 @@ for lang_pair in $(echo ${lang_pairs} | tr '_' ' '); do
     test_sets+="test.${lang_pair} dev.${lang_pair} "
 done
 
-st_config=conf/tuning/train_transformer_st_librispeech_lr0.5_actual.yaml 
+st_config=conf/tuning/train_transformer_st_librispeech_lr0.5_source.yaml 
 inference_config=conf/decode_st.yaml
 
 speed_perturb_factors="0.9 1.0 1.1"
@@ -52,7 +52,7 @@ speed_perturb_factors="0.9 1.0 1.1"
     --local_data_opts "--stage 5 --lang_pairs ${lang_pairs}" \
     --inference_st_model "valid.bleu.ave.pth" \
     --pretrained_asr exp/asr_train_asr_transformer_e18_raw_bpe_sp/54epoch.pth:encoder:encoder\
-    --stage 12\
+    --stage 13\
     --stop_stage 13\
     --use_lm false \
     --feats_type raw \

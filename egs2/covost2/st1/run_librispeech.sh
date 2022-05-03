@@ -40,7 +40,7 @@ train_set=train.${src_lang}-${tgt_lang}
 train_dev=dev.${src_lang}-${tgt_lang}
 test_set="test.${src_lang}-${tgt_lang} dev.${src_lang}-${tgt_lang} "
 
-st_config=conf/tuning/train_transformer_st_lr0.05.yaml 
+st_config=conf/tuning/train_transformer_st_librispeech_lr0.01.yaml 
 inference_config=conf/decode_st.yaml
 
 # verify language directions
@@ -92,6 +92,7 @@ fi
     --feats_type raw \
     --stage 11\
     --stop_stage 11\
+    --pretrained_asr exp/asr_train_asr_transformer_e18_raw_bpe_sp/54epoch.pth:encoder:encoder\
     --nj 30\
     --audio_format "flac.ark" \
     --token_joint false \

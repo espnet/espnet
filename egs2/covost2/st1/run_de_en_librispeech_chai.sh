@@ -6,8 +6,8 @@ set -u
 set -o pipefail
 
 # language related
-src_lang=en
-tgt_lang=de
+src_lang=de
+tgt_lang=en
 # English (en)
 # French (fr)
 # German (de)
@@ -40,7 +40,7 @@ train_set=train.${src_lang}-${tgt_lang}
 train_dev=dev.${src_lang}-${tgt_lang}
 test_set="test.${src_lang}-${tgt_lang} dev.${src_lang}-${tgt_lang} "
 
-st_config=conf/tuning/train_transformer_st_lr0.05.yaml 
+st_config=conf/tuning/train_transformer_librispeech_asrw.yaml 
 inference_config=conf/decode_st.yaml
 
 # verify language directions
@@ -74,7 +74,8 @@ if [[ ${is_exist} == false ]]; then
     echo "No language direction: ${src_lang} to ${tgt_lang}" && exit 1;
 fi
 
-speed_perturb_factors="0.9 1.0 1.1"
+
+
 
 if [ ${src_lang} == ja ] || [ ${src_lang} == zh-CN ]; then
     src_nbpe=4000
@@ -87,7 +88,6 @@ fi
 ./st.sh \
     --ngpu 1 \
     --local_data_opts "--stage 2 --src_lang ${src_lang} --tgt_lang ${tgt_lang}" \
-    --speed_perturb_factors "${speed_perturb_factors}" \
     --use_lm false \
     --feats_type raw \
     --stage 11\
@@ -108,6 +108,7 @@ fi
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
     --test_sets "${test_set}" \
+    --expdir "exp_de_en" \
     --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
     --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}"  "$@"

@@ -8,15 +8,24 @@ frontend_conf:
     hop_length: 160
 
 # encoder related
-encoder: transformer
+# encoder related
+encoder: conformer
 encoder_conf:
-    input_layer: conv2d
-    num_blocks: 12
-    linear_units: 2048
-    dropout_rate: 0.1
-    output_size: 256  # dimension of attention
+    output_size: 256
     attention_heads: 4
-    attention_dropout_rate: 0.0
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: true
+    macaron_style: true
+    pos_enc_layer_type: "rel_pos"
+    selfattention_layer_type: "rel_selfattn"
+    activation_type: "swish"
+    use_cnn_module:  true
+    cnn_module_kernel: 31
 
 # decoder related
 decoder: transformer
@@ -47,12 +56,13 @@ model_conf:
     mtlalpha: 1.0
     lsm_weight: 0.1
     length_normalized_loss: false
+    extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
 
 # optimization related
 optim: adam
 accum_grad: 2
 grad_clip: 3
-max_epoch: 49
+max_epoch: 50
 optim_conf:
     lr: 2.5
 scheduler: noamlr
@@ -69,6 +79,22 @@ best_model_criterion:
     - acc
     - max
 keep_nbest_models: 10
+
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: wav2vec2_xlsr  # Note: If the upstream is changed, please change the input_size in the preencoder.
+    download_dir: ./hub
+    multilayer_feature: True
+
+preencoder: linear
+preencoder_conf:
+    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+    output_size: 80
+
+freeze_param: [
+"frontend.upstream"
+]
 
 specaug: specaug
 specaug_conf:

@@ -44,7 +44,7 @@ extra_mt_decoder_conf:
 model_conf:
     asr_weight: 0.3
     mt_weight: 0.0
-    mtlalpha: 1.0
+    mtlalpha: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
 
@@ -52,9 +52,9 @@ model_conf:
 optim: adam
 accum_grad: 2
 grad_clip: 3
-max_epoch: 49
+max_epoch: 50
 optim_conf:
-    lr: 2.5
+    lr: 0.01
 scheduler: noamlr
 scheduler_conf:
     model_size: 256
@@ -66,7 +66,7 @@ batch_bins: 64
 
 best_model_criterion:
 -   - valid
-    - acc
+    - bleu
     - max
 keep_nbest_models: 10
 

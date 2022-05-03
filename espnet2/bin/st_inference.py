@@ -194,8 +194,8 @@ class Speech2Text:
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray],
-        tgt_tag: Optional[Union[torch.Tensor, np.ndarray]],
-        src_tag: Optional[Union[torch.Tensor, np.ndarray]],
+        tgt_tag: Optional[Union[torch.Tensor, np.ndarray]] = None,
+        src_tag: Optional[Union[torch.Tensor, np.ndarray]] = None,
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
         """Inference
 

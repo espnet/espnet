@@ -27,6 +27,7 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast
@@ -62,6 +63,7 @@ class ESPnetSTModel(AbsESPnetModel):
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
         length_normalized_loss: bool = False,
+        use_source_tag: bool = False,
         report_cer: bool = True,
         report_wer: bool = True,
         report_bleu: bool = True,
@@ -78,7 +80,6 @@ class ESPnetSTModel(AbsESPnetModel):
         # note that eos is the same as sos (equivalent ID)
         self.sos = vocab_size - 1
         self.eos = vocab_size - 1
-        self.tgt_tag = vocab_size - 2
         self.src_sos = src_vocab_size - 1
         self.src_eos = src_vocab_size - 1
         self.vocab_size = vocab_size
@@ -98,6 +99,7 @@ class ESPnetSTModel(AbsESPnetModel):
         self.decoder = (
             decoder  # TODO(jiatong): directly implement multi-decoder structure at here
         )
+        self.use_source_tag = use_source_tag
 
         self.criterion_st = LabelSmoothingLoss(
             size=vocab_size,
@@ -172,7 +174,6 @@ class ESPnetSTModel(AbsESPnetModel):
         :return: padded tensor (B, Lmax)
         :rtype: torch.Tensor
         """
-        from espnet.nets.pytorch_backend.nets_utils import pad_list
 
         _sos = ys_pad.new([sos])
         _eos = ys_pad.new([eos])
@@ -181,6 +182,26 @@ class ESPnetSTModel(AbsESPnetModel):
         ys_in = [torch.cat([_sos, y], dim=0) for y in ys_tag]
         ys_out = [torch.cat([y, _eos], dim=0) for y in ys_tag]
         return pad_list(ys_in, eos), pad_list(ys_out, ignore_id)
+
+    def only_tag(self, ys_pad, tag):
+        """Add <sos> and <eos> labels.
+
+        :param torch.Tensor ys_pad: batch of padded target sequences (B, Lmax)
+        :param int sos: index of <sos>
+        :param int eos: index of <eos>
+        :param int ignore_id: index of padding
+        :return: padded tensor (B, Lmax)
+        :rtype: torch.Tensor
+        :return: padded tensor (B, Lmax)
+        :rtype: torch.Tensor
+        """
+        # print(ys_pad.shape)
+        ys = [y for y in ys_pad]  # parse padded ys
+        ys_tag = [torch.cat([tag[i], ys_pad[i]], dim=0).reshape(1,-1) for i in range(len(ys))]
+        # print(ys_tag[0].shape)
+        ys_tag=torch.cat(ys_tag, dim=0)
+        # print(ys_tag.shape)
+        return ys_tag
     
     def forward(
         self,
@@ -190,10 +211,10 @@ class ESPnetSTModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         src_text: Optional[torch.Tensor],
         src_text_lengths: Optional[torch.Tensor],
-        tgt_tag: Optional[torch.Tensor],
-        tgt_tag_lengths: Optional[torch.Tensor],
-        src_tag: Optional[torch.Tensor],
-        src_tag_lengths: Optional[torch.Tensor],
+        tgt_tag: Optional[torch.Tensor] = None,
+        tgt_tag_lengths: Optional[torch.Tensor] = None,
+        src_tag: Optional[torch.Tensor] = None,
+        src_tag_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
@@ -245,22 +266,39 @@ class ESPnetSTModel(AbsESPnetModel):
             assert src_text is not None, "missing source text for asr sub-task of ST"
 
         if self.asr_weight > 0 and self.mtlalpha > 0:
-            loss_asr_ctc, cer_asr_ctc = self._calc_ctc_loss(
-                encoder_out, encoder_out_lens, src_text, src_text_lengths
-            )
+            # source tag not passed right now
+            if self.use_source_tag:
+                loss_asr_ctc, cer_asr_ctc = self._calc_ctc_loss(
+                    encoder_out, encoder_out_lens, src_text, src_text_lengths, src_tag
+                )
+            else:
+                loss_asr_ctc, cer_asr_ctc = self._calc_ctc_loss(
+                    encoder_out, encoder_out_lens, src_text, src_text_lengths
+                )
         else:
             loss_asr_ctc, cer_asr_ctc = 0, None
 
         # 2c. Attention-decoder branch (extra ASR)
         if self.asr_weight > 0 and self.mtlalpha < 1.0:
-            (
-                loss_asr_att,
-                acc_asr_att,
-                cer_asr_att,
-                wer_asr_att,
-            ) = self._calc_asr_att_loss(
-                encoder_out, encoder_out_lens, src_text, src_text_lengths
-            )
+            # source tag not passed right now
+            if self.use_source_tag:
+                (
+                    loss_asr_att,
+                    acc_asr_att,
+                    cer_asr_att,
+                    wer_asr_att,
+                ) = self._calc_asr_att_loss(
+                    encoder_out, encoder_out_lens, src_text, src_text_lengths, src_tag
+                )
+            else:
+                (
+                    loss_asr_att,
+                    acc_asr_att,
+                    cer_asr_att,
+                    wer_asr_att,
+                ) = self._calc_asr_att_loss(
+                    encoder_out, encoder_out_lens, src_text, src_text_lengths
+                )
         else:
             loss_asr_att, acc_asr_att, cer_asr_att, wer_asr_att = 0, None, None, None
 
@@ -402,7 +440,7 @@ class ESPnetSTModel(AbsESPnetModel):
         encoder_out_lens: torch.Tensor,
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
-        tgt_tag: torch.Tensor,
+        tgt_tag: torch.Tensor = None,
         st: bool = True,
     ):
         if tgt_tag is None:
@@ -446,11 +484,18 @@ class ESPnetSTModel(AbsESPnetModel):
         encoder_out_lens: torch.Tensor,
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
+        src_tag: torch.Tensor = None,
     ):
-        ys_in_pad, ys_out_pad = add_sos_eos(
-            ys_pad, self.src_sos, self.src_eos, self.ignore_id
-        )
-        ys_in_lens = ys_pad_lens + 1
+        if src_tag is None:
+            ys_in_pad, ys_out_pad = add_sos_eos(
+                ys_pad, self.src_sos, self.src_eos, self.ignore_id
+            )
+            ys_in_lens = ys_pad_lens + 1
+        else:
+            # print("source tag1")
+            ys_in_pad, ys_out_pad = self.add_sos_eos_mt(ys_pad, src_tag, self.src_sos, self.src_eos, self.ignore_id)
+            ys_in_lens = ys_pad_lens + 2
+        
 
         # 1. Forward decoder
         decoder_out, _ = self.extra_asr_decoder(
@@ -480,7 +525,12 @@ class ESPnetSTModel(AbsESPnetModel):
         encoder_out_lens: torch.Tensor,
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
+        src_tag: torch.Tensor = None,
     ):
+        if src_tag is not None:
+            # print("source tag2")
+            ys_pad = self.only_tag(ys_pad, src_tag)
+            ys_pad_lens = ys_pad_lens + 1
         # Calc CTC loss
         loss_ctc = self.ctc(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
 

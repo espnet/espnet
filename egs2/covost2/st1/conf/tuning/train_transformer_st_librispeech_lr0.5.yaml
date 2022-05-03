@@ -10,13 +10,15 @@ frontend_conf:
 # encoder related
 encoder: transformer
 encoder_conf:
-    input_layer: conv2d
-    num_blocks: 12
+    output_size: 512
+    attention_heads: 8
     linear_units: 2048
+    num_blocks: 18
     dropout_rate: 0.1
-    output_size: 256  # dimension of attention
-    attention_heads: 4
-    attention_dropout_rate: 0.0
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d6
+    normalize_before: true
 
 # decoder related
 decoder: transformer
@@ -44,15 +46,15 @@ extra_mt_decoder_conf:
 model_conf:
     asr_weight: 0.3
     mt_weight: 0.0
-    mtlalpha: 1.0
+    mtlalpha: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
 
 # optimization related
 optim: adam
-accum_grad: 2
+accum_grad: 1
 grad_clip: 3
-max_epoch: 49
+max_epoch: 48
 optim_conf:
     lr: 2.5
 scheduler: noamlr
@@ -63,10 +65,11 @@ scheduler_conf:
 # minibatch related
 batch_type: folded
 batch_bins: 64
+batch_size: 40
 
 best_model_criterion:
 -   - valid
-    - acc
+    - bleu
     - max
 keep_nbest_models: 10
 

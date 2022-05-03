@@ -50,11 +50,11 @@ model_conf:
 
 # optimization related
 optim: adam
-accum_grad: 2
+accum_grad: 1
 grad_clip: 3
-max_epoch: 49
+max_epoch: 50
 optim_conf:
-    lr: 2.5
+    lr: 0.5
 scheduler: noamlr
 scheduler_conf:
     model_size: 256
@@ -63,6 +63,7 @@ scheduler_conf:
 # minibatch related
 batch_type: folded
 batch_bins: 64
+batch_size: 40
 
 best_model_criterion:
 -   - valid

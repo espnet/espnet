@@ -6,8 +6,8 @@ set -u
 set -o pipefail
 
 # language related
-src_lang=en
-tgt_lang=de
+src_lang=de
+tgt_lang=en
 # English (en)
 # French (fr)
 # German (de)
@@ -76,6 +76,8 @@ fi
 
 speed_perturb_factors="0.9 1.0 1.1"
 
+
+
 if [ ${src_lang} == ja ] || [ ${src_lang} == zh-CN ]; then
     src_nbpe=4000
 fi
@@ -86,12 +88,12 @@ fi
 
 ./st.sh \
     --ngpu 1 \
-    --local_data_opts "--stage 2 --src_lang ${src_lang} --tgt_lang ${tgt_lang}" \
-    --speed_perturb_factors "${speed_perturb_factors}" \
+    --local_data_opts "--stage 4 --src_lang ${src_lang} --tgt_lang ${tgt_lang}" \
     --use_lm false \
     --feats_type raw \
-    --stage 11\
-    --stop_stage 11\
+    --stage 12\
+    --stop_stage 13\
+    --inference_st_model "valid.bleu.ave.pth" \
     --nj 30\
     --audio_format "flac.ark" \
     --token_joint false \
@@ -108,6 +110,7 @@ fi
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
     --test_sets "${test_set}" \
+    --expdir "exp_de_en" \
     --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
     --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}"  "$@"

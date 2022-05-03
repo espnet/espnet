@@ -40,7 +40,7 @@ train_set=train.${src_lang}-${tgt_lang}
 train_dev=dev.${src_lang}-${tgt_lang}
 test_set="test.${src_lang}-${tgt_lang} dev.${src_lang}-${tgt_lang} "
 
-st_config=conf/tuning/train_transformer_st_lr0.05.yaml 
+st_config=conf/tuning/train_transformer_st_librispeech_decoder_lr0.5.yaml 
 inference_config=conf/decode_st.yaml
 
 # verify language directions
@@ -86,12 +86,13 @@ fi
 
 ./st.sh \
     --ngpu 1 \
-    --local_data_opts "--stage 2 --src_lang ${src_lang} --tgt_lang ${tgt_lang}" \
-    --speed_perturb_factors "${speed_perturb_factors}" \
+    --local_data_opts "--stage 3 --src_lang ${src_lang} --tgt_lang ${tgt_lang}" \
     --use_lm false \
     --feats_type raw \
-    --stage 11\
-    --stop_stage 11\
+    --stage 12\
+    --stop_stage 13\
+    --inference_st_model "valid.bleu.ave.pth" \
+    --pretrained_asr exp/asr_train_asr_transformer_e18_raw_bpe_sp/54epoch.pth:::decoder.embed,decoder.output_layer,ctc\
     --nj 30\
     --audio_format "flac.ark" \
     --token_joint false \

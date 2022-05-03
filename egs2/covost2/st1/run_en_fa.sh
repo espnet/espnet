@@ -7,7 +7,7 @@ set -o pipefail
 
 # language related
 src_lang=en
-tgt_lang=de
+tgt_lang=fa
 # English (en)
 # French (fr)
 # German (de)
@@ -40,7 +40,7 @@ train_set=train.${src_lang}-${tgt_lang}
 train_dev=dev.${src_lang}-${tgt_lang}
 test_set="test.${src_lang}-${tgt_lang} dev.${src_lang}-${tgt_lang} "
 
-st_config=conf/tuning/train_transformer_st_lr0.05.yaml 
+st_config=conf/train_st.yaml 
 inference_config=conf/decode_st.yaml
 
 # verify language directions
@@ -76,6 +76,7 @@ fi
 
 speed_perturb_factors="0.9 1.0 1.1"
 
+
 if [ ${src_lang} == ja ] || [ ${src_lang} == zh-CN ]; then
     src_nbpe=4000
 fi
@@ -103,6 +104,7 @@ fi
     --tgt_nbpe $tgt_nbpe \
     --src_case ${src_case} \
     --tgt_case ${tgt_case} \
+    --expdir "exp_en_fa" \
     --st_config "${st_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \

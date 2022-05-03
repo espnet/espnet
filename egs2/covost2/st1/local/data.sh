@@ -53,14 +53,12 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     local/download_and_untar_commonvoice.sh ${COMMONVOICE}/${src_lang} ${data_url} ${src_lang}.tar.gz
 
     # Download translation
-    if [[ ${src_lang} != en ]]; then
-        wget --no-check-certificate https://dl.fbaipublicfiles.com/covost/covost_v2.${src_lang}_${tgt_lang}.tsv.tar.gz \
-            -P ${COVOST2}
-        tar -xzf ${COVOST2}/covost_v2.${src_lang}_${tgt_lang}.tsv.tar.gz -C ${COVOST2}
-    fi
-    wget --no-check-certificate https://dl.fbaipublicfiles.com/covost/covost2.zip \
-          -P ${COVOST2}
-    unzip ${COVOST2}/covost2.zip -d ${COVOST2}
+    wget --no-check-certificate https://dl.fbaipublicfiles.com/covost/covost_v2.${src_lang}_${tgt_lang}.tsv.tar.gz \
+        -P ${COVOST2}
+    tar -xzf ${COVOST2}/covost_v2.${src_lang}_${tgt_lang}.tsv.tar.gz -C ${COVOST2}
+    # wget --no-check-certificate https://dl.fbaipublicfiles.com/covost/covost2.zip \
+    #       -P ${COVOST2}
+    # unzip ${COVOST2}/covost2.zip -d ${COVOST2}
     # NOTE: some non-English target languages lack translation from English
 fi
 
@@ -74,5 +72,28 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # NOTE: train/dev/test splits are different from original CommonVoice
 fi
 
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    log "stage 2: New Splits"
+
+    local/create_splits.py ${src_lang} ${tgt_lang}
+fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "stage 3: New dataset creation"
+
+    python local/create_new_dataset.py ${src_lang} ${tgt_lang}
+fi
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    log "stage 4: Clean file"
+    for set in train dev test; do
+        dst_folder=data/${set}.${src_lang}-${tgt_lang}_new
+        mv ${dst_folder}/wav.scp ${dst_folder}/wav_old.scp
+        mv ${dst_folder}/wav_new.scp ${dst_folder}/wav.scp
+        utils/utt2spk_to_spk2utt.pl < ${dst_folder}/utt2spk > ${dst_folder}/spk2utt
+        mv data/${set}.${src_lang}-${tgt_lang} data/${set}.${src_lang}-${tgt_lang}_old
+        mv data/${set}.${src_lang}-${tgt_lang}_new data/${set}.${src_lang}-${tgt_lang}
+    done
+fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
