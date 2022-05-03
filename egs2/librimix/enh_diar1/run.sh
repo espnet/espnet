@@ -20,7 +20,7 @@ train_config="conf/tuning/train_diar_enh_convtasnet_2.yaml"
 decode_config="conf/tuning/decode_diar_enh.yaml"
 num_spk=2 # 2, 3
 
-./diar_enh.sh \
+./enh_diar.sh \
     --use_noise_ref true \
     --collar 0.0 \
     --train_set "${train_set}" \
@@ -33,6 +33,5 @@ num_spk=2 # 2, 3
     --audio_format wav \
     --local_data_opts "--num_spk ${num_spk}" \
     --spk_num "${num_spk}"\
-    --hop_length 64 \
     --frame_shift 64 \
     "$@"

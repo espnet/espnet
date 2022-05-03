@@ -73,7 +73,7 @@ class DiarizeSpeech:
         )
         if enh_s2t_task:
             diar_model.inherite_attributes(
-                inherite_diar_attrs=[
+                inherite_s2t_attrs=[
                     "max_num",
                 ]
             )

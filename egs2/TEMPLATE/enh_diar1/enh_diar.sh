@@ -362,12 +362,11 @@ if ! "${skip_train}"; then
                 # "sound" supports "wav", "flac", etc.
                 _type=sound
             fi
-            _opts+="--frontend_conf fs=${fs} "
         else
             echo "does not support other feats_type (i.e., ${_feats_type}) now"
         fi
 
-        _opts+="--num_spk ${spk_num} "
+        _opts+="--diar_num_spk ${spk_num} "
 
         # 1. Split the key file
         _logdir="${diar_stats_dir}/logdir"
@@ -472,7 +471,6 @@ if ! "${skip_train}"; then
                 _type=sound
             fi
             _fold_length="$((diar_speech_fold_length * 100))"
-            _opts+="--frontend_conf fs=${fs} "
         else
             echo "does not support other feats_type (i.e., ${_feats_type}) now"
         fi
@@ -482,7 +480,7 @@ if ! "${skip_train}"; then
             _opts+="--normalize=global_mvn --normalize_conf stats_file=${diar_stats_dir}/train/feats_stats.npz "
         fi
 
-        _opts+="--num_spk ${spk_num} "
+        _opts+="--diar_num_spk ${spk_num} "
 
         # prepare train and valid data parameters
         _train_data_param="--train_data_path_and_name_and_type ${_diar_train_dir}/wav.scp,speech,${_type} "

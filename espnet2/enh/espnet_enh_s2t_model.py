@@ -33,8 +33,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
     def __init__(
         self,
         enh_model: ESPnetEnhancementModel,
-        s2t_model: Union[ESPnetASRModel, ESPnetSTModel],
-        diar_model: ESPnetDiarizationModel,
+        s2t_model: Union[ESPnetASRModel, ESPnetSTModel, ESPnetDiarizationModel],
         calc_enh_loss: bool = True,
         bypass_enh_prob: float = 0,  # 0 means do not bypass enhancement for all data
     ):
@@ -42,40 +41,50 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
 
         super().__init__()
         self.enh_model = enh_model
-        self.s2t_model = s2t_model  # ASR or ST model
-        self.diar_model = diar_model  # DIAR model
+        self.s2t_model = s2t_model  # ASR or ST or DIAR model
 
         self.bypass_enh_prob = bypass_enh_prob
 
         self.calc_enh_loss = calc_enh_loss
-        self.extract_feats_in_collect_stats = (
-            self.s2t_model.extract_feats_in_collect_stats
-        )
+        if isinstance(self.s2t_model, ESPnetDiarizationModel):
+            self.extract_feats_in_collect_stats = False
+        else:
+            self.extract_feats_in_collect_stats = (
+                self.s2t_model.extract_feats_in_collect_stats
+            )
 
     def forward(
         self,
         speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
-        text: torch.Tensor,
-        text_lengths: torch.Tensor,
+        speech_lengths: torch.Tensor = None,
+        text: torch.Tensor = None,
+        text_lengths: torch.Tensor = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
         Args:
             speech: (Batch, Length, ...)
-            speech_lengths: (Batch, )
-            text: (Batch, Length)
-            text_lengths: (Batch,)
+            speech_lengths: (Batch, ) default None for chunk interator,
+                                      because the chunk-iterator does not
+                                      have the speech_lengths returned.
+                                      see in
+                                      espnet2/iterators/chunk_iter_factory.py
+            text: (Batch, Length) default None just to keep the argument order
+            text_lengths: (Batch,) default None for the same reason as speech_lengths
         """
-        assert text_lengths.dim() == 1, text_lengths.shape
-        # Check that batch_size is unified
-        assert (
-            speech.shape[0]
-            == speech_lengths.shape[0]
-            == text.shape[0]
-            == text_lengths.shape[0]
-        ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)
+        if text_lengths is not None:
+            assert text_lengths.dim() == 1, text_lengths.shape
+        if speech_lengths is not None and text_lengths is not None:
+            # Check that batch_size is unified
+            assert (
+                speech.shape[0]
+                == speech_lengths.shape[0]
+                == text.shape[0]
+                == text_lengths.shape[0]
+            ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)
+        else:
+            assert speech.shape[0] == text.shape[0], (speech.shape, text.shape)
 
         # additional checks with valid src_text
         if "src_text" in kwargs:
@@ -168,7 +177,8 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             speech_pre = [speech]
 
         # for data-parallel
-        text = text[:, : text_lengths.max()]
+        if text_lengths is not None:
+            text = text[:, : text_lengths.max()]
         if src_text is not None:
             src_text = src_text[:, : src_text_lengths.max()]
 
@@ -186,12 +196,12 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
                 src_text,
                 src_text_lengths,
             )
-        elif isinstance(self.diar_model, ESPnetDiarizationModel):  # DIAR
-            loss_asr, stats, weight = self.diar_model(
+        elif isinstance(self.s2t_model, ESPnetDiarizationModel):  # DIAR
+            loss_asr, stats, weight = self.s2t_model(
                 speech=speech,
                 speech_lengths=speech_lengths,
-                spk_label=text,
-                spk_label_lengths=text_lengths,
+                spk_labels=text,
+                spk_labels_lengths=text_lengths,
                 bottleneck_feats=bottleneck_feats,
                 bottleneck_feats_lengths=bottleneck_feats_lengths,
             )
@@ -280,7 +290,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             bottleneck_feats,
             bottleneck_feats_lengths,
         ) = self.enh_model.forward_enhance(speech, speech_lengths, num_spk)
-        encoder_out, encoder_out_lens = self.diar_model.encode(
+        encoder_out, encoder_out_lens = self.s2t_model.encode(
             speech,
             speech_lengths,
             bottleneck_feats,
@@ -319,7 +329,6 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         self,
         inherite_enh_attrs: List[str] = [],
         inherite_s2t_attrs: List[str] = [],
-        inherite_diar_attrs: List[str] = [],
     ):
         assert check_argument_types()
 
@@ -329,6 +338,3 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         if len(inherite_s2t_attrs) > 0:
             for attr in inherite_s2t_attrs:
                 setattr(self, attr, getattr(self.s2t_model, attr, None))
-        if len(inherite_diar_attrs) > 0:
-            for attr in inherite_diar_attrs:
-                setattr(self, attr, getattr(self.diar_model, attr, None))

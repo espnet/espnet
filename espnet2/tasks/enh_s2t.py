@@ -260,11 +260,6 @@ class EnhS2TTask(AbsTask):
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         group = parser.add_argument_group(description="Task related")
 
-        # NOTE(kamo): add_arguments(..., required=True) can't be used
-        # to provide --print_config mode. Instead of it, do as
-        required = parser.get_default("required")
-        required += ["token_list"]
-
         group.add_argument(
             "--token_list",
             type=str_or_none,
@@ -321,10 +316,17 @@ class EnhS2TTask(AbsTask):
         )
 
         group.add_argument(
-            "--num_spk",
+            "--diar_num_spk",
             type=int_or_none,
             default=None,
             help="The number of speakers (for each recording) for diar submodel class",
+        )
+
+        group.add_argument(
+            "--diar_input_size",
+            type=int_or_none,
+            default=None,
+            help="The number of input dimension of the feature",
         )
 
         group.add_argument(
@@ -532,9 +534,9 @@ class EnhS2TTask(AbsTask):
                     else getattr(args, attr, None)
                 )
 
-            if subtask in ["asr", "st"]:
+            if subtask in ["asr", "st", "diar"]:
                 m_subtask = "s2t"
-            elif subtask in ["enh", "diar"]:
+            elif subtask in ["enh"]:
                 m_subtask = subtask
             else:
                 raise ValueError(f"{subtask} not supported.")
