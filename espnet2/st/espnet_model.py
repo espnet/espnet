@@ -64,6 +64,11 @@ class ESPnetSTModel(AbsESPnetModel):
         lsm_weight: float = 0.0,
         length_normalized_loss: bool = False,
         use_source_tag: bool = False,
+        use_source_tag_decoder: bool = False,
+        continuous_prompt: bool = False,
+        continuous_prompt_start: bool = False,
+        src_tag_size: int = False,
+        tgt_tag_size: int = False,
         report_cer: bool = True,
         report_wer: bool = True,
         report_bleu: bool = True,
@@ -100,6 +105,16 @@ class ESPnetSTModel(AbsESPnetModel):
             decoder  # TODO(jiatong): directly implement multi-decoder structure at here
         )
         self.use_source_tag = use_source_tag
+        self.use_source_tag_decoder = use_source_tag_decoder
+        self.continuous_prompt = continuous_prompt
+        self.continuous_prompt_start = continuous_prompt_start
+        if self.continuous_prompt:
+            self.src_tag_embed = torch.nn.Sequential(
+                torch.nn.Embedding(src_tag_size, self.encoder._output_size),
+            )
+            self.tgt_tag_embed = torch.nn.Sequential(
+                torch.nn.Embedding(tgt_tag_size, self.encoder._output_size),
+            )
 
         self.criterion_st = LabelSmoothingLoss(
             size=vocab_size,
@@ -255,6 +270,15 @@ class ESPnetSTModel(AbsESPnetModel):
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
+        if self.continuous_prompt:
+            src_tag_out=self.src_tag_embed(torch.sub(src_tag,2))
+            tgt_tag_out=self.tgt_tag_embed(torch.sub(tgt_tag,2))
+            if self.continuous_prompt_start:
+                encoder_out=torch.cat((src_tag_out, tgt_tag_out, encoder_out),1)
+            else:
+                encoder_out=torch.cat((src_tag_out, encoder_out, tgt_tag_out),1)
+            encoder_out_lens=torch.add(encoder_out_lens,2)
+
 
         # 2a. Attention-decoder branch (ST)
         loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
@@ -281,7 +305,7 @@ class ESPnetSTModel(AbsESPnetModel):
         # 2c. Attention-decoder branch (extra ASR)
         if self.asr_weight > 0 and self.mtlalpha < 1.0:
             # source tag not passed right now
-            if self.use_source_tag:
+            if self.use_source_tag or self.use_source_tag_decoder:
                 (
                     loss_asr_att,
                     acc_asr_att,

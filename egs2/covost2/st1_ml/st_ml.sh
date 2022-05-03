@@ -1176,6 +1176,7 @@ if ! "${skip_train}"; then
                     --cleaner "${cleaner}" \
                     --g2p "${g2p}" \
                     --run_multilingual "${run_multilingual}" \
+                    --lang_pairs "${lang_pairs}"\
                     --train_data_path_and_name_and_type "${_st_train_dir}/${_scp},speech,${_type}" \
                     --train_data_path_and_name_and_type "${_st_train_dir}/text.${tgt_case}.tgt,text,text" \
                     --train_data_path_and_name_and_type "${_st_train_dir}/text.${src_case}.src,src_text,text" \
@@ -1359,6 +1360,7 @@ if ! "${skip_train}"; then
                     --cleaner "${cleaner}" \
                     --g2p "${g2p}" \
                     --run_multilingual "${run_multilingual}" \
+                    --lang_pairs "${lang_pairs}"\
                     --valid_data_path_and_name_and_type "${_st_valid_dir}/${_scp},speech,${_type}" \
                     --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${tgt_case}.tgt,text,text" \
                     --valid_data_path_and_name_and_type "${_st_valid_dir}/text.${src_case}.src,src_text,text" \

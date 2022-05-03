@@ -49,7 +49,7 @@ model_conf:
     mtlalpha: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
-    use_source_tag_decoder: true
+    continuous_prompt: true
 
 # optimization related
 optim: adam

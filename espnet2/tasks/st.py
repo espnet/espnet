@@ -263,6 +263,12 @@ class STTask(AbsTask):
             help="Apply preprocessing to data or not",
         )
         group.add_argument(
+            "--lang_pairs",
+            type=str_or_none,
+            default=None,
+            help="lang_pairs of multilingual training",
+        )
+        group.add_argument(
             "--run_multilingual",
             type=str2bool,
             default=False,
@@ -558,7 +564,21 @@ class STTask(AbsTask):
             )
         else:
             extra_asr_decoder = None
-
+        if args.lang_pairs is not None:
+            src_lang_dict={}
+            tgt_lang_dict={}
+            for lang_pair in args.lang_pairs.split("_"):
+                src_lang=lang_pair.split("2")[0]
+                tgt_lang=lang_pair.split("2")[1]
+                if src_lang not in src_lang_dict:
+                    src_lang_dict[src_lang]=1
+                if tgt_lang not in tgt_lang_dict:
+                    tgt_lang_dict[tgt_lang]=1
+            src_tag_size=len(src_lang_dict)
+            tgt_tag_size=len(tgt_lang_dict)
+        else:
+            src_tag_size=0
+            tgt_tag_size=0
         # 8. Build model
         model = ESPnetSTModel(
             vocab_size=vocab_size,
@@ -575,6 +595,8 @@ class STTask(AbsTask):
             extra_mt_decoder=extra_mt_decoder,
             token_list=token_list,
             src_token_list=src_token_list,
+            src_tag_size=src_tag_size,
+            tgt_tag_size=tgt_tag_size,
             **args.model_conf,
         )
 
