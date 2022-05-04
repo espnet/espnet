@@ -100,8 +100,8 @@ class ESPnetDiarizationModel(AbsESPnetModel):
 
         # 1. Encoder
         # Use bottleneck_feats if exist. Only for "enh + diar" task.
-        bottleneck_feats = kwargs.get("bottleneck_feats")
-        bottleneck_feats_lengths = kwargs.get("bottleneck_feats_lengths")
+        bottleneck_feats = kwargs.get("bottleneck_feats", None)
+        bottleneck_feats_lengths = kwargs.get("bottleneck_feats_lengths", None)
         encoder_out, encoder_out_lens = self.encode(
             speech, speech_lengths, bottleneck_feats, bottleneck_feats_lengths
         )

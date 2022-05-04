@@ -105,24 +105,36 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             src_text_lengths = None
 
         batch_size = speech.shape[0]
+        speech_lengths = (
+            speech_lengths
+            if speech_lengths is not None
+            else torch.ones(batch_size).int() * speech.shape[1]
+        )
 
-        # clean speech signal
+        # number of speakers
+        # Take the number of speakers from text (= spk_label [Batch, length, num_spk] ) if it is 3-D.
+        # This is to handle flexible number of speakers. Used only in "enh + diar" task for now.
+        num_spk = text.shape[2] if text.dim() == 3 else self.enh_model.num_spk
+
+        # clean speech signal of each speaker
         speech_ref = None
         if self.calc_enh_loss:
             assert "speech_ref1" in kwargs
-            # Take the number of speakers from text (= spk_label [Batch, length, num_spk] ) if it is 3-D.
-            # This is to handle flexible number of speakers. Used only in "enh + diar" task for now.
-            num_spk = text.shape[2] if text.dim() == 3 else self.enh_model.num_spk
             speech_ref = [
                 kwargs["speech_ref{}".format(spk + 1)] for spk in range(num_spk)
             ]
             # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
             speech_ref = torch.stack(speech_ref, dim=1)
+            # for data-parallel
+            speech_ref = speech_ref[..., : speech_lengths.max()]
+            speech_ref = speech_ref.unbind(dim=1)
 
         # Calculating enhancement loss
         utt_id = kwargs.get("utt_id", None)
         bypass_enh_flag, skip_enhloss_flag = False, False
-        if utt_id is not None:
+        if utt_id is not None and not isinstance(
+            self.s2t_model, ESPnetDiarizationModel
+        ):
             # TODO(xkc): to pass category info and use predefined category list
             if utt_id[0].endswith("SIMU"):
                 # For simulated single-/multi-speaker data
@@ -161,7 +173,9 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
                 others,
                 bottleneck_feats,
                 bottleneck_feats_lengths,
-            ) = self.enh_model.forward_enhance(speech, speech_lengths, num_spk)
+            ) = self.enh_model.forward_enhance(
+                speech, speech_lengths, {"num_spk": num_spk}
+            )
             # loss computation
             if not skip_enhloss_flag:
                 loss_enh, _, _ = self.enh_model.forward_loss(
@@ -175,6 +189,8 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
                 loss_enh = loss_enh[0]
         else:
             speech_pre = [speech]
+            bottleneck_feats = None
+            bottleneck_feats_lengths = None
 
         # for data-parallel
         if text_lengths is not None:
@@ -198,7 +214,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             )
         elif isinstance(self.s2t_model, ESPnetDiarizationModel):  # DIAR
             loss_asr, stats, weight = self.s2t_model(
-                speech=speech,
+                speech=speech.clone(),
                 speech_lengths=speech_lengths,
                 spk_labels=text,
                 spk_labels_lengths=text_lengths,
@@ -263,9 +279,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             others,
             _,
             _,
-        ) = self.enh_model.forward_enhance(
-            speech, speech_lengths, self.enh_model.num_spk
-        )
+        ) = self.enh_model.forward_enhance(speech, speech_lengths)
         encoder_out, encoder_out_lens = self.s2t_model.encode(
             speech_pre[0], speech_lengths
         )
@@ -289,7 +303,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             _,
             bottleneck_feats,
             bottleneck_feats_lengths,
-        ) = self.enh_model.forward_enhance(speech, speech_lengths, num_spk)
+        ) = self.enh_model.forward_enhance(speech, speech_lengths, {"num_spk": num_spk})
         encoder_out, encoder_out_lens = self.s2t_model.encode(
             speech,
             speech_lengths,

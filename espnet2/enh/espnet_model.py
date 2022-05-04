@@ -137,12 +137,18 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # for data-parallel
         speech_ref = speech_ref[..., : speech_lengths.max()]
         speech_ref = speech_ref.unbind(dim=1)
+        additional = {}
+        # Additional data is required in Deep Attractor Network
+        if isinstance(self.separator, DANSeparator):
+            additional["feature_ref"] = [
+                self.encoder(r, speech_lengths)[0] for r in speech_ref
+            ]
 
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
         # model forward
         speech_pre, feature_mix, feature_pre, others, _, _ = self.forward_enhance(
-            speech_mix, speech_lengths, self.num_spk
+            speech_mix, speech_lengths, additional
         )
 
         # loss computation
@@ -162,11 +168,11 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self,
         speech_mix: torch.Tensor,
         speech_lengths: torch.Tensor,
-        num_spk: int,
+        additional: Optional[Dict] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         feature_mix, flens = self.encoder(speech_mix, speech_lengths)
         if self.mask_module is None:
-            feature_pre, flens, others = self.separator(feature_mix, flens)
+            feature_pre, flens, others = self.separator(feature_mix, flens, additional)
             bottleneck_feats = bottleneck_feats_lengths = None
         else:
             # Obtain bottleneck_feats from separator.
@@ -175,7 +181,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 feature_mix, flens
             )
             feature_pre, flens, others = self.mask_module(
-                feature_mix, flens, bottleneck_feats, num_spk
+                feature_mix, flens, bottleneck_feats, additional["num_spk"]
             )
         if feature_pre is not None:
             speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
