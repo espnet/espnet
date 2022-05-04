@@ -2,8 +2,6 @@
 
 . ./path.sh
 
-
-
 if [ $# -ne 1 ]; then
   echo "Arguments should be L3DAS wav path, see local/data.sh for example."
   exit 1;
@@ -22,9 +20,9 @@ cmd=run.pl
 . utils/parse_options.sh
 
 L3DAS22=$1
-# check if the wav dirs exist.
 
-for ddir in L3DAS22_Task1_dev L3DAS22_Task1_train100 L3DAS22_Task1_train360_1 L3DAS22_Task1_train360_2; do
+# check if the wav dirs exist.
+for ddir in L3DAS22_Task1_dev L3DAS22_Task1_test L3DAS22_Task1_train100 L3DAS22_Task1_train360_1 L3DAS22_Task1_train360_2; do
   f=${L3DAS22}/${ddir}
   if [ ! -d $f ]; then
     echo "Error: $f is not a directory."
@@ -33,18 +31,16 @@ for ddir in L3DAS22_Task1_dev L3DAS22_Task1_train100 L3DAS22_Task1_train360_1 L3
 done
 
 
-
-
-# #######
 wavdata=./data/L3DAS22_Multi
 
+dev_dir=${L3DAS22}/L3DAS22_Task1_dev
+test_dir=${L3DAS22}/L3DAS22_Task1_test
 train_dir100=${L3DAS22}/L3DAS22_Task1_train100
 train_dir360_1=${L3DAS22}/L3DAS22_Task1_train360_1
 train_dir360_2=${L3DAS22}/L3DAS22_Task1_train360_2
-dev_dir=${L3DAS22}/L3DAS22_Task1_dev
 
 
-echo "Building training and devloping data"
+echo "Building multi-channel data"
 
 tmpdir=data/temp
 mkdir -p $tmpdir 
@@ -53,10 +49,11 @@ find $train_dir100 -name '*A.wav' -o -name '*B.wav' | sort -u | awk '{n=split($1
 find $train_dir360_1 -name '*A.wav' -o -name '*B.wav' | sort -u | awk '{n=split($1, lst, "/"); split(lst[n], wav, "."); print(wav[1],$1)}' > $tmpdir/tr360.flist
 find $train_dir360_2 -name '*A.wav' -o -name '*B.wav' | sort -u | awk '{n=split($1, lst, "/"); split(lst[n], wav, "."); print(wav[1],$1)}' >> $tmpdir/tr360.flist
 find $dev_dir -name '*A.wav' -o -name '*B.wav' | sort -u | awk '{n=split($1, lst, "/"); split(lst[n], wav, "."); print(wav[1],$1)}' > $tmpdir/dev.flist
+find $test_dir -name '*A.wav' -o -name '*B.wav' | sort -u | awk '{n=split($1, lst, "/"); split(lst[n], wav, "."); print(wav[1],$1)}' > $tmpdir/test.flist
 
 
 # create multi-channel files
-for x in dev tr100 tr360; do
+for x in dev test tr100 tr360; do
   ddir=L3DAS22_Task1_${x}
   mkdir -p ${wavdata}/${ddir}
 

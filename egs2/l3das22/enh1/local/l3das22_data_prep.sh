@@ -2,6 +2,22 @@
 
 . ./path.sh
 
+help_message=$(cat << EOF
+Usage: $0 --extra-annotations <path> [--stage <stage>] [--stop_stage <stop_stage>] [--nj <nj>]
+  required argument:
+    --extra-annotations: path to a directory containing extra annotations for CHiME4
+                         This is required for preparing et05_simu_isolated_1ch_track.
+    NOTE:
+        You can download it manually from
+            http://spandh.dcs.shef.ac.uk/chime_challenge/CHiME4/download.html
+        Then unzip the downloaded file to CHiME4_diff;
+        You will then find the extra annotations in CHiME4_diff/CHiME3/data/annotations
+  optional argument:
+    [--stage]: 1 (default) or 2
+    [--stop_stage]: 1 or 2 (default)
+    [--nj]: number of parallel pool workers in MATLAB
+EOF
+)
 
 
 if [ $# -ne 1 ]; then
@@ -28,18 +44,20 @@ train_dir100=${L3DAS22}/L3DAS22_Task1_train100
 train_dir360_1=${L3DAS22}/L3DAS22_Task1_train360_1
 train_dir360_2=${L3DAS22}/L3DAS22_Task1_train360_2
 dev_dir=${L3DAS22}/L3DAS22_Task1_dev
+test_dir=${L3DAS22}/L3DAS22_Task1_test
 
 find $train_dir100 -name '*.txt' | sort -u > $tmpdir/tr100_txt.flist
 find $train_dir360_1 -name '*.txt' | sort -u > $tmpdir/tr360_txt.flist
 find $train_dir360_2 -name '*.txt' | sort -u >> $tmpdir/tr360_txt.flist
 find $dev_dir -name '*.txt' | sort -u > $tmpdir/dev_txt.flist
+find $test_dir -name '*.txt' | sort -u > $tmpdir/test_txt.flist
 
-for x in dev tr100 tr360; do
+for x in dev test tr100 tr360; do
   # preparing transcript
   sed -e 's:.*/\(.*\).txt$:\1:i' $tmpdir/${x}_txt.flist > $tmpdir/${x}_txt.uttids
   while read line; do
       [ -f $line ] || error_exit "Cannot find transcription file '$line'";
-      cat  "$line"  #| tr '\n' ' ' | perl -ape 's: *$:\n:;' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z  A-Z]//g'
+      cat  "$line"
   done < $tmpdir/${x}_txt.flist > $tmpdir/${x}_txt.trans
   paste $tmpdir/${x}_txt.uttids $tmpdir/${x}_txt.trans \
   | sort -k1,1 > $tmpdir/${x}.trans
@@ -50,11 +68,11 @@ for x in dev tr100 tr360; do
   | sort -k1,1 > $tmpdir/${x}.spk
 done
 
-for x in dev tr; do
+for x in dev test tr; do
   if [ "$x" = "tr" ]; then
     ddir=train_multich
-  elif [ "$x" = "dev" ]; then
-    ddir=dev_multich
+  else
+    ddir=${x}_multich
   fi
 
   wavdir=${wavdata}/L3DAS22_Task1_${x}*
@@ -78,7 +96,7 @@ for x in dev tr; do
     cat $tmpdir/${x}100.spk $tmpdir/${x}360.spk | \
       sort -u>  ${data}/${ddir}/spk1.scp
 
-  elif [ "$x" = "dev" ]; then
+  elif [ "$x" = "dev" ] || [ "$x" = "test" ]; then
     cat $tmpdir/${x}.trans | \
       sort -u>  ${data}/${ddir}/text
 

@@ -39,6 +39,7 @@ if [ ! -e "${L3DAS22}" ] ; then
     should at least contain the task1 dataset:
         L3DAS22
         ├── L3DAS22_Task1_dev
+        ├── L3DAS22_Task1_test
         ├── L3DAS22_Task1_train100
         ├── L3DAS22_Task1_train360_1
         └── L3DAS22_Task1_train360_2
@@ -47,15 +48,16 @@ if [ ! -e "${L3DAS22}" ] ; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "Multi-Channel preparation"
+    log "Data preparation stage 1: Multi-Channel data preparation"
     # The following datasets will be created:
-    # L3DAS22_Task1_dev, L3DAS22_Task1_train100, L3DAS22_Task1_train360
+    # L3DAS22_Task1_dev, L3DAS22_Task1_test, L3DAS22_Task1_train100, L3DAS22_Task1_train360
     local/l3das22_multi_channel.sh ${L3DAS22} || exit 1;
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    log "Data preparation stage 2: Datasets preparation"
     # The following directories will be created:
-    # train_multich, dev_multich
+    # train_multich, dev_multich, test_multich
     local/l3das22_data_prep.sh  ${L3DAS22} || exit 1;
 fi
 

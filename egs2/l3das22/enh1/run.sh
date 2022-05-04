@@ -9,11 +9,10 @@ sample_rate=16k
 
 train_set=train_multich 
 valid_set=dev_multich
-test_sets=dev_multich 
+test_sets=test_multich
 
 
 ./enh.sh --audio_format wav \
-    --stage 1 \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
