@@ -3,25 +3,18 @@
 . ./path.sh
 
 help_message=$(cat << EOF
-Usage: $0 --extra-annotations <path> [--stage <stage>] [--stop_stage <stop_stage>] [--nj <nj>]
+Usage: $0 [L3DAS path]
   required argument:
-    --extra-annotations: path to a directory containing extra annotations for CHiME4
-                         This is required for preparing et05_simu_isolated_1ch_track.
+    L3DAS path: path to the L3DAS directory
     NOTE:
         You can download it manually from
-            http://spandh.dcs.shef.ac.uk/chime_challenge/CHiME4/download.html
-        Then unzip the downloaded file to CHiME4_diff;
-        You will then find the extra annotations in CHiME4_diff/CHiME3/data/annotations
-  optional argument:
-    [--stage]: 1 (default) or 2
-    [--stop_stage]: 1 or 2 (default)
-    [--nj]: number of parallel pool workers in MATLAB
+            https://www.kaggle.com/datasets/l3dasteam/l3das22
 EOF
 )
 
 
 if [ $# -ne 1 ]; then
-  echo "Arguments should be L3DAS wav path, see local/data.sh for example."
+  echo "${help_message}"
   exit 1;
 fi
 
