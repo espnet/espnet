@@ -4,7 +4,6 @@
 . parse_options.sh || exit 1;
 
 pip show -f jiwer >/dev/null || pip install jiwer
-pip show -f pystoi >/dev/null || pip install pystoi
 pip show -f transformers >/dev/null || pip install transformers
 
 if [ $# -lt 1 ]; then
