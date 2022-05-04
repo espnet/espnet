@@ -16,6 +16,7 @@ from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
 from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.separator.abs_separator import AbsSeparator
+from espnet2.enh.separator.dan_separator import DANSeparator
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
@@ -220,7 +221,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     # only select one channel as the reference
                     speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
                 # for the time domain criterions
-                l, s, o = loss_wrapper(speech_ref, speech_pre, o)
+                l, s, o = loss_wrapper(speech_ref, speech_pre, others)
             elif isinstance(criterion, FrequencyDomainLoss):
                 # for the time-frequency domain criterions
                 if criterion.compute_on_mask:
@@ -247,7 +248,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     tf_ref = [self.encoder(sr, speech_lengths)[0] for sr in speech_ref]
                     tf_pre = feature_pre
 
-                l, s, o = loss_wrapper(tf_ref, tf_pre, o)
+                l, s, o = loss_wrapper(tf_ref, tf_pre, others)
             else:
                 raise NotImplementedError("Unsupported loss type: %s" % str(criterion))
 

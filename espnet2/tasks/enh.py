@@ -26,6 +26,7 @@ from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainAbsCoherence
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainDPCL
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import CISDRLoss
@@ -35,14 +36,18 @@ from espnet2.enh.loss.criterions.time_domain import SNRLoss
 from espnet2.enh.loss.criterions.time_domain import TimeDomainL1
 from espnet2.enh.loss.criterions.time_domain import TimeDomainMSE
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
+from espnet2.enh.loss.wrappers.dpcl_solver import DPCLSolver
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.multilayer_pit_solver import MultiLayerPITSolver
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.separator.asteroid_models import AsteroidModel_Converter
 from espnet2.enh.separator.conformer_separator import ConformerSeparator
+from espnet2.enh.separator.dan_separator import DANSeparator
 from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
 from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
+from espnet2.enh.separator.dpcl_e2e_separator import DPCLE2ESeparator
+from espnet2.enh.separator.dpcl_separator import DPCLSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.fasnet_separator import FaSNetSeparator
 from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
@@ -73,8 +78,11 @@ separator_choices = ClassChoices(
     classes=dict(
         asteroid=AsteroidModel_Converter,
         conformer=ConformerSeparator,
+        dan=DANSeparator,
         dc_crn=DC_CRNSeparator,
         dccrn=DCCRNSeparator,
+        dpcl=DPCLSeparator,
+        dpcl_e2e=DPCLE2ESeparator,
         dprnn=DPRNNSeparator,
         fasnet=FaSNetSeparator,
         rnn=RNNSeparator,
@@ -110,6 +118,7 @@ loss_wrapper_choices = ClassChoices(
         fixed_order=FixedOrderSolver,
         multilayer_pit=MultiLayerPITSolver,
         flexiblespk_pit=FlexibleSpkPITSolver,
+        dpcl=DPCLSolver,
     ),
     type_check=AbsLossWrapper,
     default=None,
@@ -124,6 +133,7 @@ criterion_choices = ClassChoices(
         si_snr=SISNRLoss,
         snr=SNRLoss,
         l1=FrequencyDomainL1,
+        dpcl=FrequencyDomainDPCL,
         l1_fd=FrequencyDomainL1,
         l1_td=TimeDomainL1,
         mse=FrequencyDomainMSE,

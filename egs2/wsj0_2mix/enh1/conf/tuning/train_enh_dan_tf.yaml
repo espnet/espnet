@@ -1,0 +1,65 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 100
+batch_type: folded
+batch_size: 8
+iterator_type: chunk
+chunk_length: 32000
+num_workers: 4
+optim_conf:
+    lr: 1.0e-04
+    eps: 1.0e-08
+    weight_decay: 1.0e-7
+patience: 10
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.7
+    patience: 1
+
+# A list for criterions
+# The overlall loss in the multi-task learning will be:
+# loss = weight_1 * loss_1 + ... + weight_N * loss_N
+# The default `weight` for each sub-loss is 1.0
+criterions: 
+  # The first criterion
+  - name: mse
+    conf:
+      compute_on_mask: False
+      mask_type: PSM
+    # the wrapper for the current criterion
+    # PIT is widely used in the speech separation task
+    wrapper: pit
+    wrapper_conf:
+      weight: 1.0
+
+encoder: stft
+encoder_conf:
+    n_fft: 256
+    hop_length: 64
+decoder: stft
+decoder_conf:
+    n_fft: 256
+    hop_length: 64
+separator: dan
+separator_conf:
+    rnn_type: blstm
+    num_spk: 2
+    nonlinear: tanh
+    layer: 4
+    unit: 600
+    dropout: 0.1
+    emb_D: 20
+
+
