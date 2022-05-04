@@ -215,14 +215,26 @@ class Speech2Text:
 
         # hier enc
         if hasattr(self.st_model, "encoder_hier"):
-            enc_hier, enc_hier_lens, _ = self.st_model.encoder_hier(enc, enc_lens)
-            enc = enc_hier
-            enc_lens = enc_hier_lens
+            enc_hier, _, _ = self.st_model.encoder_hier(enc, enc_lens)
+            # enc = enc_hier
+            # enc_lens = enc_hier_lens
 
-        # c. Passed the encoder result and the beam search
-        nbest_hyps = self.beam_search(
-            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
-        )
+            # speech attn
+            if hasattr(self.st_model, "speech_attn") and self.st_model.speech_attn == True:
+                # c. Passed the encoder result and the beam search
+                nbest_hyps = self.beam_search(
+                    x=enc_hier[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x=enc[0]
+                )
+            else:
+                # c. Passed the encoder result and the beam search
+                nbest_hyps = self.beam_search(
+                    x=enc_hier[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+                )
+        else:
+            # c. Passed the encoder result and the beam search
+            nbest_hyps = self.beam_search(
+                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            )
         nbest_hyps = nbest_hyps[: self.nbest]
 
         results = []
