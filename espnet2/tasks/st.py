@@ -521,6 +521,7 @@ class STTask(AbsTask):
         )
 
         # 6. CTC
+        #TODO(chai): change ctc to asr_ctc
         if src_token_list is not None:
             ctc = CTC(
                 odim=src_vocab_size,
@@ -529,6 +530,13 @@ class STTask(AbsTask):
             )
         else:
             ctc = None
+
+        #TODO(chai): change st_ctc to ctc
+        st_ctc = CTC(
+            odim=vocab_size,
+            encoder_output_size=encoder_output_size,
+            **args.ctc_conf, #TODO(chai): make separate st_ctc_conf?
+        )
 
         # 7. ASR extra decoder
         if (
@@ -570,7 +578,8 @@ class STTask(AbsTask):
             encoder=encoder,
             postencoder=postencoder,
             decoder=decoder,
-            ctc=ctc,
+            ctc=ctc,                    #TODO(chai): change to asr_ctc
+            st_ctc=st_ctc,              #TODO(chai): change to ctc
             extra_asr_decoder=extra_asr_decoder,
             extra_mt_decoder=extra_mt_decoder,
             token_list=token_list,

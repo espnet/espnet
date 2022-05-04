@@ -53,12 +53,14 @@ class ESPnetSTModel(AbsESPnetModel):
         decoder: AbsDecoder,
         extra_asr_decoder: Optional[AbsDecoder],
         extra_mt_decoder: Optional[AbsDecoder],
-        ctc: CTC,
+        ctc: CTC,                    #TODO(chai): change to asr_ctc
+        st_ctc: CTC,                 #TODO(chai): change to ctc
         src_vocab_size: int = 0,
         src_token_list: Union[Tuple[str, ...], List[str]] = [],
         asr_weight: float = 0.0,
         mt_weight: float = 0.0,
-        mtlalpha: float = 0.0,
+        mtlalpha: float = 0.0,       #TODO(chai): change to asr_mtlalpha
+        st_mtlalpha: float = 0.0,    #TODO(chai): change to mtlalpha
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
         length_normalized_loss: bool = False,
@@ -72,7 +74,9 @@ class ESPnetSTModel(AbsESPnetModel):
         assert check_argument_types()
         assert 0.0 <= asr_weight < 1.0, "asr_weight should be [0.0, 1.0)"
         assert 0.0 <= mt_weight < 1.0, "mt_weight should be [0.0, 1.0)"
-        assert 0.0 <= mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"
+        assert 0.0 <= asr_weight + mt_weight < 1.0, "asr_weight + mt_weight should be [0.0, 1.0)"
+        assert 0.0 <= mtlalpha <= 1.0, "mtlalpha should be [0.0, 1.0]"       #TODO(chai): change to asr_mtlalpha
+        assert 0.0 <= st_mtlalpha < 1.0, "st_mtlalpha should be [0.0, 1.0)"  #TODO(chai): change to mtlalpha
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
@@ -86,7 +90,8 @@ class ESPnetSTModel(AbsESPnetModel):
         self.ignore_id = ignore_id
         self.asr_weight = asr_weight
         self.mt_weight = mt_weight
-        self.mtlalpha = mtlalpha
+        self.mtlalpha = mtlalpha         #TODO(chai): change to asr_mtlalpha
+        self.st_mtlalpha = st_mtlalpha   #TODO(chai): change to mtlalpha
         self.token_list = token_list.copy()
 
         self.frontend = frontend
@@ -112,6 +117,10 @@ class ESPnetSTModel(AbsESPnetModel):
             smoothing=lsm_weight,
             normalize_length=length_normalized_loss,
         )
+
+        #TODO(chai): change to mtlalpha and ctc
+        if self.st_mtlalpha > 0.0:
+            self.st_ctc = st_ctc
 
         # submodule for ASR task
         if self.asr_weight > 0:
@@ -241,6 +250,10 @@ class ESPnetSTModel(AbsESPnetModel):
         )
 
         # 2b. CTC branch
+        if self.st_mtlalpha > 0:
+            loss_st_ctc = self.st_ctc(
+                encoder_out, encoder_out_lens, text, text_lengths
+            )
         if self.asr_weight > 0:
             assert src_text is not None, "missing source text for asr sub-task of ST"
 
@@ -273,8 +286,13 @@ class ESPnetSTModel(AbsESPnetModel):
             loss_mt_att, acc_mt_att, bleu_mt_att = 0, None, None
 
         # 3. Loss computation
+        if self.st_mtlalpha == 0.0:
+            loss_st = loss_st_att
+        else:
+            loss_st = (
+                self.st_mtlalpha * loss_st_ctc + (1 - self.st_mtlalpha) * loss_st_att
+            )
         asr_ctc_weight = self.mtlalpha
-        loss_st = loss_st_att
         if asr_ctc_weight == 1.0:
             loss_asr = loss_asr_ctc
         elif asr_ctc_weight == 0.0:
