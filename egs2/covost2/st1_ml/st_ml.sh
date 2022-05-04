@@ -547,7 +547,7 @@ if ! "${skip_data_prep}"; then
                 # expand the utt_extra_files for multi-references
                 expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
-                    # with regex to suuport multi-references
+                    # with regex to support multi-references
                     for single_file in $(ls data/"${dset}"/${extra_file}*); do
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
@@ -780,7 +780,7 @@ if ! "${skip_data_prep}"; then
             for lang_pair in $(echo ${lang_pairs} | tr '_' ' '); do
                 lang=$(echo ${lang_pair} | cut -f 2 -d"2")
                 echo "<${lang}>"
-            done | uniq
+            done | sort | uniq
             # Remove <unk>, <s>, </s> from the vocabulary
             <"${tgt_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
             echo "${sos_eos}"
@@ -860,7 +860,7 @@ if ! "${skip_data_prep}"; then
                 for lang_pair in $(echo ${lang_pairs} | tr '_' ' '); do
                     lang=$(echo ${lang_pair} | cut -f 1 -d"2")
                     echo "<${lang}>"
-                done | uniq
+                done | sort | uniq
                 # Remove <unk>, <s>, </s> from the vocabulary
                 <"${src_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
                 echo "${sos_eos}"
@@ -1596,8 +1596,8 @@ if ! "${skip_eval}"; then
                     >"${_scoredir}/hyp.trn.org"
             
             # remove utterance id
-            perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
-            perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
+            perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
+            perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
 
             # detokenizer
             tgt_lang=$(echo ${dset} | cut -f 2 -d"2")
@@ -1644,7 +1644,7 @@ if ! "${skip_eval}"; then
                             >"${_scoredir}/ref.trn.org.${ref_idx}"
                     
                     # 
-                    perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
+                    perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
                     detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
                     remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
                     case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
