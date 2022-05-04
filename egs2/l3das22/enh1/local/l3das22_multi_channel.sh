@@ -2,8 +2,21 @@
 
 . ./path.sh
 
+
+help_message=$(cat << EOF
+Usage: $0 [L3DAS path]
+  required argument:
+    L3DAS path: path to the L3DAS directory
+    NOTE:
+        You can download it manually from
+            https://www.kaggle.com/datasets/l3dasteam/l3das22
+EOF
+)
+
+
+
 if [ $# -ne 1 ]; then
-  echo "Arguments should be L3DAS wav path, see local/data.sh for example."
+  echo "${help_message}"
   exit 1;
 fi
 
@@ -15,7 +28,7 @@ set -o pipefail
 
 # configs
 nj=16
-cmd=run.pl
+. ./cmd.sh || exit 1;
 
 . utils/parse_options.sh
 
@@ -72,7 +85,7 @@ for x in dev test tr100 tr360; do
   chmod +x $tmpdir/log/${x}/* 
 
   # sox command to separate multi-channels
-  $cmd JOB=1:$nj $tmpdir/log/${x}/sox.JOB.log $tmpdir/log/${x}/sox_JOB.sh
+  ${train_cmd} JOB=1:$nj $tmpdir/log/${x}/sox.JOB.log $tmpdir/log/${x}/sox_JOB.sh
 done
 
 
