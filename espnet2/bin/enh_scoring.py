@@ -63,29 +63,29 @@ def scoring(
             if ref.ndim > inf.ndim:
                 # multi-channel reference and single-channel output
                 ref = ref[..., ref_channel]
-                assert ref.shape == inf.shape, (ref.shape, inf.shape)
             elif ref.ndim < inf.ndim:
                 # single-channel reference and multi-channel output
-                raise ValueError(
-                    "Reference must be multi-channel when the \
-                    network output is multi-channel."
-                )
+                inf = inf[..., ref_channel]
             elif ref.ndim == inf.ndim == 3:
                 # multi-channel reference and output
                 ref = ref[..., ref_channel]
                 inf = inf[..., ref_channel]
-
+            assert ref.shape == inf.shape, (ref.shape, inf.shape)
             sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
 
             for i in range(num_spk):
                 stoi_score = stoi(ref[i], inf[int(perm[i])], fs_sig=sample_rate)
+                estoi_score = stoi(
+                    ref[i], inf[int(perm[i])], fs_sig=sample_rate, extended=True
+                )
                 si_snr_score = -float(
                     si_snr_loss(
                         torch.from_numpy(ref[i][None, ...]),
                         torch.from_numpy(inf[int(perm[i])][None, ...]),
                     )
                 )
-                writer[f"STOI_spk{i + 1}"][key] = str(stoi_score)
+                writer[f"STOI_spk{i + 1}"][key] = str(stoi_score * 100)  # in percentage
+                writer[f"ESTOI_spk{i + 1}"][key] = str(estoi_score * 100)
                 writer[f"SI_SNR_spk{i + 1}"][key] = str(si_snr_score)
                 writer[f"SDR_spk{i + 1}"][key] = str(sdr[i])
                 writer[f"SAR_spk{i + 1}"][key] = str(sar[i])
