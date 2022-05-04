@@ -54,10 +54,10 @@ class ESPnetSTModel(AbsESPnetModel):
         decoder: AbsDecoder,
         extra_asr_decoder: Optional[AbsDecoder],
         extra_mt_decoder: Optional[AbsDecoder],
-        ctc: CTC,                    #TODO(chai): change to asr_ctc
-        st_ctc: CTC,                 #TODO(chai): change to ctc
-        src_vocab_size: int = 0,
-        src_token_list: Union[Tuple[str, ...], List[str]] = [],
+        ctc: Optional[CTC],                    #TODO(chai): change to asr_ctc
+        st_ctc: Optional[CTC],                 #TODO(chai): change to ctc
+        src_vocab_size: Optional[int] = 0,
+        src_token_list: Optional[Union[Tuple[str, ...], List[str]]] = [],
         asr_weight: float = 0.0,
         mt_weight: float = 0.0,
         mtlalpha: float = 0.0,       #TODO(chai): change to asr_mtlalpha
