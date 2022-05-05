@@ -17,7 +17,7 @@ class TestModel(AbsESPnetModel):
     def collect_feats(self):
         return {}
 
-    def forward(self, x, x_lengths):
+    def forward(self, x, x_lengths, **kwargs):
         x = self.layer1(x)
         x = self.layer2(x)
         retval = {

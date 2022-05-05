@@ -107,7 +107,7 @@ def calculate_all_attentions(
     # Batch-mode can't be used to keep requirements small for each models.
     keys = []
     for k in batch:
-        if not k.endswith("_lengths"):
+        if not (k.endswith("_lengths") or k in ["utt_id"]):
             keys.append(k)
 
     return_dict = defaultdict(list)
@@ -128,6 +128,10 @@ def calculate_all_attentions(
                 if k + "_lengths" in batch
             }
         )
+
+        if "utt_id" in batch:
+            _sample["utt_id"] = batch["utt_id"]
+
         model(**_sample)
 
         # Derive the attention results
