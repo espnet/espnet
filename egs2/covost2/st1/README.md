@@ -35,8 +35,8 @@
 
 |dataset|BLEU|
 |---|---|
-|test.de-en|6.3|
-|dev.de-en|8.7|
+|test.en-de|6.3|
+|dev.en-de|8.7|
 
 ### Using Transformer based encoder initialised with Librispeech and Transformer based decoder with asr weight 
 - ASR config: [conf/tuning/train_transformer_st_librispeech_lr0.5_asrw.yaml](conf/tuning/train_transformer_st_librispeech_lr0.5_asrw.yaml)
