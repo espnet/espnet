@@ -2,7 +2,7 @@ optim: adam
 init: xavier_uniform
 max_epoch: 50
 batch_type: folded
-batch_size: 4 # batch_size 16 can be trained on 4 RTX 2080ti
+batch_size: 4
 accum_grad: 4
 iterator_type: chunk
 chunk_length: 24000
@@ -17,7 +17,7 @@ val_scheduler_criterion:
 - loss
 best_model_criterion:
 -   - valid
-    - si_snr_loss
+    - loss_enh
     - min
 keep_nbest_models: 1
 scheduler: reducelronplateau
@@ -25,8 +25,13 @@ scheduler_conf:
     mode: min
     factor: 0.5
     patience: 1
-model_conf:
+
+diar_input_size: 128 # same as bottleneck_dim
+subtask_series: ["enh", "diar"]
+
+enh_model_conf:
     loss_type: si_snr
+diar_model_conf:
     diar_weight: 0.2
     attractor_weight: 0.2
 enh_encoder: conv
@@ -39,8 +44,8 @@ enh_decoder_conf:
     channel: 512
     kernel_size: 16
     stride: 8
-separator: tcn
-separator_conf:
+enh_separator: tcn_nomask
+enh_separator_conf:
     layer: 8
     stack: 3
     bottleneck_dim: 128
@@ -48,8 +53,8 @@ separator_conf:
     kernel: 3
     causal: False
     norm_type: "gLN"
-mask_module: multi_mask
-mask_module_conf:
+enh_mask_module: multi_mask
+enh_mask_module_conf:
     max_num_spk: 3
     mask_nonlinear: relu
     bottleneck_dim: 128
@@ -59,7 +64,13 @@ label_aggregator_conf:
     hop_length: 64  # This value should be set to:
                     # enh_encoder stride * subsampling factor (corresponding to diar_encoder input_layer)
                     # subsampling factors: 1 (linear), 2 (conv2d2), 4 (conv2d), 6 (conv2d6), 8 (conv2d8)
-# frontend: default # uncomment this line to use concatenated log-mel filterbank and bottleneck features
+diar_frontend: null
+frontend: null # this is only required when "diar_front_end: null"
+# uncomment the following lines to use concatenated log-mel filterbank and bottleneck features
+# diar_frontend: default
+# diar_frontend_conf:
+#   hop_length: 64
+#   fs: 8000
 diar_encoder: transformer
 diar_encoder_conf:
     input_layer: "conv2d8"
@@ -69,19 +80,19 @@ diar_encoder_conf:
     output_size: 256  # dimension of attention
     attention_heads: 4
     attention_dropout_rate: 0.1
-attractor: rnn
-attractor_conf:
+diar_attractor: rnn
+diar_attractor_conf:
     unit: 256 # same as encoder output size
     layer: 1
-    dropout: 0.1
+    dropout: 0.0
     attractor_grad: True
 
-criterions: 
+enh_criterions: 
   # The first criterion
   - name: si_snr 
     conf:
       eps: 1.0e-7
-    wrapper: pit2
+    wrapper: flexiblespk_pit
     wrapper_conf:
       weight: 1.0
       independent_perm: True

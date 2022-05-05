@@ -1,3 +1,4 @@
+enh_s2t_task: True
 fs: 8000
 segment_size: 3.0
 hop_size: 2.0
