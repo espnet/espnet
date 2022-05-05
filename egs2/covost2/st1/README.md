@@ -15,7 +15,7 @@
 - token_type: word
 
 |dataset|BLEU|
-|---|---|---|
+|---|---|
 |test.de-en|1.8|
 |dev.de-en|1.6|
 
@@ -24,7 +24,7 @@
 - token_type: word
 
 |dataset|BLEU|
-|---|---|---|
+|---|---|
 |test.de-en|8.9|
 |dev.de-en|9.2|
 
@@ -34,7 +34,7 @@
 - token_type: word
 
 |dataset|BLEU|
-|---|---|---|
+|---|---|
 |test.de-en|6.3|
 |dev.de-en|8.7|
 
@@ -43,6 +43,6 @@
 - token_type: word
 
 |dataset|BLEU|
-|---|---|---|
+|---|---|
 |test.de-en|5.8|
 |dev.de-en|5.8|
