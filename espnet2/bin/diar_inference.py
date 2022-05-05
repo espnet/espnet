@@ -74,7 +74,9 @@ class DiarizeSpeech:
         if enh_s2t_task:
             diar_model.inherite_attributes(
                 inherite_s2t_attrs=[
-                    "max_num",
+                    "max_num_spk",
+                    "decoder",
+                    "attractor",
                 ]
             )
 
@@ -230,7 +232,7 @@ class DiarizeSpeech:
                         )
                         # Separation Forward
                         _, _, processed_wav = self.diar_model.encode_diar(
-                            speech, lengths, num_spk
+                            speech_seg, lengths_seg, num_spk
                         )
                         if self.normalize_segment_scale:
                             # normalize the scale to match the input mixture scale
@@ -293,6 +295,13 @@ class DiarizeSpeech:
                     waves = [
                         waves[i] * interp_prediction[:, :, i] for i in range(num_spk)
                     ]
+                if self.normalize_output_wav:
+                    waves = [
+                        (w / abs(w).max(dim=1, keepdim=True)[0] * 0.9).cpu().numpy()
+                        for w in waves
+                    ]  # list[(batch, sample)]
+                else:
+                    waves = [w.cpu().numpy() for w in waves]
 
         if self.num_spk is not None:
             assert spk_prediction.size(2) == self.num_spk, (

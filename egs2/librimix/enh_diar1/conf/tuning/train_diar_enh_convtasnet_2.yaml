@@ -16,7 +16,7 @@ val_scheduler_criterion:
 - loss
 best_model_criterion:
 -   - valid
-    - si_snr_loss
+    - loss_enh
     - min
 keep_nbest_models: 1
 scheduler: reducelronplateau

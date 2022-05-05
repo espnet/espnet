@@ -624,7 +624,7 @@ if ! "${skip_eval}"; then
                 ${python} -m espnet2.bin.diar_inference \
                     --ngpu "${_ngpu}" \
                     --fs "${fs}" \
-                    --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
+                    --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --train_config "${diar_exp}"/config.yaml \
                     --model_file "${diar_exp}"/"${inference_model}" \

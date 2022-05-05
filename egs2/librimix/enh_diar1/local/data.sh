@@ -16,6 +16,7 @@ FOLDER=git_librimix
 fs=8k
 num_spk="2 3"
 min_max_mode=min
+adapt=
 
  . utils/parse_options.sh || exit 1;
 
@@ -80,6 +81,12 @@ for file in reco2dur rttm segments spk2utt utt2spk wav.scp spk1.scp spk2.scp spk
         fi
     done
 done
+
+# write dummy path to spk3.scp for training 2spk & 3spk mixture
+if [ $adapt == "True" ]; then
+    cat data/train2/spk1.scp >> data/train/spk3.scp
+    cat data/dev2/spk1.scp >> data/dev/spk3.scp
+fi
 
 for file in spk1.scp spk2.scp spk3.scp noise1.scp; do
     for dir in data/test data/train data/dev; do

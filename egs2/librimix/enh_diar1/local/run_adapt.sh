@@ -31,7 +31,7 @@ pretrained="exp/diar_enh_train_diar_enh_convtasnet_2_raw/valid.si_snr_loss.best.
     --inference_config "${decode_config}" \
     --inference_nj 32 \
     --audio_format wav \
-    --local_data_opts "--stage 2" \
+    --local_data_opts "--stage 2 --adapt True" \
     --diar_args "--init_param ${pretrained}" \
     --diar_tag "train_diar_enh_convtasnet_adapt" \
     --spk_num "3"\
