@@ -357,31 +357,36 @@ class Phonemizer:
             return [c.replace(" ", "<space>") for c in tokens]
 
 
-class is_g2p:
+class IsG2p:  # pylint: disable=too-few-public-methods  
+    """
+    Minimal wrapper for https://github.com/grammatek/ice-g2p
+    The g2p module uses a Bi-LSTM model along with
+    a pronunciation dictionary to generate phonemization
+
+    Unfortunately does not support multi-thread phonemization as of yet
+    """
     def __init__(
-        self,
-        no_space: bool = False,
-        dialect: str = "standard",
-        syllabify: bool = True,
-        word_sep: str = ",",
-        use_dict: bool = True,
+            self,
+            dialect: str = "standard",
+            syllabify: bool = True,
+            word_sep: str = ",",
+            use_dict: bool = True,
     ):
         self.dialect = dialect
         self.syllabify = syllabify
         self.use_dict = use_dict
         from ice_g2p.transcriber import Transcriber
 
-        self.transcriber = Transcriber(use_dict=self.use_dict, syllab_symbol='.', stress_label=True, word_sep=word_sep, lang_detect=True)
-
-    def process_string(self, input_str: str) -> str:
-        transcribed = self.transcriber.transcribe(
-            input_str,
-        ).split()
-        return transcribed
+        self.transcriber = Transcriber(
+            use_dict=self.use_dict,
+            syllab_symbol='.',
+            stress_label=True,
+            word_sep=word_sep,
+            lang_detect=True
+        )
 
     def __call__(self, text) -> List[str]:
-        phones = self.process_string(input_str=text)
-        return phones
+        return self.transcriber.transcribe(text).split()
 
 
 class PhonemeTokenizer(AbsTokenizer):
@@ -505,10 +510,9 @@ class PhonemeTokenizer(AbsTokenizer):
         elif g2p_type == "korean_jaso_no_space":
             self.g2p = Jaso(no_space=True)
         elif g2p_type == "g2p_is":
-            self.g2p = is_g2p(no_space=False)
-        # TODO(G-Thor) update once ice-g2p dependency supports north dialect
-        # elif g2p_type == "g2p_is_north":
-        #     self.g2p = FairseqG2P(no_space=False, dialect="north")
+            self.g2p = IsG2p()
+        elif g2p_type == "g2p_is_north":
+            self.g2p = IsG2p(dialect="north")
         else:
             raise NotImplementedError(f"Not supported: g2p_type={g2p_type}")
 
