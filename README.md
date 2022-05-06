@@ -97,7 +97,7 @@ Demonstration
     - Conformer FastSpeech & FastSpeech2
     - VITS
 - Multi-speaker & multi-language extention
-    - Pretrined speaker embedding (e.g., X-vector)
+    - Pretrained speaker embedding (e.g., X-vector)
     - Speaker ID embedding
     - Language ID embedding
     - Global style token (GST) embedding
