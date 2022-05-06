@@ -381,7 +381,6 @@ if [ -z "${st_tag}" ]; then
         st_tag="train_${feats_type}"
     fi
     st_tag+="_${src_lang}_${tgt_lang}_${tgt_token_type}_${tgt_case}"
-    fi
     if [ "${tgt_token_type}" = bpe ]; then
         st_tag+="${tgt_nbpe}"
     fi
@@ -400,7 +399,6 @@ if [ -z "${lm_tag}" ]; then
         lm_tag="train"
     fi
     lm_tag+="_${tgt_lang}_${lm_token_type}"
-    fi
     if [ "${lm_token_type}" = bpe ]; then
         lm_tag+="${tgt_nbpe}"
     fi
@@ -413,7 +411,6 @@ fi
 # The directory used for collect-stats mode
 if [ -z "${st_stats_dir}" ]; then
     st_stats_dir="${expdir}/st_stats_${feats_type}_${src_lang}_${tgt_lang}_${tgt_token_type}"
-    fi
     if [ "${tgt_token_type}" = bpe ]; then
         st_stats_dir+="${tgt_nbpe}"
     fi
@@ -423,7 +420,6 @@ if [ -z "${st_stats_dir}" ]; then
 fi
 if [ -z "${lm_stats_dir}" ]; then
     lm_stats_dir="${expdir}/lm_stats_${tgt_lang}_${lm_token_type}"
-    fi
     if [ "${lm_token_type}" = bpe ]; then
         lm_stats_dir+="${tgt_nbpe}"
     fi
