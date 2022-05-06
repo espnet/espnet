@@ -49,7 +49,7 @@ class ESPnetSTHierModel(AbsESPnetModel):
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
-        encoder_hier: AbsEncoder,
+        encoder_hier: Union[AbsEncoder, Dict[str,AbsEncoder]],
         postencoder: Optional[AbsPostEncoder],
         decoder: AbsDecoder,
         extra_asr_decoder: Optional[AbsDecoder],
@@ -57,6 +57,8 @@ class ESPnetSTHierModel(AbsESPnetModel):
         ctc: CTC,
         mt_ctc: CTC,
         speech_attn: bool = False,
+        reverse_sa: bool = False,
+        n_hier: int = 1,
         src_vocab_size: int = 0,
         src_token_list: Union[Tuple[str, ...], List[str]] = [],
         asr_weight: float = 0.0,
@@ -91,6 +93,8 @@ class ESPnetSTHierModel(AbsESPnetModel):
         self.mt_mtlalpha = mt_mtlalpha
         self.token_list = token_list.copy()
         self.speech_attn = speech_attn
+        self.reverse_sa = reverse_sa
+        self.n_hier = n_hier
 
         self.frontend = frontend
         self.specaug = specaug
@@ -98,7 +102,11 @@ class ESPnetSTHierModel(AbsESPnetModel):
         self.preencoder = preencoder
         self.postencoder = postencoder
         self.encoder = encoder
-        self.encoder_hier = encoder_hier
+        if self.n_hier > 1:
+            for k in encoder_hier.keys():
+                setattr(self, "encoder_hier"+k, encoder_hier[k])
+        else:
+            self.encoder_hier = encoder_hier
         self.decoder = (
             decoder  # TODO(jiatong): directly implement multi-decoder structure at here
         )
@@ -220,14 +228,34 @@ class ESPnetSTHierModel(AbsESPnetModel):
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
 
         # 1.b Encoder Hier
-        encoder_hier_out, encoder_hier_out_lens, _ = self.encoder_hier(encoder_out, encoder_out_lens)
+        if self.n_hier > 1:
+            encoder_hier_out_list = []
+            encoder_hier_out_lens_list = []
+            x = encoder_out
+            x_lens = encoder_out_lens
+            for i in range(self.n_hier):
+                new_x, new_x_lens, _ = getattr(self, "encoder_hier"+str(i))(x, x_lens)
+                encoder_hier_out_list.append(new_x)
+                encoder_hier_out_lens_list.append(new_x_lens)
+                x = new_x
+                x_lens = new_x_lens
+            encoder_hier_out = encoder_hier_out_list[-1]
+            encoder_hier_out_lens = encoder_hier_out_lens_list[-1]
+        else:
+            encoder_hier_out, encoder_hier_out_lens, _ = self.encoder_hier(encoder_out, encoder_out_lens)
 
         # 2a. Attention-decoder branch (ST)
         if self.speech_attn:
-            loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
-                encoder_hier_out, encoder_hier_out_lens, text, text_lengths, \
-                    st=True, int_encoder_out=encoder_out, int_encoder_out_lens=encoder_out_lens
-            )
+            if self.reverse_sa:
+                loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
+                    encoder_out, encoder_out_lens, text, text_lengths, \
+                        st=True, int_encoder_out=encoder_hier_out, int_encoder_out_lens=encoder_hier_out_lens
+                )
+            else:
+                loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
+                    encoder_hier_out, encoder_hier_out_lens, text, text_lengths, \
+                        st=True, int_encoder_out=encoder_out, int_encoder_out_lens=encoder_out_lens
+                )
         else:
             loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
                 encoder_hier_out, encoder_hier_out_lens, text, text_lengths, st=True
@@ -246,9 +274,18 @@ class ESPnetSTHierModel(AbsESPnetModel):
 
         # MT CTC
         if self.mt_mtlalpha > 0:
-            loss_mt_ctc, cer_mt_ctc = self._calc_mt_ctc_loss(
-                encoder_hier_out, encoder_hier_out_lens, text, text_lengths
-            )
+            if self.n_hier > 1:
+                loss_mt_ctc = 0.0
+                for i in range(self.n_hier):
+                    loss_mt_ctc_i, cer_mt_ctc = self._calc_mt_ctc_loss(
+                        encoder_hier_out_list[i], encoder_hier_out_lens_list[i], text, text_lengths
+                    )
+                    loss_mt_ctc += loss_mt_ctc_i
+                loss_mt_ctc = loss_mt_ctc / self.n_hier
+            else:
+                loss_mt_ctc, cer_mt_ctc = self._calc_mt_ctc_loss(
+                    encoder_hier_out, encoder_hier_out_lens, text, text_lengths
+                )
         else:
             loss_mt_ctc, cer_mt_ctc = 0.0, None
 

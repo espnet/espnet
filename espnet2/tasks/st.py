@@ -336,6 +336,18 @@ class STTask(AbsTask):
             default=False,
             help="use hier ml",
         )
+        group.add_argument(
+            "--reverse_sa",
+            type=str2bool,
+            default=False,
+            help="use hier ml",
+        )
+        group.add_argument(
+            "--n_hier",
+            type=int,
+            default=1,
+            help="num hier stacks",
+        )
 
         group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
@@ -797,14 +809,22 @@ class STTask(AbsTask):
                         **args.model_conf,
                     )
                 else:
+                    n_hier = getattr(args, "n_hier", 1)
                     encoder_hier_class = encoder_choices.get_class(args.encoder_hier)
-                    encoder_hier = encoder_hier_class(input_size=encoder_output_size, **args.encoder_hier_conf)
+                    if n_hier > 1:
+                        encoder_hier = {str(i):encoder_hier_class(input_size=encoder_output_size, **args.encoder_hier_conf)\
+                                        for i in range(n_hier)}
+                    else:
+                        encoder_hier = encoder_hier_class(input_size=encoder_output_size, **args.encoder_hier_conf)
 
                     mt_ctc = CTC(
                         odim=vocab_size,
                         encoder_output_size=encoder_output_size,
                         **args.ctc_conf,
                     )
+
+                    reverse_sa = getattr(args, "reverse_sa", False)
+                    
 
                     # 8. Build model
                     model = ESPnetSTHierModel(
@@ -820,6 +840,8 @@ class STTask(AbsTask):
                         decoder=decoder,
                         ctc=ctc,
                         mt_ctc=mt_ctc,
+                        reverse_sa=reverse_sa,
+                        n_hier=n_hier,
                         extra_asr_decoder=extra_asr_decoder,
                         extra_mt_decoder=extra_mt_decoder,
                         token_list=token_list,

@@ -115,7 +115,7 @@ class Speech2Text:
 
         # 4. Build BeamSearch object
         weights = dict(
-            decoder=1.0,
+            decoder=1.0-st_ctc_weight,
             lm=lm_weight,
             ctc=st_ctc_weight,
             ngram=ngram_weight,
@@ -129,7 +129,7 @@ class Speech2Text:
             eos=st_model.eos,
             vocab_size=len(token_list),
             token_list=token_list,
-            pre_beam_score_key="full",
+            pre_beam_score_key=None if st_ctc_weight == 1.0 else "full",
         )
         # TODO(karita): make all scorers batchfied
         if batch_size == 1:
@@ -215,16 +215,30 @@ class Speech2Text:
 
         # hier enc
         if hasattr(self.st_model, "encoder_hier"):
-            enc_hier, _, _ = self.st_model.encoder_hier(enc, enc_lens)
-            # enc = enc_hier
-            # enc_lens = enc_hier_lens
+            if hasattr(self.st_model, "n_hier") and self.st_model.n_hier > 1:
+                x = enc
+                x_lens = enc_lens
+                for i in range(self.n_hier):
+                    new_x, new_x_lens, _ = getattr(self.st_model, "encoder_hier"+str(i))(x, x_lens)
+                    x = new_x
+                    x_lens = new_x_lens
+                enc_hier = x
+            else:
+                enc_hier, _, _ = self.st_model.encoder_hier(enc, enc_lens)
 
             # speech attn
             if hasattr(self.st_model, "speech_attn") and self.st_model.speech_attn == True:
-                # c. Passed the encoder result and the beam search
-                nbest_hyps = self.beam_search(
-                    x=enc_hier[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x=enc[0]
-                )
+                reverse_sa = getattr(self.st_model, "reverse_sa", False)
+                if reverse_sa:
+                    # c. Passed the encoder result and the beam search
+                    nbest_hyps = self.beam_search(
+                        x=enc_hier[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x=enc[0]
+                    )
+                else:
+                    # c. Passed the encoder result and the beam search
+                    nbest_hyps = self.beam_search(
+                        x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x=enc_hier[0]
+                    )
             else:
                 # c. Passed the encoder result and the beam search
                 nbest_hyps = self.beam_search(
