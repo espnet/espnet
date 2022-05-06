@@ -1215,7 +1215,7 @@ if ! "${skip_eval}"; then
             detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
 
             if [ ${tgt_case} = "tc" ]; then
-                echo "Case sensitive BLEU result (single-reference)" >> ${_scoredir}/result.tc.txt
+                echo "Case sensitive BLEU result (single-reference)" > ${_scoredir}/result.tc.txt
                 sacrebleu "${_scoredir}/ref.trn.detok" \
                           -i "${_scoredir}/hyp.trn.detok" \
                           -m bleu chrf ter \
@@ -1227,7 +1227,7 @@ if ! "${skip_eval}"; then
             # detokenize & remove punctuation except apostrophe
             remove_punctuation.pl < "${_scoredir}/ref.trn.detok" > "${_scoredir}/ref.trn.detok.lc.rm"
             remove_punctuation.pl < "${_scoredir}/hyp.trn.detok" > "${_scoredir}/hyp.trn.detok.lc.rm"
-            echo "Case insensitive BLEU result (single-reference)" >> ${_scoredir}/result.lc.txt
+            echo "Case insensitive BLEU result (single-reference)" > ${_scoredir}/result.lc.txt
             sacrebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
                       -i "${_scoredir}/hyp.trn.detok.lc.rm" \
                       -m bleu chrf ter \
@@ -1279,7 +1279,7 @@ if ! "${skip_eval}"; then
 
         # Show results in Markdown syntax
         scripts/utils/show_translation_result.sh --case $tgt_case "${mt_exp}" > "${mt_exp}"/RESULTS.md
-        cat "${cat_exp}"/RESULTS.md
+        cat "${mt_exp}"/RESULTS.md
     fi
 else
     log "Skip the evaluation stages"
