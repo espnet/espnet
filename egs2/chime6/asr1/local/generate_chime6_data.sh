@@ -1,0 +1,1 @@
+../../../../egs/chime6/asr1/local/generate_chime6_data.sh

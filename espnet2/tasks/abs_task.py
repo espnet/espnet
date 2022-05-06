@@ -1300,7 +1300,7 @@ class AbsTask(ABC):
                         name=name,
                         dir=output_dir,
                         id=args.wandb_id,
-                        resume="allow",
+                        resume=args.resume,
                     )
                     wandb.config.update(args)
                 else:
