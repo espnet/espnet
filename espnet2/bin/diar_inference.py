@@ -259,7 +259,8 @@ class DiarizeSpeech:
                     # c. Stitch the enhanced segments together
                     waves = enh_waves[0]
                     for i in range(1, num_segments):
-                        # permutation between separated streams in last and current segments
+                        # permutation between separated streams 
+                        # in last and current segments
                         perm = self.cal_permumation(
                             waves[:, :, -overlap_length:],
                             enh_waves[i][:, :, :overlap_length],
