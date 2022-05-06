@@ -74,10 +74,12 @@ class DiarizeSpeech:
         if enh_s2t_task:
             diar_model.inherite_attributes(
                 inherite_s2t_attrs=[
-                    "max_num_spk",
                     "decoder",
                     "attractor",
-                ]
+                ],
+                inherite_enh_attrs=[
+                    "mask_module",
+                ],
             )
 
         diar_model.to(dtype=getattr(torch, dtype)).eval()
@@ -552,7 +554,7 @@ def inference(
                     )
                 )
         else:
-            for i in range(diarize_speech.diar_model.max_num_spk):
+            for i in range(diarize_speech.diar_model.mask_module.max_num_spk):
                 wav_writers.append(
                     SoundScpWriter(
                         f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp"

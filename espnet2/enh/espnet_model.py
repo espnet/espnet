@@ -181,9 +181,12 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             bottleneck_feats, bottleneck_feats_lengths = self.separator(
                 feature_mix, flens
             )
-            feature_pre, flens, others = self.mask_module(
-                feature_mix, flens, bottleneck_feats, additional["num_spk"]
-            )
+            if additional.get("num_spk") is not None:
+                feature_pre, flens, others = self.mask_module(
+                    feature_mix, flens, bottleneck_feats, additional["num_spk"]
+                )
+            else:
+                feature_pre = others = None
         if feature_pre is not None:
             speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
         else:
