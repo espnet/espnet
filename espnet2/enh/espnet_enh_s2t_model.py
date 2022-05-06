@@ -111,9 +111,9 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         )
 
         # number of speakers
-        # Take the number of speakers from text 
+        # Take the number of speakers from text
         # (= spk_label [Batch, length, num_spk] ) if it is 3-D.
-        # This is to handle flexible number of speakers. 
+        # This is to handle flexible number of speakers.
         # Used only in "enh + diar" task for now.
         num_spk = text.shape[2] if text.dim() == 3 else self.enh_model.num_spk
 
