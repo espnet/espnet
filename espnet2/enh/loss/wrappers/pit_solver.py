@@ -80,9 +80,7 @@ class PITSolver(AbsLossWrapper):
                 new_v = new_v.view(B, L // num_spk, num_spk, *rest).mean(2)
                 if new_v.dim() > 2:
                     shapes = [1 for _ in rest]
-                    perm0 = perm_.view(perm_.shape[0], 1, *shapes).expand(
-                        -1, -1, *rest
-                    )
+                    perm0 = perm_.view(perm_.shape[0], 1, *shapes).expand(-1, -1, *rest)
                 else:
                     perm0 = perm_.unsqueeze(1)
                 stats[k] = new_v.gather(1, perm0.to(device=new_v.device)).unbind(1)
