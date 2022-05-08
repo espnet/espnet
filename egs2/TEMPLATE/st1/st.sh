@@ -111,6 +111,7 @@ hf_repo=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
+use_streaming=false # Whether to use streaming decoding
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -1412,7 +1413,11 @@ if ! "${skip_eval}"; then
             key_file=${_data}/${_scp}
             split_scps=""
             _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-            st_inference_tool="espnet2.bin.st_inference"
+            if "${use_streaming}"; then
+                st_inference_tool="espnet2.bin.st_inference_streaming"
+            else
+                st_inference_tool="espnet2.bin.st_inference"
+            fi
 
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
@@ -1552,7 +1557,7 @@ if ! "${skip_eval}"; then
 
         # Show results in Markdown syntax
         scripts/utils/show_translation_result.sh --case $tgt_case "${st_exp}" > "${st_exp}"/RESULTS.md
-        cat "${cat_exp}"/RESULTS.md
+        cat "${st_exp}"/RESULTS.md
     fi
 else
     log "Skip the evaluation stages"

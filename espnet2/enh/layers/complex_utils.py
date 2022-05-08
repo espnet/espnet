@@ -72,9 +72,12 @@ def complex_norm(
     if is_torch_complex_tensor(c):
         return torch.norm(c, dim=dim, keepdim=keepdim)
     else:
-        return torch.sqrt(
-            (c.real**2 + c.imag**2).sum(dim=dim, keepdim=keepdim) + EPS
-        )
+        if dim is None:
+            return torch.sqrt((c.real**2 + c.imag**2).sum() + EPS)
+        else:
+            return torch.sqrt(
+                (c.real**2 + c.imag**2).sum(dim=dim, keepdim=keepdim) + EPS
+            )
 
 
 def einsum(equation, *operands):

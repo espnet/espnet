@@ -1,3 +1,4 @@
+from collections import defaultdict
 from itertools import permutations
 
 import torch
@@ -8,13 +9,26 @@ from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 
 class PITSolver(AbsLossWrapper):
     def __init__(self, criterion: AbsEnhLoss, weight=1.0, independent_perm=True):
+        """Permutation Invariant Training Solver.
+
+        Args:
+            criterion (AbsEnhLoss): an instance of AbsEnhLoss
+            weight (float): weight (between 0 and 1) of current loss
+                for multi-task learning.
+            independent_perm (bool):
+                If True, PIT will be performed in forward to find the best permutation;
+                If False, the permutation from the last LossWrapper output will be
+                inherited.
+                NOTE (wangyou): You should be careful about the ordering of loss
+                    wrappers defined in the yaml config, if this argument is False.
+        """
         super().__init__()
         self.criterion = criterion
         self.weight = weight
         self.independent_perm = independent_perm
 
     def forward(self, ref, inf, others={}):
-        """Permutation invariant training solver.
+        """PITSolver forward.
 
         Args:
             ref (List[torch.Tensor]): [(batch, ...), ...] x n_spk
@@ -30,9 +44,20 @@ class PITSolver(AbsLossWrapper):
         assert len(ref) == len(inf), (len(ref), len(inf))
         num_spk = len(ref)
 
+        stats = defaultdict(list)
+
+        def pre_hook(func, *args, **kwargs):
+            ret = func(*args, **kwargs)
+            for k, v in getattr(self.criterion, "stats", {}).items():
+                stats[k].append(v)
+            return ret
+
         def pair_loss(permutation):
             return sum(
-                [self.criterion(ref[s], inf[t]) for s, t in enumerate(permutation)]
+                [
+                    pre_hook(self.criterion, ref[s], inf[t])
+                    for s, t in enumerate(permutation)
+                ]
             ) / len(permutation)
 
         if self.independent_perm or perm is None:
@@ -40,19 +65,33 @@ class PITSolver(AbsLossWrapper):
             device = ref[0].device
             all_permutations = list(permutations(range(num_spk)))
             losses = torch.stack([pair_loss(p) for p in all_permutations], dim=1)
-            loss, perm = torch.min(losses, dim=1)
+            loss, perm_ = torch.min(losses, dim=1)
             perm = torch.index_select(
                 torch.tensor(all_permutations, device=device, dtype=torch.long),
                 0,
-                perm,
+                perm_,
             )
+            # remove stats from unused permutations
+            for k, v in stats.items():
+                # (B, len(all_permutations), ...)
+                new_v = torch.stack(v, dim=1)
+                if new_v.dim() > 2:
+                    shapes = [1 for _ in range(new_v.dim() - 2)]
+                    perm0 = perm_.view(perm_.shape[0], 1, *shapes).expand(
+                        -1, -1, *new_v.shape[2:]
+                    )
+                else:
+                    perm0 = perm_.unsqueeze(1)
+                stats[k] = new_v.gather(1, perm0.to(device=new_v.device)).unbind(1)
         else:
             loss = torch.tensor(
                 [
                     torch.tensor(
                         [
-                            self.criterion(
-                                ref[s][batch].unsqueeze(0), inf[t][batch].unsqueeze(0)
+                            pre_hook(
+                                self.criterion,
+                                ref[s][batch].unsqueeze(0),
+                                inf[t][batch].unsqueeze(0),
                             )
                             for s, t in enumerate(p)
                         ]
@@ -63,7 +102,8 @@ class PITSolver(AbsLossWrapper):
 
         loss = loss.mean()
 
-        stats = dict()
+        for k, v in stats.items():
+            stats[k] = torch.stack(v, dim=1).mean()
         stats[self.criterion.name] = loss.detach()
 
-        return loss.mean(), stats, {"perm": perm}
+        return loss.mean(), dict(stats), {"perm": perm}
