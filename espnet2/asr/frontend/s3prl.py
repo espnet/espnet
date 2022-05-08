@@ -15,7 +15,9 @@ from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.asr.frontend.adapter_utils.add_adapters import add_adapters_wav2vec2
-#from torchsummary import summary
+
+# from torchsummary import summary
+
 
 def base_s3prl_setup(args):
     args.upstream_feature_selection = getattr(args, "upstream_feature_selection", None)
@@ -76,8 +78,7 @@ class S3prlFrontend(AbsFrontend):
             refresh=s3prl_args.upstream_refresh,
             source="local",
         ).to("cpu")
-        
-        
+
         if getattr(
             s3prl_upstream, "model", None
         ) is not None and s3prl_upstream.model.__class__.__name__ in [
@@ -85,10 +86,15 @@ class S3prlFrontend(AbsFrontend):
             "HubertModel",
         ]:
             s3prl_upstream.model.encoder.layerdrop = 0.0
-            
-            #check if adapter is added
-            if s3prl_upstream.model.__class__.__name__ == "Wav2Vec2Model" and self.args.add_adapters:
-                s3prl_upstream = add_adapters_wav2vec2(s3prl_upstream,adapter_down_dim=192, adapt_layers=[0,1,2])
+
+            # check if adapter is added
+            if (
+                s3prl_upstream.model.__class__.__name__ == "Wav2Vec2Model"
+                and self.args.add_adapters
+            ):
+                s3prl_upstream = add_adapters_wav2vec2(
+                    s3prl_upstream, adapter_down_dim=192, adapt_layers=[0, 1, 2]
+                )
 
         from s3prl.upstream.interfaces import Featurizer
 
@@ -96,11 +102,11 @@ class S3prlFrontend(AbsFrontend):
             feature_selection = "hidden_states"
         else:
             feature_selection = "last_hidden_state"
-        
-        #check if adapters are added and over-ride the feature selection  
+
+        # check if adapters are added and over-ride the feature selection
         if self.args.add_adapters:
             feature_selection = "last_hidden_state"
-            
+
         s3prl_featurizer = Featurizer(
             upstream=s3prl_upstream,
             feature_selection=feature_selection,

@@ -1,16 +1,18 @@
 import numpy as np
 
-from espnet2.asr.frontend.adapter_utils.adapters.adapter_transformer import AdapterTransformerSentenceEncoderLayer
+from espnet2.asr.frontend.adapter_utils.adapters.adapter_transformer import (
+    AdapterTransformerSentenceEncoderLayer,
+)
 
 
 def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
-    '''
+    """
     add adapters to wav2vec2 model.
     * adapter_down_dim - down-projection dimension of adapter.
     * adapt_layers - list of indices of layers to insert adapters. If `None`, adapters are inserted to every layer. (default=`None`).
-    '''
+    """
     if adapt_layers == []:
-        print('>> adapt_layers is an empy list. No adapters will be inserted.')
+        print(">> adapt_layers is an empy list. No adapters will be inserted.")
         return
     orig_param_num = count_params(wav2vec2_model)
 
@@ -44,12 +46,12 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
             activation_dropout=activation_dropout,
             activation_fn=activation_fn,
             layer_norm_first=layer_norm_first,
-            adapter_down_dim=adapter_down_dim
+            adapter_down_dim=adapter_down_dim,
         )
 
         # freeze non-adapter layers
         for name, param in adapter_added_layer.named_parameters():
-            if 'adapter1' in name or 'adapter2' in name:
+            if "adapter1" in name or "adapter2" in name:
                 param.requires_grad = True
             else:
                 param.requires_grad = False
@@ -60,19 +62,22 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
 
         # overwrite original layer with adapter-added layer
         wav2vec2_model.model.encoder.layers[layer_idx] = adapter_added_layer
-        
-        
 
     # print resulting model stats
     new_param_num = count_params(wav2vec2_model)
     new_trainable_param_num = count_params(wav2vec2_model, only_trainable=True)
 
-    print(f'>> inserted adapters to the following layers: {", ".join(map(str, adapted_layers))}')
-    print(f'  * original model weights: {orig_param_num:,}')
-    print(f'  * new model weights - all: {new_param_num:,}')
-    print(f'  * new model weights - trainable: {new_trainable_param_num:,} ({100. * new_trainable_param_num / orig_param_num : .2f}% of original model)')
-    
+    print(
+        f'>> inserted adapters to the following layers: {", ".join(map(str, adapted_layers))}'
+    )
+    print(f"  * original model weights: {orig_param_num:,}")
+    print(f"  * new model weights - all: {new_param_num:,}")
+    print(
+        f"  * new model weights - trainable: {new_trainable_param_num:,} ({100. * new_trainable_param_num / orig_param_num : .2f}% of original model)"
+    )
+
     return wav2vec2_model
+
 
 def count_params(model, only_trainable=False):
     n_params = 0

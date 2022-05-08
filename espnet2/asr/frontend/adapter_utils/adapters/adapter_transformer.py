@@ -32,7 +32,7 @@ class AdapterTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
             attention_dropout,
             activation_dropout,
             activation_fn,
-            layer_norm_first
+            layer_norm_first,
         )
         self.adapter1 = Adapter(embedding_dim, adapter_down_dim)
         self.adapter2 = Adapter(embedding_dim, adapter_down_dim)
