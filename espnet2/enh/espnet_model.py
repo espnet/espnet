@@ -148,7 +148,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
         # model forward
-        speech_pre, feature_mix, feature_pre, others, _, _ = self.forward_enhance(
+        speech_pre, feature_mix, feature_pre, others = self.forward_enhance(
             speech_mix, speech_lengths, additional
         )
 
