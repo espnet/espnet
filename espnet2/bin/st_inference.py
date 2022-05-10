@@ -109,7 +109,7 @@ class Speech2Text:
         scorers["ngram"] = ngram
 
         if st_ctc_weight > 0:
-            assert hasattr(st_model, "encoder_hier") or hasattr(st_model, "encoder_hier3")
+            assert hasattr(st_model, "encoder_hier") or hasattr(st_model, "encoder_hier3") or hasattr(st_model, "encoder_hier0")
             st_ctc = CTCPrefixScorer(ctc=st_model.mt_ctc, eos=st_model.eos)
             scorers.update(ctc=st_ctc)
 
@@ -214,11 +214,11 @@ class Speech2Text:
         assert len(enc) == 1, len(enc)
 
         # hier enc
-        if hasattr(self.st_model, "encoder_hier"):
+        if hasattr(self.st_model, "encoder_hier") or hasattr(self.st_model, "encoder_hier0"):
             if hasattr(self.st_model, "n_hier") and self.st_model.n_hier > 1:
                 x = enc
                 x_lens = enc_lens
-                for i in range(self.n_hier):
+                for i in range(self.st_model.n_hier):
                     new_x, new_x_lens, _ = getattr(self.st_model, "encoder_hier"+str(i))(x, x_lens)
                     x = new_x
                     x_lens = new_x_lens

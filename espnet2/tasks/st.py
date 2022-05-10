@@ -61,6 +61,7 @@ from espnet2.st.espnet_model_md_hier import ESPnetSTMDHierModel
 from espnet2.st.espnet_model_md_samp import ESPnetSTMDSampModel
 from espnet2.st.espnet_model_md_hier_samp import ESPnetSTMDHierSampModel
 from espnet2.st.espnet_model_hier import ESPnetSTHierModel
+from espnet2.st.espnet_model_hier_v2 import ESPnetSTHierModelv2
 from espnet2.st.espnet_model_hier_ml import ESPnetSTHierMlModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
@@ -348,6 +349,12 @@ class STTask(AbsTask):
             default=1,
             help="num hier stacks",
         )
+        group.add_argument(
+            "--use_v2",
+            type=int,
+            default=str2bool,
+            help="hier v2",
+        )
 
         group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
@@ -514,7 +521,7 @@ class STTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTMDModel, ESPnetSTMDHierModel, ESPnetSTMDSampModel, ESPnetSTMDHierSampModel, ESPnetSTHierModel, ESPnetSTHierMlModel]:
+    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTMDModel, ESPnetSTMDHierModel, ESPnetSTMDSampModel, ESPnetSTMDHierSampModel, ESPnetSTHierModel, ESPnetSTHierMlModel, ESPnetSTHierModelv2]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -773,6 +780,7 @@ class STTask(AbsTask):
                 extra_asr_decoder = None
 
             use_hier_ctc = getattr(args, "use_hier_ctc", False)
+            use_v2 = getattr(args, "use_v2", False)
             if use_hier_ctc:
                 use_ml = getattr(args, "use_ml", False)
                 if use_ml:
@@ -806,6 +814,31 @@ class STTask(AbsTask):
                         token_list=token_list,
                         src_token_list=src_token_list,
                         speech_attn=speech_attn,
+                        **args.model_conf,
+                    )
+                elif use_v2:
+                    mt_ctc = CTC(
+                        odim=vocab_size,
+                        encoder_output_size=encoder_output_size,
+                        **args.ctc_conf,
+                    )
+                    # 8. Build model
+                    model = ESPnetSTHierModelv2(
+                        vocab_size=vocab_size,
+                        src_vocab_size=src_vocab_size,
+                        frontend=frontend,
+                        specaug=specaug,
+                        normalize=normalize,
+                        preencoder=preencoder,
+                        encoder=encoder,
+                        postencoder=postencoder,
+                        decoder=decoder,
+                        ctc=ctc,
+                        mt_ctc=mt_ctc,
+                        extra_asr_decoder=extra_asr_decoder,
+                        extra_mt_decoder=extra_mt_decoder,
+                        token_list=token_list,
+                        src_token_list=src_token_list,
                         **args.model_conf,
                     )
                 else:
