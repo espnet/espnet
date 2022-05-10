@@ -146,6 +146,7 @@ def test_single_channel_model(encoder, decoder, separator, training, loss_wrappe
         encoder=encoder,
         separator=separator,
         decoder=decoder,
+        mask_module=None,
         loss_wrappers=loss_wrappers,
     )
 
@@ -184,6 +185,7 @@ def test_svoice_model(encoder, decoder, separator, training, loss_wrappers):
         encoder=encoder,
         separator=separator,
         decoder=decoder,
+        mask_module=None,
         loss_wrappers=loss_wrappers,
     )
 
@@ -299,6 +301,7 @@ def test_forward_with_beamformer_net(
         encoder=encoder,
         decoder=decoder,
         separator=beamformer,
+        mask_module=None,
         loss_type=loss_type,
         mask_type=mask_type,
         loss_wrappers=loss_wrappers,

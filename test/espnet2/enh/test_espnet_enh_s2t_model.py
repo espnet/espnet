@@ -94,6 +94,7 @@ def test_enh_asr_model(
         encoder=enh_encoder,
         separator=enh_separator,
         decoder=enh_decoder,
+        mask_module=None,
         loss_wrappers=loss_wrappers,
     )
     s2t_model = ESPnetASRModel(
