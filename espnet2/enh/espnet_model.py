@@ -34,7 +34,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         encoder: AbsEncoder,
         separator: AbsSeparator,
         decoder: AbsDecoder,
-        mask_module: AbsMask,
+        mask_module: Optional[AbsMask],
         loss_wrappers: List[AbsLossWrapper],
         stft_consistency: bool = False,
         loss_type: str = "mask_mse",
