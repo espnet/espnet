@@ -109,7 +109,7 @@ class Speech2Text:
         scorers["ngram"] = ngram
 
         if st_ctc_weight > 0:
-            assert hasattr(st_model, "encoder_hier")
+            assert hasattr(st_model, "encoder_hier") or hasattr(st_model, "encoder_hier3")
             st_ctc = CTCPrefixScorer(ctc=st_model.mt_ctc, eos=st_model.eos)
             scorers.update(ctc=st_ctc)
 
@@ -244,6 +244,16 @@ class Speech2Text:
                 nbest_hyps = self.beam_search(
                     x=enc_hier[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
                 )
+        # hacky way to check if it is hier ml
+        elif hasattr(self.st_model, "encoder_hier3"):
+            # check LID
+            cat = str(self.st_model.ctc.argmax(enc)[0][0].item())
+            enc_hier, _, _ = getattr(self.st_model, "encoder_hier"+cat)(enc, enc_lens)
+
+            # c. Passed the encoder result and the beam search
+            nbest_hyps = self.beam_search(
+                x=enc_hier[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            )
         else:
             # c. Passed the encoder result and the beam search
             nbest_hyps = self.beam_search(
