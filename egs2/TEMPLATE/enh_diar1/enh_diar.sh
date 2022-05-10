@@ -319,12 +319,7 @@ if ! "${skip_data_prep}"; then
             done
 
             # fix_data_dir.sh leaves only utts which exist in all files
-            #utils/fix_data_dir.sh --utt_extra_files "${_scp_list}" "${data_feats}/${dset}"
             utils/fix_data_dir.sh "${data_feats}/${dset}"
-            #sort spk{i}.scp, etc.
-            #for spk in ${_spk_list} ; do
-            #    sort -t '-' "${data_feats}/${dset}/${spk}.scp" -o "${data_feats}/${dset}/${spk}.scp"
-            #done            
 
             # specifics for diarization
             steps/segmentation/convert_utt2spk_and_segments_to_rttm.py \

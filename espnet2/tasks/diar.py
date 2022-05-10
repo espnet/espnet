@@ -83,7 +83,7 @@ encoder_choices = ClassChoices(
         rnn=RNNEncoder,
     ),
     type_check=AbsEncoder,
-    default="rnn",
+    default="transformer",
 )
 decoder_choices = ClassChoices(
     "decoder",
