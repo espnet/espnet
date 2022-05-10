@@ -196,6 +196,7 @@ class DiarizeSpeech:
                 for x in diarized_wavs
             ]
             spk_prediction = torch.cat(diarized_wavs, dim=1)
+            waves = None
         else:
             # b. Diarization Forward
             encoder_out, encoder_out_lens = self.encode(speech, lengths)
@@ -305,6 +306,8 @@ class DiarizeSpeech:
                     ]  # list[(batch, sample)]
                 else:
                     waves = [w.cpu().numpy() for w in waves]
+            else:
+                waves = None
 
         if self.num_spk is not None:
             assert spk_prediction.size(2) == self.num_spk, (
