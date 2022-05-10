@@ -95,8 +95,8 @@ class Speech2Text:
                 "1.5.0"
             ):
                 raise ValueError(
-                    "float16 dtype for dynamic quantization is not supported with torch "
-                    "version < 1.5.0. Switch to qint8 dtype instead."
+                    "float16 dtype for dynamic quantization is not supported with "
+                    "torch version < 1.5.0. Switch to qint8 dtype instead."
                 )
 
         quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
