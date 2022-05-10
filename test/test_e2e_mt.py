@@ -47,7 +47,7 @@ def make_arg(**kwargs):
         ctc_weight=0.0,  # dummy
         ctc_window_margin=0,  # dummy
         verbose=2,
-        char_list=[u"あ", u"い", u"う", u"え", u"お"],
+        char_list=["あ", "い", "う", "え", "お"],
         outdir=None,
         report_bleu=False,
         sym_space="<space>",
@@ -162,7 +162,7 @@ def test_sortagrad_trainable(module):
     else:
         import espnet.nets.chainer_backend.e2e_mt as m
     batchset = make_batchset(
-        dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True, mt=True, iaxis=1, oaxis=0
+        dummy_json, 2, 2**10, 2**10, shortest_first=True, mt=True, iaxis=1, oaxis=0
     )
     model = m.E2E(6, 5, args)
     for batch in batchset:

@@ -1,0 +1,53 @@
+optim: adam
+init: null   # do not set init method here because DCCRN has its own initialization
+max_epoch: 100
+batch_type: folded
+batch_size: 32
+iterator_type: chunk
+chunk_length: 64000
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 1.0e-7
+patience: 10
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.7
+    patience: 1
+model_conf:
+    loss_type: si_snr
+encoder: stft
+encoder_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 100
+decoder: stft
+decoder_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 100
+separator: dccrn
+
+criterions: 
+  # The first criterion
+  - name: si_snr 
+    conf:
+      eps: 1.0e-7
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0

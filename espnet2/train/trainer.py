@@ -253,9 +253,14 @@ class Trainer:
         ):
             from torch.utils.tensorboard import SummaryWriter
 
-            summary_writer = SummaryWriter(str(output_dir / "tensorboard"))
+            train_summary_writer = SummaryWriter(
+                str(output_dir / "tensorboard" / "train")
+            )
+            valid_summary_writer = SummaryWriter(
+                str(output_dir / "tensorboard" / "valid")
+            )
         else:
-            summary_writer = None
+            train_summary_writer = None
 
         start_time = time.perf_counter()
         for iepoch in range(start_epoch, trainer_options.max_epoch + 1):
@@ -285,7 +290,7 @@ class Trainer:
                     iterator=train_iter_factory.build_iter(iepoch),
                     reporter=sub_reporter,
                     scaler=scaler,
-                    summary_writer=summary_writer,
+                    summary_writer=train_summary_writer,
                     options=trainer_options,
                     distributed_option=distributed_option,
                 )
@@ -305,7 +310,7 @@ class Trainer:
                         cls.plot_attention(
                             model=model,
                             output_dir=output_dir / "att_ws",
-                            summary_writer=summary_writer,
+                            summary_writer=train_summary_writer,
                             iterator=plot_attention_iter_factory.build_iter(iepoch),
                             reporter=sub_reporter,
                             options=trainer_options,
@@ -329,8 +334,9 @@ class Trainer:
                 logging.info(reporter.log_message())
                 if trainer_options.use_matplotlib:
                     reporter.matplotlib_plot(output_dir / "images")
-                if summary_writer is not None:
-                    reporter.tensorboard_add_scalar(summary_writer)
+                if train_summary_writer is not None:
+                    reporter.tensorboard_add_scalar(train_summary_writer, key1="train")
+                    reporter.tensorboard_add_scalar(valid_summary_writer, key1="valid")
                 if trainer_options.use_wandb:
                     reporter.wandb_log()
 
@@ -418,6 +424,7 @@ class Trainer:
                         output_dir=output_dir,
                         best_model_criterion=trainer_options.best_model_criterion,
                         nbest=keep_nbest_models,
+                        suffix=f"till{iepoch}epoch",
                     )
 
                 for e in range(1, iepoch):
@@ -495,7 +502,7 @@ class Trainer:
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
 
         start_time = time.perf_counter()
-        for iiter, (_, batch) in enumerate(
+        for iiter, (utt_id, batch) in enumerate(
             reporter.measure_iter_time(iterator, "iter_time"), 1
         ):
             assert isinstance(batch, dict), type(batch)
@@ -504,6 +511,8 @@ class Trainer:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
                 if iterator_stop > 0:
                     break
+
+            batch["utt_id"] = utt_id
 
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
             if no_forward_run:
@@ -698,12 +707,14 @@ class Trainer:
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
-        for (_, batch) in iterator:
+        for (utt_id, batch) in iterator:
             assert isinstance(batch, dict), type(batch)
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
                 if iterator_stop > 0:
                     break
+
+            batch["utt_id"] = utt_id
 
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
             if no_forward_run:
@@ -756,6 +767,9 @@ class Trainer:
                 len(next(iter(batch.values()))),
                 len(ids),
             )
+
+            batch["utt_id"] = ids
+
             batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
             if no_forward_run:
                 continue

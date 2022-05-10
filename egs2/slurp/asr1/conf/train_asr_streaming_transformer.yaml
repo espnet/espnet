@@ -1,0 +1,69 @@
+# network architecture
+# encoder related
+encoder: contextual_block_transformer
+encoder_conf:
+    output_size: 512    # dimension of attention
+    attention_heads: 8
+    linear_units: 2048  # the number of units of position-wise feed forward
+    num_blocks: 12      # the number of encoder blocks
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d # encoder architecture type
+    normalize_before: true
+    block_size: 40
+    hop_size: 16
+    look_ahead: 16
+    init_average: true
+    ctx_pos_enc: true
+
+# decoder related
+decoder: transformer
+decoder_conf:
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+
+# hybrid CTC/attention
+model_conf:
+    ctc_weight: 0.5
+    lsm_weight: 0.1     # label smoothing option
+    length_normalized_loss: false
+    extract_feats_in_collect_stats: false
+
+# minibatch related
+batch_type: folded
+batch_size: 64
+max_epoch: 50
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+optim: adam
+optim_conf:
+    lr: 0.0002
+scheduler: warmuplr     # pytorch v1.1.0+ required
+scheduler_conf:
+    warmup_steps: 25000
+num_att_plot: 0
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 30
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2

@@ -14,6 +14,7 @@ SECONDS=0
 
 stage=1
 stop_stage=100000
+context=0
 log "$0 $*"
 . utils/parse_options.sh
 
@@ -33,11 +34,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data Preparation"
-    mkdir -p data/{train,valid,test}
-    python3 local/data_prep.py ${SWBD}/LDC97S62 ${SWBD_NXT}/LDC2009T26
-    for x in test valid train; do
-        utils/fix_data_dir.sh data/${x} || exit 1
-    done
+    python3 local/data_prep.py --context ${context} ${SWBD}/LDC97S62 ${SWBD_NXT}/LDC2009T26
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -11,7 +11,7 @@ fi
 if [ ! -e gtn.done ]; then
     (
         set -euo pipefail
-        python3 -m pip install gtn
+        python3 -m pip install gtn==0.0.0
     )
     touch gtn.done
 else

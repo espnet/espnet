@@ -31,10 +31,12 @@ requirements = {
         "ctc-segmentation<1.8,>=1.6.6",
         # TTS
         "pyworld>=0.2.10",
+        "pypinyin<=0.44.0",
         "espnet_tts_frontend",
         # ENH
         "ci_sdr",
         "pytorch_wpe",
+        "fast-bss-eval==0.1.3",
     ],
     # train: The modules invoked when training only.
     "train": [
@@ -69,11 +71,13 @@ requirements = {
         "torchaudio",
         "torch_optimizer",
         "fairscale",
-        "fairseq",
         "transformers",
-        "gtn",
+        "gtn==0.0.0",
     ],
-    "setup": ["numpy", "pytest-runner"],
+    "setup": [
+        "numpy<=1.21.3",
+        "pytest-runner",
+    ],
     "test": [
         "pytest>=3.3.0",
         "pytest-timeouts>=1.2.1",
@@ -82,12 +86,13 @@ requirements = {
         "hacking>=2.0.0",
         "mock>=2.0.0",
         "pycodestyle",
-        "jsondiff>=1.2.0",
+        "jsondiff<2.0.0,>=1.2.0",
         "flake8>=3.7.8",
         "flake8-docstrings>=1.3.1",
         "black",
     ],
     "doc": [
+        "Jinja2<3.1",
         "Sphinx==2.1.2",
         "sphinx-rtd-theme>=0.2.4",
         "sphinx-argparse>=0.2.5",

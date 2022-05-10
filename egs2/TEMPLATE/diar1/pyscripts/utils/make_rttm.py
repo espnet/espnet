@@ -9,6 +9,7 @@ from espnet2.fileio.npy_scp import NpyScpReader
 import logging
 import numpy as np
 from scipy.signal import medfilt
+import humanfriendly
 
 
 def get_parser() -> argparse.Namespace:
@@ -21,7 +22,7 @@ def get_parser() -> argparse.Namespace:
     parser.add_argument("--frame_shift", default=128, type=int)
     parser.add_argument("--subsampling", default=1, type=int)
     parser.add_argument("--median", default=1, type=int)
-    parser.add_argument("--sampling_rate", default=8000, type=int)
+    parser.add_argument("--sampling_rate", default="8000", type=str)
     parser.add_argument(
         "--verbose",
         default=1,
@@ -34,7 +35,7 @@ def get_parser() -> argparse.Namespace:
 def main():
     """Make rttm based on diarization inference results"""
     args = get_parser().parse_args()
-
+    sampling_rate = humanfriendly.parse_size(args.sampling_rate)
     # logging info
     if args.verbose > 1:
         logging.basicConfig(
@@ -61,7 +62,7 @@ def main():
             a = np.where(data[:] > args.threshold, 1, 0)
             if args.median > 1:
                 a = medfilt(a, (args.median, 1))
-            factor = args.frame_shift * args.subsampling / args.sampling_rate
+            factor = args.frame_shift * args.subsampling / sampling_rate
             for spkid, frames in enumerate(a.T):
                 frames = np.pad(frames, (1, 1), "constant")
                 (changes,) = np.where(np.diff(frames, axis=0) != 0)
