@@ -126,7 +126,6 @@ def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
         asr_train_config=asr_config_file_streaming,
         lm_train_config=lm_config_file,
         beam_size=1,
-        streaming=True,
     )
     speech = np.random.randn(10000)
     for sim_chunk_length in [1, 32, 128, 512, 1024, 2048]:
@@ -164,7 +163,6 @@ def test_Speech2Text_streaming(asr_config_file_streaming, lm_config_file):
         asr_train_config=asr_config_file_streaming,
         lm_train_config=lm_config_file,
         beam_size=1,
-        streaming=True,
     )
     # edge case: speech is exactly multiple of sim_chunk_length, e.g., 10240 = 5 x 2048
     speech = np.random.randn(10240)
