@@ -92,7 +92,8 @@ enh_criterions:
   - name: si_snr 
     conf:
       eps: 1.0e-7
-    wrapper: flexiblespk_pit
+    wrapper: pit
     wrapper_conf:
       weight: 1.0
       independent_perm: True
+      flexible_numspk: True

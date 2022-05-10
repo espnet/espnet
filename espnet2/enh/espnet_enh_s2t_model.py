@@ -172,8 +172,6 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
                 feature_mix,
                 feature_pre,
                 others,
-                bottleneck_feats,
-                bottleneck_feats_lengths,
             ) = self.enh_model.forward_enhance(
                 speech, speech_lengths, {"num_spk": num_spk}
             )
@@ -190,8 +188,6 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
                 loss_enh = loss_enh[0]
         else:
             speech_pre = [speech]
-            bottleneck_feats = None
-            bottleneck_feats_lengths = None
 
         # for data-parallel
         if text_lengths is not None:
@@ -219,8 +215,8 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
                 speech_lengths=speech_lengths,
                 spk_labels=text,
                 spk_labels_lengths=text_lengths,
-                bottleneck_feats=bottleneck_feats,
-                bottleneck_feats_lengths=bottleneck_feats_lengths,
+                bottleneck_feats=others.get("bottleneck_feats"),
+                bottleneck_feats_lengths=others.get("bottleneck_feats_lengths"),
             )
         else:
             raise NotImplementedError(f"{type(self.s2t_model)} is not supported yet.")
@@ -278,8 +274,6 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             feature_mix,
             feature_pre,
             others,
-            _,
-            _,
         ) = self.enh_model.forward_enhance(speech, speech_lengths)
         encoder_out, encoder_out_lens = self.s2t_model.encode(
             speech_pre[0], speech_lengths
@@ -301,15 +295,13 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
             speech_pre,
             _,
             _,
-            _,
-            bottleneck_feats,
-            bottleneck_feats_lengths,
+            others,
         ) = self.enh_model.forward_enhance(speech, speech_lengths, {"num_spk": num_spk})
         encoder_out, encoder_out_lens = self.s2t_model.encode(
             speech,
             speech_lengths,
-            bottleneck_feats,
-            bottleneck_feats_lengths,
+            others.get("bottleneck_feats"),
+            others.get("bottleneck_feats_lengths"),
         )
 
         return encoder_out, encoder_out_lens, speech_pre

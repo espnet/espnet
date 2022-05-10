@@ -174,7 +174,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         feature_mix, flens = self.encoder(speech_mix, speech_lengths)
         if self.mask_module is None:
             feature_pre, flens, others = self.separator(feature_mix, flens, additional)
-            bottleneck_feats = bottleneck_feats_lengths = None
         else:
             # Obtain bottleneck_feats from separator.
             # This is used for the input of diarization module in "enh + diar" task
@@ -185,8 +184,14 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 feature_pre, flens, others = self.mask_module(
                     feature_mix, flens, bottleneck_feats, additional["num_spk"]
                 )
+                others["bottleneck_feats"] = bottleneck_feats
+                others["bottleneck_feats_lengths"] = bottleneck_feats_lengths
             else:
-                feature_pre = others = None
+                feature_pre = None
+                others = {
+                    "bottleneck_feats": bottleneck_feats,
+                    "bottleneck_feats_lengths": bottleneck_feats_lengths,
+                }
         if feature_pre is not None:
             speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
         else:
@@ -198,8 +203,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             feature_mix,
             feature_pre,
             others,
-            bottleneck_feats,
-            bottleneck_feats_lengths,
         )
 
     def forward_loss(

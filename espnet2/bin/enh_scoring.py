@@ -29,6 +29,7 @@ def scoring(
     ref_scp: List[str],
     inf_scp: List[str],
     ref_channel: int,
+    flexible_numspk: bool,
 ):
     assert check_argument_types()
 
@@ -51,13 +52,26 @@ def scoring(
     sample_rate, _ = ref_readers[0][keys[0]]
 
     # check keys
-    for inf_reader, ref_reader in zip(inf_readers, ref_readers):
-        assert inf_reader.keys() == ref_reader.keys()
+    if not flexible_numspk:
+        for inf_reader, ref_reader in zip(inf_readers, ref_readers):
+            assert inf_reader.keys() == ref_reader.keys()
 
     with DatadirWriter(output_dir) as writer:
         for key in keys:
-            ref_audios = [ref_reader[key][1] for ref_reader in ref_readers]
-            inf_audios = [inf_reader[key][1] for inf_reader in inf_readers]
+            if not flexible_numspk:
+                ref_audios = [ref_reader[key][1] for ref_reader in ref_readers]
+                inf_audios = [inf_reader[key][1] for inf_reader in inf_readers]
+            else:
+                ref_audios = [
+                    ref_reader[key][1]
+                    for ref_reader in ref_readers
+                    if key in ref_reader.keys()
+                ]
+                inf_audios = [
+                    inf_reader[key][1]
+                    for inf_reader in inf_readers
+                    if key in inf_reader.keys()
+                ]
             ref = np.array(ref_audios)
             inf = np.array(inf_audios)
             if ref.ndim > inf.ndim:
@@ -70,7 +84,25 @@ def scoring(
                 # multi-channel reference and output
                 ref = ref[..., ref_channel]
                 inf = inf[..., ref_channel]
-            assert ref.shape == inf.shape, (ref.shape, inf.shape)
+            if not flexible_numspk:
+                assert ref.shape == inf.shape, (ref.shape, inf.shape)
+            else:
+                # epsilon value to avoid divergence
+                # caused by zero-value, e.g., log(0)
+                eps = 0.000001
+                # if num_spk of ref > num_spk of inf
+                if ref.shape[0] > inf.shape[0]:
+                    p = np.full((ref.shape[0] - inf.shape[0], inf.shape[1]), eps)
+                    inf = np.concatenate([inf, p])
+                    num_spk = ref.shape[0]
+                # if num_spk of ref < num_spk of inf
+                elif ref.shape[0] < inf.shape[0]:
+                    p = np.full((inf.shape[0] - ref.shape[0], ref.shape[1]), eps)
+                    ref = np.concatenate([ref, p])
+                    num_spk = inf.shape[0]
+                else:
+                    num_spk = ref.shape[0]
+
             sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
 
             for i in range(num_spk):
@@ -135,6 +167,7 @@ def get_parser():
     )
     group.add_argument("--key_file", type=str)
     group.add_argument("--ref_channel", type=int, default=0)
+    group.add_argument("--flexible_numspk", type=bool, default=False)
 
     return parser
 

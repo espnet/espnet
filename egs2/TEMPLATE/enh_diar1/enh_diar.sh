@@ -65,7 +65,7 @@ use_noise_ref=false
 
 # diar related
 inference_config= # Config for diar model inference
-inference_model=valid.si_snr_loss.best.pth
+inference_model=valid.loss_enh.best.pth
 inference_tag=    # Suffix to the inference dir for diar model inference
 download_model=   # Download a model from Model Zoo and use it for diarization.
 
@@ -127,6 +127,14 @@ Options:
                       # Note that it will overwrite args in diar config.
     --feats_normalize # Normalizaton layer type (default="${feats_normalize}").
     --spk_num         # Number of speakers in the input audio (default="${spk_num}")
+    --noise_type_num   # Number of noise types in the input audio (default="${noise_type_num}")
+    --dereverb_ref_num # Number of references for dereverberation (default="${dereverb_ref_num}")
+
+    # Training data related
+    --use_dereverb_ref # Whether or not to use dereverberated signal as an additional reference
+                         for training a dereverberation model (default="${use_dereverb_ref}")
+    --use_noise_ref    # Whether or not to use noise signal as an additional reference
+                         for training a denoising model (default="${use_noise_ref}")
 
     # Diarization related
     --inference_config # Config for diar model inference
@@ -681,8 +689,8 @@ if ! "${skip_eval}"; then
         # score_obs=false: Scoring for enhanced signal
         for score_obs in true false; do
             # Peform only at the first time for observation
-            if "${score_obs}" && [ -e "${data_feats}/RESULTS.md" ]; then
-                log "${data_feats}/RESULTS.md already exists. The scoring for observation will be skipped"
+            if "${score_obs}" && [ -e "${data_feats}/ENH_RESULTS.md" ]; then
+                log "${data_feats}/ENH_RESULTS.md already exists. The scoring for observation will be skipped"
                 continue
             fi
 
@@ -728,15 +736,16 @@ if ! "${skip_eval}"; then
                 log "Scoring started... log: '${_logdir}/enh_scoring.*.log'"
                 # shellcheck disable=SC2086
                 ${_cmd} JOB=1:"${_nj}" "${_logdir}"/enh_scoring.JOB.log \
-                    ${python} -m espnet2.bin.enh_scoring_flexible_numspk \
+                    ${python} -m espnet2.bin.enh_scoring \
                         --key_file "${_logdir}"/keys.JOB.scp \
                         --output_dir "${_logdir}"/output.JOB \
                         ${_ref_scp} \
                         ${_inf_scp} \
-                        --ref_channel ${ref_channel}
+                        --ref_channel ${ref_channel} \
+                        --flexible_numspk True
 
                 for spk in $(seq "${spk_num}"); do
-                    for protocol in ${scoring_protocol} wav; do
+                    for protocol in ${scoring_protocol}; do
                         for i in $(seq "${_nj}"); do
                             cat "${_logdir}/output.${i}/${protocol}_spk${spk}"
                         done | LC_ALL=C sort -k1 > "${_dir}/${protocol}_spk${spk}"
@@ -754,9 +763,8 @@ if ! "${skip_eval}"; then
             done
 
             scripts/utils/show_enh_score.sh "${_dir}/../.." > "${_dir}/../../ENH_RESULTS.md"
-            cat 
         done
-        log "Evaluation result for observation: ${data_feats}/RESULTS.md"
+        log "Evaluation result for observation: ${data_feats}/ENH_RESULTS.md"
         log "Evaluation result for enhancement: ${diar_exp}/ENH_RESULTS.md"
         cat "${diar_exp}"/ENH_RESULTS.md
     fi

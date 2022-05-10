@@ -13,7 +13,6 @@ from typeguard import check_return_type
 
 from espnet2.diar.layers.abs_mask import AbsMask
 from espnet2.diar.layers.multi_mask import MultiMask
-from espnet2.diar.loss.wrappers.flexible_spk_pit_solver import FlexibleSpkPITSolver
 from espnet2.diar.separator.tcn_separator_nomask import TCNSeparatorNomask
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
@@ -117,7 +116,6 @@ loss_wrapper_choices = ClassChoices(
         pit=PITSolver,
         fixed_order=FixedOrderSolver,
         multilayer_pit=MultiLayerPITSolver,
-        flexiblespk_pit=FlexibleSpkPITSolver,
         dpcl=DPCLSolver,
     ),
     type_check=AbsLossWrapper,
