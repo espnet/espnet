@@ -123,11 +123,9 @@ class Speech2Text:
 
         if quantize_asr_model:
             logging.info("Use quantized asr model for decoding.")
-            
+
             asr_model = torch.quantization.quantize_dynamic(
-                asr_model, 
-                qconfig_spec=quantize_modules, 
-                dtype=quantize_dtype
+                asr_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
             )
 
         decoder = asr_model.decoder
@@ -150,9 +148,7 @@ class Speech2Text:
                 logging.info("Use quantized lm for decoding.")
 
                 lm = torch.quantization.quantize_dynamic(
-                    lm,
-                    qconfig_spec=quantize_modules,
-                    dtype=quantize_dtype
+                    lm, qconfig_spec=quantize_modules, dtype=quantize_dtype
                 )
 
             scorers["lm"] = lm.lm
