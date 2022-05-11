@@ -6,8 +6,8 @@
 
 - Model files 
     - training config file (teacher model): `./conf/tuning/finetune_transformer.yaml`
-    - training config file: `./conf/tuning/train_conformer_fastspeech2.yaml'
-
+    - training config file: `./conf/tuning/train_conformer_fastspeech2.yaml`
+ 
 - Results 
   - FastSpeech2 (Trans.) w/ PWG: (R = 1) 
       - CER: 3.9
