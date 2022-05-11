@@ -1,5 +1,4 @@
 from argparse import ArgumentParser
-from audioop import mul
 from pathlib import Path
 
 import pytest
