@@ -156,6 +156,8 @@
 
 <span class="sd">&quot;&quot;&quot;VITS module for GAN-TTS task.&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
@@ -189,6 +191,14 @@
     <span class="s2">&quot;hifigan_multi_scale_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANMultiScaleDiscriminator</span><span class="p">,</span>
     <span class="s2">&quot;hifigan_multi_scale_multi_period_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANMultiScaleMultiPeriodDiscriminator</span><span class="p">,</span>  <span class="c1"># NOQA</span>
 <span class="p">}</span>
+
+<span class="k">if</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">LooseVersion</span><span class="p">(</span><span class="s2">&quot;1.6.0&quot;</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">torch.cuda.amp</span> <span class="kn">import</span> <span class="n">autocast</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="c1"># Nothing to do if torch&lt;1.6.0</span>
+    <span class="nd">@contextmanager</span>
+    <span class="k">def</span> <span class="nf">autocast</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>  <span class="c1"># NOQA</span>
+        <span class="k">yield</span>
 
 
 <div class="viewcode-block" id="VITS"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.vits.VITS">[docs]</a><span class="k">class</span> <span class="nc">VITS</span><span class="p">(</span><span class="n">AbsGANTTS</span><span class="p">):</span>
@@ -551,18 +561,19 @@
             <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="n">speech_</span><span class="p">)</span>
 
         <span class="c1"># calculate losses</span>
-        <span class="n">mel_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mel_loss</span><span class="p">(</span><span class="n">speech_hat_</span><span class="p">,</span> <span class="n">speech_</span><span class="p">)</span>
-        <span class="n">kl_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kl_loss</span><span class="p">(</span><span class="n">z_p</span><span class="p">,</span> <span class="n">logs_q</span><span class="p">,</span> <span class="n">m_p</span><span class="p">,</span> <span class="n">logs_p</span><span class="p">,</span> <span class="n">z_mask</span><span class="p">)</span>
-        <span class="n">dur_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dur_nll</span><span class="o">.</span><span class="n">float</span><span class="p">())</span>
-        <span class="n">adv_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator_adv_loss</span><span class="p">(</span><span class="n">p_hat</span><span class="p">)</span>
-        <span class="n">feat_match_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feat_match_loss</span><span class="p">(</span><span class="n">p_hat</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">autocast</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="n">mel_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mel_loss</span><span class="p">(</span><span class="n">speech_hat_</span><span class="p">,</span> <span class="n">speech_</span><span class="p">)</span>
+            <span class="n">kl_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kl_loss</span><span class="p">(</span><span class="n">z_p</span><span class="p">,</span> <span class="n">logs_q</span><span class="p">,</span> <span class="n">m_p</span><span class="p">,</span> <span class="n">logs_p</span><span class="p">,</span> <span class="n">z_mask</span><span class="p">)</span>
+            <span class="n">dur_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dur_nll</span><span class="o">.</span><span class="n">float</span><span class="p">())</span>
+            <span class="n">adv_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator_adv_loss</span><span class="p">(</span><span class="n">p_hat</span><span class="p">)</span>
+            <span class="n">feat_match_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feat_match_loss</span><span class="p">(</span><span class="n">p_hat</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
 
-        <span class="n">mel_loss</span> <span class="o">=</span> <span class="n">mel_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_mel</span>
-        <span class="n">kl_loss</span> <span class="o">=</span> <span class="n">kl_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_kl</span>
-        <span class="n">dur_loss</span> <span class="o">=</span> <span class="n">dur_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_dur</span>
-        <span class="n">adv_loss</span> <span class="o">=</span> <span class="n">adv_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_adv</span>
-        <span class="n">feat_match_loss</span> <span class="o">=</span> <span class="n">feat_match_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_feat_match</span>
-        <span class="n">loss</span> <span class="o">=</span> <span class="n">mel_loss</span> <span class="o">+</span> <span class="n">kl_loss</span> <span class="o">+</span> <span class="n">dur_loss</span> <span class="o">+</span> <span class="n">adv_loss</span> <span class="o">+</span> <span class="n">feat_match_loss</span>
+            <span class="n">mel_loss</span> <span class="o">=</span> <span class="n">mel_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_mel</span>
+            <span class="n">kl_loss</span> <span class="o">=</span> <span class="n">kl_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_kl</span>
+            <span class="n">dur_loss</span> <span class="o">=</span> <span class="n">dur_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_dur</span>
+            <span class="n">adv_loss</span> <span class="o">=</span> <span class="n">adv_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_adv</span>
+            <span class="n">feat_match_loss</span> <span class="o">=</span> <span class="n">feat_match_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_feat_match</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">mel_loss</span> <span class="o">+</span> <span class="n">kl_loss</span> <span class="o">+</span> <span class="n">dur_loss</span> <span class="o">+</span> <span class="n">adv_loss</span> <span class="o">+</span> <span class="n">feat_match_loss</span>
 
         <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">generator_loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
@@ -657,8 +668,9 @@
         <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="n">speech_</span><span class="p">)</span>
 
         <span class="c1"># calculate losses</span>
-        <span class="n">real_loss</span><span class="p">,</span> <span class="n">fake_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator_adv_loss</span><span class="p">(</span><span class="n">p_hat</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
-        <span class="n">loss</span> <span class="o">=</span> <span class="n">real_loss</span> <span class="o">+</span> <span class="n">fake_loss</span>
+        <span class="k">with</span> <span class="n">autocast</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="n">real_loss</span><span class="p">,</span> <span class="n">fake_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator_adv_loss</span><span class="p">(</span><span class="n">p_hat</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">real_loss</span> <span class="o">+</span> <span class="n">fake_loss</span>
 
         <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">discriminator_loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
