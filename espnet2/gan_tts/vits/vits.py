@@ -42,9 +42,9 @@ AVAILABLE_DISCRIMINATORS = {
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast
 else:
+    # Nothing to do if torch<1.6.0
     @contextmanager
-    def autocast(enabled=True):
-        """Define dummy function to be compatible with torch < 1.6.0."""
+    def autocast(enabled=True):  # NOQA
         yield
 
 
