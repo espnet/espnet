@@ -374,7 +374,9 @@
     <span class="p">]:</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">CommonCollateFn</span><span class="p">(</span>
-            <span class="n">float_pad_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">int_pad_value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">not_sequence</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;spembs&quot;</span><span class="p">,</span> <span class="s2">&quot;sids&quot;</span><span class="p">]</span>
+            <span class="n">float_pad_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">int_pad_value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">not_sequence</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;spembs&quot;</span><span class="p">,</span> <span class="s2">&quot;sids&quot;</span><span class="p">,</span> <span class="s2">&quot;lids&quot;</span><span class="p">],</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="GANTTSTask.build_preprocess_fn"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.gan_tts.GANTTSTask.build_preprocess_fn">[docs]</a>    <span class="nd">@classmethod</span>
@@ -413,10 +415,25 @@
         <span class="bp">cls</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">inference</span><span class="p">:</span>
-            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;spembs&quot;</span><span class="p">,</span> <span class="s2">&quot;sids&quot;</span><span class="p">,</span> <span class="s2">&quot;durations&quot;</span><span class="p">,</span> <span class="s2">&quot;pitch&quot;</span><span class="p">,</span> <span class="s2">&quot;energy&quot;</span><span class="p">)</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;spembs&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;durations&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;pitch&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;energy&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;sids&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;lids&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Inference mode</span>
-            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;spembs&quot;</span><span class="p">,</span> <span class="s2">&quot;sids&quot;</span><span class="p">,</span> <span class="s2">&quot;speech&quot;</span><span class="p">,</span> <span class="s2">&quot;durations&quot;</span><span class="p">,</span> <span class="s2">&quot;pitch&quot;</span><span class="p">,</span> <span class="s2">&quot;energy&quot;</span><span class="p">)</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;spembs&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;speech&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;durations&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;pitch&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;energy&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;sids&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;lids&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="k">return</span> <span class="n">retval</span></div>
 
 <div class="viewcode-block" id="GANTTSTask.build_model"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.gan_tts.GANTTSTask.build_model">[docs]</a>    <span class="nd">@classmethod</span>
