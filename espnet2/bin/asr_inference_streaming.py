@@ -216,7 +216,7 @@ class Speech2TextStreaming:
         if not has_enough_samples:
             if is_final:
                 pad = torch.zeros(
-                    self.win_length - speech.size(0), dtype=getattr(torch, self.dtype)
+                    self.win_length - speech.size(0), dtype=speech.dtype
                 )
                 speech = torch.cat([speech, pad], dim=0)
             else:
