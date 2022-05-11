@@ -199,9 +199,14 @@ def pypinyin_g2p_phone(text) -> List[str]:
         for phone in pinyin(text, style=Style.TONE3)
         for p in [
             get_initials(phone[0], strict=True),
-            get_finals(phone[0], strict=True),
+            get_finals(phone[0][:-1], strict=True) + phone[0][-1]
+            if phone[0][-1].isdigit()
+            else get_finals(phone[0], strict=True)
+            if phone[0][-1].isalnum()
+            else phone[0],
         ]
-        if len(p) != 0
+        # Remove the case of individual tones as a phoneme
+        if len(p) != 0 and not p.isdigit()
     ]
     return phones
 
