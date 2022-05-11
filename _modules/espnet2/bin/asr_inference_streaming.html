@@ -178,6 +178,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2triple_str</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str_or_none</span>
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">import</span> <span class="nn">sys</span>
@@ -334,6 +335,21 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nbest</span> <span class="o">=</span> <span class="n">nbest</span>
+        <span class="k">if</span> <span class="s2">&quot;n_fft&quot;</span> <span class="ow">in</span> <span class="n">asr_train_args</span><span class="o">.</span><span class="n">frontend_conf</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span> <span class="o">=</span> <span class="n">asr_train_args</span><span class="o">.</span><span class="n">frontend_conf</span><span class="p">[</span><span class="s2">&quot;n_fft&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span> <span class="o">=</span> <span class="mi">512</span>
+        <span class="k">if</span> <span class="s2">&quot;hop_length&quot;</span> <span class="ow">in</span> <span class="n">asr_train_args</span><span class="o">.</span><span class="n">frontend_conf</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span> <span class="o">=</span> <span class="n">asr_train_args</span><span class="o">.</span><span class="n">frontend_conf</span><span class="p">[</span><span class="s2">&quot;hop_length&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span> <span class="o">=</span> <span class="mi">128</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="s2">&quot;win_length&quot;</span> <span class="ow">in</span> <span class="n">asr_train_args</span><span class="o">.</span><span class="n">frontend_conf</span>
+            <span class="ow">and</span> <span class="n">asr_train_args</span><span class="o">.</span><span class="n">frontend_conf</span><span class="p">[</span><span class="s2">&quot;win_length&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">=</span> <span class="n">asr_train_args</span><span class="o">.</span><span class="n">frontend_conf</span><span class="p">[</span><span class="s2">&quot;win_length&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
 
@@ -349,15 +365,34 @@
             <span class="n">buf</span> <span class="o">=</span> <span class="n">prev_states</span><span class="p">[</span><span class="s2">&quot;waveform_buffer&quot;</span><span class="p">]</span>
             <span class="n">speech</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">buf</span><span class="p">,</span> <span class="n">speech</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
+        <span class="n">has_enough_samples</span> <span class="o">=</span> <span class="kc">False</span> <span class="k">if</span> <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="k">else</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">has_enough_samples</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">is_final</span><span class="p">:</span>
+                <span class="n">pad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">-</span> <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">speech</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+                <span class="n">speech</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">speech</span><span class="p">,</span> <span class="n">pad</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">feats</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">feats_lengths</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">next_states</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;waveform_buffer&quot;</span><span class="p">:</span> <span class="n">speech</span><span class="o">.</span><span class="n">clone</span><span class="p">()}</span>
+                <span class="k">return</span> <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">,</span> <span class="n">next_states</span>
+
         <span class="k">if</span> <span class="n">is_final</span><span class="p">:</span>
             <span class="n">speech_to_process</span> <span class="o">=</span> <span class="n">speech</span>
             <span class="n">waveform_buffer</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">n_frames</span> <span class="o">=</span> <span class="p">(</span><span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mi">384</span><span class="p">)</span> <span class="o">//</span> <span class="mi">128</span>
-            <span class="n">n_residual</span> <span class="o">=</span> <span class="p">(</span><span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mi">384</span><span class="p">)</span> <span class="o">%</span> <span class="mi">128</span>
-            <span class="n">speech_to_process</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">384</span> <span class="o">+</span> <span class="n">n_frames</span> <span class="o">*</span> <span class="mi">128</span><span class="p">)</span>
+            <span class="n">n_frames</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span><span class="p">)</span>
+            <span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span>
+            <span class="n">n_residual</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span><span class="p">)</span>
+            <span class="p">)</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span>
+            <span class="n">speech_to_process</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span>
+                <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span><span class="p">)</span> <span class="o">+</span> <span class="n">n_frames</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span>
+            <span class="p">)</span>
             <span class="n">waveform_buffer</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span>
-                <span class="mi">0</span><span class="p">,</span> <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mi">384</span> <span class="o">-</span> <span class="n">n_residual</span><span class="p">,</span> <span class="mi">384</span> <span class="o">+</span> <span class="n">n_residual</span>
+                <span class="mi">0</span><span class="p">,</span>
+                <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span><span class="p">)</span> <span class="o">-</span> <span class="n">n_residual</span><span class="p">,</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span><span class="p">)</span> <span class="o">+</span> <span class="n">n_residual</span><span class="p">,</span>
             <span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
 
         <span class="c1"># data: (Nsamples,) -&gt; (1, Nsamples)</span>
@@ -382,12 +417,27 @@
             <span class="k">if</span> <span class="n">prev_states</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">pass</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">feats</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span>
+                    <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
+                    <span class="n">feats</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">prev_states</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">feats</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span>
+                    <span class="mi">1</span><span class="p">,</span>
+                    <span class="mi">0</span><span class="p">,</span>
+                    <span class="n">feats</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">feats</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">4</span><span class="p">)</span>
+                <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span>
+                    <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
+                    <span class="n">feats</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">win_length</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_length</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="p">)</span>
 
         <span class="n">feats_lengths</span> <span class="o">=</span> <span class="n">feats</span><span class="o">.</span><span class="n">new_full</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">feats</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
 
@@ -418,21 +468,25 @@
         <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_frontend</span><span class="p">(</span>
             <span class="n">speech</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend_states</span><span class="p">,</span> <span class="n">is_final</span><span class="o">=</span><span class="n">is_final</span>
         <span class="p">)</span>
-        <span class="n">enc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span>
-            <span class="n">feats</span><span class="p">,</span>
-            <span class="n">feats_lengths</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">encoder_states</span><span class="p">,</span>
-            <span class="n">is_final</span><span class="o">=</span><span class="n">is_final</span><span class="p">,</span>
-            <span class="n">infer_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="p">(</span>
-            <span class="n">x</span><span class="o">=</span><span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">maxlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">maxlenratio</span><span class="p">,</span>
-            <span class="n">minlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">minlenratio</span><span class="p">,</span>
-            <span class="n">is_final</span><span class="o">=</span><span class="n">is_final</span><span class="p">,</span>
-        <span class="p">)</span>
 
-        <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">assemble_hyps</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">feats</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">enc</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span>
+                <span class="n">feats</span><span class="p">,</span>
+                <span class="n">feats_lengths</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">encoder_states</span><span class="p">,</span>
+                <span class="n">is_final</span><span class="o">=</span><span class="n">is_final</span><span class="p">,</span>
+                <span class="n">infer_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="p">(</span>
+                <span class="n">x</span><span class="o">=</span><span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">maxlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">maxlenratio</span><span class="p">,</span>
+                <span class="n">minlenratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">minlenratio</span><span class="p">,</span>
+                <span class="n">is_final</span><span class="o">=</span><span class="n">is_final</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">assemble_hyps</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+
         <span class="k">if</span> <span class="n">is_final</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">ret</span>
