@@ -1,0 +1,2 @@
+# download pretrained model kan-bayashi/ljspeech_tts_train_transformer_raw_char_tacotron_train.loss.ave
+pretrained="https://zenodo.org/record/4925105/files/tts_train_transformer_raw_char_tacotron_train.loss.ave.zip?download=1"
