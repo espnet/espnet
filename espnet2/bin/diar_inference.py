@@ -14,7 +14,7 @@ from typing import Union
 
 import numpy as np
 import torch
-import torch.functional as F
+import torch.nn.functional as F
 from tqdm import trange
 from typeguard import check_argument_types
 

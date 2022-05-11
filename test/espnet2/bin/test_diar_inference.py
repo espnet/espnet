@@ -150,7 +150,8 @@ def diarsep_config_file(tmp_path: Path):
         (34000, 2.4, 1.2, True, 2),
     ],
 )
-def test_DiarSepSpeech3(
+@pytest.mark.parametrize("multiply_diar_result", [True, False])
+def test_DiarSepSpeech(
     diarsep_config_file,
     batch_size,
     input_size,
@@ -158,6 +159,7 @@ def test_DiarSepSpeech3(
     hop_size,
     normalize_segment_scale,
     num_spk,
+    multiply_diar_result,
 ):
     diarize_speech = DiarizeSpeech(
         train_config=diarsep_config_file,
@@ -166,6 +168,8 @@ def test_DiarSepSpeech3(
         normalize_segment_scale=normalize_segment_scale,
         num_spk=num_spk,
         enh_s2t_task=True,
+        normalize_output_wav=True,
+        multiply_diar_result=multiply_diar_result,
     )
     wav = torch.rand(batch_size, input_size)
     diarize_speech(wav, fs=8000)

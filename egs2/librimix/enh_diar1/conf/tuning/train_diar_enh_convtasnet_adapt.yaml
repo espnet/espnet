@@ -65,12 +65,7 @@ label_aggregator_conf:
                     # enh_encoder stride * subsampling factor (corresponding to diar_encoder input_layer)
                     # subsampling factors: 1 (linear), 2 (conv2d2), 4 (conv2d), 6 (conv2d6), 8 (conv2d8)
 diar_frontend: null
-frontend: null # this is only required when "diar_front_end: null"
-# uncomment the following lines to use concatenated log-mel filterbank and bottleneck features
-# diar_frontend: default
-# diar_frontend_conf:
-#   hop_length: 64
-#   fs: 8000
+frontend: null
 diar_encoder: transformer
 diar_encoder_conf:
     input_layer: "conv2d8"
