@@ -16,7 +16,7 @@
  import argparse
 
 +
-+is_py_3_3_plus = V(sys.version) > V("3.3")
++is_py_3_3_plus = V("{}.{}.{}".format(*sys.version_info[:3])) > V("3.3")
 +
 +
  def get_line_context(file_path, line_number):

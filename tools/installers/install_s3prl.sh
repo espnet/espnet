@@ -27,7 +27,7 @@ python_36_plus=$(python3 <<EOF
 from packaging.version import parse as V
 import sys
 
-if V(sys.version) >= V("3.6"):
+if V("{}.{}.{}".format(*sys.version_info[:3])) >= V("3.6"):
     print("true")
 else:
     print("false")
