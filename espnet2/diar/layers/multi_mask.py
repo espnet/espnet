@@ -25,6 +25,11 @@ class MultiMask(AbsMask):
     ):
         """Multiple 1x1 convolution layer Module.
 
+        This module corresponds to the final 1x1 conv block and
+        non-linear function in TCNSeparator.
+        This module has multiple 1x1 conv blocks. One of them is selected
+        according to the given num_spk to handle flexible num_spk.
+
         Args:
             input_dim: Number of filters in autoencoder
             bottleneck_dim: Number of channels in bottleneck 1 * 1-conv block

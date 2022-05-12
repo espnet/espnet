@@ -123,7 +123,8 @@ def scoring(
                 writer[f"SAR_spk{i + 1}"][key] = str(sar[i])
                 writer[f"SIR_spk{i + 1}"][key] = str(sir[i])
                 # save permutation assigned script file
-                writer[f"wav_spk{i + 1}"][key] = inf_readers[perm[i]].data[key]
+                if not flexible_numspk:
+                    writer[f"wav_spk{i + 1}"][key] = inf_readers[perm[i]].data[key]
 
 
 def get_parser():

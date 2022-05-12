@@ -26,6 +26,13 @@ class TCNSeparatorNomask(AbsSeparator):
     ):
         """Temporal Convolution Separator
 
+        Note that this separator is equivalent to TCNSeparator except
+        for not having the mask estimation part.
+        This separator outputs the intermediate bottleneck feats
+        (which is used as the input to diarization branch in enh_diar task).
+        This separator is followed by MultiMask module,
+        which estimates the masks.
+
         Args:
             input_dim: input feature dimension
             layer: int, number of layers in each stack.
