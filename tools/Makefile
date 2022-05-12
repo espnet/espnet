@@ -1,5 +1,5 @@
 # PyTorch version: 1.3.1, 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1, 1.10.0, 1.10.1 and 1.11.0 are tested.
-TH_VERSION := 1.10.1
+TH_VERSION := 1.11.0
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -28,14 +28,8 @@ endif
 
 all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_install
 
-ifneq ($(strip $(CHAINER_VERSION)),)
 python: activate_python.sh espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
 extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done
-else
-python: activate_python.sh espnet.done pytorch.done fairscale.done torch_optimizer.done
-extra: warp-ctc.done warp-transducer.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done
-endif
-
 
 kaldi:
 	test -f kaldi/egs/wsj/s5/utils/parse_options.sh || git clone --depth 1 https://github.com/kaldi-asr/kaldi

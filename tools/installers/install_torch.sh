@@ -51,6 +51,12 @@ install_torch(){
         if [ -z "${cuda_version}" ]; then
             log conda install -y "pytorch=${torch_version}" "torchaudio=$1" cpuonly -c pytorch
             conda install -y "pytorch=${torch_version}" "torchaudio=$1" cpuonly -c pytorch
+        elif [ "${cuda_version}" = "11.5" ]; then
+            # NOTE(kamo): In my environment, conda-forge only could installed, but I don't know why @ 12, May, 2022
+            cudatoolkit_channel=conda-forge
+            log conda install -y "pytorch=${torch_version}" "torchaudio=$1" "cudatoolkit=${cuda_version}" -c pytorch -c "${cudatoolkit_channel}"
+            conda install -y "pytorch=${torch_version}" "torchaudio=$1" "cudatoolkit=${cuda_version}" -c pytorch -c "${cudatoolkit_channel}"
+
         elif [ "${cuda_version}" = "11.1" ] || [ "${cuda_version}" = "11.2" ]; then
             # Anaconda channel, which is default main channel, doesn't provide cudatoolkit=11.1, 11.2 now (Any pytorch version doesn't provide cuda=11.2).
             # https://anaconda.org/anaconda/cudatoolkit/files
