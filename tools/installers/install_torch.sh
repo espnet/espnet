@@ -52,7 +52,7 @@ install_torch(){
             log conda install -y "pytorch=${torch_version}" "torchaudio=$1" cpuonly -c pytorch
             conda install -y "pytorch=${torch_version}" "torchaudio=$1" cpuonly -c pytorch
         elif [ "${cuda_version}" = "11.5" ]; then
-            # NOTE(kamo): In my environment, conda-forge only could installed, but I don't know why @ 12, May, 2022
+            # NOTE(kamo): In my environment, cudatoolkit of conda-forge only could be installed, but I don't know why @ 12, May, 2022
             cudatoolkit_channel=conda-forge
             log conda install -y "pytorch=${torch_version}" "torchaudio=$1" "cudatoolkit=${cuda_version}" -c pytorch -c "${cudatoolkit_channel}"
             conda install -y "pytorch=${torch_version}" "torchaudio=$1" "cudatoolkit=${cuda_version}" -c pytorch -c "${cudatoolkit_channel}"
