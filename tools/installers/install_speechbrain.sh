@@ -7,6 +7,9 @@ if [ $# != 0 ]; then
     exit 1;
 fi
 
+if ! python -c "import packaging.version" &> /dev/null; then
+    python3 -m pip install packaging
+fi
 torch_18_plus=$(python3 <<EOF
 from packaging.version import parse as V
 import torch

@@ -126,6 +126,9 @@ log "[INFO] python_version=${python_version}"
 log "[INFO] torch_version=${torch_version}"
 log "[INFO] cuda_version=${cuda_version}"
 
+if ! python -c "import packaging.version" &> /dev/null; then
+    python3 -m pip install packaging
+fi
 
 if $(pytorch_plus 1.11.1); then
     log "[ERROR] This script doesn't support pytorch=${torch_version}"

@@ -25,6 +25,9 @@ else
     use_conda=$([[ $(conda list -e -c -f --no-pip pytorch 2>/dev/null) =~ pytorch ]] && echo true || echo false)
 fi
 
+if ! python -c "import packaging.version" &> /dev/null; then
+    python3 -m pip install packaging
+fi
 
 python_36_plus=$(python3 <<EOF
 from packaging.version import parse as V
