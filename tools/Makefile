@@ -28,7 +28,7 @@ endif
 
 all: kaldi showenv python conda_packages.done sctk.done sph2pipe.done check_install
 
-python: activate_python.sh espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
+python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
 extra: warp-ctc.done warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done
 
 kaldi:
@@ -84,8 +84,10 @@ sph2pipe.done:
 	./installers/install_sph2pipe.sh
 	touch sph2pipe.done
 
+packaging.done: activate_python.sh
+	. ./activate_python.sh && python3 -m pip install packaging
 
-pytorch.done: activate_python.sh
+pytorch.done: activate_python.sh packaging.done
 ifeq ($(strip $(USE_CONDA)),)
 	# NOTE(kan-bayashi): Temporary fixed numpy version
 	. ./activate_python.sh && pip install "numpy<=1.21.3"

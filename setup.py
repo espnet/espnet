@@ -11,6 +11,7 @@ from setuptools import setup
 requirements = {
     "install": [
         "setuptools>=38.5.1",
+        "packaging",
         "configargparse>=1.2.1",
         "typeguard>=2.7.0",
         "humanfriendly",
