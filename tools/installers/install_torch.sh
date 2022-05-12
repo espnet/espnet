@@ -29,7 +29,7 @@ cuda_version_without_dot="${cuda_version/\./}"
 
 python_plus(){
     python3 <<EOF
-from distutils.version import LooseVersion as L
+from packaging.version import parse as L
 if L('$python_version') >= L('$1'):
     print("true")
 else:
@@ -38,7 +38,7 @@ EOF
 }
 pytorch_plus(){
     python3 <<EOF
-from distutils.version import LooseVersion as L
+from packaging.version import parse as L
 if L('$torch_version') >= L('$1'):
     print("true")
 else:

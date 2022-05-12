@@ -8,7 +8,7 @@ if [ $# != 0 ]; then
 fi
 
 torch_18_plus=$(python3 <<EOF
-from distutils.version import LooseVersion as V
+from packaging.version import parse as V
 import torch
 
 if V(torch.__version__) >= V("1.8"):

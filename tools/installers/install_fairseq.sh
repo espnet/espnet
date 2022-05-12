@@ -9,7 +9,7 @@ fi
 
 torch_version=$(python3 -c "import torch; print(torch.__version__)")
 python_36_plus=$(python3 <<EOF
-from distutils.version import LooseVersion as V
+from packaging.version import parse as V
 import sys
 
 if V(sys.version) >= V("3.6"):
@@ -22,7 +22,7 @@ EOF
 pt_plus(){
     python3 <<EOF
 import sys
-from distutils.version import LooseVersion as L
+from packaging.version import parse as L
 if L('$torch_version') >= L('$1'):
     print("true")
 else:

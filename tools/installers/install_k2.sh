@@ -27,7 +27,7 @@ fi
 
 
 python_36_plus=$(python3 <<EOF
-from distutils.version import LooseVersion as V
+from packaging.version import parse as V
 import sys
 
 if V(sys.version) >= V("3.6"):
@@ -64,7 +64,7 @@ libc_version="$(${libc_path} | grep "GNU C Library" | grep -oP "version [0-9]*.[
 pytorch_plus(){
     python3 <<EOF
 import sys
-from distutils.version import LooseVersion as L
+from packaging.version import parse as L
 if L('$torch_version') >= L('$1'):
     print("true")
 else:
@@ -74,7 +74,7 @@ EOF
 libc_plus(){
     python3 <<EOF
 import sys
-from distutils.version import LooseVersion as L
+from packaging.version import parse as L
 if L('$libc_version') >= L('$1'):
     print("true")
 else:
