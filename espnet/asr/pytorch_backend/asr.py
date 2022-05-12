@@ -4,12 +4,12 @@
 """Training/decoding definition for the speech recognition task."""
 
 import copy
-from packaging.version import parse as V
 import itertools
 import json
 import logging
 import math
 import os
+from packaging.version import parse as V
 
 from chainer import reporter as reporter_module
 from chainer import training
@@ -999,9 +999,7 @@ def recog(args):
 
         # Dunno why but weight_observer from dynamic quantized module must have
         # dtype=torch.qint8 with torch < 1.5 although dtype=torch.float16 is supported.
-        if args.quantize_dtype == "float16" and torch.__version__ < V(
-            "1.5.0"
-        ):
+        if args.quantize_dtype == "float16" and torch.__version__ < V("1.5.0"):
             raise ValueError(
                 "float16 dtype for dynamic quantization is not supported with torch "
                 "version < 1.5.0. Switching to qint8 dtype instead."

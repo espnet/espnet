@@ -3,8 +3,8 @@ from collections import defaultdict
 from contextlib import contextmanager
 import dataclasses
 import datetime
-from packaging.version import parse as V
 import logging
+from packaging.version import parse as V
 from pathlib import Path
 import time
 from typing import ContextManager

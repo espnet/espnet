@@ -7,8 +7,8 @@
 
 import logging
 
-from packaging.version import parse as V
 from functools import partial
+from packaging.version import parse as V
 from typeguard import check_argument_types
 from typing import Optional
 

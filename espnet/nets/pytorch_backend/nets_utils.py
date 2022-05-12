@@ -151,10 +151,7 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
         raise ValueError("length_dim cannot be 0: {}".format(length_dim))
 
     if not isinstance(lengths, list):
-        lengths = lengths.tolist()
-    else:
-        assert isinstance(lengths, torch.Tensor), type(lengths)
-        lengths = lengths.long()
+        lengths = lengths.long().tolist()
 
     bs = int(len(lengths))
     if maxlen is None:

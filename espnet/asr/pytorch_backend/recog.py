@@ -62,9 +62,7 @@ def recog_v2(args):
                 "Quantized LSTM in ESPnet is only supported with torch 1.4+."
             )
 
-        if args.quantize_dtype == "float16" and torch.__version__ < V(
-            "1.5.0"
-        ):
+        if args.quantize_dtype == "float16" and torch.__version__ < V("1.5.0"):
             raise ValueError(
                 "float16 dtype for dynamic quantization is not supported with torch "
                 "version < 1.5.0. Switching to qint8 dtype instead."

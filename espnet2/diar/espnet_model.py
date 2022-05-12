@@ -2,8 +2,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 from contextlib import contextmanager
-from packaging.version import parse as V
 from itertools import permutations
+from packaging.version import parse as V
 from typing import Dict
 from typing import Optional
 from typing import Tuple

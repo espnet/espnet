@@ -1,5 +1,5 @@
-from packaging.version import parse as V
 import logging
+from packaging.version import parse as V
 
 import numpy as np
 import six
@@ -28,11 +28,7 @@ class CTC(torch.nn.Module):
         self.probs = None  # for visualization
 
         # In case of Pytorch >= 1.7.0, CTC will be always builtin
-        self.ctc_type = (
-            ctc_type
-            if V(torch.__version__) < V("1.7.0")
-            else "builtin"
-        )
+        self.ctc_type = ctc_type if V(torch.__version__) < V("1.7.0") else "builtin"
 
         if ctc_type != self.ctc_type:
             logging.warning(f"CTC was set to {self.ctc_type} due to PyTorch version.")

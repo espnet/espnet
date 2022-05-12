@@ -1,8 +1,8 @@
 from abc import ABC
 from abc import abstractmethod
-from packaging.version import parse as V
 from functools import reduce
 import math
+from packaging.version import parse as V
 
 import torch
 import torch.nn.functional as F

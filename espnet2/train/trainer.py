@@ -3,8 +3,8 @@ import argparse
 from contextlib import contextmanager
 import dataclasses
 from dataclasses import is_dataclass
-from packaging.version import parse as V
 import logging
+from packaging.version import parse as V
 from pathlib import Path
 import time
 from typing import Dict

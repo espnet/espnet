@@ -1,7 +1,7 @@
 from contextlib import contextmanager
-from packaging.version import parse as V
 from itertools import groupby
 import logging
+from packaging.version import parse as V
 from typing import Dict
 from typing import List
 from typing import Optional
