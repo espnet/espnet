@@ -1,8 +1,8 @@
 """V2 backend for `asr_recog.py` using py:class:`espnet.nets.beam_search.BeamSearch`."""
 
-from packaging.version import parse as V
 import json
 import logging
+from packaging.version import parse as V
 
 import torch
 
