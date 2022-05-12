@@ -3,7 +3,7 @@ from abc import ABC
 from abc import abstractmethod
 import argparse
 from dataclasses import dataclass
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 import functools
 import logging
 import os
@@ -76,7 +76,7 @@ try:
 except Exception:
     wandb = None
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.5.0"):
+if V(torch.__version__) >= V("1.5.0"):
     from torch.multiprocessing.spawn import ProcessContext
 else:
     from torch.multiprocessing.spawn import SpawnContext as ProcessContext
@@ -94,7 +94,7 @@ optim_classes = dict(
     rmsprop=torch.optim.RMSprop,
     rprop=torch.optim.Rprop,
 )
-if LooseVersion(torch.__version__) >= LooseVersion("1.10.0"):
+if V(torch.__version__) >= V("1.10.0"):
     # From 1.10.0, RAdam is officially supported
     optim_classes.update(
         radam=torch.optim.RAdam,
@@ -116,7 +116,7 @@ try:
         sgdw=torch_optimizer.SGDW,
         yogi=torch_optimizer.Yogi,
     )
-    if LooseVersion(torch_optimizer.__version__) < LooseVersion("0.2.0"):
+    if V(torch_optimizer.__version__) < V("0.2.0"):
         # From 0.2.0, RAdam is dropped
         optim_classes.update(
             radam=torch_optimizer.RAdam,

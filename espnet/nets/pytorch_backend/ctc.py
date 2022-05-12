@@ -1,4 +1,4 @@
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 import logging
 
 import numpy as np
@@ -30,7 +30,7 @@ class CTC(torch.nn.Module):
         # In case of Pytorch >= 1.7.0, CTC will be always builtin
         self.ctc_type = (
             ctc_type
-            if LooseVersion(torch.__version__) < LooseVersion("1.7.0")
+            if V(torch.__version__) < V("1.7.0")
             else "builtin"
         )
 

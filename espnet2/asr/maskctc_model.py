@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 from itertools import groupby
 import logging
 from typing import Dict
@@ -31,7 +31,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import force_gatherable
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:
     # Nothing to do if torch<1.6.0

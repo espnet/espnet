@@ -4,7 +4,7 @@
 """Training/decoding definition for the speech recognition task."""
 
 import copy
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 import itertools
 import json
 import logging
@@ -989,7 +989,7 @@ def recog(args):
         # It seems quantized LSTM only supports non-packed sequence before torch 1.4.0.
         # Reference issue: https://github.com/pytorch/pytorch/issues/27963
         if (
-            torch.__version__ < LooseVersion("1.4.0")
+            torch.__version__ < V("1.4.0")
             and "lstm" in train_args.etype
             and torch.nn.LSTM in q_config
         ):
@@ -999,7 +999,7 @@ def recog(args):
 
         # Dunno why but weight_observer from dynamic quantized module must have
         # dtype=torch.qint8 with torch < 1.5 although dtype=torch.float16 is supported.
-        if args.quantize_dtype == "float16" and torch.__version__ < LooseVersion(
+        if args.quantize_dtype == "float16" and torch.__version__ < V(
             "1.5.0"
         ):
             raise ValueError(

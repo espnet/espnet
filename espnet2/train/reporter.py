@@ -3,7 +3,7 @@ from collections import defaultdict
 from contextlib import contextmanager
 import dataclasses
 import datetime
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 import logging
 from pathlib import Path
 import time
@@ -357,7 +357,7 @@ class Reporter:
             seconds=time.perf_counter() - sub_reporter.start_time
         )
         stats["total_count"] = sub_reporter.total_count
-        if LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
+        if V(torch.__version__) >= V("1.4.0"):
             if torch.cuda.is_initialized():
                 stats["gpu_max_cached_mem_GB"] = (
                     torch.cuda.max_memory_reserved() / 2**30

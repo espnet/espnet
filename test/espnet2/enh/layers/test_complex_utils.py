@@ -1,4 +1,4 @@
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 
 import numpy as np
 import pytest
@@ -16,7 +16,7 @@ from espnet2.enh.layers.complex_utils import stack
 from espnet2.enh.layers.complex_utils import trace
 
 
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 # invertible matrix
 mat_np = np.array(
     [

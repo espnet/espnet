@@ -1,6 +1,6 @@
 """V2 backend for `asr_recog.py` using py:class:`espnet.nets.beam_search.BeamSearch`."""
 
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 import json
 import logging
 
@@ -54,7 +54,7 @@ def recog_v2(args):
 
         # See https://github.com/espnet/espnet/pull/3616 for more information.
         if (
-            torch.__version__ < LooseVersion("1.4.0")
+            torch.__version__ < V("1.4.0")
             and "lstm" in train_args.etype
             and torch.nn.LSTM in q_config
         ):
@@ -62,7 +62,7 @@ def recog_v2(args):
                 "Quantized LSTM in ESPnet is only supported with torch 1.4+."
             )
 
-        if args.quantize_dtype == "float16" and torch.__version__ < LooseVersion(
+        if args.quantize_dtype == "float16" and torch.__version__ < V(
             "1.5.0"
         ):
             raise ValueError(

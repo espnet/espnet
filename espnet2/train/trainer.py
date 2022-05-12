@@ -3,7 +3,7 @@ import argparse
 from contextlib import contextmanager
 import dataclasses
 from dataclasses import is_dataclass
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 import logging
 from pathlib import Path
 import time
@@ -42,7 +42,7 @@ from espnet2.utils.build_dataclass import build_dataclass
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
     from torch.cuda.amp import GradScaler
 else:
@@ -183,7 +183,7 @@ class Trainer:
         output_dir = Path(trainer_options.output_dir)
         reporter = Reporter()
         if trainer_options.use_amp:
-            if LooseVersion(torch.__version__) < LooseVersion("1.6.0"):
+            if V(torch.__version__) < V("1.6.0"):
                 raise RuntimeError(
                     "Require torch>=1.6.0 for  Automatic Mixed Precision"
                 )
