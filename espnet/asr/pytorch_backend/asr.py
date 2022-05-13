@@ -989,7 +989,7 @@ def recog(args):
         # It seems quantized LSTM only supports non-packed sequence before torch 1.4.0.
         # Reference issue: https://github.com/pytorch/pytorch/issues/27963
         if (
-            torch.__version__ < V("1.4.0")
+            V(torch.__version__) < V("1.4.0")
             and "lstm" in train_args.etype
             and torch.nn.LSTM in q_config
         ):
@@ -999,7 +999,7 @@ def recog(args):
 
         # Dunno why but weight_observer from dynamic quantized module must have
         # dtype=torch.qint8 with torch < 1.5 although dtype=torch.float16 is supported.
-        if args.quantize_dtype == "float16" and torch.__version__ < V("1.5.0"):
+        if args.quantize_dtype == "float16" and V(torch.__version__) < V("1.5.0"):
             raise ValueError(
                 "float16 dtype for dynamic quantization is not supported with torch "
                 "version < 1.5.0. Switching to qint8 dtype instead."
