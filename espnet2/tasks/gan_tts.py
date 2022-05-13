@@ -21,6 +21,7 @@ from typeguard import check_return_type
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
 from espnet2.gan_tts.espnet_model import ESPnetGANTTSModel
+from espnet2.gan_tts.jets import JETS
 from espnet2.gan_tts.joint import JointText2Wav
 from espnet2.gan_tts.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -70,6 +71,7 @@ tts_choices = ClassChoices(
     classes=dict(
         vits=VITS,
         joint_text2wav=JointText2Wav,
+        jets=JETS,
     ),
     type_check=AbsGANTTS,
     default="vits",
