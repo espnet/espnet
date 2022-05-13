@@ -398,7 +398,7 @@ if [ -z "${lm_tag}" ]; then
     else
         lm_tag="train"
     fi
-    lm_tag+="_${tgt_lang}_${lm_token_type}"
+    lm_tag+="_${src_lang}_${tgt_lang}_${lm_token_type}"
     if [ "${lm_token_type}" = bpe ]; then
         lm_tag+="${tgt_nbpe}"
     fi
@@ -419,7 +419,7 @@ if [ -z "${st_stats_dir}" ]; then
     fi
 fi
 if [ -z "${lm_stats_dir}" ]; then
-    lm_stats_dir="${expdir}/lm_stats_${tgt_lang}_${lm_token_type}"
+    lm_stats_dir="${expdir}/lm_stats_${src_lang}_${tgt_lang}_${lm_token_type}"
     if [ "${lm_token_type}" = bpe ]; then
         lm_stats_dir+="${tgt_nbpe}"
     fi
@@ -485,7 +485,7 @@ if ! "${skip_data_prep}"; then
             for extra_file in ${utt_extra_files}; do
                 python pyscripts/utils/remove_duplicate_keys.py data/"${train_set}_sp"/${extra_file} > data/"${train_set}_sp"/${extra_file}.tmp
                 mv data/"${train_set}_sp"/${extra_file}.tmp data/"${train_set}_sp"/${extra_file}
-            done 
+            done
         else
            log "Skip stage 2: Speed perturbation"
         fi
@@ -704,7 +704,7 @@ if ! "${skip_data_prep}"; then
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
             for utt_extra_file in ${utt_extra_files}; do
                 python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
-                    > ${data_feats}/${dset}/${utt_extra_file}.tmp 
+                    > ${data_feats}/${dset}/${utt_extra_file}.tmp
                 mv ${data_feats}/${dset}/${utt_extra_file}.tmp ${data_feats}/${dset}/${utt_extra_file}
             done
         done
