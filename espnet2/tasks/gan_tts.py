@@ -221,7 +221,9 @@ class GANTTSTask(AbsTask):
     ]:
         assert check_argument_types()
         return CommonCollateFn(
-            float_pad_value=0.0, int_pad_value=0, not_sequence=["spembs", "sids"]
+            float_pad_value=0.0,
+            int_pad_value=0,
+            not_sequence=["spembs", "sids", "lids"],
         )
 
     @classmethod
@@ -260,10 +262,25 @@ class GANTTSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "sids", "durations", "pitch", "energy")
+            retval = (
+                "spembs",
+                "durations",
+                "pitch",
+                "energy",
+                "sids",
+                "lids",
+            )
         else:
             # Inference mode
-            retval = ("spembs", "sids", "speech", "durations", "pitch", "energy")
+            retval = (
+                "spembs",
+                "speech",
+                "durations",
+                "pitch",
+                "energy",
+                "sids",
+                "lids",
+            )
         return retval
 
     @classmethod

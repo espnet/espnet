@@ -1,4 +1,4 @@
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 
 import numpy as np
 import pytest
@@ -13,8 +13,8 @@ from espnet2.enh.layers.beamformer import signal_framing
 from espnet2.enh.layers.complex_utils import solve
 from espnet2.layers.stft import Stft
 
-is_torch_1_1_plus = LooseVersion(torch.__version__) >= LooseVersion("1.1.0")
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_1_plus = V(torch.__version__) >= V("1.1.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 random_speech = torch.tensor(

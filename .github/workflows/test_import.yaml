@@ -16,7 +16,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: [3.9]
-        pytorch-version: [1.10.1]
+        pytorch-version: [1.11.0]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
