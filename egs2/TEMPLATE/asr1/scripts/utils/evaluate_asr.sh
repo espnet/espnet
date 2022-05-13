@@ -173,14 +173,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     # 2. Submit decoding jobs
     log "Decoding started... log: '${logdir}/asr_inference.*.log'"
-    # shellcheck disable=SC2086
+    # shellcheck disable=SC2046,SC2086
     ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${logdir}"/asr_inference.JOB.log \
         python3 -m espnet2.bin.asr_inference \
             --ngpu "${_ngpu}" \
             --data_path_and_name_and_type "${wavscp},speech,sound" \
             --key_file "${logdir}"/keys.JOB.scp \
             --output_dir "${logdir}"/output.JOB \
-            "${_opts[@]}" ${inference_args}
+            "${_opts[@]}" ${inference_args} || { cat $(grep -l -i error "${logdir}"/asr_inference.*.log) ; exit 1; }
 
     # 3. Concatenates the output files from each jobs
     for f in token token_int score text; do

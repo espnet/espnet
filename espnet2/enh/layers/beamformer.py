@@ -1,5 +1,5 @@
 """Beamformer module."""
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 from typing import List
 from typing import Optional
 from typing import Union
@@ -20,7 +20,7 @@ from espnet2.enh.layers.complex_utils import solve
 from espnet2.enh.layers.complex_utils import to_double
 
 
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 EPS = torch.finfo(torch.double).eps
 
 

@@ -9,7 +9,7 @@ import logging
 import time
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -35,7 +35,7 @@ from espnet2.utils.types import str2bool
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
     from torch.cuda.amp import GradScaler
 else:
