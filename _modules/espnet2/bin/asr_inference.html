@@ -153,6 +153,7 @@
   <h1>Source code for espnet2.bin.asr_inference</h1><div class="highlight"><pre>
 <span></span><span class="ch">#!/usr/bin/env python3</span>
 <span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">import</span> <span class="nn">sys</span>
@@ -164,6 +165,7 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.quantization</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_return_type</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
@@ -232,10 +234,26 @@
         <span class="n">nbest</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">enh_s2t_task</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">quantize_asr_model</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">quantize_lm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">quantize_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Linear&quot;</span><span class="p">],</span>
+        <span class="n">quantize_dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;qint8&quot;</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="n">task</span> <span class="o">=</span> <span class="n">ASRTask</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">enh_s2t_task</span> <span class="k">else</span> <span class="n">EnhS2TTask</span>
+
+        <span class="k">if</span> <span class="n">quantize_asr_model</span> <span class="ow">or</span> <span class="n">quantize_lm</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">quantize_dtype</span> <span class="o">==</span> <span class="s2">&quot;float16&quot;</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">__version__</span> <span class="o">&lt;</span> <span class="n">LooseVersion</span><span class="p">(</span>
+                <span class="s2">&quot;1.5.0&quot;</span>
+            <span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;float16 dtype for dynamic quantization is not supported with &quot;</span>
+                    <span class="s2">&quot;torch version &lt; 1.5.0. Switch to qint8 dtype instead.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="n">quantize_modules</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">quantize_modules</span><span class="p">])</span>
+        <span class="n">quantize_dtype</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">quantize_dtype</span><span class="p">)</span>
 
         <span class="c1"># 1. Build ASR model</span>
         <span class="n">scorers</span> <span class="o">=</span> <span class="p">{}</span>
@@ -256,6 +274,13 @@
             <span class="p">)</span>
         <span class="n">asr_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
 
+        <span class="k">if</span> <span class="n">quantize_asr_model</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Use quantized asr model for decoding.&quot;</span><span class="p">)</span>
+
+            <span class="n">asr_model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">quantization</span><span class="o">.</span><span class="n">quantize_dynamic</span><span class="p">(</span>
+                <span class="n">asr_model</span><span class="p">,</span> <span class="n">qconfig_spec</span><span class="o">=</span><span class="n">quantize_modules</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">quantize_dtype</span>
+            <span class="p">)</span>
+
         <span class="n">decoder</span> <span class="o">=</span> <span class="n">asr_model</span><span class="o">.</span><span class="n">decoder</span>
 
         <span class="n">ctc</span> <span class="o">=</span> <span class="n">CTCPrefixScorer</span><span class="p">(</span><span class="n">ctc</span><span class="o">=</span><span class="n">asr_model</span><span class="o">.</span><span class="n">ctc</span><span class="p">,</span> <span class="n">eos</span><span class="o">=</span><span class="n">asr_model</span><span class="o">.</span><span class="n">eos</span><span class="p">)</span>
@@ -271,6 +296,14 @@
             <span class="n">lm</span><span class="p">,</span> <span class="n">lm_train_args</span> <span class="o">=</span> <span class="n">LMTask</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
                 <span class="n">lm_train_config</span><span class="p">,</span> <span class="n">lm_file</span><span class="p">,</span> <span class="n">device</span>
             <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">quantize_lm</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Use quantized lm for decoding.&quot;</span><span class="p">)</span>
+
+                <span class="n">lm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">quantization</span><span class="o">.</span><span class="n">quantize_dynamic</span><span class="p">(</span>
+                    <span class="n">lm</span><span class="p">,</span> <span class="n">qconfig_spec</span><span class="o">=</span><span class="n">quantize_modules</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">quantize_dtype</span>
+                <span class="p">)</span>
+
             <span class="n">scorers</span><span class="p">[</span><span class="s2">&quot;lm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lm</span><span class="o">.</span><span class="n">lm</span>
 
         <span class="c1"># 3. Build ngram model</span>
@@ -518,6 +551,10 @@
     <span class="n">transducer_conf</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span>
     <span class="n">streaming</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">enh_s2t_task</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">quantize_asr_model</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">quantize_lm</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">quantize_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">quantize_dtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -562,6 +599,10 @@
         <span class="n">nbest</span><span class="o">=</span><span class="n">nbest</span><span class="p">,</span>
         <span class="n">streaming</span><span class="o">=</span><span class="n">streaming</span><span class="p">,</span>
         <span class="n">enh_s2t_task</span><span class="o">=</span><span class="n">enh_s2t_task</span><span class="p">,</span>
+        <span class="n">quantize_asr_model</span><span class="o">=</span><span class="n">quantize_asr_model</span><span class="p">,</span>
+        <span class="n">quantize_lm</span><span class="o">=</span><span class="n">quantize_lm</span><span class="p">,</span>
+        <span class="n">quantize_modules</span><span class="o">=</span><span class="n">quantize_modules</span><span class="p">,</span>
+        <span class="n">quantize_dtype</span><span class="o">=</span><span class="n">quantize_dtype</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">speech2text</span> <span class="o">=</span> <span class="n">Speech2Text</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
         <span class="n">model_tag</span><span class="o">=</span><span class="n">model_tag</span><span class="p">,</span>
@@ -708,6 +749,37 @@
         <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;enhancement and asr joint model&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Quantization related&quot;</span><span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--quantize_asr_model&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply dynamic quantization to ASR model.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--quantize_lm&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply dynamic quantization to LM.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--quantize_modules&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Linear&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;List of modules to be dynamically quantized.</span>
+<span class="s2">        E.g.: --quantize_modules=[Linear,LSTM,GRU].</span>
+<span class="s2">        Each specified module should be an attribute of &#39;torch.nn&#39;, e.g.:</span>
+<span class="s2">        torch.nn.Linear, torch.nn.LSTM, torch.nn.GRU, ...&quot;&quot;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--quantize_dtype&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;qint8&quot;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;float16&quot;</span><span class="p">,</span> <span class="s2">&quot;qint8&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Dtype for dynamic quantization.&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Beam-search related&quot;</span><span class="p">)</span>

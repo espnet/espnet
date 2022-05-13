@@ -348,6 +348,10 @@ Input/output arguments:
                         [--word_lm_file WORD_LM_FILE]
                         [--ngram_file NGRAM_FILE] [--model_tag MODEL_TAG]
                         [--enh_s2t_task ENH_S2T_TASK]
+                        [--quantize_asr_model QUANTIZE_ASR_MODEL]
+                        [--quantize_lm QUANTIZE_LM]
+                        [--quantize_modules [QUANTIZE_MODULES [QUANTIZE_MODULES ...]]]
+                        [--quantize_dtype {float16,qint8}]
                         [--batch_size BATCH_SIZE] [--nbest NBEST]
                         [--beam_size BEAM_SIZE] [--penalty PENALTY]
                         [--maxlenratio MAXLENRATIO]
@@ -396,6 +400,21 @@ The model configuration related:
                         (default: None)
   --enh_s2t_task ENH_S2T_TASK
                         enhancement and asr joint model (default: False)
+
+Quantization related:
+  --quantize_asr_model QUANTIZE_ASR_MODEL
+                        Apply dynamic quantization to ASR model. (default:
+                        False)
+  --quantize_lm QUANTIZE_LM
+                        Apply dynamic quantization to LM. (default: False)
+  --quantize_modules [QUANTIZE_MODULES [QUANTIZE_MODULES ...]]
+                        List of modules to be dynamically quantized. E.g.:
+                        --quantize_modules=[Linear,LSTM,GRU]. Each specified
+                        module should be an attribute of &#39;torch.nn&#39;, e.g.:
+                        torch.nn.Linear, torch.nn.LSTM, torch.nn.GRU, ...
+                        (default: [&#39;Linear&#39;])
+  --quantize_dtype {float16,qint8}
+                        Dtype for dynamic quantization. (default: qint8)
 
 Beam-search related:
   --batch_size BATCH_SIZE
