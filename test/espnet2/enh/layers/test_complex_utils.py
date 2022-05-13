@@ -6,10 +6,14 @@ import torch
 import torch_complex.functional as FC
 from torch_complex.tensor import ComplexTensor
 
+from espnet2.enh.layers.complex_utils import cat
+from espnet2.enh.layers.complex_utils import complex_norm
 from espnet2.enh.layers.complex_utils import einsum
 from espnet2.enh.layers.complex_utils import inverse
 from espnet2.enh.layers.complex_utils import matmul
 from espnet2.enh.layers.complex_utils import solve
+from espnet2.enh.layers.complex_utils import stack
+from espnet2.enh.layers.complex_utils import trace
 
 
 is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
@@ -29,6 +33,35 @@ mat_np = np.array(
     ],
     dtype=np.complex64,
 )
+
+
+@pytest.mark.parametrize("dim", [0, 1, 2])
+def test_cat(dim):
+    if is_torch_1_9_plus:
+        wrappers = [ComplexTensor, torch.complex]
+        modules = [FC, torch]
+    else:
+        wrappers = [ComplexTensor]
+        modules = [FC]
+
+    for complex_wrapper, complex_module in zip(wrappers, modules):
+        mat1 = complex_wrapper(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
+        mat2 = complex_wrapper(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
+        ret = cat([mat1, mat2], dim=dim)
+        ret2 = complex_module.cat([mat1, mat2], dim=dim)
+        assert complex_module.allclose(ret, ret2)
+
+
+@pytest.mark.parametrize("dim", [None, 0, 1, 2])
+@pytest.mark.skipif(not is_torch_1_9_plus, reason="Require torch 1.9.0+")
+def test_complex_norm(dim):
+    mat = ComplexTensor(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
+    mat_th = torch.complex(mat.real, mat.imag)
+    norm = complex_norm(mat, dim=dim, keepdim=True)
+    norm_th = complex_norm(mat_th, dim=dim, keepdim=True)
+    assert torch.allclose(norm, norm_th)
+    if dim is not None:
+        assert norm.ndim == mat.ndim and mat.numel() == norm.numel() * mat.size(dim)
 
 
 @pytest.mark.parametrize("real_vec", [True, False])
@@ -92,6 +125,21 @@ def test_matmul(real_vec):
         assert complex_module.allclose(ret, ret2)
 
 
+def test_trace():
+    if is_torch_1_9_plus:
+        wrappers = [ComplexTensor, torch.complex]
+        modules = [FC, torch]
+    else:
+        wrappers = [ComplexTensor]
+        modules = [FC]
+
+    for complex_wrapper, complex_module in zip(wrappers, modules):
+        mat = complex_wrapper(torch.rand(2, 3, 3), torch.rand(2, 3, 3))
+        tr = trace(mat)
+        tr2 = sum([mat[..., i, i] for i in range(mat.size(-1))])
+        assert complex_module.allclose(tr, tr2)
+
+
 @pytest.mark.parametrize("real_vec", [True, False])
 def test_solve(real_vec):
     if is_torch_1_9_plus:
@@ -112,7 +160,28 @@ def test_solve(real_vec):
             vec = torch.rand(2, 3, 1)
             vec2 = complex_wrapper(vec, torch.zeros_like(vec))
         ret = solve(vec, mat)
-        ret2 = complex_module.solve(vec2, mat)[0]
+        if isinstance(vec2, ComplexTensor):
+            ret2 = FC.solve(vec2, mat, return_LU=False)
+        else:
+            return torch.linalg.solve(mat, vec2)
+        assert complex_module.allclose(ret, ret2)
+
+
+@pytest.mark.parametrize("dim", [0, 1, 2])
+def test_stack(dim):
+    if is_torch_1_9_plus:
+        wrappers = [ComplexTensor, torch.complex]
+        modules = [FC, torch]
+    else:
+        wrappers = [ComplexTensor]
+        modules = [FC]
+
+    for complex_wrapper, complex_module in zip(wrappers, modules):
+        print(complex_wrapper, complex_module)
+        mat1 = complex_wrapper(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
+        mat2 = complex_wrapper(torch.rand(2, 3, 4), torch.rand(2, 3, 4))
+        ret = stack([mat1, mat2], dim=dim)
+        ret2 = complex_module.stack([mat1, mat2], dim=dim)
         assert complex_module.allclose(ret, ret2)
 
 

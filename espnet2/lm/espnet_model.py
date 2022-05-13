@@ -114,7 +114,10 @@ class ESPnetLanguageModel(AbsESPnetModel):
         return nll, x_lengths
 
     def forward(
-        self, text: torch.Tensor, text_lengths: torch.Tensor
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         nll, y_lengths = self.nll(text, text_lengths)
         ntokens = y_lengths.sum()
@@ -126,6 +129,9 @@ class ESPnetLanguageModel(AbsESPnetModel):
         return loss, stats, weight
 
     def collect_feats(
-        self, text: torch.Tensor, text_lengths: torch.Tensor
+        self,
+        text: torch.Tensor,
+        text_lengths: torch.Tensor,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         return {}

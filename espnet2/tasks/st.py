@@ -206,7 +206,7 @@ class STTask(AbsTask):
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default("required")
-        required += ["src_token_list", "token_list"]
+        required += ["token_list"]
 
         group.add_argument(
             "--token_list",
@@ -516,7 +516,7 @@ class STTask(AbsTask):
         if src_token_list is not None:
             ctc = CTC(
                 odim=src_vocab_size,
-                encoder_output_sizse=encoder_output_size,
+                encoder_output_size=encoder_output_size,
                 **args.ctc_conf,
             )
         else:

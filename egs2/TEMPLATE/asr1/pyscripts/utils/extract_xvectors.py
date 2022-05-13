@@ -77,7 +77,7 @@ def main(argv):
 
         # TODO(nelson): The model inference can be moved into functon.
         classifier = EncoderClassifier.from_hparams(
-            source=args.pretrained, run_opts={"device": device}
+            source=args.pretrained_model, run_opts={"device": device}
         )
         audio_norm = AudioNormalizer()
 
@@ -105,7 +105,7 @@ def main(argv):
                 xvectors.append(embeds)
 
             # Speaker Normalization
-            xvectors = np.mean(np.concatenate(xvectors, 0), 0)
+            embeds = np.mean(np.stack(xvectors, 0), 0)
             writer_spk[speaker] = embeds
         writer_utt.close()
         writer_spk.close()

@@ -22,12 +22,13 @@ src_case=lc.rm
 tgt_case=lc.rm
 
 ./st.sh \
+    --use_streaming false \
     --local_data_opts "--stage 0" \
     --audio_format "flac.ark" \
     --use_lm false \
     --token_joint false \
     --nj 40 \
-    --inference_nj 8 \
+    --fs 8k \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
     --src_token_type "bpe" \

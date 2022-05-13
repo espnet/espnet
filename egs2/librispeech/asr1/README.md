@@ -1,3 +1,37 @@
+# Conformer-RNN Transducer
+
+## Environments
+- date: `Fri Mar 25 04:35:42 EDT 2022`
+- python version: `3.9.5 (default, Jun  4 2021, 12:28:51)  [GCC 7.5.0]`
+- espnet version: `espnet 0.10.7a1`
+- pytorch version: `pytorch 1.8.1+cu111`
+- Git hash: `21d19be00089678ca27f7fce474ef8d787689512`
+  - Commit date: `Wed Mar 16 08:06:52 2022 -0400`
+- ASR config: [conf/train_rnnt_conformer.yaml](conf/train_rnnt_conformer.yaml)
+- Pretrained model: [https://huggingface.co/espnet/chai_librispeech_asr_train_rnnt_conformer_raw_en_bpe5000_sp](https://huggingface.co/espnet/chai_librispeech_asr_train_rnnt_conformer_raw_en_bpe5000_sp)
+
+## asr_train_rnnt_conformer_ngpu4_raw_en_bpe5000_sp
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_rnnt_conformer_asr_model_valid.loss.ave_10best/test_clean|2620|52576|97.2|2.5|0.3|0.3|3.1|35.2|
+|decode_rnnt_conformer_asr_model_valid.loss.ave_10best/test_other|2939|52343|93.4|6.0|0.6|0.8|7.4|56.3|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_rnnt_conformer_asr_model_valid.loss.ave_10best/test_clean|2620|281530|99.3|0.4|0.3|0.3|1.0|35.2|
+|decode_rnnt_conformer_asr_model_valid.loss.ave_10best/test_other|2939|272758|97.7|1.4|1.0|0.9|3.2|56.3|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_rnnt_conformer_asr_model_valid.loss.ave_10best/test_clean|2620|65818|96.6|2.4|1.0|0.5|3.9|35.2|
+|decode_rnnt_conformer_asr_model_valid.loss.ave_10best/test_other|2939|65101|92.1|5.9|2.0|1.3|9.2|56.3|
+
 # Self-supervised learning features [HuBERT_large_ll60k, Conformer, utt_mvn](conf/tuning/train_asr_conformer7_hubert_ll60k_large.yaml) with [Transformer-LM](conf/tuning/train_lm_transformer2.yaml)
 
 ## Environments
@@ -111,6 +145,178 @@
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/dev_other|2864|63110|94.4|4.3|1.3|1.2|6.8|42.5|
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_clean|2620|65818|97.7|1.6|0.7|0.4|2.7|25.7|
 |decode_asr_lm_lm_train_lm_transformer2_en_bpe5000_valid.loss.ave_asr_model_valid.acc.ave/test_other|2939|65101|94.5|3.9|1.5|1.0|6.4|45.1|
+
+
+# Conformer, `hop_length=160`
+- Params: 116.15 M
+- ASR config: [conf/tuning/train_asr_conformer10_hop_length160.yaml](conf/tuning/train_asr_conformer10_hop_length160.yaml)
+- LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
+- Pretrained model: [https://huggingface.co/pyf98/librispeech_conformer_hop_length160](https://huggingface.co/pyf98/librispeech_conformer_hop_length160)
+
+# RESULTS
+## Environments
+- date: `Mon Mar 14 12:26:10 EDT 2022`
+- python version: `3.9.7 (default, Sep 16 2021, 13:09:58)  [GCC 7.5.0]`
+- espnet version: `espnet 0.10.7a1`
+- pytorch version: `pytorch 1.10.1`
+- Git hash: `467660021998c416ac366aed0f75f3399e321a3a`
+  - Commit date: `Sun Mar 13 17:08:56 2022 -0400`
+
+## asr_train_asr_conformer10_hop_length160_raw_en_bpe5000_sp
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|54402|98.1|1.7|0.2|0.2|2.1|27.7|
+|beam60_ctc0.3/dev_other|2864|50948|95.3|4.3|0.4|0.5|5.2|44.1|
+|beam60_ctc0.3/test_clean|2620|52576|97.9|1.9|0.2|0.3|2.4|27.9|
+|beam60_ctc0.3/test_other|2939|52343|95.4|4.1|0.4|0.6|5.2|44.8|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|54402|98.4|1.4|0.2|0.2|1.8|23.3|
+|beam60_ctc0.3_lm0.6/dev_other|2864|50948|96.4|3.2|0.4|0.4|3.9|36.2|
+|beam60_ctc0.3_lm0.6/test_clean|2620|52576|98.3|1.5|0.2|0.2|2.0|23.7|
+|beam60_ctc0.3_lm0.6/test_other|2939|52343|96.2|3.3|0.4|0.5|4.2|39.6|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|288456|99.5|0.3|0.2|0.2|0.7|27.7|
+|beam60_ctc0.3/dev_other|2864|265951|98.4|1.0|0.6|0.6|2.2|44.1|
+|beam60_ctc0.3/test_clean|2620|281530|99.4|0.3|0.3|0.2|0.8|27.9|
+|beam60_ctc0.3/test_other|2939|272758|98.5|0.9|0.7|0.6|2.1|44.8|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|288456|99.5|0.2|0.2|0.2|0.6|23.3|
+|beam60_ctc0.3_lm0.6/dev_other|2864|265951|98.5|0.8|0.6|0.5|1.9|36.2|
+|beam60_ctc0.3_lm0.6/test_clean|2620|281530|99.5|0.2|0.3|0.2|0.7|23.7|
+|beam60_ctc0.3_lm0.6/test_other|2939|272758|98.6|0.7|0.7|0.5|1.9|39.6|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|68010|97.6|1.7|0.6|0.4|2.7|27.7|
+|beam60_ctc0.3/dev_other|2864|63110|94.2|4.3|1.5|0.9|6.7|44.1|
+|beam60_ctc0.3/test_clean|2620|65818|97.4|1.8|0.8|0.4|3.0|27.9|
+|beam60_ctc0.3/test_other|2939|65101|94.4|3.9|1.7|0.8|6.4|44.8|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|68010|98.0|1.4|0.6|0.3|2.3|23.3|
+|beam60_ctc0.3_lm0.6/dev_other|2864|63110|95.2|3.4|1.4|0.6|5.5|36.2|
+|beam60_ctc0.3_lm0.6/test_clean|2620|65818|97.8|1.4|0.8|0.3|2.5|23.7|
+|beam60_ctc0.3_lm0.6/test_other|2939|65101|95.1|3.2|1.7|0.6|5.5|39.6|
+
+
+
+# Conformer, using stochastic depth
+- Params: 116.15M
+- ASR config [conf/tuning/train_asr_conformer9_layerdrop0.1_last6.yaml](conf/tuning/train_asr_conformer9_layerdrop0.1_last6.yaml)
+- LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
+- Pretrained model: [https://huggingface.co/pyf98/librispeech_conformer_layerdrop0.1_last6](https://huggingface.co/pyf98/librispeech_conformer_layerdrop0.1_last6)
+
+# RESULTS
+## Environments
+- date: `Mon Mar  7 12:21:40 EST 2022`
+- python version: `3.9.7 (default, Sep 16 2021, 13:09:58)  [GCC 7.5.0]`
+- espnet version: `espnet 0.10.7a1`
+- pytorch version: `pytorch 1.10.1`
+- Git hash: `c3569453a408fd4ff4173d9c1d2062c88d1fc060`
+  - Commit date: `Sun Mar 6 23:58:36 2022 -0500`
+
+## asr_train_asr_conformer9_layerdrop0.1_last6_raw_en_bpe5000_sp
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|54402|98.1|1.8|0.2|0.2|2.1|26.6|
+|beam60_ctc0.3/dev_other|2864|50948|95.4|4.2|0.4|0.5|5.1|43.3|
+|beam60_ctc0.3/test_clean|2620|52576|97.9|1.9|0.2|0.3|2.4|28.1|
+|beam60_ctc0.3/test_other|2939|52343|95.3|4.3|0.4|0.7|5.4|45.7|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|54402|98.4|1.4|0.2|0.2|1.8|23.3|
+|beam60_ctc0.3_lm0.6/dev_other|2864|50948|96.4|3.2|0.4|0.4|4.0|36.5|
+|beam60_ctc0.3_lm0.6/test_clean|2620|52576|98.2|1.6|0.2|0.2|2.0|23.7|
+|beam60_ctc0.3_lm0.6/test_other|2939|52343|96.2|3.4|0.5|0.5|4.3|40.4|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|288456|99.5|0.3|0.2|0.2|0.7|26.6|
+|beam60_ctc0.3/dev_other|2864|265951|98.3|1.0|0.7|0.6|2.3|43.3|
+|beam60_ctc0.3/test_clean|2620|281530|99.5|0.3|0.3|0.2|0.8|28.1|
+|beam60_ctc0.3/test_other|2939|272758|98.4|1.0|0.7|0.6|2.3|45.7|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|288456|99.5|0.3|0.3|0.2|0.7|23.3|
+|beam60_ctc0.3_lm0.6/dev_other|2864|265951|98.5|0.8|0.7|0.5|1.9|36.5|
+|beam60_ctc0.3_lm0.6/test_clean|2620|281530|99.5|0.2|0.3|0.2|0.7|23.7|
+|beam60_ctc0.3_lm0.6/test_other|2939|272758|98.5|0.7|0.7|0.5|2.0|40.4|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|68010|97.6|1.7|0.7|0.3|2.7|26.6|
+|beam60_ctc0.3/dev_other|2864|63110|94.2|4.3|1.5|0.8|6.6|43.3|
+|beam60_ctc0.3/test_clean|2620|65818|97.4|1.8|0.8|0.3|2.9|28.1|
+|beam60_ctc0.3/test_other|2939|65101|94.2|4.1|1.7|0.8|6.6|45.7|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|68010|97.9|1.4|0.7|0.3|2.4|23.3|
+|beam60_ctc0.3_lm0.6/dev_other|2864|63110|95.2|3.4|1.5|0.6|5.5|36.5|
+|beam60_ctc0.3_lm0.6/test_clean|2620|65818|97.7|1.5|0.8|0.3|2.6|23.7|
+|beam60_ctc0.3_lm0.6/test_other|2939|65101|95.0|3.2|1.8|0.6|5.6|40.4|
+
+
+
+# Conformer, new SpecAug, using weight decay in Adam
+- Params: 116.15M
+- ASR config [conf/tuning/train_asr_conformer8.yaml](conf/tuning/train_asr_conformer8.yaml)
+- LM config: [conf/tuning/train_lm_transformer2.yaml](conf/tuning/train_lm_transformer2.yaml)
+- Pretrained model: [https://huggingface.co/pyf98/librispeech_conformer](https://huggingface.co/pyf98/librispeech_conformer)
+
+# RESULTS
+## Environments
+- date: `Mon Mar  7 12:26:10 EST 2022`
+- python version: `3.9.7 (default, Sep 16 2021, 13:09:58)  [GCC 7.5.0]`
+- espnet version: `espnet 0.10.7a1`
+- pytorch version: `pytorch 1.10.1`
+- Git hash: `c3569453a408fd4ff4173d9c1d2062c88d1fc060`
+  - Commit date: `Sun Mar 6 23:58:36 2022 -0500`
+
+## asr_train_asr_conformer8_raw_en_bpe5000_sp
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|54402|98.1|1.8|0.2|0.2|2.1|27.3|
+|beam60_ctc0.3/dev_other|2864|50948|95.2|4.4|0.4|0.5|5.4|43.7|
+|beam60_ctc0.3/test_clean|2620|52576|97.9|1.9|0.2|0.3|2.3|29.0|
+|beam60_ctc0.3/test_other|2939|52343|95.2|4.3|0.4|0.6|5.4|45.7|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|54402|98.4|1.4|0.2|0.2|1.8|23.5|
+|beam60_ctc0.3_lm0.6/dev_other|2864|50948|96.2|3.4|0.4|0.4|4.1|37.4|
+|beam60_ctc0.3_lm0.6/test_clean|2620|52576|98.3|1.5|0.2|0.2|1.9|24.1|
+|beam60_ctc0.3_lm0.6/test_other|2939|52343|96.2|3.3|0.5|0.5|4.3|39.9|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|288456|99.5|0.3|0.2|0.2|0.7|27.3|
+|beam60_ctc0.3/dev_other|2864|265951|98.2|1.1|0.7|0.6|2.4|43.7|
+|beam60_ctc0.3/test_clean|2620|281530|99.4|0.3|0.3|0.2|0.8|29.0|
+|beam60_ctc0.3/test_other|2939|272758|98.4|0.9|0.7|0.6|2.2|45.7|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|288456|99.5|0.2|0.2|0.2|0.7|23.5|
+|beam60_ctc0.3_lm0.6/dev_other|2864|265951|98.5|0.9|0.7|0.5|2.0|37.4|
+|beam60_ctc0.3_lm0.6/test_clean|2620|281530|99.5|0.2|0.3|0.2|0.7|24.1|
+|beam60_ctc0.3_lm0.6/test_other|2939|272758|98.6|0.7|0.7|0.5|1.9|39.9|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam60_ctc0.3/dev_clean|2703|68010|97.6|1.8|0.7|0.3|2.8|27.3|
+|beam60_ctc0.3/dev_other|2864|63110|94.1|4.4|1.5|0.9|6.8|43.7|
+|beam60_ctc0.3/test_clean|2620|65818|97.4|1.8|0.7|0.3|2.9|29.0|
+|beam60_ctc0.3/test_other|2939|65101|94.2|4.1|1.7|0.8|6.6|45.7|
+|beam60_ctc0.3_lm0.6/dev_clean|2703|68010|97.9|1.5|0.7|0.3|2.4|23.5|
+|beam60_ctc0.3_lm0.6/dev_other|2864|63110|95.1|3.5|1.4|0.6|5.6|37.4|
+|beam60_ctc0.3_lm0.6/test_clean|2620|65818|97.7|1.5|0.8|0.3|2.5|24.1|
+|beam60_ctc0.3_lm0.6/test_other|2939|65101|95.1|3.2|1.7|0.6|5.5|39.9|
+
+
 
 # Tuning warmup_steps
 - Note

@@ -1,0 +1,7 @@
+# Add the following options for running maskctc inference
+#   --inference_asr_model valid.acc_mlm.ave.pth
+#   --use_maskctc true
+# To run CTC greedy decoding, set maskctc_n_iterations to 1
+# and maskctc_threshold_probability to 0.0
+maskctc_n_iterations: 10
+maskctc_threshold_probability: 0.999

@@ -1,0 +1,1 @@
+../../../../egs/covost2/asr1/local/process_tsv.py

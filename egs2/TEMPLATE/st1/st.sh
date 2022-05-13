@@ -111,6 +111,7 @@ hf_repo=
 
 # Decoding related
 use_k2=false      # Whether to use k2 based decoder
+use_streaming=false # Whether to use streaming decoding
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -296,14 +297,8 @@ fi
 # Extra files for translation process
 utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for bpe training if not specified.
-if "${token_joint}"; then
-    # if token_joint, the bpe training will use both src_lang and tgt_lang to train a single bpe model
-    # TODO (prepare data as text.${src_lang}_${tgt_lang})
-    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
-else
-    [ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
-    [ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
-fi
+[ -z "${src_bpe_train_text}" ] && src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
+[ -z "${tgt_bpe_train_text}" ] && tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for lm training if not specified.
 [ -z "${lm_train_text}" ] && lm_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
 # Use the same text as ST for lm training if not specified.
@@ -331,7 +326,7 @@ if "${token_joint}"; then
     src_bpetoken_list="${tgt_bpetoken_list}"
     src_chartoken_list="${tgt_chartoken_list}"
 else
-    src_bpedir="${token_listdir}/src_bpe_${tgt_bpemode}${tgt_nbpe}"
+    src_bpedir="${token_listdir}/src_bpe_${src_bpemode}${src_nbpe}"
     src_bpeprefix="${src_bpedir}"/bpe
     src_bpemodel="${src_bpeprefix}".model
     src_bpetoken_list="${src_bpedir}"/tokens.txt
@@ -624,7 +619,7 @@ if ! "${skip_data_prep}"; then
 
         elif  [ "${feats_type}" = extracted ]; then
             log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}"
-            # Assumming you don't have wav.scp, but feats.scp is created by local/data.sh instead.
+            # Assuming you don't have wav.scp, but feats.scp is created by local/data.sh instead.
 
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
@@ -739,6 +734,16 @@ if ! "${skip_data_prep}"; then
     fi
 
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+        # Combine source and target texts when using joint tokenization
+        if "${token_joint}"; then
+            log "Merge src and target data if joint BPE"
+
+            cat $tgt_bpe_train_text > ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+            [ ! -z "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >> ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+            # Set the new text as the target text
+            tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
+        fi
+
         # First generate tgt lang
         if [ "${tgt_token_type}" = bpe ]; then
             log "Stage 5a: Generate token_list from ${tgt_bpe_train_text} using BPE for tgt_lang"
@@ -1408,7 +1413,11 @@ if ! "${skip_eval}"; then
             key_file=${_data}/${_scp}
             split_scps=""
             _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-            st_inference_tool="espnet2.bin.st_inference"
+            if "${use_streaming}"; then
+                st_inference_tool="espnet2.bin.st_inference_streaming"
+            else
+                st_inference_tool="espnet2.bin.st_inference"
+            fi
 
             for n in $(seq "${_nj}"); do
                 split_scps+=" ${_logdir}/keys.${n}.scp"
@@ -1480,8 +1489,8 @@ if ! "${skip_eval}"; then
             perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
 
             # detokenizer
-            detokenizer.perl -l en -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
-            detokenizer.perl -l en -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
+            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
+            detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
 
             if [ ${tgt_case} = "tc" ]; then
                 echo "Case sensitive BLEU result (single-reference)" >> ${_scoredir}/result.tc.txt
@@ -1524,7 +1533,7 @@ if ! "${skip_eval}"; then
                     
                     # 
                     perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
-                    detokenizer.perl -l en -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
+                    detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
                     remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
                     case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
                     case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
@@ -1547,8 +1556,8 @@ if ! "${skip_eval}"; then
         done
 
         # Show results in Markdown syntax
-        scripts/utils/show_st_result.sh --case $tgt_case "${st_exp}" > "${st_exp}"/RESULTS.md
-        cat "${cat_exp}"/RESULTS.md
+        scripts/utils/show_translation_result.sh --case $tgt_case "${st_exp}" > "${st_exp}"/RESULTS.md
+        cat "${st_exp}"/RESULTS.md
     fi
 else
     log "Skip the evaluation stages"

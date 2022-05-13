@@ -184,14 +184,14 @@ except ImportError:
 def test_parallel_wavegan_compatibility():
     from parallel_wavegan.models import HiFiGANGenerator as PWGHiFiGANGenerator
 
-    model_pwg = PWGHiFiGANGenerator()
-    model_espnet2 = HiFiGANGenerator()
+    model_pwg = PWGHiFiGANGenerator(**make_hifigan_generator_args())
+    model_espnet2 = HiFiGANGenerator(**make_hifigan_generator_args())
     model_espnet2.load_state_dict(model_pwg.state_dict())
     model_pwg.eval()
     model_espnet2.eval()
 
     with torch.no_grad():
-        c = torch.randn(3, 80)
+        c = torch.randn(3, 5)
         out_pwg = model_pwg.inference(c)
         out_espnet2 = model_espnet2.inference(c)
         np.testing.assert_array_equal(
