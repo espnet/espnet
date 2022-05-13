@@ -1472,12 +1472,18 @@ if ! "${skip_eval}"; then
             detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
             detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
 
+            # rotate result files
+            if [ ${tgt_case} = "tc" ]; then
+                pyscripts/utils/rotate_logfile.py ${_scoredir}/result.tc.txt
+            fi
+            pyscripts/utils/rotate_logfile.py ${_scoredir}/result.lc.txt
+
             if [ ${tgt_case} = "tc" ]; then
                 echo "Case sensitive BLEU result (single-reference)" > ${_scoredir}/result.tc.txt
                 sacrebleu "${_scoredir}/ref.trn.detok" \
                           -i "${_scoredir}/hyp.trn.detok" \
                           -m bleu chrf ter \
-                          > ${_scoredir}/result.tc.txt
+                          >> ${_scoredir}/result.tc.txt
                 
                 log "Write a case-sensitive BLEU (single-reference) result in ${_scoredir}/result.tc.txt"
             fi
@@ -1489,7 +1495,7 @@ if ! "${skip_eval}"; then
             sacrebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
                       -i "${_scoredir}/hyp.trn.detok.lc.rm" \
                       -m bleu chrf ter \
-                      > ${_scoredir}/result.lc.txt
+                      >> ${_scoredir}/result.lc.txt
             log "Write a case-insensitve BLEU (single-reference) result in ${_scoredir}/result.lc.txt"
 
             # process multi-references cases
@@ -1520,17 +1526,17 @@ if ! "${skip_eval}"; then
                 done
 
                 if [ ${tgt_case} = "tc" ]; then
-                    echo "Case sensitive BLEU result (multi-references)" > ${_scoredir}/result.tc.txt
+                    echo "Case sensitive BLEU result (multi-references)" >> ${_scoredir}/result.tc.txt
                     sacrebleu ${case_sensitive_refs} \
                         -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter \
-                        > ${_scoredir}/result.tc.txt
+                        >> ${_scoredir}/result.tc.txt
                     log "Write a case-sensitve BLEU (multi-reference) result in ${_scoredir}/result.tc.txt"
                 fi
 
-                echo "Case insensitive BLEU result (multi-references)" > ${_scoredir}/result.lc.txt
+                echo "Case insensitive BLEU result (multi-references)" >> ${_scoredir}/result.lc.txt
                 sacrebleu -lc ${case_insensitive_refs} \
                     -i ${_scoredir}/hyp.trn.detok.lc.rm -m bleu chrf ter \
-                    > ${_scoredir}/result.lc.txt
+                    >> ${_scoredir}/result.lc.txt
                 log "Write a case-insensitve BLEU (multi-reference) result in ${_scoredir}/result.lc.txt"
             fi
         done
