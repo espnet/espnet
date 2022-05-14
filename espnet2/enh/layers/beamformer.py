@@ -443,7 +443,7 @@ def get_sdw_mwf_vector(
         filtering for noise reduction; A. Spriet et al, 2004
         https://dl.acm.org/doi/abs/10.1016/j.sigpro.2004.07.028
         [2] Rank-1 constrained multichannel Wiener filter for speech recognition in
-        noisy environments; Z. Wangyou et al, 2018
+        noisy environments; Z. Wang et al, 2018
         https://hal.inria.fr/hal-01634449/document
         [3] Low-rank approximation based multichannel Wiener filter algorithms for
         noise reduction with application in cochlear implants; R. Serizel, 2014
@@ -525,7 +525,7 @@ def get_rank1_mwf_vector(
 
     Reference:
         [1] Rank-1 constrained multichannel Wiener filter for speech recognition in
-        noisy environments; Z. Wangyou et al, 2018
+        noisy environments; Z. Wang et al, 2018
         https://hal.inria.fr/hal-01634449/document
         [2] Low-rank approximation based multichannel Wiener filter algorithms for
         noise reduction with application in cochlear implants; R. Serizel, 2014

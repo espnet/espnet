@@ -78,6 +78,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         speech_lengths: torch.Tensor = None,
         spk_labels: torch.Tensor = None,
         spk_labels_lengths: torch.Tensor = None,
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
@@ -89,6 +90,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
                                      see in
                                      espnet2/iterators/chunk_iter_factory.py
             spk_labels: (Batch, )
+            kwargs: "utt_id" is among the input.
         """
         assert speech.shape[0] == spk_labels.shape[0], (speech.shape, spk_labels.shape)
         batch_size = speech.shape[0]
@@ -191,6 +193,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         spk_labels: torch.Tensor = None,
         spk_labels_lengths: torch.Tensor = None,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}

@@ -1,6 +1,8 @@
 from collections import OrderedDict
 from distutils.version import LooseVersion
+from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -114,7 +116,10 @@ class DC_CRNSeparator(AbsSeparator):
         )
 
     def forward(
-        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor
+        self,
+        input: Union[torch.Tensor, ComplexTensor],
+        ilens: torch.Tensor,
+        additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """DC-CRN Separator Forward.
 
