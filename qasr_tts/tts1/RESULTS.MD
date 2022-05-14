@@ -18,7 +18,7 @@
 
  
 
-- Results 
+- Results: {using our pretrained ASR model on MGB2 data}
 
   - FastSpeech2 (Trans.) w/ PWG: (R = 1) 
 
