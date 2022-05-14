@@ -11,6 +11,7 @@ log() {
 
 
 help_message=$(cat << EOF
+[Warning] The script is called with other arguments.
 Usage: $0 
   optional argument:
     None
@@ -23,7 +24,7 @@ EOF
 
 
 stage=1
-stop_stage=2
+stop_stage=3
 
 . utils/parse_options.sh
 
@@ -48,14 +49,26 @@ if [ ! -e "${L3DAS22}" ] ; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "Data preparation stage 1: Multi-Channel data preparation"
+    if [ ! -d "${L3DAS22}/L3DAS22_Task1_dev" ]; then
+	    log "stage 1: Download data to ${L3DAS22}"
+        pip show -f kaggle >/dev/null || pip install kaggle
+        kaggle datasets download -d l3dasteam/l3das22 -p ${L3DAS22}
+        unzip ${L3DAS22}/l3das22.zip -d ${L3DAS22}
+    else
+        log "stage 1: ${L3DAS22}/L3DAS22_Task1_dev is already existing. Skip data downloading"
+    fi
+fi
+
+
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    log "stage 2: Multi-Channel data preparation"
     # The following datasets will be created:
     # L3DAS22_Task1_dev, L3DAS22_Task1_test, L3DAS22_Task1_train100, L3DAS22_Task1_train360
     local/l3das22_multi_channel.sh ${L3DAS22} || exit 1;
 fi
 
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "Data preparation stage 2: Datasets preparation"
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "stage 3: Datasets preparation"
     # The following directories will be created:
     # train_multich, dev_multich, test_multich
     local/l3das22_data_prep.sh  ${L3DAS22} || exit 1;

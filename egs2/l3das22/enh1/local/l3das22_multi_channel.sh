@@ -88,6 +88,7 @@ for x in dev test tr100 tr360; do
   ${train_cmd} JOB=1:$nj $tmpdir/log/${x}/sox.JOB.log $tmpdir/log/${x}/sox_JOB.sh
 done
 
+rm -r $tmpdir 2>/dev/null || true
 
 
 

@@ -3,15 +3,17 @@
 [ -f ./path.sh ] && . ./path.sh
 . parse_options.sh || exit 1;
 
+
+echo "Apply jiwer and transformers for calculating the official metric of the L3DAS22 challenge Task1"
 pip show -f jiwer >/dev/null || pip install jiwer
 pip show -f transformers >/dev/null || pip install transformers
 
-if [ $# -lt 1 ]; then
+if [ $# -ne 2 ]; then
     echo "Usage: local/metric.sh <predicted scp> <target scp>"
     exit 1;
 fi
 
-if [ $# -gt 1 ]; then
+if [ $# -eq 2 ]; then
     predicted_path=$1
     target_path=$2
     python local/metric.py --predicted_path ${predicted_path} --target_path ${target_path}
