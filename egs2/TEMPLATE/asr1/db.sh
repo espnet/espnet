@@ -47,7 +47,6 @@ MISP2021=
 LIBRIMIX=downloads
 LIBRITTS=
 LJSPEECH=downloads
-qasr_tts=downloads
 NSC=
 JMD=downloads
 JSSS=downloads
