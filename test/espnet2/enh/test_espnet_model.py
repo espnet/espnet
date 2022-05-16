@@ -1,4 +1,4 @@
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 
 import pytest
 import torch
@@ -26,7 +26,7 @@ from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 
 
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 stft_encoder = STFTEncoder(
@@ -262,13 +262,13 @@ def test_forward_with_beamformer_net(
         # `mask_type` has no effect when `loss_type` is not "mask..."
         return
     if not is_torch_1_9_plus and use_builtin_complex:
-        # builtin complex support is only available in PyTorch 1.8+
+        # builtin complex support is only well supported in PyTorch 1.9+
         return
 
     ch = 3
     inputs = random_speech[..., :ch].float()
     ilens = torch.LongTensor([16, 12])
-    speech_refs = [torch.randn(2, 16, ch).float() for spk in range(num_spk)]
+    speech_refs = [torch.randn(2, 16, dtype=torch.float) for spk in range(num_spk)]
     noise_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
     dereverb_ref1 = torch.randn(2, 16, ch, dtype=torch.float)
     encoder = STFTEncoder(
@@ -312,7 +312,8 @@ def test_forward_with_beamformer_net(
         "speech_mix": inputs,
         "speech_mix_lengths": ilens,
         **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(num_spk)},
-        "noise_ref1": noise_ref1,
         "dereverb_ref1": dereverb_ref1,
     }
     loss, stats, weight = enh_model(**kwargs)
+    if mask_type in ("IBM", "IRM"):
+        loss, stats, weight = enh_model(**kwargs, noise_ref1=noise_ref1)

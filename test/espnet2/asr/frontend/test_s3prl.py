@@ -1,10 +1,10 @@
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 
 import torch
 
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 
-is_torch_1_7_plus = LooseVersion(torch.__version__) >= LooseVersion("1.7.0")
+is_torch_1_7_plus = V(torch.__version__) >= V("1.7.0")
 
 
 def test_frontend_init():

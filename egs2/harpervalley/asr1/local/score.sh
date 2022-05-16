@@ -1,0 +1,1 @@
+../../../slurp/asr1/local/score.sh
