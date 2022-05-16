@@ -2711,8 +2711,8 @@ Optimizer related:
                         [--feats_extract_conf FEATS_EXTRACT_CONF]
                         [--normalize {global_mvn,utterance_mvn,None}]
                         [--normalize_conf NORMALIZE_CONF]
-                        [--tts {vits,joint_text2wav}] [--tts_conf TTS_CONF]
-                        [--pitch_extract {dio,None}]
+                        [--tts {vits,joint_text2wav,jets}]
+                        [--tts_conf TTS_CONF] [--pitch_extract {dio,None}]
                         [--pitch_extract_conf PITCH_EXTRACT_CONF]
                         [--pitch_normalize {global_mvn,utterance_mvn,None}]
                         [--pitch_normalize_conf PITCH_NORMALIZE_CONF]
@@ -3073,7 +3073,7 @@ Optimizer related:
                         The normalize type (default: None)
   --normalize_conf NORMALIZE_CONF
                         The keyword arguments for normalize (default: {})
-  --tts {vits,joint_text2wav}
+  --tts {vits,joint_text2wav,jets}
                         The tts type (default: vits)
   --tts_conf TTS_CONF   The keyword arguments for tts (default: {})
   --pitch_extract {dio,None}
@@ -5500,7 +5500,7 @@ Vocoder related:
                     [--feats_extract_conf FEATS_EXTRACT_CONF]
                     [--normalize {global_mvn,None}]
                     [--normalize_conf NORMALIZE_CONF]
-                    [--tts {tacotron2,transformer,fastspeech,fastspeech2,vits,joint_text2wav}]
+                    [--tts {tacotron2,transformer,fastspeech,fastspeech2,vits,joint_text2wav,jets}]
                     [--tts_conf TTS_CONF] [--pitch_extract {dio,None}]
                     [--pitch_extract_conf PITCH_EXTRACT_CONF]
                     [--pitch_normalize {global_mvn,None}]
@@ -5852,7 +5852,7 @@ Optimizer related:
                         The normalize type (default: global_mvn)
   --normalize_conf NORMALIZE_CONF
                         The keyword arguments for normalize (default: {})
-  --tts {tacotron2,transformer,fastspeech,fastspeech2,vits,joint_text2wav}
+  --tts {tacotron2,transformer,fastspeech,fastspeech2,vits,joint_text2wav,jets}
                         The tts type (default: tacotron2)
   --tts_conf TTS_CONF   The keyword arguments for tts (default: {})
   --pitch_extract {dio,None}

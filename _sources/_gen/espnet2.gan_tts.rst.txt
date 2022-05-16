@@ -224,6 +224,72 @@ espnet2.gan_tts.utils.__init__
     :show-inheritance:
 
 
+.. _espnet2.gan_tts.jets.loss:
+
+espnet2.gan_tts.jets.loss
+-------------------------
+
+.. automodule:: espnet2.gan_tts.jets.loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.jets.generator:
+
+espnet2.gan_tts.jets.generator
+------------------------------
+
+.. automodule:: espnet2.gan_tts.jets.generator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.jets.length_regulator:
+
+espnet2.gan_tts.jets.length_regulator
+-------------------------------------
+
+.. automodule:: espnet2.gan_tts.jets.length_regulator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.jets.jets:
+
+espnet2.gan_tts.jets.jets
+-------------------------
+
+.. automodule:: espnet2.gan_tts.jets.jets
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.jets.__init__:
+
+espnet2.gan_tts.jets.__init__
+-----------------------------
+
+.. automodule:: espnet2.gan_tts.jets.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_tts.jets.alignments:
+
+espnet2.gan_tts.jets.alignments
+-------------------------------
+
+.. automodule:: espnet2.gan_tts.jets.alignments
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.gan_tts.hifigan.residual_block:
 
 espnet2.gan_tts.hifigan.residual_block

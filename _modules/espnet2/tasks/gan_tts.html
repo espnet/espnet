@@ -174,6 +174,7 @@
 
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.abs_gan_tts</span> <span class="kn">import</span> <span class="n">AbsGANTTS</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetGANTTSModel</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.jets</span> <span class="kn">import</span> <span class="n">JETS</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.joint</span> <span class="kn">import</span> <span class="n">JointText2Wav</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits</span> <span class="kn">import</span> <span class="n">VITS</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
@@ -223,6 +224,7 @@
     <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
         <span class="n">vits</span><span class="o">=</span><span class="n">VITS</span><span class="p">,</span>
         <span class="n">joint_text2wav</span><span class="o">=</span><span class="n">JointText2Wav</span><span class="p">,</span>
+        <span class="n">jets</span><span class="o">=</span><span class="n">JETS</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsGANTTS</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;vits&quot;</span><span class="p">,</span>

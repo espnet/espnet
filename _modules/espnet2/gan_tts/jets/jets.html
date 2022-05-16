@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>espnet2.gan_tts.jets.jets &mdash; ESPnet 202204 documentation</title><link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> ESPnet
+          </a>
+              <div class="version">
+                202204
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>espnet2.gan_tts.jets.jets</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for espnet2.gan_tts.jets.jets</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2022 Dan Lim</span>
+<span class="c1">#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
+
+<span class="sd">&quot;&quot;&quot;JETS module for GAN-TTS task.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
+
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.abs_gan_tts</span> <span class="kn">import</span> <span class="n">AbsGANTTS</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANMultiPeriodDiscriminator</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANMultiScaleDiscriminator</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANMultiScaleMultiPeriodDiscriminator</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANPeriodDiscriminator</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANScaleDiscriminator</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">DiscriminatorAdversarialLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">FeatureMatchLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">GeneratorAdversarialLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">MelSpectrogramLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.jets.generator</span> <span class="kn">import</span> <span class="n">JETSGenerator</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.jets.loss</span> <span class="kn">import</span> <span class="n">ForwardSumLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.jets.loss</span> <span class="kn">import</span> <span class="n">VarianceLoss</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.utils</span> <span class="kn">import</span> <span class="n">get_segments</span>
+<span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
+
+
+<span class="n">AVAILABLE_GENERATERS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;jets_generator&quot;</span><span class="p">:</span> <span class="n">JETSGenerator</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">AVAILABLE_DISCRIMINATORS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;hifigan_period_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANPeriodDiscriminator</span><span class="p">,</span>
+    <span class="s2">&quot;hifigan_scale_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANScaleDiscriminator</span><span class="p">,</span>
+    <span class="s2">&quot;hifigan_multi_period_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANMultiPeriodDiscriminator</span><span class="p">,</span>
+    <span class="s2">&quot;hifigan_multi_scale_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANMultiScaleDiscriminator</span><span class="p">,</span>
+    <span class="s2">&quot;hifigan_multi_scale_multi_period_discriminator&quot;</span><span class="p">:</span> <span class="n">HiFiGANMultiScaleMultiPeriodDiscriminator</span><span class="p">,</span>  <span class="c1"># NOQA</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="JETS"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.jets.JETS">[docs]</a><span class="k">class</span> <span class="nc">JETS</span><span class="p">(</span><span class="n">AbsGANTTS</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;JETS module (generator + discriminator).</span>
+
+<span class="sd">    This is a module of JETS described in `JETS: Jointly Training FastSpeech2</span>
+<span class="sd">    and HiFi-GAN for End to End Text to Speech&#39;_.</span>
+
+<span class="sd">    .. _`JETS: Jointly Training FastSpeech2 and HiFi-GAN for End to End Text to Speech`</span>
+<span class="sd">        : https://arxiv.org/abs/2203.16852</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="c1"># generator related</span>
+        <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">odim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">sampling_rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">22050</span><span class="p">,</span>
+        <span class="n">generator_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;jets_generator&quot;</span><span class="p">,</span>
+        <span class="n">generator_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;adim&quot;</span><span class="p">:</span> <span class="mi">256</span><span class="p">,</span>
+            <span class="s2">&quot;aheads&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s2">&quot;elayers&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="s2">&quot;eunits&quot;</span><span class="p">:</span> <span class="mi">1024</span><span class="p">,</span>
+            <span class="s2">&quot;dlayers&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="s2">&quot;dunits&quot;</span><span class="p">:</span> <span class="mi">1024</span><span class="p">,</span>
+            <span class="s2">&quot;positionwise_layer_type&quot;</span><span class="p">:</span> <span class="s2">&quot;conv1d&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;positionwise_conv_kernel_size&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;use_scaled_pos_enc&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;use_batch_norm&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;encoder_normalize_before&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;decoder_normalize_before&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;encoder_concat_after&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;decoder_concat_after&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;reduction_factor&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;encoder_type&quot;</span><span class="p">:</span> <span class="s2">&quot;transformer&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;decoder_type&quot;</span><span class="p">:</span> <span class="s2">&quot;transformer&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;transformer_enc_dropout_rate&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+            <span class="s2">&quot;transformer_enc_positional_dropout_rate&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+            <span class="s2">&quot;transformer_enc_attn_dropout_rate&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+            <span class="s2">&quot;transformer_dec_dropout_rate&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+            <span class="s2">&quot;transformer_dec_positional_dropout_rate&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+            <span class="s2">&quot;transformer_dec_attn_dropout_rate&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+            <span class="s2">&quot;conformer_rel_pos_type&quot;</span><span class="p">:</span> <span class="s2">&quot;latest&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;conformer_pos_enc_layer_type&quot;</span><span class="p">:</span> <span class="s2">&quot;rel_pos&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;conformer_self_attn_layer_type&quot;</span><span class="p">:</span> <span class="s2">&quot;rel_selfattn&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;conformer_activation_type&quot;</span><span class="p">:</span> <span class="s2">&quot;swish&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;use_macaron_style_in_conformer&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;use_cnn_in_conformer&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;zero_triu&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;conformer_enc_kernel_size&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+            <span class="s2">&quot;conformer_dec_kernel_size&quot;</span><span class="p">:</span> <span class="mi">31</span><span class="p">,</span>
+            <span class="s2">&quot;duration_predictor_layers&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s2">&quot;duration_predictor_chans&quot;</span><span class="p">:</span> <span class="mi">384</span><span class="p">,</span>
+            <span class="s2">&quot;duration_predictor_kernel_size&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="s2">&quot;duration_predictor_dropout_rate&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+            <span class="s2">&quot;energy_predictor_layers&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s2">&quot;energy_predictor_chans&quot;</span><span class="p">:</span> <span class="mi">384</span><span class="p">,</span>
+            <span class="s2">&quot;energy_predictor_kernel_size&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="s2">&quot;energy_predictor_dropout&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+            <span class="s2">&quot;energy_embed_kernel_size&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;energy_embed_dropout&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+            <span class="s2">&quot;stop_gradient_from_energy_predictor&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;pitch_predictor_layers&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+            <span class="s2">&quot;pitch_predictor_chans&quot;</span><span class="p">:</span> <span class="mi">384</span><span class="p">,</span>
+            <span class="s2">&quot;pitch_predictor_kernel_size&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+            <span class="s2">&quot;pitch_predictor_dropout&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+            <span class="s2">&quot;pitch_embed_kernel_size&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;pitch_embed_dropout&quot;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span>
+            <span class="s2">&quot;stop_gradient_from_pitch_predictor&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;generator_out_channels&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;generator_channels&quot;</span><span class="p">:</span> <span class="mi">512</span><span class="p">,</span>
+            <span class="s2">&quot;generator_global_channels&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;generator_kernel_size&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+            <span class="s2">&quot;generator_upsample_scales&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+            <span class="s2">&quot;generator_upsample_kernel_sizes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+            <span class="s2">&quot;generator_resblock_kernel_sizes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">11</span><span class="p">],</span>
+            <span class="s2">&quot;generator_resblock_dilations&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">]],</span>
+            <span class="s2">&quot;generator_use_additional_convs&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;generator_bias&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;generator_nonlinear_activation&quot;</span><span class="p">:</span> <span class="s2">&quot;LeakyReLU&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;generator_nonlinear_activation_params&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;negative_slope&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
+            <span class="s2">&quot;generator_use_weight_norm&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;segment_size&quot;</span><span class="p">:</span> <span class="mi">64</span><span class="p">,</span>
+            <span class="s2">&quot;spks&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;langs&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;spk_embed_dim&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;spk_embed_integration_type&quot;</span><span class="p">:</span> <span class="s2">&quot;add&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;use_gst&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;gst_tokens&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>
+            <span class="s2">&quot;gst_heads&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="s2">&quot;gst_conv_layers&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+            <span class="s2">&quot;gst_conv_chans_list&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">],</span>
+            <span class="s2">&quot;gst_conv_kernel_size&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="s2">&quot;gst_conv_stride&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s2">&quot;gst_gru_layers&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;gst_gru_units&quot;</span><span class="p">:</span> <span class="mi">128</span><span class="p">,</span>
+            <span class="s2">&quot;init_type&quot;</span><span class="p">:</span> <span class="s2">&quot;xavier_uniform&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;init_enc_alpha&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="s2">&quot;init_dec_alpha&quot;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="s2">&quot;use_masking&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;use_weighted_masking&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="c1"># discriminator related</span>
+        <span class="n">discriminator_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;hifigan_multi_scale_multi_period_discriminator&quot;</span><span class="p">,</span>
+        <span class="n">discriminator_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;scales&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;scale_downsample_pooling&quot;</span><span class="p">:</span> <span class="s2">&quot;AvgPool1d&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;scale_downsample_pooling_params&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;kernel_size&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+                <span class="s2">&quot;stride&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="s2">&quot;padding&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;scale_discriminator_params&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;in_channels&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s2">&quot;out_channels&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s2">&quot;kernel_sizes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">15</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                <span class="s2">&quot;channels&quot;</span><span class="p">:</span> <span class="mi">128</span><span class="p">,</span>
+                <span class="s2">&quot;max_downsample_channels&quot;</span><span class="p">:</span> <span class="mi">1024</span><span class="p">,</span>
+                <span class="s2">&quot;max_groups&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+                <span class="s2">&quot;bias&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="s2">&quot;downsample_scales&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                <span class="s2">&quot;nonlinear_activation&quot;</span><span class="p">:</span> <span class="s2">&quot;LeakyReLU&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;nonlinear_activation_params&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;negative_slope&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
+                <span class="s2">&quot;use_weight_norm&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="s2">&quot;use_spectral_norm&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;follow_official_norm&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;periods&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">11</span><span class="p">],</span>
+            <span class="s2">&quot;period_discriminator_params&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;in_channels&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s2">&quot;out_channels&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s2">&quot;kernel_sizes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                <span class="s2">&quot;channels&quot;</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
+                <span class="s2">&quot;downsample_scales&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                <span class="s2">&quot;max_downsample_channels&quot;</span><span class="p">:</span> <span class="mi">1024</span><span class="p">,</span>
+                <span class="s2">&quot;bias&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="s2">&quot;nonlinear_activation&quot;</span><span class="p">:</span> <span class="s2">&quot;LeakyReLU&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;nonlinear_activation_params&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;negative_slope&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
+                <span class="s2">&quot;use_weight_norm&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="s2">&quot;use_spectral_norm&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+        <span class="c1"># loss related</span>
+        <span class="n">generator_adv_loss_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;average_by_discriminators&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;loss_type&quot;</span><span class="p">:</span> <span class="s2">&quot;mse&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">discriminator_adv_loss_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;average_by_discriminators&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;loss_type&quot;</span><span class="p">:</span> <span class="s2">&quot;mse&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">feat_match_loss_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;average_by_discriminators&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;average_by_layers&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;include_final_outputs&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">mel_loss_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;fs&quot;</span><span class="p">:</span> <span class="mi">22050</span><span class="p">,</span>
+            <span class="s2">&quot;n_fft&quot;</span><span class="p">:</span> <span class="mi">1024</span><span class="p">,</span>
+            <span class="s2">&quot;hop_length&quot;</span><span class="p">:</span> <span class="mi">256</span><span class="p">,</span>
+            <span class="s2">&quot;win_length&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;window&quot;</span><span class="p">:</span> <span class="s2">&quot;hann&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;n_mels&quot;</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span>
+            <span class="s2">&quot;fmin&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;fmax&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;log_base&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">lambda_adv</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">lambda_mel</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">45.0</span><span class="p">,</span>
+        <span class="n">lambda_feat_match</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+        <span class="n">lambda_var</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">lambda_align</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+        <span class="n">cache_generator_outputs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize JETS module.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            idim (int): Input vocabrary size.</span>
+<span class="sd">            odim (int): Acoustic feature dimension. The actual output channels will</span>
+<span class="sd">                be 1 since JETS is the end-to-end text-to-wave model but for the</span>
+<span class="sd">                compatibility odim is used to indicate the acoustic feature dimension.</span>
+<span class="sd">            sampling_rate (int): Sampling rate, not used for the training but it will</span>
+<span class="sd">                be referred in saving waveform during the inference.</span>
+<span class="sd">            generator_type (str): Generator type.</span>
+<span class="sd">            generator_params (Dict[str, Any]): Parameter dict for generator.</span>
+<span class="sd">            discriminator_type (str): Discriminator type.</span>
+<span class="sd">            discriminator_params (Dict[str, Any]): Parameter dict for discriminator.</span>
+<span class="sd">            generator_adv_loss_params (Dict[str, Any]): Parameter dict for generator</span>
+<span class="sd">                adversarial loss.</span>
+<span class="sd">            discriminator_adv_loss_params (Dict[str, Any]): Parameter dict for</span>
+<span class="sd">                discriminator adversarial loss.</span>
+<span class="sd">            feat_match_loss_params (Dict[str, Any]): Parameter dict for feat match loss.</span>
+<span class="sd">            mel_loss_params (Dict[str, Any]): Parameter dict for mel loss.</span>
+<span class="sd">            lambda_adv (float): Loss scaling coefficient for adversarial loss.</span>
+<span class="sd">            lambda_mel (float): Loss scaling coefficient for mel spectrogram loss.</span>
+<span class="sd">            lambda_feat_match (float): Loss scaling coefficient for feat match loss.</span>
+<span class="sd">            lambda_var (float): Loss scaling coefficient for variance loss.</span>
+<span class="sd">            lambda_align (float): Loss scaling coefficient for alignment loss.</span>
+<span class="sd">            cache_generator_outputs (bool): Whether to cache generator outputs.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="c1"># define modules</span>
+        <span class="n">generator_class</span> <span class="o">=</span> <span class="n">AVAILABLE_GENERATERS</span><span class="p">[</span><span class="n">generator_type</span><span class="p">]</span>
+        <span class="n">generator_params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">idim</span><span class="o">=</span><span class="n">idim</span><span class="p">,</span> <span class="n">odim</span><span class="o">=</span><span class="n">odim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generator</span> <span class="o">=</span> <span class="n">generator_class</span><span class="p">(</span>
+            <span class="o">**</span><span class="n">generator_params</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">discriminator_class</span> <span class="o">=</span> <span class="n">AVAILABLE_DISCRIMINATORS</span><span class="p">[</span><span class="n">discriminator_type</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span> <span class="o">=</span> <span class="n">discriminator_class</span><span class="p">(</span>
+            <span class="o">**</span><span class="n">discriminator_params</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generator_adv_loss</span> <span class="o">=</span> <span class="n">GeneratorAdversarialLoss</span><span class="p">(</span>
+            <span class="o">**</span><span class="n">generator_adv_loss_params</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">discriminator_adv_loss</span> <span class="o">=</span> <span class="n">DiscriminatorAdversarialLoss</span><span class="p">(</span>
+            <span class="o">**</span><span class="n">discriminator_adv_loss_params</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feat_match_loss</span> <span class="o">=</span> <span class="n">FeatureMatchLoss</span><span class="p">(</span>
+            <span class="o">**</span><span class="n">feat_match_loss_params</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mel_loss</span> <span class="o">=</span> <span class="n">MelSpectrogramLoss</span><span class="p">(</span>
+            <span class="o">**</span><span class="n">mel_loss_params</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">var_loss</span> <span class="o">=</span> <span class="n">VarianceLoss</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">forwardsum_loss</span> <span class="o">=</span> <span class="n">ForwardSumLoss</span><span class="p">()</span>
+
+        <span class="c1"># coefficients</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_adv</span> <span class="o">=</span> <span class="n">lambda_adv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_mel</span> <span class="o">=</span> <span class="n">lambda_mel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_feat_match</span> <span class="o">=</span> <span class="n">lambda_feat_match</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_var</span> <span class="o">=</span> <span class="n">lambda_var</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_align</span> <span class="o">=</span> <span class="n">lambda_align</span>
+
+        <span class="c1"># cache</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_generator_outputs</span> <span class="o">=</span> <span class="n">cache_generator_outputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># store sampling rate for saving wav file</span>
+        <span class="c1"># (not used for the training)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fs</span> <span class="o">=</span> <span class="n">sampling_rate</span>
+
+        <span class="c1"># store parameters for test compatibility</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">spks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">langs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">spk_embed_dim</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">require_raw_speech</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return whether or not speech is required.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">require_vocoder</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return whether or not vocoder is required.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="JETS.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.jets.JETS.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">feats</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">feats_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">forward_generator</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Perform generator forward.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            text (Tensor): Text index tensor (B, T_text).</span>
+<span class="sd">            text_lengths (Tensor): Text length tensor (B,).</span>
+<span class="sd">            feats (Tensor): Feature tensor (B, T_feats, aux_channels).</span>
+<span class="sd">            feats_lengths (Tensor): Feature length tensor (B,).</span>
+<span class="sd">            speech (Tensor): Speech waveform tensor (B, T_wav).</span>
+<span class="sd">            speech_lengths (Tensor): Speech length tensor (B,).</span>
+<span class="sd">            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).</span>
+<span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).</span>
+<span class="sd">            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).</span>
+<span class="sd">            forward_generator (bool): Whether to forward generator.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, Any]:</span>
+<span class="sd">                - loss (Tensor): Loss scalar tensor.</span>
+<span class="sd">                - stats (Dict[str, float]): Statistics to be monitored.</span>
+<span class="sd">                - weight (Tensor): Weight tensor to summarize losses.</span>
+<span class="sd">                - optim_idx (int): Optimizer index (0 for G and 1 for D).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">forward_generator</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_generator</span><span class="p">(</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+                <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">,</span>
+                <span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span>
+                <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">,</span>
+                <span class="n">speech</span><span class="o">=</span><span class="n">speech</span><span class="p">,</span>
+                <span class="n">speech_lengths</span><span class="o">=</span><span class="n">speech_lengths</span><span class="p">,</span>
+                <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
+                <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+                <span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward_discrminator</span><span class="p">(</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+                <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">,</span>
+                <span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span>
+                <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">,</span>
+                <span class="n">speech</span><span class="o">=</span><span class="n">speech</span><span class="p">,</span>
+                <span class="n">speech_lengths</span><span class="o">=</span><span class="n">speech_lengths</span><span class="p">,</span>
+                <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
+                <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+                <span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_forward_generator</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">feats</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">feats_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Perform generator forward.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            text (Tensor): Text index tensor (B, T_text).</span>
+<span class="sd">            text_lengths (Tensor): Text length tensor (B,).</span>
+<span class="sd">            feats (Tensor): Feature tensor (B, T_feats, aux_channels).</span>
+<span class="sd">            feats_lengths (Tensor): Feature length tensor (B,).</span>
+<span class="sd">            speech (Tensor): Speech waveform tensor (B, T_wav).</span>
+<span class="sd">            speech_lengths (Tensor): Speech length tensor (B,).</span>
+<span class="sd">            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).</span>
+<span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).</span>
+<span class="sd">            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, Any]:</span>
+<span class="sd">                * loss (Tensor): Loss scalar tensor.</span>
+<span class="sd">                * stats (Dict[str, float]): Statistics to be monitored.</span>
+<span class="sd">                * weight (Tensor): Weight tensor to summarize losses.</span>
+<span class="sd">                * optim_idx (int): Optimizer index (0 for G and 1 for D).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># setup</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># calculate generator outputs</span>
+        <span class="n">reuse_cache</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_generator_outputs</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">reuse_cache</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+                <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">,</span>
+                <span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span>
+                <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">,</span>
+                <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
+                <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+                <span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
+
+        <span class="c1"># store cache</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_generator_outputs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">reuse_cache</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="n">outs</span>
+
+        <span class="c1"># parse outputs</span>
+        <span class="p">(</span>
+            <span class="n">speech_hat_</span><span class="p">,</span>
+            <span class="n">bin_loss</span><span class="p">,</span>
+            <span class="n">log_p_attn</span><span class="p">,</span>
+            <span class="n">start_idxs</span><span class="p">,</span>
+            <span class="n">d_outs</span><span class="p">,</span>
+            <span class="n">ds</span><span class="p">,</span>
+            <span class="n">p_outs</span><span class="p">,</span>
+            <span class="n">ps</span><span class="p">,</span>
+            <span class="n">e_outs</span><span class="p">,</span>
+            <span class="n">es</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">=</span> <span class="n">outs</span>
+        <span class="n">speech_</span> <span class="o">=</span> <span class="n">get_segments</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">speech</span><span class="p">,</span>
+            <span class="n">start_idxs</span><span class="o">=</span><span class="n">start_idxs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">upsample_factor</span><span class="p">,</span>
+            <span class="n">segment_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">upsample_factor</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># calculate discriminator outputs</span>
+        <span class="n">p_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="n">speech_hat_</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="c1"># do not store discriminator gradient in generator turn</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="n">speech_</span><span class="p">)</span>
+
+        <span class="c1"># calculate losses</span>
+        <span class="n">mel_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mel_loss</span><span class="p">(</span><span class="n">speech_hat_</span><span class="p">,</span> <span class="n">speech_</span><span class="p">)</span>
+        <span class="n">adv_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator_adv_loss</span><span class="p">(</span><span class="n">p_hat</span><span class="p">)</span>
+        <span class="n">feat_match_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feat_match_loss</span><span class="p">(</span><span class="n">p_hat</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+        <span class="n">dur_loss</span><span class="p">,</span> <span class="n">pitch_loss</span><span class="p">,</span> <span class="n">energy_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">var_loss</span><span class="p">(</span>
+            <span class="n">d_outs</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">p_outs</span><span class="p">,</span> <span class="n">ps</span><span class="p">,</span> <span class="n">e_outs</span><span class="p">,</span> <span class="n">es</span><span class="p">,</span> <span class="n">text_lengths</span>
+        <span class="p">)</span>
+        <span class="n">forwardsum_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forwardsum_loss</span><span class="p">(</span><span class="n">log_p_attn</span><span class="p">,</span> <span class="n">text_lengths</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">)</span>
+
+        <span class="n">mel_loss</span> <span class="o">=</span> <span class="n">mel_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_mel</span>
+        <span class="n">adv_loss</span> <span class="o">=</span> <span class="n">adv_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_adv</span>
+        <span class="n">feat_match_loss</span> <span class="o">=</span> <span class="n">feat_match_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_feat_match</span>
+        <span class="n">g_loss</span> <span class="o">=</span> <span class="n">mel_loss</span> <span class="o">+</span> <span class="n">adv_loss</span> <span class="o">+</span> <span class="n">feat_match_loss</span>
+        <span class="n">var_loss</span> <span class="o">=</span> <span class="p">(</span><span class="n">dur_loss</span> <span class="o">+</span> <span class="n">pitch_loss</span> <span class="o">+</span> <span class="n">energy_loss</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_var</span>
+        <span class="n">align_loss</span> <span class="o">=</span> <span class="p">(</span><span class="n">forwardsum_loss</span> <span class="o">+</span> <span class="n">bin_loss</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_align</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">g_loss</span> <span class="o">+</span> <span class="n">var_loss</span> <span class="o">+</span> <span class="n">align_loss</span>
+
+        <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">generator_loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">generator_g_loss</span><span class="o">=</span><span class="n">g_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">generator_var_loss</span><span class="o">=</span><span class="n">var_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">generator_align_loss</span><span class="o">=</span><span class="n">align_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">generator_g_mel_loss</span><span class="o">=</span><span class="n">mel_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">generator_g_adv_loss</span><span class="o">=</span><span class="n">adv_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">generator_g_feat_match_loss</span><span class="o">=</span><span class="n">feat_match_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">generator_var_dur_loss</span><span class="o">=</span><span class="n">dur_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">generator_var_pitch_loss</span><span class="o">=</span><span class="n">pitch_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">generator_var_energy_loss</span><span class="o">=</span><span class="n">energy_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">generator_align_forwardsum_loss</span><span class="o">=</span><span class="n">forwardsum_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">generator_align_bin_loss</span><span class="o">=</span><span class="n">bin_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+        <span class="p">)</span>
+
+        <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">force_gatherable</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">loss</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># reset cache</span>
+        <span class="k">if</span> <span class="n">reuse_cache</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="n">loss</span><span class="p">,</span>
+            <span class="s2">&quot;stats&quot;</span><span class="p">:</span> <span class="n">stats</span><span class="p">,</span>
+            <span class="s2">&quot;weight&quot;</span><span class="p">:</span> <span class="n">weight</span><span class="p">,</span>
+            <span class="s2">&quot;optim_idx&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># needed for trainer</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_forward_discrminator</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">feats</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">feats_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Perform discriminator forward.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            text (Tensor): Text index tensor (B, T_text).</span>
+<span class="sd">            text_lengths (Tensor): Text length tensor (B,).</span>
+<span class="sd">            feats (Tensor): Feature tensor (B, T_feats, aux_channels).</span>
+<span class="sd">            feats_lengths (Tensor): Feature length tensor (B,).</span>
+<span class="sd">            speech (Tensor): Speech waveform tensor (B, T_wav).</span>
+<span class="sd">            speech_lengths (Tensor): Speech length tensor (B,).</span>
+<span class="sd">            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).</span>
+<span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).</span>
+<span class="sd">            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, Any]:</span>
+<span class="sd">                * loss (Tensor): Loss scalar tensor.</span>
+<span class="sd">                * stats (Dict[str, float]): Statistics to be monitored.</span>
+<span class="sd">                * weight (Tensor): Weight tensor to summarize losses.</span>
+<span class="sd">                * optim_idx (int): Optimizer index (0 for G and 1 for D).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># setup</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># calculate generator outputs</span>
+        <span class="n">reuse_cache</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_generator_outputs</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">reuse_cache</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="p">(</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+                <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">,</span>
+                <span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span>
+                <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">,</span>
+                <span class="n">sids</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span>
+                <span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">,</span>
+                <span class="n">lids</span><span class="o">=</span><span class="n">lids</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
+
+        <span class="c1"># store cache</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_generator_outputs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">reuse_cache</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="n">outs</span>
+
+        <span class="c1"># parse outputs</span>
+        <span class="n">speech_hat_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">start_idxs</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">outs</span>
+        <span class="n">speech_</span> <span class="o">=</span> <span class="n">get_segments</span><span class="p">(</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">speech</span><span class="p">,</span>
+            <span class="n">start_idxs</span><span class="o">=</span><span class="n">start_idxs</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">upsample_factor</span><span class="p">,</span>
+            <span class="n">segment_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">upsample_factor</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># calculate discriminator outputs</span>
+        <span class="n">p_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="n">speech_hat_</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator</span><span class="p">(</span><span class="n">speech_</span><span class="p">)</span>
+
+        <span class="c1"># calculate losses</span>
+        <span class="n">real_loss</span><span class="p">,</span> <span class="n">fake_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">discriminator_adv_loss</span><span class="p">(</span><span class="n">p_hat</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">real_loss</span> <span class="o">+</span> <span class="n">fake_loss</span>
+
+        <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">discriminator_loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">discriminator_real_loss</span><span class="o">=</span><span class="n">real_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+            <span class="n">discriminator_fake_loss</span><span class="o">=</span><span class="n">fake_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">force_gatherable</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">loss</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># reset cache</span>
+        <span class="k">if</span> <span class="n">reuse_cache</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="n">loss</span><span class="p">,</span>
+            <span class="s2">&quot;stats&quot;</span><span class="p">:</span> <span class="n">stats</span><span class="p">,</span>
+            <span class="s2">&quot;weight&quot;</span><span class="p">:</span> <span class="n">weight</span><span class="p">,</span>
+            <span class="s2">&quot;optim_idx&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># needed for trainer</span>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="JETS.inference"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.jets.JETS.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">feats</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">pitch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">energy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Run inference.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            text (Tensor): Input text index tensor (T_text,).</span>
+<span class="sd">            feats (Tensor): Feature tensor (T_feats, aux_channels).</span>
+<span class="sd">            pitch (Tensor): Pitch tensor (T_feats, 1).</span>
+<span class="sd">            energy (Tensor): Energy tensor (T_feats, 1).</span>
+<span class="sd">            use_teacher_forcing (bool): Whether to use teacher forcing.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, Tensor]:</span>
+<span class="sd">                * wav (Tensor): Generated waveform tensor (T_wav,).</span>
+<span class="sd">                * duration (Tensor): Predicted duration tensor (T_text,).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># setup</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+        <span class="n">text_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">text</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">text</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;spembs&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;spembs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;spembs&quot;</span><span class="p">][</span><span class="kc">None</span><span class="p">]</span>
+
+        <span class="c1"># inference</span>
+        <span class="k">if</span> <span class="n">use_teacher_forcing</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">feats</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+            <span class="n">feats_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">feats</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)],</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">feats</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">assert</span> <span class="n">pitch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">pitch</span> <span class="o">=</span> <span class="n">pitch</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">energy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">energy</span> <span class="o">=</span> <span class="n">energy</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+
+            <span class="n">wav</span><span class="p">,</span> <span class="n">dur</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+                <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">,</span>
+                <span class="n">feats</span><span class="o">=</span><span class="n">feats</span><span class="p">,</span>
+                <span class="n">feats_lengths</span><span class="o">=</span><span class="n">feats_lengths</span><span class="p">,</span>
+                <span class="n">pitch</span><span class="o">=</span><span class="n">pitch</span><span class="p">,</span>
+                <span class="n">energy</span><span class="o">=</span><span class="n">energy</span><span class="p">,</span>
+                <span class="n">use_teacher_forcing</span><span class="o">=</span><span class="n">use_teacher_forcing</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">wav</span><span class="p">,</span> <span class="n">dur</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
+                <span class="n">text_lengths</span><span class="o">=</span><span class="n">text_lengths</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">wav</span><span class="o">=</span><span class="n">wav</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">duration</span><span class="o">=</span><span class="n">dur</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
