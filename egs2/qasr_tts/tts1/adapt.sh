@@ -1,3 +1,5 @@
+# Copyright 2021 Massa Baali
+
 pretrained_model=$1
 # From data preparation to statistics calculation
 ./run.sh --stage 1 --stop_stage 5
