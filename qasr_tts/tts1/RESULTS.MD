@@ -18,7 +18,7 @@
 
  
 
-- Results: {using our pretrained ASR model on MGB2 data}
+- Results: {using our pretrained ASR model on MGB2 data} here is the recipe "egs/mgb2"
 
   - FastSpeech2 (Trans.) w/ PWG: (R = 1) 
 
