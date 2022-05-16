@@ -29,12 +29,12 @@ class AlignmentModule(nn.Module):
         """Calculate alignment loss.
 
         Args:
-            text (Tensor): Batched text embedding (B, T_text, adim)
-            feats (Tensor): Batched acoustic feature (B, T_feats, odim)
-            x_masks (Tensor): Mask tensor (B, T_text)
+            text (Tensor): Batched text embedding (B, T_text, adim).
+            feats (Tensor): Batched acoustic feature (B, T_feats, odim).
+            x_masks (Tensor): Mask tensor (B, T_text).
 
         Returns:
-            Tensor: log probability of attention matrix (B, T_feats, T_text)
+            Tensor: Log probability of attention matrix (B, T_feats, T_text).
 
         """
         text = text.transpose(1, 2)
@@ -98,13 +98,13 @@ def viterbi_decode(log_p_attn, text_lengths, feats_lengths):
 
     Args:
         log_p_attn (Tensor): Batched log probability of attention
-            matrix (B, T_feats, T_text)
-        text_lengths (Tensor): Text length tensor (B,)
-        feats_legnths (Tensor): Feature length tensor (B,)
+            matrix (B, T_feats, T_text).
+        text_lengths (Tensor): Text length tensor (B,).
+        feats_legnths (Tensor): Feature length tensor (B,).
 
     Returns:
-        Tensor: Batched token duration extracted from `log_p_attn` (B,T_text)
-        Tensor: binarization loss tensor ()
+        Tensor: Batched token duration extracted from `log_p_attn` (B, T_text).
+        Tensor: Binarization loss tensor ().
 
     """
     B = log_p_attn.size(0)
@@ -149,13 +149,13 @@ def average_by_duration(ds, xs, text_lengths, feats_lengths):
     """Average frame-level features into token-level according to durations
 
     Args:
-        ds (Tensor): Batched token duration (B,T_text)
-        xs (Tensor): Batched feature sequences to be averaged (B,T_feats)
-        text_lengths (Tensor): Text length tensor (B,)
-        feats_lengths (Tensor): Feature length tensor (B,)
+        ds (Tensor): Batched token duration (B, T_text).
+        xs (Tensor): Batched feature sequences to be averaged (B, T_feats).
+        text_lengths (Tensor): Text length tensor (B,).
+        feats_lengths (Tensor): Feature length tensor (B,).
 
     Returns:
-        Tensor: Batched feature averaged according to the token duration (B, T_text)
+        Tensor: Batched feature averaged according to the token duration (B, T_text).
 
     """
     device = ds.device

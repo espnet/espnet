@@ -1,4 +1,4 @@
-# Copyright 2021 Tomoki Hayashi
+# Copyright 2022 Dan Lim
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Test JETS related modules."""

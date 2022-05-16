@@ -1,4 +1,4 @@
-# Copyright 2020 Nagoya University (Tomoki Hayashi)
+# Copyright 2022 Dan Lim
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """JETS related loss module for ESPnet2."""
@@ -177,10 +177,10 @@ class ForwardSumLoss(torch.nn.Module):
         Args:
             text_lengths (Tensor): Batch of the lengths of each input (B,).
             feats_lengths (Tensor): Batch of the lengths of each target (B,).
-            w (float): Scaling factor; lower -> wider the width
+            w (float): Scaling factor; lower -> wider the width.
 
         Returns:
-            Tensor: Batched 2d static prior matrix (B, T_feats, T_text)
+            Tensor: Batched 2d static prior matrix (B, T_feats, T_text).
 
         """
         B = len(text_lengths)

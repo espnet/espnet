@@ -543,15 +543,15 @@ class JETSGenerator(torch.nn.Module):
 
         Returns:
             Tensor: Waveform tensor (B, 1, segment_size * upsample_factor).
-            Tensor: binarization loss ()
-            Tensor: log probability attention matrix (B,T_feats,T_text)
+            Tensor: Binarization loss ().
+            Tensor: Log probability attention matrix (B, T_feats, T_text).
             Tensor: Segments start index tensor (B,).
-            Tensor: predicted duration (B,T_text)
-            Tensor: ground-truth duration obtained from an alignment module (B,T_text)
-            Tensor: predicted pitch (B,T_text,1)
-            Tensor: ground-truth averaged pitch (B,T_text,1)
-            Tensor: predicted energy (B,T_text,1)
-            Tensor: ground-truth averaged energy (B,T_text,1)
+            Tensor: predicted duration (B, T_text).
+            Tensor: ground-truth duration obtained from an alignment module (B, T_text).
+            Tensor: predicted pitch (B, T_text,1).
+            Tensor: ground-truth averaged pitch (B, T_text, 1).
+            Tensor: predicted energy (B, T_text, 1).
+            Tensor: ground-truth averaged energy (B, T_text, 1).
 
         """
         text = text[:, : text_lengths.max()]  # for data-parallel
