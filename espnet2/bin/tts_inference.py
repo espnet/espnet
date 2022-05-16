@@ -8,7 +8,7 @@ import shutil
 import sys
 import time
 
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -300,7 +300,7 @@ class Text2Speech:
                 from parallel_wavegan import __version__
 
                 # NOTE(kan-bayashi): Filelock download is supported from 0.5.2
-                assert LooseVersion(__version__) > LooseVersion("0.5.1"), (
+                assert V(__version__) > V("0.5.1"), (
                     "Please install the latest parallel_wavegan "
                     "via `pip install -U parallel_wavegan`."
                 )

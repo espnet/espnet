@@ -10,6 +10,8 @@ from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 
 
 class TimeDomainLoss(AbsEnhLoss, ABC):
+    """Base class for all time-domain Enhancement loss modules."""
+
     pass
 
 
@@ -33,13 +35,15 @@ class CISDRLoss(TimeDomainLoss):
         loss: (Batch,)
     """
 
-    def __init__(self, filter_length=512):
+    def __init__(self, filter_length=512, name=None):
         super().__init__()
         self.filter_length = filter_length
 
+        self._name = "ci_sdr_loss" if name is None else name
+
     @property
     def name(self) -> str:
-        return "ci_sdr_loss"
+        return self._name
 
     def forward(
         self,
@@ -55,13 +59,15 @@ class CISDRLoss(TimeDomainLoss):
 
 
 class SNRLoss(TimeDomainLoss):
-    def __init__(self, eps=EPS):
+    def __init__(self, eps=EPS, name=None):
         super().__init__()
         self.eps = float(eps)
 
+        self._name = "snr_loss" if name is None else name
+
     @property
     def name(self) -> str:
-        return "snr_loss"
+        return self._name
 
     def forward(
         self,
@@ -80,7 +86,7 @@ class SNRLoss(TimeDomainLoss):
 
 
 class SDRLoss(TimeDomainLoss):
-    """SDR loss
+    """SDR loss.
 
     filter_length: int
         The length of the distortion filter allowed (default: ``512``)
@@ -109,6 +115,7 @@ class SDRLoss(TimeDomainLoss):
         clamp_db=None,
         zero_mean=True,
         load_diag=None,
+        name=None,
     ):
         super().__init__()
 
@@ -118,16 +125,18 @@ class SDRLoss(TimeDomainLoss):
         self.zero_mean = zero_mean
         self.load_diag = load_diag
 
+        self._name = "sdr_loss" if name is None else name
+
     @property
     def name(self) -> str:
-        return "sdr_loss"
+        return self._name
 
     def forward(
         self,
         ref: torch.Tensor,
         est: torch.Tensor,
     ) -> torch.Tensor:
-        """The forward function
+        """SDR forward.
 
         Args:
             ref: Tensor, (..., n_samples)
@@ -168,23 +177,25 @@ class SISNRLoss(TimeDomainLoss):
             Deprecated. Keeped for compatibility.
     """
 
-    def __init__(self, clamp_db=None, zero_mean=True, eps=None):
+    def __init__(self, clamp_db=None, zero_mean=True, eps=None, name=None):
         super().__init__()
         self.clamp_db = clamp_db
         self.zero_mean = zero_mean
         if eps is not None:
             logging.warning("Eps is deprecated in si_snr loss, set clamp_db instead.")
 
+        self._name = "si_snr_loss" if name is None else name
+
     @property
     def name(self) -> str:
-        return "si_snr_loss"
+        return self._name
 
     def forward(
         self,
         ref: torch.Tensor,
         est: torch.Tensor,
     ) -> torch.Tensor:
-        """Forward function
+        """SI-SNR forward.
 
         Args:
 
@@ -207,3 +218,67 @@ class SISNRLoss(TimeDomainLoss):
         )
 
         return si_snr
+
+
+class TimeDomainMSE(TimeDomainLoss):
+    def __init__(self, name=None):
+        super().__init__()
+        self._name = "TD_MSE_loss" if name is None else name
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def forward(self, ref, inf) -> torch.Tensor:
+        """Time-domain MSE loss forward.
+
+        Args:
+            ref: (Batch, T) or (Batch, T, C)
+            inf: (Batch, T) or (Batch, T, C)
+        Returns:
+            loss: (Batch,)
+        """
+        assert ref.shape == inf.shape, (ref.shape, inf.shape)
+
+        mseloss = (ref - inf).pow(2)
+        if ref.dim() == 3:
+            mseloss = mseloss.mean(dim=[1, 2])
+        elif ref.dim() == 2:
+            mseloss = mseloss.mean(dim=1)
+        else:
+            raise ValueError(
+                "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
+            )
+        return mseloss
+
+
+class TimeDomainL1(TimeDomainLoss):
+    def __init__(self, name=None):
+        super().__init__()
+        self._name = "TD_L1_loss" if name is None else name
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def forward(self, ref, inf) -> torch.Tensor:
+        """Time-domain L1 loss forward.
+
+        Args:
+            ref: (Batch, T) or (Batch, T, C)
+            inf: (Batch, T) or (Batch, T, C)
+        Returns:
+            loss: (Batch,)
+        """
+        assert ref.shape == inf.shape, (ref.shape, inf.shape)
+
+        l1loss = abs(ref - inf)
+        if ref.dim() == 3:
+            l1loss = l1loss.mean(dim=[1, 2])
+        elif ref.dim() == 2:
+            l1loss = l1loss.mean(dim=1)
+        else:
+            raise ValueError(
+                "Invalid input shape: ref={}, inf={}".format(ref.shape, inf.shape)
+            )
+        return l1loss

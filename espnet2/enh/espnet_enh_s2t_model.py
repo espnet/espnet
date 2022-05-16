@@ -1,6 +1,6 @@
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 import logging
+from packaging.version import parse as V
 import random
 from typing import Dict
 from typing import List
@@ -16,7 +16,7 @@ from espnet2.st.espnet_model import ESPnetSTModel
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:
     # Nothing to do if torch<1.6.0
@@ -32,7 +32,6 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         self,
         enh_model: ESPnetEnhancementModel,
         s2t_model: Union[ESPnetASRModel, ESPnetSTModel],
-        permutation_by_enh: bool = True,
         calc_enh_loss: bool = True,
         bypass_enh_prob: float = 0,  # 0 means do not bypass enhancement for all data
     ):
@@ -44,7 +43,6 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
 
         self.bypass_enh_prob = bypass_enh_prob
 
-        self.permutation_by_enh = permutation_by_enh
         self.calc_enh_loss = calc_enh_loss
         self.extract_feats_in_collect_stats = (
             self.s2t_model.extract_feats_in_collect_stats

@@ -1,0 +1,1 @@
+../../../../egs/chime6/asr1/local/extract_noises.py

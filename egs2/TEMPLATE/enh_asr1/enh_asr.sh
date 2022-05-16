@@ -122,6 +122,8 @@ dereverb_ref_num=1
 # Evaluation related
 scoring_protocol="STOI SDR SAR SIR SI_SNR"
 ref_channel=0
+inference_enh_tag=      # Prefix to the result dir for ENH inference.
+inference_enh_config=   # Config for enhancement.
 
 # Enh Training data related
 use_dereverb_ref=false
@@ -453,6 +455,14 @@ if [ -z "${inference_tag}" ]; then
     fi
 fi
 
+if [ -z "${inference_enh_tag}" ]; then
+    if [ -n "${inference_enh_config}" ]; then
+        inference_enh_tag="$(basename "${inference_enh_config}" .yaml)"
+    else
+        inference_enh_tag=enhanced
+    fi
+fi
+
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -518,7 +528,10 @@ if ! "${skip_data_prep}"; then
                 expand_utt_extra_files=""
                 for extra_file in ${utt_extra_files}; do
                     # with regex to suuport multi-references
-                    for single_file in $(ls data/"${dset}"/${extra_file}*); do
+                    for single_file in "data/${dset}/${extra_file}"*; do
+                        if [ ! -f "${single_file}" ]; then
+                            continue
+                        fi
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
                     done
@@ -781,7 +794,7 @@ if ! "${skip_train}"; then
             log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
             # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
             #       but it's used only for deciding the sample ids.
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
                 ${python} -m espnet2.bin.lm_train \
                     --collect_stats true \
@@ -797,7 +810,7 @@ if ! "${skip_train}"; then
                     --train_shape_file "${_logdir}/train.JOB.scp" \
                     --valid_shape_file "${_logdir}/dev.JOB.scp" \
                     --output_dir "${_logdir}/stats.JOB" \
-                    ${_opts} ${lm_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                    ${_opts} ${lm_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
             # 4. Aggregate shape files
             _opts=
@@ -924,7 +937,7 @@ if ! "${skip_train}"; then
         if "${use_ngram}"; then
             log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
             cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
-            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
+            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin
         else
             log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
         fi
@@ -1294,12 +1307,12 @@ if ! "${skip_eval}"; then
         _opts=
 
         # 2. Generate run.sh
-        log "Generate '${enh_asr_exp}/${inference_tag}/run.sh'. You can resume the process from stage 13 using this script"
-        mkdir -p "${enh_asr_exp}/${inference_tag}"; echo "${run_args} --stage 13 \"\$@\"; exit \$?" > "${enh_asr_exp}/${inference_tag}/run.sh"; chmod +x "${enh_asr_exp}/${inference_tag}/run.sh"
+        log "Generate '${enh_asr_exp}/run_enhance.sh'. You can resume the process from stage 13 using this script"
+        mkdir -p "${enh_asr_exp}"; echo "${run_args} --stage 13 \"\$@\"; exit \$?" > "${enh_asr_exp}/run_enhance.sh"; chmod +x "${enh_asr_exp}/run_enhance.sh"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${enh_asr_exp}/${inference_tag}/${dset}"
+            _dir="${enh_asr_exp}/${inference_enh_tag}_${dset}"
             _logdir="${_dir}/logdir"
             mkdir -p "${_logdir}"
 
@@ -1322,7 +1335,7 @@ if ! "${skip_eval}"; then
 
             # 2. Submit inference jobs
             log "Enhancement started... log: '${_logdir}/enh_inference.*.log'"
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
                 ${python} -m espnet2.bin.enh_inference \
                     --enh_s2t_task true \
@@ -1331,9 +1344,10 @@ if ! "${skip_eval}"; then
                     --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --train_config "${enh_asr_exp}"/config.yaml \
+                    ${inference_enh_config:+--inference_config "$inference_enh_config"} \
                     --model_file "${enh_asr_exp}"/"${inference_enh_asr_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${enh_inference_args}
+                    ${_opts} ${enh_inference_args} || { cat $(grep -l -i error "${_logdir}"/enh_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
             _spk_list=" "
@@ -1473,17 +1487,17 @@ if ! "${skip_eval}"; then
         # for score_obs in true false; do
         for score_obs in true false; do
             # Peform only at the first time for observation
-            if "${score_obs}" && [ -e "${data_feats}/RESULTS.md" ]; then
-                log "${data_feats}/RESULTS.md already exists. The scoring for observation will be skipped"
+            if "${score_obs}" && [ -e "${data_feats}/RESULTS_enh.md" ]; then
+                log "${data_feats}/RESULTS_enh.md already exists. The scoring for observation will be skipped"
                 continue
             fi
 
             for dset in ${test_sets}; do
                 _data="${data_feats}/${dset}"
                 if "${score_obs}"; then
-                    _dir="${data_feats}/${dset}/scoring_enh"
+                    _dir="${data_feats}/${dset}/scoring"
                 else
-                    _dir="${enh_asr_exp}/${inference_tag}/${dset}/scoring_enh"
+                    _dir="${enh_asr_exp}/${inference_enh_tag}_${dset}/scoring"
                 fi
 
                 _logdir="${_dir}/logdir"
@@ -1509,7 +1523,7 @@ if ! "${skip_eval}"; then
                         # To compute the score of observation, input original wav.scp
                         _inf_scp+="--inf_scp ${data_feats}/${dset}/wav.scp "
                     else
-                        _inf_scp+="--inf_scp ${enh_asr_exp}/${inference_tag}/${dset}/spk${spk}.scp "
+                        _inf_scp+="--inf_scp ${enh_asr_exp}/${inference_enh_tag}_${dset}/spk${spk}.scp "
                     fi
                 done
 
@@ -1545,7 +1559,7 @@ if ! "${skip_eval}"; then
             ./scripts/utils/show_enh_score.sh "${_dir}/../.." > "${_dir}/../../RESULTS_enh.md"
         done
         log "Evaluation result for observation: ${data_feats}/RESULTS_enh.md"
-        log "Evaluation result for enhancement: ${enh_asr_exp}/enhanced/RESULTS_enh.md"
+        log "Evaluation result for enhancement: ${enh_asr_exp}/RESULTS_enh.md"
 
     fi
 else
@@ -1618,10 +1632,10 @@ if ! "${skip_upload_hf}"; then
         # Generate description file
         # shellcheck disable=SC2034
         hf_task=speech-enhancement-recognition
-        # shellcheck disable=SC2034     
+        # shellcheck disable=SC2034
         espnet_task=EnhS2T
         # shellcheck disable=SC2034
-        task_exp=${enh_st_exp}
+        task_exp=${enh_asr_exp}
         eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
 
         this_folder=${PWD}

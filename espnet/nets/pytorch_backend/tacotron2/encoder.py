@@ -145,7 +145,7 @@ class Encoder(torch.nn.Module):
         if self.convs is not None:
             for i in six.moves.range(len(self.convs)):
                 if self.use_residual:
-                    xs += self.convs[i](xs)
+                    xs = xs + self.convs[i](xs)
                 else:
                     xs = self.convs[i](xs)
         if self.blstm is None:

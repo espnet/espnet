@@ -23,6 +23,7 @@ REVERB=
 REVERB_OUT="${PWD}/REVERB"  # Output file path
 CHIME3=
 CHIME4=
+CHIME5=
 CSJDATATOP=
 CSJVER=dvd  ## Set your CSJ format (dvd or usb).
             ## Usage    :
@@ -46,6 +47,7 @@ LIBRILIGHT_LIMITED=
 FSC=
 SLURP=
 VOXCELEB=
+MEDIASPEECH=downloads
 MINI_LIBRISPEECH=downloads
 MISP2021=
 LIBRIMIX=downloads
@@ -139,6 +141,7 @@ MALAYALAM=downloads
 ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
+HARPERVALLEY=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
@@ -216,6 +219,7 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     FSC=
     SNIPS= # smart-light-en-closed-field data path
     SLURP=
+    MEDIASPEECH=downloads
     MINI_LIBRISPEECH=downloads
     LIBRITTS=
     LJSPEECH=downloads

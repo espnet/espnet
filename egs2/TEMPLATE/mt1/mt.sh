@@ -455,7 +455,7 @@ if ! "${skip_data_prep}"; then
         log "Stage 1: Data preparation for data/${train_set}, data/${valid_set}, etc."
         # [Task dependent] Need to create data.sh for new corpus
         local/data.sh ${local_data_opts}
-        
+
     fi
 
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -474,7 +474,7 @@ if ! "${skip_data_prep}"; then
                     # with regex to suuport multi-references
                     for single_file in $(ls data/"${dset}"/${extra_file}*); do
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
-                    done 
+                    done
                 done
                 echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
             done
@@ -702,7 +702,7 @@ if ! "${skip_train}"; then
             log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
             # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
             #       but it's used only for deciding the sample ids.
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
                 ${python} -m espnet2.bin.lm_train \
                     --collect_stats true \
@@ -718,7 +718,7 @@ if ! "${skip_train}"; then
                     --train_shape_file "${_logdir}/train.JOB.scp" \
                     --valid_shape_file "${_logdir}/dev.JOB.scp" \
                     --output_dir "${_logdir}/stats.JOB" \
-                    ${_opts} ${lm_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                    ${_opts} ${lm_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
             # 4. Aggregate shape files
             _opts=
@@ -845,7 +845,7 @@ if ! "${skip_train}"; then
         if "${use_ngram}"; then
             log "Stage 8: Ngram Training: train_set=${data_feats}/lm_train.txt"
             cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
-            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
+            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin
         else
             log "Stage 8: Skip ngram stages: use_ngram=${use_ngram}"
         fi
@@ -1132,7 +1132,7 @@ if ! "${skip_eval}"; then
 
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/mt_inference.*.log'"
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/mt_inference.JOB.log \
                 ${python} -m ${mt_inference_tool} \
                     --batch_size ${batch_size} \
@@ -1142,7 +1142,7 @@ if ! "${skip_eval}"; then
                     --mt_train_config "${mt_exp}"/config.yaml \
                     --mt_model_file "${mt_exp}"/"${inference_mt_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args}
+                    ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/mt_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
             for f in token token_int score text; do
@@ -1205,7 +1205,7 @@ if ! "${skip_eval}"; then
             #                ) \
             #    <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
             #        >"${_scoredir}/hyp.trn.org"
-            
+
             # remove utterance id
             #perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
             #perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
@@ -1215,19 +1215,19 @@ if ! "${skip_eval}"; then
             detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
 
             if [ ${tgt_case} = "tc" ]; then
-                echo "Case sensitive BLEU result (single-reference)" >> ${_scoredir}/result.tc.txt
+                echo "Case sensitive BLEU result (single-reference)" > ${_scoredir}/result.tc.txt
                 sacrebleu "${_scoredir}/ref.trn.detok" \
                           -i "${_scoredir}/hyp.trn.detok" \
                           -m bleu chrf ter \
                           >> ${_scoredir}/result.tc.txt
-                
+
                 log "Write a case-sensitive BLEU (single-reference) result in ${_scoredir}/result.tc.txt"
             fi
 
             # detokenize & remove punctuation except apostrophe
             remove_punctuation.pl < "${_scoredir}/ref.trn.detok" > "${_scoredir}/ref.trn.detok.lc.rm"
             remove_punctuation.pl < "${_scoredir}/hyp.trn.detok" > "${_scoredir}/hyp.trn.detok.lc.rm"
-            echo "Case insensitive BLEU result (single-reference)" >> ${_scoredir}/result.lc.txt
+            echo "Case insensitive BLEU result (single-reference)" > ${_scoredir}/result.lc.txt
             sacrebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
                       -i "${_scoredir}/hyp.trn.detok.lc.rm" \
                       -m bleu chrf ter \
@@ -1252,8 +1252,8 @@ if ! "${skip_eval}"; then
                                 ) \
                         <(<"${_data}/text.${tgt_case}.${tgt_lang}" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn.org.${ref_idx}"
-                    
-                    # 
+
+                    #
                     perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
                     detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
                     remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
@@ -1279,7 +1279,7 @@ if ! "${skip_eval}"; then
 
         # Show results in Markdown syntax
         scripts/utils/show_translation_result.sh --case $tgt_case "${mt_exp}" > "${mt_exp}"/RESULTS.md
-        cat "${cat_exp}"/RESULTS.md
+        cat "${mt_exp}"/RESULTS.md
     fi
 else
     log "Skip the evaluation stages"
@@ -1386,11 +1386,11 @@ if ! "${skip_upload_hf}"; then
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \
             log "ERROR: You need to install git-lfs first" && \
-            exit 1             
-  
+            exit 1
+
         dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
         [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
-  
+
         if command -v git &> /dev/null; then
             _creator_name="$(git config user.name)"
             _checkout="git checkout $(git show -s --format=%H)"
@@ -1403,13 +1403,13 @@ if ! "${skip_upload_hf}"; then
         # foo/asr1 -> foo
         _corpus="${_task%/*}"
         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-  
+
         # copy files in ${dir_repo}
         unzip -o ${packed_model} -d ${dir_repo}
         # Generate description file
         # shellcheck disable=SC2034
         hf_task=machine-translation
-        # shellcheck disable=SC2034     
+        # shellcheck disable=SC2034
         espnet_task=MT
         # shellcheck disable=SC2034
         task_exp=${mt_exp}
