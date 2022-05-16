@@ -23,13 +23,15 @@ decoder_conf:
     self_attention_dropout_rate: 0.0
     src_attention_dropout_rate: 0.0
 optim: adam
+accum_grad: 1
 optim_conf:
-    lr: 0.0002
+    lr: 0.0004
 scheduler: warmuplr     # pytorch v1.1.0+ required
 scheduler_conf:
     warmup_steps: 25000
-max_epoch: 200
+max_epoch: 85
 keep_nbest_models: 5
+batch_size: 80
 
 freeze_param: [
 "frontend.upstream"

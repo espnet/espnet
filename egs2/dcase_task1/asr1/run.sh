@@ -9,7 +9,7 @@ train_set="train"
 valid_set="test"
 test_sets="test"
 
-asr_config=conf/tuning/train_asr_transformer_adam_specaug.yaml #s3prl is installed when pytorch > 1.7. Hence using default frontend
+asr_config=conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml
 inference_config=conf/decode_asr.yaml
 
 ./asr.sh \

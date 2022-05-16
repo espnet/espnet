@@ -22,12 +22,12 @@ def get_classification_result(hyp_file, ref_file, hyp_write, ref_write):
     for line_count in range(len(hyp_lines)):
         hyp_intent = hyp_lines[line_count].split("\t")[0].split(" ")[0]
         ref_intent = ref_lines[line_count].split("\t")[0].split(" ")[0]
-        if hyp_intent not in total_dict:
-            total_dict[hyp_intent] = 0
-            error_dict[hyp_intent] = 0
+        if ref_intent not in total_dict:
+            total_dict[ref_intent] = 0
+            error_dict[ref_intent] = 0
         if hyp_intent != ref_intent:
-            error_dict[hyp_intent] += 1
-        total_dict[hyp_intent] += 1
+            error_dict[ref_intent] += 1
+        total_dict[ref_intent] += 1
         hyp_write.write(
             " ".join(hyp_lines[line_count].split("\t")[0].split(" ")[1:])
             + "\t"
