@@ -1,3 +1,5 @@
+# QASR-TTS RECIPE
+
 - Our goal is to build a TTS character based system using semi-supervised data selection in a low-resource scenario by proposing two different methodologies:
 the first one by training non-autoregressive (non-AR) model from scratch on very small amount of data; and the second one by training
 autoregressive (AR) model finetuned on top of a pre-trained model.
