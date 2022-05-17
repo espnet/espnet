@@ -188,8 +188,8 @@ def make_jets_loss_args(**kwargs):
 
 # NOTE(kan-bayashi): first forward requires jit compile
 #   so a little bit more time is needed to run. Therefore,
-#   here we extend execution timeout from 2 sec to 5 sec.
-@pytest.mark.execution_timeout(5)
+#   here we extend execution timeout from 2 sec to 8 sec.
+@pytest.mark.execution_timeout(8)
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="group conv in pytorch 1.6 has an issue. "
@@ -247,46 +247,6 @@ def make_jets_loss_args(**kwargs):
                         "use_weight_norm": True,
                         "use_spectral_norm": False,
                     },
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_period_discriminator",
-                "discriminator_params": {
-                    "period": 2,
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_sizes": [5, 3],
-                    "channels": 16,
-                    "downsample_scales": [3, 3, 1],
-                    "max_downsample_channels": 32,
-                    "bias": True,
-                    "nonlinear_activation": "LeakyReLU",
-                    "nonlinear_activation_params": {"negative_slope": 0.1},
-                    "use_weight_norm": True,
-                    "use_spectral_norm": False,
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_scale_discriminator",
-                "discriminator_params": {
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_sizes": [15, 41, 5, 3],
-                    "channels": 16,
-                    "max_downsample_channels": 32,
-                    "max_groups": 16,
-                    "bias": True,
-                    "downsample_scales": [2, 2, 1],
-                    "nonlinear_activation": "LeakyReLU",
-                    "nonlinear_activation_params": {"negative_slope": 0.1},
                 },
             },
             {},
@@ -438,46 +398,6 @@ def test_jets_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
                         "use_weight_norm": True,
                         "use_spectral_norm": False,
                     },
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_period_discriminator",
-                "discriminator_params": {
-                    "period": 2,
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_sizes": [5, 3],
-                    "channels": 16,
-                    "downsample_scales": [3, 3, 1],
-                    "max_downsample_channels": 32,
-                    "bias": True,
-                    "nonlinear_activation": "LeakyReLU",
-                    "nonlinear_activation_params": {"negative_slope": 0.1},
-                    "use_weight_norm": True,
-                    "use_spectral_norm": False,
-                },
-            },
-            {},
-        ),
-        (
-            {},
-            {
-                "discriminator_type": "hifigan_scale_discriminator",
-                "discriminator_params": {
-                    "in_channels": 1,
-                    "out_channels": 1,
-                    "kernel_sizes": [15, 41, 5, 3],
-                    "channels": 16,
-                    "max_downsample_channels": 32,
-                    "max_groups": 16,
-                    "bias": True,
-                    "downsample_scales": [2, 2, 1],
-                    "nonlinear_activation": "LeakyReLU",
-                    "nonlinear_activation_params": {"negative_slope": 0.1},
                 },
             },
             {},
