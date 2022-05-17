@@ -97,6 +97,7 @@ Demonstration
     - FastSpeech2
     - Conformer FastSpeech & FastSpeech2
     - VITS
+    - JETS
 - Multi-speaker & multi-language extention
     - Pretrained speaker embedding (e.g., X-vector)
     - Speaker ID embedding
@@ -104,7 +105,7 @@ Demonstration
     - Global style token (GST) embedding
     - Mix of the above embeddings
 - End-to-end training
-    - End-to-end text-to-wav model (e.g., VITS)
+    - End-to-end text-to-wav model (e.g., VITS, JETS, etc.)
     - Joint training of text2mel and vocoder
 - Various language support
     - En / Jp / Zn / De / Ru / And more...
@@ -126,7 +127,7 @@ To train the neural vocoder, please check the following repositories:
 
 > **NOTE**:
 > - We are moving on ESPnet2-based development for TTS.
-> - If you are beginner, we recommend using [ESPnet2-TTS](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/tts1).
+> - The use of ESPnet1-TTS is deprecated, please use [ESPnet2-TTS](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/tts1).
 
 ### SE: Speech enhancement (and separation)
 
