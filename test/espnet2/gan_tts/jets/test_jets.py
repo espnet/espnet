@@ -188,8 +188,8 @@ def make_jets_loss_args(**kwargs):
 
 # NOTE(kan-bayashi): first forward requires jit compile
 #   so a little bit more time is needed to run. Therefore,
-#   here we extend execution timeout from 2 sec to 5 sec.
-@pytest.mark.execution_timeout(5)
+#   here we extend execution timeout from 2 sec to 8 sec.
+@pytest.mark.execution_timeout(8)
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="group conv in pytorch 1.6 has an issue. "
