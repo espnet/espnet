@@ -24,6 +24,7 @@ from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
+from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.st import STTask
 from espnet2.text.build_tokenizer import build_tokenizer
@@ -70,14 +71,29 @@ class Speech2Text:
         penalty: float = 0.0,
         nbest: int = 1,
         st_ctc_weight: float = 0.0,
+        enh_s2t_task: bool = False,
     ):
         assert check_argument_types()
 
+        task = STTask if not enh_s2t_task else EnhS2TTask
+
         # 1. Build ST model
         scorers = {}
-        st_model, st_train_args = STTask.build_model_from_file(
+        st_model, st_train_args = task.build_model_from_file(
             st_train_config, st_model_file, device
         )
+        if enh_s2t_task:
+            st_model.inherite_attributes(
+                inherite_s2t_attrs=[
+                    "ctc",
+                    "decoder",
+                    "eos",
+                    "joint_network",
+                    "sos",
+                    "token_list",
+                    "use_transducer_decoder",
+                ]
+            )
         st_model.to(dtype=getattr(torch, dtype)).eval()
 
         decoder = st_model.decoder
@@ -342,6 +358,7 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
+    enh_s2t_task: bool,
     **kwargs
 ):
     assert check_argument_types()
@@ -384,6 +401,7 @@ def inference(
         penalty=penalty,
         nbest=nbest,
         st_ctc_weight=st_ctc_weight,
+        enh_s2t_task=enh_s2t_task,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -572,6 +590,12 @@ def get_parser():
         type=str,
         help="Pretrained model tag. If specify this option, *_train_config and "
         "*_file will be overwritten",
+    )
+    group.add_argument(
+        "--enh_s2t_task",
+        type=str2bool,
+        default=False,
+        help="enhancement and asr joint model",
     )
 
     group = parser.add_argument_group("Beam-search related")

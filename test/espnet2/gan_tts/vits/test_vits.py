@@ -3,8 +3,6 @@
 
 """Test VITS related modules."""
 
-from distutils.version import LooseVersion
-
 import pytest
 import torch
 
@@ -148,10 +146,6 @@ def make_vits_loss_args(**kwargs):
     return defaults
 
 
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.4"),
-    reason="Pytorch >= 1.4 is required.",
-)
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="group conv in pytorch 1.6 has an issue. "
@@ -349,10 +343,6 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         assert output_dict["wav"].size(0) == inputs["feats"].size(0) * upsample_factor
 
 
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.4"),
-    reason="Pytorch >= 1.4 is required.",
-)
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="Group conv in pytorch 1.6 has an issue. "
@@ -589,10 +579,6 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
     reason="GPU is needed.",
 )
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.4"),
-    reason="Pytorch >= 1.4 is required.",
-)
-@pytest.mark.skipif(
     "1.6" in torch.__version__,
     reason="group conv in pytorch 1.6 has an issue. "
     "See https://github.com/pytorch/pytorch/issues/42446.",
@@ -798,10 +784,6 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
 @pytest.mark.skipif(
     not torch.cuda.is_available(),
     reason="GPU is needed.",
-)
-@pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.4"),
-    reason="Pytorch >= 1.4 is required.",
 )
 @pytest.mark.skipif(
     "1.6" in torch.__version__,

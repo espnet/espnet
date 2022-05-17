@@ -8,7 +8,7 @@ import shutil
 import sys
 import time
 
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -92,6 +92,7 @@ class Text2Speech:
         device: str = "cpu",
         seed: int = 777,
         always_fix_seed: bool = False,
+        prefer_normalized_feats: bool = False,
     ):
         """Initialize Text2Speech module."""
         assert check_argument_types()
@@ -114,6 +115,7 @@ class Text2Speech:
         self.seed = seed
         self.always_fix_seed = always_fix_seed
         self.vocoder = None
+        self.prefer_normalized_feats = prefer_normalized_feats
         if self.tts.require_vocoder:
             vocoder = TTSTask.build_vocoder_from_file(
                 vocoder_config, vocoder_file, model, device
@@ -209,10 +211,13 @@ class Text2Speech:
 
         # apply vocoder (mel-to-wav)
         if self.vocoder is not None:
-            if output_dict.get("feat_gen_denorm") is not None:
-                input_feat = output_dict["feat_gen_denorm"]
-            else:
+            if (
+                self.prefer_normalized_feats
+                or output_dict.get("feat_gen_denorm") is None
+            ):
                 input_feat = output_dict["feat_gen"]
+            else:
+                input_feat = output_dict["feat_gen_denorm"]
             wav = self.vocoder(input_feat)
             output_dict.update(wav=wav)
 
@@ -295,7 +300,7 @@ class Text2Speech:
                 from parallel_wavegan import __version__
 
                 # NOTE(kan-bayashi): Filelock download is supported from 0.5.2
-                assert LooseVersion(__version__) > LooseVersion("0.5.1"), (
+                assert V(__version__) > V("0.5.1"), (
                     "Please install the latest parallel_wavegan "
                     "via `pip install -U parallel_wavegan`."
                 )

@@ -15,7 +15,7 @@ fi
 [ -f ./path.sh ] && . ./path.sh
 set -euo pipefail
 if [ $# -eq 1 ]; then
-    exp=$1
+    exp=$(realpath "$1")
 else
     exp=exp
 fi
@@ -51,7 +51,7 @@ while IFS= read -r expdir; do
         metrics=()
         heading="\n|dataset|"
         sep="|---|"
-        for type in pesq stoi sar sdr sir si_snr; do
+        for type in pesq estoi stoi sar sdr sir si_snr; do
             if ls "${expdir}"/*/scoring/result_${type}.txt &> /dev/null; then
                 metrics+=("$type")
                 heading+="${type^^}|"

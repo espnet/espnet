@@ -1,6 +1,6 @@
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 import logging
+from packaging.version import parse as V
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -24,7 +24,7 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:
     # Nothing to do if torch<1.6.0
@@ -120,6 +120,7 @@ class ESPnetMTModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         src_text: torch.Tensor,
         src_text_lengths: torch.Tensor,
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
@@ -128,6 +129,7 @@ class ESPnetMTModel(AbsESPnetModel):
             text_lengths: (Batch,)
             src_text: (Batch, length)
             src_text_lengths: (Batch,)
+            kwargs: "utt_id" is among the input.
         """
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
@@ -171,6 +173,7 @@ class ESPnetMTModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         src_text: torch.Tensor,
         src_text_lengths: torch.Tensor,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         if self.extract_feats_in_collect_stats:
             feats, feats_lengths = self._extract_feats(src_text, src_text_lengths)

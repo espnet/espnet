@@ -4,7 +4,7 @@
 """GAN-based text-to-speech ESPnet model."""
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 from typing import Any
 from typing import Dict
 from typing import Optional
@@ -19,7 +19,7 @@ from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:
     # Nothing to do if torch < 1.6.0
@@ -74,6 +74,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
         forward_generator: bool = True,
+        **kwargs,
     ) -> Dict[str, Any]:
         """Return generator or discriminator loss with dict format.
 
@@ -92,6 +93,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
             forward_generator (bool): Whether to forward generator.
+            kwargs: "utt_id" is among the input.
 
         Returns:
             Dict[str, Any]:
@@ -176,6 +178,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Calculate features and return them as a dict.
 

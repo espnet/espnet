@@ -4,7 +4,7 @@
 """Text-to-speech ESPnet model."""
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 from typing import Dict
 from typing import Optional
 from typing import Tuple
@@ -19,7 +19,7 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:
     # Nothing to do if torch<1.6.0
@@ -67,6 +67,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Caclualte outputs and return the loss tensor.
 
@@ -84,6 +85,7 @@ class ESPnetTTSModel(AbsESPnetModel):
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
+            kwargs: "utt_id" is among the input.
 
         Returns:
             Tensor: Loss scalar tensor.
@@ -166,6 +168,7 @@ class ESPnetTTSModel(AbsESPnetModel):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         """Caclualte features and return them as a dict.
 

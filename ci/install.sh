@@ -48,7 +48,7 @@ python3 -m pip freeze
 # Check pytorch version
 python3 <<EOF
 import torch
-from distutils.version import LooseVersion as L
+from packaging.version import parse as L
 version = '$TH_VERSION'.split(".")
 next_version = f"{version[0]}.{version[1]}.{int(version[2]) + 1}"
 

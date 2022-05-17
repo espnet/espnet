@@ -1,4 +1,4 @@
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 from typing import Tuple
 from typing import Union
 
@@ -12,7 +12,7 @@ from espnet2.enh.layers.complex_utils import matmul
 from espnet2.enh.layers.complex_utils import reverse
 
 
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 """ WPE pytorch version: Ported from https://github.com/fgnt/nara_wpe

@@ -2,8 +2,8 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 from itertools import permutations
+from packaging.version import parse as V
 from typing import Dict
 from typing import Optional
 from typing import Tuple
@@ -22,7 +22,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:
     # Nothing to do if torch<1.6.0
@@ -78,6 +78,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         speech_lengths: torch.Tensor = None,
         spk_labels: torch.Tensor = None,
         spk_labels_lengths: torch.Tensor = None,
+        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
 
@@ -89,6 +90,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
                                      see in
                                      espnet2/iterators/chunk_iter_factory.py
             spk_labels: (Batch, )
+            kwargs: "utt_id" is among the input.
         """
         assert speech.shape[0] == spk_labels.shape[0], (speech.shape, spk_labels.shape)
         batch_size = speech.shape[0]
@@ -191,6 +193,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         spk_labels: torch.Tensor = None,
         spk_labels_lengths: torch.Tensor = None,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}
