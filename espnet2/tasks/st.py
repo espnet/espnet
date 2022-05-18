@@ -6,6 +6,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import numpy as np
 import torch
@@ -26,6 +27,7 @@ from espnet2.asr.decoder.transformer_decoder import (
     LightweightConvolutionTransformerDecoder,  # noqa: H301
 )
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
+from espnet2.st.decoder.transformer_md_decoder import TransformerMDDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
@@ -54,6 +56,13 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.st.espnet_model import ESPnetSTModel
+from espnet2.st.espnet_model_md import ESPnetSTMDModel
+from espnet2.st.espnet_model_md_hier import ESPnetSTMDHierModel
+from espnet2.st.espnet_model_md_samp import ESPnetSTMDSampModel
+from espnet2.st.espnet_model_md_hier_samp import ESPnetSTMDHierSampModel
+from espnet2.st.espnet_model_hier import ESPnetSTHierModel
+from espnet2.st.espnet_model_hier_v2 import ESPnetSTHierModelv2
+from espnet2.st.espnet_model_hier_ml import ESPnetSTHierMlModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -133,6 +142,7 @@ decoder_choices = ClassChoices(
     "decoder",
     classes=dict(
         transformer=TransformerDecoder,
+        transformer_md=TransformerMDDecoder,
         lightweight_conv=LightweightConvolutionTransformerDecoder,
         lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
         dynamic_conv=DynamicConvolutionTransformerDecoder,
@@ -168,6 +178,43 @@ extra_mt_decoder_choices = ClassChoices(
     type_check=AbsDecoder,
     default="rnn",
 )
+asr_decoder_choices = ClassChoices(
+    "asr_decoder",
+    classes=dict(
+        transformer=TransformerDecoder,
+        lightweight_conv=LightweightConvolutionTransformerDecoder,
+        lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
+        dynamic_conv=DynamicConvolutionTransformerDecoder,
+        dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
+        rnn=RNNDecoder,
+    ),
+    type_check=AbsDecoder,
+    default="rnn",
+)
+encoder_mt_choices = ClassChoices(
+    "encoder_mt",
+    classes=dict(
+        conformer=ConformerEncoder,
+        transformer=TransformerEncoder,
+        contextual_block_transformer=ContextualBlockTransformerEncoder,
+        vgg_rnn=VGGRNNEncoder,
+        rnn=RNNEncoder,
+    ),
+    type_check=AbsEncoder,
+    default="rnn",
+)
+encoder_hier_choices = ClassChoices(
+    "encoder_hier",
+    classes=dict(
+        conformer=ConformerEncoder,
+        transformer=TransformerEncoder,
+        contextual_block_transformer=ContextualBlockTransformerEncoder,
+        vgg_rnn=VGGRNNEncoder,
+        rnn=RNNEncoder,
+    ),
+    type_check=AbsEncoder,
+    default="rnn",
+)
 
 
 class STTask(AbsTask):
@@ -194,6 +241,11 @@ class STTask(AbsTask):
         extra_asr_decoder_choices,
         # --extra_mt_decoder and --extra_mt_decoder_conf
         extra_mt_decoder_choices,
+        # --asr_decoder and --asr_decoder_conf
+        asr_decoder_choices,
+        # --encoder_mt and --encoder_mt_conf
+        encoder_mt_choices,
+        encoder_hier_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -219,6 +271,24 @@ class STTask(AbsTask):
             type=str_or_none,
             default=None,
             help="A text mapping int-id to token (for source language)",
+        )
+        group.add_argument(
+            "--use_multidecoder",
+            type=str2bool,
+            default=False,
+            help="Use multidecoder model",
+        )
+        group.add_argument(
+            "--use_hier_ctc",
+            type=str2bool,
+            default=False,
+            help="Use hier ctc MT model",
+        )
+        group.add_argument(
+            "--use_ctc_samp",
+            type=str2bool,
+            default=False,
+            help="Use hier ctc MT model",
         )
         group.add_argument(
             "--init",
@@ -253,6 +323,37 @@ class STTask(AbsTask):
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetSTModel),
             help="The keyword arguments for model class.",
+        )
+
+        group.add_argument(
+            "--num_langs",
+            type=int_or_none,
+            default=None,
+            help="number of langs",
+        )
+        group.add_argument(
+            "--use_ml",
+            type=str2bool,
+            default=False,
+            help="use hier ml",
+        )
+        group.add_argument(
+            "--reverse_sa",
+            type=str2bool,
+            default=False,
+            help="use hier ml",
+        )
+        group.add_argument(
+            "--n_hier",
+            type=int,
+            default=1,
+            help="num hier stacks",
+        )
+        group.add_argument(
+            "--use_v2",
+            type=str2bool,
+            default=False,
+            help="hier v2",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
@@ -415,12 +516,12 @@ class STTask(AbsTask):
         if not inference:
             retval = ("src_text",)
         else:
-            retval = ()
+            retval = ("src_text",)
         assert check_return_type(retval)
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetSTModel:
+    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTMDModel, ESPnetSTMDHierModel, ESPnetSTMDSampModel, ESPnetSTMDHierSampModel, ESPnetSTHierModel, ESPnetSTHierMlModel, ESPnetSTHierModelv2]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -505,6 +606,10 @@ class STTask(AbsTask):
 
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
+        if args.decoder == "transformer_md":
+            speech_attn=True
+        else:
+            speech_attn=False
 
         decoder = decoder_class(
             vocab_size=vocab_size,
@@ -522,53 +627,280 @@ class STTask(AbsTask):
         else:
             ctc = None
 
-        # 7. ASR extra decoder
-        if (
-            getattr(args, "extra_asr_decoder", None) is not None
-            and src_token_list is not None
-        ):
-            extra_asr_decoder_class = extra_asr_decoder_choices.get_class(
-                args.extra_asr_decoder
+        use_md_model = getattr(args, "use_multidecoder", False)
+        if use_md_model:
+            # 7. ASR decoder
+            asr_decoder_class = asr_decoder_choices.get_class(
+                args.asr_decoder
             )
-            extra_asr_decoder = extra_asr_decoder_class(
+            asr_decoder = asr_decoder_class(
                 vocab_size=src_vocab_size,
                 encoder_output_size=encoder_output_size,
-                **args.extra_asr_decoder_conf,
+                **args.asr_decoder_conf,
             )
-        else:
-            extra_asr_decoder = None
+            asr_decoder_output_size_bf_softmax = asr_decoder.output_size_bf_softmax()
 
-        # 8. MT extra decoder
-        if getattr(args, "extra_mt_decoder", None) is not None:
-            extra_mt_decoder_class = extra_mt_decoder_choices.get_class(
-                args.extra_mt_decoder
-            )
-            extra_mt_decoder = extra_mt_decoder_class(
-                vocab_size=vocab_size,
-                encoder_output_size=encoder_output_size,
-                **args.extra_mt_decoder_conf,
-            )
-        else:
-            extra_asr_decoder = None
+            # 8. Encoder MT
+            encoder_mt_class = encoder_mt_choices.get_class(args.encoder_mt)
+            encoder_mt = encoder_mt_class(input_size=asr_decoder_output_size_bf_softmax, **args.encoder_mt_conf)
 
-        # 8. Build model
-        model = ESPnetSTModel(
-            vocab_size=vocab_size,
-            src_vocab_size=src_vocab_size,
-            frontend=frontend,
-            specaug=specaug,
-            normalize=normalize,
-            preencoder=preencoder,
-            encoder=encoder,
-            postencoder=postencoder,
-            decoder=decoder,
-            ctc=ctc,
-            extra_asr_decoder=extra_asr_decoder,
-            extra_mt_decoder=extra_mt_decoder,
-            token_list=token_list,
-            src_token_list=src_token_list,
-            **args.model_conf,
-        )
+            use_hier_ctc = getattr(args, "use_hier_ctc", False)
+            use_ctc_samp = getattr(args, "use_ctc_samp", False)
+            if use_hier_ctc and use_ctc_samp:
+                encoder_hier_class = encoder_choices.get_class(args.encoder_hier)
+                encoder_hier = encoder_hier_class(input_size=encoder_output_size, **args.encoder_hier_conf)
+
+                mt_ctc = CTC(
+                    odim=vocab_size,
+                    encoder_output_size=encoder_output_size,
+                    **args.ctc_conf,
+                )
+
+                # 8. Build model
+                model = ESPnetSTMDHierSampModel(
+                    vocab_size=vocab_size,
+                    src_vocab_size=src_vocab_size,
+                    frontend=frontend,
+                    specaug=specaug,
+                    normalize=normalize,
+                    preencoder=preencoder,
+                    encoder=encoder,
+                    encoder_hier=encoder_hier,
+                    postencoder=postencoder,
+                    decoder=decoder,
+                    ctc=ctc,
+                    mt_ctc=mt_ctc,
+                    asr_decoder=asr_decoder,
+                    encoder_mt=encoder_mt,
+                    token_list=token_list,
+                    src_token_list=src_token_list,
+                    speech_attn = speech_attn,
+                    **args.model_conf,
+                )
+            elif use_hier_ctc:
+                encoder_hier_class = encoder_choices.get_class(args.encoder_hier)
+                encoder_hier = encoder_hier_class(input_size=encoder_output_size, **args.encoder_hier_conf)
+
+                mt_ctc = CTC(
+                    odim=vocab_size,
+                    encoder_output_size=encoder_output_size,
+                    **args.ctc_conf,
+                )
+
+                # 8. Build model
+                model = ESPnetSTMDHierModel(
+                    vocab_size=vocab_size,
+                    src_vocab_size=src_vocab_size,
+                    frontend=frontend,
+                    specaug=specaug,
+                    normalize=normalize,
+                    preencoder=preencoder,
+                    encoder=encoder,
+                    encoder_hier=encoder_hier,
+                    postencoder=postencoder,
+                    decoder=decoder,
+                    ctc=ctc,
+                    mt_ctc=mt_ctc,
+                    asr_decoder=asr_decoder,
+                    encoder_mt=encoder_mt,
+                    token_list=token_list,
+                    src_token_list=src_token_list,
+                    speech_attn = speech_attn,
+                    **args.model_conf,
+                )
+            elif use_ctc_samp:
+                # 8. Build model
+                model = ESPnetSTMDSampModel(
+                    vocab_size=vocab_size,
+                    src_vocab_size=src_vocab_size,
+                    frontend=frontend,
+                    specaug=specaug,
+                    normalize=normalize,
+                    preencoder=preencoder,
+                    encoder=encoder,
+                    postencoder=postencoder,
+                    decoder=decoder,
+                    ctc=ctc,
+                    asr_decoder=asr_decoder,
+                    encoder_mt=encoder_mt,
+                    token_list=token_list,
+                    src_token_list=src_token_list,
+                    speech_attn = speech_attn,
+                    **args.model_conf,
+                )
+            else:
+                # 8. Build model
+                model = ESPnetSTMDModel(
+                    vocab_size=vocab_size,
+                    src_vocab_size=src_vocab_size,
+                    frontend=frontend,
+                    specaug=specaug,
+                    normalize=normalize,
+                    preencoder=preencoder,
+                    encoder=encoder,
+                    postencoder=postencoder,
+                    decoder=decoder,
+                    ctc=ctc,
+                    asr_decoder=asr_decoder,
+                    encoder_mt=encoder_mt,
+                    token_list=token_list,
+                    src_token_list=src_token_list,
+                    speech_attn = speech_attn,
+                    **args.model_conf,
+                )
+
+        else:
+            # 7. ASR extra decoder
+            if (
+                getattr(args, "extra_asr_decoder", None) is not None
+                and src_token_list is not None
+            ):
+                extra_asr_decoder_class = extra_asr_decoder_choices.get_class(
+                    args.extra_asr_decoder
+                )
+                extra_asr_decoder = extra_asr_decoder_class(
+                    vocab_size=src_vocab_size,
+                    encoder_output_size=encoder_output_size,
+                    **args.extra_asr_decoder_conf,
+                )
+            else:
+                extra_asr_decoder = None
+
+            # 8. MT extra decoder
+            if getattr(args, "extra_mt_decoder", None) is not None:
+                extra_mt_decoder_class = extra_mt_decoder_choices.get_class(
+                    args.extra_mt_decoder
+                )
+                extra_mt_decoder = extra_mt_decoder_class(
+                    vocab_size=vocab_size,
+                    encoder_output_size=encoder_output_size,
+                    **args.extra_mt_decoder_conf,
+                )
+            else:
+                extra_asr_decoder = None
+
+            use_hier_ctc = getattr(args, "use_hier_ctc", False)
+            use_v2 = getattr(args, "use_v2", False)
+            if use_hier_ctc:
+                use_ml = getattr(args, "use_ml", False)
+                if use_ml:
+                    num_langs = getattr(args, "num_langs")
+                    encoder_hier_class = encoder_choices.get_class(args.encoder_hier)
+                    encoder_hier = {str(i+3): encoder_hier_class(input_size=encoder_output_size, **args.encoder_hier_conf)\
+                            for i in range(num_langs)}
+                    
+                    mt_ctc = CTC(
+                        odim=vocab_size,
+                        encoder_output_size=encoder_output_size,
+                        **args.ctc_conf,
+                    )
+
+                    # 8. Build model
+                    model = ESPnetSTHierMlModel(
+                        vocab_size=vocab_size,
+                        src_vocab_size=src_vocab_size,
+                        frontend=frontend,
+                        specaug=specaug,
+                        normalize=normalize,
+                        preencoder=preencoder,
+                        encoder=encoder,
+                        encoder_hier=encoder_hier,
+                        postencoder=postencoder,
+                        decoder=decoder,
+                        ctc=ctc,
+                        mt_ctc=mt_ctc,
+                        extra_asr_decoder=extra_asr_decoder,
+                        extra_mt_decoder=extra_mt_decoder,
+                        token_list=token_list,
+                        src_token_list=src_token_list,
+                        speech_attn=speech_attn,
+                        **args.model_conf,
+                    )
+                elif use_v2:
+                    mt_ctc = CTC(
+                        odim=vocab_size,
+                        encoder_output_size=encoder_output_size,
+                        **args.ctc_conf,
+                    )
+                    # 8. Build model
+                    model = ESPnetSTHierModelv2(
+                        vocab_size=vocab_size,
+                        src_vocab_size=src_vocab_size,
+                        frontend=frontend,
+                        specaug=specaug,
+                        normalize=normalize,
+                        preencoder=preencoder,
+                        encoder=encoder,
+                        postencoder=postencoder,
+                        decoder=decoder,
+                        ctc=ctc,
+                        mt_ctc=mt_ctc,
+                        extra_asr_decoder=extra_asr_decoder,
+                        extra_mt_decoder=extra_mt_decoder,
+                        token_list=token_list,
+                        src_token_list=src_token_list,
+                        **args.model_conf,
+                    )
+                else:
+                    n_hier = getattr(args, "n_hier", 1)
+                    encoder_hier_class = encoder_choices.get_class(args.encoder_hier)
+                    if n_hier > 1:
+                        encoder_hier = {str(i):encoder_hier_class(input_size=encoder_output_size, **args.encoder_hier_conf)\
+                                        for i in range(n_hier)}
+                    else:
+                        encoder_hier = encoder_hier_class(input_size=encoder_output_size, **args.encoder_hier_conf)
+
+                    mt_ctc = CTC(
+                        odim=vocab_size,
+                        encoder_output_size=encoder_output_size,
+                        **args.ctc_conf,
+                    )
+
+                    reverse_sa = getattr(args, "reverse_sa", False)
+                    
+
+                    # 8. Build model
+                    model = ESPnetSTHierModel(
+                        vocab_size=vocab_size,
+                        src_vocab_size=src_vocab_size,
+                        frontend=frontend,
+                        specaug=specaug,
+                        normalize=normalize,
+                        preencoder=preencoder,
+                        encoder=encoder,
+                        encoder_hier=encoder_hier,
+                        postencoder=postencoder,
+                        decoder=decoder,
+                        ctc=ctc,
+                        mt_ctc=mt_ctc,
+                        reverse_sa=reverse_sa,
+                        n_hier=n_hier,
+                        extra_asr_decoder=extra_asr_decoder,
+                        extra_mt_decoder=extra_mt_decoder,
+                        token_list=token_list,
+                        src_token_list=src_token_list,
+                        speech_attn=speech_attn,
+                        **args.model_conf,
+                    )
+            else:
+                # 8. Build model
+                model = ESPnetSTModel(
+                    vocab_size=vocab_size,
+                    src_vocab_size=src_vocab_size,
+                    frontend=frontend,
+                    specaug=specaug,
+                    normalize=normalize,
+                    preencoder=preencoder,
+                    encoder=encoder,
+                    postencoder=postencoder,
+                    decoder=decoder,
+                    ctc=ctc,
+                    extra_asr_decoder=extra_asr_decoder,
+                    extra_mt_decoder=extra_mt_decoder,
+                    token_list=token_list,
+                    src_token_list=src_token_list,
+                    **args.model_conf,
+                )
 
         # FIXME(kamo): Should be done in model?
         # 9. Initialize

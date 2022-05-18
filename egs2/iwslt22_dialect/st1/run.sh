@@ -12,7 +12,7 @@ train_set=train
 train_dev=dev
 test_set=test1
 
-st_config=conf/train_st_conformer.yaml
+st_config=conf/md_conformer_try1.yaml
 inference_config=conf/decode_st.yaml
 
 src_nbpe=1000
@@ -26,14 +26,14 @@ src_case=tc.rm
 tgt_case=tc
 
 ./st.sh \
-    --ignore_init_mismatch true \
     --stage 1 \
     --stop_stage 13 \
     --use_lm false \
+    --use_asrlm false \
     --token_joint false \
     --audio_format "flac.ark" \
-    --nj 40 \
-    --inference_nj 40 \
+    --nj 15 \
+    --inference_nj 15 \
     --audio_format "flac.ark" \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \

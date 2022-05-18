@@ -21,6 +21,7 @@ from espnet.nets.beam_search import Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.enh_s2t import EnhS2TTask
@@ -34,6 +35,7 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
+from espnet2.bin.st_md_inference import inference_md
 
 
 class Speech2Text:
@@ -68,6 +70,7 @@ class Speech2Text:
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
         nbest: int = 1,
+        st_ctc_weight: float = 0.0,
         enh_s2t_task: bool = False,
     ):
         assert check_argument_types()
@@ -121,10 +124,16 @@ class Speech2Text:
             ngram = None
         scorers["ngram"] = ngram
 
+        if st_ctc_weight > 0:
+            assert hasattr(st_model, "encoder_hier") or hasattr(st_model, "encoder_hier3") or hasattr(st_model, "encoder_hier0")
+            st_ctc = CTCPrefixScorer(ctc=st_model.mt_ctc, eos=st_model.eos)
+            scorers.update(ctc=st_ctc)
+
         # 4. Build BeamSearch object
         weights = dict(
-            decoder=1.0,
+            decoder=1.0-st_ctc_weight,
             lm=lm_weight,
+            ctc=st_ctc_weight,
             ngram=ngram_weight,
             length_bonus=penalty,
         )
@@ -136,7 +145,7 @@ class Speech2Text:
             eos=st_model.eos,
             vocab_size=len(token_list),
             token_list=token_list,
-            pre_beam_score_key="full",
+            pre_beam_score_key=None if st_ctc_weight == 1.0 else "full",
         )
         # TODO(karita): make all scorers batchfied
         if batch_size == 1:
@@ -217,13 +226,55 @@ class Speech2Text:
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
-        enc, _ = self.st_model.encode(**batch)
+        enc, enc_lens = self.st_model.encode(**batch)
         assert len(enc) == 1, len(enc)
 
-        # c. Passed the encoder result and the beam search
-        nbest_hyps = self.beam_search(
-            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
-        )
+        # hier enc
+        if hasattr(self.st_model, "encoder_hier") or hasattr(self.st_model, "encoder_hier0"):
+            if hasattr(self.st_model, "n_hier") and self.st_model.n_hier > 1:
+                x = enc
+                x_lens = enc_lens
+                for i in range(self.st_model.n_hier):
+                    new_x, new_x_lens, _ = getattr(self.st_model, "encoder_hier"+str(i))(x, x_lens)
+                    x = new_x
+                    x_lens = new_x_lens
+                enc_hier = x
+            else:
+                enc_hier, _, _ = self.st_model.encoder_hier(enc, enc_lens)
+
+            # speech attn
+            if hasattr(self.st_model, "speech_attn") and self.st_model.speech_attn == True:
+                reverse_sa = getattr(self.st_model, "reverse_sa", False)
+                if reverse_sa:
+                    # c. Passed the encoder result and the beam search
+                    nbest_hyps = self.beam_search(
+                        x=enc_hier[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x=enc[0]
+                    )
+                else:
+                    # c. Passed the encoder result and the beam search
+                    nbest_hyps = self.beam_search(
+                        x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x=enc_hier[0]
+                    )
+            else:
+                # c. Passed the encoder result and the beam search
+                nbest_hyps = self.beam_search(
+                    x=enc_hier[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+                )
+        # hacky way to check if it is hier ml
+        elif hasattr(self.st_model, "encoder_hier3"):
+            # check LID
+            cat = str(self.st_model.ctc.argmax(enc)[0][0].item())
+            enc_hier, _, _ = getattr(self.st_model, "encoder_hier"+cat)(enc, enc_lens)
+
+            # c. Passed the encoder result and the beam search
+            nbest_hyps = self.beam_search(
+                x=enc_hier[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            )
+        else:
+            # c. Passed the encoder result and the beam search
+            nbest_hyps = self.beam_search(
+                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            )
         nbest_hyps = nbest_hyps[: self.nbest]
 
         results = []
@@ -292,6 +343,7 @@ def inference(
     penalty: float,
     nbest: int,
     num_workers: int,
+    st_ctc_weight: float,
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
@@ -307,6 +359,7 @@ def inference(
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
     enh_s2t_task: bool,
+    **kwargs
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -347,6 +400,7 @@ def inference(
         ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
+        st_ctc_weight=st_ctc_weight,
         enh_s2t_task=enh_s2t_task,
     )
     speech2text = Speech2Text.from_pretrained(
@@ -449,6 +503,12 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
+        "--use_multidecoder",
+        type=str2bool,
+        default=False,
+        help="Use multidecoder model",
+    )
+    group.add_argument(
         "--st_train_config",
         type=str,
         help="ST training configuration",
@@ -457,6 +517,48 @@ def get_parser():
         "--st_model_file",
         type=str,
         help="ST model parameter file",
+    )
+    group.add_argument(
+        "--ext_st_train_config",
+        type=str,
+        action='append',
+        help="External ST training configuration",
+    )
+    group.add_argument(
+        "--ext_st_file",
+        type=str,
+        action='append',
+        help="External ST parameter file",
+    )
+    group.add_argument(
+        "--mt_train_config",
+        type=str,
+        help="MT training configuration",
+    )
+    group.add_argument(
+        "--mt_file",
+        type=str,
+        help="MT parameter file",
+    )
+    group.add_argument(
+        "--md_asr_train_config",
+        type=str,
+        help="MD ASR training configuration",
+    )
+    group.add_argument(
+        "--md_asr_file",
+        type=str,
+        help="MD ASR parameter file",
+    )
+    group.add_argument(
+        "--md_lm_train_config",
+        type=str,
+        help="MD LM training configuration",
+    )
+    group.add_argument(
+        "--md_lm_file",
+        type=str,
+        help="MD LM parameter file",
     )
     group.add_argument(
         "--lm_train_config",
@@ -526,6 +628,35 @@ def get_parser():
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
 
+    group = parser.add_argument_group("MD Intermediate-search related")
+    group.add_argument("--md_nbest", type=int, default=1, help="Output N-best hypotheses")
+    group.add_argument("--md_beam_size", type=int, default=20, help="Beam size")
+    group.add_argument("--md_penalty", type=float, default=0.0, help="Insertion penalty")
+    group.add_argument(
+        "--md_maxlenratio",
+        type=float,
+        default=0.0,
+        help="Input length ratio to obtain max output length. "
+        "If maxlenratio=0.0 (default), it uses a end-detect "
+        "function "
+        "to automatically find maximum hypothesis lengths."
+        "If maxlenratio<0.0, its absolute value is interpreted"
+        "as a constant max output length",
+    )
+    group.add_argument(
+        "--md_minlenratio",
+        type=float,
+        default=0.0,
+        help="Input length ratio to obtain min output length",
+    )
+    group.add_argument("--md_ctc_weight", type=float, default=0.5, help="CTC weight in joint decoding")
+    group.add_argument("--st_ctc_weight", type=float, default=0.0, help="CTC weight in joint decoding")
+    group.add_argument("--md_lm_weight", type=float, default=0.0, help="RNNLM weight")
+    group.add_argument("--md_asr_weight", type=float, default=0.0, help="MD ASR weight")
+    group.add_argument("--mt_weight", type=float, default=0.0, help="MT weight")
+    group.add_argument("--ext_st_weight", type=float, default=0.0, help="EXT ST weight")
+    group.add_argument("--md_ext_st_weight", type=float, default=0.0, help="EXT ST weight")
+
     group = parser.add_argument_group("Text converter related")
     group.add_argument(
         "--token_type",
@@ -552,7 +683,12 @@ def main(cmd=None):
     args = parser.parse_args(cmd)
     kwargs = vars(args)
     kwargs.pop("config", None)
-    inference(**kwargs)
+    if kwargs['use_multidecoder']:
+        kwargs.pop("use_multidecoder", None)
+        inference_md(**kwargs)
+    else:
+        kwargs.pop("use_multidecoder", None)
+        inference(**kwargs)
 
 
 if __name__ == "__main__":

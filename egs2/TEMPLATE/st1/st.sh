@@ -79,8 +79,17 @@ ngram_num=3
 
 # Language model related
 use_lm=true       # Use language model for ST decoding.
+use_asrlm=true       # Use language model for ST decoding.
+use_asr=true       # Use language model for ST decoding.
+use_mt=true       # Use language model for ST decoding.
+use_ext_st=true       # Use language model for ST decoding.
+use_asr_inference_text=true       # Use language model for ST decoding.
 lm_tag=           # Suffix to the result dir for language model training.
 lm_exp=           # Specify the directory path for LM experiment.
+asrlm_exp=           # Specify the directory path for LM experiment.
+asr_exp=           # Specify the directory path for LM experiment.
+mt_exp=           # Specify the directory path for LM experiment.
+ext_st_exp=           # Specify the directory path for LM experiment.
                   # If this option is specified, lm_tag is ignored.
 lm_stats_dir=     # Specify the directory path for LM statistics.
 lm_config=        # Config for language model training.
@@ -100,11 +109,13 @@ st_config=     # Config for st model training.
 st_args=       # Arguments for st model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in st config.
 pretrained_asr=               # Pretrained model to load
-ignore_init_mismatch=false      # Ignore initial mismatch
 feats_normalize=global_mvn # Normalizaton layer type.
 num_splits_st=1            # Number of splitting for lm corpus.
 src_lang=es                # source language abbrev. id (e.g., es)
 tgt_lang=en                # target language abbrev. id (e.g., en)
+use_multidecoder=false
+use_hier_ctc=false
+use_ctc_samp=false
 
 # Upload model related
 hf_repo=
@@ -118,8 +129,13 @@ inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                   # Note that it will overwrite args in inference config.
 inference_lm=valid.loss.ave.pth       # Language model path for decoding.
+inference_asrlm=valid.loss.ave.pth       # Language model path for decoding.
 inference_ngram=${ngram_num}gram.bin
+inference_asr=valid.acc.ave.pth       # Language model path for decoding.
+inference_mt=valid.acc.ave.pth       # Language model path for decoding.
+inference_ext_st=valid.acc.ave.pth       # Language model path for decoding.
 inference_st_model=valid.acc.ave.pth # ST model path for decoding.
+asr_inference_text=                  # Use language model for ST decoding.
                                       # e.g.
                                       # inference_st_model=train.loss.best.pth
                                       # inference_st_model=3epoch.pth
@@ -221,7 +237,6 @@ Options:
                        # e.g., --st_args "--max_epoch 10"
                        # Note that it will overwrite args in st config.
     --pretrained_asr=          # Pretrained model to load (default="${pretrained_asr}").
-    --ignore_init_mismatch=      # Ignore mismatch parameter init with pretrained model (default="${ignore_init_mismatch}").
     --feats_normalize  # Normalizaton layer type. (default="${feats_normalize}").
     --num_splits_st    # Number of splitting for lm corpus.  (default="${num_splits_st}").
     --src_lang=        # source language abbrev. id (e.g., es). (default="${src_lang}")
@@ -272,7 +287,6 @@ fi
 
 . ./path.sh
 . ./cmd.sh
-
 
 # Check required arguments
 [ -z "${train_set}" ] && { log "${help_message}"; log "Error: --train_set is required"; exit 2; };
@@ -471,6 +485,19 @@ if [ -z "${inference_tag}" ]; then
     if "${use_lm}"; then
         inference_tag+="_lm_$(basename "${lm_exp}")_$(echo "${inference_lm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
+    if "${use_asrlm}"; then
+        inference_tag+="_asrlm_$(basename "${asrlm_exp}")_$(echo "${inference_asrlm}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    fi
+    if "${use_asr}"; then
+        inference_tag+="_asr_$(basename "${asr_exp}")_$(echo "${inference_asr}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    fi
+    if "${use_mt}"; then
+        inference_tag+="_mt_$(basename "${mt_exp}")_$(echo "${inference_mt}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+    fi
+    if "${use_ext_st}"; then
+        #inference_tag+="_ext_st_$(basename "${ext_st_exp}")_$(echo "${inference_ext_st}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+        inference_tag+="_with_ext_st"
+    fi
     if "${use_ngram}"; then
         inference_tag+="_ngram_$(basename "${ngram_exp}")_$(echo "${inference_ngram}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
@@ -505,9 +532,9 @@ if ! "${skip_data_prep}"; then
             done
             utils/combine_data.sh --extra_files "${utt_extra_files}" "data/${train_set}_sp" ${_dirs}
             for extra_file in ${utt_extra_files}; do
-                python pyscripts/utils/remove_duplicate_keys.py data/"${train_set}_sp"/${extra_file} > data/"${train_set}_sp"/${extra_file}.tmp 
+                python pyscripts/utils/remove_duplicate_keys.py data/"${train_set}_sp"/${extra_file} > data/"${train_set}_sp"/${extra_file}.tmp
                 mv data/"${train_set}_sp"/${extra_file}.tmp data/"${train_set}_sp"/${extra_file}
-            done 
+            done
         else
            log "Skip stage 2: Speed perturbation"
         fi
@@ -544,7 +571,7 @@ if ! "${skip_data_prep}"; then
                     for single_file in $(ls data/"${dset}"/${extra_file}*); do
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
-                    done 
+                    done
                 done
                 echo "${expand_utt_extra_files}"
                 utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}" "${data_feats}${_suf}/${dset}"
@@ -589,7 +616,7 @@ if ! "${skip_data_prep}"; then
                     for single_file in $(ls data/"${dset}"/${extra_file}*); do
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
-                    done 
+                    done
                 done
                 for extra_file in ${expand_utt_extra_files}; do
                     LC_ALL=C sort -u -k1,1 "${data_feats}${_suf}/${dset}/${extra_file}" -o "${data_feats}${_suf}/${dset}/${extra_file}"
@@ -638,7 +665,7 @@ if ! "${skip_data_prep}"; then
                     for single_file in $(ls data/"${dset}"/${extra_file}*); do
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
-                    done 
+                    done
                 done
                 utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}*" "${data_feats}${_suf}/${dset}"
                 for extra_file in ${expand_utt_extra_files}; do
@@ -724,9 +751,9 @@ if ! "${skip_data_prep}"; then
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
             for utt_extra_file in ${utt_extra_files}; do
                 python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
-                    > ${data_feats}/${dset}/${utt_extra_file}.tmp 
+                    > ${data_feats}/${dset}/${utt_extra_file}.tmp
                 mv ${data_feats}/${dset}/${utt_extra_file}.tmp ${data_feats}/${dset}/${utt_extra_file}
-            done 
+            done
         done
 
         # shellcheck disable=SC2002
@@ -931,7 +958,7 @@ if ! "${skip_train}"; then
             log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
             # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
             #       but it's used only for deciding the sample ids.
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
                 ${python} -m espnet2.bin.lm_train \
                     --collect_stats true \
@@ -947,7 +974,7 @@ if ! "${skip_train}"; then
                     --train_shape_file "${_logdir}/train.JOB.scp" \
                     --valid_shape_file "${_logdir}/dev.JOB.scp" \
                     --output_dir "${_logdir}/stats.JOB" \
-                    ${_opts} ${lm_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                    ${_opts} ${lm_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
             # 4. Aggregate shape files
             _opts=
@@ -1075,7 +1102,7 @@ if ! "${skip_train}"; then
         if "${use_ngram}"; then
             log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
             cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
-            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
+            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin
         else
             log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
         fi
@@ -1295,6 +1322,9 @@ if ! "${skip_train}"; then
             --multiprocessing_distributed true -- \
             ${python} -m espnet2.bin.st_train \
                 --use_preprocessor true \
+                --use_multidecoder ${use_multidecoder} \
+                --use_hier_ctc ${use_hier_ctc} \
+                --use_ctc_samp ${use_ctc_samp} \
                 --bpemodel "${tgt_bpemodel}" \
                 --token_type "${tgt_token_type}" \
                 --token_list "${tgt_token_list}" \
@@ -1311,8 +1341,6 @@ if ! "${skip_train}"; then
                 --valid_shape_file "${st_stats_dir}/valid/text_shape.${tgt_token_type}" \
                 --valid_shape_file "${st_stats_dir}/valid/src_text_shape.${src_token_type}" \
                 --resume true \
-                --init_param ${pretrained_asr} \
-                --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${_fold_length}" \
                 --fold_length "${st_text_fold_length}" \
                 --fold_length "${st_text_fold_length}" \
@@ -1382,8 +1410,31 @@ if ! "${skip_eval}"; then
                 _opts+="--lm_file ${lm_exp}/${inference_lm} "
             fi
         fi
+        if "${use_asrlm}"; then
+            _opts+="--md_lm_train_config ${asrlm_exp}/config.yaml "
+            _opts+="--md_lm_file ${asrlm_exp}/${inference_asrlm} "
+        fi
+        if "${use_asr}"; then
+            _opts+="--md_asr_train_config ${asr_exp}/config.yaml "
+            _opts+="--md_asr_file ${asr_exp}/${inference_asr} "
+        fi
+        if "${use_mt}"; then
+            _opts+="--mt_train_config ${mt_exp}/config.yaml "
+            _opts+="--mt_file ${mt_exp}/${inference_mt} "
+        fi
+        if "${use_ext_st}"; then
+            for i in ${ext_st_exp//,/ }
+            do
+                _opts+="--ext_st_train_config ${i}/config.yaml "
+                _opts+="--ext_st_file ${i}/${inference_ext_st} "
+            done
+        fi
         if "${use_ngram}"; then
              _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"
+        fi
+        
+        if "${use_asr_inference_text}"; then
+            _opts+="--data_path_and_name_and_type ${asr_inference_text},src_text,text " 
         fi
 
         # 2. Generate run.sh
@@ -1427,17 +1478,18 @@ if ! "${skip_eval}"; then
 
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/st_inference.*.log'"
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/st_inference.JOB.log \
                 ${python} -m ${st_inference_tool} \
                     --batch_size ${batch_size} \
+                    --use_multidecoder ${use_multidecoder} \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --st_train_config "${st_exp}"/config.yaml \
                     --st_model_file "${st_exp}"/"${inference_st_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args}
+                    ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/st_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
             for f in token token_int score text; do
@@ -1445,6 +1497,12 @@ if ! "${skip_eval}"; then
                     cat "${_logdir}/output.${i}/1best_recog/${f}"
                 done | LC_ALL=C sort -k1 >"${_dir}/${f}"
             done
+
+            if [ -f "${_logdir}/output.1/1best_recog/src_text" ]; then
+                for i in $(seq "${_nj}"); do
+                    cat "${_logdir}/output.${i}/1best_recog/src_text"
+                done | LC_ALL=C sort -k1 >"${_dir}/src_text"
+            fi
         done
     fi
 
@@ -1473,6 +1531,40 @@ if ! "${skip_eval}"; then
                     >"${_scoredir}/ref.trn.org"
 
             # NOTE(kamo): Don't use cleaner for hyp
+            if [ -f ${_dir}/src_text ]; then
+                paste \
+                    <(<"${_dir}/src_text"  \
+                            ${python} -m espnet2.bin.tokenize_text  \
+                                -f 2- --input - --output - \
+                                --token_type word \
+                                --non_linguistic_symbols "${nlsyms_txt}" \
+                                --remove_non_linguistic_symbols true \
+                                ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/hyp_asr.trn"
+
+                paste \
+                    <(<"${_data}/text.${src_case}.${src_lang}" \
+                          ${python} -m espnet2.bin.tokenize_text  \
+                              -f 2- --input - --output - \
+                              --token_type word \
+                              --non_linguistic_symbols "${nlsyms_txt}" \
+                              --remove_non_linguistic_symbols true \
+                              --cleaner "${cleaner}" \
+                              ) \
+                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+                        >"${_scoredir}/ref_asr.trn"
+
+                sclite \
+                ${score_opts} \
+                        -r "${_scoredir}/ref_asr.trn" trn \
+                        -h "${_scoredir}/hyp_asr.trn" trn \
+                        -i rm -o all stdout > "${_scoredir}/result_asr.txt"
+
+                log "Write WER result in ${_scoredir}/result_asr.txt"
+                grep -e Avg -e SPKR -m 2 "${_scoredir}/result_asr.txt"
+            fi
+
             paste \
                 <(<"${_dir}/text"  \
                         ${python} -m espnet2.bin.tokenize_text  \
@@ -1483,7 +1575,7 @@ if ! "${skip_eval}"; then
                             ) \
                 <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                     >"${_scoredir}/hyp.trn.org"
-            
+
             # remove utterance id
             perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
             perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
@@ -1498,7 +1590,7 @@ if ! "${skip_eval}"; then
                           -i "${_scoredir}/hyp.trn.detok" \
                           -m bleu chrf ter \
                           >> ${_scoredir}/result.tc.txt
-                
+
                 log "Write a case-sensitive BLEU (single-reference) result in ${_scoredir}/result.tc.txt"
             fi
 
@@ -1530,8 +1622,8 @@ if ! "${skip_eval}"; then
                                 ) \
                         <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                             >"${_scoredir}/ref.trn.org.${ref_idx}"
-                    
-                    # 
+
+                    #
                     perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
                     detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
                     remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
@@ -1667,11 +1759,11 @@ if ! "${skip_upload_hf}"; then
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \
             log "ERROR: You need to install git-lfs first" && \
-            exit 1             
-  
+            exit 1
+
         dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
         [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
-  
+
         if command -v git &> /dev/null; then
             _creator_name="$(git config user.name)"
             _checkout="git checkout $(git show -s --format=%H)"
@@ -1684,13 +1776,13 @@ if ! "${skip_upload_hf}"; then
         # foo/asr1 -> foo
         _corpus="${_task%/*}"
         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-  
+
         # copy files in ${dir_repo}
         unzip -o ${packed_model} -d ${dir_repo}
         # Generate description file
         # shellcheck disable=SC2034
         hf_task=speech-translation
-        # shellcheck disable=SC2034     
+        # shellcheck disable=SC2034
         espnet_task=ST
         # shellcheck disable=SC2034
         task_exp=${st_exp}

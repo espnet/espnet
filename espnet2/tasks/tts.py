@@ -19,6 +19,7 @@ import torch
 from typeguard import check_argument_types
 from typeguard import check_return_type
 
+from espnet2.gan_tts.jets import JETS
 from espnet2.gan_tts.joint import JointText2Wav
 from espnet2.gan_tts.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -104,6 +105,7 @@ tts_choices = ClassChoices(
         # NOTE(kan-bayashi): available only for inference
         vits=VITS,
         joint_text2wav=JointText2Wav,
+        jets=JETS,
     ),
     type_check=AbsTTS,
     default="tacotron2",
@@ -260,10 +262,25 @@ class TTSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("spembs", "durations", "pitch", "energy", "sids", "lids")
+            retval = (
+                "spembs",
+                "durations",
+                "pitch",
+                "energy",
+                "sids",
+                "lids",
+            )
         else:
             # Inference mode
-            retval = ("spembs", "speech", "durations", "sids", "lids")
+            retval = (
+                "spembs",
+                "speech",
+                "durations",
+                "pitch",
+                "energy",
+                "sids",
+                "lids",
+            )
         return retval
 
     @classmethod

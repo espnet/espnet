@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from distutils.version import LooseVersion
+from packaging.version import parse as V
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -18,7 +18,7 @@ from espnet2.enh.layers.complexnn import ComplexConvTranspose2d
 from espnet2.enh.layers.complexnn import NavieComplexLSTM
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 EPS = torch.finfo(torch.double).eps
 
 

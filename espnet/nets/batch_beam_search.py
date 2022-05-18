@@ -22,6 +22,7 @@ class BatchHypothesis(NamedTuple):
     length: torch.Tensor = torch.tensor([])  # (batch,)
     scores: Dict[str, torch.Tensor] = dict()  # values: (batch,)
     states: Dict[str, Dict] = dict()
+    hs: List[torch.Tensor] =  []  # (batch, maxlen, adim)
 
     def __len__(self) -> int:
         """Return a batch size."""
@@ -35,6 +36,12 @@ class BatchBeamSearch(BeamSearch):
         """Convert list to batch."""
         if len(hyps) == 0:
             return BatchHypothesis()
+
+        if self.return_hidden:
+            hs = [h.hs for h in hyps]
+        else:
+            hs = []
+
         return BatchHypothesis(
             yseq=pad_sequence(
                 [h.yseq for h in hyps], batch_first=True, padding_value=self.eos
@@ -43,9 +50,15 @@ class BatchBeamSearch(BeamSearch):
             score=torch.tensor([h.score for h in hyps]),
             scores={k: torch.tensor([h.scores[k] for h in hyps]) for k in self.scorers},
             states={k: [h.states[k] for h in hyps] for k in self.scorers},
+            hs = hs
         )
 
     def _batch_select(self, hyps: BatchHypothesis, ids: List[int]) -> BatchHypothesis:
+
+        if self.return_hidden:
+            hs=[hyps.hs[i] for i in ids]
+        else:
+            hs = []
         return BatchHypothesis(
             yseq=hyps.yseq[ids],
             score=hyps.score[ids],
@@ -55,6 +68,7 @@ class BatchBeamSearch(BeamSearch):
                 k: [self.scorers[k].select_state(v, i) for i in ids]
                 for k, v in hyps.states.items()
             },
+            hs=hs
         )
 
     def _select(self, hyps: BatchHypothesis, i: int) -> Hypothesis:
@@ -65,6 +79,7 @@ class BatchBeamSearch(BeamSearch):
             states={
                 k: self.scorers[k].select_state(v, i) for k, v in hyps.states.items()
             },
+            hs=hyps.hs[i] if self.return_hidden else [],
         )
 
     def unbatchfy(self, batch_hyps: BatchHypothesis) -> List[Hypothesis]:
@@ -78,6 +93,7 @@ class BatchBeamSearch(BeamSearch):
                     k: v.select_state(batch_hyps.states[k], i)
                     for k, v in self.scorers.items()
                 },
+                hs=batch_hyps.hs[i] if self.return_hidden else [],
             )
             for i in range(len(batch_hyps.length))
         ]
@@ -130,12 +146,13 @@ class BatchBeamSearch(BeamSearch):
                     scores=init_scores,
                     states=init_states,
                     yseq=torch.tensor([self.sos], device=x.device),
+                    hs=[]
                 )
             ]
         )
 
     def score_full(
-        self, hyp: BatchHypothesis, x: torch.Tensor
+            self, hyp: BatchHypothesis, x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None, ext_st_xs: List[torch.Tensor] = None, ext_md_xs: List[torch.Tensor] = None
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
@@ -154,7 +171,20 @@ class BatchBeamSearch(BeamSearch):
         scores = dict()
         states = dict()
         for k, d in self.full_scorers.items():
-            scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
+            if 'decoder' in k and self.return_hidden:
+                scores[k], hs, states[k] = d.batch_score(hyp.yseq, hyp.states[k], x, return_hidden=self.return_hidden)
+            elif 'decoder' in k and md_x is not None:
+                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], md_x, x)
+            elif 'asr' in k and md_asr_x is not None:
+                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], md_asr_x)
+            elif 'mt' in k and mt_x is not None:
+                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], mt_x)
+            elif 'ext_st' in k:
+                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], ext_md_xs, ext_st_xs)
+            else:
+                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
+        if self.return_hidden:
+            return hs, scores, states
         return scores, states
 
     def score_partial(
@@ -204,7 +234,7 @@ class BatchBeamSearch(BeamSearch):
             new_states[k] = v
         return new_states
 
-    def search(self, running_hyps: BatchHypothesis, x: torch.Tensor) -> BatchHypothesis:
+    def search(self, running_hyps: BatchHypothesis, x: torch.Tensor, md_x: torch.Tensor = None, md_asr_x: torch.Tensor = None, mt_x: torch.Tensor = None, ext_st_xs: List[torch.Tensor] = None, ext_md_xs: List[torch.Tensor] = None) -> BatchHypothesis:
         """Search new tokens for running hypotheses and encoded speech x.
 
         Args:
@@ -217,11 +247,32 @@ class BatchBeamSearch(BeamSearch):
         """
         n_batch = len(running_hyps)
         part_ids = None  # no pre-beam
+
+        if md_x is not None:
+            md_x=md_x.expand(n_batch, *md_x.shape)
+
+        if md_asr_x is not None:
+            md_asr_x=md_asr_x.expand(n_batch, *md_asr_x.shape)
+
+        if mt_x is not None:
+            mt_x=mt_x.expand(n_batch, *mt_x.shape)
+
+        if ext_st_xs is not None:
+            ext_st_xs = [ x.expand(n_batch, *x.shape) if x is not None else None for x in ext_st_xs ]
+
+
+        if ext_md_xs is not None:
+            ext_md_xs = [ x.expand(n_batch, *x.shape) if x is not None else None for x in ext_md_xs ]
+
         # batch scoring
         weighted_scores = torch.zeros(
             n_batch, self.n_vocab, dtype=x.dtype, device=x.device
         )
-        scores, states = self.score_full(running_hyps, x.expand(n_batch, *x.shape))
+        if self.return_hidden:
+            hs, scores, states = self.score_full(running_hyps, x.expand(n_batch, *x.shape), md_x=md_x, md_asr_x=md_asr_x, mt_x=mt_x, ext_st_xs=ext_st_xs, ext_md_xs=ext_md_xs)
+        else:
+            scores, states = self.score_full(running_hyps, x.expand(n_batch, *x.shape), md_x =md_x, md_asr_x = md_asr_x, mt_x=mt_x, ext_st_xs=ext_st_xs, ext_md_xs=ext_md_xs)
+
         for k in self.full_scorers:
             weighted_scores += self.weights[k] * scores[k]
         # partial scoring
@@ -255,6 +306,10 @@ class BatchBeamSearch(BeamSearch):
             part_new_token_id,
         ) in zip(*self.batch_beam(weighted_scores, part_ids)):
             prev_hyp = prev_hyps[full_prev_hyp_id]
+            if self.return_hidden:
+                new_hs= prev_hyp.hs + [hs[full_prev_hyp_id].squeeze(0)]
+            else:
+                new_hs = []
             best_hyps.append(
                 Hypothesis(
                     score=weighted_scores[full_prev_hyp_id, full_new_token_id],
@@ -279,8 +334,10 @@ class BatchBeamSearch(BeamSearch):
                         },
                         part_new_token_id,
                     ),
+                    hs=new_hs,
                 )
             )
+
         return self.batchfy(best_hyps)
 
     def post_process(

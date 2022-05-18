@@ -576,7 +576,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
         alpha=1.0,
     ):
         # forward encoder
-        x_masks = self._source_mask(ilens)
+        x_masks = self._source_mask(ilens).to(xs.device)
         hs, _ = self.encoder(xs, x_masks)  # (B, Tmax, adim)
 
         # integrate speaker embedding
@@ -603,7 +603,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                 olens_in = olens.new([olen // self.reduction_factor for olen in olens])
             else:
                 olens_in = olens
-            h_masks = self._source_mask(olens_in)
+            h_masks = self._source_mask(olens_in).to(xs.device)
         else:
             h_masks = None
         zs, _ = self.decoder(hs, h_masks)  # (B, Lmax, adim)
@@ -816,7 +816,7 @@ class FeedForwardTransformer(TTSInterface, torch.nn.Module):
                      [1, 1, 1, 0, 0]]], dtype=torch.uint8)
 
         """
-        x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
+        x_masks = make_non_pad_mask(ilens)
         return x_masks.unsqueeze(-2)
 
     def _load_teacher_model(self, model_path):
