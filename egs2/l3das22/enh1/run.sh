@@ -21,6 +21,6 @@ test_sets=test_multich
     --spk_num 1 \
     --enh_config conf/tuning/train_enh_beamformer_mvdr.yaml \
     --use_dereverb_ref false \
-    --use_noise_ref true \
+    --use_noise_ref false \
     --inference_model "valid.snr.best.pth" \
     "$@"
