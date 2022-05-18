@@ -97,7 +97,7 @@ class E2E(ASRInterface, torch.nn.Module):
             self.ctc = None
 
         self.intermediate_ctc_weight = args.intermediate_ctc_weight
-        self.intermediate_ctc_layers = []
+        self.intermediate_ctc_layers = None
         if args.intermediate_ctc_layer != "":
             self.intermediate_ctc_layers = [
                 int(i) for i in args.intermediate_ctc_layer.split(",")
@@ -295,7 +295,7 @@ class E2E(ASRInterface, torch.nn.Module):
         """
         self.eval()
         x = torch.as_tensor(x).unsqueeze(0)
-        enc_output, _, _ = self.encoder(x, None)
+        enc_output, *_ = self.encoder(x, None)
         return enc_output.squeeze(0)
 
     def recognize(self, x, recog_args, char_list=None, rnnlm=None, use_jit=False):
