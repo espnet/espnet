@@ -11,14 +11,13 @@ import fnmatch
 import multiprocessing as mp
 import os
 
-from fastdtw import fastdtw
 import numpy as np
 import pysptk
 import pyworld as pw
 import scipy
+from fastdtw import fastdtw
 from scipy.io import wavfile
-from scipy.signal import firwin
-from scipy.signal import lfilter
+from scipy.signal import firwin, lfilter
 
 
 def find_files(root_dir, query="*.wav", include_root_dir=True):

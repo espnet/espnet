@@ -1,10 +1,10 @@
 import logging
-from packaging.version import parse as V
 
 import numpy as np
 import six
 import torch
 import torch.nn.functional as F
+from packaging.version import parse as V
 
 from espnet.nets.pytorch_backend.nets_utils import to_device
 

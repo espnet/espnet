@@ -3,6 +3,7 @@
 """Initialize modules for espnet2 neural networks."""
 
 import math
+
 import torch
 from typeguard import check_argument_types
 

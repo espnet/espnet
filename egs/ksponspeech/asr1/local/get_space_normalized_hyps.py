@@ -4,11 +4,11 @@
 # Copyright 2020 Electronics and Telecommunications Research Institute (Jeong-Uk, Bang)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import configargparse
 import logging
 import os
 import sys
 
+import configargparse
 from numpy import zeros
 
 space_sym = "▁"

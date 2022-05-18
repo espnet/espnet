@@ -1,5 +1,4 @@
 import pytest
-
 import torch
 from torch import Tensor
 from torch_complex.tensor import ComplexTensor

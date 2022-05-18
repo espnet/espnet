@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 import argparse
-from bs4 import BeautifulSoup
 import sys
+
+from bs4 import BeautifulSoup
 
 
 def get_args():

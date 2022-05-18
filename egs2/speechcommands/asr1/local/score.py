@@ -2,9 +2,9 @@
 
 # Copyright 2021 Carnegie Mellon University (Yifan Peng)
 
+import argparse
 import os
 import os.path
-import argparse
 
 parser = argparse.ArgumentParser(description="Calculate classification accuracy.")
 parser.add_argument("--wer_dir", type=str, help="folder containing hyp.trn and ref.trn")

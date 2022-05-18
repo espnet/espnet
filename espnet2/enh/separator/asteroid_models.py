@@ -1,8 +1,6 @@
-from collections import OrderedDict
-from typing import Dict
-from typing import Optional
-from typing import Tuple
 import warnings
+from collections import OrderedDict
+from typing import Dict, Optional, Tuple
 
 import torch
 

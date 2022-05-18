@@ -5,8 +5,7 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.mlm_decoder import MLMDecoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
-from espnet2.asr.maskctc_model import MaskCTCInference
-from espnet2.asr.maskctc_model import MaskCTCModel
+from espnet2.asr.maskctc_model import MaskCTCInference, MaskCTCModel
 
 
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])

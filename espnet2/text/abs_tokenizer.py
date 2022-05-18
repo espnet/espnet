@@ -1,7 +1,5 @@
-from abc import ABC
-from abc import abstractmethod
-from typing import Iterable
-from typing import List
+from abc import ABC, abstractmethod
+from typing import Iterable, List
 
 
 class AbsTokenizer(ABC):

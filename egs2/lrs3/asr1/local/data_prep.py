@@ -5,12 +5,13 @@
 # Apache 2.0
 
 
-import os
 import argparse
 import logging
-import numpy as np
+import os
 from pathlib import Path
-from typing import Union, List
+from typing import List, Union
+
+import numpy as np
 
 
 class Utils:

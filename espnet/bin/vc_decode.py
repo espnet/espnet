@@ -5,11 +5,12 @@
 
 """VC decoding script."""
 
-import configargparse
 import logging
 import os
 import subprocess
 import sys
+
+import configargparse
 
 from espnet.utils.cli_utils import strtobool
 

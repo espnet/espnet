@@ -16,9 +16,10 @@
 
 # usage: python3 process_opus.py wav.scp segments output_wav.scp
 
-from pydub import AudioSegment
-import sys
 import os
+import sys
+
+from pydub import AudioSegment
 
 
 def read_file(wav_scp, segments):

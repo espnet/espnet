@@ -2,7 +2,6 @@ import argparse
 import json
 import os
 
-
 parser = argparse.ArgumentParser("Clarity")
 parser.add_argument(
     "--clarity_root",

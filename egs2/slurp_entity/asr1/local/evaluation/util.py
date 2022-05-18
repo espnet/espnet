@@ -1,10 +1,9 @@
 import json
 import logging
 import os
+from typing import Any, Dict, Tuple
+
 import tabulate
-
-from typing import Dict, Any, Tuple
-
 from progress.bar import Bar
 
 logging.basicConfig(

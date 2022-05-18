@@ -1,7 +1,6 @@
 """VGG2L module definition for custom encoder."""
 
-from typing import Tuple
-from typing import Union
+from typing import Tuple, Union
 
 import torch
 

@@ -10,7 +10,6 @@ This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
 import numpy as np
 import torch
 import torch.nn.functional as F
-
 from scipy.signal import kaiser
 
 

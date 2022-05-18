@@ -4,13 +4,10 @@
 """GAN-based text-to-speech ESPnet model."""
 
 from contextlib import contextmanager
-from packaging.version import parse as V
-from typing import Any
-from typing import Dict
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import torch
-
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS

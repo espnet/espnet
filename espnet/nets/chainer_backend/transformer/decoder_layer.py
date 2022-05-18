@@ -2,13 +2,12 @@
 """Class Declaration of Transformer's Decoder Block."""
 
 import chainer
-
 import chainer.functions as F
 
 from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
 from espnet.nets.chainer_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.chainer_backend.transformer.positionwise_feed_forward import (
-    PositionwiseFeedForward,  # noqa: H301
+    PositionwiseFeedForward,
 )
 
 

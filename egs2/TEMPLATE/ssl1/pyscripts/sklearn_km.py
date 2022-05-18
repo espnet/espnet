@@ -8,27 +8,23 @@
 
 import argparse
 import logging
+import math
 import os
 import sys
-from random import sample
 import warnings
+from random import sample
 
+import fairseq
 import joblib
 import numpy as np
-import math
-
 import soundfile as sf
 import torch
 import torchaudio
 import tqdm
-
+from feature_loader import HubertFeatureReader, MfccFeatureReader
 from sklearn.cluster import MiniBatchKMeans
-import fairseq
 
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
-
-from feature_loader import MfccFeatureReader
-from feature_loader import HubertFeatureReader
 
 logging.basicConfig(
     level=logging.DEBUG,

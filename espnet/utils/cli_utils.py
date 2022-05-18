@@ -1,6 +1,6 @@
+import sys
 from collections.abc import Sequence
 from distutils.util import strtobool as dist_strtobool
-import sys
 
 import numpy
 

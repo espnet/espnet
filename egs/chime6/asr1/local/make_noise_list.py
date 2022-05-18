@@ -7,7 +7,6 @@ import glob
 import os
 import sys
 
-
 if len(sys.argv) != 2:
     print("Usage: {} <noises-dir>".format(sys.argv[0]))
     raise SystemExit(1)

@@ -5,10 +5,11 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/."""
 
-from deepxi.utils import read_wav
 import glob
-import numpy as np
 import os
+
+import numpy as np
+from deepxi.utils import read_wav
 
 
 def Batch(fdir, snr_l=[]):

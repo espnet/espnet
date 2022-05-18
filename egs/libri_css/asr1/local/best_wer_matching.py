@@ -5,9 +5,10 @@
 import io
 import itertools
 import math
+import sys
+
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-import sys
 
 
 # Helper function to group the list by ref/hyp ids

@@ -10,7 +10,7 @@ import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
-    Tacotron2Loss as TransformerLoss,  # noqa: H301
+    Tacotron2Loss as TransformerLoss,
 )
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
@@ -18,8 +18,10 @@ from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrene
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
+from espnet.nets.pytorch_backend.transformer.embedding import (
+    PositionalEncoding,
+    ScaledPositionalEncoding,
+)
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
@@ -93,8 +95,9 @@ else:
 
             """
             import matplotlib.pyplot as plt
-            from espnet.nets.pytorch_backend.transformer.plot import (
-                _plot_and_save_attention,  # noqa: H301
+
+            from espnet.nets.pytorch_backend.transformer.plot import (  # noqa: H301
+                _plot_and_save_attention,
             )
 
             for name, att_ws in attn_dict.items():

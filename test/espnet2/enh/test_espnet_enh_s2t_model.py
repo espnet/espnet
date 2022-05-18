@@ -14,7 +14,6 @@ from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 
-
 enh_stft_encoder = STFTEncoder(
     n_fft=32,
     hop_length=16,

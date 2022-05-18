@@ -6,8 +6,8 @@
 format: token + whitespace + index
 """
 import argparse
-from collections import defaultdict
 import fileinput
+from collections import defaultdict
 
 
 def get_args():

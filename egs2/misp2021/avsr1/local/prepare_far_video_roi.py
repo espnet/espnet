@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 # _*_ coding: UTF-8 _*_
-import os
-import cv2
-import json
-import time
-import codecs
 import argparse
+import codecs
+import json
+import os
+import time
+from multiprocessing import Pool
+
+import cv2
 import numpy as np
 from tqdm import tqdm
-from multiprocessing import Pool
 
 
 def crop_frame_roi(frame, roi_bound, roi_size=(96, 96)):

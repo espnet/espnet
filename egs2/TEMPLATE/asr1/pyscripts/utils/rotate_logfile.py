@@ -6,8 +6,8 @@
 """Rotate log-file."""
 
 import argparse
-from pathlib import Path
 import shutil
+from pathlib import Path
 
 
 def rotate(path, max_num_log_files=1000):
