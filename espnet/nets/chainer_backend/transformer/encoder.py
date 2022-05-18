@@ -1,19 +1,19 @@
 # encoding: utf-8
 """Class Declaration of Transformer's Encoder."""
 
-import chainer
+import logging
 
+import chainer
+import numpy as np
 from chainer import links as L
 
-from espnet.nets.chainer_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.chainer_backend.transformer.embedding import \
+    PositionalEncoding
 from espnet.nets.chainer_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.chainer_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.chainer_backend.transformer.mask import make_history_mask
-from espnet.nets.chainer_backend.transformer.subsampling import Conv2dSubsampling
-from espnet.nets.chainer_backend.transformer.subsampling import LinearSampling
-
-import logging
-import numpy as np
+from espnet.nets.chainer_backend.transformer.subsampling import (
+    Conv2dSubsampling, LinearSampling)
 
 
 class Encoder(chainer.Chain):

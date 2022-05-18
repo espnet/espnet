@@ -6,10 +6,11 @@
 import argparse
 import json
 import math
-import numpy as np
 import os
-import scipy.io.wavfile as siw
 import sys
+
+import numpy as np
+import scipy.io.wavfile as siw
 
 
 def get_args():

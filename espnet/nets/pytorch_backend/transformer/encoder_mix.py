@@ -9,12 +9,15 @@
 import torch
 
 from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.pytorch_backend.transformer.attention import \
+    MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.embedding import \
+    PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
+from espnet.nets.pytorch_backend.transformer.subsampling import \
+    Conv2dSubsampling
 
 
 class EncoderMix(Encoder, torch.nn.Module):

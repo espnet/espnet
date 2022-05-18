@@ -4,11 +4,14 @@
 
 """Embedding Frontend for text based inputs."""
 
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from typing import Tuple
+
 import torch
 from typeguard import check_argument_types
-from typing import Tuple
+
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet.nets.pytorch_backend.transformer.embedding import \
+    PositionalEncoding
 
 
 class Embedding(AbsFrontend):

@@ -5,15 +5,14 @@
 """Sinc convolutions for raw audio input."""
 
 from collections import OrderedDict
-from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
-from espnet2.layers.sinc_conv import LogCompression
-from espnet2.layers.sinc_conv import SincConv
+from typing import Optional, Tuple, Union
+
 import humanfriendly
 import torch
 from typeguard import check_argument_types
-from typing import Optional
-from typing import Tuple
-from typing import Union
+
+from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
+from espnet2.layers.sinc_conv import LogCompression, SincConv
 
 
 class LightweightSincConvs(AbsPreEncoder):

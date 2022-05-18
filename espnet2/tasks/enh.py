@@ -1,15 +1,9 @@
 import argparse
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
@@ -21,16 +15,14 @@ from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainAbsCoherence
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainDPCL
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
-from espnet2.enh.loss.criterions.time_domain import CISDRLoss
-from espnet2.enh.loss.criterions.time_domain import SDRLoss
-from espnet2.enh.loss.criterions.time_domain import SISNRLoss
-from espnet2.enh.loss.criterions.time_domain import SNRLoss
-from espnet2.enh.loss.criterions.time_domain import TimeDomainL1
-from espnet2.enh.loss.criterions.time_domain import TimeDomainMSE
+from espnet2.enh.loss.criterions.tf_domain import (FrequencyDomainAbsCoherence,
+                                                   FrequencyDomainDPCL,
+                                                   FrequencyDomainL1,
+                                                   FrequencyDomainMSE)
+from espnet2.enh.loss.criterions.time_domain import (CISDRLoss, SDRLoss,
+                                                     SISNRLoss, SNRLoss,
+                                                     TimeDomainL1,
+                                                     TimeDomainMSE)
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.dpcl_solver import DPCLSolver
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
@@ -59,8 +51,7 @@ from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import str2bool, str_or_none
 
 encoder_choices = ClassChoices(
     name="encoder",

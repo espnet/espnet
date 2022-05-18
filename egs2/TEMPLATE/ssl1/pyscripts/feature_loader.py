@@ -14,7 +14,6 @@ import os
 import sys
 
 import fairseq
-
 import soundfile as sf
 import torch
 import torchaudio

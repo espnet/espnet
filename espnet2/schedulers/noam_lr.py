@@ -1,6 +1,6 @@
 """Noam learning rate scheduler module."""
-from typing import Union
 import warnings
+from typing import Union
 
 import torch
 from torch.optim.lr_scheduler import _LRScheduler

@@ -3,33 +3,32 @@
 
 """Transformer-TTS related modules."""
 
-from typing import Dict
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
+from typing import Dict, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
-
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.e2e_tts_transformer import GuidedMultiHeadAttentionLoss
-from espnet.nets.pytorch_backend.e2e_tts_transformer import TransformerLoss
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
-from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrenet
-from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.decoder import Decoder
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
-from espnet.nets.pytorch_backend.transformer.encoder import Encoder
-from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.gst.style_encoder import StyleEncoder
+from espnet.nets.pytorch_backend.e2e_tts_transformer import (
+    GuidedMultiHeadAttentionLoss, TransformerLoss)
+from espnet.nets.pytorch_backend.nets_utils import (make_non_pad_mask,
+                                                    make_pad_mask)
+from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
+from espnet.nets.pytorch_backend.tacotron2.decoder import \
+    Prenet as DecoderPrenet
+from espnet.nets.pytorch_backend.tacotron2.encoder import \
+    Encoder as EncoderPrenet
+from espnet.nets.pytorch_backend.transformer.attention import \
+    MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.decoder import Decoder
+from espnet.nets.pytorch_backend.transformer.embedding import (
+    PositionalEncoding, ScaledPositionalEncoding)
+from espnet.nets.pytorch_backend.transformer.encoder import Encoder
+from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 
 
 class Transformer(AbsTTS):

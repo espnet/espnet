@@ -2,31 +2,23 @@
 
 import argparse
 import logging
-from pathlib import Path
 import sys
-from typing import Any
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from pathlib import Path
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
 from tqdm import trange
 from typeguard import check_argument_types
 
-from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.tasks.diar import DiarizationTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.types import humanfriendly_parse_size_or_none
-from espnet2.utils.types import int_or_none
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str2triple_str
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import (humanfriendly_parse_size_or_none, int_or_none,
+                                 str2bool, str2triple_str, str_or_none)
+from espnet.utils.cli_utils import get_commandline_args
 
 
 class DiarizeSpeech:

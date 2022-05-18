@@ -3,14 +3,13 @@
 
 """Style encoder of GST-Tacotron."""
 
-from typeguard import check_argument_types
 from typing import Sequence
 
 import torch
+from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention as BaseMultiHeadedAttention,  # NOQA
-)
+from espnet.nets.pytorch_backend.transformer.attention import \
+    MultiHeadedAttention as BaseMultiHeadedAttention  # NOQA
 
 
 class StyleEncoder(torch.nn.Module):

@@ -2,8 +2,8 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainCrossEntropy
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
+from espnet2.enh.loss.criterions.tf_domain import (FrequencyDomainCrossEntropy,
+                                                   FrequencyDomainL1)
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
 
 

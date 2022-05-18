@@ -7,10 +7,10 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.gan_tts.hifigan.loss import DiscriminatorAdversarialLoss
-from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
-from espnet2.gan_tts.parallel_wavegan import ParallelWaveGANDiscriminator
-from espnet2.gan_tts.parallel_wavegan import ParallelWaveGANGenerator
+from espnet2.gan_tts.hifigan.loss import (DiscriminatorAdversarialLoss,
+                                          GeneratorAdversarialLoss)
+from espnet2.gan_tts.parallel_wavegan import (ParallelWaveGANDiscriminator,
+                                              ParallelWaveGANGenerator)
 
 
 def make_generator_args(**kwargs):
@@ -134,9 +134,8 @@ except ImportError:
     not is_parallel_wavegan_available, reason="parallel_wavegan is not installed."
 )
 def test_parallel_wavegan_compatibility():
-    from parallel_wavegan.models import (
-        ParallelWaveGANGenerator as PWGParallelWaveGANGenerator,  # NOQA
-    )
+    from parallel_wavegan.models import \
+        ParallelWaveGANGenerator as PWGParallelWaveGANGenerator  # NOQA
 
     model_pwg = PWGParallelWaveGANGenerator(**make_generator_args())
     model_espnet2 = ParallelWaveGANGenerator(**make_generator_args())

@@ -7,10 +7,10 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.gan_tts.hifigan.loss import DiscriminatorAdversarialLoss
-from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
-from espnet2.gan_tts.style_melgan import StyleMelGANDiscriminator
-from espnet2.gan_tts.style_melgan import StyleMelGANGenerator
+from espnet2.gan_tts.hifigan.loss import (DiscriminatorAdversarialLoss,
+                                          GeneratorAdversarialLoss)
+from espnet2.gan_tts.style_melgan import (StyleMelGANDiscriminator,
+                                          StyleMelGANGenerator)
 
 
 def make_style_melgan_generator_args(**kwargs):
@@ -124,7 +124,8 @@ except ImportError:
     not is_parallel_wavegan_available, reason="parallel_wavegan is not installed."
 )
 def test_parallel_wavegan_compatibility():
-    from parallel_wavegan.models import StyleMelGANGenerator as PWGStyleMelGANGenerator
+    from parallel_wavegan.models import \
+        StyleMelGANGenerator as PWGStyleMelGANGenerator
 
     model_pwg = PWGStyleMelGANGenerator(**make_style_melgan_generator_args())
     model_espnet2 = StyleMelGANGenerator(**make_style_melgan_generator_args())

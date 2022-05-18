@@ -2,28 +2,28 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """Encoder definition."""
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer import (
-    ContextualBlockEncoderLayer,  # noqa: H301
-)
-from espnet.nets.pytorch_backend.transformer.embedding import StreamPositionalEncoding
-from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
-    PositionwiseFeedForward,  # noqa: H301
-)
-from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import (
-    Conv2dSubsamplingWOPosEnc,  # noqa: H301
-)
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 import math
+from typing import Optional, Tuple
+
 import torch
 from typeguard import check_argument_types
-from typing import Optional
-from typing import Tuple
+
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.transformer.attention import \
+    MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.contextual_block_encoder_layer import \
+    ContextualBlockEncoderLayer  # noqa: H301
+from espnet.nets.pytorch_backend.transformer.embedding import \
+    StreamPositionalEncoding
+from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.pytorch_backend.transformer.multi_layer_conv import (
+    Conv1dLinear, MultiLayeredConv1d)
+from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import \
+    PositionwiseFeedForward  # noqa: H301
+from espnet.nets.pytorch_backend.transformer.repeat import repeat
+from espnet.nets.pytorch_backend.transformer.subsampling_without_posenc import \
+    Conv2dSubsamplingWOPosEnc  # noqa: H301
 
 
 class ContextualBlockTransformerEncoder(AbsEncoder):

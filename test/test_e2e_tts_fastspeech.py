@@ -8,20 +8,20 @@ import json
 import os
 import shutil
 import tempfile
-
 from argparse import Namespace
 
 import numpy as np
 import pytest
 import torch
 
-from espnet.nets.pytorch_backend.e2e_tts_fastspeech import FeedForwardTransformer
+from espnet.nets.pytorch_backend.e2e_tts_fastspeech import \
+    FeedForwardTransformer
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2
 from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer
-from espnet.nets.pytorch_backend.fastspeech.duration_calculator import (
-    DurationCalculator,  # noqa: H301
-)
-from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
+from espnet.nets.pytorch_backend.fastspeech.duration_calculator import \
+    DurationCalculator  # noqa: H301
+from espnet.nets.pytorch_backend.fastspeech.length_regulator import \
+    LengthRegulator
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 

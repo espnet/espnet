@@ -5,24 +5,21 @@
 
 from contextlib import contextmanager
 from distutils.version import LooseVersion
-from typing import Any
-from typing import Dict
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import torch
-
 from typeguard import check_argument_types
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
-from espnet2.gan_tts.hifigan import HiFiGANMultiPeriodDiscriminator
-from espnet2.gan_tts.hifigan import HiFiGANMultiScaleDiscriminator
-from espnet2.gan_tts.hifigan import HiFiGANMultiScaleMultiPeriodDiscriminator
-from espnet2.gan_tts.hifigan import HiFiGANPeriodDiscriminator
-from espnet2.gan_tts.hifigan import HiFiGANScaleDiscriminator
-from espnet2.gan_tts.hifigan.loss import DiscriminatorAdversarialLoss
-from espnet2.gan_tts.hifigan.loss import FeatureMatchLoss
-from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
-from espnet2.gan_tts.hifigan.loss import MelSpectrogramLoss
+from espnet2.gan_tts.hifigan import (HiFiGANMultiPeriodDiscriminator,
+                                     HiFiGANMultiScaleDiscriminator,
+                                     HiFiGANMultiScaleMultiPeriodDiscriminator,
+                                     HiFiGANPeriodDiscriminator,
+                                     HiFiGANScaleDiscriminator)
+from espnet2.gan_tts.hifigan.loss import (DiscriminatorAdversarialLoss,
+                                          FeatureMatchLoss,
+                                          GeneratorAdversarialLoss,
+                                          MelSpectrogramLoss)
 from espnet2.gan_tts.utils import get_segments
 from espnet2.gan_tts.vits.generator import VITSGenerator
 from espnet2.gan_tts.vits.loss import KLDivergenceLoss

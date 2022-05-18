@@ -7,8 +7,8 @@ import logging
 import math
 
 import chainer
-from chainer import reporter
 import numpy as np
+from chainer import reporter
 
 from espnet.nets.chainer_backend.asr_interface import ChainerASRInterface
 from espnet.nets.chainer_backend.ctc import ctc_for
@@ -215,7 +215,8 @@ class E2E(ChainerASRInterface):
     @staticmethod
     def custom_parallel_updater(iters, optimizer, converter, devices, accum_grad=1):
         """Get custom_parallel_updater of the model."""
-        from espnet.nets.chainer_backend.rnn.training import CustomParallelUpdater
+        from espnet.nets.chainer_backend.rnn.training import \
+            CustomParallelUpdater
 
         return CustomParallelUpdater(
             iters,

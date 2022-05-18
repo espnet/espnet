@@ -4,27 +4,32 @@
 """Encoder definition."""
 
 import logging
+
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import rename_state_dict
 from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
-from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
-from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.pytorch_backend.transformer.attention import \
+    MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.dynamic_conv import \
+    DynamicConvolution
+from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import \
+    DynamicConvolution2D
+from espnet.nets.pytorch_backend.transformer.embedding import \
+    PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.lightconv import LightweightConvolution
-from espnet.nets.pytorch_backend.transformer.lightconv2d import LightweightConvolution2D
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
-    PositionwiseFeedForward,  # noqa: H301
-)
+from espnet.nets.pytorch_backend.transformer.lightconv import \
+    LightweightConvolution
+from espnet.nets.pytorch_backend.transformer.lightconv2d import \
+    LightweightConvolution2D
+from espnet.nets.pytorch_backend.transformer.multi_layer_conv import (
+    Conv1dLinear, MultiLayeredConv1d)
+from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import \
+    PositionwiseFeedForward  # noqa: H301
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
-from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
-from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
+from espnet.nets.pytorch_backend.transformer.subsampling import (
+    Conv2dSubsampling, Conv2dSubsampling6, Conv2dSubsampling8)
 
 
 def _pre_hook(

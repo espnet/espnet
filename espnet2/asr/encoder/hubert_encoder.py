@@ -12,18 +12,17 @@ import contextlib
 import copy
 import logging
 import os
+from pathlib import Path
+from typing import Optional, Tuple
+
 import torch
 import yaml
-
 from filelock import FileLock
-from pathlib import Path
 from typeguard import check_argument_types
-from typing import Optional
-from typing import Tuple
 
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 
 
 class FairseqHubertEncoder(AbsEncoder):
@@ -278,11 +277,10 @@ class FairseqHubertPretrainEncoder(AbsEncoder):
         self.use_amp = use_amp
         try:
             from fairseq.data.dictionary import Dictionary
-            from fairseq.models.hubert.hubert import (
-                HubertModel,  # noqa: H301
-                HubertConfig,  # noqa: H301
-                HubertPretrainingConfig,  # noqa: H301
-            )
+            from fairseq.models.hubert.hubert import HubertConfig  # noqa: H301
+            from fairseq.models.hubert.hubert import HubertModel  # noqa: H301
+            from fairseq.models.hubert.hubert import \
+                HubertPretrainingConfig  # noqa: H301
         except Exception as e:
             print("Error: FairSeq is not properly installed.")
             print("Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")

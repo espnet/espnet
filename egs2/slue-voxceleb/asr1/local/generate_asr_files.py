@@ -5,11 +5,12 @@
 # Apache 2.0
 
 
+import argparse
 import os
 import re
 import sys
+
 import pandas as pd
-import argparse
 
 
 def generate_asr_files(txt_file, transcript_file):

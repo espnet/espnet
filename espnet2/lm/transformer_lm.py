@@ -1,14 +1,13 @@
-from typing import Any
-from typing import List
-from typing import Tuple
+from typing import Any, List, Tuple
 
 import torch
 import torch.nn as nn
 
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet2.lm.abs_model import AbsLM
+from espnet.nets.pytorch_backend.transformer.embedding import \
+    PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-from espnet2.lm.abs_model import AbsLM
 
 
 class TransformerLM(AbsLM):

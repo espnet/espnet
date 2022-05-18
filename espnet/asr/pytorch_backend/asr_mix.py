@@ -9,41 +9,33 @@ Copyright 2017 Johns Hopkins University (Shinji Watanabe)
 import json
 import logging
 import os
+from itertools import zip_longest as zip_longest
 
+import numpy as np
+import torch
 # chainer related
 from chainer import training
 from chainer.training import extensions
-from itertools import zip_longest as zip_longest
-import numpy as np
-import torch
 
-from espnet.asr.asr_mix_utils import add_results_to_json
-from espnet.asr.asr_utils import adadelta_eps_decay
-
-from espnet.asr.asr_utils import CompareValueTrigger
-from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import restore_snapshot
-from espnet.asr.asr_utils import snapshot_object
-from espnet.asr.asr_utils import torch_load
-from espnet.asr.asr_utils import torch_resume
-from espnet.asr.asr_utils import torch_snapshot
-from espnet.asr.pytorch_backend.asr import CustomEvaluator
-from espnet.asr.pytorch_backend.asr import CustomUpdater
-from espnet.asr.pytorch_backend.asr import load_trained_model
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
+from espnet.asr.asr_mix_utils import add_results_to_json
+from espnet.asr.asr_utils import (CompareValueTrigger, adadelta_eps_decay,
+                                  get_model_conf, restore_snapshot,
+                                  snapshot_object, torch_load, torch_resume,
+                                  torch_snapshot)
+from espnet.asr.pytorch_backend.asr import (CustomEvaluator, CustomUpdater,
+                                            load_trained_model)
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.e2e_asr_mix import pad_list
-import espnet.nets.pytorch_backend.lm.default as lm_pytorch
-from espnet.utils.dataset import ChainerDataLoader
-from espnet.utils.dataset import TransformDataset
+from espnet.utils.dataset import ChainerDataLoader, TransformDataset
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
 from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from espnet.utils.training.train_utils import check_early_stop
-from espnet.utils.training.train_utils import set_early_stop
+from espnet.utils.training.train_utils import check_early_stop, set_early_stop
 
 
 class CustomConverter(object):
@@ -225,7 +217,8 @@ def train(args):
     elif args.opt == "adam":
         optimizer = torch.optim.Adam(model.parameters(), weight_decay=args.weight_decay)
     elif args.opt == "noam":
-        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
+        from espnet.nets.pytorch_backend.transformer.optimizer import \
+            get_std_opt
 
         optimizer = get_std_opt(
             model.parameters(),

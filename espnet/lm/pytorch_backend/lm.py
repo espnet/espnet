@@ -9,41 +9,29 @@
 import copy
 import json
 import logging
-import numpy as np
 
+import numpy as np
 import torch
 import torch.nn as nn
+from chainer import Chain, reporter, training
+from chainer.dataset import convert
+from chainer.training import extensions
 from torch.nn.parallel import data_parallel
 
-from chainer import Chain
-from chainer.dataset import convert
-from chainer import reporter
-from chainer import training
-from chainer.training import extensions
-
-from espnet.lm.lm_utils import count_tokens
-from espnet.lm.lm_utils import load_dataset
-from espnet.lm.lm_utils import MakeSymlinkToBestModel
-from espnet.lm.lm_utils import ParallelSentenceIterator
-from espnet.lm.lm_utils import read_tokens
-from espnet.nets.lm_interface import dynamic_import_lm
-from espnet.nets.lm_interface import LMInterface
+from espnet.asr.asr_utils import (snapshot_object, torch_load, torch_resume,
+                                  torch_snapshot)
+from espnet.lm.lm_utils import (MakeSymlinkToBestModel,
+                                ParallelSentenceIterator, count_tokens,
+                                load_dataset, read_tokens)
+from espnet.nets.lm_interface import LMInterface, dynamic_import_lm
 from espnet.optimizer.factory import dynamic_import_optimizer
 from espnet.scheduler.pytorch import PyTorchScheduler
 from espnet.scheduler.scheduler import dynamic_import_scheduler
-
-from espnet.asr.asr_utils import snapshot_object
-from espnet.asr.asr_utils import torch_load
-from espnet.asr.asr_utils import torch_resume
-from espnet.asr.asr_utils import torch_snapshot
-
-from espnet.utils.training.tensorboard_logger import TensorboardLogger
-
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
-from espnet.utils.training.train_utils import check_early_stop
-from espnet.utils.training.train_utils import set_early_stop
+from espnet.utils.training.tensorboard_logger import TensorboardLogger
+from espnet.utils.training.train_utils import check_early_stop, set_early_stop
 
 
 def compute_perplexity(result):

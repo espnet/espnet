@@ -1,44 +1,52 @@
 """Transducer speech recognition model (pytorch)."""
 
-from argparse import ArgumentParser
-from argparse import Namespace
-from dataclasses import asdict
 import logging
 import math
-import numpy
+from argparse import ArgumentParser, Namespace
+from dataclasses import asdict
 from typing import List
 
 import chainer
+import numpy
 import torch
 
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
-from espnet.nets.pytorch_backend.nets_utils import get_subsample
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.transducer.arguments import (
-    add_auxiliary_task_arguments,  # noqa: H301
-    add_custom_decoder_arguments,  # noqa: H301
-    add_custom_encoder_arguments,  # noqa: H301
-    add_custom_training_arguments,  # noqa: H301
-    add_decoder_general_arguments,  # noqa: H301
-    add_encoder_general_arguments,  # noqa: H301
-    add_rnn_decoder_arguments,  # noqa: H301
-    add_rnn_encoder_arguments,  # noqa: H301
-    add_transducer_arguments,  # noqa: H301
-)
+from espnet.nets.pytorch_backend.nets_utils import (get_subsample,
+                                                    make_non_pad_mask)
+from espnet.nets.pytorch_backend.transducer.arguments import \
+    add_auxiliary_task_arguments  # noqa: H301
+from espnet.nets.pytorch_backend.transducer.arguments import \
+    add_custom_decoder_arguments  # noqa: H301
+from espnet.nets.pytorch_backend.transducer.arguments import \
+    add_custom_encoder_arguments  # noqa: H301
+from espnet.nets.pytorch_backend.transducer.arguments import \
+    add_custom_training_arguments  # noqa: H301
+from espnet.nets.pytorch_backend.transducer.arguments import \
+    add_decoder_general_arguments  # noqa: H301
+from espnet.nets.pytorch_backend.transducer.arguments import \
+    add_encoder_general_arguments  # noqa: H301
+from espnet.nets.pytorch_backend.transducer.arguments import \
+    add_rnn_decoder_arguments  # noqa: H301
+from espnet.nets.pytorch_backend.transducer.arguments import \
+    add_rnn_encoder_arguments  # noqa: H301
+from espnet.nets.pytorch_backend.transducer.arguments import \
+    add_transducer_arguments  # noqa: H301
 from espnet.nets.pytorch_backend.transducer.custom_decoder import CustomDecoder
 from espnet.nets.pytorch_backend.transducer.custom_encoder import CustomEncoder
-from espnet.nets.pytorch_backend.transducer.error_calculator import ErrorCalculator
+from espnet.nets.pytorch_backend.transducer.error_calculator import \
+    ErrorCalculator
 from espnet.nets.pytorch_backend.transducer.initializer import initializer
 from espnet.nets.pytorch_backend.transducer.rnn_decoder import RNNDecoder
 from espnet.nets.pytorch_backend.transducer.rnn_encoder import encoder_for
-from espnet.nets.pytorch_backend.transducer.transducer_tasks import TransducerTasks
-from espnet.nets.pytorch_backend.transducer.utils import get_decoder_input
-from espnet.nets.pytorch_backend.transducer.utils import valid_aux_encoder_output_layers
-from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention,  # noqa: H301
-    RelPositionMultiHeadedAttention,  # noqa: H301
-)
+from espnet.nets.pytorch_backend.transducer.transducer_tasks import \
+    TransducerTasks
+from espnet.nets.pytorch_backend.transducer.utils import (
+    get_decoder_input, valid_aux_encoder_output_layers)
+from espnet.nets.pytorch_backend.transformer.attention import \
+    MultiHeadedAttention  # noqa: H301
+from espnet.nets.pytorch_backend.transformer.attention import \
+    RelPositionMultiHeadedAttention  # noqa: H301
 from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.utils.fill_missing_args import fill_missing_args

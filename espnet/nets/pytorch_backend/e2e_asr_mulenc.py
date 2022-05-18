@@ -5,27 +5,24 @@
 """Define e2e module for multi-encoder network. https://arxiv.org/pdf/1811.04903.pdf."""
 
 import argparse
-from itertools import groupby
 import logging
 import math
 import os
+from itertools import groupby
 
 import chainer
-from chainer import reporter
 import numpy as np
 import torch
+from chainer import reporter
 
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.ctc import ctc_for
-from espnet.nets.pytorch_backend.nets_utils import get_subsample
-from espnet.nets.pytorch_backend.nets_utils import pad_list
-from espnet.nets.pytorch_backend.nets_utils import to_device
-from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
+from espnet.nets.pytorch_backend.nets_utils import (get_subsample, pad_list,
+                                                    to_device, to_torch_tensor)
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for
-from espnet.nets.pytorch_backend.rnn.encoders import Encoder
-from espnet.nets.pytorch_backend.rnn.encoders import encoder_for
+from espnet.nets.pytorch_backend.rnn.encoders import Encoder, encoder_for
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.utils.cli_utils import strtobool
 

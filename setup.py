@@ -4,9 +4,7 @@
 
 import os
 
-from setuptools import find_packages
-from setuptools import setup
-
+from setuptools import find_packages, setup
 
 requirements = {
     "install": [
@@ -90,6 +88,7 @@ requirements = {
         "flake8>=3.7.8",
         "flake8-docstrings>=1.3.1",
         "black",
+        "isort",
     ],
     "doc": [
         "Jinja2<3.1",

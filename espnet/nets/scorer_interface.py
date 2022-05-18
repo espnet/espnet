@@ -1,11 +1,9 @@
 """Scorer interface module."""
 
-from typing import Any
-from typing import List
-from typing import Tuple
+import warnings
+from typing import Any, List, Tuple
 
 import torch
-import warnings
 
 
 class ScorerInterface:

@@ -3,7 +3,6 @@
 
 import chainer
 import chainer.functions as F
-
 import numpy as np
 
 

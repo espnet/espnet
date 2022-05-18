@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # _*_ coding: UTF-8 _*_
-import os
-import glob
-import codecs
 import argparse
+import codecs
+import glob
+import os
 
 
 def find_wav(data_root, scp_dir, scp_name="wpe", wav_type="Far", n_split=1):

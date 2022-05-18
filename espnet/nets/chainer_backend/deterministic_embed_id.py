@@ -1,15 +1,10 @@
+import chainer
 import numpy
 import six
-
-import chainer
-from chainer import cuda
-from chainer import function_node
-from chainer.initializers import normal
-
 # from chainer.functions.connection import embed_id
-from chainer import link
+from chainer import cuda, function_node, link, variable
+from chainer.initializers import normal
 from chainer.utils import type_check
-from chainer import variable
 
 """Deterministic EmbedID link and function
 

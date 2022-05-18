@@ -2,9 +2,9 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import logging
+import os
 
 import numpy
-import os
 
 from espnet.asr import asr_utils
 

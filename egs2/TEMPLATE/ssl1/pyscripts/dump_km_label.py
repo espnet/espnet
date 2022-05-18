@@ -1,16 +1,15 @@
 import argparse
 import logging
 import os
+import pdb
 import sys
 
-import numpy as np
-
 import joblib
+import numpy as np
 import torch
 import tqdm
-import pdb
-
-from sklearn_km import MfccFeatureReader, get_path_iterator, HubertFeatureReader
+from sklearn_km import (HubertFeatureReader, MfccFeatureReader,
+                        get_path_iterator)
 
 logging.basicConfig(
     level=logging.DEBUG,

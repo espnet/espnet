@@ -2,11 +2,12 @@
 #  coding: utf-8
 
 import argparse
-from kaldiio import ReadHelper
-import numpy as np
 import os
-from os.path import join
 import sys
+from os.path import join
+
+import numpy as np
+from kaldiio import ReadHelper
 
 
 def get_parser():

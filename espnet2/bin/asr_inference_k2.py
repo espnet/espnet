@@ -2,24 +2,16 @@
 import argparse
 import datetime
 import logging
-from pathlib import Path
 import sys
-from typing import Any
-from typing import Dict
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import k2
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
-from typing import List
 import yaml
+from typeguard import check_argument_types, check_return_type
 
-from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fst.lm_rescore import nbest_am_lm_scores
 from espnet2.tasks.asr import ASRTask
@@ -29,9 +21,8 @@ from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str2triple_str
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import str2bool, str2triple_str, str_or_none
+from espnet.utils.cli_utils import get_commandline_args
 
 
 def indices_to_split_size(indices, total_elements: int = None):

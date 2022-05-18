@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-from pathlib import Path
 import sys
-from typing import Iterable
-from typing import Union
+from pathlib import Path
+from typing import Iterable, Union
 
 import numpy as np
 

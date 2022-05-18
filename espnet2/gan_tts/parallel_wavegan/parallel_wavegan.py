@@ -9,18 +9,14 @@ This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
 
 import logging
 import math
-
-from typing import Any
-from typing import Dict
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
 
 from espnet2.gan_tts.parallel_wavegan import upsample
-from espnet2.gan_tts.wavenet.residual_block import Conv1d
-from espnet2.gan_tts.wavenet.residual_block import Conv1d1x1
-from espnet2.gan_tts.wavenet.residual_block import ResidualBlock
+from espnet2.gan_tts.wavenet.residual_block import (Conv1d, Conv1d1x1,
+                                                    ResidualBlock)
 
 
 class ParallelWaveGANGenerator(torch.nn.Module):

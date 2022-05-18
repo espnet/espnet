@@ -7,7 +7,6 @@
 """Tacotron2 decoder related modules."""
 
 import six
-
 import torch
 import torch.nn.functional as F
 

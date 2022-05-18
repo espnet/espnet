@@ -10,10 +10,9 @@ import pytest
 import torch
 
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
-
 from espnet.asr.asr_utils import torch_save
-from espnet.asr.pytorch_backend.asr_init import freeze_modules
-from espnet.asr.pytorch_backend.asr_init import load_trained_modules
+from espnet.asr.pytorch_backend.asr_init import (freeze_modules,
+                                                 load_trained_modules)
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 

@@ -1,12 +1,10 @@
-from packaging.version import parse as V
 import pytest
-
 import torch
+from packaging.version import parse as V
 from torch_complex import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.separator.dc_crn_separator import DC_CRNSeparator
-
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 

@@ -4,28 +4,22 @@
 """Tacotron 2 related modules for ESPnet2."""
 
 import logging
-
-from typing import Dict
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
+from typing import Dict, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.functional as F
-
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.rnn.attentions import AttForward
-from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
-from espnet.nets.pytorch_backend.rnn.attentions import AttLoc
-from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
-from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.gst.style_encoder import StyleEncoder
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (GuidedAttentionLoss,
+                                                           Tacotron2Loss)
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
+from espnet.nets.pytorch_backend.rnn.attentions import (AttForward,
+                                                        AttForwardTA, AttLoc)
+from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
+from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder
 
 
 class Tacotron2(AbsTTS):

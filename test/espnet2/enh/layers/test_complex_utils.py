@@ -1,20 +1,13 @@
-from packaging.version import parse as V
-
 import numpy as np
 import pytest
 import torch
 import torch_complex.functional as FC
+from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.complex_utils import cat
-from espnet2.enh.layers.complex_utils import complex_norm
-from espnet2.enh.layers.complex_utils import einsum
-from espnet2.enh.layers.complex_utils import inverse
-from espnet2.enh.layers.complex_utils import matmul
-from espnet2.enh.layers.complex_utils import solve
-from espnet2.enh.layers.complex_utils import stack
-from espnet2.enh.layers.complex_utils import trace
-
+from espnet2.enh.layers.complex_utils import (cat, complex_norm, einsum,
+                                              inverse, matmul, solve, stack,
+                                              trace)
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 # invertible matrix

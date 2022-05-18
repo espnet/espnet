@@ -1,4 +1,5 @@
 import argparse
+
 import chainer
 import numpy
 import pytest
@@ -7,10 +8,10 @@ import torch
 import espnet.nets.chainer_backend.e2e_asr_transformer as ch
 import espnet.nets.pytorch_backend.e2e_asr_transformer as th
 from espnet.nets.pytorch_backend.nets_utils import rename_state_dict
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-from espnet.nets.pytorch_backend.transformer.mask import target_mask
 from espnet.nets.pytorch_backend.transformer import plot
+from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
+from espnet.nets.pytorch_backend.transformer.mask import (subsequent_mask,
+                                                          target_mask)
 
 
 def test_sequential():
