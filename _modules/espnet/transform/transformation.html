@@ -152,17 +152,16 @@
              
   <h1>Source code for espnet.transform.transformation</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Transformation module.&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Sequence</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">import</span> <span class="nn">copy</span>
-<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
 <span class="kn">import</span> <span class="nn">io</span>
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
 
 <span class="kn">import</span> <span class="nn">yaml</span>
 
 <span class="kn">from</span> <span class="nn">espnet.utils.dynamic_import</span> <span class="kn">import</span> <span class="n">dynamic_import</span>
-
 
 <span class="c1"># TODO(karita): inherit TransformInterface</span>
 <span class="c1"># TODO(karita): register cmd arguments in asr_train.py</span>

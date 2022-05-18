@@ -155,24 +155,22 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">random</span>
-<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
-<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
-
-<span class="kn">from</span> <span class="nn">espnet.nets.ctc_prefix_score</span> <span class="kn">import</span> <span class="n">CTCPrefixScore</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.ctc_prefix_score</span> <span class="kn">import</span> <span class="n">CTCPrefixScoreTH</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.ctc_prefix_score</span> <span class="kn">import</span> <span class="n">CTCPrefixScore</span><span class="p">,</span> <span class="n">CTCPrefixScoreTH</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.e2e_asr_common</span> <span class="kn">import</span> <span class="n">end_detect</span>
-
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">mask_by_length</span><span class="p">,</span>
+    <span class="n">pad_list</span><span class="p">,</span>
+    <span class="n">th_accuracy</span><span class="p">,</span>
+    <span class="n">to_device</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">att_to_numpy</span>
-
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">mask_by_length</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">pad_list</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">th_accuracy</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">to_device</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.scorer_interface</span> <span class="kn">import</span> <span class="n">ScorerInterface</span>
 
 <span class="n">MAX_DECODER_OUTPUT</span> <span class="o">=</span> <span class="mi">5</span>

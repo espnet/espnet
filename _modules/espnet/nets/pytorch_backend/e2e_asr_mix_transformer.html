@@ -169,9 +169,9 @@
 <span class="sd">2. PIT is used in CTC to determine the permutation with minimum loss.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -184,13 +184,11 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_asr_mix</span> <span class="kn">import</span> <span class="n">E2E</span> <span class="k">as</span> <span class="n">E2EASRMIX</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_asr_mix</span> <span class="kn">import</span> <span class="n">PIT</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_asr_transformer</span> <span class="kn">import</span> <span class="n">E2E</span> <span class="k">as</span> <span class="n">E2EASR</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">th_accuracy</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span><span class="p">,</span> <span class="n">th_accuracy</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.decoders</span> <span class="kn">import</span> <span class="n">CTC_SCORING_RATIO</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.add_sos_eos</span> <span class="kn">import</span> <span class="n">add_sos_eos</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.encoder_mix</span> <span class="kn">import</span> <span class="n">EncoderMix</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.mask</span> <span class="kn">import</span> <span class="n">subsequent_mask</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.mask</span> <span class="kn">import</span> <span class="n">target_mask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.mask</span> <span class="kn">import</span> <span class="n">subsequent_mask</span><span class="p">,</span> <span class="n">target_mask</span>
 
 
 <div class="viewcode-block" id="E2E"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_mix_transformer.E2E">[docs]</a><span class="k">class</span> <span class="nc">E2E</span><span class="p">(</span><span class="n">E2EASR</span><span class="p">,</span> <span class="n">ASRInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>

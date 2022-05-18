@@ -152,17 +152,13 @@
              
   <h1>Source code for espnet2.enh.separator.dpcl_separator</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
 
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.encoders</span> <span class="kn">import</span> <span class="n">RNN</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.abs_separator</span> <span class="kn">import</span> <span class="n">AbsSeparator</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.encoders</span> <span class="kn">import</span> <span class="n">RNN</span>
 
 
 <div class="viewcode-block" id="DPCLSeparator"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.separator.dpcl_separator.DPCLSeparator">[docs]</a><span class="k">class</span> <span class="nc">DPCLSeparator</span><span class="p">(</span><span class="n">AbsSeparator</span><span class="p">):</span>

@@ -156,33 +156,34 @@
 
 <span class="sd">&quot;&quot;&quot;Joint text-to-wav module for end-to-end training.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.abs_gan_tts</span> <span class="kn">import</span> <span class="n">AbsGANTTS</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANGenerator</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANMultiPeriodDiscriminator</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANMultiScaleDiscriminator</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANMultiScaleMultiPeriodDiscriminator</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANPeriodDiscriminator</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANScaleDiscriminator</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">DiscriminatorAdversarialLoss</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">FeatureMatchLoss</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">GeneratorAdversarialLoss</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="n">MelSpectrogramLoss</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.melgan</span> <span class="kn">import</span> <span class="n">MelGANGenerator</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.melgan</span> <span class="kn">import</span> <span class="n">MelGANMultiScaleDiscriminator</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">HiFiGANGenerator</span><span class="p">,</span>
+    <span class="n">HiFiGANMultiPeriodDiscriminator</span><span class="p">,</span>
+    <span class="n">HiFiGANMultiScaleDiscriminator</span><span class="p">,</span>
+    <span class="n">HiFiGANMultiScaleMultiPeriodDiscriminator</span><span class="p">,</span>
+    <span class="n">HiFiGANPeriodDiscriminator</span><span class="p">,</span>
+    <span class="n">HiFiGANScaleDiscriminator</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan.loss</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DiscriminatorAdversarialLoss</span><span class="p">,</span>
+    <span class="n">FeatureMatchLoss</span><span class="p">,</span>
+    <span class="n">GeneratorAdversarialLoss</span><span class="p">,</span>
+    <span class="n">MelSpectrogramLoss</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.melgan</span> <span class="kn">import</span> <span class="n">MelGANGenerator</span><span class="p">,</span> <span class="n">MelGANMultiScaleDiscriminator</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.melgan.pqmf</span> <span class="kn">import</span> <span class="n">PQMF</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.parallel_wavegan</span> <span class="kn">import</span> <span class="n">ParallelWaveGANDiscriminator</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.parallel_wavegan</span> <span class="kn">import</span> <span class="n">ParallelWaveGANGenerator</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.style_melgan</span> <span class="kn">import</span> <span class="n">StyleMelGANDiscriminator</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.style_melgan</span> <span class="kn">import</span> <span class="n">StyleMelGANGenerator</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.utils</span> <span class="kn">import</span> <span class="n">get_random_segments</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.utils</span> <span class="kn">import</span> <span class="n">get_segments</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.parallel_wavegan</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ParallelWaveGANDiscriminator</span><span class="p">,</span>
+    <span class="n">ParallelWaveGANGenerator</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.style_melgan</span> <span class="kn">import</span> <span class="n">StyleMelGANDiscriminator</span><span class="p">,</span> <span class="n">StyleMelGANGenerator</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.utils</span> <span class="kn">import</span> <span class="n">get_random_segments</span><span class="p">,</span> <span class="n">get_segments</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.fastspeech</span> <span class="kn">import</span> <span class="n">FastSpeech</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.fastspeech2</span> <span class="kn">import</span> <span class="n">FastSpeech2</span>

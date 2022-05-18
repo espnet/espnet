@@ -151,17 +151,15 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.enh.layers.dnn_wpe</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
 
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">to_double</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">to_float</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">to_double</span><span class="p">,</span> <span class="n">to_float</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.mask_estimator</span> <span class="kn">import</span> <span class="n">MaskEstimator</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.layers.wpe</span> <span class="kn">import</span> <span class="n">wpe_one_iteration</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
 
 
 <div class="viewcode-block" id="DNN_WPE"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.dnn_wpe.DNN_WPE">[docs]</a><span class="k">class</span> <span class="nc">DNN_WPE</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>

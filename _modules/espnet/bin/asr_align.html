@@ -194,23 +194,26 @@
 <span class="sd">        with the option `--gratis-blank`.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">configargparse</span>
+<span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">import</span> <span class="nn">configargparse</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="c1"># imports for CTC segmentation</span>
+<span class="kn">from</span> <span class="nn">ctc_segmentation</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CtcSegmentationParameters</span><span class="p">,</span>
+    <span class="n">ctc_segmentation</span><span class="p">,</span>
+    <span class="n">determine_utterance_segments</span><span class="p">,</span>
+    <span class="n">prepare_text</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="c1"># imports for inference</span>
 <span class="kn">from</span> <span class="nn">espnet.asr.pytorch_backend.asr_init</span> <span class="kn">import</span> <span class="n">load_trained_model</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.asr_interface</span> <span class="kn">import</span> <span class="n">ASRInterface</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.io_utils</span> <span class="kn">import</span> <span class="n">LoadInputsAndTargets</span>
-<span class="kn">import</span> <span class="nn">json</span>
-<span class="kn">import</span> <span class="nn">torch</span>
-
-<span class="c1"># imports for CTC segmentation</span>
-<span class="kn">from</span> <span class="nn">ctc_segmentation</span> <span class="kn">import</span> <span class="n">ctc_segmentation</span>
-<span class="kn">from</span> <span class="nn">ctc_segmentation</span> <span class="kn">import</span> <span class="n">CtcSegmentationParameters</span>
-<span class="kn">from</span> <span class="nn">ctc_segmentation</span> <span class="kn">import</span> <span class="n">determine_utterance_segments</span>
-<span class="kn">from</span> <span class="nn">ctc_segmentation</span> <span class="kn">import</span> <span class="n">prepare_text</span>
 
 
 <span class="c1"># NOTE: you need this func to generate our sphinx doc</span>

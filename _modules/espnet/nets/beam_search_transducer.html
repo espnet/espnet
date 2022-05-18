@@ -154,8 +154,7 @@
 <span></span><span class="sd">&quot;&quot;&quot;Search algorithms for Transducer models.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -163,15 +162,16 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.custom_decoder</span> <span class="kn">import</span> <span class="n">CustomDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.joint_network</span> <span class="kn">import</span> <span class="n">JointNetwork</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.rnn_decoder</span> <span class="kn">import</span> <span class="n">RNNDecoder</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">create_lm_batch_states</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">init_lm_state</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">is_prefix</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">recombine_hyps</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">select_k_expansions</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">select_lm_state</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">subtract</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.transducer_decoder_interface</span> <span class="kn">import</span> <span class="n">ExtendedHypothesis</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.transducer_decoder_interface</span> <span class="kn">import</span> <span class="n">Hypothesis</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">create_lm_batch_states</span><span class="p">,</span>
+    <span class="n">init_lm_state</span><span class="p">,</span>
+    <span class="n">is_prefix</span><span class="p">,</span>
+    <span class="n">recombine_hyps</span><span class="p">,</span>
+    <span class="n">select_k_expansions</span><span class="p">,</span>
+    <span class="n">select_lm_state</span><span class="p">,</span>
+    <span class="n">subtract</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.transducer_decoder_interface</span> <span class="kn">import</span> <span class="n">ExtendedHypothesis</span><span class="p">,</span> <span class="n">Hypothesis</span>
 
 
 <div class="viewcode-block" id="BeamSearchTransducer"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.beam_search_transducer.BeamSearchTransducer">[docs]</a><span class="k">class</span> <span class="nc">BeamSearchTransducer</span><span class="p">:</span>

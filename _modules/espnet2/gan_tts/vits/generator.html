@@ -161,22 +161,19 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">math</span>
-
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANGenerator</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.utils</span> <span class="kn">import</span> <span class="n">get_random_segments</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.duration_predictor</span> <span class="kn">import</span> <span class="n">StochasticDurationPredictor</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.posterior_encoder</span> <span class="kn">import</span> <span class="n">PosteriorEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.residual_coupling</span> <span class="kn">import</span> <span class="n">ResidualAffineCouplingBlock</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.text_encoder</span> <span class="kn">import</span> <span class="n">TextEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span>
 
 
 <div class="viewcode-block" id="VITSGenerator"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.generator.VITSGenerator">[docs]</a><span class="k">class</span> <span class="nc">VITSGenerator</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>

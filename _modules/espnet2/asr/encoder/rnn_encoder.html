@@ -151,18 +151,15 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.asr.encoder.rnn_encoder</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.encoders</span> <span class="kn">import</span> <span class="n">RNN</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.encoders</span> <span class="kn">import</span> <span class="n">RNNP</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.encoders</span> <span class="kn">import</span> <span class="n">RNN</span><span class="p">,</span> <span class="n">RNNP</span>
 
 
 <div class="viewcode-block" id="RNNEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.rnn_encoder.RNNEncoder">[docs]</a><span class="k">class</span> <span class="nc">RNNEncoder</span><span class="p">(</span><span class="n">AbsEncoder</span><span class="p">):</span>

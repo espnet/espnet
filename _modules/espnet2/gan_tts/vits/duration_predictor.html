@@ -161,17 +161,18 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">math</span>
-
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.flow</span> <span class="kn">import</span> <span class="n">ConvFlow</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.flow</span> <span class="kn">import</span> <span class="n">DilatedDepthSeparableConv</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.flow</span> <span class="kn">import</span> <span class="n">ElementwiseAffineFlow</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.flow</span> <span class="kn">import</span> <span class="n">FlipFlow</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.flow</span> <span class="kn">import</span> <span class="n">LogFlow</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.vits.flow</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ConvFlow</span><span class="p">,</span>
+    <span class="n">DilatedDepthSeparableConv</span><span class="p">,</span>
+    <span class="n">ElementwiseAffineFlow</span><span class="p">,</span>
+    <span class="n">FlipFlow</span><span class="p">,</span>
+    <span class="n">LogFlow</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <div class="viewcode-block" id="StochasticDurationPredictor"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.duration_predictor.StochasticDurationPredictor">[docs]</a><span class="k">class</span> <span class="nc">StochasticDurationPredictor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>

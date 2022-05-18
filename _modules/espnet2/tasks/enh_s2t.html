@@ -154,17 +154,11 @@
 <span></span><span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Collection</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_return_type</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.ctc</span> <span class="kn">import</span> <span class="n">CTC</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetASRModel</span>
@@ -174,34 +168,32 @@
 <span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">ASRTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">decoder_choices</span> <span class="k">as</span> <span class="n">asr_decoder_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">encoder_choices</span> <span class="k">as</span> <span class="n">asr_encoder_choices_</span>
-<span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">frontend_choices</span>
-<span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">normalize_choices</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">frontend_choices</span><span class="p">,</span> <span class="n">normalize_choices</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">postencoder_choices</span> <span class="k">as</span> <span class="n">asr_postencoder_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">preencoder_choices</span> <span class="k">as</span> <span class="n">asr_preencoder_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">specaug_choices</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.enh</span> <span class="kn">import</span> <span class="n">EnhancementTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.enh</span> <span class="kn">import</span> <span class="n">decoder_choices</span> <span class="k">as</span> <span class="n">enh_decoder_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.enh</span> <span class="kn">import</span> <span class="n">encoder_choices</span> <span class="k">as</span> <span class="n">enh_encoder_choices_</span>
-<span class="kn">from</span> <span class="nn">espnet2.tasks.enh</span> <span class="kn">import</span> <span class="n">EnhancementTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.enh</span> <span class="kn">import</span> <span class="n">separator_choices</span> <span class="k">as</span> <span class="n">enh_separator_choices_</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.st</span> <span class="kn">import</span> <span class="n">STTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.st</span> <span class="kn">import</span> <span class="n">decoder_choices</span> <span class="k">as</span> <span class="n">st_decoder_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.st</span> <span class="kn">import</span> <span class="n">encoder_choices</span> <span class="k">as</span> <span class="n">st_encoder_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.st</span> <span class="kn">import</span> <span class="n">extra_asr_decoder_choices</span> <span class="k">as</span> <span class="n">st_extra_asr_decoder_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.st</span> <span class="kn">import</span> <span class="n">extra_mt_decoder_choices</span> <span class="k">as</span> <span class="n">st_extra_mt_decoder_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.st</span> <span class="kn">import</span> <span class="n">postencoder_choices</span> <span class="k">as</span> <span class="n">st_postencoder_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.st</span> <span class="kn">import</span> <span class="n">preencoder_choices</span> <span class="k">as</span> <span class="n">st_preencoder_choices_</span>
-<span class="kn">from</span> <span class="nn">espnet2.tasks.st</span> <span class="kn">import</span> <span class="n">STTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.phoneme_tokenizer</span> <span class="kn">import</span> <span class="n">g2p_choices</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.initialize</span> <span class="kn">import</span> <span class="n">initialize</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.collate_fn</span> <span class="kn">import</span> <span class="n">CommonCollateFn</span>
-<span class="kn">from</span> <span class="nn">espnet2.train.preprocessor</span> <span class="kn">import</span> <span class="n">CommonPreprocessor_multi</span>
-<span class="kn">from</span> <span class="nn">espnet2.train.preprocessor</span> <span class="kn">import</span> <span class="n">MutliTokenizerCommonPreprocessor</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.preprocessor</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CommonPreprocessor_multi</span><span class="p">,</span>
+    <span class="n">MutliTokenizerCommonPreprocessor</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.trainer</span> <span class="kn">import</span> <span class="n">Trainer</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.get_default_kwargs</span> <span class="kn">import</span> <span class="n">get_default_kwargs</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.nested_dict_action</span> <span class="kn">import</span> <span class="n">NestedDictAction</span>
-<span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">int_or_none</span>
-<span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span>
-<span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str_or_none</span>
-
+<span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">int_or_none</span><span class="p">,</span> <span class="n">str2bool</span><span class="p">,</span> <span class="n">str_or_none</span>
 
 <span class="c1"># Enhancement</span>
 <span class="n">enh_encoder_choices</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">enh_encoder_choices_</span><span class="p">)</span>

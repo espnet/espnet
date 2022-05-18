@@ -154,23 +154,19 @@
 <span></span><span class="sd">&quot;&quot;&quot;Search algorithms for Transducer models.&quot;&quot;&quot;</span>
 
 <span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">is_prefix</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">recombine_hyps</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">select_k_expansions</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">subtract</span>
-
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.transducer.joint_network</span> <span class="kn">import</span> <span class="n">JointNetwork</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">is_prefix</span><span class="p">,</span>
+    <span class="n">recombine_hyps</span><span class="p">,</span>
+    <span class="n">select_k_expansions</span><span class="p">,</span>
+    <span class="n">subtract</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <div class="viewcode-block" id="Hypothesis"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.beam_search_transducer.Hypothesis">[docs]</a><span class="nd">@dataclass</span>

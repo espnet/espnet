@@ -157,26 +157,22 @@
 <span class="sd">&quot;&quot;&quot;Tacotron2-VC related modules.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
-
 <span class="kn">from</span> <span class="nn">distutils.util</span> <span class="kn">import</span> <span class="n">strtobool</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttForward</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttForwardTA</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttLoc</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.tacotron2.cbhg</span> <span class="kn">import</span> <span class="n">CBHG</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.tacotron2.cbhg</span> <span class="kn">import</span> <span class="n">CBHGLoss</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_tts_tacotron2</span> <span class="kn">import</span> <span class="n">Tacotron2Loss</span>  <span class="c1"># noqa: H301</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_tts_tacotron2</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">GuidedAttentionLoss</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttForward</span><span class="p">,</span> <span class="n">AttForwardTA</span><span class="p">,</span> <span class="n">AttLoc</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.tacotron2.cbhg</span> <span class="kn">import</span> <span class="n">CBHG</span><span class="p">,</span> <span class="n">CBHGLoss</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.tacotron2.decoder</span> <span class="kn">import</span> <span class="n">Decoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.tacotron2.encoder</span> <span class="kn">import</span> <span class="n">Encoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.tts_interface</span> <span class="kn">import</span> <span class="n">TTSInterface</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.fill_missing_args</span> <span class="kn">import</span> <span class="n">fill_missing_args</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_tts_tacotron2</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">GuidedAttentionLoss</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">Tacotron2Loss</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-<span class="p">)</span>
 
 
 <div class="viewcode-block" id="Tacotron2"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_vc_tacotron2.Tacotron2">[docs]</a><span class="k">class</span> <span class="nc">Tacotron2</span><span class="p">(</span><span class="n">TTSInterface</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>

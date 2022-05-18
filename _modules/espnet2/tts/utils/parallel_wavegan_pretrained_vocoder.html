@@ -158,17 +158,14 @@
 
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
-
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
-
-<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
 
 
-<div class="viewcode-block" id="ParallelWaveGANPretrainedVocoder"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.utils.parallel_wavegan_pretrained_vocoder.ParallelWaveGANPretrainedVocoder">[docs]</a><span class="k">class</span> <span class="nc">ParallelWaveGANPretrainedVocoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="ParallelWaveGANPretrainedVocoder"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.utils.__init__.ParallelWaveGANPretrainedVocoder">[docs]</a><span class="k">class</span> <span class="nc">ParallelWaveGANPretrainedVocoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrapper class to load the vocoder trained with parallel_wavegan repo.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -199,7 +196,7 @@
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vocoder</span><span class="p">,</span> <span class="s2">&quot;mean&quot;</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span> <span class="o">=</span> <span class="kc">True</span>
 
-<div class="viewcode-block" id="ParallelWaveGANPretrainedVocoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.utils.parallel_wavegan_pretrained_vocoder.ParallelWaveGANPretrainedVocoder.forward">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+<div class="viewcode-block" id="ParallelWaveGANPretrainedVocoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.tts.html#espnet2.tts.utils.__init__.ParallelWaveGANPretrainedVocoder.forward">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feats</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Generate waveform with pretrained vocoder.</span>
 

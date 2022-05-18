@@ -160,16 +160,16 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.attention</span> <span class="kn">import</span> <span class="n">MultiHeadedAttention</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.decoder_layer</span> <span class="kn">import</span> <span class="n">DecoderLayer</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="n">PositionalEncoding</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.layer_norm</span> <span class="kn">import</span> <span class="n">LayerNorm</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.positionwise_feed_forward</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PositionwiseFeedForward</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">PositionwiseFeedForward</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.repeat</span> <span class="kn">import</span> <span class="n">repeat</span>
-<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 
 
 <div class="viewcode-block" id="MLMDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.mlm_decoder.MLMDecoder">[docs]</a><span class="k">class</span> <span class="nc">MLMDecoder</span><span class="p">(</span><span class="n">AbsDecoder</span><span class="p">):</span>

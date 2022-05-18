@@ -155,16 +155,14 @@
 <span class="sd">&quot;&quot;&quot;Class Declaration of Transformer&#39;s Decoder.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">chainer</span>
-
 <span class="kn">import</span> <span class="nn">chainer.functions</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">import</span> <span class="nn">chainer.links</span> <span class="k">as</span> <span class="nn">L</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.transformer.decoder_layer</span> <span class="kn">import</span> <span class="n">DecoderLayer</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.transformer.embedding</span> <span class="kn">import</span> <span class="n">PositionalEncoding</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.transformer.layer_norm</span> <span class="kn">import</span> <span class="n">LayerNorm</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.chainer_backend.transformer.mask</span> <span class="kn">import</span> <span class="n">make_history_mask</span>
-
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 
 <div class="viewcode-block" id="Decoder"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.decoder.Decoder">[docs]</a><span class="k">class</span> <span class="nc">Decoder</span><span class="p">(</span><span class="n">chainer</span><span class="o">.</span><span class="n">Chain</span><span class="p">):</span>

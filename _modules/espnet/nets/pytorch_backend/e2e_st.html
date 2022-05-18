@@ -161,30 +161,31 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">os</span>
-
-<span class="kn">import</span> <span class="nn">nltk</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
 
 <span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">import</span> <span class="nn">nltk</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
-
 <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">reporter</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.e2e_asr_common</span> <span class="kn">import</span> <span class="n">label_smoothing_dist</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.ctc</span> <span class="kn">import</span> <span class="n">CTC</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.initialization</span> <span class="kn">import</span> <span class="n">lecun_normal_init_parameters</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.initialization</span> <span class="kn">import</span> <span class="n">set_forget_bias_to_one</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">get_subsample</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">pad_list</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">to_device</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">to_torch_tensor</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.argument</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">add_arguments_rnn_encoder_common</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">add_arguments_rnn_decoder_common</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">add_arguments_rnn_attention_common</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.initialization</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">lecun_normal_init_parameters</span><span class="p">,</span>
+    <span class="n">set_forget_bias_to_one</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_subsample</span><span class="p">,</span>
+    <span class="n">pad_list</span><span class="p">,</span>
+    <span class="n">to_device</span><span class="p">,</span>
+    <span class="n">to_torch_tensor</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.argument</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">add_arguments_rnn_attention_common</span><span class="p">,</span>
+    <span class="n">add_arguments_rnn_decoder_common</span><span class="p">,</span>
+    <span class="n">add_arguments_rnn_encoder_common</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">att_for</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.decoders</span> <span class="kn">import</span> <span class="n">decoder_for</span>

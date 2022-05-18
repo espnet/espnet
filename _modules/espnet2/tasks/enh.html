@@ -152,17 +152,11 @@
              
   <h1>Source code for espnet2.tasks.enh</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">argparse</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Collection</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
-<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_return_type</span>
+<span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.enh.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.decoder.conv_decoder</span> <span class="kn">import</span> <span class="n">ConvDecoder</span>
@@ -174,16 +168,20 @@
 <span class="kn">from</span> <span class="nn">espnet2.enh.encoder.stft_encoder</span> <span class="kn">import</span> <span class="n">STFTEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetEnhancementModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.abs_loss</span> <span class="kn">import</span> <span class="n">AbsEnhLoss</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainAbsCoherence</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainDPCL</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainL1</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="n">FrequencyDomainMSE</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">CISDRLoss</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SDRLoss</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SISNRLoss</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SNRLoss</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">TimeDomainL1</span>
-<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">TimeDomainMSE</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.tf_domain</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FrequencyDomainAbsCoherence</span><span class="p">,</span>
+    <span class="n">FrequencyDomainDPCL</span><span class="p">,</span>
+    <span class="n">FrequencyDomainL1</span><span class="p">,</span>
+    <span class="n">FrequencyDomainMSE</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CISDRLoss</span><span class="p">,</span>
+    <span class="n">SDRLoss</span><span class="p">,</span>
+    <span class="n">SISNRLoss</span><span class="p">,</span>
+    <span class="n">SNRLoss</span><span class="p">,</span>
+    <span class="n">TimeDomainL1</span><span class="p">,</span>
+    <span class="n">TimeDomainMSE</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.abs_wrapper</span> <span class="kn">import</span> <span class="n">AbsLossWrapper</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.dpcl_solver</span> <span class="kn">import</span> <span class="n">DPCLSolver</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.wrappers.fixed_order</span> <span class="kn">import</span> <span class="n">FixedOrderSolver</span>
@@ -212,8 +210,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.train.trainer</span> <span class="kn">import</span> <span class="n">Trainer</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.get_default_kwargs</span> <span class="kn">import</span> <span class="n">get_default_kwargs</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.nested_dict_action</span> <span class="kn">import</span> <span class="n">NestedDictAction</span>
-<span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span>
-<span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str_or_none</span>
+<span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span><span class="p">,</span> <span class="n">str_or_none</span>
 
 <span class="n">encoder_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;encoder&quot;</span><span class="p">,</span>

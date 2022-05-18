@@ -158,6 +158,7 @@
 <span class="sd">&quot;&quot;&quot;Encoder definition.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
+
 <span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.convolution</span> <span class="kn">import</span> <span class="n">ConvolutionModule</span>
@@ -165,21 +166,23 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">get_activation</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.vgg2l</span> <span class="kn">import</span> <span class="n">VGG2L</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.attention</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">MultiHeadedAttention</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">RelPositionMultiHeadedAttention</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">LegacyRelPositionMultiHeadedAttention</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">LegacyRelPositionMultiHeadedAttention</span><span class="p">,</span>
+    <span class="n">MultiHeadedAttention</span><span class="p">,</span>
+    <span class="n">RelPositionMultiHeadedAttention</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PositionalEncoding</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">ScaledPositionalEncoding</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">RelPositionalEncoding</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">LegacyRelPositionalEncoding</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">LegacyRelPositionalEncoding</span><span class="p">,</span>
+    <span class="n">PositionalEncoding</span><span class="p">,</span>
+    <span class="n">RelPositionalEncoding</span><span class="p">,</span>
+    <span class="n">ScaledPositionalEncoding</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.layer_norm</span> <span class="kn">import</span> <span class="n">LayerNorm</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.multi_layer_conv</span> <span class="kn">import</span> <span class="n">Conv1dLinear</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.multi_layer_conv</span> <span class="kn">import</span> <span class="n">MultiLayeredConv1d</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.multi_layer_conv</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Conv1dLinear</span><span class="p">,</span>
+    <span class="n">MultiLayeredConv1d</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.positionwise_feed_forward</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PositionwiseFeedForward</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">PositionwiseFeedForward</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.repeat</span> <span class="kn">import</span> <span class="n">repeat</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.subsampling</span> <span class="kn">import</span> <span class="n">Conv2dSubsampling</span>

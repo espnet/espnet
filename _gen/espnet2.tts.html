@@ -667,7 +667,59 @@ Tensor: Focus rate value.</p>
 </section>
 <section id="espnet2-tts-utils-init">
 <span id="id10"></span><h2>espnet2.tts.utils.__init__<a class="headerlink" href="#espnet2-tts-utils-init" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.tts.utils.__init__"></span></section>
+<span class="target" id="module-espnet2.tts.utils.__init__"></span><dl class="class">
+<dt id="espnet2.tts.utils.__init__.DurationCalculator">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.utils.__init__.</code><code class="sig-name descname">DurationCalculator</code><a class="reference internal" href="../_modules/espnet2/tts/utils/duration_calculator.html#DurationCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.utils.__init__.DurationCalculator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Duration calculator module.</p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.tts.utils.__init__.DurationCalculator.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">att_ws: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/utils/duration_calculator.html#DurationCalculator.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.utils.__init__.DurationCalculator.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert attention weight to durations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>att_ws</strong> (<em>Tesnor</em>) – Attention weight tensor (T_feats, T_text) or
+(#layers, #heads, T_feats, T_text).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Duration of each input (T_text,).
+Tensor: Focus rate value.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>LongTensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.tts.utils.__init__.ParallelWaveGANPretrainedVocoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.utils.__init__.</code><code class="sig-name descname">ParallelWaveGANPretrainedVocoder</code><span class="sig-paren">(</span><em class="sig-param">model_file: Union[pathlib.Path, str], config_file: Union[pathlib.Path, str, None] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/utils/parallel_wavegan_pretrained_vocoder.html#ParallelWaveGANPretrainedVocoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.utils.__init__.ParallelWaveGANPretrainedVocoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Wrapper class to load the vocoder trained with parallel_wavegan repo.</p>
+<p>Initialize ParallelWaveGANPretrainedVocoder module.</p>
+<dl class="method">
+<dt id="espnet2.tts.utils.__init__.ParallelWaveGANPretrainedVocoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">feats: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/utils/parallel_wavegan_pretrained_vocoder.html#ParallelWaveGANPretrainedVocoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.utils.__init__.ParallelWaveGANPretrainedVocoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate waveform with pretrained vocoder.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>feats</strong> (<em>Tensor</em>) – Feature tensor (T_feats, #mels).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Generated waveform tensor (T_wav).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-tts-utils-parallel-wavegan-pretrained-vocoder">
 <span id="id11"></span><h2>espnet2.tts.utils.parallel_wavegan_pretrained_vocoder<a class="headerlink" href="#espnet2-tts-utils-parallel-wavegan-pretrained-vocoder" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.utils.parallel_wavegan_pretrained_vocoder"></span><p>Wrapper class for the vocoder model trained with parallel_wavegan repo.</p>

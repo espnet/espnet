@@ -153,31 +153,29 @@
   <h1>Source code for espnet.nets.pytorch_backend.e2e_asr_transducer</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Transducer speech recognition model (pytorch).&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">ArgumentParser</span>
-<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
-<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">asdict</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">ArgumentParser</span><span class="p">,</span> <span class="n">Namespace</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">asdict</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 
 <span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.asr_interface</span> <span class="kn">import</span> <span class="n">ASRInterface</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.beam_search_transducer</span> <span class="kn">import</span> <span class="n">BeamSearchTransducer</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">get_subsample</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.arguments</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">add_auxiliary_task_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">add_custom_decoder_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">add_custom_encoder_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">add_custom_training_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">add_decoder_general_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">add_encoder_general_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">add_rnn_decoder_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">add_rnn_encoder_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">add_transducer_arguments</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">get_subsample</span><span class="p">,</span> <span class="n">make_non_pad_mask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.arguments</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">add_auxiliary_task_arguments</span><span class="p">,</span>
+    <span class="n">add_custom_decoder_arguments</span><span class="p">,</span>
+    <span class="n">add_custom_encoder_arguments</span><span class="p">,</span>
+    <span class="n">add_custom_training_arguments</span><span class="p">,</span>
+    <span class="n">add_decoder_general_arguments</span><span class="p">,</span>
+    <span class="n">add_encoder_general_arguments</span><span class="p">,</span>
+    <span class="n">add_rnn_decoder_arguments</span><span class="p">,</span>
+    <span class="n">add_rnn_encoder_arguments</span><span class="p">,</span>
+    <span class="n">add_transducer_arguments</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.custom_decoder</span> <span class="kn">import</span> <span class="n">CustomDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.custom_encoder</span> <span class="kn">import</span> <span class="n">CustomEncoder</span>
@@ -186,11 +184,13 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.rnn_decoder</span> <span class="kn">import</span> <span class="n">RNNDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.rnn_encoder</span> <span class="kn">import</span> <span class="n">encoder_for</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.transducer_tasks</span> <span class="kn">import</span> <span class="n">TransducerTasks</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">get_decoder_input</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">valid_aux_encoder_output_layers</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.attention</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">MultiHeadedAttention</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">RelPositionMultiHeadedAttention</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_decoder_input</span><span class="p">,</span>
+    <span class="n">valid_aux_encoder_output_layers</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.attention</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">MultiHeadedAttention</span><span class="p">,</span>
+    <span class="n">RelPositionMultiHeadedAttention</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.mask</span> <span class="kn">import</span> <span class="n">target_mask</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.plot</span> <span class="kn">import</span> <span class="n">PlotAttentionReport</span>

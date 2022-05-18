@@ -162,42 +162,45 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">reporter</span> <span class="k">as</span> <span class="n">reporter_module</span>
 <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">training</span>
 <span class="kn">from</span> <span class="nn">chainer.training</span> <span class="kn">import</span> <span class="n">extensions</span>
 <span class="kn">from</span> <span class="nn">chainer.training.updater</span> <span class="kn">import</span> <span class="n">StandardUpdater</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
 <span class="kn">from</span> <span class="nn">torch.nn.parallel</span> <span class="kn">import</span> <span class="n">data_parallel</span>
 
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">adadelta_eps_decay</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">add_results_to_json</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">CompareValueTrigger</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">format_mulenc_args</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">get_model_conf</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">plot_spectrogram</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">restore_snapshot</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">snapshot_object</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">torch_load</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">torch_resume</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">torch_snapshot</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.pytorch_backend.asr_init</span> <span class="kn">import</span> <span class="n">freeze_modules</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.pytorch_backend.asr_init</span> <span class="kn">import</span> <span class="n">load_trained_model</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.pytorch_backend.asr_init</span> <span class="kn">import</span> <span class="n">load_trained_modules</span>
 <span class="kn">import</span> <span class="nn">espnet.lm.pytorch_backend.extlm</span> <span class="k">as</span> <span class="nn">extlm_pytorch</span>
+<span class="kn">import</span> <span class="nn">espnet.nets.pytorch_backend.lm.default</span> <span class="k">as</span> <span class="nn">lm_pytorch</span>
+<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CompareValueTrigger</span><span class="p">,</span>
+    <span class="n">adadelta_eps_decay</span><span class="p">,</span>
+    <span class="n">add_results_to_json</span><span class="p">,</span>
+    <span class="n">format_mulenc_args</span><span class="p">,</span>
+    <span class="n">get_model_conf</span><span class="p">,</span>
+    <span class="n">plot_spectrogram</span><span class="p">,</span>
+    <span class="n">restore_snapshot</span><span class="p">,</span>
+    <span class="n">snapshot_object</span><span class="p">,</span>
+    <span class="n">torch_load</span><span class="p">,</span>
+    <span class="n">torch_resume</span><span class="p">,</span>
+    <span class="n">torch_snapshot</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.asr.pytorch_backend.asr_init</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">freeze_modules</span><span class="p">,</span>
+    <span class="n">load_trained_model</span><span class="p">,</span>
+    <span class="n">load_trained_modules</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.asr_interface</span> <span class="kn">import</span> <span class="n">ASRInterface</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.beam_search_transducer</span> <span class="kn">import</span> <span class="n">BeamSearchTransducer</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_asr</span> <span class="kn">import</span> <span class="n">pad_list</span>
-<span class="kn">import</span> <span class="nn">espnet.nets.pytorch_backend.lm.default</span> <span class="k">as</span> <span class="nn">lm_pytorch</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.streaming.segment</span> <span class="kn">import</span> <span class="n">SegmentStreamingE2E</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.streaming.window</span> <span class="kn">import</span> <span class="n">WindowStreamingE2E</span>
 <span class="kn">from</span> <span class="nn">espnet.transform.spectrogram</span> <span class="kn">import</span> <span class="n">IStft</span>
 <span class="kn">from</span> <span class="nn">espnet.transform.transformation</span> <span class="kn">import</span> <span class="n">Transformation</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_writers</span> <span class="kn">import</span> <span class="n">file_writer_helper</span>
-<span class="kn">from</span> <span class="nn">espnet.utils.dataset</span> <span class="kn">import</span> <span class="n">ChainerDataLoader</span>
-<span class="kn">from</span> <span class="nn">espnet.utils.dataset</span> <span class="kn">import</span> <span class="n">TransformDataset</span>
+<span class="kn">from</span> <span class="nn">espnet.utils.dataset</span> <span class="kn">import</span> <span class="n">ChainerDataLoader</span><span class="p">,</span> <span class="n">TransformDataset</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.deterministic_utils</span> <span class="kn">import</span> <span class="n">set_deterministic_pytorch</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.dynamic_import</span> <span class="kn">import</span> <span class="n">dynamic_import</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.io_utils</span> <span class="kn">import</span> <span class="n">LoadInputsAndTargets</span>
@@ -205,8 +208,7 @@
 <span class="kn">from</span> <span class="nn">espnet.utils.training.evaluator</span> <span class="kn">import</span> <span class="n">BaseEvaluator</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.training.iterators</span> <span class="kn">import</span> <span class="n">ShufflingEnabler</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.training.tensorboard_logger</span> <span class="kn">import</span> <span class="n">TensorboardLogger</span>
-<span class="kn">from</span> <span class="nn">espnet.utils.training.train_utils</span> <span class="kn">import</span> <span class="n">check_early_stop</span>
-<span class="kn">from</span> <span class="nn">espnet.utils.training.train_utils</span> <span class="kn">import</span> <span class="n">set_early_stop</span>
+<span class="kn">from</span> <span class="nn">espnet.utils.training.train_utils</span> <span class="kn">import</span> <span class="n">check_early_stop</span><span class="p">,</span> <span class="n">set_early_stop</span>
 
 
 <span class="k">def</span> <span class="nf">_recursive_to</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>

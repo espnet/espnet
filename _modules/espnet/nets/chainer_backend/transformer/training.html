@@ -157,16 +157,18 @@
 <span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">import</span> <span class="nn">six</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">cuda</span>
 <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">functions</span> <span class="k">as</span> <span class="n">F</span>
 <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">training</span>
 <span class="kn">from</span> <span class="nn">chainer.training</span> <span class="kn">import</span> <span class="n">extension</span>
-<span class="kn">from</span> <span class="nn">chainer.training.updaters.multiprocess_parallel_updater</span> <span class="kn">import</span> <span class="n">gather_grads</span>
-<span class="kn">from</span> <span class="nn">chainer.training.updaters.multiprocess_parallel_updater</span> <span class="kn">import</span> <span class="n">gather_params</span>
-<span class="kn">from</span> <span class="nn">chainer.training.updaters.multiprocess_parallel_updater</span> <span class="kn">import</span> <span class="n">scatter_grads</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">chainer.training.updaters.multiprocess_parallel_updater</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">gather_grads</span><span class="p">,</span>
+    <span class="n">gather_params</span><span class="p">,</span>
+    <span class="n">scatter_grads</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <span class="c1"># copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py</span>

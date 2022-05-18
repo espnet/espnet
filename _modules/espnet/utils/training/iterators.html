@@ -152,12 +152,9 @@
              
   <h1>Source code for espnet.utils.training.iterators</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">chainer</span>
-<span class="kn">from</span> <span class="nn">chainer.iterators</span> <span class="kn">import</span> <span class="n">MultiprocessIterator</span>
-<span class="kn">from</span> <span class="nn">chainer.iterators</span> <span class="kn">import</span> <span class="n">SerialIterator</span>
-<span class="kn">from</span> <span class="nn">chainer.iterators</span> <span class="kn">import</span> <span class="n">ShuffleOrderSampler</span>
-<span class="kn">from</span> <span class="nn">chainer.training.extension</span> <span class="kn">import</span> <span class="n">Extension</span>
-
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">chainer.iterators</span> <span class="kn">import</span> <span class="n">MultiprocessIterator</span><span class="p">,</span> <span class="n">SerialIterator</span><span class="p">,</span> <span class="n">ShuffleOrderSampler</span>
+<span class="kn">from</span> <span class="nn">chainer.training.extension</span> <span class="kn">import</span> <span class="n">Extension</span>
 
 
 <div class="viewcode-block" id="ShufflingEnabler"><a class="viewcode-back" href="../../../../_gen/espnet.utils.html#espnet.utils.training.iterators.ShufflingEnabler">[docs]</a><span class="k">class</span> <span class="nc">ShufflingEnabler</span><span class="p">(</span><span class="n">Extension</span><span class="p">):</span>

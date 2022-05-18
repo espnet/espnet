@@ -157,38 +157,33 @@
 <span class="sd">&quot;&quot;&quot;Generator module in JETS.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
-
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Sequence</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.encoder</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Encoder</span> <span class="k">as</span> <span class="n">ConformerEncoder</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.duration_predictor</span> <span class="kn">import</span> <span class="n">DurationPredictor</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="n">PositionalEncoding</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="n">ScaledPositionalEncoding</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.encoder</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Encoder</span> <span class="k">as</span> <span class="n">TransformerEncoder</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.hifigan</span> <span class="kn">import</span> <span class="n">HiFiGANGenerator</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.jets.alignments</span> <span class="kn">import</span> <span class="n">AlignmentModule</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.jets.alignments</span> <span class="kn">import</span> <span class="n">average_by_duration</span>
-<span class="kn">from</span> <span class="nn">espnet2.gan_tts.jets.alignments</span> <span class="kn">import</span> <span class="n">viterbi_decode</span>
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.jets.alignments</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AlignmentModule</span><span class="p">,</span>
+    <span class="n">average_by_duration</span><span class="p">,</span>
+    <span class="n">viterbi_decode</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.jets.length_regulator</span> <span class="kn">import</span> <span class="n">GaussianUpsampling</span>
 <span class="kn">from</span> <span class="nn">espnet2.gan_tts.utils</span> <span class="kn">import</span> <span class="n">get_random_segments</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.initialize</span> <span class="kn">import</span> <span class="n">initialize</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.fastspeech2.variance_predictor</span> <span class="kn">import</span> <span class="n">VariancePredictor</span>
 <span class="kn">from</span> <span class="nn">espnet2.tts.gst.style_encoder</span> <span class="kn">import</span> <span class="n">StyleEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.encoder</span> <span class="kn">import</span> <span class="n">Encoder</span> <span class="k">as</span> <span class="n">ConformerEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.duration_predictor</span> <span class="kn">import</span> <span class="n">DurationPredictor</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span><span class="p">,</span> <span class="n">make_pad_mask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PositionalEncoding</span><span class="p">,</span>
+    <span class="n">ScaledPositionalEncoding</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.encoder</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Encoder</span> <span class="k">as</span> <span class="n">TransformerEncoder</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <div class="viewcode-block" id="JETSGenerator"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.generator.JETSGenerator">[docs]</a><span class="k">class</span> <span class="nc">JETSGenerator</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>

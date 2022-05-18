@@ -156,9 +156,9 @@
 
 <span class="sd">&quot;&quot;&quot;Transformer text translation model (pytorch).&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -167,23 +167,24 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.e2e_mt_common</span> <span class="kn">import</span> <span class="n">ErrorCalculator</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.mt_interface</span> <span class="kn">import</span> <span class="n">MTInterface</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_mt</span> <span class="kn">import</span> <span class="n">Reporter</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">get_subsample</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">th_accuracy</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">to_device</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_subsample</span><span class="p">,</span>
+    <span class="n">make_pad_mask</span><span class="p">,</span>
+    <span class="n">th_accuracy</span><span class="p">,</span>
+    <span class="n">to_device</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.add_sos_eos</span> <span class="kn">import</span> <span class="n">add_sos_eos</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.argument</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">add_arguments_transformer_common</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.argument</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">add_arguments_transformer_common</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.attention</span> <span class="kn">import</span> <span class="n">MultiHeadedAttention</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.decoder</span> <span class="kn">import</span> <span class="n">Decoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.encoder</span> <span class="kn">import</span> <span class="n">Encoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.initializer</span> <span class="kn">import</span> <span class="n">initialize</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.label_smoothing_loss</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">LabelSmoothingLoss</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.label_smoothing_loss</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">LabelSmoothingLoss</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.mask</span> <span class="kn">import</span> <span class="n">subsequent_mask</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.mask</span> <span class="kn">import</span> <span class="n">target_mask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.mask</span> <span class="kn">import</span> <span class="n">subsequent_mask</span><span class="p">,</span> <span class="n">target_mask</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.plot</span> <span class="kn">import</span> <span class="n">PlotAttentionReport</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.fill_missing_args</span> <span class="kn">import</span> <span class="n">fill_missing_args</span>
 

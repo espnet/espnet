@@ -151,18 +151,14 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet.nets.chainer_backend.deterministic_embed_id</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+<span></span><span class="kn">import</span> <span class="nn">chainer</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
 <span class="kn">import</span> <span class="nn">six</span>
 
-<span class="kn">import</span> <span class="nn">chainer</span>
-<span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">cuda</span>
-<span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">function_node</span>
-<span class="kn">from</span> <span class="nn">chainer.initializers</span> <span class="kn">import</span> <span class="n">normal</span>
-
 <span class="c1"># from chainer.functions.connection import embed_id</span>
-<span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">link</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">cuda</span><span class="p">,</span> <span class="n">function_node</span><span class="p">,</span> <span class="n">link</span><span class="p">,</span> <span class="n">variable</span>
+<span class="kn">from</span> <span class="nn">chainer.initializers</span> <span class="kn">import</span> <span class="n">normal</span>
 <span class="kn">from</span> <span class="nn">chainer.utils</span> <span class="kn">import</span> <span class="n">type_check</span>
-<span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">variable</span>
 
 <span class="sd">&quot;&quot;&quot;Deterministic EmbedID link and function</span>
 

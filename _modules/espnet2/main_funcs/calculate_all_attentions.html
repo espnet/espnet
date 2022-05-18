@@ -152,29 +152,28 @@
              
   <h1>Source code for espnet2.main_funcs.calculate_all_attentions</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttAdd</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttCov</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttCovLoc</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttDot</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttForward</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttForwardTA</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttLoc</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttLoc2D</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttLocRec</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttMultiHeadAdd</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttMultiHeadDot</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttMultiHeadLoc</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">AttMultiHeadMultiResLoc</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">NoAtt</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.attention</span> <span class="kn">import</span> <span class="n">MultiHeadedAttention</span>
-
-
 <span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AttAdd</span><span class="p">,</span>
+    <span class="n">AttCov</span><span class="p">,</span>
+    <span class="n">AttCovLoc</span><span class="p">,</span>
+    <span class="n">AttDot</span><span class="p">,</span>
+    <span class="n">AttForward</span><span class="p">,</span>
+    <span class="n">AttForwardTA</span><span class="p">,</span>
+    <span class="n">AttLoc</span><span class="p">,</span>
+    <span class="n">AttLoc2D</span><span class="p">,</span>
+    <span class="n">AttLocRec</span><span class="p">,</span>
+    <span class="n">AttMultiHeadAdd</span><span class="p">,</span>
+    <span class="n">AttMultiHeadDot</span><span class="p">,</span>
+    <span class="n">AttMultiHeadLoc</span><span class="p">,</span>
+    <span class="n">AttMultiHeadMultiResLoc</span><span class="p">,</span>
+    <span class="n">NoAtt</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.attention</span> <span class="kn">import</span> <span class="n">MultiHeadedAttention</span>
 
 
 <div class="viewcode-block" id="calculate_all_attentions"><a class="viewcode-back" href="../../../_gen/espnet2.main_funcs.html#espnet2.main_funcs.calculate_all_attentions.calculate_all_attentions">[docs]</a><span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>

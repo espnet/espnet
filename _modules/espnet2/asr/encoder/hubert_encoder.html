@@ -165,18 +165,17 @@
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">yaml</span>
-
 <span class="kn">from</span> <span class="nn">filelock</span> <span class="kn">import</span> <span class="n">FileLock</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.layer_norm</span> <span class="kn">import</span> <span class="n">LayerNorm</span>
-<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 
 
 <div class="viewcode-block" id="FairseqHubertEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.hubert_encoder.FairseqHubertEncoder">[docs]</a><span class="k">class</span> <span class="nc">FairseqHubertEncoder</span><span class="p">(</span><span class="n">AbsEncoder</span><span class="p">):</span>
@@ -431,10 +430,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">use_amp</span> <span class="o">=</span> <span class="n">use_amp</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">fairseq.data.dictionary</span> <span class="kn">import</span> <span class="n">Dictionary</span>
-            <span class="kn">from</span> <span class="nn">fairseq.models.hubert.hubert</span> <span class="kn">import</span> <span class="p">(</span>
-                <span class="n">HubertModel</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-                <span class="n">HubertConfig</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-                <span class="n">HubertPretrainingConfig</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+            <span class="kn">from</span> <span class="nn">fairseq.models.hubert.hubert</span> <span class="kn">import</span> <span class="n">HubertConfig</span>  <span class="c1"># noqa: H301</span>
+            <span class="kn">from</span> <span class="nn">fairseq.models.hubert.hubert</span> <span class="kn">import</span> <span class="n">HubertModel</span>  <span class="c1"># noqa: H301</span>
+            <span class="kn">from</span> <span class="nn">fairseq.models.hubert.hubert</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
+                <span class="n">HubertPretrainingConfig</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error: FairSeq is not properly installed.&quot;</span><span class="p">)</span>

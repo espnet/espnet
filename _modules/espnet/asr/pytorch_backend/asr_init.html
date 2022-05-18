@@ -153,14 +153,14 @@
   <h1>Source code for espnet.asr.pytorch_backend.asr_init</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Finetuning methods.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+
 <span class="kn">import</span> <span class="nn">torch</span>
 
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">get_model_conf</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">torch_load</span>
+<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">get_model_conf</span><span class="p">,</span> <span class="n">torch_load</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.asr_interface</span> <span class="kn">import</span> <span class="n">ASRInterface</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.mt_interface</span> <span class="kn">import</span> <span class="n">MTInterface</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.utils</span> <span class="kn">import</span> <span class="n">custom_torch_load</span>

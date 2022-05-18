@@ -163,7 +163,7 @@
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_tts_tacotron2</span> <span class="kn">import</span> <span class="n">GuidedAttentionLoss</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_tts_tacotron2</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">Tacotron2Loss</span> <span class="k">as</span> <span class="n">TransformerLoss</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">Tacotron2Loss</span> <span class="k">as</span> <span class="n">TransformerLoss</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.tacotron2.decoder</span> <span class="kn">import</span> <span class="n">Postnet</span>
@@ -171,8 +171,10 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.tacotron2.encoder</span> <span class="kn">import</span> <span class="n">Encoder</span> <span class="k">as</span> <span class="n">EncoderPrenet</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.attention</span> <span class="kn">import</span> <span class="n">MultiHeadedAttention</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.decoder</span> <span class="kn">import</span> <span class="n">Decoder</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="n">PositionalEncoding</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="n">ScaledPositionalEncoding</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PositionalEncoding</span><span class="p">,</span>
+    <span class="n">ScaledPositionalEncoding</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.encoder</span> <span class="kn">import</span> <span class="n">Encoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.initializer</span> <span class="kn">import</span> <span class="n">initialize</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.mask</span> <span class="kn">import</span> <span class="n">subsequent_mask</span>
@@ -246,8 +248,9 @@
 
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-            <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.plot</span> <span class="kn">import</span> <span class="p">(</span>
-                <span class="n">_plot_and_save_attention</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+
+            <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.plot</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
+                <span class="n">_plot_and_save_attention</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">att_ws</span> <span class="ow">in</span> <span class="n">attn_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>

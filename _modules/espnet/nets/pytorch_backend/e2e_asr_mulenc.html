@@ -158,27 +158,28 @@
 <span class="sd">&quot;&quot;&quot;Define e2e module for multi-encoder network. https://arxiv.org/pdf/1811.04903.pdf.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">argparse</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
 
 <span class="kn">import</span> <span class="nn">chainer</span>
-<span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">reporter</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">reporter</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.asr_interface</span> <span class="kn">import</span> <span class="n">ASRInterface</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.e2e_asr_common</span> <span class="kn">import</span> <span class="n">label_smoothing_dist</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.ctc</span> <span class="kn">import</span> <span class="n">ctc_for</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">get_subsample</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">pad_list</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">to_device</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">to_torch_tensor</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_subsample</span><span class="p">,</span>
+    <span class="n">pad_list</span><span class="p">,</span>
+    <span class="n">to_device</span><span class="p">,</span>
+    <span class="n">to_torch_tensor</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="n">att_for</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.decoders</span> <span class="kn">import</span> <span class="n">decoder_for</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.encoders</span> <span class="kn">import</span> <span class="n">Encoder</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.encoders</span> <span class="kn">import</span> <span class="n">encoder_for</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.encoders</span> <span class="kn">import</span> <span class="n">Encoder</span><span class="p">,</span> <span class="n">encoder_for</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.scorers.ctc</span> <span class="kn">import</span> <span class="n">CTCPrefixScorer</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_utils</span> <span class="kn">import</span> <span class="n">strtobool</span>
 

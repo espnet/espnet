@@ -162,12 +162,12 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.argument</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">add_arguments_conformer_common</span><span class="p">,</span>
+    <span class="n">verify_rel_pos_type</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.encoder</span> <span class="kn">import</span> <span class="n">Encoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_st_transformer</span> <span class="kn">import</span> <span class="n">E2E</span> <span class="k">as</span> <span class="n">E2ETransformer</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.argument</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">add_arguments_conformer_common</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">verify_rel_pos_type</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-<span class="p">)</span>
 
 
 <div class="viewcode-block" id="E2E"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_st_conformer.E2E">[docs]</a><span class="k">class</span> <span class="nc">E2E</span><span class="p">(</span><span class="n">E2ETransformer</span><span class="p">):</span>

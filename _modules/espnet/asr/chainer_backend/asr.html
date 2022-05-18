@@ -159,40 +159,40 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">six</span>
 
 <span class="c1"># chainer related</span>
 <span class="kn">import</span> <span class="nn">chainer</span>
-
+<span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">chainer</span> <span class="kn">import</span> <span class="n">training</span>
-
 <span class="kn">from</span> <span class="nn">chainer.datasets</span> <span class="kn">import</span> <span class="n">TransformDataset</span>
 <span class="kn">from</span> <span class="nn">chainer.training</span> <span class="kn">import</span> <span class="n">extensions</span>
 
+<span class="c1"># rnnlm</span>
+<span class="kn">import</span> <span class="nn">espnet.lm.chainer_backend.extlm</span> <span class="k">as</span> <span class="nn">extlm_chainer</span>
+<span class="kn">import</span> <span class="nn">espnet.lm.chainer_backend.lm</span> <span class="k">as</span> <span class="nn">lm_chainer</span>
+
 <span class="c1"># espnet related</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">adadelta_eps_decay</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">add_results_to_json</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">chainer_load</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">CompareValueTrigger</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">get_model_conf</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">restore_snapshot</span>
+<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CompareValueTrigger</span><span class="p">,</span>
+    <span class="n">adadelta_eps_decay</span><span class="p">,</span>
+    <span class="n">add_results_to_json</span><span class="p">,</span>
+    <span class="n">chainer_load</span><span class="p">,</span>
+    <span class="n">get_model_conf</span><span class="p">,</span>
+    <span class="n">restore_snapshot</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.asr_interface</span> <span class="kn">import</span> <span class="n">ASRInterface</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.deterministic_utils</span> <span class="kn">import</span> <span class="n">set_deterministic_chainer</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.dynamic_import</span> <span class="kn">import</span> <span class="n">dynamic_import</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.io_utils</span> <span class="kn">import</span> <span class="n">LoadInputsAndTargets</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.training.batchfy</span> <span class="kn">import</span> <span class="n">make_batchset</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.training.evaluator</span> <span class="kn">import</span> <span class="n">BaseEvaluator</span>
-<span class="kn">from</span> <span class="nn">espnet.utils.training.iterators</span> <span class="kn">import</span> <span class="n">ShufflingEnabler</span>
-<span class="kn">from</span> <span class="nn">espnet.utils.training.iterators</span> <span class="kn">import</span> <span class="n">ToggleableShufflingMultiprocessIterator</span>
-<span class="kn">from</span> <span class="nn">espnet.utils.training.iterators</span> <span class="kn">import</span> <span class="n">ToggleableShufflingSerialIterator</span>
-<span class="kn">from</span> <span class="nn">espnet.utils.training.train_utils</span> <span class="kn">import</span> <span class="n">check_early_stop</span>
-<span class="kn">from</span> <span class="nn">espnet.utils.training.train_utils</span> <span class="kn">import</span> <span class="n">set_early_stop</span>
-
-<span class="c1"># rnnlm</span>
-<span class="kn">import</span> <span class="nn">espnet.lm.chainer_backend.extlm</span> <span class="k">as</span> <span class="nn">extlm_chainer</span>
-<span class="kn">import</span> <span class="nn">espnet.lm.chainer_backend.lm</span> <span class="k">as</span> <span class="nn">lm_chainer</span>
-
+<span class="kn">from</span> <span class="nn">espnet.utils.training.iterators</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ShufflingEnabler</span><span class="p">,</span>
+    <span class="n">ToggleableShufflingMultiprocessIterator</span><span class="p">,</span>
+    <span class="n">ToggleableShufflingSerialIterator</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.training.tensorboard_logger</span> <span class="kn">import</span> <span class="n">TensorboardLogger</span>
+<span class="kn">from</span> <span class="nn">espnet.utils.training.train_utils</span> <span class="kn">import</span> <span class="n">check_early_stop</span><span class="p">,</span> <span class="n">set_early_stop</span>
 
 
 <div class="viewcode-block" id="train"><a class="viewcode-back" href="../../../../_gen/espnet.asr.html#espnet.asr.chainer_backend.asr.train">[docs]</a><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>

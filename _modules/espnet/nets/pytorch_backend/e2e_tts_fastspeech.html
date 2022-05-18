@@ -161,22 +161,22 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">get_model_conf</span>
-<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">torch_load</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.duration_calculator</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">DurationCalculator</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="kn">from</span> <span class="nn">espnet.asr.asr_utils</span> <span class="kn">import</span> <span class="n">get_model_conf</span><span class="p">,</span> <span class="n">torch_load</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.duration_calculator</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">DurationCalculator</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.duration_predictor</span> <span class="kn">import</span> <span class="n">DurationPredictor</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.duration_predictor</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">DurationPredictorLoss</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.duration_predictor</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">DurationPredictor</span><span class="p">,</span>
+    <span class="n">DurationPredictorLoss</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.length_regulator</span> <span class="kn">import</span> <span class="n">LengthRegulator</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span><span class="p">,</span> <span class="n">make_pad_mask</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.tacotron2.decoder</span> <span class="kn">import</span> <span class="n">Postnet</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.attention</span> <span class="kn">import</span> <span class="n">MultiHeadedAttention</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="n">PositionalEncoding</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="n">ScaledPositionalEncoding</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PositionalEncoding</span><span class="p">,</span>
+    <span class="n">ScaledPositionalEncoding</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.encoder</span> <span class="kn">import</span> <span class="n">Encoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.initializer</span> <span class="kn">import</span> <span class="n">initialize</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.tts_interface</span> <span class="kn">import</span> <span class="n">TTSInterface</span>

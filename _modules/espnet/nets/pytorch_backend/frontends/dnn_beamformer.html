@@ -156,14 +156,14 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
+<span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
 
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.frontends.beamformer</span> <span class="kn">import</span> <span class="n">apply_beamforming_vector</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.frontends.beamformer</span> <span class="kn">import</span> <span class="n">get_mvdr_vector</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.frontends.beamformer</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">get_power_spectral_density_matrix</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.frontends.beamformer</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">apply_beamforming_vector</span><span class="p">,</span>
+    <span class="n">get_mvdr_vector</span><span class="p">,</span>
+    <span class="n">get_power_spectral_density_matrix</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.frontends.mask_estimator</span> <span class="kn">import</span> <span class="n">MaskEstimator</span>
-<span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
 
 
 <div class="viewcode-block" id="DNN_Beamformer"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.frontends.dnn_beamformer.DNN_Beamformer">[docs]</a><span class="k">class</span> <span class="nc">DNN_Beamformer</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>

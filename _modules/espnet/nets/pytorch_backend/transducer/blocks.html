@@ -153,40 +153,32 @@
   <h1>Source code for espnet.nets.pytorch_backend.transducer.blocks</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;Set of methods to create custom architecture.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.convolution</span> <span class="kn">import</span> <span class="n">ConvolutionModule</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.encoder_layer</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">EncoderLayer</span> <span class="k">as</span> <span class="n">ConformerEncoderLayer</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">EncoderLayer</span> <span class="k">as</span> <span class="n">ConformerEncoderLayer</span><span class="p">,</span>
 <span class="p">)</span>
-
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">get_activation</span>
-
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.conv1d_nets</span> <span class="kn">import</span> <span class="n">CausalConv1d</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.conv1d_nets</span> <span class="kn">import</span> <span class="n">Conv1d</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.conv1d_nets</span> <span class="kn">import</span> <span class="n">CausalConv1d</span><span class="p">,</span> <span class="n">Conv1d</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.transformer_decoder_layer</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">TransformerDecoderLayer</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">TransformerDecoderLayer</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transducer.vgg2l</span> <span class="kn">import</span> <span class="n">VGG2L</span>
-
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.attention</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">MultiHeadedAttention</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">RelPositionMultiHeadedAttention</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">MultiHeadedAttention</span><span class="p">,</span>
+    <span class="n">RelPositionMultiHeadedAttention</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PositionalEncoding</span><span class="p">,</span>
+    <span class="n">RelPositionalEncoding</span><span class="p">,</span>
+    <span class="n">ScaledPositionalEncoding</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.encoder_layer</span> <span class="kn">import</span> <span class="n">EncoderLayer</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.embedding</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PositionalEncoding</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">ScaledPositionalEncoding</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">RelPositionalEncoding</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
-<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.positionwise_feed_forward</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">PositionwiseFeedForward</span><span class="p">,</span>  <span class="c1"># noqa: H301</span>
+    <span class="n">PositionwiseFeedForward</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.repeat</span> <span class="kn">import</span> <span class="n">MultiSequential</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.subsampling</span> <span class="kn">import</span> <span class="n">Conv2dSubsampling</span>
