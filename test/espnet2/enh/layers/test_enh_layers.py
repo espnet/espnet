@@ -6,8 +6,11 @@ from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.beamformer import (
-    generalized_eigenvalue_decomposition, get_rtf, gev_phase_correction,
-    signal_framing)
+    generalized_eigenvalue_decomposition,
+    get_rtf,
+    gev_phase_correction,
+    signal_framing,
+)
 from espnet2.enh.layers.complex_utils import solve
 from espnet2.layers.stft import Stft
 

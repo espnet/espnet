@@ -7,12 +7,16 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.gan_tts.hifigan import (HiFiGANGenerator,
-                                     HiFiGANMultiScaleMultiPeriodDiscriminator)
-from espnet2.gan_tts.hifigan.loss import (DiscriminatorAdversarialLoss,
-                                          FeatureMatchLoss,
-                                          GeneratorAdversarialLoss,
-                                          MelSpectrogramLoss)
+from espnet2.gan_tts.hifigan import (
+    HiFiGANGenerator,
+    HiFiGANMultiScaleMultiPeriodDiscriminator,
+)
+from espnet2.gan_tts.hifigan.loss import (
+    DiscriminatorAdversarialLoss,
+    FeatureMatchLoss,
+    GeneratorAdversarialLoss,
+    MelSpectrogramLoss,
+)
 
 
 def make_hifigan_generator_args(**kwargs):

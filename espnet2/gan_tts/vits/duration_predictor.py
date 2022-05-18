@@ -13,9 +13,13 @@ from typing import Optional
 import torch
 import torch.nn.functional as F
 
-from espnet2.gan_tts.vits.flow import (ConvFlow, DilatedDepthSeparableConv,
-                                       ElementwiseAffineFlow, FlipFlow,
-                                       LogFlow)
+from espnet2.gan_tts.vits.flow import (
+    ConvFlow,
+    DilatedDepthSeparableConv,
+    ElementwiseAffineFlow,
+    FlipFlow,
+    LogFlow,
+)
 
 
 class StochasticDurationPredictor(torch.nn.Module):

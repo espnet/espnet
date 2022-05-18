@@ -12,7 +12,10 @@ from chainer import functions as F
 from chainer import training
 from chainer.training import extension
 from chainer.training.updaters.multiprocess_parallel_updater import (
-    gather_grads, gather_params, scatter_grads)
+    gather_grads,
+    gather_params,
+    scatter_grads,
+)
 
 
 # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py

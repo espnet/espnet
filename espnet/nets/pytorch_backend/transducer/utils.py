@@ -7,8 +7,7 @@ import numpy as np
 import torch
 
 from espnet.nets.pytorch_backend.nets_utils import pad_list
-from espnet.nets.transducer_decoder_interface import (ExtendedHypothesis,
-                                                      Hypothesis)
+from espnet.nets.transducer_decoder_interface import ExtendedHypothesis, Hypothesis
 
 
 def get_decoder_input(

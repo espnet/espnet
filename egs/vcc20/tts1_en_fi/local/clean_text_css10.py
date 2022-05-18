@@ -9,10 +9,15 @@ import codecs
 import os
 
 import nltk
-from tacotron_cleaner.cleaners import (collapse_whitespace,
-                                       expand_abbreviations, expand_numbers,
-                                       expand_symbols, lowercase,
-                                       remove_unnecessary_symbols, uppercase)
+from tacotron_cleaner.cleaners import (
+    collapse_whitespace,
+    expand_abbreviations,
+    expand_numbers,
+    expand_symbols,
+    lowercase,
+    remove_unnecessary_symbols,
+    uppercase,
+)
 
 try:
     # For phoneme conversion, use https://github.com/Kyubyong/g2p.

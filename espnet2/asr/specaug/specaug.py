@@ -2,8 +2,7 @@
 from typing import Optional, Sequence, Union
 
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-from espnet2.layers.mask_along_axis import (MaskAlongAxis,
-                                            MaskAlongAxisVariableMaxWidth)
+from espnet2.layers.mask_along_axis import MaskAlongAxis, MaskAlongAxisVariableMaxWidth
 from espnet2.layers.time_warp import TimeWarp
 
 

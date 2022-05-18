@@ -9,15 +9,19 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
-from espnet2.gan_tts.hifigan import (HiFiGANMultiPeriodDiscriminator,
-                                     HiFiGANMultiScaleDiscriminator,
-                                     HiFiGANMultiScaleMultiPeriodDiscriminator,
-                                     HiFiGANPeriodDiscriminator,
-                                     HiFiGANScaleDiscriminator)
-from espnet2.gan_tts.hifigan.loss import (DiscriminatorAdversarialLoss,
-                                          FeatureMatchLoss,
-                                          GeneratorAdversarialLoss,
-                                          MelSpectrogramLoss)
+from espnet2.gan_tts.hifigan import (
+    HiFiGANMultiPeriodDiscriminator,
+    HiFiGANMultiScaleDiscriminator,
+    HiFiGANMultiScaleMultiPeriodDiscriminator,
+    HiFiGANPeriodDiscriminator,
+    HiFiGANScaleDiscriminator,
+)
+from espnet2.gan_tts.hifigan.loss import (
+    DiscriminatorAdversarialLoss,
+    FeatureMatchLoss,
+    GeneratorAdversarialLoss,
+    MelSpectrogramLoss,
+)
 from espnet2.gan_tts.jets.generator import JETSGenerator
 from espnet2.gan_tts.jets.loss import ForwardSumLoss, VarianceLoss
 from espnet2.gan_tts.utils import get_segments

@@ -8,8 +8,7 @@ import joblib
 import numpy as np
 import torch
 import tqdm
-from sklearn_km import (HubertFeatureReader, MfccFeatureReader,
-                        get_path_iterator)
+from sklearn_km import HubertFeatureReader, MfccFeatureReader, get_path_iterator
 
 logging.basicConfig(
     level=logging.DEBUG,

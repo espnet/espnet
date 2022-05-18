@@ -12,8 +12,7 @@ from typing import Optional, Tuple, Union
 
 import torch
 
-from espnet2.gan_tts.vits.transform import \
-    piecewise_rational_quadratic_transform
+from espnet2.gan_tts.vits.transform import piecewise_rational_quadratic_transform
 
 
 class FlipFlow(torch.nn.Module):

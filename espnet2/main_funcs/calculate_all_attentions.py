@@ -5,11 +5,22 @@ import torch
 
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.pytorch_backend.rnn.attentions import (
-    AttAdd, AttCov, AttCovLoc, AttDot, AttForward, AttForwardTA, AttLoc,
-    AttLoc2D, AttLocRec, AttMultiHeadAdd, AttMultiHeadDot, AttMultiHeadLoc,
-    AttMultiHeadMultiResLoc, NoAtt)
-from espnet.nets.pytorch_backend.transformer.attention import \
-    MultiHeadedAttention
+    AttAdd,
+    AttCov,
+    AttCovLoc,
+    AttDot,
+    AttForward,
+    AttForwardTA,
+    AttLoc,
+    AttLoc2D,
+    AttLocRec,
+    AttMultiHeadAdd,
+    AttMultiHeadDot,
+    AttMultiHeadLoc,
+    AttMultiHeadMultiResLoc,
+    NoAtt,
+)
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 
 
 @torch.no_grad()

@@ -7,8 +7,7 @@ import random
 from collections import defaultdict
 from pathlib import Path
 
-from split_train_dev import (int_or_float_or_numstr, split_train_dev,
-                             split_train_dev_v2)
+from split_train_dev import int_or_float_or_numstr, split_train_dev, split_train_dev_v2
 
 
 def get_parser():

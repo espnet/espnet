@@ -1,7 +1,6 @@
 import torch
 
-from espnet2.layers.sinc_conv import (BarkScale, LogCompression, MelScale,
-                                      SincConv)
+from espnet2.layers.sinc_conv import BarkScale, LogCompression, MelScale, SincConv
 
 
 def test_log_compression():

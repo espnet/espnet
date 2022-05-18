@@ -13,31 +13,35 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
-from espnet.nets.pytorch_backend.nets_utils import (get_activation,
-                                                    make_pad_mask)
-from espnet.nets.pytorch_backend.transformer.attention import \
-    LegacyRelPositionMultiHeadedAttention  # noqa: H301
-from espnet.nets.pytorch_backend.transformer.attention import \
-    MultiHeadedAttention  # noqa: H301
-from espnet.nets.pytorch_backend.transformer.attention import \
-    RelPositionMultiHeadedAttention  # noqa: H301
-from espnet.nets.pytorch_backend.transformer.embedding import \
-    LegacyRelPositionalEncoding  # noqa: H301
-from espnet.nets.pytorch_backend.transformer.embedding import \
-    PositionalEncoding  # noqa: H301
-from espnet.nets.pytorch_backend.transformer.embedding import \
-    RelPositionalEncoding  # noqa: H301
-from espnet.nets.pytorch_backend.transformer.embedding import \
-    ScaledPositionalEncoding  # noqa: H301
+from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
+from espnet.nets.pytorch_backend.transformer.attention import (
+    LegacyRelPositionMultiHeadedAttention,
+    MultiHeadedAttention,
+    RelPositionMultiHeadedAttention,
+)
+from espnet.nets.pytorch_backend.transformer.embedding import (
+    LegacyRelPositionalEncoding,
+    PositionalEncoding,
+    RelPositionalEncoding,
+    ScaledPositionalEncoding,
+)
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import (
-    Conv1dLinear, MultiLayeredConv1d)
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import \
-    PositionwiseFeedForward  # noqa: H301
+    Conv1dLinear,
+    MultiLayeredConv1d,
+)
+from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
+    PositionwiseFeedForward,
+)
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import (
-    Conv2dSubsampling, Conv2dSubsampling2, Conv2dSubsampling6,
-    Conv2dSubsampling8, TooShortUttError, check_short_utt)
+    Conv2dSubsampling,
+    Conv2dSubsampling2,
+    Conv2dSubsampling6,
+    Conv2dSubsampling8,
+    TooShortUttError,
+    check_short_utt,
+)
 
 
 class ConformerEncoder(AbsEncoder):

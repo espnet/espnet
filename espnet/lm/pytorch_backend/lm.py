@@ -18,11 +18,19 @@ from chainer.dataset import convert
 from chainer.training import extensions
 from torch.nn.parallel import data_parallel
 
-from espnet.asr.asr_utils import (snapshot_object, torch_load, torch_resume,
-                                  torch_snapshot)
-from espnet.lm.lm_utils import (MakeSymlinkToBestModel,
-                                ParallelSentenceIterator, count_tokens,
-                                load_dataset, read_tokens)
+from espnet.asr.asr_utils import (
+    snapshot_object,
+    torch_load,
+    torch_resume,
+    torch_snapshot,
+)
+from espnet.lm.lm_utils import (
+    MakeSymlinkToBestModel,
+    ParallelSentenceIterator,
+    count_tokens,
+    load_dataset,
+    read_tokens,
+)
 from espnet.nets.lm_interface import LMInterface, dynamic_import_lm
 from espnet.optimizer.factory import dynamic_import_optimizer
 from espnet.scheduler.pytorch import PyTorchScheduler

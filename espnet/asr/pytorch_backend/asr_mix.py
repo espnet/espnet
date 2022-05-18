@@ -13,6 +13,7 @@ from itertools import zip_longest as zip_longest
 
 import numpy as np
 import torch
+
 # chainer related
 from chainer import training
 from chainer.training import extensions
@@ -20,12 +21,21 @@ from chainer.training import extensions
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.asr.asr_mix_utils import add_results_to_json
-from espnet.asr.asr_utils import (CompareValueTrigger, adadelta_eps_decay,
-                                  get_model_conf, restore_snapshot,
-                                  snapshot_object, torch_load, torch_resume,
-                                  torch_snapshot)
-from espnet.asr.pytorch_backend.asr import (CustomEvaluator, CustomUpdater,
-                                            load_trained_model)
+from espnet.asr.asr_utils import (
+    CompareValueTrigger,
+    adadelta_eps_decay,
+    get_model_conf,
+    restore_snapshot,
+    snapshot_object,
+    torch_load,
+    torch_resume,
+    torch_snapshot,
+)
+from espnet.asr.pytorch_backend.asr import (
+    CustomEvaluator,
+    CustomUpdater,
+    load_trained_model,
+)
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.pytorch_backend.e2e_asr_mix import pad_list
 from espnet.utils.dataset import ChainerDataLoader, TransformDataset
@@ -217,8 +227,7 @@ def train(args):
     elif args.opt == "adam":
         optimizer = torch.optim.Adam(model.parameters(), weight_decay=args.weight_decay)
     elif args.opt == "noam":
-        from espnet.nets.pytorch_backend.transformer.optimizer import \
-            get_std_opt
+        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
             model.parameters(),

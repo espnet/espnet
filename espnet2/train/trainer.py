@@ -18,12 +18,13 @@ from typeguard import check_argument_types
 
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.main_funcs.average_nbest_models import average_nbest_models
-from espnet2.main_funcs.calculate_all_attentions import \
-    calculate_all_attentions
-from espnet2.schedulers.abs_scheduler import (AbsBatchStepScheduler,
-                                              AbsEpochStepScheduler,
-                                              AbsScheduler,
-                                              AbsValEpochStepScheduler)
+from espnet2.main_funcs.calculate_all_attentions import calculate_all_attentions
+from espnet2.schedulers.abs_scheduler import (
+    AbsBatchStepScheduler,
+    AbsEpochStepScheduler,
+    AbsScheduler,
+    AbsValEpochStepScheduler,
+)
 from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average

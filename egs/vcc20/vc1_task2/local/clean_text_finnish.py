@@ -7,11 +7,16 @@ import argparse
 import codecs
 
 import nltk
-from tacotron_cleaner.cleaners import (collapse_whitespace,
-                                       custom_english_cleaners,
-                                       expand_abbreviations, expand_numbers,
-                                       expand_symbols, lowercase,
-                                       remove_unnecessary_symbols, uppercase)
+from tacotron_cleaner.cleaners import (
+    collapse_whitespace,
+    custom_english_cleaners,
+    expand_abbreviations,
+    expand_numbers,
+    expand_symbols,
+    lowercase,
+    remove_unnecessary_symbols,
+    uppercase,
+)
 
 E_lang_tag = "en_US"
 

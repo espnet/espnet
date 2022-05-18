@@ -15,14 +15,20 @@ from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
-from espnet2.enh.loss.criterions.tf_domain import (FrequencyDomainAbsCoherence,
-                                                   FrequencyDomainDPCL,
-                                                   FrequencyDomainL1,
-                                                   FrequencyDomainMSE)
-from espnet2.enh.loss.criterions.time_domain import (CISDRLoss, SDRLoss,
-                                                     SISNRLoss, SNRLoss,
-                                                     TimeDomainL1,
-                                                     TimeDomainMSE)
+from espnet2.enh.loss.criterions.tf_domain import (
+    FrequencyDomainAbsCoherence,
+    FrequencyDomainDPCL,
+    FrequencyDomainL1,
+    FrequencyDomainMSE,
+)
+from espnet2.enh.loss.criterions.time_domain import (
+    CISDRLoss,
+    SDRLoss,
+    SISNRLoss,
+    SNRLoss,
+    TimeDomainL1,
+    TimeDomainMSE,
+)
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.loss.wrappers.dpcl_solver import DPCLSolver
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver

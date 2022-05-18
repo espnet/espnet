@@ -16,12 +16,22 @@ import torch
 from chainer import training
 from chainer.training import extensions
 
-from espnet.asr.asr_utils import (CompareValueTrigger, adadelta_eps_decay,
-                                  adam_lr_decay, add_results_to_json,
-                                  restore_snapshot, snapshot_object,
-                                  torch_load, torch_resume, torch_snapshot)
-from espnet.asr.pytorch_backend.asr import (CustomEvaluator, CustomUpdater,
-                                            load_trained_model)
+from espnet.asr.asr_utils import (
+    CompareValueTrigger,
+    adadelta_eps_decay,
+    adam_lr_decay,
+    add_results_to_json,
+    restore_snapshot,
+    snapshot_object,
+    torch_load,
+    torch_resume,
+    torch_snapshot,
+)
+from espnet.asr.pytorch_backend.asr import (
+    CustomEvaluator,
+    CustomUpdater,
+    load_trained_model,
+)
 from espnet.nets.mt_interface import MTInterface
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
 from espnet.utils.dataset import ChainerDataLoader, TransformDataset
@@ -154,8 +164,7 @@ def train(args):
             model.parameters(), lr=args.lr, weight_decay=args.weight_decay
         )
     elif args.opt == "noam":
-        from espnet.nets.pytorch_backend.transformer.optimizer import \
-            get_std_opt
+        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
             model.parameters(),

@@ -6,8 +6,7 @@ import logging
 import torch
 from packaging.version import parse as V
 
-from espnet.asr.asr_utils import (add_results_to_json, get_model_conf,
-                                  torch_load)
+from espnet.asr.asr_utils import add_results_to_json, get_model_conf, torch_load
 from espnet.asr.pytorch_backend.asr import load_trained_model
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.batch_beam_search import BatchBeamSearch

@@ -12,10 +12,10 @@ import torch.quantization
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
-from espnet2.asr.transducer.beam_search_transducer import \
-    ExtendedHypothesis as ExtTransHypothesis  # noqa: H301
-from espnet2.asr.transducer.beam_search_transducer import \
-    Hypothesis as TransHypothesis
+from espnet2.asr.transducer.beam_search_transducer import (
+    ExtendedHypothesis as ExtTransHypothesis,
+)
+from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
@@ -29,8 +29,7 @@ from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch, Hypothesis
-from espnet.nets.pytorch_backend.transformer.subsampling import \
-    TooShortUttError
+from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus

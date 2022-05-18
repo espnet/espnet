@@ -9,23 +9,27 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
-from espnet2.gan_tts.hifigan import (HiFiGANGenerator,
-                                     HiFiGANMultiPeriodDiscriminator,
-                                     HiFiGANMultiScaleDiscriminator,
-                                     HiFiGANMultiScaleMultiPeriodDiscriminator,
-                                     HiFiGANPeriodDiscriminator,
-                                     HiFiGANScaleDiscriminator)
-from espnet2.gan_tts.hifigan.loss import (DiscriminatorAdversarialLoss,
-                                          FeatureMatchLoss,
-                                          GeneratorAdversarialLoss,
-                                          MelSpectrogramLoss)
-from espnet2.gan_tts.melgan import (MelGANGenerator,
-                                    MelGANMultiScaleDiscriminator)
+from espnet2.gan_tts.hifigan import (
+    HiFiGANGenerator,
+    HiFiGANMultiPeriodDiscriminator,
+    HiFiGANMultiScaleDiscriminator,
+    HiFiGANMultiScaleMultiPeriodDiscriminator,
+    HiFiGANPeriodDiscriminator,
+    HiFiGANScaleDiscriminator,
+)
+from espnet2.gan_tts.hifigan.loss import (
+    DiscriminatorAdversarialLoss,
+    FeatureMatchLoss,
+    GeneratorAdversarialLoss,
+    MelSpectrogramLoss,
+)
+from espnet2.gan_tts.melgan import MelGANGenerator, MelGANMultiScaleDiscriminator
 from espnet2.gan_tts.melgan.pqmf import PQMF
-from espnet2.gan_tts.parallel_wavegan import (ParallelWaveGANDiscriminator,
-                                              ParallelWaveGANGenerator)
-from espnet2.gan_tts.style_melgan import (StyleMelGANDiscriminator,
-                                          StyleMelGANGenerator)
+from espnet2.gan_tts.parallel_wavegan import (
+    ParallelWaveGANDiscriminator,
+    ParallelWaveGANGenerator,
+)
+from espnet2.gan_tts.style_melgan import StyleMelGANDiscriminator, StyleMelGANGenerator
 from espnet2.gan_tts.utils import get_random_segments, get_segments
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.fastspeech import FastSpeech

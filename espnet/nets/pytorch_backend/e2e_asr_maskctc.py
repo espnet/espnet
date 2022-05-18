@@ -17,16 +17,15 @@ from itertools import groupby
 import numpy
 import torch
 
-from espnet.nets.pytorch_backend.conformer.argument import \
-    add_arguments_conformer_common  # noqa: H301
+from espnet.nets.pytorch_backend.conformer.argument import (  # noqa: H301
+    add_arguments_conformer_common,
+)
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
-from espnet.nets.pytorch_backend.e2e_asr_transformer import \
-    E2E as E2ETransformer
+from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E as E2ETransformer
 from espnet.nets.pytorch_backend.maskctc.add_mask_token import mask_uniform
 from espnet.nets.pytorch_backend.maskctc.mask import square_mask
-from espnet.nets.pytorch_backend.nets_utils import (make_non_pad_mask,
-                                                    th_accuracy)
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, th_accuracy
 
 
 class E2E(E2ETransformer):

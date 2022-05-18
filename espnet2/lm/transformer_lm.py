@@ -4,8 +4,7 @@ import torch
 import torch.nn as nn
 
 from espnet2.lm.abs_model import AbsLM
-from espnet.nets.pytorch_backend.transformer.embedding import \
-    PositionalEncoding
+from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
 

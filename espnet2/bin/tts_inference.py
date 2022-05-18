@@ -279,8 +279,7 @@ class Text2Speech:
         if vocoder_tag is not None:
             if vocoder_tag.startswith("parallel_wavegan/"):
                 try:
-                    from parallel_wavegan.utils import \
-                        download_pretrained_model
+                    from parallel_wavegan.utils import download_pretrained_model
 
                 except ImportError:
                     logging.error(

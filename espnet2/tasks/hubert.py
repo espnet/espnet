@@ -14,8 +14,9 @@ import torch
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.encoder.hubert_encoder import \
-    FairseqHubertPretrainEncoder  # noqa: H301
+from espnet2.asr.encoder.hubert_encoder import (  # noqa: H301
+    FairseqHubertPretrainEncoder,
+)
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
@@ -36,8 +37,7 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import (float_or_none, int_or_none, str2bool,
-                                 str_or_none)
+from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",

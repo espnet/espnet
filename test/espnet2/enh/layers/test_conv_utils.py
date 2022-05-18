@@ -1,8 +1,7 @@
 import pytest
 import torch
 
-from espnet2.enh.layers.conv_utils import (conv2d_output_shape,
-                                           convtransp2d_output_shape)
+from espnet2.enh.layers.conv_utils import conv2d_output_shape, convtransp2d_output_shape
 
 
 @pytest.mark.parametrize("input_dim", [(10, 17), (10, 33)])

@@ -6,8 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from espnet2.bin.asr_align import (CTCSegmentation, CTCSegmentationTask,
-                                   get_parser, main)
+from espnet2.bin.asr_align import CTCSegmentation, CTCSegmentationTask, get_parser, main
 from espnet2.tasks.asr import ASRTask
 
 

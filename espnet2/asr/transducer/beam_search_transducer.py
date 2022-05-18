@@ -8,10 +8,12 @@ import torch
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.transducer.joint_network import JointNetwork
-from espnet.nets.pytorch_backend.transducer.utils import (is_prefix,
-                                                          recombine_hyps,
-                                                          select_k_expansions,
-                                                          subtract)
+from espnet.nets.pytorch_backend.transducer.utils import (
+    is_prefix,
+    recombine_hyps,
+    select_k_expansions,
+    subtract,
+)
 
 
 @dataclass

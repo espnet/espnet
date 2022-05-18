@@ -3,11 +3,13 @@ import torch
 from packaging.version import parse as V
 from torch_complex import ComplexTensor
 
-from espnet2.enh.loss.criterions.tf_domain import (FrequencyDomainAbsCoherence,
-                                                   FrequencyDomainCrossEntropy,
-                                                   FrequencyDomainDPCL,
-                                                   FrequencyDomainL1,
-                                                   FrequencyDomainMSE)
+from espnet2.enh.loss.criterions.tf_domain import (
+    FrequencyDomainAbsCoherence,
+    FrequencyDomainCrossEntropy,
+    FrequencyDomainDPCL,
+    FrequencyDomainL1,
+    FrequencyDomainMSE,
+)
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 

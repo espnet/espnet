@@ -7,19 +7,22 @@ from packaging.version import parse as V
 from torch.nn import functional as F
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.beamformer import (apply_beamforming_vector,
-                                           blind_analytic_normalization,
-                                           get_gev_vector,
-                                           get_lcmv_vector_with_rtf,
-                                           get_mvdr_vector,
-                                           get_mvdr_vector_with_rtf,
-                                           get_mwf_vector,
-                                           get_rank1_mwf_vector,
-                                           get_rtf_matrix, get_sdw_mwf_vector,
-                                           get_WPD_filter_v2,
-                                           get_WPD_filter_with_rtf,
-                                           perform_WPD_filtering,
-                                           prepare_beamformer_stats)
+from espnet2.enh.layers.beamformer import (
+    apply_beamforming_vector,
+    blind_analytic_normalization,
+    get_gev_vector,
+    get_lcmv_vector_with_rtf,
+    get_mvdr_vector,
+    get_mvdr_vector_with_rtf,
+    get_mwf_vector,
+    get_rank1_mwf_vector,
+    get_rtf_matrix,
+    get_sdw_mwf_vector,
+    get_WPD_filter_v2,
+    get_WPD_filter_with_rtf,
+    perform_WPD_filtering,
+    prepare_beamformer_stats,
+)
 from espnet2.enh.layers.complex_utils import stack, to_double, to_float
 from espnet2.enh.layers.mask_estimator import MaskEstimator
 

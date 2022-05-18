@@ -11,8 +11,12 @@ import torch.nn.functional as F
 
 from espnet.nets.ctc_prefix_score import CTCPrefixScore, CTCPrefixScoreTH
 from espnet.nets.e2e_asr_common import end_detect
-from espnet.nets.pytorch_backend.nets_utils import (mask_by_length, pad_list,
-                                                    th_accuracy, to_device)
+from espnet.nets.pytorch_backend.nets_utils import (
+    mask_by_length,
+    pad_list,
+    th_accuracy,
+    to_device,
+)
 from espnet.nets.pytorch_backend.rnn.attentions import att_to_numpy
 from espnet.nets.scorer_interface import ScorerInterface
 

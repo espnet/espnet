@@ -1,6 +1,7 @@
 import chainer
 import numpy
 import six
+
 # from chainer.functions.connection import embed_id
 from chainer import cuda, function_node, link, variable
 from chainer.initializers import normal

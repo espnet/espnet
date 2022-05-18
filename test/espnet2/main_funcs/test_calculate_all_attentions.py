@@ -5,12 +5,10 @@ import pytest
 import torch
 
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
-from espnet2.main_funcs.calculate_all_attentions import \
-    calculate_all_attentions
+from espnet2.main_funcs.calculate_all_attentions import calculate_all_attentions
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.pytorch_backend.rnn.attentions import AttAdd
-from espnet.nets.pytorch_backend.transformer.attention import \
-    MultiHeadedAttention
+from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 
 
 class Dummy(AbsESPnetModel):

@@ -26,17 +26,17 @@ from espnet2.tasks.enh import separator_choices as enh_separator_choices_
 from espnet2.tasks.st import STTask
 from espnet2.tasks.st import decoder_choices as st_decoder_choices_
 from espnet2.tasks.st import encoder_choices as st_encoder_choices_
-from espnet2.tasks.st import \
-    extra_asr_decoder_choices as st_extra_asr_decoder_choices_
-from espnet2.tasks.st import \
-    extra_mt_decoder_choices as st_extra_mt_decoder_choices_
+from espnet2.tasks.st import extra_asr_decoder_choices as st_extra_asr_decoder_choices_
+from espnet2.tasks.st import extra_mt_decoder_choices as st_extra_mt_decoder_choices_
 from espnet2.tasks.st import postencoder_choices as st_postencoder_choices_
 from espnet2.tasks.st import preencoder_choices as st_preencoder_choices_
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import (CommonPreprocessor_multi,
-                                        MutliTokenizerCommonPreprocessor)
+from espnet2.train.preprocessor import (
+    CommonPreprocessor_multi,
+    MutliTokenizerCommonPreprocessor,
+)
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction

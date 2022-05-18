@@ -10,12 +10,11 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import \
-    GuidedAttentionLoss  # noqa: H301
-from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import \
-    Tacotron2Loss  # noqa: H301
-from espnet.nets.pytorch_backend.rnn.attentions import (AttForward,
-                                                        AttForwardTA, AttLoc)
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import Tacotron2Loss  # noqa: H301
+from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (  # noqa: H301
+    GuidedAttentionLoss,
+)
+from espnet.nets.pytorch_backend.rnn.attentions import AttForward, AttForwardTA, AttLoc
 from espnet.nets.pytorch_backend.tacotron2.cbhg import CBHG, CBHGLoss
 from espnet.nets.pytorch_backend.tacotron2.decoder import Decoder
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder

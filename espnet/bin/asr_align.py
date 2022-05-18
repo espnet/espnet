@@ -48,9 +48,14 @@ import sys
 
 import configargparse
 import torch
+
 # imports for CTC segmentation
-from ctc_segmentation import (CtcSegmentationParameters, ctc_segmentation,
-                              determine_utterance_segments, prepare_text)
+from ctc_segmentation import (
+    CtcSegmentationParameters,
+    ctc_segmentation,
+    determine_utterance_segments,
+    prepare_text,
+)
 
 # imports for inference
 from espnet.asr.pytorch_backend.asr_init import load_trained_model

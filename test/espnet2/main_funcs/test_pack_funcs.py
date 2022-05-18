@@ -4,8 +4,11 @@ from pathlib import Path
 import pytest
 import yaml
 
-from espnet2.main_funcs.pack_funcs import (find_path_and_change_it_recursive,
-                                           pack, unpack)
+from espnet2.main_funcs.pack_funcs import (
+    find_path_and_change_it_recursive,
+    pack,
+    unpack,
+)
 
 
 def test_find_path_and_change_it_recursive():

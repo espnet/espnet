@@ -18,14 +18,19 @@ import numpy as np
 import six
 from chainer import link, reporter, training
 from chainer.dataset import convert
+
 # for classifier link
 from chainer.functions.loss import softmax_cross_entropy
 from chainer.training import extensions
 
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
-from espnet.lm.lm_utils import (MakeSymlinkToBestModel,
-                                ParallelSentenceIterator, compute_perplexity,
-                                count_tokens, read_tokens)
+from espnet.lm.lm_utils import (
+    MakeSymlinkToBestModel,
+    ParallelSentenceIterator,
+    compute_perplexity,
+    count_tokens,
+    read_tokens,
+)
 from espnet.nets.lm_interface import LMInterface
 from espnet.optimizer.factory import dynamic_import_optimizer
 from espnet.scheduler.chainer import ChainerScheduler

@@ -27,8 +27,7 @@ from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.sgd import SGD
-from espnet2.samplers.build_batch_sampler import (BATCH_TYPES,
-                                                  build_batch_sampler)
+from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.warmup_lr import WarmupLR
@@ -39,19 +38,28 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.dataset import DATA_TYPES, AbsDataset, ESPnetDataset
-from espnet2.train.distributed_utils import (DistributedOption, free_port,
-                                             get_master_port, get_node_rank,
-                                             get_num_nodes,
-                                             resolve_distributed_mode)
+from espnet2.train.distributed_utils import (
+    DistributedOption,
+    free_port,
+    get_master_port,
+    get_node_rank,
+    get_num_nodes,
+    resolve_distributed_mode,
+)
 from espnet2.train.iterable_dataset import IterableESPnetDataset
 from espnet2.train.trainer import Trainer
 from espnet2.utils import config_argparse
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import (humanfriendly_parse_size_or_none, int_or_none,
-                                 str2bool, str2triple_str, str_or_int,
-                                 str_or_none)
+from espnet2.utils.types import (
+    humanfriendly_parse_size_or_none,
+    int_or_none,
+    str2bool,
+    str2triple_str,
+    str_or_int,
+    str_or_none,
+)
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 from espnet.utils.cli_utils import get_commandline_args
 

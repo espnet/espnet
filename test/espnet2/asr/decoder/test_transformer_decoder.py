@@ -2,14 +2,13 @@ import pytest
 import torch
 
 from espnet2.asr.ctc import CTC
-from espnet2.asr.decoder.transformer_decoder import \
-    DynamicConvolution2DTransformerDecoder  # noqa: H301
-from espnet2.asr.decoder.transformer_decoder import \
-    LightweightConvolution2DTransformerDecoder  # noqa: H301
-from espnet2.asr.decoder.transformer_decoder import \
-    LightweightConvolutionTransformerDecoder  # noqa: H301
-from espnet2.asr.decoder.transformer_decoder import (
-    DynamicConvolutionTransformerDecoder, TransformerDecoder)
+from espnet2.asr.decoder.transformer_decoder import (  # noqa: H301
+    DynamicConvolution2DTransformerDecoder,
+    DynamicConvolutionTransformerDecoder,
+    LightweightConvolution2DTransformerDecoder,
+    LightweightConvolutionTransformerDecoder,
+    TransformerDecoder,
+)
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch

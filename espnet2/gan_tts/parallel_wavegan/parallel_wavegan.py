@@ -15,8 +15,7 @@ import numpy as np
 import torch
 
 from espnet2.gan_tts.parallel_wavegan import upsample
-from espnet2.gan_tts.wavenet.residual_block import (Conv1d, Conv1d1x1,
-                                                    ResidualBlock)
+from espnet2.gan_tts.wavenet.residual_block import Conv1d, Conv1d1x1, ResidualBlock
 
 
 class ParallelWaveGANGenerator(torch.nn.Module):

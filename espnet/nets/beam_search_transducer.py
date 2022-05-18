@@ -10,10 +10,15 @@ from espnet.nets.pytorch_backend.transducer.custom_decoder import CustomDecoder
 from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet.nets.pytorch_backend.transducer.rnn_decoder import RNNDecoder
 from espnet.nets.pytorch_backend.transducer.utils import (
-    create_lm_batch_states, init_lm_state, is_prefix, recombine_hyps,
-    select_k_expansions, select_lm_state, subtract)
-from espnet.nets.transducer_decoder_interface import (ExtendedHypothesis,
-                                                      Hypothesis)
+    create_lm_batch_states,
+    init_lm_state,
+    is_prefix,
+    recombine_hyps,
+    select_k_expansions,
+    select_lm_state,
+    subtract,
+)
+from espnet.nets.transducer_decoder_interface import ExtendedHypothesis, Hypothesis
 
 
 class BeamSearchTransducer:

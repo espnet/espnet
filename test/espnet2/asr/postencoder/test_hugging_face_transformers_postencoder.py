@@ -1,8 +1,9 @@
 import pytest
 import torch
 
-from espnet2.asr.postencoder.hugging_face_transformers_postencoder import \
-    HuggingFaceTransformersPostEncoder  # noqa: H301
+from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
+    HuggingFaceTransformersPostEncoder,
+)
 
 
 @pytest.mark.parametrize(

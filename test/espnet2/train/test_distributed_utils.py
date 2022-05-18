@@ -6,8 +6,11 @@ from concurrent.futures.thread import ThreadPoolExecutor
 import pytest
 
 from espnet2.tasks.abs_task import AbsTask
-from espnet2.train.distributed_utils import (DistributedOption, free_port,
-                                             resolve_distributed_mode)
+from espnet2.train.distributed_utils import (
+    DistributedOption,
+    free_port,
+    resolve_distributed_mode,
+)
 from espnet2.utils.build_dataclass import build_dataclass
 
 

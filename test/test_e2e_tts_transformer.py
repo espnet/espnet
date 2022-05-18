@@ -10,8 +10,7 @@ import numpy as np
 import pytest
 import torch
 
-from espnet.nets.pytorch_backend.e2e_tts_transformer import (Transformer,
-                                                             subsequent_mask)
+from espnet.nets.pytorch_backend.e2e_tts_transformer import Transformer, subsequent_mask
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 

@@ -215,8 +215,7 @@ class E2E(ChainerASRInterface):
     @staticmethod
     def custom_parallel_updater(iters, optimizer, converter, devices, accum_grad=1):
         """Get custom_parallel_updater of the model."""
-        from espnet.nets.chainer_backend.rnn.training import \
-            CustomParallelUpdater
+        from espnet.nets.chainer_backend.rnn.training import CustomParallelUpdater
 
         return CustomParallelUpdater(
             iters,

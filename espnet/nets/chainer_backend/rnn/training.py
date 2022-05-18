@@ -8,10 +8,14 @@ import math
 
 import numpy as np
 import six
+
 # chainer related
 from chainer import Variable, cuda, training
 from chainer.training.updaters.multiprocess_parallel_updater import (
-    gather_grads, gather_params, scatter_grads)
+    gather_grads,
+    gather_params,
+    scatter_grads,
+)
 
 
 # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py

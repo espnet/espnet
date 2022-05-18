@@ -16,8 +16,10 @@ from torch.utils.data.dataset import Dataset
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.fileio.npy_scp import NpyScpReader
-from espnet2.fileio.rand_gen_dataset import (FloatRandomGenerateDataset,
-                                             IntRandomGenerateDataset)
+from espnet2.fileio.rand_gen_dataset import (
+    FloatRandomGenerateDataset,
+    IntRandomGenerateDataset,
+)
 from espnet2.fileio.read_text import load_num_sequence_text, read_2column_text
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.sound_scp import SoundScpReader

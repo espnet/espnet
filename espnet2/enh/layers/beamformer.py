@@ -6,10 +6,18 @@ from packaging.version import parse as V
 from torch_complex import functional as FC
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.complex_utils import (cat, complex_norm, einsum,
-                                              inverse, is_complex,
-                                              is_torch_complex_tensor, matmul,
-                                              reverse, solve, to_double)
+from espnet2.enh.layers.complex_utils import (
+    cat,
+    complex_norm,
+    einsum,
+    inverse,
+    is_complex,
+    is_torch_complex_tensor,
+    matmul,
+    reverse,
+    solve,
+    to_double,
+)
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 EPS = torch.finfo(torch.double).eps

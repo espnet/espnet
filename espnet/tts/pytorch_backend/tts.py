@@ -20,8 +20,13 @@ import torch
 from chainer import training
 from chainer.training import extensions
 
-from espnet.asr.asr_utils import (get_model_conf, snapshot_object, torch_load,
-                                  torch_resume, torch_snapshot)
+from espnet.asr.asr_utils import (
+    get_model_conf,
+    snapshot_object,
+    torch_load,
+    torch_resume,
+    torch_snapshot,
+)
 from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.tts_interface import TTSInterface
@@ -345,8 +350,7 @@ def train(args):
             model_params, args.lr, eps=args.eps, weight_decay=args.weight_decay
         )
     elif args.opt == "noam":
-        from espnet.nets.pytorch_backend.transformer.optimizer import \
-            get_std_opt
+        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         optimizer = get_std_opt(
             model_params, args.adim, args.transformer_warmup_steps, args.transformer_lr

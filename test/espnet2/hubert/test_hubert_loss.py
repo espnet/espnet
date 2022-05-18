@@ -1,8 +1,9 @@
 import pytest
 import torch
 
-from espnet2.asr.encoder.hubert_encoder import \
-    FairseqHubertPretrainEncoder  # noqa: H301
+from espnet2.asr.encoder.hubert_encoder import (  # noqa: H301
+    FairseqHubertPretrainEncoder,
+)
 from espnet2.hubert.hubert_loss import HubertPretrainLoss  # noqa: H301
 
 pytest.importorskip("fairseq")

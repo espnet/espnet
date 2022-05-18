@@ -21,14 +21,24 @@ from torch.nn.parallel import data_parallel
 
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
-from espnet.asr.asr_utils import (CompareValueTrigger, adadelta_eps_decay,
-                                  add_results_to_json, format_mulenc_args,
-                                  get_model_conf, plot_spectrogram,
-                                  restore_snapshot, snapshot_object,
-                                  torch_load, torch_resume, torch_snapshot)
-from espnet.asr.pytorch_backend.asr_init import (freeze_modules,
-                                                 load_trained_model,
-                                                 load_trained_modules)
+from espnet.asr.asr_utils import (
+    CompareValueTrigger,
+    adadelta_eps_decay,
+    add_results_to_json,
+    format_mulenc_args,
+    get_model_conf,
+    plot_spectrogram,
+    restore_snapshot,
+    snapshot_object,
+    torch_load,
+    torch_resume,
+    torch_snapshot,
+)
+from espnet.asr.pytorch_backend.asr_init import (
+    freeze_modules,
+    load_trained_model,
+    load_trained_modules,
+)
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
@@ -500,8 +510,7 @@ def train(args):
     elif args.opt == "adam":
         optimizer = torch.optim.Adam(model_params, weight_decay=args.weight_decay)
     elif args.opt == "noam":
-        from espnet.nets.pytorch_backend.transformer.optimizer import \
-            get_std_opt
+        from espnet.nets.pytorch_backend.transformer.optimizer import get_std_opt
 
         if "transducer" in mtl_mode:
             if args.noam_adim > 0:

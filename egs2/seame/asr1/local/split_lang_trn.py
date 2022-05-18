@@ -4,9 +4,12 @@
 import argparse
 import os
 
-from preprocess import (extract_mandarin_only, extract_non_mandarin,
-                        insert_space_between_mandarin,
-                        remove_redundant_whitespaces)
+from preprocess import (
+    extract_mandarin_only,
+    extract_non_mandarin,
+    insert_space_between_mandarin,
+    remove_redundant_whitespaces,
+)
 
 if __name__ == "__main__":
     # Parse arguments

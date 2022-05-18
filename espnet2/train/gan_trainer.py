@@ -14,8 +14,7 @@ import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
-from espnet2.schedulers.abs_scheduler import (AbsBatchStepScheduler,
-                                              AbsScheduler)
+from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler, AbsScheduler
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.train.distributed_utils import DistributedOption

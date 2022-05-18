@@ -16,19 +16,18 @@ from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.fastspeech2.loss import FastSpeech2Loss
 from espnet2.tts.fastspeech2.variance_predictor import VariancePredictor
 from espnet2.tts.gst.style_encoder import StyleEncoder
-from espnet.nets.pytorch_backend.conformer.encoder import \
-    Encoder as ConformerEncoder  # noqa: H301
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import \
-    DurationPredictor
-from espnet.nets.pytorch_backend.fastspeech.length_regulator import \
-    LengthRegulator
-from espnet.nets.pytorch_backend.nets_utils import (make_non_pad_mask,
-                                                    make_pad_mask)
+from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
+from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
+from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegulator
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding, ScaledPositionalEncoding)
-from espnet.nets.pytorch_backend.transformer.encoder import \
-    Encoder as TransformerEncoder  # noqa: H301
+    PositionalEncoding,
+    ScaledPositionalEncoding,
+)
+from espnet.nets.pytorch_backend.transformer.encoder import (
+    Encoder as TransformerEncoder,
+)
 
 
 class FastSpeech2(AbsTTS):

@@ -12,16 +12,22 @@ from typing import List, Optional, TextIO, Union
 import numpy as np
 import soundfile
 import torch
+
 # imports for CTC segmentation
-from ctc_segmentation import (CtcSegmentationParameters, ctc_segmentation,
-                              determine_utterance_segments, prepare_text,
-                              prepare_token_list)
+from ctc_segmentation import (
+    CtcSegmentationParameters,
+    ctc_segmentation,
+    determine_utterance_segments,
+    prepare_text,
+    prepare_token_list,
+)
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.tasks.asr import ASRTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str_or_none
+
 # imports for inference
 from espnet.utils.cli_utils import get_commandline_args
 
