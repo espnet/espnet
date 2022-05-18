@@ -78,7 +78,7 @@ class E2E(E2ETransformer):
         self.odim = odim
 
         self.intermediate_ctc_weight = args.intermediate_ctc_weight
-        self.intermediate_ctc_layers = []
+        self.intermediate_ctc_layers = None
         if args.intermediate_ctc_layer != "":
             self.intermediate_ctc_layers = [
                 int(i) for i in args.intermediate_ctc_layer.split(",")
@@ -124,7 +124,10 @@ class E2E(E2ETransformer):
         # 1. forward encoder
         xs_pad = xs_pad[:, : max(ilens)]  # for data parallel
         src_mask = make_non_pad_mask(ilens.tolist()).to(xs_pad.device).unsqueeze(-2)
-        hs_pad, hs_mask, hs_intermediates = self.encoder(xs_pad, src_mask)
+        if self.intermediate_ctc_layers:
+            hs_pad, hs_mask, hs_intermediates = self.encoder(xs_pad, src_mask)
+        else:
+            hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
         self.hs_pad = hs_pad
 
         # 2. forward decoder
