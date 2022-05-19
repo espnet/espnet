@@ -310,7 +310,10 @@ class MaskCTCInference(torch.nn.Module):
         confident_idx = torch.nonzero(probs_hat[y_idx] >= p_thres).squeeze(-1)
         mask_num = len(mask_idx)
 
-        y_in = torch.zeros(1, len(y_idx), dtype=torch.long) + self.mask_token
+        y_in = (
+            torch.zeros(1, len(y_idx), dtype=torch.long).to(enc_out.device)
+            + self.mask_token
+        )
         y_in[0][confident_idx] = y_hat[y_idx][confident_idx]
 
         logging.info("msk:{}".format(self.ids2text(y_in[0].tolist())))
