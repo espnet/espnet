@@ -230,7 +230,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">=</span> <span class="n">odim</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_weight</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">intermediate_ctc_weight</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_layers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_layers</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">intermediate_ctc_layer</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_layers</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">intermediate_ctc_layer</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
@@ -276,7 +276,10 @@
         <span class="c1"># 1. forward encoder</span>
         <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="p">[:,</span> <span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="n">ilens</span><span class="p">)]</span>  <span class="c1"># for data parallel</span>
         <span class="n">src_mask</span> <span class="o">=</span> <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">ilens</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">xs_pad</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
-        <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hs_mask</span><span class="p">,</span> <span class="n">hs_intermediates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">src_mask</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">intermediate_ctc_layers</span><span class="p">:</span>
+            <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hs_mask</span><span class="p">,</span> <span class="n">hs_intermediates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">src_mask</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hs_pad</span><span class="p">,</span> <span class="n">hs_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">src_mask</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hs_pad</span> <span class="o">=</span> <span class="n">hs_pad</span>
 
         <span class="c1"># 2. forward decoder</span>
