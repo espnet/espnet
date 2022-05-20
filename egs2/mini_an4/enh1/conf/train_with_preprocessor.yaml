@@ -1,4 +1,5 @@
 # preprocessor config
+speech_volume_normalize: "0.5_1.0"
 rir_scp: dump/raw/train_nodev/rirs.scp
 rir_apply_prob: 1.0
 noise_scp: dump/raw/train_nodev/noises.scp
