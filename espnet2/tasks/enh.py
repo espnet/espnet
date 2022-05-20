@@ -58,7 +58,7 @@ from espnet2.train.preprocessor import EnhPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import float_or_none, str2bool, str_or_none
+from espnet2.utils.types import str2bool, str_or_none
 
 encoder_choices = ClassChoices(
     name="encoder",
@@ -201,9 +201,12 @@ class EnhancementTask(AbsTask):
         )
         group.add_argument(
             "--speech_volume_normalize",
-            type=float_or_none,
+            type=str_or_none,
             default=None,
-            help="Scale the maximum amplitude to the given value.",
+            help="Scale the maximum amplitude to the given value or range. "
+            "e.g. --speech_volume_normalize 1.0 scales it to 1.0.\n"
+            "--speech_volume_normalize 0.5_1.0 scales it to a random number in "
+            "the range [0.5, 1.0)",
         )
         group.add_argument(
             "--rir_scp",
@@ -304,7 +307,7 @@ class EnhancementTask(AbsTask):
                 if hasattr(args, "noise_db_range")
                 else "13_15",
                 speech_volume_normalize=args.speech_volume_normalize
-                if hasattr(args, "rir_scp")
+                if hasattr(args, "speech_volume_normalize")
                 else None,
                 use_reverberant_ref=args.use_reverberant_ref
                 if hasattr(args, "use_reverberant_ref")
@@ -361,7 +364,8 @@ class EnhancementTask(AbsTask):
             # This check is for the compatibility when load models
             # that packed by older version
             for ctr in args.criterions:
-                criterion = criterion_choices.get_class(ctr["name"])(**ctr["conf"])
+                criterion_conf = ctr.get("conf", {})
+                criterion = criterion_choices.get_class(ctr["name"])(**criterion_conf)
                 loss_wrapper = loss_wrapper_choices.get_class(ctr["wrapper"])(
                     criterion=criterion, **ctr["wrapper_conf"]
                 )

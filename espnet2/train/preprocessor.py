@@ -539,6 +539,18 @@ class EnhPreprocessor(CommonPreprocessor):
         self.sample_rate = sample_rate
         self.force_single_channel = force_single_channel
 
+        if self.speech_volume_normalize is not None:
+            sps = speech_volume_normalize.split("_")
+            if len(sps) == 1:
+                self.volume_low, self.volume_high = float(sps[0])
+            elif len(sps) == 2:
+                self.volume_low, self.volume_high = float(sps[0]), float(sps[1])
+            else:
+                raise ValueError(
+                    "Format error for --speech_volume_normalize: "
+                    f"'{speech_volume_normalize}'"
+                )
+
     def _ensure_2d(self, signal):
         if isinstance(signal, tuple):
             return tuple(self._ensure_2d(sig) for sig in signal)
@@ -684,11 +696,10 @@ class EnhPreprocessor(CommonPreprocessor):
             self._apply_to_all_signals(data, lambda x: x if x.ndim == 1 else x[:, 0])
 
         if self.speech_volume_normalize is not None:
+            volume_scale = np.random.uniform(self.volume_low, self.volume_high)
             speech_mix = data[self.speech_name]
             ma = np.max(np.abs(speech_mix))
-            self._apply_to_all_signals(
-                data, lambda x: x * self.speech_volume_normalize / ma
-            )
+            self._apply_to_all_signals(data, lambda x: x * volume_scale / ma)
 
         assert check_return_type(data)
         return data
