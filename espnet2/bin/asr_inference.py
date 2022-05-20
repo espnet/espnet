@@ -250,6 +250,22 @@ class Speech2Text:
         self.dtype = dtype
         self.nbest = nbest
 
+        assert "frontend_conf" in asr_train_args
+        if "fs" in asr_train_args.frontend_conf:
+            self.fs = asr_train_args.frontend_conf["fs"]
+        else:
+            raise RuntimeError("Sample frequency 'fs' entry missing in "
+                "config file %s" % asr_train_config)
+        if "8k" == self.fs:
+            self.fs = 8000
+        elif "16k" == self.fs:
+            self.fs = 16000
+        else:
+            self.fs = int(self.fs)
+
+    def get_sample_rate(self):
+        return self.fs
+
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
@@ -446,6 +462,7 @@ def inference(
         model_tag=model_tag,
         **speech2text_kwargs,
     )
+    sample_rate = speech2text.get_sample_rate()
 
     # 3. Build data-iterator
     loader = ASRTask.build_streaming_iterator(
@@ -470,13 +487,19 @@ def inference(
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
-            # N-best list of (text, token, token_int, hyp_object)
+            # log number of 10ms input frames needed for RTF calculations
+            speech = batch["speech"] 
+            num_frames = int(len(speech) / sample_rate * 1000 / 10)
+            logging.info("input lengths: %s" % num_frames)
+           
+           # N-best list of (text, token, token_int, hyp_object)
             try:
                 results = speech2text(**batch)
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
                 results = [[" ", ["<space>"], [2], hyp]] * nbest
+            logging.info("prediction complete.\n")
 
             # Only supporting batch_size==1
             key = keys[0]
