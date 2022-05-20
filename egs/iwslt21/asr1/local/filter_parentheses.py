@@ -7,6 +7,7 @@
 import argparse
 import codecs
 import re
+
 import regex
 
 parser = argparse.ArgumentParser()

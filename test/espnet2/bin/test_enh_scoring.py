@@ -3,9 +3,7 @@ from argparse import ArgumentParser
 import numpy as np
 import pytest
 
-from espnet2.bin.enh_scoring import get_parser
-from espnet2.bin.enh_scoring import main
-from espnet2.bin.enh_scoring import scoring
+from espnet2.bin.enh_scoring import get_parser, main, scoring
 from espnet2.fileio.sound_scp import SoundScpWriter
 
 

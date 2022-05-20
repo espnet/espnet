@@ -8,10 +8,7 @@ This code is based on https://github.com/jaywalnut310/vits.
 """
 
 import math
-
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Optional, Tuple, Union
 
 import torch
 

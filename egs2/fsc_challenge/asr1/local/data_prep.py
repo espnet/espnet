@@ -5,9 +5,10 @@
 
 import os
 import re
-import sys
-import pandas as pd
 import string
+import sys
+
+import pandas as pd
 
 if len(sys.argv) != 2:
     print("Usage: python data_prep.py [fsc_root]")

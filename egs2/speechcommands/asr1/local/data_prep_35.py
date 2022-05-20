@@ -6,11 +6,11 @@
 # Speech Commands Dataset: https://arxiv.org/abs/1804.03209
 
 
+import argparse
 import os
 import os.path
-import argparse
-import numpy as np
 
+import numpy as np
 
 parser = argparse.ArgumentParser(
     description="Process speech commands dataset with 35 commands."

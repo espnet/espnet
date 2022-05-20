@@ -21,7 +21,6 @@ from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.layers.label_aggregation import LabelAggregate
 
-
 enh_stft_encoder = STFTEncoder(
     n_fft=32,
     hop_length=16,

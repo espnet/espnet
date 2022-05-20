@@ -1,18 +1,11 @@
-from abc import ABC
-from abc import abstractmethod
 import collections
 import copy
 import functools
 import logging
 import numbers
 import re
-from typing import Any
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import Mapping
-from typing import Tuple
-from typing import Union
+from abc import ABC, abstractmethod
+from typing import Any, Callable, Collection, Dict, Mapping, Tuple, Union
 
 import h5py
 import humanfriendly
@@ -20,14 +13,14 @@ import kaldiio
 import numpy as np
 import torch
 from torch.utils.data.dataset import Dataset
-from typeguard import check_argument_types
-from typeguard import check_return_type
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.fileio.npy_scp import NpyScpReader
-from espnet2.fileio.rand_gen_dataset import FloatRandomGenerateDataset
-from espnet2.fileio.rand_gen_dataset import IntRandomGenerateDataset
-from espnet2.fileio.read_text import load_num_sequence_text
-from espnet2.fileio.read_text import read_2column_text
+from espnet2.fileio.rand_gen_dataset import (
+    FloatRandomGenerateDataset,
+    IntRandomGenerateDataset,
+)
+from espnet2.fileio.read_text import load_num_sequence_text, read_2column_text
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils.sized_dict import SizedDict

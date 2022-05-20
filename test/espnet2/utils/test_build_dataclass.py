@@ -1,5 +1,5 @@
-from argparse import Namespace
 import dataclasses
+from argparse import Namespace
 
 import pytest
 

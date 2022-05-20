@@ -2,9 +2,9 @@
 
 # Copyright 2022  Shanghai Jiao Tong University (Author: Wangyou Zhang)
 # Apache 2.0
-from pathlib import Path
 import re
 import sys
+from pathlib import Path
 
 
 def prepare_audioset_category(audio_list, audioset_dir, output_file, skip_csv_rows=3):

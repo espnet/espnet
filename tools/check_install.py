@@ -9,7 +9,7 @@ import importlib
 import shutil
 import sys
 
-from distutils.version import LooseVersion
+from packaging.version import parse
 
 module_list = [
     ("torchaudio", None, None),
@@ -29,9 +29,9 @@ module_list = [
     ("transformers", None, "installers/install_transformers.sh"),
     ("speechbrain", None, "installers/install_speechbrain.sh"),
     ("k2", None, "installers/install_k2.sh"),
-    ("longformer",None,"installers/install_longformer.sh"),
-    ("nlg-eval",None,"installers/install_longformer.sh"),
-    ("datasets",None,"installers/install_longformer.sh"),
+    ("longformer", None, "installers/install_longformer.sh"),
+    ("nlg-eval", None, "installers/install_longformer.sh"),
+    ("datasets", None, "installers/install_longformer.sh"),
 ]
 
 executable_list = [
@@ -77,7 +77,7 @@ def main():
         import chainer
 
         print(f"[x] chainer={chainer.__version__}")
-        if LooseVersion(chainer.__version__) != LooseVersion("6.0.0"):
+        if parse(chainer.__version__) != parse("6.0.0"):
             print(
                 f"Warning! chainer={chainer.__version__} is not supported. "
                 "Supported version is 6.0.0"

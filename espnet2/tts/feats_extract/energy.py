@@ -3,20 +3,16 @@
 
 """Energy extractor."""
 
-from typing import Any
-from typing import Dict
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, Tuple, Union
 
 import humanfriendly
 import torch
 import torch.nn.functional as F
-
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet2.layers.stft import Stft
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
 class Energy(AbsFeatsExtract):

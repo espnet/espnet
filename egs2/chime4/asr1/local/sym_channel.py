@@ -1,6 +1,6 @@
+import argparse
 import os
 from os import path
-import argparse
 
 
 def create_sym(data_dir, track, wav):

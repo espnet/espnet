@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -- coding: UTF-8
-import os
-import glob
-import codecs
 import argparse
-from multiprocessing import Pool
+import codecs
+import glob
+import os
 import sys
+from multiprocessing import Pool
 
 
 def text2lines(textpath, lines_content=None):

@@ -19,8 +19,8 @@ test_sets="test"
 train_config="conf/tuning/train_diar_enh_convtasnet_adapt.yaml"
 decode_config="conf/tuning/decode_diar_enh_adapt.yaml"
 # change the path according to the actual path to the pretrained model
-pretrained="exp/diar_enh_train_diar_enh_convtasnet_2_raw/valid.si_snr_loss.best.pth"
-./diar_enh.sh \
+pretrained="exp/diar_enh_train_diar_enh_convtasnet_2_raw/valid.loss_enh.best.pth"
+./enh_diar.sh \
     --use_noise_ref true \
     --collar 0.0 \
     --train_set "${train_set}" \
@@ -35,6 +35,5 @@ pretrained="exp/diar_enh_train_diar_enh_convtasnet_2_raw/valid.si_snr_loss.best.
     --diar_args "--init_param ${pretrained}" \
     --diar_tag "train_diar_enh_convtasnet_adapt" \
     --spk_num "3"\
-    --hop_length 64 \
     --frame_shift 64 \
     "$@"

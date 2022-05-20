@@ -1,11 +1,10 @@
 import logging
-import six
 
 import chainer
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
-
+import six
 from chainer import cuda
 
 from espnet.nets.chainer_backend.nets_utils import _subsamplex

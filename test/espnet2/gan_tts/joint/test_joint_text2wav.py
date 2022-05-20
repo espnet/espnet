@@ -3,10 +3,9 @@
 
 """Test VITS related modules."""
 
-from distutils.version import LooseVersion
-
 import pytest
 import torch
+from packaging.version import parse as V
 
 from espnet2.gan_tts.joint import JointText2Wav
 
@@ -190,7 +189,7 @@ def make_loss_args(**kwargs):
 
 
 @pytest.mark.skipif(
-    LooseVersion(torch.__version__) < LooseVersion("1.4"),
+    V(torch.__version__) < V("1.4"),
     reason="Pytorch >= 1.4 is required.",
 )
 @pytest.mark.skipif(

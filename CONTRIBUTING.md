@@ -64,21 +64,21 @@ To port models from zenodo using Hugging Face hub,
 1. Create a Hugging Face account - https://huggingface.co/
 2. Request to be added to espnet organisation - https://huggingface.co/espnet
 3. Go to `egs2/RECIPE/*/scripts/utils` and run `./upload_models_to_hub.sh "ZENODO_MODEL_NAME"`
-   
+
 To upload models using Huggingface-cli follow the following steps:
 You can also refer to https://huggingface.co/docs/transformers/model_sharing
 1. Create a Hugging Face account - https://huggingface.co/
-2. Request to be added to espnet organisation - https://huggingface.co/espnet 
-3. Run huggingface-cli login (You can get the token request at this step under setting > Access Tokens > espnet token  
+2. Request to be added to espnet organisation - https://huggingface.co/espnet
+3. Run huggingface-cli login (You can get the token request at this step under setting > Access Tokens > espnet token
 4. `huggingface-cli repo create your-model-name --organization espnet`
 5. `git clone https://huggingface.co/username/your-model-name` (clone this outside ESPNet to avoid issues as this a git repo)
 6. `cd your-model-name`
 7. `git lfs install`
-8. copy contents from exp diretory of your recipe into this directory (Check other models of similar task under ESPNet to confirm your directory structure) 
+8. copy contents from exp diretory of your recipe into this directory (Check other models of similar task under ESPNet to confirm your directory structure)
 9. `git add . `
 10. `git commit -m "Add model files"`
 11. `git push`
-12. Check if the inference demo on HF is running successfully to verify the upload      
+12. Check if the inference demo on HF is running successfully to verify the upload
 
 #### 1.3.3 Additional requirements for new recipe
 
@@ -91,12 +91,13 @@ to its differences.
 - If a recipe for a new corpus is proposed, you should add its name and information to:
 https://github.com/espnet/espnet/blob/master/egs/README.md if it's a ESPnet1 recipe,
 or https://github.com/espnet/espnet/blob/master/egs2/README.md + `db.sh` if it's a ESPnet2 recipe.
-   
+
 #### 1.3.4 Checklist before you submit the recipe-based PR
 
 - [ ] be careful about the name for the recipe. It is recommended to follow naming conventions of the other recipes
 - [ ] common/shared files are linked with **soft link** (see Section 1.3.3)
-- [ ] modified or new python scripts should be passed through **latest** black formating (by using python package black). The command to be executed could be `black espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/asr1/pyscripts`
+- [ ] modified or new python scripts should be passed through **latest** black formating (by using python package black). The command to be executed could be `black espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/*/pyscripts tools/*.py ci/*.py`
+- [ ] modified or new python scripts should be passed through **latest** isort formating (by using python package isort). The command to be executed could be `isort espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/*/pyscripts tools/*.py ci/*.py`
 - [ ] cluster settings should be set as **default** (e.g., cmd.sh conf/slurm.conf conf/queue.conf conf/pbs.conf)
 - [ ] update `egs/README.md` or `egs2/README.md` with corresponding recipes
 - [ ] add corresponding entry in `egs2/TEMPLATE/db.sh` for a new corpus
@@ -135,7 +136,7 @@ $ pip install -e ".[test]"
 
 ### 4.1 Python
 
-Then you can run the entire test suite using [flake8](http://flake8.pycqa.org/en/latest/), [autopep8](https://github.com/hhatto/autopep8), [black](https://github.com/psf/black) and [pytest](https://docs.pytest.org/en/latest/) with [coverage](https://pytest-cov.readthedocs.io/en/latest/reporting.html) by
+Then you can run the entire test suite using [flake8](http://flake8.pycqa.org/en/latest/), [autopep8](https://github.com/hhatto/autopep8), [black](https://github.com/psf/black), [isort](https://github.com/PyCQA/isort) and [pytest](https://docs.pytest.org/en/latest/) with [coverage](https://pytest-cov.readthedocs.io/en/latest/reporting.html) by
 ``` console
 ./ci/test_python.sh
 ```

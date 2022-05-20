@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 import argparse
-from collections import OrderedDict
-from distutils.util import strtobool
 import itertools
 import logging
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import sys
-from tempfile import TemporaryDirectory
 import warnings
+from collections import OrderedDict
+from distutils.util import strtobool
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import museval
 import numpy as np
-from pystoi.stoi import stoi
 import soundfile
+from pystoi.stoi import stoi
 
 from espnet.utils.cli_utils import get_commandline_args
 

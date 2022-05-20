@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # _*_ coding: UTF-8 _*_
-import os
 import argparse
+import os
 
 
 def beamformit_worker(

@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import argparse
+import logging
+import sys
 from collections import Counter
 from itertools import zip_longest
-import logging
 from pathlib import Path
-import sys
-from typing import List
-from typing import Optional
+from typing import List, Optional
 
 from espnet.utils.cli_utils import get_commandline_args
 

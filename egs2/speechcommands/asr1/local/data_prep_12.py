@@ -8,14 +8,14 @@
 # https://www.tensorflow.org/datasets/catalog/speech_commands
 
 
-import os
-import os.path
+import argparse
 import csv
 import glob
-import argparse
+import os
+import os.path
+
 import numpy as np
 from scipy.io import wavfile
-
 
 parser = argparse.ArgumentParser(description="Process speech commands dataset.")
 parser.add_argument(

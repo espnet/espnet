@@ -6,12 +6,11 @@
 import argparse
 import errno
 import os
-import soundfile as sf
 
-from nara_wpe.utils import istft
-from nara_wpe.utils import stft
-from nara_wpe.wpe import wpe
 import numpy as np
+import soundfile as sf
+from nara_wpe.utils import istft, stft
+from nara_wpe.wpe import wpe
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--files", "-f", nargs="+")

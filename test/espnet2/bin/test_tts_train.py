@@ -2,8 +2,7 @@ from argparse import ArgumentParser
 
 import pytest
 
-from espnet2.bin.tts_train import get_parser
-from espnet2.bin.tts_train import main
+from espnet2.bin.tts_train import get_parser, main
 
 
 def test_get_parser():

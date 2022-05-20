@@ -7,10 +7,11 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.gan_tts.hifigan.loss import DiscriminatorAdversarialLoss
-from espnet2.gan_tts.hifigan.loss import GeneratorAdversarialLoss
-from espnet2.gan_tts.style_melgan import StyleMelGANDiscriminator
-from espnet2.gan_tts.style_melgan import StyleMelGANGenerator
+from espnet2.gan_tts.hifigan.loss import (
+    DiscriminatorAdversarialLoss,
+    GeneratorAdversarialLoss,
+)
+from espnet2.gan_tts.style_melgan import StyleMelGANDiscriminator, StyleMelGANGenerator
 
 
 def make_style_melgan_generator_args(**kwargs):

@@ -4,9 +4,7 @@ from pathlib import Path
 import pytest
 import torch
 
-from espnet2.bin.diar_inference import DiarizeSpeech
-from espnet2.bin.diar_inference import get_parser
-from espnet2.bin.diar_inference import main
+from espnet2.bin.diar_inference import DiarizeSpeech, get_parser, main
 from espnet2.tasks.diar import DiarizationTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 

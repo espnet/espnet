@@ -5,8 +5,8 @@
 # consisting of some specified number of utterances.
 
 import argparse
-from io import open
 import sys
+from io import open
 
 
 def get_parser():

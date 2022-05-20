@@ -3,11 +3,8 @@
 
 """GAN-based TTS abstrast class."""
 
-from abc import ABC
-from abc import abstractmethod
-
-from typing import Dict
-from typing import Union
+from abc import ABC, abstractmethod
+from typing import Dict, Union
 
 import torch
 

@@ -1,17 +1,11 @@
 import argparse
 import copy
 import logging
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.espnet_model import ESPnetASRModel
@@ -22,44 +16,42 @@ from espnet2.tasks.abs_task import AbsTask
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.asr import decoder_choices as asr_decoder_choices_
 from espnet2.tasks.asr import encoder_choices as asr_encoder_choices_
-from espnet2.tasks.asr import frontend_choices
-from espnet2.tasks.asr import normalize_choices
+from espnet2.tasks.asr import frontend_choices, normalize_choices
 from espnet2.tasks.asr import postencoder_choices as asr_postencoder_choices_
 from espnet2.tasks.asr import preencoder_choices as asr_preencoder_choices_
 from espnet2.tasks.asr import specaug_choices
+from espnet2.tasks.diar import DiarizationTask
 from espnet2.tasks.diar import attractor_choices as diar_attractor_choices_
 from espnet2.tasks.diar import decoder_choices as diar_decoder_choices_
-from espnet2.tasks.diar import DiarizationTask
 from espnet2.tasks.diar import encoder_choices as diar_encoder_choices_
 from espnet2.tasks.diar import frontend_choices as diar_front_end_choices_
 from espnet2.tasks.diar import label_aggregator_choices
 from espnet2.tasks.diar import normalize_choices as diar_normalize_choices_
 from espnet2.tasks.diar import specaug_choices as diar_specaug_choices_
+from espnet2.tasks.enh import EnhancementTask
 from espnet2.tasks.enh import decoder_choices as enh_decoder_choices_
 from espnet2.tasks.enh import encoder_choices as enh_encoder_choices_
-from espnet2.tasks.enh import EnhancementTask
 from espnet2.tasks.enh import mask_module_choices as enh_mask_module_choices_
 from espnet2.tasks.enh import separator_choices as enh_separator_choices_
+from espnet2.tasks.st import STTask
 from espnet2.tasks.st import decoder_choices as st_decoder_choices_
 from espnet2.tasks.st import encoder_choices as st_encoder_choices_
 from espnet2.tasks.st import extra_asr_decoder_choices as st_extra_asr_decoder_choices_
 from espnet2.tasks.st import extra_mt_decoder_choices as st_extra_mt_decoder_choices_
 from espnet2.tasks.st import postencoder_choices as st_postencoder_choices_
 from espnet2.tasks.st import preencoder_choices as st_preencoder_choices_
-from espnet2.tasks.st import STTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import CommonPreprocessor
-from espnet2.train.preprocessor import CommonPreprocessor_multi
-from espnet2.train.preprocessor import MutliTokenizerCommonPreprocessor
+from espnet2.train.preprocessor import (
+    CommonPreprocessor,
+    CommonPreprocessor_multi,
+    MutliTokenizerCommonPreprocessor,
+)
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import int_or_none
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str_or_none
-
+from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 # Enhancement
 enh_encoder_choices = copy.deepcopy(enh_encoder_choices_)
