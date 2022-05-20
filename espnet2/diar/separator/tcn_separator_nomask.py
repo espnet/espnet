@@ -1,6 +1,5 @@
 from distutils.version import LooseVersion
-from typing import Tuple
-from typing import Union
+from typing import Tuple, Union
 
 import torch
 from torch_complex.tensor import ComplexTensor

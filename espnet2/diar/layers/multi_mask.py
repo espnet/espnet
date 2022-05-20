@@ -2,17 +2,14 @@
 # in https://arxiv.org/pdf/2203.17068.pdf
 
 from collections import OrderedDict
-from typing import List
-from typing import Tuple
-from typing import Union
-
-from espnet2.diar.layers.abs_mask import AbsMask
+from typing import List, Tuple, Union
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 from torch_complex.tensor import ComplexTensor
+
+from espnet2.diar.layers.abs_mask import AbsMask
 
 
 class MultiMask(AbsMask):
