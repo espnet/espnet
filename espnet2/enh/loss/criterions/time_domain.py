@@ -11,7 +11,18 @@ from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 class TimeDomainLoss(AbsEnhLoss, ABC):
     """Base class for all time-domain Enhancement loss modules."""
 
-    pass
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def only_for_test(self) -> bool:
+        return self._only_for_test
+
+    def __init__(self, name, only_for_test=False):
+        super().__init__()
+        self._name = name
+        self._only_for_test = only_for_test
 
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
@@ -34,15 +45,11 @@ class CISDRLoss(TimeDomainLoss):
         loss: (Batch,)
     """
 
-    def __init__(self, filter_length=512, name=None):
-        super().__init__()
+    def __init__(self, filter_length=512, name=None, only_for_test=False):
+        _name = "ci_sdr_loss" if name is None else name
+        super().__init__(_name, only_for_test=only_for_test)
+
         self.filter_length = filter_length
-
-        self._name = "ci_sdr_loss" if name is None else name
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     def forward(
         self,
@@ -58,21 +65,13 @@ class CISDRLoss(TimeDomainLoss):
 
 
 class SNRLoss(TimeDomainLoss):
-    def __init__(self, eps=EPS, name=None):
-        super().__init__()
+    def __init__(self, eps=EPS, name=None, only_for_test=False):
+        _name = "snr_loss" if name is None else name
+        super().__init__(_name, only_for_test=only_for_test)
+
         self.eps = float(eps)
 
-        self._name = "snr_loss" if name is None else name
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    def forward(
-        self,
-        ref: torch.Tensor,
-        inf: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, inf: torch.Tensor) -> torch.Tensor:
         # the return tensor should be shape of (batch,)
 
         noise = inf - ref
@@ -115,8 +114,10 @@ class SDRLoss(TimeDomainLoss):
         zero_mean=True,
         load_diag=None,
         name=None,
+        only_for_test=False,
     ):
-        super().__init__()
+        _name = "sdr_loss" if name is None else name
+        super().__init__(_name, only_for_test=only_for_test)
 
         self.filter_length = filter_length
         self.use_cg_iter = use_cg_iter
@@ -124,17 +125,7 @@ class SDRLoss(TimeDomainLoss):
         self.zero_mean = zero_mean
         self.load_diag = load_diag
 
-        self._name = "sdr_loss" if name is None else name
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    def forward(
-        self,
-        ref: torch.Tensor,
-        est: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, est: torch.Tensor) -> torch.Tensor:
         """SDR forward.
 
         Args:
@@ -176,24 +167,18 @@ class SISNRLoss(TimeDomainLoss):
             Deprecated. Keeped for compatibility.
     """
 
-    def __init__(self, clamp_db=None, zero_mean=True, eps=None, name=None):
-        super().__init__()
+    def __init__(
+        self, clamp_db=None, zero_mean=True, eps=None, name=None, only_for_test=False
+    ):
+        _name = "si_snr_loss" if name is None else name
+        super().__init__(_name, only_for_test=only_for_test)
+
         self.clamp_db = clamp_db
         self.zero_mean = zero_mean
         if eps is not None:
             logging.warning("Eps is deprecated in si_snr loss, set clamp_db instead.")
 
-        self._name = "si_snr_loss" if name is None else name
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    def forward(
-        self,
-        ref: torch.Tensor,
-        est: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, ref: torch.Tensor, est: torch.Tensor) -> torch.Tensor:
         """SI-SNR forward.
 
         Args:
@@ -220,13 +205,9 @@ class SISNRLoss(TimeDomainLoss):
 
 
 class TimeDomainMSE(TimeDomainLoss):
-    def __init__(self, name=None):
-        super().__init__()
-        self._name = "TD_MSE_loss" if name is None else name
-
-    @property
-    def name(self) -> str:
-        return self._name
+    def __init__(self, name=None, only_for_test=False):
+        _name = "TD_MSE_loss" if name is None else name
+        super().__init__(_name, only_for_test=only_for_test)
 
     def forward(self, ref, inf) -> torch.Tensor:
         """Time-domain MSE loss forward.
@@ -252,13 +233,9 @@ class TimeDomainMSE(TimeDomainLoss):
 
 
 class TimeDomainL1(TimeDomainLoss):
-    def __init__(self, name=None):
-        super().__init__()
-        self._name = "TD_L1_loss" if name is None else name
-
-    @property
-    def name(self) -> str:
-        return self._name
+    def __init__(self, name=None, only_for_test=False):
+        _name = "TD_L1_loss" if name is None else name
+        super().__init__(_name, only_for_test=only_for_test)
 
     def forward(self, ref, inf) -> torch.Tensor:
         """Time-domain L1 loss forward.

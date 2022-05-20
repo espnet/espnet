@@ -109,6 +109,39 @@ fix_order_solver = FixedOrderSolver(criterion=tf_mse_loss)
 
 
 @pytest.mark.parametrize(
+    "encoder, decoder, separator", [(stft_encoder, stft_decoder, rnn_separator)]
+)
+@pytest.mark.parametrize("training", [True, False])
+def test_criterion_behavior(encoder, decoder, separator, training):
+    inputs = torch.randn(2, 300)
+    ilens = torch.LongTensor([300, 200])
+    speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]
+    enh_model = ESPnetEnhancementModel(
+        encoder=encoder,
+        separator=separator,
+        decoder=decoder,
+        loss_wrappers=[PITSolver(criterion=SISNRLoss(only_for_test=True))],
+    )
+
+    if training:
+        enh_model.train()
+    else:
+        enh_model.eval()
+
+    kwargs = {
+        "speech_mix": inputs,
+        "speech_mix_lengths": ilens,
+        **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(2)},
+    }
+
+    if training:
+        with pytest.raises(AttributeError):
+            loss, stats, weight = enh_model(**kwargs)
+    else:
+        loss, stats, weight = enh_model(**kwargs)
+
+
+@pytest.mark.parametrize(
     "encoder, decoder",
     [
         (stft_encoder, stft_decoder),
