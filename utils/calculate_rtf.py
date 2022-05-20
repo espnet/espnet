@@ -6,7 +6,6 @@
 
 import argparse
 import codecs
-from dateutil import parser
 import glob
 import os
 
