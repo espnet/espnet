@@ -1,27 +1,14 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-from pathlib import Path
 import sys
-from typing import Any
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from pathlib import Path
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
-from typing import List
+from typeguard import check_argument_types, check_return_type
 
-from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.beam_search import BeamSearch
-from espnet.nets.beam_search import Hypothesis
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet.nets.scorer_interface import BatchScorerInterface
-from espnet.nets.scorers.length_bonus import LengthBonus
-from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
@@ -31,9 +18,13 @@ from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str2triple_str
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import str2bool, str2triple_str, str_or_none
+from espnet.nets.batch_beam_search import BatchBeamSearch
+from espnet.nets.beam_search import BeamSearch, Hypothesis
+from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
+from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet.nets.scorers.length_bonus import LengthBonus
+from espnet.utils.cli_utils import get_commandline_args
 
 
 class Speech2Text:
@@ -488,6 +479,12 @@ def get_parser():
         type=str,
         help="Pretrained model tag. If specify this option, *_train_config and "
         "*_file will be overwritten",
+    )
+    group.add_argument(
+        "--enh_s2t_task",
+        type=str2bool,
+        default=False,
+        help="enhancement and asr joint model",
     )
 
     group = parser.add_argument_group("Beam-search related")

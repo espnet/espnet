@@ -1,7 +1,6 @@
 import argparse
 import os
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert data into kaldi format")
     parser.add_argument("data_dir", type=str)

@@ -1,39 +1,31 @@
 """Set of methods to create custom architecture."""
 
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, List, Tuple, Union
 
 import torch
 
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import (
-    EncoderLayer as ConformerEncoderLayer,  # noqa: H301
+    EncoderLayer as ConformerEncoderLayer,
 )
-
 from espnet.nets.pytorch_backend.nets_utils import get_activation
-
-from espnet.nets.pytorch_backend.transducer.conv1d_nets import CausalConv1d
-from espnet.nets.pytorch_backend.transducer.conv1d_nets import Conv1d
+from espnet.nets.pytorch_backend.transducer.conv1d_nets import CausalConv1d, Conv1d
 from espnet.nets.pytorch_backend.transducer.transformer_decoder_layer import (
-    TransformerDecoderLayer,  # noqa: H301
+    TransformerDecoderLayer,
 )
 from espnet.nets.pytorch_backend.transducer.vgg2l import VGG2L
-
 from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention,  # noqa: H301
-    RelPositionMultiHeadedAttention,  # noqa: H301
+    MultiHeadedAttention,
+    RelPositionMultiHeadedAttention,
+)
+from espnet.nets.pytorch_backend.transformer.embedding import (
+    PositionalEncoding,
+    RelPositionalEncoding,
+    ScaledPositionalEncoding,
 )
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
-from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding,  # noqa: H301
-    ScaledPositionalEncoding,  # noqa: H301
-    RelPositionalEncoding,  # noqa: H301
-)
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
-    PositionwiseFeedForward,  # noqa: H301
+    PositionwiseFeedForward,
 )
 from espnet.nets.pytorch_backend.transformer.repeat import MultiSequential
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling

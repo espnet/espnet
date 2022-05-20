@@ -10,16 +10,12 @@ import fnmatch
 import logging
 import multiprocessing as mp
 import os
-
-from typing import Dict
-from typing import List
-from typing import Tuple
+from typing import Dict, List, Tuple
 
 import librosa
 import numpy as np
 import pysptk
 import soundfile as sf
-
 from fastdtw import fastdtw
 from scipy import spatial
 

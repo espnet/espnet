@@ -1,19 +1,17 @@
 """Parallel beam search module for online simulation."""
 
-from espnet.nets.batch_beam_search import (
-    BatchBeamSearch,  # noqa: H301
-    BatchHypothesis,  # noqa: H301
-)
+import logging
+from typing import Any  # noqa: H301
+from typing import Dict  # noqa: H301
+from typing import List  # noqa: H301
+from typing import Tuple  # noqa: H301
+
+import torch
+
+from espnet.nets.batch_beam_search import BatchBeamSearch  # noqa: H301
+from espnet.nets.batch_beam_search import BatchHypothesis  # noqa: H301
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.e2e_asr_common import end_detect
-import logging
-import torch
-from typing import (
-    List,  # noqa: H301
-    Tuple,  # noqa: H301
-    Dict,  # noqa: H301
-    Any,  # noqa: H301
-)
 
 
 class BatchBeamSearchOnline(BatchBeamSearch):

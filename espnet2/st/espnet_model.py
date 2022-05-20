@@ -1,22 +1,11 @@
-from contextlib import contextmanager
-from distutils.version import LooseVersion
 import logging
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from contextlib import contextmanager
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
-from espnet.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
-from espnet.nets.e2e_mt_common import ErrorCalculator as MTErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
-    LabelSmoothingLoss,  # noqa: H301
-)
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -27,8 +16,15 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet.nets.e2e_asr_common import ErrorCalculator as ASRErrorCalculator
+from espnet.nets.e2e_mt_common import ErrorCalculator as MTErrorCalculator
+from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
+from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+    LabelSmoothingLoss,
+)
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:
     # Nothing to do if torch<1.6.0
@@ -53,9 +49,9 @@ class ESPnetSTModel(AbsESPnetModel):
         decoder: AbsDecoder,
         extra_asr_decoder: Optional[AbsDecoder],
         extra_mt_decoder: Optional[AbsDecoder],
-        ctc: CTC,
-        src_vocab_size: int = 0,
-        src_token_list: Union[Tuple[str, ...], List[str]] = [],
+        ctc: Optional[CTC],
+        src_vocab_size: Optional[int],
+        src_token_list: Optional[Union[Tuple[str, ...], List[str]]],
         asr_weight: float = 0.0,
         mt_weight: float = 0.0,
         mtlalpha: float = 0.0,

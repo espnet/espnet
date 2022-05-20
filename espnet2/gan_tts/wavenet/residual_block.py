@@ -8,9 +8,7 @@ This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
 """
 
 import math
-
-from typing import Optional
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 import torch.nn.functional as F

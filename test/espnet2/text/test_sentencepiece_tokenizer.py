@@ -1,5 +1,5 @@
-from pathlib import Path
 import string
+from pathlib import Path
 
 import pytest
 import sentencepiece as spm

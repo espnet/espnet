@@ -1,12 +1,8 @@
 """Enhancement model module."""
-from distutils.version import LooseVersion
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import OrderedDict
-from typing import Tuple
+from typing import Dict, List, Optional, OrderedDict, Tuple
 
 import torch
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
@@ -15,11 +11,11 @@ from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
 from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.separator.abs_separator import AbsSeparator
+from espnet2.enh.separator.dan_separator import DANSeparator
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
-
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
@@ -134,12 +130,18 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # for data-parallel
         speech_ref = speech_ref[..., : speech_lengths.max()]
         speech_ref = speech_ref.unbind(dim=1)
+        additional = {}
+        # Additional data is required in Deep Attractor Network
+        if isinstance(self.separator, DANSeparator):
+            additional["feature_ref"] = [
+                self.encoder(r, speech_lengths)[0] for r in speech_ref
+            ]
 
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
         # model forward
         speech_pre, feature_mix, feature_pre, others = self.forward_enhance(
-            speech_mix, speech_lengths
+            speech_mix, speech_lengths, additional
         )
 
         # loss computation
@@ -159,9 +161,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self,
         speech_mix: torch.Tensor,
         speech_lengths: torch.Tensor,
+        additional: Optional[Dict] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         feature_mix, flens = self.encoder(speech_mix, speech_lengths)
-        feature_pre, flens, others = self.separator(feature_mix, flens)
+        feature_pre, flens, others = self.separator(feature_mix, flens, additional)
         if feature_pre is not None:
             speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
         else:
@@ -192,7 +195,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     # only select one channel as the reference
                     speech_ref = [sr[..., self.ref_channel] for sr in speech_ref]
                 # for the time domain criterions
-                l, s, o = loss_wrapper(speech_ref, speech_pre, o)
+                l, s, o = loss_wrapper(speech_ref, speech_pre, others)
             elif isinstance(criterion, FrequencyDomainLoss):
                 # for the time-frequency domain criterions
                 if criterion.compute_on_mask:
@@ -219,7 +222,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     tf_ref = [self.encoder(sr, speech_lengths)[0] for sr in speech_ref]
                     tf_pre = feature_pre
 
-                l, s, o = loss_wrapper(tf_ref, tf_pre, o)
+                l, s, o = loss_wrapper(tf_ref, tf_pre, others)
             else:
                 raise NotImplementedError("Unsupported loss type: %s" % str(criterion))
 

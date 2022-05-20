@@ -1,0 +1,6 @@
+model_conf:
+    asr_weight: 0.3
+    mt_weight: 0.0
+    mtlalpha: 1.0
+    lsm_weight: 0.1
+    length_normalized_loss: false

@@ -4,14 +4,12 @@
 
 import os
 
-from distutils.version import LooseVersion
-from setuptools import find_packages
-from setuptools import setup
-
+from setuptools import find_packages, setup
 
 requirements = {
     "install": [
         "setuptools>=38.5.1",
+        "packaging",
         "configargparse>=1.2.1",
         "typeguard>=2.7.0",
         "humanfriendly",
@@ -90,6 +88,7 @@ requirements = {
         "flake8>=3.7.8",
         "flake8-docstrings>=1.3.1",
         "black",
+        "isort",
     ],
     "doc": [
         "Jinja2<3.1",
@@ -141,6 +140,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "Operating System :: POSIX :: Linux",

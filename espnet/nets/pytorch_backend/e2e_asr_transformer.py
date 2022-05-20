@@ -3,42 +3,41 @@
 
 """Transformer speech recognition model (pytorch)."""
 
-from argparse import Namespace
 import logging
 import math
+from argparse import Namespace
 
 import numpy
 import torch
 
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
-from espnet.nets.e2e_asr_common import end_detect
-from espnet.nets.e2e_asr_common import ErrorCalculator
+from espnet.nets.e2e_asr_common import ErrorCalculator, end_detect
 from espnet.nets.pytorch_backend.ctc import CTC
-from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
-from espnet.nets.pytorch_backend.e2e_asr import Reporter
-from espnet.nets.pytorch_backend.nets_utils import get_subsample
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD, Reporter
+from espnet.nets.pytorch_backend.nets_utils import (
+    get_subsample,
+    make_non_pad_mask,
+    th_accuracy,
+)
 from espnet.nets.pytorch_backend.rnn.decoders import CTC_SCORING_RATIO
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.argument import (
-    add_arguments_transformer_common,  # noqa: H301
+from espnet.nets.pytorch_backend.transformer.argument import (  # noqa: H301
+    add_arguments_transformer_common,
 )
-from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention,  # noqa: H301
-    RelPositionMultiHeadedAttention,  # noqa: H301
+from espnet.nets.pytorch_backend.transformer.attention import (  # noqa: H301
+    MultiHeadedAttention,
+    RelPositionMultiHeadedAttention,
 )
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
 from espnet.nets.pytorch_backend.transformer.dynamic_conv import DynamicConvolution
 from espnet.nets.pytorch_backend.transformer.dynamic_conv2d import DynamicConvolution2D
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
-    LabelSmoothingLoss,  # noqa: H301
+from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
+    LabelSmoothingLoss,
 )
-from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-from espnet.nets.pytorch_backend.transformer.mask import target_mask
+from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask, target_mask
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.utils.fill_missing_args import fill_missing_args
@@ -97,7 +96,7 @@ class E2E(ASRInterface, torch.nn.Module):
             self.ctc = None
 
         self.intermediate_ctc_weight = args.intermediate_ctc_weight
-        self.intermediate_ctc_layers = []
+        self.intermediate_ctc_layers = None
         if args.intermediate_ctc_layer != "":
             self.intermediate_ctc_layers = [
                 int(i) for i in args.intermediate_ctc_layer.split(",")
@@ -190,7 +189,10 @@ class E2E(ASRInterface, torch.nn.Module):
         # 1. forward encoder
         xs_pad = xs_pad[:, : max(ilens)]  # for data parallel
         src_mask = make_non_pad_mask(ilens.tolist()).to(xs_pad.device).unsqueeze(-2)
-        hs_pad, hs_mask, hs_intermediates = self.encoder(xs_pad, src_mask)
+        if self.intermediate_ctc_layers:
+            hs_pad, hs_mask, hs_intermediates = self.encoder(xs_pad, src_mask)
+        else:
+            hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
         self.hs_pad = hs_pad
 
         # 2. forward decoder
@@ -292,7 +294,7 @@ class E2E(ASRInterface, torch.nn.Module):
         """
         self.eval()
         x = torch.as_tensor(x).unsqueeze(0)
-        enc_output, _, _ = self.encoder(x, None)
+        enc_output, *_ = self.encoder(x, None)
         return enc_output.squeeze(0)
 
     def recognize(self, x, recog_args, char_list=None, rnnlm=None, use_jit=False):

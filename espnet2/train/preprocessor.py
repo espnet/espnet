@@ -1,17 +1,11 @@
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Collection
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Union
+from typing import Collection, Dict, Iterable, List, Union
 
 import numpy as np
 import scipy.signal
 import soundfile
-from typeguard import check_argument_types
-from typeguard import check_return_type
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner

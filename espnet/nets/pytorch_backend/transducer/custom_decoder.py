@@ -1,23 +1,22 @@
 """Custom decoder definition for Transducer model."""
 
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
-from espnet.nets.pytorch_backend.transducer.utils import check_batch_states
-from espnet.nets.pytorch_backend.transducer.utils import check_state
-from espnet.nets.pytorch_backend.transducer.utils import pad_sequence
+from espnet.nets.pytorch_backend.transducer.utils import (
+    check_batch_states,
+    check_state,
+    pad_sequence,
+)
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
-from espnet.nets.transducer_decoder_interface import ExtendedHypothesis
-from espnet.nets.transducer_decoder_interface import Hypothesis
-from espnet.nets.transducer_decoder_interface import TransducerDecoderInterface
+from espnet.nets.transducer_decoder_interface import (
+    ExtendedHypothesis,
+    Hypothesis,
+    TransducerDecoderInterface,
+)
 
 
 class CustomDecoder(TransducerDecoderInterface, torch.nn.Module):

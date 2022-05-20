@@ -1,20 +1,21 @@
-from distutils.version import LooseVersion
-
 import numpy as np
 import pytest
 import torch
 import torch_complex.functional as FC
+from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.beamformer import generalized_eigenvalue_decomposition
-from espnet2.enh.layers.beamformer import get_rtf
-from espnet2.enh.layers.beamformer import gev_phase_correction
-from espnet2.enh.layers.beamformer import signal_framing
+from espnet2.enh.layers.beamformer import (
+    generalized_eigenvalue_decomposition,
+    get_rtf,
+    gev_phase_correction,
+    signal_framing,
+)
 from espnet2.enh.layers.complex_utils import solve
 from espnet2.layers.stft import Stft
 
-is_torch_1_1_plus = LooseVersion(torch.__version__) >= LooseVersion("1.1.0")
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_1_plus = V(torch.__version__) >= V("1.1.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 random_speech = torch.tensor(

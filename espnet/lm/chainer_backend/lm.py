@@ -10,40 +10,36 @@
 import copy
 import json
 import logging
-import numpy as np
-import six
 
 import chainer
-from chainer.dataset import convert
 import chainer.functions as F
 import chainer.links as L
+import numpy as np
+import six
+from chainer import link, reporter, training
+from chainer.dataset import convert
 
 # for classifier link
 from chainer.functions.loss import softmax_cross_entropy
-from chainer import link
-from chainer import reporter
-from chainer import training
 from chainer.training import extensions
 
-from espnet.lm.lm_utils import compute_perplexity
-from espnet.lm.lm_utils import count_tokens
-from espnet.lm.lm_utils import MakeSymlinkToBestModel
-from espnet.lm.lm_utils import ParallelSentenceIterator
-from espnet.lm.lm_utils import read_tokens
-
 import espnet.nets.chainer_backend.deterministic_embed_id as DL
+from espnet.lm.lm_utils import (
+    MakeSymlinkToBestModel,
+    ParallelSentenceIterator,
+    compute_perplexity,
+    count_tokens,
+    read_tokens,
+)
 from espnet.nets.lm_interface import LMInterface
 from espnet.optimizer.factory import dynamic_import_optimizer
 from espnet.scheduler.chainer import ChainerScheduler
 from espnet.scheduler.scheduler import dynamic_import_scheduler
-
-from espnet.utils.training.tensorboard_logger import TensorboardLogger
-
 from espnet.utils.deterministic_utils import set_deterministic_chainer
 from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
-from espnet.utils.training.train_utils import check_early_stop
-from espnet.utils.training.train_utils import set_early_stop
+from espnet.utils.training.tensorboard_logger import TensorboardLogger
+from espnet.utils.training.train_utils import check_early_stop, set_early_stop
 
 
 # TODO(karita): reimplement RNNLM with new interface

@@ -510,7 +510,7 @@ if ! "${skip_train}"; then
         #       but it's used only for deciding the sample ids.
 
 
-        # shellcheck disable=SC2086
+        # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.enh_train \
                 --collect_stats true \
@@ -520,7 +520,7 @@ if ! "${skip_train}"; then
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${enh_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                ${_opts} ${enh_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
@@ -669,7 +669,7 @@ if ! "${skip_eval}"; then
 
             # 2. Submit inference jobs
             log "Enhancement started... log: '${_logdir}/enh_inference.*.log'"
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
                 ${python} -m espnet2.bin.enh_inference \
                     --ngpu "${_ngpu}" \
@@ -680,7 +680,7 @@ if ! "${skip_eval}"; then
                     ${inference_enh_config:+--inference_config "$inference_enh_config"} \
                     --model_file "${enh_exp}"/"${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args}
+                    ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/enh_inference.*.log) ; exit 1; }
 
 
             _spk_list=" "

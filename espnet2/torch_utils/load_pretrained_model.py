@@ -1,8 +1,6 @@
-from typing import Any
-from typing import Dict
-from typing import Union
-
 import logging
+from typing import Any, Dict, Union
+
 import torch
 import torch.nn
 import torch.optim

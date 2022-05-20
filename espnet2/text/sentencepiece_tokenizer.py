@@ -1,7 +1,5 @@
 from pathlib import Path
-from typing import Iterable
-from typing import List
-from typing import Union
+from typing import Iterable, List, Union
 
 import sentencepiece as spm
 from typeguard import check_argument_types

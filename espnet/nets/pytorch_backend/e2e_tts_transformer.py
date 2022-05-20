@@ -10,7 +10,7 @@ import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import GuidedAttentionLoss
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
-    Tacotron2Loss as TransformerLoss,  # noqa: H301
+    Tacotron2Loss as TransformerLoss,
 )
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
@@ -18,8 +18,10 @@ from espnet.nets.pytorch_backend.tacotron2.decoder import Prenet as DecoderPrene
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder import Decoder
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
+from espnet.nets.pytorch_backend.transformer.embedding import (
+    PositionalEncoding,
+    ScaledPositionalEncoding,
+)
 from espnet.nets.pytorch_backend.transformer.encoder import Encoder
 from espnet.nets.pytorch_backend.transformer.initializer import initialize
 from espnet.nets.pytorch_backend.transformer.mask import subsequent_mask
@@ -93,8 +95,9 @@ else:
 
             """
             import matplotlib.pyplot as plt
-            from espnet.nets.pytorch_backend.transformer.plot import (
-                _plot_and_save_attention,  # noqa: H301
+
+            from espnet.nets.pytorch_backend.transformer.plot import (  # noqa: H301
+                _plot_and_save_attention,
             )
 
             for name, att_ws in attn_dict.items():
@@ -714,7 +717,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             labels = labels[:, :max_olen]
 
         # forward encoder
-        x_masks = self._source_mask(ilens)
+        x_masks = self._source_mask(ilens).to(xs.device)
         hs, h_masks = self.encoder(xs, x_masks)
 
         # integrate speaker embedding
@@ -732,7 +735,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         ys_in = self._add_first_frame_and_remove_last_frame(ys_in)
 
         # forward decoder
-        y_masks = self._target_mask(olens_in)
+        y_masks = self._target_mask(olens_in).to(xs.device)
         zs, _ = self.decoder(ys_in, y_masks, hs, h_masks)
         # (B, Lmax//r, odim * r) -> (B, Lmax//r * r, odim)
         before_outs = self.feat_out(zs).view(zs.size(0), -1, self.odim)
@@ -975,7 +978,7 @@ class Transformer(TTSInterface, torch.nn.Module):
         self.eval()
         with torch.no_grad():
             # forward encoder
-            x_masks = self._source_mask(ilens)
+            x_masks = self._source_mask(ilens).to(xs.device)
             hs, h_masks = self.encoder(xs, x_masks)
 
             # integrate speaker embedding
@@ -994,7 +997,7 @@ class Transformer(TTSInterface, torch.nn.Module):
             ys_in = self._add_first_frame_and_remove_last_frame(ys_in)
 
             # forward decoder
-            y_masks = self._target_mask(olens_in)
+            y_masks = self._target_mask(olens_in).to(xs.device)
             zs, _ = self.decoder(ys_in, y_masks, hs, h_masks)
 
             # calculate final outputs
@@ -1097,7 +1100,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                     [[1, 1, 1, 0, 0]]], dtype=torch.uint8)
 
         """
-        x_masks = make_non_pad_mask(ilens).to(next(self.parameters()).device)
+        x_masks = make_non_pad_mask(ilens)
         return x_masks.unsqueeze(-2)
 
     def _target_mask(self, olens):
@@ -1126,7 +1129,7 @@ class Transformer(TTSInterface, torch.nn.Module):
                      [1, 1, 1, 0, 0]]], dtype=torch.uint8)
 
         """
-        y_masks = make_non_pad_mask(olens).to(next(self.parameters()).device)
+        y_masks = make_non_pad_mask(olens)
         s_masks = subsequent_mask(y_masks.size(-1), device=y_masks.device).unsqueeze(0)
         return y_masks.unsqueeze(-2) & s_masks
 

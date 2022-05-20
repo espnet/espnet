@@ -1,16 +1,13 @@
 import logging
-from pathlib import Path
 import uuid
+from pathlib import Path
 
 import numpy as np
 import pytest
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from espnet2.train.reporter import aggregate
-from espnet2.train.reporter import Average
-from espnet2.train.reporter import ReportedValue
-from espnet2.train.reporter import Reporter
+from espnet2.train.reporter import Average, ReportedValue, Reporter, aggregate
 
 
 @pytest.mark.parametrize("weight1,weight2", [(None, None), (19, np.array(9))])
@@ -53,7 +50,7 @@ def test_register(weight1, weight2):
             desired[k] /= weight1 + weight2
 
     for k1, k2 in reporter.get_all_keys():
-        if k2 in ("time", "total_count"):
+        if k2 in ("time", "total_count", "gpu_max_cached_mem_GB", "gpu_cached_mem_GB"):
             continue
         np.testing.assert_allclose(reporter.get_value(k1, k2), desired[k2])
 

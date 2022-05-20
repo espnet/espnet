@@ -7,11 +7,8 @@
 """Tacotron2 encoder related modules."""
 
 import six
-
 import torch
-
-from torch.nn.utils.rnn import pack_padded_sequence
-from torch.nn.utils.rnn import pad_packed_sequence
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
 def encoder_init(m):
@@ -145,7 +142,7 @@ class Encoder(torch.nn.Module):
         if self.convs is not None:
             for i in six.moves.range(len(self.convs)):
                 if self.use_residual:
-                    xs += self.convs[i](xs)
+                    xs = xs + self.convs[i](xs)
                 else:
                     xs = self.convs[i](xs)
         if self.blstm is None:

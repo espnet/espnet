@@ -1,7 +1,6 @@
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
 
@@ -12,6 +11,7 @@ class AbsSeparator(torch.nn.Module, ABC):
         self,
         input: torch.Tensor,
         ilens: torch.Tensor,
+        additional: Optional[Dict] = None,
     ) -> Tuple[Tuple[torch.Tensor], torch.Tensor, OrderedDict]:
 
         raise NotImplementedError

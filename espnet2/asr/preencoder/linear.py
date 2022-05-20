@@ -4,11 +4,12 @@
 
 """Linear Projection."""
 
-from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
-from typeguard import check_argument_types
 from typing import Tuple
 
 import torch
+from typeguard import check_argument_types
+
+from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 
 
 class LinearProjection(AbsPreEncoder):

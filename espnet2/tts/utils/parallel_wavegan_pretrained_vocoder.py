@@ -5,14 +5,11 @@
 
 import logging
 import os
-
 from pathlib import Path
-from typing import Optional
-from typing import Union
-
-import yaml
+from typing import Optional, Union
 
 import torch
+import yaml
 
 
 class ParallelWaveGANPretrainedVocoder(torch.nn.Module):

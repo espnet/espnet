@@ -3,13 +3,12 @@
 # Copyright 2021 Carnegie Mellon University (Yifan Peng)
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import argparse
+import glob
+import json
+import math
 import os
 import os.path
-import json
-import glob
-import math
-import argparse
-
 
 parser = argparse.ArgumentParser(description="Prepare Primewords_Chinese")
 parser.add_argument(

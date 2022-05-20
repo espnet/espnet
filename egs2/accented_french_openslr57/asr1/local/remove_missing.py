@@ -4,7 +4,6 @@
 import argparse
 import os
 
-
 parser = argparse.ArgumentParser(description="Normalize test text.")
 parser.add_argument("--folder", type=str, help="path of download folder")
 parser.add_argument("--train", type=str, help="path of train folder")

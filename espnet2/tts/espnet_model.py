@@ -4,13 +4,10 @@
 """Text-to-speech ESPnet model."""
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
-from typing import Dict
-from typing import Optional
-from typing import Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
-
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -19,7 +16,7 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.tts.abs_tts import AbsTTS
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:
     # Nothing to do if torch<1.6.0

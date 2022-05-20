@@ -9,20 +9,20 @@ import argparse
 import importlib
 import os
 import tempfile
+from test.utils_test import make_dummy_json
 
 import chainer
 import numpy as np
 import pytest
 import torch
 
-from espnet.asr import asr_utils
 import espnet.nets.chainer_backend.e2e_asr as ch_asr
 import espnet.nets.pytorch_backend.e2e_asr as th_asr
+from espnet.asr import asr_utils
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.utils.training.batchfy import make_batchset
-from test.utils_test import make_dummy_json
 
 
 def make_arg(**kwargs):
@@ -744,6 +744,7 @@ def test_multi_gpu_trainable(module):
         loss.backward(loss.new_ones(ngpu))  # trainable
     else:
         import copy
+
         import cupy
 
         losses = []

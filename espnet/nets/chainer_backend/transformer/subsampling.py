@@ -1,15 +1,14 @@
 # encoding: utf-8
 """Class Declaration of Transformer's Input layers."""
 
-import chainer
+import logging
 
+import chainer
 import chainer.functions as F
 import chainer.links as L
+import numpy as np
 
 from espnet.nets.chainer_backend.transformer.embedding import PositionalEncoding
-
-import logging
-import numpy as np
 
 
 class Conv2dSubsampling(chainer.Chain):

@@ -1,7 +1,7 @@
+from typing import Optional, Tuple
+
 import torch
 from typeguard import check_argument_types
-from typing import Optional
-from typing import Tuple
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
