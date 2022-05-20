@@ -1,5 +1,5 @@
-from functools import partial
 import random
+from functools import partial
 from typing import Any, Sequence, Union
 
 import numpy as np
