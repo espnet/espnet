@@ -1,7 +1,8 @@
-from multiprocessing import Pool
 import os
-from pathlib import Path
 import sys
+from multiprocessing import Pool
+from pathlib import Path
+
 import torchaudio
 import tqdm
 
