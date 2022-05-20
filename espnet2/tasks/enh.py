@@ -236,7 +236,7 @@ class EnhancementTask(AbsTask):
             "--noise_db_range",
             type=str,
             default="13_15",
-            help="The range of noise decibel level.",
+            help="The range of signal-to-noise ratio (SNR) level in decibel.",
         )
         group.add_argument(
             "--use_reverberant_ref",
