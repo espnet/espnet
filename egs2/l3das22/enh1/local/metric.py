@@ -10,18 +10,15 @@ import os
 import sys
 import warnings
 
-import numpy as np
-import soundfile as sf
-import torchaudio
-import torch
-from tqdm import tqdm
-
 import jiwer
 import numpy as np
-from pystoi import stoi
+import soundfile as sf
+import torch
+import torchaudio
 import transformers
+from pystoi import stoi
+from tqdm import tqdm
 from transformers import Wav2Vec2ForMaskedLM, Wav2Vec2Tokenizer
-
 
 # TASK 1 METRICS
 warnings.filterwarnings("ignore", category=FutureWarning)
