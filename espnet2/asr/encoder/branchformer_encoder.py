@@ -12,6 +12,8 @@ Reference:
 
 from typing import Optional
 from typing import Tuple
+from typing import Union
+from typing import List
 
 import logging
 import numpy
@@ -33,11 +35,6 @@ from espnet.nets.pytorch_backend.transformer.embedding import (
     LegacyRelPositionalEncoding,  # noqa: H301
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import Conv1dLinear
-from espnet.nets.pytorch_backend.transformer.multi_layer_conv import MultiLayeredConv1d
-from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
-    PositionwiseFeedForward,  # noqa: H301
-)
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import check_short_utt
 from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
@@ -297,19 +294,21 @@ class BranchformerEncoderLayer(torch.nn.Module):
         cgmlp: Optional[torch.nn.Module],
         dropout_rate: float,
         merge_method: str,
-        cgmlp_weight: float,
+        cgmlp_weight: float = 0.5,
         attn_branch_drop_rate: float = 0.,
         stochastic_depth_rate: float = 0.,
     ):
         super().__init__()
+        assert (attn is not None) or (cgmlp is not None), \
+            "At least one branch should be valid"
+
         self.size = size
         self.attn = attn
         self.cgmlp = cgmlp
-
-        if merge_method not in 
-
-        assert (self.attn is not None) or (self.cgmlp is not None), \
-            "At least one branch should be valid"
+        self.merge_method = merge_method
+        self.cgmlp_weight = cgmlp_weight
+        self.attn_branch_drop_rate = attn_branch_drop_rate
+        self.stochastic_depth_rate = stochastic_depth_rate
         self.use_two_branches = (attn is not None) and (cgmlp is not None)
 
         if attn is not None:
@@ -320,13 +319,44 @@ class BranchformerEncoderLayer(torch.nn.Module):
 
         self.dropout = torch.nn.Dropout(dropout_rate)
 
+        if self.use_two_branches:
+            if merge_method == "concat":
+                self.merge_proj = torch.nn.Linear(size + size, size)
 
+            elif merge_method == "learned_ave":
+                # attention-based pooling for two branches
+                self.pooling_proj1 = torch.nn.Linear(size, 1)
+                self.pooling_proj2 = torch.nn.Linear(size, 1)
 
-        self.concat_branches = concat_branches
-        if concat_branches and self.use_two_branches:
-            self.concat_linear = torch.nn.Linear(size + size, size)
+                # linear projections for calculating merging weights
+                self.weight_proj1 = torch.nn.Linear(size, 1)
+                self.weight_proj2 = torch.nn.Linear(size, 1)
 
-        self.stochastic_depth_rate = stochastic_depth_rate
+                # linear projection after weighted average
+                self.merge_proj = torch.nn.Linear(size, size)
+
+            elif merge_method == "fixed_ave":
+                assert 0. <= cgmlp_weight <= 1., \
+                    "cgmlp weight should be between 0.0 and 1.0"
+
+                # remove the other branch if only one branch is used
+                if cgmlp_weight == 0.:
+                    self.use_two_branches = False
+                    self.cgmlp = None
+                    self.norm_mlp = None
+                elif cgmlp_weight == 1.:
+                    self.use_two_branches = False
+                    self.attn = None
+                    self.norm_mha = None
+                
+                # linear projection after weighted average
+                self.merge_proj = torch.nn.Linear(size, size)
+
+            else:
+                raise ValueError(f"unknown merge method: {merge_method}")
+        
+        else:
+            self.merge_proj = torch.nn.Identity()
 
     def forward(self, x_input, mask, cache=None):
         """Compute encoded features.
@@ -343,7 +373,10 @@ class BranchformerEncoderLayer(torch.nn.Module):
             torch.Tensor: Mask tensor (#batch, time).
 
         """
-        assert cache is None
+        if cache is not None:
+            raise NotImplementedError(
+                "cache is not None, which is not tested"
+            )
 
         if isinstance(x_input, tuple):
             x, pos_emb = x_input[0], x_input[1]
@@ -365,71 +398,109 @@ class BranchformerEncoderLayer(torch.nn.Module):
                 return (x, pos_emb), mask
             return x, mask
 
-        assert stoch_layer_coeff == 1.
-        # Two-branch architecture
+        # Two branches
         x1 = x
         x2 = x
 
-        # Branch 1
-        # multi-headed self-attention module
-        if self.self_attn is not None:
-            # residual = x1
+        # Branch 1: multi-headed attention module
+        if self.attn is not None:
             x1 = self.norm_mha(x1)
 
-            if pos_emb is not None:
-                x_att = self.self_attn(x1, x1, x1, pos_emb, mask)
+            if isinstance(self.attn, FastSelfAttention):
+                x_att = self.attn(x1, mask)
             else:
-                x_att = self.self_attn(x1, x1, x1, mask)
+                if pos_emb is not None:
+                    x_att = self.attn(x1, x1, x1, pos_emb, mask)
+                else:
+                    x_att = self.attn(x1, x1, x1, mask)
 
-            # x1 = residual + stoch_layer_coeff * self.dropout(x_att)
             x1 = self.dropout(x_att)
-        
-        # convolution module
-        if self.conv_module is not None:
-            # residual = x1
-            x1 = self.norm_conv(x1)
-            # x1 = residual + stoch_layer_coeff * self.dropout(self.conv_module(x1))
-            x1 = self.dropout(self.conv_module(x1))
 
-        # feed forward
-        if self.feed_forward is not None:
-            # residual = x1
-            x1 = self.norm_ff(x1)
-            # x1 = residual + stoch_layer_coeff * self.dropout(self.feed_forward(x1))
-            x1 = self.dropout(self.feed_forward(x1))
-
-        # Branch 2
-        # conv gating mlp
-        if self.cg_mlp is not None:
-            # residual = x2
+        # Branch 2: convolutional gating mlp
+        if self.cgmlp is not None:
             x2 = self.norm_mlp(x2)
 
             if pos_emb is not None:
                 x2 = (x2, pos_emb)
-            x2 = self.cg_mlp(x2, mask)
+            x2 = self.cgmlp(x2, mask)
             if isinstance(x2, tuple):
                 x2 = x2[0]
             
-            # x2 = residual + stoch_layer_coeff * self.dropout(x2)
             x2 = self.dropout(x2)
 
-        # Combine two branch outputs
-        if self.use_two_branch:
-            if self.concat_two_branch_outputs:
+        # Merge two branches
+        if self.use_two_branches:
+            if self.merge_method == "concat":
                 x = x + stoch_layer_coeff * self.dropout(
-                    self.concat_linear(torch.cat([x1, x2], dim=-1))
+                    self.merge_proj(torch.cat([x1, x2], dim=-1))
                 )
-                # x = self.dropout(
-                    # self.concat_linear(torch.cat([x1, x2], dim=-1))
-                # )
+            elif self.merge_method == "learned_ave":
+                if self.training and self.attn_branch_drop_rate > 0 \
+                    and torch.rand(1).item() < self.attn_branch_drop_rate:
+                    # Drop the attn branch
+                    w1, w2 = 0., 1.
+                else:
+                    # branch1
+                    score1 = self.pooling_proj1(x1).transpose(1, 2) / self.size**0.5    # (batch, 1, time)
+                    if mask is not None:
+                        min_value = float(
+                            numpy.finfo(torch.tensor(0, dtype=score1.dtype).numpy().dtype).min
+                        )
+                        score1 = score1.masked_fill(mask.eq(0), min_value)
+                        score1 = torch.softmax(score1, dim=-1).masked_fill(mask.eq(0), 0.0)
+                    else:
+                        score1 = torch.softmax(score1, dim=-1)
+                    pooled1 = torch.matmul(score1, x1).squeeze(1)     # (batch, size)
+                    weight1 = self.weight_proj1(pooled1)    # (batch, 1)
+
+                    # branch2
+                    score2 = self.pooling_proj2(x2).transpose(1, 2) / self.size**0.5    # (batch, 1, time)
+                    if mask is not None:
+                        min_value = float(
+                            numpy.finfo(torch.tensor(0, dtype=score2.dtype).numpy().dtype).min
+                        )
+                        score2 = score2.masked_fill(mask.eq(0), min_value)
+                        score2 = torch.softmax(score2, dim=-1).masked_fill(mask.eq(0), 0.0)
+                    else:
+                        score2 = torch.softmax(score2, dim=-1)
+                    pooled2 = torch.matmul(score2, x2).squeeze(1)     # (batch, size)
+                    weight2 = self.weight_proj2(pooled2)    # (batch, 1)
+
+                    # normalize weights of two branches
+                    merge_weights = torch.softmax(torch.cat([weight1, weight2], dim=-1), dim=-1)    # (batch, 2)
+                    merge_weights = merge_weights.unsqueeze(-1).unsqueeze(-1)   # (batch, 2, 1, 1)
+                    w1, w2 = merge_weights[:, 0], merge_weights[:, 1]   # (batch, 1, 1)
+
+                x = x + stoch_layer_coeff * self.dropout(
+                    self.merge_proj(
+                        w1 * x1 + w2 * x2
+                    )
+                )
+            elif self.merge_method == "fixed_ave":
+                x = x + stoch_layer_coeff * self.dropout(
+                    self.merge_proj(
+                        (1. - self.cgmlp_weight) * x1 + \
+                        self.cgmlp_weight * x2
+                    )
+                )
             else:
-                x = x + stoch_layer_coeff * self.dropout(x1 + x2)
-                # x = self.dropout(x1 + x2)
+                raise RuntimeError(
+                    f"unknown merge method: {self.merge_method}"
+                )
         else:
-            if self.use_branch1:
-                x = x + stoch_layer_coeff * x1
+            if self.attn is None:
+                x = x + stoch_layer_coeff * self.dropout(
+                    self.merge_proj(x2)
+                )
+            elif self.cgmlp is None:
+                x = x + stoch_layer_coeff * self.dropout(
+                    self.merge_proj(x1)
+                )
             else:
-                x = x + stoch_layer_coeff * x2
+                # This should not happen
+                raise RuntimeError(
+                    f"Both branches are not None, which is unexpected."
+                )
 
         x = self.norm_final(x)
 
@@ -439,45 +510,34 @@ class BranchformerEncoderLayer(torch.nn.Module):
         return x, mask
 
 
-class TwoBranchEncoder(AbsEncoder):
-    """Two branch encoder module.
-    Branch 1: self_attn (optional) -> cnn_module (optional) -> feed_forward (optional)
-    Branch 2: cg_mlp (with tiny attn)
-    Layer norm is applied before each block.
-    Residual connection is applied for each block.
+class BranchformerEncoder(AbsEncoder):
+    """Branchformer encoder module.
     """
     def __init__(
         self,
         input_size: int,
         output_size: int = 256,
-        use_self_attn: bool = True,
+        use_attn: bool = True,
         attention_heads: int = 4,
-        use_cnn_module: bool = False,
-        cnn_module_kernel: int = 31,
-        use_feedforward: bool = False,
-        ff_linear_units: int = 2048,
-        positionwise_layer_type: str = "linear",
-        positionwise_conv_kernel_size: int = 3,
-        use_cg_mlp: bool = True,
-        mlp_linear_units: int = 2048,
-        mlp_conv_kernel: int = 31,
-        use_linear_after_conv_for_gating: bool = False,
-        gate_activation: str = 'identity',
-        use_attention_for_gating: bool = False,
-        gate_attention_heads: int = 1,
-        gate_attention_size: int = 64,
-        concat_two_branch_outputs: bool = True,
+        attention_layer_type: str = "rel_selfattn",
+        pos_enc_layer_type: str = "rel_pos",
+        rel_pos_type: str = "latest",
+        use_cgmlp: bool = True,
+        cgmlp_linear_units: int = 2048,
+        cgmlp_conv_kernel: int = 31,
+        use_linear_after_conv: bool = False,
+        gate_activation: str = "identity",
+        merge_method: str = "concat",
+        cgmlp_weight: Union[float, List[float]] = 0.5,
+        attn_branch_drop_rate: Union[float, List[float]] = 0.0,
         num_blocks: int = 12,
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.0,
         input_layer: str = "conv2d",
-        rel_pos_type: str = "latest",
-        pos_enc_layer_type: str = "rel_pos",
-        selfattention_layer_type: str = "rel_selfattn",
-        ff_cnn_activation_type: str = "swish",
         zero_triu: bool = False,
-        padding_idx: int = -1
+        padding_idx: int = -1,
+        stochastic_depth_rate: Union[float, List[float]] = 0.0,
     ):
         assert check_argument_types()
         super().__init__()
@@ -486,10 +546,10 @@ class TwoBranchEncoder(AbsEncoder):
         if rel_pos_type == "legacy":
             if pos_enc_layer_type == "rel_pos":
                 pos_enc_layer_type = "legacy_rel_pos"
-            if selfattention_layer_type == "rel_selfattn":
-                selfattention_layer_type = "legacy_rel_selfattn"
+            if attention_layer_type == "rel_selfattn":
+                attention_layer_type = "legacy_rel_selfattn"
         elif rel_pos_type == "latest":
-            assert selfattention_layer_type != "legacy_rel_selfattn"
+            assert attention_layer_type != "legacy_rel_selfattn"
             assert pos_enc_layer_type != "legacy_rel_pos"
         else:
             raise ValueError("unknown rel_pos_type: " + rel_pos_type)
@@ -499,10 +559,10 @@ class TwoBranchEncoder(AbsEncoder):
         elif pos_enc_layer_type == "scaled_abs_pos":
             pos_enc_class = ScaledPositionalEncoding
         elif pos_enc_layer_type == "rel_pos":
-            assert selfattention_layer_type == "rel_selfattn"
+            assert attention_layer_type == "rel_selfattn"
             pos_enc_class = RelPositionalEncoding
         elif pos_enc_layer_type == "legacy_rel_pos":
-            assert selfattention_layer_type == "legacy_rel_selfattn"
+            assert attention_layer_type == "legacy_rel_selfattn"
             pos_enc_class = LegacyRelPositionalEncoding
             logging.warning(
                 "Using legacy_rel_pos and it will be deprecated in the future."
@@ -562,43 +622,14 @@ class TwoBranchEncoder(AbsEncoder):
         else:
             raise ValueError("unknown input_layer: " + input_layer)
 
-        activation = get_activation(ff_cnn_activation_type)
-
-        if positionwise_layer_type == "linear":
-            positionwise_layer = PositionwiseFeedForward
-            positionwise_layer_args = (
-                output_size,
-                ff_linear_units,
-                dropout_rate,
-                activation,
-            )
-        elif positionwise_layer_type == "conv1d":
-            positionwise_layer = MultiLayeredConv1d
-            positionwise_layer_args = (
-                output_size,
-                ff_linear_units,
-                positionwise_conv_kernel_size,
-                dropout_rate,
-            )
-        elif positionwise_layer_type == "conv1d-linear":
-            positionwise_layer = Conv1dLinear
-            positionwise_layer_args = (
-                output_size,
-                ff_linear_units,
-                positionwise_conv_kernel_size,
-                dropout_rate,
-            )
-        else:
-            raise NotImplementedError("Support only linear or conv1d.")
-
-        if selfattention_layer_type == "selfattn":
+        if attention_layer_type == "selfattn":
             encoder_selfattn_layer = MultiHeadedAttention
             encoder_selfattn_layer_args = (
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
             )
-        elif selfattention_layer_type == "legacy_rel_selfattn":
+        elif attention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"
             encoder_selfattn_layer = LegacyRelPositionMultiHeadedAttention
             encoder_selfattn_layer_args = (
@@ -609,7 +640,7 @@ class TwoBranchEncoder(AbsEncoder):
             logging.warning(
                 "Using legacy_rel_selfattn and it will be deprecated in the future."
             )
-        elif selfattention_layer_type == "rel_selfattn":
+        elif attention_layer_type == "rel_selfattn":
             assert pos_enc_layer_type == "rel_pos"
             encoder_selfattn_layer = RelPositionMultiHeadedAttention
             encoder_selfattn_layer_args = (
@@ -618,37 +649,62 @@ class TwoBranchEncoder(AbsEncoder):
                 attention_dropout_rate,
                 zero_triu,
             )
+        elif attention_layer_type == "fast_selfattn":
+            assert pos_enc_layer_type in ["abs_pos", "scaled_abs_pos"]
+            encoder_selfattn_layer = FastSelfAttention
+            encoder_selfattn_layer_args = (
+                output_size,
+                attention_heads,
+                attention_dropout_rate,
+            )
         else:
-            raise ValueError("unknown encoder_attn_layer: " + selfattention_layer_type)
+            raise ValueError("unknown encoder_attn_layer: " + attention_layer_type)
 
-        convolution_layer = ConvolutionModule
-        convolution_layer_args = (output_size, cnn_module_kernel, activation)
+        cgmlp_layer = ConvolutionalGatingMLP
+        cgmlp_layer_args = (
+            output_size,
+            cgmlp_linear_units,
+            cgmlp_conv_kernel,
+            dropout_rate,
+            use_linear_after_conv,
+            gate_activation,
+        )
 
-        cg_mlp = ConvolutionalGatingMLP
-        cg_mlp_args = {
-            'size': output_size,
-            'linear_units': mlp_linear_units,
-            'kernel_size': mlp_conv_kernel,
-            'dropout_rate': dropout_rate,
-            'use_linear_after_conv': use_linear_after_conv_for_gating,
-            'gate_activation': gate_activation,
-            'tiny_attention': encoder_selfattn_layer(
-                gate_attention_heads, gate_attention_size, dropout_rate
-            ) if use_attention_for_gating else None,
-            'attention_size': gate_attention_size,
-            'use_pos_emb_for_attention': 'rel_pos' in pos_enc_layer_type
-        }
+        if isinstance(stochastic_depth_rate, float):
+            stochastic_depth_rate = [stochastic_depth_rate] * num_blocks
+        if len(stochastic_depth_rate) != num_blocks:
+            raise ValueError(
+                f"Length of stochastic_depth_rate ({len(stochastic_depth_rate)}) "
+                f"should be equal to num_blocks ({num_blocks})"
+            )
+        
+        if isinstance(cgmlp_weight, float):
+            cgmlp_weight = [cgmlp_weight] * num_blocks
+        if len(cgmlp_weight) != num_blocks:
+            raise ValueError(
+                f"Length of cgmlp_weight ({len(cgmlp_weight)}) should be equal to "
+                f"num_blocks ({num_blocks})"
+            )
+        
+        if isinstance(attn_branch_drop_rate, float):
+            attn_branch_drop_rate = [attn_branch_drop_rate] * num_blocks
+        if len(attn_branch_drop_rate) != num_blocks:
+            raise ValueError(
+                f"Length of attn_branch_drop_rate ({len(attn_branch_drop_rate)}) "
+                f"should be equal to num_blocks ({num_blocks})"
+            )
 
         self.encoders = repeat(
             num_blocks,
-            lambda lnum: TwoBranchEncoderLayer(
+            lambda lnum: BranchformerEncoderLayer(
                 output_size,
-                encoder_selfattn_layer(*encoder_selfattn_layer_args) if use_self_attn else None,
-                convolution_layer(*convolution_layer_args) if use_cnn_module else None,
-                positionwise_layer(*positionwise_layer_args) if use_feedforward else None,
-                cg_mlp(**cg_mlp_args) if use_cg_mlp else None,
+                encoder_selfattn_layer(*encoder_selfattn_layer_args) if use_attn else None,
+                cgmlp_layer(*cgmlp_layer_args) if use_cgmlp else None,
                 dropout_rate,
-                concat_two_branch_outputs,
+                merge_method,
+                cgmlp_weight[lnum],
+                attn_branch_drop_rate[lnum],
+                stochastic_depth_rate[lnum],
             ),
         )
         self.after_norm = LayerNorm(output_size)
