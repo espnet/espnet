@@ -67,6 +67,7 @@ scheduler_conf:
 
 num_workers: 4      # num of workers of data loader
 use_amp: false      # automatic mixed precision
+unused_parameters: false    # set as true if some params are unused in DDP
 
 specaug: specaug
 specaug_conf:
