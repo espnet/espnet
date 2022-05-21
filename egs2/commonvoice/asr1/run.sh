@@ -11,7 +11,7 @@ train_set=train_"$(echo "${lang}" | tr - _)"
 train_dev=dev_"$(echo "${lang}" | tr - _)"
 test_set="${train_dev} test_$(echo ${lang} | tr - _)"
 
-asr_config=conf/tuning/train_asr_conformer5.yaml
+asr_config=conf/tuning/train_wav2vec_adapter_updated.yaml
 lm_config=conf/train_lm.yaml
 inference_config=conf/decode_asr.yaml
 
@@ -23,10 +23,9 @@ elif [[ "es" == *"${lang}"* ]]; then
   nbpe=235
 else
   nbpe=150
-fi
 
 ./asr.sh \
-    --ngpu 4 \
+    --ngpu 1 \
     --lang "${lang}" \
     --local_data_opts "--lang ${lang}" \
     --use_lm true \
@@ -42,4 +41,3 @@ fi
     --test_sets "${test_set}" \
     --bpe_train_text "data/${train_set}/text" \
     --lm_train_text "data/${train_set}/text" "$@"
-
