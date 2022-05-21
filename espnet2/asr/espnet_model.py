@@ -317,7 +317,7 @@ class ESPnetASRModel(AbsESPnetModel):
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
             # 2. Data augmentation
-            if self.specaug is not None and self.training:
+            '''if self.specaug is not None and self.training:
                 feats, feats_lengths = self.specaug(feats, feats_lengths)
 
             # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
@@ -358,9 +358,10 @@ class ESPnetASRModel(AbsESPnetModel):
         )
 
         if intermediate_outs is not None:
-            return (encoder_out, intermediate_outs), encoder_out_lens
+            return (encoder_out, intermediate_outs), encoder_out_lens'''
 
-        return encoder_out, encoder_out_lens
+        #return encoder_out, encoder_out_lens
+        return feats, feats_lengths
 
     def _extract_feats(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
