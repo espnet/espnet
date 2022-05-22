@@ -1,4 +1,5 @@
 import logging
+import math
 from abc import ABC
 
 import ci_sdr
@@ -164,7 +165,7 @@ class SISNRLoss(TimeDomainLoss):
         zero_mean: bool
             When set to True, the mean of all signals is subtracted prior.
         eps: float
-            Deprecated. Keeped for compatibility.
+            Deprecated. Kept for compatibility.
     """
 
     def __init__(
@@ -177,6 +178,8 @@ class SISNRLoss(TimeDomainLoss):
         self.zero_mean = zero_mean
         if eps is not None:
             logging.warning("Eps is deprecated in si_snr loss, set clamp_db instead.")
+            if self.clamp_db is None:
+                self.clamp_db = -math.log10(eps / (1 - eps)) * 10
 
     def forward(self, ref: torch.Tensor, est: torch.Tensor) -> torch.Tensor:
         """SI-SNR forward.
