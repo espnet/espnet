@@ -79,4 +79,7 @@ tools/festival*
 tools/speech_tools*
 tools/phonemizer*
 tools/py3mmseg
+tools/anaconda
+tools/ice-g2p
+tools/fairseq
 tools/._*
