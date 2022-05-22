@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 speaker_id=$1
 
@@ -24,7 +24,7 @@ test_sets="${valid_set} ${eval_set}"
     --local_data_opts "$speaker_id"
 
 # # Since espeak is super slow, dump phonemized text at first
-./phonetize.sh $speaker_id
+./local/phonetize.sh $speaker_id
 
 # Run from stage 2
 ./run.sh \

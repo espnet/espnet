@@ -16,13 +16,6 @@ stop_stage=2
 
 . utils/parse_options.sh
 
-# if [ $# -ne 1 ]; then
-#     log "Error: Only speaker id is required. It should be one of the values [a, b, c, d, e, f, g, h]"
-#     exit 2
-# fi
-
-# speaker_id=$1
-
 . ./path.sh || exit 1
 . ./cmd.sh || exit 1
 . ./db.sh || exit 1
