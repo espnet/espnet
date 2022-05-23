@@ -51,6 +51,17 @@ def get_parser(parser=None, required=True):
         help="Number of GPUs. If not given, use all visible devices",
     )
     parser.add_argument(
+        "--use-ddp",
+        default=False,
+        action="store_true",
+        help="Enable process-based data parallel. "
+        "--ngpu's GPUs will be used. "
+        "If --ngpu is not given, this tries to identify "
+        "how many GPUs can be used. But, if it fails, "
+        "the application will abort. "
+        "And, currently, single node multi GPUs job is only supported.",
+    )
+    parser.add_argument(
         "--train-dtype",
         default="float32",
         choices=["float16", "float32", "float64", "O0", "O1", "O2", "O3"],
@@ -513,6 +524,20 @@ def get_parser(parser=None, required=True):
     return parser
 
 
+def setup_logging(verbose):
+    if verbose > 0:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+        )
+    else:
+        logging.basicConfig(
+            level=logging.WARN,
+            format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
+        )
+        logging.warning("Skip DEBUG/INFO messages")
+
+
 def main(cmd_args):
     """Run the main training function."""
     parser = get_parser()
@@ -550,17 +575,7 @@ def main(cmd_args):
     args.version = __version__
 
     # logging info
-    if args.verbose > 0:
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
-        )
-    else:
-        logging.basicConfig(
-            level=logging.WARN,
-            format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
-        )
-        logging.warning("Skip DEBUG/INFO messages")
+    setup_logging(args.verbose)
 
     # If --ngpu is not given,
     #   1. if CUDA_VISIBLE_DEVICES is set, all visible devices
@@ -587,6 +602,8 @@ def main(cmd_args):
                 + " (see https://github.com/pytorch/pytorch/issues/21108)"
             )
         ngpu = args.ngpu
+    if args.use_ddp and ngpu <= 0:
+        raise ValueError("DDP requires at least 1 GPU.")
     logging.info(f"ngpu: {ngpu}")
 
     # display PYTHONPATH
@@ -614,25 +631,59 @@ def main(cmd_args):
     # train
     logging.info("backend = " + args.backend)
 
-    if args.num_spkrs == 1:
-        if args.backend == "chainer":
-            from espnet.asr.chainer_backend.asr import train
-
-            train(args)
-        elif args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr import train
-
-            train(args)
+    if args.use_ddp:
+        # When using DDP, only PyTorch is supported.
+        # Chainer is out-of-scope.
+        if args.num_spkrs == 1:
+            if args.backend == "chainer":
+                raise ValueError("Chainer with DDP is not supported.")
+            from espnet.distributed.pytorch_backend.launch import (
+                launch,
+                set_start_method
+            )
+            # NOTE: it's necessary to set "spawn" as a multiprocessing
+            # start method. Because, in this use case, CUDA initialization
+            # procedure has been already done, but CUDA context can't be
+            # shared with processes.
+            # By default, multiprocessing tries to launch a process with
+            # "fork" method. But, it will make processes which share
+            # memory address spaces with a parent process.
+            # To ensure a separate memory space, "spawn" method is required.
+            set_start_method("spawn")
+            launch(_reinitialize_logging_and_call_train, args, args.ngpu)
         else:
-            raise ValueError("Only chainer and pytorch are supported.")
+            raise ValueError("Single speaker is only supported when using DDP.")
     else:
-        # FIXME(kamo): Support --model-module
-        if args.backend == "pytorch":
-            from espnet.asr.pytorch_backend.asr_mix import train
+        if args.num_spkrs == 1:
+            if args.backend == "chainer":
+                from espnet.asr.chainer_backend.asr import train
 
-            train(args)
+                train(args)
+            elif args.backend == "pytorch":
+                from espnet.asr.pytorch_backend.asr import train
+
+                train(args)
+            else:
+                raise ValueError("Only chainer and pytorch are supported.")
         else:
-            raise ValueError("Only pytorch is supported.")
+            # FIXME(kamo): Support --model-module
+            if args.backend == "pytorch":
+                from espnet.asr.pytorch_backend.asr_mix import train
+
+                train(args)
+            else:
+                raise ValueError("Only pytorch is supported.")
+
+
+def _reinitialize_logging_and_call_train(args):
+    # NOTE: it looks like logging setting is cleared
+    # by launching processes with "spawn" method.
+    # Within each worker process,
+    # logging configuraiton must be set again.
+    from espnet.asr.pytorch_backend.asr import train
+
+    setup_logging(args.verbose)
+    train(args)
 
 
 if __name__ == "__main__":

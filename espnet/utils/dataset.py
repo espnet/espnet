@@ -9,6 +9,25 @@ import torch
 import torch.utils.data
 
 
+class Transform:
+    """Transform function container.
+    lambda can't work well when using DDP because
+    lambda is not pickable in the case of multi process.
+    This class is required for DDP use case.
+
+    Args:
+        converter: batch converter
+        load: function object to load data and create minibatch
+    """
+
+    def __init__(self, converter, load):
+        self._converter = converter
+        self._load = load
+
+    def __call__(self, data):
+        return self._converter([self._load(data)])
+
+
 class TransformDataset(torch.utils.data.Dataset):
     """Transform Dataset for pytorch backend.
 
@@ -41,10 +60,23 @@ class ChainerDataLoader(object):
 
     """
 
+    @staticmethod
+    def get_first_element(x):
+        """Get first element of a given array-like object."""
+        return x[0]
+
     def __init__(self, **kwargs):
         """Init function."""
         self.loader = torch.utils.data.dataloader.DataLoader(**kwargs)
-        self.len = len(kwargs["dataset"])
+        if hasattr(self.loader, "__len__"):
+            # To support DistribtedSampler.
+            # When using DDP, the size of dataset itself is different from
+            # the size returned by DataLoader.
+            # Unless using length of dataloader, at the end of iterations,
+            # this loader class can't recognize the end of each epoch.
+            self.len = len(self.loader)
+        else:
+            self.len = len(kwargs["dataset"])
         self.current_position = 0
         self.epoch = 0
         self.iter = None
