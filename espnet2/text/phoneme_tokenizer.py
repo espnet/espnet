@@ -359,8 +359,8 @@ class Phonemizer:
 
 
 class IsG2p:  # pylint: disable=too-few-public-methods
-    """
-    Minimal wrapper for https://github.com/grammatek/ice-g2p
+    """Minimal wrapper for https://github.com/grammatek/ice-g2p
+
     The g2p module uses a Bi-LSTM model along with
     a pronunciation dictionary to generate phonemization
     Unfortunately does not support multi-thread phonemization as of yet
