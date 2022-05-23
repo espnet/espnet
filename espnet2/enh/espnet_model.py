@@ -32,6 +32,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         stft_consistency: bool = False,
         loss_type: str = "mask_mse",
         mask_type: Optional[str] = None,
+        dynamic_mixing: bool = False,
+        dynamic_mixing_gain_db: float = 0.0,
     ):
         assert check_argument_types()
 
@@ -43,6 +45,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.loss_wrappers = loss_wrappers
         self.num_spk = separator.num_spk
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
+        self.dynamic_mixing = dynamic_mixing
+        # Max +/- gain (dB) of sources in dynamic_mixing
+        self.dynamic_mixing_gain_db = dynamic_mixing_gain_db
 
         # get mask type for TF-domain models
         # (only used when loss_type="mask_*") (deprecated, keep for compatibility)
@@ -76,12 +81,46 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                             espnet2/iterators/chunk_iter_factory.py
             kwargs: "utt_id" is among the input.
         """
-        # clean speech signal of each speaker
-        speech_ref = [
-            kwargs["speech_ref{}".format(spk + 1)] for spk in range(self.num_spk)
-        ]
-        # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
-        speech_ref = torch.stack(speech_ref, dim=1)
+
+        if self.dynamic_mixing and self.training:
+            # Dynamic mixing mode.
+            sources = kwargs["speech_ref1"]
+            pseudo_batch = sources.shape[0]
+            assert (
+                pseudo_batch % self.num_spk == 0
+            ), f"In the dynamic mixing mode, real batchsize is batchsize/num_spk. \
+                Current batchsize on a single GPU is {pseudo_batch}, \
+                and num_spk is {self.num_spk}"
+
+            # Apply random gain to speech sources.
+            gain_in_db = (
+                torch.FloatTensor(pseudo_batch, 1)
+                .uniform_(-self.dynamic_mixing_gain_db, self.dynamic_mixing_gain_db)
+                .to(sources.device)
+            )
+            gain = torch.pow(10, gain_in_db / 20.0)
+            sources = sources * gain
+
+            # Create speech mixture.
+            rand_perm = torch.randperm(sources.shape[0])
+            rand_perm = rand_perm.view(self.num_spk, -1)
+            speech_ref = torch.stack([sources[p] for p in rand_perm], dim=1)
+            speech_mix = speech_ref.sum(dim=1)
+
+            # Calculate speech_mix_lengths.
+            if speech_mix_lengths is not None:
+                ref_lengths = torch.stack(
+                    [speech_mix_lengths[p] for p in rand_perm], dim=1
+                )
+                speech_mix_lengths = ref_lengths.max(dim=1)[0]
+
+        else:
+            # clean speech signal of each speaker
+            speech_ref = [
+                kwargs["speech_ref{}".format(spk + 1)] for spk in range(self.num_spk)
+            ]
+            # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
+            speech_ref = torch.stack(speech_ref, dim=1)
 
         if "noise_ref1" in kwargs:
             # noise signal (optional, required when using beamforming-based

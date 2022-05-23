@@ -1,0 +1,80 @@
+init: xavier_uniform
+max_epoch: 150
+batch_type: folded
+# When dynamic mixing is enabled, the actual batch_size will
+# be (batch_size / num_spk)
+batch_size: 32
+iterator_type: chunk
+chunk_length: 16000
+num_workers: 2
+optim: adamw
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-06
+    weight_decay: 0
+patience: 20
+grad_clip: 5.0
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+scheduler: steplr
+scheduler_conf:
+    step_size: 2
+    gamma: 0.97
+
+model_conf:
+    dynamic_mixing: True
+    dynamic_mixing_gain_db: 2.0
+
+encoder: conv
+encoder_conf:
+    channel: 64
+    kernel_size: 2
+    stride: 1
+decoder: conv
+decoder_conf:
+    channel: 64
+    kernel_size: 2
+    stride: 1
+separator: skim
+separator_conf:
+    causal: False
+    num_spk: 2
+    layer: 6
+    nonlinear: relu
+    unit: 128
+    segment_size: 250
+    dropout: 0.05
+    mem_type: hc 
+    seg_overlap: True
+
+# A list for criterions
+# The overlall loss in the multi-task learning will be:
+# loss = weight_1 * loss_1 + ... + weight_N * loss_N
+# The default `weight` for each sub-loss is 1.0
+criterions: 
+  # The first criterion
+  - name: si_snr 
+    conf:
+      eps: 1.0e-6
+    wrapper: pit
+    wrapper_conf:
+      weight: 1.0
+      independent_perm: True
+
+
+
+
+
+  
+    
+
