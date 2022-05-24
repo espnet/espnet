@@ -41,3 +41,8 @@ Training outputs are present on Huggingface for each speaker:
 |f | [Link](https://huggingface.co/espnet/GunnarThor_talromur_f_tacotron2) |  [Link](https://huggingface.co/espnet/GunnarThor_talromur_f_fastspeech2)|
 |g | [Link](https://huggingface.co/espnet/GunnarThor_talromur_g_tacotron2) |  [Link](https://huggingface.co/espnet/GunnarThor_talromur_g_fastspeech2)|
 |h | [Link](https://huggingface.co/espnet/GunnarThor_talromur_h_tacotron2) |  [Link](https://huggingface.co/espnet/GunnarThor_talromur_h_fastspeech2)|
+
+---
+
+## Acknowledgments
+This project was funded by the Language Technology Programme for Icelandic 2019-2023. The programme, which is managed and coordinated by Almannarómur, is funded by the Icelandic Ministry of Education, Science and Culture.
