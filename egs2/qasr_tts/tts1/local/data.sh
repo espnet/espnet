@@ -26,10 +26,7 @@ log "$0 $*"
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
-if [ -z "${qasr_tts}" ]; then
-   log "Fill the value of 'QASR_TTS' of db.sh"
-   exit 1
-fi
+
 db_root=${qasr_tts}
 
 train_set=tr_no_dev
