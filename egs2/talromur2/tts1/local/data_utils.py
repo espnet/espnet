@@ -72,7 +72,7 @@ def main():
     except ImportError:
         raise ImportError("Please install TextGridTools: pip install tgt")
     args = sys.argv
-    silence_phones: List[str] = ("sil", "sp", "spn")
+    silence_phones: List[str] = ("sil", "sp", "spn", "")
     alignment_path = args[1]
     wav_scp_path = args[2]
 

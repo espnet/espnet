@@ -18,12 +18,16 @@ if [ ! -e ${download_dir} ]; then
     mkdir -p "${download_dir}"
 fi
 cd "${download_dir}"
-if [ ! -e "asdfasdf" ]; then
+if [ ! -e "talromur2.done" ]; then
     echo "fetching the Talrómur 2 dataset"
     wget https://repository.clarin.is/repository/xmlui/bitstream/handle/20.500.12537/167/talromur2.zip
+    unzip *.zip
+    rm ./*.zip
+    touch talromur2.done
 else
     echo "Data already present. Skipping..."
 fi
-unzip *.zip
-rm ./*.zip
+
+# TODO(G-Thor) add alignment download option
+
 cd "${cwd}"

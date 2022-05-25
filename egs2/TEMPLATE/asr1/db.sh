@@ -125,7 +125,6 @@ MUCS_SUBTASK1=downloads
 MUCS_SUBTASK2=downloads
 GAMAYUN=downloads
 IWSLT21LR=downloads/iwslt21
-<<<<<<< HEAD
 JDCINAL=downloads
 GRABO=downloads
 WENETSPEECH=
@@ -141,6 +140,8 @@ ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
 HARPERVALLEY=downloads
+TALROMUR=downloads
+TALROMUR2=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
@@ -177,7 +178,6 @@ if [[ "$(hostname)" == tir* ]]; then
     DSING=/projects/tir5/data/speech_corpora/sing_300x30x2
     MS_INDIC_IS18=/projects/tir6/general/cnariset/corpora/microsoft_speech_corpus_indian_languages
 fi
-TALROMUR=downloads
 
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
