@@ -17,7 +17,7 @@ class AbsEnhLoss(torch.nn.Module, ABC):
     # be evaluated during the inference stage
     @property
     def only_for_test(self) -> bool:
-        return NotImplementedError
+        return False
 
     @abstractmethod
     def forward(
