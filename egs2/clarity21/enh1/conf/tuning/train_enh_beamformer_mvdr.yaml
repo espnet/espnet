@@ -67,7 +67,7 @@ criterions:
   # The first criterion
   - name: snr
     conf:
-      eps: 1e-8
+      eps: 1.0e-08
     # the wrapper for the current criterion
     # for single-talker case, we simplely use fixed_order wrapper
     wrapper: fixed_order
