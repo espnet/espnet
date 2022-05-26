@@ -27,7 +27,7 @@ log "$0 $*"
 . ./db.sh || exit 1;
 
 
-db_root=${qasr_tts}
+db_root="downloads" 
 
 train_set=tr_no_dev
 train_dev=dev
