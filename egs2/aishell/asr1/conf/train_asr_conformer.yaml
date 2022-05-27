@@ -1,1 +1,1 @@
-tuning/train_asr_conformer.yaml
+tuning/train_asr_conformer_e12_amp.yaml
