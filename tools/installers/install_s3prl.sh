@@ -50,8 +50,11 @@ if "${torch_17_plus}" && "${python_36_plus}"; then
 
     rm -rf s3prl
 
-    # S3PRL Commit id when making this PR: `commit a9b3ba906f3406c3e00aa65b08fbcefa0ea115ef`
+    # S3PRL Commit id when making this PR: `commit e2db27b2fa87b09fc720264635dcc4515dc63825`
     git clone https://github.com/s3prl/s3prl.git
+    cd s3prl
+    git checkout -b legacy_version e2db27b2fa87b09fc720264635dcc4515dc63825
+    cd ..
 
 else
     echo "[WARNING] s3prl is not prepared for pytorch<1.7.0, python<3.6 now"
