@@ -40,12 +40,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--exp_root", required=True, help="Directory to save experiments")
 parser.add_argument(
     "--valid_folder",
-    default="inference_asr_model_valid.acc.ave_10best/devel/",
+    default="decode_asr_asr_model_valid.acc.ave_10best/devel/",
     help="Directory inside exp_root containing inference on valid set",
 )
 parser.add_argument(
     "--test_folder",
-    default="inference_asr_model_valid.acc.ave_10best/test/",
+    default="decode_asr_asr_model_valid.acc.ave_10best/test/",
     help="Directory inside exp_root containing inference on test set",
 )
 parser.add_argument(

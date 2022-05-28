@@ -37,12 +37,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--exp_root", required=True, help="Directory to save experiments")
 parser.add_argument(
     "--valid_folder",
-    default="inference_asr_model_valid.acc.ave_10best/devel/",
+    default="decode_asr_asr_model_valid.acc.ave_10best/devel/",
     help="Directory inside exp_root containing inference on valid set",
 )
 parser.add_argument(
     "--test_folder",
-    default="inference_asr_model_valid.acc.ave_10best/test/",
+    default="decode_asr_asr_model_valid.acc.ave_10best/test/",
     help="Directory inside exp_root containing inference on test set",
 )
 
@@ -54,4 +54,7 @@ test_inference_folder = args.test_folder
 
 gen_file = open(os.path.join(exp_root, test_inference_folder + "score_wer/hyp.trn"))
 line_arr = [line for line in gen_file]
-generate_entity_file(line_arr)
+generate_entity_file(
+    line_arr,
+    output_file=os.path.join(exp_root, "result_test.json")
+)
