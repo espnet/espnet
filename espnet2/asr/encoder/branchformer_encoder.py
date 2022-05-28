@@ -534,7 +534,7 @@ class BranchformerEncoder(AbsEncoder):
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.0,
-        input_layer: str = "conv2d",
+        input_layer: Optional[str] = "conv2d",
         zero_triu: bool = False,
         padding_idx: int = -1,
         stochastic_depth_rate: Union[float, List[float]] = 0.0,
@@ -616,9 +616,10 @@ class BranchformerEncoder(AbsEncoder):
                 pos_enc_class(output_size, positional_dropout_rate),
             )
         elif input_layer is None:
-            self.embed = torch.nn.Sequential(
-                pos_enc_class(output_size, positional_dropout_rate)
-            )
+            if input_size == output_size:
+                self.embed = None
+            else:
+                self.embed = torch.nn.Linear(input_size, output_size)
         else:
             raise ValueError("unknown input_layer: " + input_layer)
 
@@ -748,7 +749,7 @@ class BranchformerEncoder(AbsEncoder):
                     limit_size,
                 )
             xs_pad, masks = self.embed(xs_pad, masks)
-        else:
+        elif self.embed is not None:
             xs_pad = self.embed(xs_pad)
         
         xs_pad, masks = self.encoders(xs_pad, masks)
