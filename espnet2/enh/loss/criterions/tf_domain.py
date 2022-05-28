@@ -1,19 +1,15 @@
-from abc import ABC
-from abc import abstractmethod
-from distutils.version import LooseVersion
-from functools import reduce
 import math
+from abc import ABC, abstractmethod
+from functools import reduce
 
 import torch
 import torch.nn.functional as F
+from packaging.version import parse as V
 
-from espnet2.enh.layers.complex_utils import complex_norm
-from espnet2.enh.layers.complex_utils import is_complex
-from espnet2.enh.layers.complex_utils import new_complex_like
+from espnet2.enh.layers.complex_utils import complex_norm, is_complex, new_complex_like
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 
-
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 

@@ -1,10 +1,7 @@
-from abc import ABC
-from abc import abstractmethod
-from typing import Any
-from typing import Dict
+from abc import ABC, abstractmethod
+from typing import Any, Dict, Tuple
 
 import torch
-from typing import Tuple
 
 
 class AbsFeatsExtract(torch.nn.Module, ABC):

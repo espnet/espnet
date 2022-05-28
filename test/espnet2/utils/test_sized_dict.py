@@ -5,8 +5,7 @@ import numpy as np
 import pytest
 import torch.multiprocessing
 
-from espnet2.utils.sized_dict import get_size
-from espnet2.utils.sized_dict import SizedDict
+from espnet2.utils.sized_dict import SizedDict, get_size
 
 
 def test_get_size():

@@ -1,15 +1,14 @@
 """Transformation module."""
-from collections.abc import Sequence
-from collections import OrderedDict
 import copy
-from inspect import signature
 import io
 import logging
+from collections import OrderedDict
+from collections.abc import Sequence
+from inspect import signature
 
 import yaml
 
 from espnet.utils.dynamic_import import dynamic_import
-
 
 # TODO(karita): inherit TransformInterface
 # TODO(karita): register cmd arguments in asr_train.py

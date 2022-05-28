@@ -1,10 +1,10 @@
-import os
-import wave
 import contextlib
-from tqdm import tqdm
+import os
 import random
 import sys
+import wave
 
+from tqdm import tqdm
 
 microsoft_speech_corpus_path = sys.argv[1]
 lang = sys.argv[2]

@@ -30,8 +30,8 @@ class TooShortUttError(Exception):
 
 def check_short_utt(ins, size):
     """Check if the utterance is too short for subsampling."""
-    if isinstance(ins, Conv2dSubsampling2) and size < 3:
-        return True, 3
+    if isinstance(ins, Conv2dSubsampling2) and size < 7:
+        return True, 7
     if isinstance(ins, Conv2dSubsampling) and size < 7:
         return True, 7
     if isinstance(ins, Conv2dSubsampling6) and size < 11:

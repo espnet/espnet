@@ -3,8 +3,8 @@
 # Copyright 2021  Shanghai Jiao Tong University (Authors: Wangyou Zhang)
 # Apache 2.0
 import argparse
-from pathlib import Path
 import re
+from pathlib import Path
 
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.utils.types import str2bool

@@ -6,10 +6,10 @@
 
 import argparse
 import codecs
-from collections import OrderedDict
 import os
 import re
 import xml.etree.ElementTree as etree
+from collections import OrderedDict
 
 
 def main():

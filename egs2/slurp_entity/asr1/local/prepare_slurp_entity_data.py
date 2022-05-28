@@ -5,9 +5,9 @@
 
 import json
 import os
-import sys
-import subprocess
 import re
+import subprocess
+import sys
 
 idir = sys.argv[1]
 

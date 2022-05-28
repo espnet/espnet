@@ -1,11 +1,11 @@
-from espnet.scheduler.chainer import ChainerScheduler
-from espnet.scheduler.pytorch import PyTorchScheduler
-from espnet.scheduler import scheduler
-
 import chainer
 import numpy
 import pytest
 import torch
+
+from espnet.scheduler import scheduler
+from espnet.scheduler.chainer import ChainerScheduler
+from espnet.scheduler.pytorch import PyTorchScheduler
 
 
 @pytest.mark.parametrize("name", scheduler.SCHEDULER_DICT.keys())

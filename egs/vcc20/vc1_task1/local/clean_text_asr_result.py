@@ -5,8 +5,8 @@
 
 import argparse
 import codecs
-import nltk
 
+import nltk
 from tacotron_cleaner.cleaners import custom_english_cleaners
 
 try:

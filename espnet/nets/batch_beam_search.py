@@ -1,17 +1,12 @@
 """Parallel beam search module."""
 
 import logging
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import NamedTuple
-from typing import Tuple
+from typing import Any, Dict, List, NamedTuple, Tuple
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
 
-from espnet.nets.beam_search import BeamSearch
-from espnet.nets.beam_search import Hypothesis
+from espnet.nets.beam_search import BeamSearch, Hypothesis
 
 
 class BatchHypothesis(NamedTuple):

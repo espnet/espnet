@@ -1,12 +1,11 @@
-from distutils.version import LooseVersion
 import pytest
-
 import torch
+from packaging.version import parse as V
 from torch_complex import ComplexTensor
 
 from espnet2.enh.separator.dccrn_separator import DCCRNSeparator
 
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 @pytest.mark.parametrize("input_dim", [9])

@@ -1,27 +1,19 @@
 """Reporter module."""
-from collections import defaultdict
-from contextlib import contextmanager
 import dataclasses
 import datetime
-from distutils.version import LooseVersion
 import logging
-from pathlib import Path
 import time
-from typing import ContextManager
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
 import warnings
+from collections import defaultdict
+from contextlib import contextmanager
+from pathlib import Path
+from typing import ContextManager, Dict, List, Optional, Sequence, Tuple, Union
 
 import humanfriendly
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
-
+from packaging.version import parse as V
+from typeguard import check_argument_types, check_return_type
 
 Num = Union[float, int, complex, torch.Tensor, np.ndarray]
 
@@ -357,7 +349,7 @@ class Reporter:
             seconds=time.perf_counter() - sub_reporter.start_time
         )
         stats["total_count"] = sub_reporter.total_count
-        if LooseVersion(torch.__version__) >= LooseVersion("1.4.0"):
+        if V(torch.__version__) >= V("1.4.0"):
             if torch.cuda.is_initialized():
                 stats["gpu_max_cached_mem_GB"] = (
                     torch.cuda.max_memory_reserved() / 2**30

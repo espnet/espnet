@@ -6,7 +6,6 @@
 """Variance predictor related modules."""
 
 import torch
-
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm

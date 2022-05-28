@@ -1,11 +1,5 @@
 import logging
-from typing import Any
-from typing import Dict
-from typing import Iterator
-from typing import List
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, Iterator, List, Sequence, Tuple, Union
 
 import numpy as np
 import torch

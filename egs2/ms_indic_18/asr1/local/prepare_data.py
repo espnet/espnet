@@ -8,8 +8,8 @@
 import os
 import random
 import sys
-import librosa
 
+import librosa
 
 if len(sys.argv) != 3:
     print("Usage: python prepare_data.py [data-directory] [language-ID]")

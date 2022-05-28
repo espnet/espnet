@@ -9,24 +9,23 @@ See https://arxiv.org/abs/2005.08700 for the detail.
 
 """
 
-from itertools import groupby
 import logging
 import math
-
 from distutils.util import strtobool
+from itertools import groupby
+
 import numpy
 import torch
 
-from espnet.nets.pytorch_backend.conformer.encoder import Encoder
-from espnet.nets.pytorch_backend.conformer.argument import (
-    add_arguments_conformer_common,  # noqa: H301
+from espnet.nets.pytorch_backend.conformer.argument import (  # noqa: H301
+    add_arguments_conformer_common,
 )
+from espnet.nets.pytorch_backend.conformer.encoder import Encoder
 from espnet.nets.pytorch_backend.e2e_asr import CTC_LOSS_THRESHOLD
 from espnet.nets.pytorch_backend.e2e_asr_transformer import E2E as E2ETransformer
 from espnet.nets.pytorch_backend.maskctc.add_mask_token import mask_uniform
 from espnet.nets.pytorch_backend.maskctc.mask import square_mask
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, th_accuracy
 
 
 class E2E(E2ETransformer):
@@ -78,7 +77,7 @@ class E2E(E2ETransformer):
         self.odim = odim
 
         self.intermediate_ctc_weight = args.intermediate_ctc_weight
-        self.intermediate_ctc_layers = []
+        self.intermediate_ctc_layers = None
         if args.intermediate_ctc_layer != "":
             self.intermediate_ctc_layers = [
                 int(i) for i in args.intermediate_ctc_layer.split(",")
@@ -124,7 +123,10 @@ class E2E(E2ETransformer):
         # 1. forward encoder
         xs_pad = xs_pad[:, : max(ilens)]  # for data parallel
         src_mask = make_non_pad_mask(ilens.tolist()).to(xs_pad.device).unsqueeze(-2)
-        hs_pad, hs_mask, hs_intermediates = self.encoder(xs_pad, src_mask)
+        if self.intermediate_ctc_layers:
+            hs_pad, hs_mask, hs_intermediates = self.encoder(xs_pad, src_mask)
+        else:
+            hs_pad, hs_mask = self.encoder(xs_pad, src_mask)
         self.hs_pad = hs_pad
 
         # 2. forward decoder

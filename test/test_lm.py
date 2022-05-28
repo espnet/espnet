@@ -1,16 +1,15 @@
+from test.test_beam_search import prepare, rnn_args
+
 import chainer
 import numpy
 import pytest
 import torch
 
 import espnet.lm.chainer_backend.lm as lm_chainer
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.beam_search import beam_search
 from espnet.nets.lm_interface import dynamic_import_lm
-import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.scorers.length_bonus import LengthBonus
-
-from test.test_beam_search import prepare
-from test.test_beam_search import rnn_args
 
 
 def transfer_lstm(ch_lstm, th_lstm):

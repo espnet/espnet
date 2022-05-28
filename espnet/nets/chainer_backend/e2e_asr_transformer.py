@@ -1,36 +1,34 @@
 # encoding: utf-8
 """Transformer-based model for End-to-end ASR."""
 
-from argparse import Namespace
-from distutils.util import strtobool
 import logging
 import math
+from argparse import Namespace
+from distutils.util import strtobool
 
 import chainer
 import chainer.functions as F
-from chainer import reporter
 import numpy as np
 import six
+from chainer import reporter
 
 from espnet.nets.chainer_backend.asr_interface import ChainerASRInterface
-from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
 from espnet.nets.chainer_backend.transformer import ctc
+from espnet.nets.chainer_backend.transformer.attention import MultiHeadAttention
 from espnet.nets.chainer_backend.transformer.decoder import Decoder
 from espnet.nets.chainer_backend.transformer.encoder import Encoder
-from espnet.nets.chainer_backend.transformer.label_smoothing_loss import (
-    LabelSmoothingLoss,  # noqa: H301
+from espnet.nets.chainer_backend.transformer.label_smoothing_loss import (  # noqa: H301
+    LabelSmoothingLoss,
 )
-from espnet.nets.chainer_backend.transformer.training import CustomConverter
-from espnet.nets.chainer_backend.transformer.training import CustomUpdater
-from espnet.nets.chainer_backend.transformer.training import (
-    CustomParallelUpdater,  # noqa: H301
+from espnet.nets.chainer_backend.transformer.training import (  # noqa: H301
+    CustomConverter,
+    CustomParallelUpdater,
+    CustomUpdater,
 )
 from espnet.nets.ctc_prefix_score import CTCPrefixScore
-from espnet.nets.e2e_asr_common import end_detect
-from espnet.nets.e2e_asr_common import ErrorCalculator
+from espnet.nets.e2e_asr_common import ErrorCalculator, end_detect
 from espnet.nets.pytorch_backend.nets_utils import get_subsample
 from espnet.nets.pytorch_backend.transformer.plot import PlotAttentionReport
-
 
 CTC_SCORING_RATIO = 1.5
 MAX_DECODER_OUTPUT = 5

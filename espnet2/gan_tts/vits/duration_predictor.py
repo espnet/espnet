@@ -8,17 +8,18 @@ This code is based on https://github.com/jaywalnut310/vits.
 """
 
 import math
-
 from typing import Optional
 
 import torch
 import torch.nn.functional as F
 
-from espnet2.gan_tts.vits.flow import ConvFlow
-from espnet2.gan_tts.vits.flow import DilatedDepthSeparableConv
-from espnet2.gan_tts.vits.flow import ElementwiseAffineFlow
-from espnet2.gan_tts.vits.flow import FlipFlow
-from espnet2.gan_tts.vits.flow import LogFlow
+from espnet2.gan_tts.vits.flow import (
+    ConvFlow,
+    DilatedDepthSeparableConv,
+    ElementwiseAffineFlow,
+    FlipFlow,
+    LogFlow,
+)
 
 
 class StochasticDurationPredictor(torch.nn.Module):

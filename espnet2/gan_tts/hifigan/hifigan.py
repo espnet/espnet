@@ -9,11 +9,7 @@ This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
 
 import copy
 import logging
-
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch

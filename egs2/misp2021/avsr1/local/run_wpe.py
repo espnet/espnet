@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # _*_ coding: UTF-8 _*_
-import os
-import codecs
 import argparse
+import codecs
+import os
+from multiprocessing import Pool
+
 import numpy as np
 import scipy.io.wavfile as wf
-from multiprocessing import Pool
+from nara_wpe.utils import istft, stft
 from nara_wpe.wpe import wpe_v8 as wpe
-from nara_wpe.utils import stft, istft
 
 
 def wpe_worker(

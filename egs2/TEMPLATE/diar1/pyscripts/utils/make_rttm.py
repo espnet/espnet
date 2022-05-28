@@ -5,11 +5,13 @@
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-from espnet2.fileio.npy_scp import NpyScpReader
 import logging
+
+import humanfriendly
 import numpy as np
 from scipy.signal import medfilt
-import humanfriendly
+
+from espnet2.fileio.npy_scp import NpyScpReader
 
 
 def get_parser() -> argparse.Namespace:

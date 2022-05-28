@@ -10,8 +10,8 @@ import pytest
 import torch
 
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
-from espnet.nets.pytorch_backend import e2e_asr
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
+from espnet.nets.pytorch_backend import e2e_asr
 
 
 def make_arg(**kwargs):

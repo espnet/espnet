@@ -1,10 +1,8 @@
 """Transformer language model."""
 
-from typing import Any
-from typing import List
-from typing import Tuple
-
 import logging
+from typing import Any, List, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

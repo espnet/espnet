@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 
+import argparse
 import collections.abc
-import humanfriendly
+import logging
+import os
+import re
 from pathlib import Path
 from typing import Union
 
-import argparse
-import logging
+import humanfriendly
 import numpy as np
-import re
-import os
 import soundfile
-from espnet2.utils.types import str_or_int
 from typeguard import check_argument_types
+
+from espnet2.utils.types import str_or_int
 
 
 def convert_rttm_text(

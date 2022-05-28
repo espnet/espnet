@@ -1,13 +1,10 @@
 import logging
-from pathlib import Path
-from typing import Optional
-from typing import Sequence
-from typing import Union
 import warnings
+from pathlib import Path
+from typing import Collection, Optional, Sequence, Union
 
 import torch
 from typeguard import check_argument_types
-from typing import Collection
 
 from espnet2.train.reporter import Reporter
 

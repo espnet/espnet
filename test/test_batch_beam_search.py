@@ -1,19 +1,16 @@
+import os
 from argparse import Namespace
+from test.test_beam_search import prepare, transformer_args
 
 import numpy
-import os
 import pytest
 import torch
 
-from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.batch_beam_search import BeamSearch
+from espnet.nets.batch_beam_search import BatchBeamSearch, BeamSearch
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.nets.scorers.ngram import NgramFullScorer
-
-from test.test_beam_search import prepare
-from test.test_beam_search import transformer_args
 
 
 def test_batchfy_hyp():

@@ -1,8 +1,7 @@
 """Search algorithms for Transducer models."""
 
 import logging
-from typing import List
-from typing import Union
+from typing import List, Union
 
 import numpy as np
 import torch
@@ -10,15 +9,16 @@ import torch
 from espnet.nets.pytorch_backend.transducer.custom_decoder import CustomDecoder
 from espnet.nets.pytorch_backend.transducer.joint_network import JointNetwork
 from espnet.nets.pytorch_backend.transducer.rnn_decoder import RNNDecoder
-from espnet.nets.pytorch_backend.transducer.utils import create_lm_batch_states
-from espnet.nets.pytorch_backend.transducer.utils import init_lm_state
-from espnet.nets.pytorch_backend.transducer.utils import is_prefix
-from espnet.nets.pytorch_backend.transducer.utils import recombine_hyps
-from espnet.nets.pytorch_backend.transducer.utils import select_k_expansions
-from espnet.nets.pytorch_backend.transducer.utils import select_lm_state
-from espnet.nets.pytorch_backend.transducer.utils import subtract
-from espnet.nets.transducer_decoder_interface import ExtendedHypothesis
-from espnet.nets.transducer_decoder_interface import Hypothesis
+from espnet.nets.pytorch_backend.transducer.utils import (
+    create_lm_batch_states,
+    init_lm_state,
+    is_prefix,
+    recombine_hyps,
+    select_k_expansions,
+    select_lm_state,
+    subtract,
+)
+from espnet.nets.transducer_decoder_interface import ExtendedHypothesis, Hypothesis
 
 
 class BeamSearchTransducer:

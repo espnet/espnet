@@ -8,7 +8,6 @@ import argparse
 import os
 import random
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-d", help="downloads directory", type=str, default="downloads")
