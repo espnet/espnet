@@ -3,14 +3,14 @@ from typing import Tuple
 
 import torch
 from torch.nn import functional as F
+from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.frontends.beamformer import apply_beamforming_vector
-from espnet.nets.pytorch_backend.frontends.beamformer import get_mvdr_vector
-from espnet.nets.pytorch_backend.frontends.beamformer import (
-    get_power_spectral_density_matrix,  # noqa: H301
+from espnet.nets.pytorch_backend.frontends.beamformer import (  # noqa: H301
+    apply_beamforming_vector,
+    get_mvdr_vector,
+    get_power_spectral_density_matrix,
 )
 from espnet.nets.pytorch_backend.frontends.mask_estimator import MaskEstimator
-from torch_complex.tensor import ComplexTensor
 
 
 class DNN_Beamformer(torch.nn.Module):

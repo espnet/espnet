@@ -2,16 +2,14 @@
 """Class Declaration of Transformer's Decoder."""
 
 import chainer
-
 import chainer.functions as F
 import chainer.links as L
+import numpy as np
 
 from espnet.nets.chainer_backend.transformer.decoder_layer import DecoderLayer
 from espnet.nets.chainer_backend.transformer.embedding import PositionalEncoding
 from espnet.nets.chainer_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.chainer_backend.transformer.mask import make_history_mask
-
-import numpy as np
 
 
 class Decoder(chainer.Chain):

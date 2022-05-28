@@ -1,16 +1,13 @@
 import logging
-from pathlib import Path
 import uuid
+from pathlib import Path
 
 import numpy as np
 import pytest
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from espnet2.train.reporter import aggregate
-from espnet2.train.reporter import Average
-from espnet2.train.reporter import ReportedValue
-from espnet2.train.reporter import Reporter
+from espnet2.train.reporter import Average, ReportedValue, Reporter, aggregate
 
 
 @pytest.mark.parametrize("weight1,weight2", [(None, None), (19, np.array(9))])

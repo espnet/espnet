@@ -1,15 +1,12 @@
 """Tests for asr_align.py."""
+import string
 from argparse import ArgumentParser
 from pathlib import Path
-import string
 
 import numpy as np
 import pytest
 
-from espnet2.bin.asr_align import CTCSegmentation
-from espnet2.bin.asr_align import CTCSegmentationTask
-from espnet2.bin.asr_align import get_parser
-from espnet2.bin.asr_align import main
+from espnet2.bin.asr_align import CTCSegmentation, CTCSegmentationTask, get_parser, main
 from espnet2.tasks.asr import ASRTask
 
 

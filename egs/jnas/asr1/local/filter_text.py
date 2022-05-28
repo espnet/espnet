@@ -6,9 +6,8 @@
 
 import argparse
 import codecs
-from io import open
 import sys
-
+from io import open
 
 PY2 = sys.version_info[0] == 2
 sys.stdin = codecs.getreader("utf-8")(sys.stdin if PY2 else sys.stdin.buffer)

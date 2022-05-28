@@ -2,13 +2,11 @@
 
 import json
 import logging
-from packaging.version import parse as V
 
 import torch
+from packaging.version import parse as V
 
-from espnet.asr.asr_utils import add_results_to_json
-from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import torch_load
+from espnet.asr.asr_utils import add_results_to_json, get_model_conf, torch_load
 from espnet.asr.pytorch_backend.asr import load_trained_model
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.batch_beam_search import BatchBeamSearch
@@ -99,8 +97,7 @@ def recog_v2(args):
         lm = None
 
     if args.ngram_model:
-        from espnet.nets.scorers.ngram import NgramFullScorer
-        from espnet.nets.scorers.ngram import NgramPartScorer
+        from espnet.nets.scorers.ngram import NgramFullScorer, NgramPartScorer
 
         if args.ngram_scorer == "full":
             ngram = NgramFullScorer(args.ngram_model, train_args.char_list)

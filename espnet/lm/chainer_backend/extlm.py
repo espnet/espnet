@@ -8,6 +8,7 @@ import math
 
 import chainer
 import chainer.functions as F
+
 from espnet.lm.lm_utils import make_lexical_tree
 
 

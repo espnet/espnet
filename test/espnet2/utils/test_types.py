@@ -3,15 +3,17 @@ from typing import Any
 
 import pytest
 
-from espnet2.utils.types import float_or_none
-from espnet2.utils.types import humanfriendly_parse_size_or_none
-from espnet2.utils.types import int_or_none
-from espnet2.utils.types import remove_parenthesis
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str2pair_str
-from espnet2.utils.types import str2triple_str
-from espnet2.utils.types import str_or_int
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import (
+    float_or_none,
+    humanfriendly_parse_size_or_none,
+    int_or_none,
+    remove_parenthesis,
+    str2bool,
+    str2pair_str,
+    str2triple_str,
+    str_or_int,
+    str_or_none,
+)
 
 
 @contextmanager

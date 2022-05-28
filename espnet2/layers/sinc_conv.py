@@ -4,9 +4,10 @@
 
 """Sinc convolutions."""
 import math
+from typing import Union
+
 import torch
 from typeguard import check_argument_types
-from typing import Union
 
 
 class LogCompression(torch.nn.Module):

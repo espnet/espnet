@@ -1,5 +1,4 @@
 import pytest
-
 import torch
 
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1

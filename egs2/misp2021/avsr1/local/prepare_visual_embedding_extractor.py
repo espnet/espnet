@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # _*_ coding: UTF-8 _*_
-import os
-import codecs
 import argparse
+import codecs
+import os
+
 from tqdm import tqdm
 
 

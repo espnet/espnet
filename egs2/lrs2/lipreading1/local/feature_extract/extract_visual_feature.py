@@ -4,17 +4,17 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-from distutils.util import strtobool
 import logging
+from distutils.util import strtobool
 
 import kaldiio
 import numpy
 import resampy
 from video_processing import *
 
+from espnet2.utils.types import int_or_none
 from espnet.utils.cli_utils import get_commandline_args
 from espnet.utils.cli_writers import file_writer_helper
-from espnet2.utils.types import int_or_none
 
 
 def get_parser():

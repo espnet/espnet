@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 import os
-import pandas as pd
 import re
 import sys
+
+import pandas as pd
 
 if len(sys.argv) != 2:
     print("Usage: python data_prep.py [root]")

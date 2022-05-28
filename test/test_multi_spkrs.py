@@ -5,11 +5,11 @@
 
 import argparse
 import importlib
-import numpy
 import re
-import torch
 
+import numpy
 import pytest
+import torch
 
 
 def make_arg(**kwargs):

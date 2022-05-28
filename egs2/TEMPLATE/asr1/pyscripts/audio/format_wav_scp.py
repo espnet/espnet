@@ -3,19 +3,19 @@ import argparse
 import logging
 from io import BytesIO
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
-import kaldiio
 import humanfriendly
+import kaldiio
 import numpy as np
 import resampy
 import soundfile
 from tqdm import tqdm
 from typeguard import check_argument_types
 
-from espnet.utils.cli_utils import get_commandline_args
 from espnet2.fileio.read_text import read_2column_text
 from espnet2.fileio.sound_scp import SoundScpWriter
+from espnet.utils.cli_utils import get_commandline_args
 
 
 def humanfriendly_or_none(value: str):

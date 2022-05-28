@@ -7,28 +7,19 @@ import argparse
 import dataclasses
 import logging
 import time
-
 from contextlib import contextmanager
-from packaging.version import parse as V
-from typing import Dict
-from typing import Iterable
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import torch
-
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
-from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
-from espnet2.schedulers.abs_scheduler import AbsScheduler
+from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler, AbsScheduler
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import SubReporter
-from espnet2.train.trainer import Trainer
-from espnet2.train.trainer import TrainerOptions
+from espnet2.train.trainer import Trainer, TrainerOptions
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.types import str2bool
 
@@ -36,8 +27,7 @@ if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
 if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-    from torch.cuda.amp import GradScaler
+    from torch.cuda.amp import GradScaler, autocast
 else:
     # Nothing to do if torch<1.6.0
     @contextmanager

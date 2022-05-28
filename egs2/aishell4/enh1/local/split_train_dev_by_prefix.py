@@ -3,13 +3,11 @@
 # Copyright 2022  Shanghai Jiao Tong University (Authors: Wangyou Zhang)
 # Apache 2.0
 import argparse
+import random
 from collections import defaultdict
 from pathlib import Path
-import random
 
-from split_train_dev import int_or_float_or_numstr
-from split_train_dev import split_train_dev
-from split_train_dev import split_train_dev_v2
+from split_train_dev import int_or_float_or_numstr, split_train_dev, split_train_dev_v2
 
 
 def get_parser():

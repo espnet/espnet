@@ -6,9 +6,10 @@
 
 import argparse
 import codecs
-from dateutil import parser
 import glob
 import os
+
+from dateutil import parser
 
 
 def get_parser():

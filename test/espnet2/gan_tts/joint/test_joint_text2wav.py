@@ -3,10 +3,9 @@
 
 """Test VITS related modules."""
 
-from packaging.version import parse as V
-
 import pytest
 import torch
+from packaging.version import parse as V
 
 from espnet2.gan_tts.joint import JointText2Wav
 

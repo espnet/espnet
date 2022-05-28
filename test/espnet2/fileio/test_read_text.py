@@ -3,8 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from espnet2.fileio.read_text import load_num_sequence_text
-from espnet2.fileio.read_text import read_2column_text
+from espnet2.fileio.read_text import load_num_sequence_text, read_2column_text
 
 
 def test_read_2column_text(tmp_path: Path):

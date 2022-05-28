@@ -1,19 +1,13 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-from pathlib import Path
 import sys
-from typing import Any
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
-from typing import Union
+from pathlib import Path
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
-from typing import List
+from typeguard import check_argument_types, check_return_type
 
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch

@@ -1,5 +1,6 @@
-import chainer
 import logging
+
+import chainer
 
 
 def check_early_stop(trainer, epochs):

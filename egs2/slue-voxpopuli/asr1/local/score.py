@@ -4,14 +4,14 @@
 #           2021  Carnegie Mellon University
 # Apache 2.0
 
+import argparse
 import json
 import os
 import re
 import sys
-import pandas as pd
-import argparse
 
 import eval_utils
+import pandas as pd
 
 ontonotes_to_combined_label = {
     "GPE": "PLACE",

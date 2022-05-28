@@ -4,10 +4,12 @@
 
 """Sliding Window for raw audio input data."""
 
-from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from typing import Tuple
+
 import torch
 from typeguard import check_argument_types
-from typing import Tuple
+
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
 
 class SlidingWindow(AbsFrontend):

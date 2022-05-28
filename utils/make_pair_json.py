@@ -5,10 +5,10 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-from io import open
 import json
 import logging
 import sys
+from io import open
 
 from espnet.utils.cli_utils import get_commandline_args
 

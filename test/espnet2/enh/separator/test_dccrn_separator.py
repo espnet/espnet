@@ -1,7 +1,6 @@
-from packaging.version import parse as V
 import pytest
-
 import torch
+from packaging.version import parse as V
 from torch_complex import ComplexTensor
 
 from espnet2.enh.separator.dccrn_separator import DCCRNSeparator

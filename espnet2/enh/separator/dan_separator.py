@@ -1,17 +1,13 @@
 from collections import OrderedDict
 from functools import reduce
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as Fun
 from torch_complex.tensor import ComplexTensor
 
-from espnet.nets.pytorch_backend.rnn.encoders import RNN
 from espnet2.enh.separator.abs_separator import AbsSeparator
+from espnet.nets.pytorch_backend.rnn.encoders import RNN
 
 
 class DANSeparator(AbsSeparator):

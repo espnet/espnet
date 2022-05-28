@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-import configargparse
-from distutils.util import strtobool
 import logging
 import os
 import random
 import sys
+from distutils.util import strtobool
 
+import configargparse
 import numpy as np
 
 from espnet.asr.pytorch_backend.asr import enhance

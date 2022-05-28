@@ -18,6 +18,8 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_streaming_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev|14326|205341|94.0|5.8|0.3|0.3|6.3|42.2|
 |decode_asr_streaming_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/test|7176|104765|92.9|6.7|0.5|0.7|7.8|46.2|
+
+
 # Streaming Transformer + speed perturbation: feats=raw, n_fft=512, hop_length=128
 ## Environments
 - date: `Tue Aug 17 01:20:32 CST 2021`
@@ -38,6 +40,56 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_streaming_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev|14326|205341|93.6|6.2|0.1|0.5|6.8|46.8|
 |decode_asr_streaming_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/test|7176|104765|93.0|6.7|0.2|0.8|7.8|50.7|
+
+
+
+# Branchformer: init
+
+## Environments
+- date: `Sun May 22 13:29:06 EDT 2022`
+- python version: `3.9.12 (main, Apr  5 2022, 06:56:58)  [GCC 7.5.0]`
+- espnet version: `espnet 202204`
+- pytorch version: `pytorch 1.11.0`
+- Git hash: `58a0a12ba48634841eb6616576d39e150239b4a2`
+  - Commit date: `Sun May 22 12:49:35 2022 -0400`
+
+## Without LM
+- ASR config: [conf/tuning/train_asr_branchformer_e24_amp.yaml](conf/tuning/train_asr_branchformer_e24_amp.yaml)
+- #Params: 45.43 M
+- Model link: [https://huggingface.co/pyf98/aishell_branchformer_e24_amp](https://huggingface.co/pyf98/aishell_branchformer_e24_amp)
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam10_ctc0.4/dev|14326|205341|96.0|4.0|0.1|0.1|4.1|32.7|
+|beam10_ctc0.4/test|7176|104765|95.7|4.2|0.1|0.1|4.4|34.1|
+
+
+
+# Conformer: new config
+
+## Environments
+- date: `Fri May 27 13:37:48 EDT 2022`
+- python version: `3.9.12 (main, Apr  5 2022, 06:56:58)  [GCC 7.5.0]`
+- espnet version: `espnet 202204`
+- pytorch version: `pytorch 1.11.0`
+- Git hash: `4f36236ed7c8a25c2f869e518614e1ad4a8b50d6`
+  - Commit date: `Thu May 26 00:22:45 2022 -0400`
+
+## Without LM
+- ASR config: [conf/tuning/train_asr_conformer_e12_amp.yaml](conf/tuning/train_asr_conformer_e12_amp.yaml)
+- #Params: 46.25 M
+- Model link: [https://huggingface.co/pyf98/aishell_conformer_e12_amp](https://huggingface.co/pyf98/aishell_conformer_e12_amp)
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam10_ctc0.4/dev|14326|205341|95.8|4.1|0.1|0.1|4.3|33.1|
+|beam10_ctc0.4/test|7176|104765|95.4|4.4|0.1|0.1|4.6|34.7|
+
+
 
 # Conformer + specaug + speed perturbation: feats=raw, n_fft=512, hop_length=128
 ## Environments
@@ -80,6 +132,7 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_rnn_asr_model_valid.acc.ave/dev|14326|205341|95.6|4.3|0.1|0.1|4.5|35.0|
 |decode_asr_rnn_asr_model_valid.acc.ave/test|7176|104765|95.2|4.7|0.1|0.1|4.9|36.7|
+
 
 # Transformer + speed perturbation: feats=raw with same LM with the privious setting
 

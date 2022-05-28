@@ -11,8 +11,7 @@ import torch
 import torch.nn as nn
 
 from espnet2.enh.layers import dprnn
-from espnet2.enh.layers.fasnet import BF_module
-from espnet2.enh.layers.fasnet import FaSNet_base
+from espnet2.enh.layers.fasnet import BF_module, FaSNet_base
 
 
 # implicit FaSNet (iFaSNet)

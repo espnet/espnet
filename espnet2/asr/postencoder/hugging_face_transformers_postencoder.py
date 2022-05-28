@@ -4,14 +4,15 @@
 
 """Hugging Face Transformers PostEncoder."""
 
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from typeguard import check_argument_types
-from typing import Tuple
-
 import copy
 import logging
+from typing import Tuple
+
 import torch
+from typeguard import check_argument_types
+
+from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 try:
     from transformers import AutoModel
