@@ -636,6 +636,7 @@ def inference_md(
     ext_st_weight: float,
     md_ext_st_weight: float,
     allow_variable_data_keys: bool,
+    enh_s2t_task: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:

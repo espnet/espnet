@@ -1635,6 +1635,7 @@ if ! "${skip_eval}"; then
         done
 
         # Show results in Markdown syntax
+        [ -f local/score.sh ] && local/score.sh "${st_exp}"
         scripts/utils/show_translation_result.sh --case $tgt_case "${st_exp}" > "${st_exp}"/RESULTS.md
         cat "${st_exp}"/RESULTS.md
     fi

@@ -191,7 +191,8 @@ decoder2_choices = ClassChoices(
         rnn=RNNDecoder,
     ),
     type_check=AbsDecoder,
-    default="rnn",
+    default=None,
+    optional=True,
 )
 postdecoder_choices = ClassChoices(
     name="postdecoder",
@@ -602,6 +603,7 @@ class ASRTask(AbsTask):
                 args.model_conf["transcript_token_list"] = transcript_token_list
                 args.model_conf["two_pass"] = args.two_pass
                 args.model_conf["pre_postencoder_norm"] = args.pre_postencoder_norm
+        print(args.model_conf)
         model = model_class(
             vocab_size=vocab_size,
             frontend=frontend,

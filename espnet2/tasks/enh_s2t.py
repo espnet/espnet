@@ -108,6 +108,8 @@ asr_attributes = [
     "encoder_conf",
     "postencoder",
     "postencoder_conf",
+    "postdecoder",
+    "postdecoder_conf",
     "decoder",
     "decoder_conf",
     "ctc_conf",
