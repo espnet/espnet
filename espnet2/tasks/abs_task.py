@@ -1315,7 +1315,7 @@ class AbsTask(ABC):
                 distributed_option=distributed_option,
             )
 
-            if wandb.run:
+            if args.use_wandb and wandb.run:
                 wandb.finish()
 
     @classmethod
