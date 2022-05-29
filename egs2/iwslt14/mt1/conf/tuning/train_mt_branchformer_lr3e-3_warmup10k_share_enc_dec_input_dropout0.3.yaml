@@ -1,0 +1,70 @@
+frontend: embed     # embedding + positional encoding
+frontend_conf:
+    embed_dim: 512
+    positional_dropout_rate: 0.3
+
+encoder: branchformer
+encoder_conf:
+    output_size: 512
+    use_attn: true
+    attention_heads: 4
+    attention_layer_type: selfattn
+    pos_enc_layer_type: abs_pos     # this argument is not used in the current MT
+    rel_pos_type: latest
+    use_cgmlp: true
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 5
+    use_linear_after_conv: false
+    gate_activation: identity
+    merge_method: concat
+    cgmlp_weight: 0.5               # used only if merge_method is "fixed_ave"
+    attn_branch_drop_rate: 0.0      # used only if merge_method is "learned_ave"
+    num_blocks: 6
+    dropout_rate: 0.3
+    positional_dropout_rate: 0.3
+    attention_dropout_rate: 0.3
+    input_layer: null
+    stochastic_depth_rate: 0.0
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 1024
+    num_blocks: 6
+    dropout_rate: 0.3
+    positional_dropout_rate: 0.3
+    self_attention_dropout_rate: 0.3
+    src_attention_dropout_rate: 0.3
+
+model_conf:
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    share_decoder_input_output_embed: false
+    share_encoder_decoder_input_embed: true
+
+num_att_plot: 1
+log_interval: 100
+num_workers: 2
+batch_type: numel
+batch_bins: 400000000
+accum_grad: 1
+max_epoch: 200
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+optim: adam
+optim_conf:
+    lr: 0.003
+    betas:
+    - 0.9
+    - 0.98
+    eps: 0.000000001
+    weight_decay: 0.0001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 10000

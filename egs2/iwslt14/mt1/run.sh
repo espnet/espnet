@@ -12,7 +12,7 @@ train_set=train
 train_dev=valid
 test_sets="test valid"
 
-mt_config=conf/train_mt_transformer.yaml
+mt_config=conf/tuning/train_mt_branchformer_lr3e-3_warmup10k_share_enc_dec_input_dropout0.3.yaml
 inference_config=conf/decode_mt.yaml
 
 src_nbpe=1000
@@ -26,7 +26,6 @@ src_case=tc
 tgt_case=tc
 
 ./mt.sh \
-    --ignore_init_mismatch true \
     --use_lm false \
     --token_joint true \
     --ngpu 1 \
