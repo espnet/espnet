@@ -4,45 +4,42 @@
 """Branchformer encoder definition.
 
 Reference:
-    Yifan Peng, Siddharth Dalmia, Ian Lane, and Shinji Watanabe, 
-    "Branchformer: Parallel MLP-Attention Architectures to 
-    Capture Local and Global Context for Speech Recognition 
+    Yifan Peng, Siddharth Dalmia, Ian Lane, and Shinji Watanabe,
+    "Branchformer: Parallel MLP-Attention Architectures to
+    Capture Local and Global Context for Speech Recognition
     and Understanding," in ICML 2022.
 """
 
-from typing import Optional
-from typing import Tuple
-from typing import Union
-from typing import List
-
 import logging
+from typing import List, Optional, Tuple, Union
+
 import numpy
 import torch
-
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import get_activation
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.attention import (
-    MultiHeadedAttention,  # noqa: H301
-    RelPositionMultiHeadedAttention,  # noqa: H301
-    LegacyRelPositionMultiHeadedAttention,  # noqa: H301
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
+from espnet.nets.pytorch_backend.transformer.attention import (  # noqa: H301
+    LegacyRelPositionMultiHeadedAttention,
+    MultiHeadedAttention,
+    RelPositionMultiHeadedAttention,
 )
-from espnet.nets.pytorch_backend.transformer.embedding import (
-    PositionalEncoding,  # noqa: H301
-    ScaledPositionalEncoding,  # noqa: H301
-    RelPositionalEncoding,  # noqa: H301
-    LegacyRelPositionalEncoding,  # noqa: H301
+from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
+    LegacyRelPositionalEncoding,
+    PositionalEncoding,
+    RelPositionalEncoding,
+    ScaledPositionalEncoding,
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
-from espnet.nets.pytorch_backend.transformer.subsampling import check_short_utt
-from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling
-from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling2
-from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling6
-from espnet.nets.pytorch_backend.transformer.subsampling import Conv2dSubsampling8
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet.nets.pytorch_backend.transformer.subsampling import (
+    Conv2dSubsampling,
+    Conv2dSubsampling2,
+    Conv2dSubsampling6,
+    Conv2dSubsampling8,
+    TooShortUttError,
+    check_short_utt,
+)
 
 
 class ConvolutionalSpatialGatingUnit(torch.nn.Module):
@@ -52,32 +49,37 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
         - https://openreview.net/forum?id=RA-zVvZLYIy
         - https://arxiv.org/abs/2105.08050
     """
+
     def __init__(
         self,
         size: int,
         kernel_size: int,
         dropout_rate: float,
         use_linear_after_conv: bool,
-        gate_activation: str
+        gate_activation: str,
     ):
         super().__init__()
 
-        n_channels = size // 2      # split input channels
+        n_channels = size // 2  # split input channels
         self.norm = LayerNorm(n_channels)
         self.conv = torch.nn.Conv1d(
-            n_channels, n_channels, kernel_size, 1, (kernel_size-1)//2, 
-            groups=n_channels
+            n_channels,
+            n_channels,
+            kernel_size,
+            1,
+            (kernel_size - 1) // 2,
+            groups=n_channels,
         )
         if use_linear_after_conv:
             self.linear = torch.nn.Linear(n_channels, n_channels)
         else:
             self.linear = None
 
-        if gate_activation == 'identity':
+        if gate_activation == "identity":
             self.act = torch.nn.Identity()
         else:
             self.act = get_activation(gate_activation)
-        
+
         self.dropout = torch.nn.Dropout(dropout_rate)
 
     def espnet_initialization_fn(self):
@@ -88,38 +90,42 @@ class ConvolutionalSpatialGatingUnit(torch.nn.Module):
             torch.nn.init.ones_(self.linear.bias)
 
     def forward(self, x, gate_add=None):
-        """
+        """Forward method
+
         Args:
             x (torch.Tensor): (N, T, D)
             gate_add (torch.Tensor): (N, T, D/2)
-        
+
         Returns:
             out (torch.Tensor): (N, T, D/2)
         """
+
         x_r, x_g = x.chunk(2, dim=-1)
-        
-        x_g = self.norm(x_g)    # (N, T, D/2)
+
+        x_g = self.norm(x_g)  # (N, T, D/2)
         x_g = self.conv(x_g.transpose(1, 2)).transpose(1, 2)  # (N, T, D/2)
         if self.linear is not None:
             x_g = self.linear(x_g)
-        
+
         if gate_add is not None:
             x_g = x_g + gate_add
 
         x_g = self.act(x_g)
-        out = x_r * x_g     # (N, T, D/2)
+        out = x_r * x_g  # (N, T, D/2)
         out = self.dropout(out)
         return out
 
 
 class ConvolutionalGatingMLP(torch.nn.Module):
     """Convolutional Gating MLP (cgMLP).
+
     Note: LayerNorm and skip connection should be applied outside this module.
 
     References:
         - https://openreview.net/forum?id=RA-zVvZLYIy
         - https://arxiv.org/abs/2105.08050
     """
+
     def __init__(
         self,
         size: int,
@@ -132,27 +138,26 @@ class ConvolutionalGatingMLP(torch.nn.Module):
         super().__init__()
 
         self.channel_proj1 = torch.nn.Sequential(
-            torch.nn.Linear(size, linear_units),
-            torch.nn.GELU()
+            torch.nn.Linear(size, linear_units), torch.nn.GELU()
         )
         self.csgu = ConvolutionalSpatialGatingUnit(
             size=linear_units,
             kernel_size=kernel_size,
             dropout_rate=dropout_rate,
             use_linear_after_conv=use_linear_after_conv,
-            gate_activation=gate_activation
+            gate_activation=gate_activation,
         )
-        self.channel_proj2 = torch.nn.Linear(linear_units//2, size)
+        self.channel_proj2 = torch.nn.Linear(linear_units // 2, size)
 
     def forward(self, x, mask):
         if isinstance(x, tuple):
             xs_pad, pos_emb = x
         else:
             xs_pad, pos_emb = x, None
-        
-        xs_pad = self.channel_proj1(xs_pad)         # size -> linear_units
-        xs_pad = self.csgu(xs_pad)                  # linear_units -> linear_units/2
-        xs_pad = self.channel_proj2(xs_pad)         # linear_units/2 -> size
+
+        xs_pad = self.channel_proj1(xs_pad)  # size -> linear_units
+        xs_pad = self.csgu(xs_pad)  # linear_units -> linear_units/2
+        xs_pad = self.channel_proj2(xs_pad)  # linear_units/2 -> size
 
         if pos_emb is not None:
             out = (xs_pad, pos_emb)
@@ -163,12 +168,13 @@ class ConvolutionalGatingMLP(torch.nn.Module):
 
 class FastSelfAttention(torch.nn.Module):
     """Fast self-attention used in Fastformer.
-    
+
     Reference:
-        Wu et al., "Fastformer: Additive Attention Can Be All You Need" 
+        Wu et al., "Fastformer: Additive Attention Can Be All You Need"
         https://arxiv.org/abs/2108.09084
         Code is based on: https://github.com/wuch15/Fastformer
     """
+
     def __init__(
         self,
         size,
@@ -178,11 +184,12 @@ class FastSelfAttention(torch.nn.Module):
         super().__init__()
         if size % attention_heads != 0:
             raise ValueError(
-                f"Hidden size ({size}) is not an integer multiple of attention heads ({attention_heads})"
+                f"Hidden size ({size}) is not an integer multiple "
+                f"of attention heads ({attention_heads})"
             )
         self.attention_head_size = size // attention_heads
         self.num_attention_heads = attention_heads
-        
+
         self.query = torch.nn.Linear(size, size)
         self.query_att = torch.nn.Linear(size, attention_heads)
         self.key = torch.nn.Linear(size, size)
@@ -200,75 +207,110 @@ class FastSelfAttention(torch.nn.Module):
             module.bias.data.zero_()
 
     def transpose_for_scores(self, x):
-        """
+        """Reshape and transpose to compute scores.
+
         Args:
             x: (batch, time, size = n_heads * attn_dim)
+
         Returns:
             (batch, n_heads, time, attn_dim)
         """
-        new_x_shape = x.shape[:-1] + (self.num_attention_heads, self.attention_head_size)
+
+        new_x_shape = x.shape[:-1] + (
+            self.num_attention_heads,
+            self.attention_head_size,
+        )
         return x.reshape(*new_x_shape).transpose(1, 2)
 
     def forward(self, xs_pad, mask):
-        """
+        """Forward method.
+
         Args:
             xs_pad: (batch, time, size = n_heads * attn_dim)
             mask: (batch, 1, time), nonpadding is 1, padding is 0
+
         Returns:
             torch.Tensor: (batch, time, size)
         """
+
         batch_size, seq_len, _ = xs_pad.shape
-        mixed_query_layer = self.query(xs_pad)      # (batch, time, size)
-        mixed_key_layer = self.key(xs_pad)          # (batch, time, size)
-        
+        mixed_query_layer = self.query(xs_pad)  # (batch, time, size)
+        mixed_key_layer = self.key(xs_pad)  # (batch, time, size)
+
         if mask is not None:
-            mask = mask.eq(0)   # padding is 1, nonpadding is 0
+            mask = mask.eq(0)  # padding is 1, nonpadding is 0
 
         # (batch, n_heads, time)
-        query_for_score = self.query_att(mixed_query_layer).transpose(1, 2) / self.attention_head_size**0.5
+        query_for_score = (
+            self.query_att(mixed_query_layer).transpose(1, 2)
+            / self.attention_head_size**0.5
+        )
         if mask is not None:
             min_value = float(
-                numpy.finfo(torch.tensor(0, dtype=query_for_score.dtype).numpy().dtype).min
+                numpy.finfo(
+                    torch.tensor(0, dtype=query_for_score.dtype).numpy().dtype
+                ).min
             )
             query_for_score = query_for_score.masked_fill(mask, min_value)
             query_weight = torch.softmax(query_for_score, dim=-1).masked_fill(mask, 0.0)
         else:
             query_weight = torch.softmax(query_for_score, dim=-1)
-        
-        query_weight = query_weight.unsqueeze(2)    # (batch, n_heads, 1, time)
-        query_layer = self.transpose_for_scores(mixed_query_layer)  # (batch, n_heads, time, attn_dim)
 
-        pooled_query = torch.matmul(query_weight, query_layer).transpose(1, 2).reshape(
-            -1, 1, self.num_attention_heads * self.attention_head_size
-        )   # (batch, 1, size = n_heads * attn_dim)
+        query_weight = query_weight.unsqueeze(2)  # (batch, n_heads, 1, time)
+        query_layer = self.transpose_for_scores(
+            mixed_query_layer
+        )  # (batch, n_heads, time, attn_dim)
+
+        pooled_query = (
+            torch.matmul(query_weight, query_layer)
+            .transpose(1, 2)
+            .reshape(-1, 1, self.num_attention_heads * self.attention_head_size)
+        )  # (batch, 1, size = n_heads * attn_dim)
         pooled_query = self.dropout(pooled_query)
-        pooled_query_repeat = pooled_query.repeat(1, seq_len, 1)    # (batch, time, size)
+        pooled_query_repeat = pooled_query.repeat(1, seq_len, 1)  # (batch, time, size)
 
-        mixed_query_key_layer = mixed_key_layer * pooled_query_repeat   # (batch, time, size)
-        
+        mixed_query_key_layer = (
+            mixed_key_layer * pooled_query_repeat
+        )  # (batch, time, size)
+
         # (batch, n_heads, time)
-        query_key_score = (self.key_att(mixed_query_key_layer) / self.attention_head_size**0.5).transpose(1, 2)
+        query_key_score = (
+            self.key_att(mixed_query_key_layer) / self.attention_head_size**0.5
+        ).transpose(1, 2)
         if mask is not None:
             min_value = float(
-                numpy.finfo(torch.tensor(0, dtype=query_key_score.dtype).numpy().dtype).min
+                numpy.finfo(
+                    torch.tensor(0, dtype=query_key_score.dtype).numpy().dtype
+                ).min
             )
             query_key_score = query_key_score.masked_fill(mask, min_value)
-            query_key_weight = torch.softmax(query_key_score, dim=-1).masked_fill(mask, 0.0)
+            query_key_weight = torch.softmax(query_key_score, dim=-1).masked_fill(
+                mask, 0.0
+            )
         else:
             query_key_weight = torch.softmax(query_key_score, dim=-1)
 
-        query_key_weight = query_key_weight.unsqueeze(2)    # (batch, n_heads, 1, time)
-        key_layer = self.transpose_for_scores(mixed_query_key_layer)    # (batch, n_heads, time, attn_dim)
-        pooled_key = torch.matmul(query_key_weight, key_layer)  # (batch, n_heads, 1, attn_dim)
+        query_key_weight = query_key_weight.unsqueeze(2)  # (batch, n_heads, 1, time)
+        key_layer = self.transpose_for_scores(
+            mixed_query_key_layer
+        )  # (batch, n_heads, time, attn_dim)
+        pooled_key = torch.matmul(
+            query_key_weight, key_layer
+        )  # (batch, n_heads, 1, attn_dim)
         pooled_key = self.dropout(pooled_key)
 
         # NOTE: value = query, due to param sharing
-        weighted_value = (pooled_key * query_layer).transpose(1, 2)     # (batch, time, n_heads, attn_dim)
+        weighted_value = (pooled_key * query_layer).transpose(
+            1, 2
+        )  # (batch, time, n_heads, attn_dim)
         weighted_value = weighted_value.reshape(
-            weighted_value.shape[:-2] + (self.num_attention_heads * self.attention_head_size,)
-        )       # (batch, time, size)
-        weighted_value = self.dropout(self.transform(weighted_value)) + mixed_query_layer
-    
+            weighted_value.shape[:-2]
+            + (self.num_attention_heads * self.attention_head_size,)
+        )  # (batch, time, size)
+        weighted_value = (
+            self.dropout(self.transform(weighted_value)) + mixed_query_layer
+        )
+
         return weighted_value
 
 
@@ -283,10 +325,11 @@ class BranchformerEncoderLayer(torch.nn.Module):
         merge_method (str): concat, learned_ave, fixed_ave
         cgmlp_weight (float): weight of the cgmlp branch, between 0 and 1,
             used if merge_method is fixed_ave
-        attn_branch_drop_rate (float): probability of dropping the attn branch, 
+        attn_branch_drop_rate (float): probability of dropping the attn branch,
             used if merge_method is learned_ave
         stochastic_depth_rate (float): stochastic depth probability
     """
+
     def __init__(
         self,
         size: int,
@@ -295,12 +338,13 @@ class BranchformerEncoderLayer(torch.nn.Module):
         dropout_rate: float,
         merge_method: str,
         cgmlp_weight: float = 0.5,
-        attn_branch_drop_rate: float = 0.,
-        stochastic_depth_rate: float = 0.,
+        attn_branch_drop_rate: float = 0.0,
+        stochastic_depth_rate: float = 0.0,
     ):
         super().__init__()
-        assert (attn is not None) or (cgmlp is not None), \
-            "At least one branch should be valid"
+        assert (attn is not None) or (
+            cgmlp is not None
+        ), "At least one branch should be valid"
 
         self.size = size
         self.attn = attn
@@ -312,10 +356,10 @@ class BranchformerEncoderLayer(torch.nn.Module):
         self.use_two_branches = (attn is not None) and (cgmlp is not None)
 
         if attn is not None:
-            self.norm_mha = LayerNorm(size)     # for the MHA module
+            self.norm_mha = LayerNorm(size)  # for the MHA module
         if cgmlp is not None:
-            self.norm_mlp = LayerNorm(size)     # for the MLP module
-        self.norm_final = LayerNorm(size)       # for the final output of the block
+            self.norm_mlp = LayerNorm(size)  # for the MLP module
+        self.norm_final = LayerNorm(size)  # for the final output of the block
 
         self.dropout = torch.nn.Dropout(dropout_rate)
 
@@ -336,25 +380,26 @@ class BranchformerEncoderLayer(torch.nn.Module):
                 self.merge_proj = torch.nn.Linear(size, size)
 
             elif merge_method == "fixed_ave":
-                assert 0. <= cgmlp_weight <= 1., \
-                    "cgmlp weight should be between 0.0 and 1.0"
+                assert (
+                    0.0 <= cgmlp_weight <= 1.0
+                ), "cgmlp weight should be between 0.0 and 1.0"
 
                 # remove the other branch if only one branch is used
-                if cgmlp_weight == 0.:
+                if cgmlp_weight == 0.0:
                     self.use_two_branches = False
                     self.cgmlp = None
                     self.norm_mlp = None
-                elif cgmlp_weight == 1.:
+                elif cgmlp_weight == 1.0:
                     self.use_two_branches = False
                     self.attn = None
                     self.norm_mha = None
-                
+
                 # linear projection after weighted average
                 self.merge_proj = torch.nn.Linear(size, size)
 
             else:
                 raise ValueError(f"unknown merge method: {merge_method}")
-        
+
         else:
             self.merge_proj = torch.nn.Identity()
 
@@ -371,12 +416,10 @@ class BranchformerEncoderLayer(torch.nn.Module):
         Returns:
             torch.Tensor: Output tensor (#batch, time, size).
             torch.Tensor: Mask tensor (#batch, time).
-
         """
+
         if cache is not None:
-            raise NotImplementedError(
-                "cache is not None, which is not tested"
-            )
+            raise NotImplementedError("cache is not None, which is not tested")
 
         if isinstance(x_input, tuple):
             x, pos_emb = x_input[0], x_input[1]
@@ -425,7 +468,7 @@ class BranchformerEncoderLayer(torch.nn.Module):
             x2 = self.cgmlp(x2, mask)
             if isinstance(x2, tuple):
                 x2 = x2[0]
-            
+
             x2 = self.dropout(x2)
 
         # Merge two branches
@@ -435,72 +478,80 @@ class BranchformerEncoderLayer(torch.nn.Module):
                     self.merge_proj(torch.cat([x1, x2], dim=-1))
                 )
             elif self.merge_method == "learned_ave":
-                if self.training and self.attn_branch_drop_rate > 0 \
-                    and torch.rand(1).item() < self.attn_branch_drop_rate:
+                if (
+                    self.training
+                    and self.attn_branch_drop_rate > 0
+                    and torch.rand(1).item() < self.attn_branch_drop_rate
+                ):
                     # Drop the attn branch
-                    w1, w2 = 0., 1.
+                    w1, w2 = 0.0, 1.0
                 else:
                     # branch1
-                    score1 = self.pooling_proj1(x1).transpose(1, 2) / self.size**0.5    # (batch, 1, time)
+                    score1 = (
+                        self.pooling_proj1(x1).transpose(1, 2) / self.size**0.5
+                    )  # (batch, 1, time)
                     if mask is not None:
                         min_value = float(
-                            numpy.finfo(torch.tensor(0, dtype=score1.dtype).numpy().dtype).min
+                            numpy.finfo(
+                                torch.tensor(0, dtype=score1.dtype).numpy().dtype
+                            ).min
                         )
                         score1 = score1.masked_fill(mask.eq(0), min_value)
-                        score1 = torch.softmax(score1, dim=-1).masked_fill(mask.eq(0), 0.0)
+                        score1 = torch.softmax(score1, dim=-1).masked_fill(
+                            mask.eq(0), 0.0
+                        )
                     else:
                         score1 = torch.softmax(score1, dim=-1)
-                    pooled1 = torch.matmul(score1, x1).squeeze(1)     # (batch, size)
-                    weight1 = self.weight_proj1(pooled1)    # (batch, 1)
+                    pooled1 = torch.matmul(score1, x1).squeeze(1)  # (batch, size)
+                    weight1 = self.weight_proj1(pooled1)  # (batch, 1)
 
                     # branch2
-                    score2 = self.pooling_proj2(x2).transpose(1, 2) / self.size**0.5    # (batch, 1, time)
+                    score2 = (
+                        self.pooling_proj2(x2).transpose(1, 2) / self.size**0.5
+                    )  # (batch, 1, time)
                     if mask is not None:
                         min_value = float(
-                            numpy.finfo(torch.tensor(0, dtype=score2.dtype).numpy().dtype).min
+                            numpy.finfo(
+                                torch.tensor(0, dtype=score2.dtype).numpy().dtype
+                            ).min
                         )
                         score2 = score2.masked_fill(mask.eq(0), min_value)
-                        score2 = torch.softmax(score2, dim=-1).masked_fill(mask.eq(0), 0.0)
+                        score2 = torch.softmax(score2, dim=-1).masked_fill(
+                            mask.eq(0), 0.0
+                        )
                     else:
                         score2 = torch.softmax(score2, dim=-1)
-                    pooled2 = torch.matmul(score2, x2).squeeze(1)     # (batch, size)
-                    weight2 = self.weight_proj2(pooled2)    # (batch, 1)
+                    pooled2 = torch.matmul(score2, x2).squeeze(1)  # (batch, size)
+                    weight2 = self.weight_proj2(pooled2)  # (batch, 1)
 
                     # normalize weights of two branches
-                    merge_weights = torch.softmax(torch.cat([weight1, weight2], dim=-1), dim=-1)    # (batch, 2)
-                    merge_weights = merge_weights.unsqueeze(-1).unsqueeze(-1)   # (batch, 2, 1, 1)
-                    w1, w2 = merge_weights[:, 0], merge_weights[:, 1]   # (batch, 1, 1)
+                    merge_weights = torch.softmax(
+                        torch.cat([weight1, weight2], dim=-1), dim=-1
+                    )  # (batch, 2)
+                    merge_weights = merge_weights.unsqueeze(-1).unsqueeze(
+                        -1
+                    )  # (batch, 2, 1, 1)
+                    w1, w2 = merge_weights[:, 0], merge_weights[:, 1]  # (batch, 1, 1)
 
                 x = x + stoch_layer_coeff * self.dropout(
-                    self.merge_proj(
-                        w1 * x1 + w2 * x2
-                    )
+                    self.merge_proj(w1 * x1 + w2 * x2)
                 )
             elif self.merge_method == "fixed_ave":
                 x = x + stoch_layer_coeff * self.dropout(
                     self.merge_proj(
-                        (1. - self.cgmlp_weight) * x1 + \
-                        self.cgmlp_weight * x2
+                        (1.0 - self.cgmlp_weight) * x1 + self.cgmlp_weight * x2
                     )
                 )
             else:
-                raise RuntimeError(
-                    f"unknown merge method: {self.merge_method}"
-                )
+                raise RuntimeError(f"unknown merge method: {self.merge_method}")
         else:
             if self.attn is None:
-                x = x + stoch_layer_coeff * self.dropout(
-                    self.merge_proj(x2)
-                )
+                x = x + stoch_layer_coeff * self.dropout(self.merge_proj(x2))
             elif self.cgmlp is None:
-                x = x + stoch_layer_coeff * self.dropout(
-                    self.merge_proj(x1)
-                )
+                x = x + stoch_layer_coeff * self.dropout(self.merge_proj(x1))
             else:
                 # This should not happen
-                raise RuntimeError(
-                    f"Both branches are not None, which is unexpected."
-                )
+                raise RuntimeError("Both branches are not None, which is unexpected.")
 
         x = self.norm_final(x)
 
@@ -511,8 +562,8 @@ class BranchformerEncoderLayer(torch.nn.Module):
 
 
 class BranchformerEncoder(AbsEncoder):
-    """Branchformer encoder module.
-    """
+    """Branchformer encoder module."""
+
     def __init__(
         self,
         input_size: int,
@@ -542,7 +593,7 @@ class BranchformerEncoder(AbsEncoder):
         assert check_argument_types()
         super().__init__()
         self._output_size = output_size
-        
+
         if rel_pos_type == "legacy":
             if pos_enc_layer_type == "rel_pos":
                 pos_enc_layer_type = "legacy_rel_pos"
@@ -678,7 +729,7 @@ class BranchformerEncoder(AbsEncoder):
                 f"Length of stochastic_depth_rate ({len(stochastic_depth_rate)}) "
                 f"should be equal to num_blocks ({num_blocks})"
             )
-        
+
         if isinstance(cgmlp_weight, float):
             cgmlp_weight = [cgmlp_weight] * num_blocks
         if len(cgmlp_weight) != num_blocks:
@@ -686,7 +737,7 @@ class BranchformerEncoder(AbsEncoder):
                 f"Length of cgmlp_weight ({len(cgmlp_weight)}) should be equal to "
                 f"num_blocks ({num_blocks})"
             )
-        
+
         if isinstance(attn_branch_drop_rate, float):
             attn_branch_drop_rate = [attn_branch_drop_rate] * num_blocks
         if len(attn_branch_drop_rate) != num_blocks:
@@ -699,7 +750,9 @@ class BranchformerEncoder(AbsEncoder):
             num_blocks,
             lambda lnum: BranchformerEncoderLayer(
                 output_size,
-                encoder_selfattn_layer(*encoder_selfattn_layer_args) if use_attn else None,
+                encoder_selfattn_layer(*encoder_selfattn_layer_args)
+                if use_attn
+                else None,
                 cgmlp_layer(*cgmlp_layer_args) if use_cgmlp else None,
                 dropout_rate,
                 merge_method,
@@ -732,6 +785,7 @@ class BranchformerEncoder(AbsEncoder):
             torch.Tensor: Not to be used now.
 
         """
+
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
         if (
@@ -751,7 +805,7 @@ class BranchformerEncoder(AbsEncoder):
             xs_pad, masks = self.embed(xs_pad, masks)
         elif self.embed is not None:
             xs_pad = self.embed(xs_pad)
-        
+
         xs_pad, masks = self.encoders(xs_pad, masks)
 
         if isinstance(xs_pad, tuple):
