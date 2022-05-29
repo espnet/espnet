@@ -27,7 +27,7 @@ class CTC(torch.nn.Module):
     ):
         assert check_argument_types()
         super().__init__()
-        eprojs = encoder_output_size
+        eprojs = 1024
         self.dropout_rate = dropout_rate
         self.ctc_lo = torch.nn.Linear(eprojs, odim)
         self.ctc_type = ctc_type
