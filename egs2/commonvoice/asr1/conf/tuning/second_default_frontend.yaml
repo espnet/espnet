@@ -1,0 +1,70 @@
+# network architecture
+# encoder related
+# encoder: conformer
+# encoder_conf:
+#   output_size: 1024
+#   attention_heads: 8
+#   linear_units: 2048
+#   num_blocks: 2
+#   dropout_rate: 0.1
+#   positional_dropout_rate: 0.1
+#   attention_dropout_rate: 0.1
+#   input_layer: conv2d
+#   normalize_before: true
+#   macaron_style: true
+#   pos_enc_layer_type: "rel_pos"
+#   selfattention_layer_type: "rel_selfattn"
+#   activation_type: "swish"
+#   use_cnn_module: true
+#   cnn_module_kernel: 31
+
+decoder: transformer
+decoder_conf:
+  attention_heads: 8
+  linear_units: 2048
+  num_blocks: 6
+  dropout_rate: 0.15
+  positional_dropout_rate: 0.1
+  self_attention_dropout_rate: 0.15
+  src_attention_dropout_rate: 0.15
+
+optim: adam
+optim_conf:
+
+  lr: 0.00027
+scheduler: warmuplr   # pytorch v1.1.0+ required #Tune warmup steps
+scheduler_conf:
+  warmup_steps: 40000
+max_epoch: 18
+
+freeze_param: []
+
+frontend_conf:
+ n_fft: 512
+ hop_length: 256
+
+frontend: s3prl
+frontend_conf:
+  frontend_conf:
+    upstream: wav2vec2_large_ll60k # Note: If the upstream is changed, please change the input_size in the preencoder.
+    add_adapters: True
+  download_dir: ./hub
+  multilayer_feature: False
+
+# preencoder: linear
+# preencoder_conf:
+#   input_size: 1024 # Note: If the upstream is changed, please change this value accordingly.
+#   output_size: 80
+
+model_conf:
+  ctc_weight: 1.0
+  lsm_weight: 0.3
+  length_normalized_loss: false
+  extract_feats_in_collect_stats: true # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
+
+init: xavier_uniform
+    
+# minibatch related
+#batch_type: numel
+#batch_bins: 800000
+batch_size: 10
