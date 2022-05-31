@@ -1,7 +1,7 @@
 """Search algorithms for Transducer models."""
 
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
