@@ -161,15 +161,6 @@ class BeamSearchTransducer:
         else:
             hyps.sort(key=lambda x: x.score, reverse=True)
 
-        best = hyps[0]
-        logging.info(f"total log probability: {best.score:.2f}")
-        logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
-        if self.token_list is not None:
-            logging.info(
-                "best hypo: "
-                + "".join([self.token_list[x] for x in best.yseq[1:]])
-                + "\n"
-            )
         return hyps[: self.nbest]
 
     def prefix_search(
@@ -254,7 +245,6 @@ class BeamSearchTransducer:
             nbest_hyps: N-best hypothesis.
 
         """
-        logging.info("decoder input length: " + str(enc_out.shape[0]))
         beam = min(self.beam_size, self.vocab_size)
         beam_k = min(beam, (self.vocab_size - 1))
 
