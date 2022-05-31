@@ -298,7 +298,9 @@ class Speech2Text:
 
             best = nbest_hyps[0]
             logging.info(f"total log probability: {best.score:.2f}")
-            logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
+            logging.info(
+                f"normalized log probability: {best.score / len(best.yseq):.2f}"
+            )
             if self.token_list is not None:
                 logging.info(
                     "best hypo: "
