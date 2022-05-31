@@ -4,8 +4,8 @@
 """Conformer common arguments."""
 
 
-from distutils.util import strtobool
 import logging
+from distutils.util import strtobool
 
 
 def add_arguments_conformer_common(group):

@@ -4,13 +4,10 @@
 """Text-to-speech ESPnet model."""
 
 from contextlib import contextmanager
-from packaging.version import parse as V
-from typing import Dict
-from typing import Optional
-from typing import Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
-
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.layers.abs_normalize import AbsNormalize

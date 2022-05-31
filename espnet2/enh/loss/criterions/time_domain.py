@@ -1,10 +1,9 @@
-from abc import ABC
 import logging
+from abc import ABC
 
 import ci_sdr
 import fast_bss_eval
 import torch
-
 
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 

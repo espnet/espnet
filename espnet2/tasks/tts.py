@@ -2,22 +2,13 @@
 
 import argparse
 import logging
-import yaml
-
 from pathlib import Path
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-
-from typeguard import check_argument_types
-from typeguard import check_return_type
+import yaml
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.gan_tts.jets import JETS
 from espnet2.gan_tts.joint import JointText2Wav
@@ -46,9 +37,7 @@ from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import int_or_none
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 feats_extractor_choices = ClassChoices(
     "feats_extract",

@@ -2,21 +2,19 @@
 import argparse
 import logging
 import sys
-from typing import List
-from typing import Union
+from typing import List, Union
 
-from mir_eval.separation import bss_eval_sources
 import numpy as np
-from pystoi import stoi
 import torch
+from mir_eval.separation import bss_eval_sources
+from pystoi import stoi
 from typeguard import check_argument_types
 
-from espnet.utils.cli_utils import get_commandline_args
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils import config_argparse
-
+from espnet.utils.cli_utils import get_commandline_args
 
 si_snr_loss = SISNRLoss()
 

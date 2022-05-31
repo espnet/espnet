@@ -4,38 +4,33 @@
 """Generator module in JETS."""
 
 import logging
-
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet.nets.pytorch_backend.conformer.encoder import (
-    Encoder as ConformerEncoder,  # noqa: H301
-)
-from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet.nets.pytorch_backend.transformer.embedding import ScaledPositionalEncoding
-from espnet.nets.pytorch_backend.transformer.encoder import (
-    Encoder as TransformerEncoder,  # noqa: H301
-)
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
-from espnet2.gan_tts.jets.alignments import AlignmentModule
-from espnet2.gan_tts.jets.alignments import average_by_duration
-from espnet2.gan_tts.jets.alignments import viterbi_decode
+from espnet2.gan_tts.jets.alignments import (
+    AlignmentModule,
+    average_by_duration,
+    viterbi_decode,
+)
 from espnet2.gan_tts.jets.length_regulator import GaussianUpsampling
 from espnet2.gan_tts.utils import get_random_segments
 from espnet2.torch_utils.initialize import initialize
 from espnet2.tts.fastspeech2.variance_predictor import VariancePredictor
 from espnet2.tts.gst.style_encoder import StyleEncoder
+from espnet.nets.pytorch_backend.conformer.encoder import Encoder as ConformerEncoder
+from espnet.nets.pytorch_backend.fastspeech.duration_predictor import DurationPredictor
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask, make_pad_mask
+from espnet.nets.pytorch_backend.transformer.embedding import (
+    PositionalEncoding,
+    ScaledPositionalEncoding,
+)
+from espnet.nets.pytorch_backend.transformer.encoder import (
+    Encoder as TransformerEncoder,
+)
 
 
 class JETSGenerator(torch.nn.Module):

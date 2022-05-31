@@ -1,8 +1,8 @@
 import math
+from typing import Sequence, Union
+
 import torch
 from typeguard import check_argument_types
-from typing import Sequence
-from typing import Union
 
 
 def mask_along_axis(

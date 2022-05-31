@@ -7,14 +7,13 @@ This code is based on https://github.com/jaywalnut310/vits.
 
 """
 
-from typing import Optional
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from espnet2.gan_tts.wavenet.residual_block import Conv1d
 from espnet2.gan_tts.wavenet import WaveNet
+from espnet2.gan_tts.wavenet.residual_block import Conv1d
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class PosteriorEncoder(torch.nn.Module):

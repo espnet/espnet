@@ -1,21 +1,19 @@
 from collections import OrderedDict
-from packaging.version import parse as V
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
-from espnet2.enh.layers.complexnn import complex_cat
-from espnet2.enh.layers.complexnn import ComplexBatchNorm
-from espnet2.enh.layers.complexnn import ComplexConv2d
-from espnet2.enh.layers.complexnn import ComplexConvTranspose2d
-from espnet2.enh.layers.complexnn import NavieComplexLSTM
+from espnet2.enh.layers.complexnn import (
+    ComplexBatchNorm,
+    ComplexConv2d,
+    ComplexConvTranspose2d,
+    NavieComplexLSTM,
+    complex_cat,
+)
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")

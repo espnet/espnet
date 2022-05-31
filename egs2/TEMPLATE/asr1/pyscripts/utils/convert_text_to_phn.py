@@ -9,9 +9,7 @@ import argparse
 import codecs
 import contextlib
 
-from joblib import delayed
-from joblib import Parallel
-from joblib import parallel
+from joblib import Parallel, delayed, parallel
 from tqdm import tqdm
 
 from espnet2.text.cleaner import TextCleaner

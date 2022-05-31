@@ -1,10 +1,9 @@
-import sys
 import os
-from datasets import load_metric
-import numpy as np
-from nlgeval import compute_metrics
-from nlgeval import NLGEval
+import sys
 
+import numpy as np
+from datasets import load_metric
+from nlgeval import NLGEval, compute_metrics
 
 ref_file = sys.argv[1]
 hyp_file = sys.argv[2]

@@ -1,8 +1,7 @@
-from typing import List
-from typing import Tuple
+import math
+from typing import List, Tuple
 
 import k2
-import math
 import torch
 
 

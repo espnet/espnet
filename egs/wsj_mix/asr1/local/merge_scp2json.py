@@ -3,10 +3,10 @@
 
 import argparse
 import codecs
-from io import open
 import json
 import logging
 import sys
+from io import open
 
 from espnet.utils.cli_utils import get_commandline_args
 

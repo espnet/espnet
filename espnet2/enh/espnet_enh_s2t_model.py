@@ -1,13 +1,10 @@
-from contextlib import contextmanager
 import logging
-from packaging.version import parse as V
 import random
-from typing import Dict
-from typing import List
-from typing import Tuple
-from typing import Union
+from contextlib import contextmanager
+from typing import Dict, List, Tuple, Union
 
 import torch
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.asr.espnet_model import ESPnetASRModel

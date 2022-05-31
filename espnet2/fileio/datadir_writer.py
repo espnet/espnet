@@ -1,9 +1,8 @@
+import warnings
 from pathlib import Path
 from typing import Union
-import warnings
 
-from typeguard import check_argument_types
-from typeguard import check_return_type
+from typeguard import check_argument_types, check_return_type
 
 
 class DatadirWriter:

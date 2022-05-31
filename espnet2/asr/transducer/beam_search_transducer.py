@@ -1,23 +1,19 @@
 """Search algorithms for Transducer models."""
 
 from dataclasses import dataclass
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 
-from espnet.nets.pytorch_backend.transducer.utils import is_prefix
-from espnet.nets.pytorch_backend.transducer.utils import recombine_hyps
-from espnet.nets.pytorch_backend.transducer.utils import select_k_expansions
-from espnet.nets.pytorch_backend.transducer.utils import subtract
-
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.transducer.joint_network import JointNetwork
+from espnet.nets.pytorch_backend.transducer.utils import (
+    is_prefix,
+    recombine_hyps,
+    select_k_expansions,
+    subtract,
+)
 
 
 @dataclass

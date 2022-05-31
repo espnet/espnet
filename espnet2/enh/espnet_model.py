@@ -1,12 +1,8 @@
 """Enhancement model module."""
-from packaging.version import parse as V
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import OrderedDict
-from typing import Tuple
+from typing import Dict, List, Optional, OrderedDict, Tuple
 
 import torch
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
@@ -18,7 +14,6 @@ from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.separator.dan_separator import DANSeparator
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 

@@ -5,33 +5,31 @@
 
 import argparse
 import logging
-from pathlib import Path
 import sys
-from typing import Optional
-from typing import TextIO
-from typing import Union
+from pathlib import Path
+from typing import List, Optional, TextIO, Union
 
 import numpy as np
 import soundfile
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
-from typing import List
 
-# imports for inference
-from espnet.utils.cli_utils import get_commandline_args
+# imports for CTC segmentation
+from ctc_segmentation import (
+    CtcSegmentationParameters,
+    ctc_segmentation,
+    determine_utterance_segments,
+    prepare_text,
+    prepare_token_list,
+)
+from typeguard import check_argument_types, check_return_type
+
 from espnet2.tasks.asr import ASRTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.utils import config_argparse
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str_or_none
+from espnet2.utils.types import str2bool, str_or_none
 
-# imports for CTC segmentation
-from ctc_segmentation import ctc_segmentation
-from ctc_segmentation import CtcSegmentationParameters
-from ctc_segmentation import determine_utterance_segments
-from ctc_segmentation import prepare_text
-from ctc_segmentation import prepare_token_list
+# imports for inference
+from espnet.utils.cli_utils import get_commandline_args
 
 
 class CTCSegmentationTask:

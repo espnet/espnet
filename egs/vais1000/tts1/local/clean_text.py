@@ -8,7 +8,6 @@ import codecs
 
 from vietnamese_cleaner.vietnamese_cleaners import vietnamese_cleaner
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("text", type=str, help="text to be cleaned")

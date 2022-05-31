@@ -1,7 +1,4 @@
-from typing import Iterator
-from typing import List
-from typing import Tuple
-from typing import Union
+from typing import Iterator, List, Tuple, Union
 
 from typeguard import check_argument_types
 

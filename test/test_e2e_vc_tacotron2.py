@@ -4,14 +4,13 @@
 # Copyright 2020 Wen-Chin Huang
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from __future__ import print_function
-from __future__ import division
+from __future__ import division, print_function
+
+from argparse import Namespace
 
 import numpy as np
 import pytest
 import torch
-
-from argparse import Namespace
 
 from espnet.nets.pytorch_backend.e2e_vc_tacotron2 import Tacotron2
 from espnet.nets.pytorch_backend.nets_utils import pad_list

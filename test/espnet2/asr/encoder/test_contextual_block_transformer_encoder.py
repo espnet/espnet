@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from espnet2.asr.encoder.contextual_block_transformer_encoder import (
-    ContextualBlockTransformerEncoder,  # noqa: H301
+from espnet2.asr.encoder.contextual_block_transformer_encoder import (  # noqa: H301
+    ContextualBlockTransformerEncoder,
 )
 
 
