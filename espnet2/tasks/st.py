@@ -351,8 +351,8 @@ class STTask(AbsTask):
         )
         group.add_argument(
             "--use_v2",
-            type=str2bool,
-            default=False,
+            type=int,
+            default=str2bool,
             help="hier v2",
         )
 
