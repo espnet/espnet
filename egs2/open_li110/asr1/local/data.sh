@@ -13,21 +13,19 @@ shopt -s extglob
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
-'''langs="ab af bg cv eo fy-NL hu ka lv mt pl sah\
+# missing tig because of only 6 utt in cv
+langs="ab af bg cv eo fy-NL hu ka lv mt pl sah\
  st tn ta xh uk zh-HK ar bn cy es ga-IE hy-AM kab\
  mdf myv pt sat th ur zh-TW as br da et gl ia kk\
- mhr nan-tw ne rm-sursilv su sk tig uz az ca de eu\
- gn gu id kmr km kn mk nl rm-vallader sl tok te vi\
+ mhr nan-tw ne su sk uz az ca de eu\
+ gn gu id km kn mk nl sl tok te vi\
  ba ckb dv fa ha ig ky yo ml nn-NO ro sr tr vot bas\
  cnh el fi hi it lg mn or ru sv-SE tt yue be cs en\
  fr hsb ja jv lt mr pa-IN rw sw ug zh-CN si af in hr sv"
-'''
-langs="sat th ur zh-TW as br da et gl ia kk\
- mhr nan-tw ne rm-sursilv su sk tig uz az ca de eu\
- gn gu id kmr km kn mk nl rm-vallader sl tok te vi\
- ba ckb dv fa ha ig ky yo ml nn-NO ro sr tr vot bas\
+langs="vot bas\
  cnh el fi hi it lg mn or ru sv-SE tt yue be cs en\
  fr hsb ja jv lt mr pa-IN rw sw ug zh-CN si af in hr sv"
+extra_langs="rm-sursilv rm-vallader kmr"
 lid=true
 nlsyms_txt=data/local/nlsyms.txt
 
@@ -48,12 +46,12 @@ set -o pipefail
 
 langs=$(echo "${langs}" | tr _ " ")
 voxforge_lang="de en es fr it nl pt ru"
-commonvoice_lang="ab bg cv eo fy-NL hu ka lv mt pl sah ta uk zh-HK ar bn cy es ga-IE hy-AM kab mdf myv pt sat th ur zh-TW as br da et gl ia kk mhr nan-tw rm-sursilv sk tig uz az ca de eu gn id kmr mk nl rm-vallader sl tok vi ba ckb dv fa ha ig ky ml nn-NO ro sr tr vot bas cnh el fi hi it lg mn or ru sv-SE tt yue be cs en fr hsb ja lt mr pa-IN rw sw ug zh-CN"
-googlei18n_lang_30_32_37="si af st tn xh bn"
+commonvoice_lang="ab bg cv eo fy-NL hu ka lv mt pl sah ta uk zh-HK ar bn cy es ga-IE hy-AM kab mdf myv pt sat th ur zh-TW as br da et gl ia kk mhr nan-tw rm-sursilv sk uz az ca de eu gn id kmr mk nl rm-vallader sl tok vi ba ckb dv fa ha ig ky ml nn-NO ro sr tr vot bas cnh el fi hi it lg mn or ru sv-SE tt yue be cs en fr hsb ja lt mr pa-IN rw sw ug zh-CN"
+googlei18n_lang_30_32_37="af st tn xh bn"
 googlei18n_lang_asr="jv su si bn ne"
 googlei18n_lang_tts="jv km ne su es ml mr ta te ca en es es es es es eu gl gu kn yo"
 mls_lang="en de fr it es nl pl pt"
-voxpopuli_lang="in en de fr es pl it ro hu cs nl fi hr sk sl et lt pt bg el lv mt sv or da"
+voxpopuli_lang="en de fr es pl it ro hu cs nl fi hr sk sl et lt"
 
 train_set=train_li110_lid
 train_dev=dev_li110_lid
@@ -69,7 +67,7 @@ mkdir -p ${VOXPOPULI}
 
 for lang in ${langs}; do
 
-    if [[ "${commonvoice_lang}" == *"${lang}"* ]]; then
+    if [[ "${commonvoice_lang}" == *" ${lang}"* || "${commonvoice_lang}" == *"${lang} "* ]]; then
         if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             log "sub-stage 0: Download Data to ${COMMONVOICE}"
 
@@ -87,7 +85,12 @@ for lang in ${langs}; do
         if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             log "sub-stage 1: Preparing Data for Commonvoice"
 
-            if [ "${lang}" = sat ]; then
+            if [ "${lang}" = sat ] || \
+               [ "${lang}" = mk ] || \
+               [ "${lang}" = ha ] || \
+               [ "${lang}" = ig ] || \
+               [ "${lang}" = ml ] || \
+               [ "${lang}" = vot ]; then
                  sets="validated test"
             else
                  sets="validated test dev"
@@ -99,8 +102,14 @@ for lang in ${langs}; do
             done
     
             # remove test&dev data from validated sentences
-            utils/copy_data_dir.sh data/"$(echo "validated_${lang}_commonvoice" | tr - _)" data/${train_subset}
-            if [ "${lang}" != sat ]; then
+            utils/copy_data_dir.sh --validate_opts "--non-print" \
+                data/"$(echo "validated_${lang}_commonvoice" | tr - _)" data/${train_subset}
+            if [ "${lang}" != sat ] && \
+               [ "${lang}" != mk ] && \
+               [ "${lang}" != ha ] && \
+               [ "${lang}" != ig ] && \
+               [ "${lang}" != ml ] && \
+               [ "${lang}" != vot ]; then
                 utils/filter_scp.pl --exclude data/${train_subdev}/wav.scp data/${train_subset}/wav.scp > data/${train_subset}/temp_wav.scp
                 utils/filter_scp.pl --exclude data/${test_subset}/wav.scp data/${train_subset}/temp_wav.scp > data/${train_subset}/wav.scp
                 utils/fix_data_dir.sh data/${train_subset}
@@ -131,7 +140,7 @@ for lang in ${langs}; do
             # Initial normalization of the data
             local/voxforge/voxforge_data_prep.sh --flac2wav false "${selected}" "${lang}"
             local/voxforge/voxforge_format_data.sh "${lang}"
-	    utils/copy_data_dir.sh --utt-suffix -${lang}_voxforge data/all_"${lang}" data/validated_"${lang}"_voxforge
+	    utils/copy_data_dir.sh --validate_opts "--non-print" --utt-suffix -${lang}_voxforge data/all_"${lang}" data/validated_"${lang}"_voxforge
 	    rm -r data/all_${lang}
             # following split consider prompt duplication (but does not consider speaker overlap instead)
             local/voxforge/split_tr_dt_et.sh data/validated_"${lang}"_voxforge data/train_"${lang}"_voxforge data/dev_"${lang}"_voxforge data/test_"${lang}"_voxforge
@@ -146,6 +155,8 @@ for lang in ${langs}; do
         case ${lang} in
             "es")
                 download_id=spanish ;;
+            "de")
+                download_id=german ;;
             "en")
                 download_id=english ;;
             "fr")
@@ -175,8 +186,7 @@ for lang in ${langs}; do
         
         if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             log "sub-stage 1: Preparing Data for MLS"
-        
-            python local/mls/data_prep.py --source ${MLS}/mls_${download_id} --lang ${lang} --prefix "mls_"
+            python local/mls/data_prep.py --source ${MLS}/mls_${download_id} --lang ${lang} --prefix "mls_" --suffix "\-${lang}_mls"
             utils/fix_data_dir.sh data/train_${lang}_mls
             utils/fix_data_dir.sh data/dev_${lang}_mls
             utils/fix_data_dir.sh data/test_${lang}_mls
@@ -190,6 +200,10 @@ for lang in ${langs}; do
     fi
 
     if [[ "${googlei18n_lang_tts}" == *"${lang}"* ]]; then
+        processing_list=
+        female_processing_list=
+        male_processing_list=
+        v1_processing_list=
         case ${lang} in
             "es")
                 processing_list="61-es_ar 71-es_cl 72-es_co 73-es_pe 75-es_ve" ;;
@@ -243,12 +257,9 @@ for lang in ${langs}; do
         if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             log "sub-stage0: Download data to ${GOOGLEI18N}"
             # TODO(Jiatong): add download procedure, pending due to inconsistent structure in openslr
-            processing_list=
-            female_processing_list=
-            male_processing_list=
-            v1_processing_list=
             for dialect_lang in ${processing_list}; do
-                echo "pending download both procedure"
+                echo "we do not provide download scripts now because of format inconsistency"
+                echo "please download on your own"
                 openslr_id=$(echo ${dialect_lang} | cut -f1 -d-)
                 lang_id=$(echo ${dialect_lang} | cut -f2 -d-)
                 data_folder=${GOOGLEI18N}/openslr${openslr_id}_${lang_id}
@@ -256,7 +267,8 @@ for lang in ${langs}; do
             done
 
             for dialect_lang in ${female_processing_list}; do
-                echo "pending download female procedure"
+                echo "we do not provide download scripts now because of format inconsistency"
+                echo "please download on your own"
                 openslr_id=$(echo ${dialect_lang} | cut -f1 -d-)
                 lang_id=$(echo ${dialect_lang} | cut -f2 -d-)
                 data_folder=${GOOGLEI18N}/openslr${openslr_id}_${lang_id}
@@ -264,7 +276,8 @@ for lang in ${langs}; do
             done
 
             for dialect_lang in ${male_processing_list}; do
-                echo "pending download male procedure"
+                echo "we do not provide download scripts now because of format inconsistency"
+                echo "please download on your own"
                 openslr_id=$(echo ${dialect_lang} | cut -f1 -d-)
                 lang_id=$(echo ${dialect_lang} | cut -f2 -d-)
                 data_folder=${GOOGLEI18N}/openslr${openslr_id}_${lang_id}
@@ -272,7 +285,8 @@ for lang in ${langs}; do
             done
 
             for dialect_lang in ${v1_processing_list}; do
-                echo "pending download v1 procedure"
+                echo "we do not provide download scripts now because of format inconsistency"
+                echo "please download on your own"
                 openslr_id=$(echo ${dialect_lang} | cut -f1 -d-)
                 lang_id=$(echo ${dialect_lang} | cut -f2 -d-)
                 gender=$(echo ${dialect_lang} | cut -f3 -d-)
@@ -284,69 +298,370 @@ for lang in ${langs}; do
 
         if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             log "sub-stage 1: Data Preparation for Googlei18n TTS"
+
             for dialect_lang in ${processing_list} ${female_processing_list} ${male_processing_list}; do
-                echo "pending download both procedure"
                 openslr_id=$(echo ${dialect_lang} | cut -f1 -d-)
                 lang_id=$(echo ${dialect_lang} | cut -f2 -d-)
                 data_folder=${GOOGLEI18N}/openslr${openslr_id}_${lang_id}
                 target_dir=data/openslr${openslr_id}_${lang_id}
-                awk -v lang_id="${lang_id}" -F '[_\t]' '{print "openslr" lang_id "_" $1 "_" $2 "_" $3 " " "openslr" lang_id "_" $1 "_" $2}' ${data_folder}/line_index.tsv  > ${target_dir}/utt2spk
-                awk -v lang_id="${lang_id}" -F '[_\t]' '{print "openslr" lang_id "_" $1 "_" $2 "_" $3 " " $5}' ${data_folder}/line_index.tsv  > ${target_dir}/text
-                awk -v lang_id="${lang_id}" -v src_dir="${data_folder}" -F '[_\t]' '{print "openslr" lang_id "_" $1 "_" $2 "_" $3 " " src_dir "/" $1 "_" $2 "_" $3 ".wav"' ${data_folder}/line_index.tsv  > ${target_dir}/wav.scp
+                mkdir -p ${target_dir}
+
+                awk -v lang_id="${lang_id}" -F '[_\t]' \
+                    '{print $1 "_" $2 "_" $3 "-" lang_id "_openslr " $1 "_" $2}' \
+                    ${data_folder}/line_index.tsv  > ${target_dir}/utt2spk
+                awk -v lang_id="${lang_id}" -F '[\t]' \
+                    '{print $1 "-" lang_id "_openslr " $2}' \
+                    ${data_folder}/line_index.tsv  > ${target_dir}/text
+                awk -v lang_id="${lang_id}" -v src_dir="${data_folder}" -F '[_\t]' \
+                    '{print $1 "_" $2 "_" $3 "-" lang_id "_openslr " src_dir "/" $1 "_" $2 "_" $3 ".wav"}' \
+                    ${data_folder}/line_index.tsv  > ${target_dir}/wav.scp
                 sort ${target_dir}/utt2spk -o ${target_dir}/utt2spk
                 sort ${target_dir}/text -o ${target_dir}/text
                 sort ${target_dir}/wav.scp -o ${target_dir}/wav.scp
                 utils/utt2spk_to_spk2utt.pl ${target_dir}/utt2spk > ${target_dir}/spk2utt
-                utils/validate_data_dir.sh --no_feats ${target_dir}
+                utils/validate_data_dir.sh --non-print --no-feats ${target_dir}
 
-                utils/subset_data_dir.sh data/openslr${openslr_id}_${lang_id} 500 data/dev-test-${lang}-openslr${openslr_id}
-                utils/subset_data_dir.sh data/dev-test-${lang}-openslr${openslr_id} 250 data/dev_${lang}_openslr${openslr_id}
-                utils/copy_data_dir.sh data/dev-test-${lang}-openslr${openslr_id} data/test_${lang}_openslr${openslr_id}
+                utils/subset_data_dir.sh \
+                    data/openslr${openslr_id}_${lang_id} \
+                    500 \
+                    data/dev-test-${lang}-openslr${openslr_id}
+
+                utils/subset_data_dir.sh \
+                    data/dev-test-${lang}-openslr${openslr_id} \
+                    250 \
+                    data/dev_${lang}_openslr${openslr_id}
+
+                utils/copy_data_dir.sh --validate_opts "--non-print" \
+                    data/dev-test-${lang}-openslr${openslr_id} \
+                    data/test_${lang}_openslr${openslr_id}
+
                 utils/filter_scp.pl --exclude data/dev_${lang}_openslr${openslr_id}/wav.scp \
-                    data/dev-test-${lang}-openslr${openslr_id}/wav.scp > data/test_${lang}_openslr${openslr_id}/wav.scp
+                    data/dev-test-${lang}-openslr${openslr_id}/wav.scp \
+                    > data/test_${lang}_openslr${openslr_id}/wav.scp
+
                 utils/fix_data_dir.sh data/test_${lang}_openslr${openslr_id}
 
-                utils/copy_data_dir.sh data/openslr${openslr_id}_${lang_id} data/train_${lang}_openslr${openslr_id}
-                utils/filter_scp.pl --exclude data/dev-test-${lang}_openslr${openslr_id}/wav.scp \
-                    data/${lang}-openslr${openslr_id}/wav.scp > data/train_${lang}_openslr${openslr_id}/wav.scp
-                utils/fix_data_dir.sh data/train_${lang}_openslr${openslr_id}/wav.scp
+                utils/copy_data_dir.sh --validate_opts "--non-print" \
+                    data/openslr${openslr_id}_${lang_id} \
+                    data/train_${lang}_openslr${openslr_id}
+
+                utils/filter_scp.pl --exclude data/dev-test-${lang}-openslr${openslr_id}/wav.scp \
+                    data/openslr${openslr_id}_${lang_id}/wav.scp \
+                    > data/train_${lang}_openslr${openslr_id}/wav.scp
+
+                utils/fix_data_dir.sh data/train_${lang}_openslr${openslr_id}
                 test_set="${test_set} test_${lang}_openslr${openslr_id}"                
             done
 
             for dialect_lang in ${v1_processing_list}; do
-                echo "pending download v1 procedure"
                 openslr_id=$(echo ${dialect_lang} | cut -f1 -d-)
                 lang_id=$(echo ${dialect_lang} | cut -f2 -d-)
                 gender=$(echo ${dialect_lang} | cut -f3 -d-)
                 data_folder=${GOOGLEI18N}/openslr${openslr_id}_${lang_id}/${lang_id}_${gender}
                 target_dir=data/openslr${openslr_id}_${lang_id}_${gender}
-                awk -v lang_id="${lang_id}" -F '[_\t]' '{print "openslr" lang_id "_" $1 "_" $2 "_" $3 " " "openslr" lang_id "_" $1 "_" $2}' ${data_folder}/line_index.tsv  > ${target_dir}/utt2spk
-                awk -v lang_id="${lang_id}" -F '[_\t]' '{print "openslr" lang_id "_" $1 "_" $2 "_" $3 " " $5}' ${data_folder}/line_index.tsv  > ${target_dir}/text
-                awk -v lang_id="${lang_id}" -v src_dir="${data_folder}" -F '[_\t]' '{print "openslr" lang_id "_" $1 "_" $2 "_" $3 " " src_dir "/" $1 "_" $2 "_" $3 ".wav"' ${data_folder}/line_index.tsv  > ${target_dir}/wav.scp
+                mkdir -p ${target_dir}
+
+                awk -v lang_id="${lang_id}" -F '[_\t]' \
+                    '{print $1 "_" $2 "_" $3 "-" lang_id "_openslr " "_" $1 "_" $2}' \
+                    ${data_folder}/line_index.tsv  > ${target_dir}/utt2spk
+                awk -v lang_id="${lang_id}" -F '[\t]' \
+                    '{print $1 "-" lang_id "_openslr " $2}' \
+                    ${data_folder}/line_index.tsv  > ${target_dir}/text
+                awk -v lang_id="${lang_id}" -v src_dir="${data_folder}" -F '[_\t]' \
+                    '{print $1 "_" $2 "_" $3 "-" lang_id "_openslr " src_dir "/" $1 "_" $2 "_" $3 ".wav"}' \
+                    ${data_folder}/line_index.tsv  > ${target_dir}/wav.scp
                 sort ${target_dir}/utt2spk -o ${target_dir}/utt2spk
                 sort ${target_dir}/text -o ${target_dir}/text
                 sort ${target_dir}/wav.scp -o ${target_dir}/wav.scp
                 utils/utt2spk_to_spk2utt.pl ${target_dir}/utt2spk > ${target_dir}/spk2utt
-                utils/validate_data_dir.sh --no_feats ${target_dir}
+                utils/validate_data_dir.sh --non-print --no-feats ${target_dir}
 
-                utils/subset_data_dir.sh data/openslr${openslr_id}_${lang_id}_${gender} 500 data/dev-test-${lang}-openslr${openslr_id}_${gender}
-                utils/subset_data_dir.sh data/dev-test-${lang}-openslr${openslr_id} 250 data/dev_${lang}_openslr${openslr_id}_${gender}
-                utils/copy_data_dir.sh data/dev-test-${lang}-openslr${openslr_id}_${gender} data/test_${lang}_openslr${openslr_id}_${gender}
+                utils/subset_data_dir.sh \
+                    data/openslr${openslr_id}_${lang_id}_${gender} \
+                    500 \
+                    data/dev-test-${lang}-openslr${openslr_id}_${gender}
+
+                utils/subset_data_dir.sh \
+                    data/dev-test-${lang}-openslr${openslr_id}_${gender} \
+                    250 \
+                    data/dev_${lang}_openslr${openslr_id}_${gender}
+
+                utils/copy_data_dir.sh --validate_opts "--non-print" \
+                    data/dev-test-${lang}-openslr${openslr_id}_${gender} \
+                    data/test_${lang}_openslr${openslr_id}_${gender}
+
                 utils/filter_scp.pl --exclude data/dev_${lang}_openslr${openslr_id}_${gender}/wav.scp \
-                    data/dev-test-${lang}-openslr${openslr_id}_${gender}/wav.scp > data/test_${lang}_openslr${openslr_id}_${gender}/wav.scp
+                    data/dev-test-${lang}-openslr${openslr_id}_${gender}/wav.scp \
+                    > data/test_${lang}_openslr${openslr_id}_${gender}/wav.scp
+
                 utils/fix_data_dir.sh data/test_${lang}_openslr${openslr_id}_${gender}
 
-                utils/copy_data_dir.sh data/openslr${openslr_id}_${lang_id}_${gender} data/train_${lang}_openslr${openslr_id}
-                utils/filter_scp.pl --exclude data/dev-test-${lang}_openslr${openslr_id}_${gender}/wav.scp \
-                    data/${lang}-openslr${openslr_id}_${gender}/wav.scp > data/train_${lang}_openslr${openslr_id}_${gender}/wav.scp
-                utils/fix_data_dir.sh data/train_${lang}_openslr${openslr_id}_${gender}/wav.scp
+                utils/copy_data_dir.sh --validate_opts "--non-print" \
+                    data/openslr${openslr_id}_${lang_id}_${gender} \
+                    data/train_${lang}_openslr${openslr_id}_${gender}
+
+                utils/filter_scp.pl --exclude data/dev-test-${lang}-openslr${openslr_id}_${gender}/wav.scp \
+                    data/openslr${openslr_id}_${lang_id}_${gender}/wav.scp \
+                    > data/train_${lang}_openslr${openslr_id}_${gender}/wav.scp
+
+                utils/fix_data_dir.sh data/train_${lang}_openslr${openslr_id}_${gender}
                 test_set="${test_set} test_${lang}_openslr${openslr_id}_${gender}"
             done 
         fi
 
     fi
 
+    if [[ "${googlei18n_lang_asr}" == *"${lang}"* ]]; then
 
+        case ${lang} in
+            "jv")
+                data_info="35-javanese" ;;
+            "su")
+                data_info="36-sundanese" ;;
+            "si")
+                data_info="52-sinhala" ;;
+            "bn")
+                data_info="53-bengali" ;;
+            "ne")
+                data_info="54-nepali" ;;
+        esac
+
+        openslr_id=$(echo ${data_info} | cut -f1 -d-)
+        lang_id=$(echo ${data_info} | cut -f2 -d-)
+
+        if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+            log "sub-stage 0: Download Data to ${GOOGLEI18N}"
+
+            echo "skip download for openslr${openslr_id}_${lang_id}" 
+            # idxs=("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "a" "b" "c" "d" "e" "f")
+            # for i in "${idxs[@]}"; do
+                # wget -O ${GOOGLEi18N}/openslr${openslr_id}_${lang_id} \
+                #     https://www.openslr.org/resources/${openslr_id}/asr_${lang_id}_${i}.zip
+                # unzip -o asr_javanese_${i}.zip
+            # done
+            
+        fi
+
+        if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+            log "sub-stage 1: Data Preparation for Openslr ASR corpora"
+            prefix_info=${GOOGLEI18N}/openslr${openslr_id}_${lang_id}/asr_${lang_id}/
+            target_dir=data/openslr${openslr_id}_${lang_id}
+            mkdir -p ${target_dir}
+
+            awk -v lang_id="${lang_id}" -F '[\t]' \
+                '{print $2 "_" $1 "-" lang_id "_openslr " $2}' \
+                ${prefix_info}/utt_spk_text.tsv  > ${target_dir}/utt2spk
+
+            awk -v lang_id="${lang_id}" -F '[_\t]' \
+                '{print $2 "_" $1 "-" lang_id "_openslr " $3}' \
+                ${prefix_info}/utt_spk_text.tsv  > ${target_dir}/text
+
+            awk -v lang_id="${lang_id}" -v src_dir="${prefix_info}" -F '[_\t]' \
+                '{print $2 "_" $1 "-" lang_id "_openslr " src_dir "data/" $1 ".wav"}' \
+                ${prefix_info}/utt_spk_text.tsv  > ${target_dir}/wav.scp
+
+            sort ${target_dir}/utt2spk -o ${target_dir}/utt2spk
+            sort ${target_dir}/text -o ${target_dir}/text
+            sort ${target_dir}/wav.scp -o ${target_dir}/wav.scp
+            utils/utt2spk_to_spk2utt.pl ${target_dir}/utt2spk > ${target_dir}/spk2utt
+            utils/validate_data_dir.sh --non-print --no-feats ${target_dir}
+ 
+            utils/subset_data_dir.sh \
+                data/openslr${openslr_id}_${lang_id} \
+                4000 \
+                data/dev-test-${lang}-openslr${openslr_id}
+
+            utils/subset_data_dir.sh \
+                data/dev-test-${lang}-openslr${openslr_id} \
+                2000 \
+                data/dev_${lang}_openslr${openslr_id}
+
+            utils/copy_data_dir.sh --validate_opts "--non-print" \
+                data/dev-test-${lang}-openslr${openslr_id} \
+                data/test_${lang}_openslr${openslr_id}
+
+            utils/filter_scp.pl --exclude data/dev_${lang}_openslr${openslr_id}/wav.scp \
+                data/dev-test-${lang}-openslr${openslr_id}/wav.scp \
+                > data/test_${lang}_openslr${openslr_id}/wav.scp
+
+            utils/fix_data_dir.sh data/test_${lang}_openslr${openslr_id}
+
+            utils/copy_data_dir.sh --validate_opts "--non-print" \
+                data/openslr${openslr_id}_${lang_id} \
+                data/train_${lang}_openslr${openslr_id}
+
+            utils/filter_scp.pl --exclude data/dev-test-${lang}-openslr${openslr_id}/wav.scp \
+                data/openslr${openslr_id}_${lang_id}/wav.scp \
+                > data/train_${lang}_openslr${openslr_id}/wav.scp
+
+            utils/fix_data_dir.sh data/train_${lang}_openslr${openslr_id}
+            test_set="${test_set} test_${lang}_openslr${openslr_id}"  
+
+        fi
+    fi
+
+    if [[ "${googlei18n_lang_30_32_37}" == *"${lang}"* ]]; then
+        case ${lang} in
+            "af")
+                processing_list="32-af_za/za/afr" ;;
+            "st")
+                processing_list="32-st_za/za/sso" ;;
+            "tn")
+                processing_list="32-tn_za/za/tsn" ;;
+            "xh")
+                processing_list="32-xh_za/za/xho" ;;
+            "bn")
+                processing_list="37-bn_bd 37-bn_in" ;;
+        esac
+
+        if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+            log "sub-stage0: Download data to ${GOOGLEI18N}"
+            echo "pending"
+        fi
+
+        if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+            log "sub-stage 1: Data Preparation for Openslr ASR corpora"
+            for direct_lang in ${processing_list}; do
+                openslr_id=$(echo ${direct_lang} | cut -f1 -d-)
+                prefix=$(echo ${direct_lang} | cut -f2 -d-)
+                data_folder=${GOOGLEI18N}/openslr${openslr_id}_${prefix}
+                target_dir=data/openslr${openslr_id}_${lang}
+                mkdir -p ${target_dir}
+
+                awk -v lang="${lang}" -F '[_\t]' \
+                    '{print $1 "_" $2 "_" $3 "-" lang_id "_openslr " $1 "_" $2}' \
+                    ${data_folder}/line_index.tsv  > ${target_dir}/utt2spk
+
+                awk -v lang="${lang}" -F '[\t]' \
+                    '{print $1 "-" lang_id "_openslr " $2}' \
+                    ${data_folder}/line_index.tsv  > ${target_dir}/text
+
+                awk -v lang="${lang}" -v src_dir="${data_folder}" -F '[_\t]' \
+                    '{print $1 "_" $2 "_" $3 "-" lang_id "_openslr " src_dir "/" $1 "_" $2 "_" $3 ".wav"}' \
+                    ${data_folder}/line_index.tsv  > ${target_dir}/wav.scp
+
+                sort ${target_dir}/utt2spk -o ${target_dir}/utt2spk
+                sort ${target_dir}/text -o ${target_dir}/text
+                sort ${target_dir}/wav.scp -o ${target_dir}/wav.scp
+                utils/utt2spk_to_spk2utt.pl ${target_dir}/utt2spk > ${target_dir}/spk2utt
+                utils/validate_data_dir.sh --non-print --no-feats ${target_dir}
+
+                utils/subset_data_dir.sh \
+                    data/openslr${openslr_id}_${lang} \
+                    500 \
+                    data/dev-test-${lang}-openslr${openslr_id}
+
+                utils/subset_data_dir.sh \
+                    data/dev-test-${lang}-openslr${openslr_id} \
+                    250 \
+                    data/dev_${lang}_openslr${openslr_id}
+
+                utils/copy_data_dir.sh --validate_opts "--non-print" \
+                    data/dev-test-${lang}-openslr${openslr_id} \
+                    data/test_${lang}_openslr${openslr_id}
+
+                utils/filter_scp.pl --exclude data/dev_${lang}_openslr${openslr_id}/wav.scp \
+                    data/dev-test-${lang}-openslr${openslr_id}/wav.scp \
+                    > data/test_${lang}_openslr${openslr_id}/wav.scp
+                utils/fix_data_dir.sh data/test_${lang}_openslr${openslr_id}
+
+                utils/copy_data_dir.sh --validate_opts "--non-print" \
+                    data/openslr${openslr_id}_${lang} data/train_${lang}_openslr${openslr_id}
+
+                utils/filter_scp.pl --exclude data/dev-test-${lang}-openslr${openslr_id}/wav.scp \
+                    data/openslr${openslr_id}_${lang}/wav.scp \
+                    > data/train_${lang}_openslr${openslr_id}/wav.scp
+
+                utils/fix_data_dir.sh data/train_${lang}_openslr${openslr_id}
+                test_set="${test_set} test_${lang}_openslr${openslr_id}"      
+            done
+        fi
+    fi
+
+    if [[ "${voxpopuli_lang}" == *"${lang}"* ]]; then
+        if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+            log "sub-stage0: Download data to ${VOXPOPULI}"
+        fi
+
+        if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+            log "sub-stage 1: Data Preparation for Voxpopuli"
+            for subset in "train" "test" "dev"; do
+                index_file=${VOXPOPULI}/transcribed_data/${lang}/asr_${subset}.tsv
+                target_dir=data/${subset}_${lang}_voxpopuli
+                mkdir -p ${target_dir}
+                # remove header
+                awk '(NR>1)' ${index_file} > ${target_dir}/${subset}.no_header
+                src_index=${target_dir}/${subset}.no_header
+
+                awk -v lang="${lang}" -F '[\t]' \
+                    '{printf "%010d_%s-%s_voxpopuli %s\n", $4, $1, lang, $3}' \
+                    ${src_index} > ${target_dir}/text
+
+                awk -v lang="${lang}" -F '[\t]' \
+                    '{printf "%010d_%s-%s_voxpopuli %010d\n", $4, $1,lang, $4}'  \
+                    ${src_index} > ${target_dir}/utt2spk
+                awk -v lang="${lang}" -v src_dir="${VOXPOPULI}/transcribed_data/${lang}/" \
+                    -F '[\t]' \
+                   '{
+                        printf "%010d_%s-%s_voxpopuli sox %s%s/%s.ogg - |\n",
+                        $4, $1, lang, src_dir, substr($1, 1, 4), $1
+                   }' \
+                   ${src_index} > ${target_dir}/wav.scp
+                sort ${target_dir}/utt2spk -o ${target_dir}/utt2spk
+                sort ${target_dir}/text -o ${target_dir}/text
+                sort ${target_dir}/wav.scp -o ${target_dir}/wav.scp
+                utils/utt2spk_to_spk2utt.pl ${target_dir}/utt2spk > ${target_dir}/spk2utt
+                utils/validate_data_dir.sh --no-feats ${target_dir}
+            done
+            test_set="${test_set} test_${lang}_voxpopuli"
+        fi
+
+    fi
+
+done
+
+# Processing extra langs
+for lang in ${extra_langs}; do
+    if [[ "${commonvoice_lang}" == *" ${lang}"* || "${commonvoice_lang}" == *"${lang} "* ]]; then
+        if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+            log "sub-stage 0: Download Data to ${COMMONVOICE}"
+
+            # base url for downloads.
+            data_url=https://mozilla-common-voice-datasets.s3.dualstack.us-west-2.amazonaws.com/cv-corpus-9.0-2022-04-27/cv-corpus-9.0-2022-04-27-${lang}.tar.gz
+
+            # local/voxforge/download_and_untar.sh ${COMMONVOICE} ${data_url} ${lang}.tar.gz
+            # rm -f ${COMMONVOICE}/${lang}.tar.gz
+        fi
+
+        train_subset=train_"$(echo "${lang}" | tr - _)"_commonvoice
+        train_subdev=dev_"$(echo "${lang}" | tr - _)"_commonvoice
+        test_subset=test_"$(echo "${lang}" | tr - _)"_commonvoice
+
+        if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+            log "sub-stage 1: Preparing Data for Commonvoice"
+
+            if [ "${lang}" = sat ]; then
+                 sets="validated test"
+            else
+                 sets="validated test dev"
+            fi
+
+            for part in ${sets}; do
+                # use underscore-separated names in data directories.
+                local/commonvoice/data_prep.pl "${COMMONVOICE}/cv-corpus-9.0-2022-04-27/${lang}" ${part} data/"$(echo "${part}_${lang}_commonvoice" | tr - _)" "${lang}_commonvoice"
+            done
+
+            # remove test&dev data from validated sentences
+            utils/copy_data_dir.sh --validate_opts "--non-print" \
+                data/"$(echo "validated_${lang}_commonvoice" | tr - _)" data/${train_subset}
+            utils/filter_scp.pl --exclude data/${train_subdev}/wav.scp \
+                data/${train_subset}/wav.scp > data/${train_subset}/temp_wav.scp
+            utils/filter_scp.pl --exclude data/${test_subset}/wav.scp \
+                data/${train_subset}/temp_wav.scp > data/${train_subset}/wav.scp
+            utils/fix_data_dir.sh data/${train_subset}
+        fi
+        test_set="${test_set} ${test_subset}"
+    fi
 done
 
 log "Using test sets: ${test_set}"
