@@ -1,7 +1,7 @@
 """Parameter initialization for Transducer model."""
 
-from argparse import Namespace
 import math
+from argparse import Namespace
 
 import torch
 

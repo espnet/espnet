@@ -644,7 +644,7 @@ if ! "${skip_train}"; then
 
         # 3. Submit jobs
         log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
-        # shellcheck disable=SC2086
+        # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m "espnet2.bin.${tts_task}_train" \
                 --collect_stats true \
@@ -665,7 +665,7 @@ if ! "${skip_train}"; then
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${train_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                ${_opts} ${train_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
@@ -1008,7 +1008,7 @@ if ! "${skip_eval}"; then
 
             # 3. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
                 ${python} -m espnet2.bin.tts_inference \
                     --ngpu "${_ngpu}" \
@@ -1019,7 +1019,7 @@ if ! "${skip_eval}"; then
                     --train_config "${tts_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
                     --vocoder_file "${vocoder_file}" \
-                    ${_opts} ${_ex_opts} ${inference_args}
+                    ${_opts} ${_ex_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/tts_inference.*.log) ; exit 1; }
 
             # 4. Concatenates the output files from each jobs
             if [ -e "${_logdir}/output.${_nj}/norm" ]; then

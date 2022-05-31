@@ -4,10 +4,11 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import argparse
-from collections import namedtuple
 import os
 import re
 import sys
+from collections import namedtuple
+
 import yaml
 
 

@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
 
-from espnet2.train.collate_fn import common_collate_fn
-from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.collate_fn import CommonCollateFn, common_collate_fn
 
 
 @pytest.mark.parametrize(

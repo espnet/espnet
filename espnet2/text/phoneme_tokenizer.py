@@ -1,18 +1,14 @@
 import logging
-from pathlib import Path
 import re
-from typing import Iterable
-from typing import List
-from typing import Optional
-from typing import Union
 import warnings
+from pathlib import Path
+from typing import Iterable, List, Optional, Union
 
 import g2p_en
 import jamo
 from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
-
 
 g2p_choices = [
     None,
@@ -61,8 +57,9 @@ def pyopenjtalk_g2p(text) -> List[str]:
 
 
 def pyopenjtalk_g2p_accent(text) -> List[str]:
-    import pyopenjtalk
     import re
+
+    import pyopenjtalk
 
     phones = []
     for labels in pyopenjtalk.run_frontend(text)[1]:
@@ -73,8 +70,9 @@ def pyopenjtalk_g2p_accent(text) -> List[str]:
 
 
 def pyopenjtalk_g2p_accent_with_pause(text) -> List[str]:
-    import pyopenjtalk
     import re
+
+    import pyopenjtalk
 
     phones = []
     for labels in pyopenjtalk.run_frontend(text)[1]:
@@ -181,27 +179,29 @@ def _numeric_feature_by_regex(regex, s):
 
 
 def pypinyin_g2p(text) -> List[str]:
-    from pypinyin import pinyin
-    from pypinyin import Style
+    from pypinyin import Style, pinyin
 
     phones = [phone[0] for phone in pinyin(text, style=Style.TONE3)]
     return phones
 
 
 def pypinyin_g2p_phone(text) -> List[str]:
-    from pypinyin import pinyin
-    from pypinyin import Style
-    from pypinyin.style._utils import get_finals
-    from pypinyin.style._utils import get_initials
+    from pypinyin import Style, pinyin
+    from pypinyin.style._utils import get_finals, get_initials
 
     phones = [
         p
         for phone in pinyin(text, style=Style.TONE3)
         for p in [
             get_initials(phone[0], strict=True),
-            get_finals(phone[0], strict=True),
+            get_finals(phone[0][:-1], strict=True) + phone[0][-1]
+            if phone[0][-1].isdigit()
+            else get_finals(phone[0], strict=True)
+            if phone[0][-1].isalnum()
+            else phone[0],
         ]
-        if len(p) != 0
+        # Remove the case of individual tones as a phoneme
+        if len(p) != 0 and not p.isdigit()
     ]
     return phones
 

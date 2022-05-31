@@ -1,16 +1,17 @@
-from distutils.version import LooseVersion
 import pytest
 import torch
-
+from packaging.version import parse as V
 from torch_complex import ComplexTensor
 
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainAbsCoherence
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainCrossEntropy
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
+from espnet2.enh.loss.criterions.tf_domain import (
+    FrequencyDomainAbsCoherence,
+    FrequencyDomainCrossEntropy,
+    FrequencyDomainDPCL,
+    FrequencyDomainL1,
+    FrequencyDomainMSE,
+)
 
-
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 @pytest.mark.parametrize("criterion_class", [FrequencyDomainL1, FrequencyDomainMSE])
@@ -92,4 +93,23 @@ def test_tf_ce_criterion_forward(input_ch):
     ref_spec = torch.randint(0, ncls, label_shape)
 
     loss = criterion(ref_spec, inf_spec)
+    assert loss.shape == (batch,), "Invlid loss shape with " + criterion.name
+
+
+@pytest.mark.parametrize("loss_type", ["dpcl", "mdc"])
+def test_tf_dpcl_loss_criterion_forward(loss_type):
+
+    criterion = FrequencyDomainDPCL(loss_type=loss_type)
+
+    batch = 2
+    inf = torch.rand(batch, 10 * 200, 40)
+    ref_spec = [
+        ComplexTensor(torch.rand(batch, 10, 200), torch.rand(batch, 10, 200)),
+        ComplexTensor(torch.rand(batch, 10, 200), torch.rand(batch, 10, 200)),
+        ComplexTensor(torch.rand(batch, 10, 200), torch.rand(batch, 10, 200)),
+    ]
+
+    ref = [abs(r) for r in ref_spec]
+
+    loss = criterion(ref, inf)
     assert loss.shape == (batch,), "Invlid loss shape with " + criterion.name

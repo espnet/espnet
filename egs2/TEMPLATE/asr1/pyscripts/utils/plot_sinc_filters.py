@@ -12,10 +12,11 @@ Description:
 """
 
 import argparse
+import sys
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
-from pathlib import Path
-import sys
 import torch
 
 

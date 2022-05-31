@@ -1,11 +1,10 @@
+import argparse
+import glob
+import json
+import math
 import os
 import os.path
-import json
-import glob
-import math
-import argparse
 import random
-
 
 parser = argparse.ArgumentParser(description="Prepare mediaspeech")
 parser.add_argument(

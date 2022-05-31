@@ -8,30 +8,31 @@ import copy
 import logging
 import math
 import os
-
-import nltk
+from itertools import groupby
 
 import chainer
+import nltk
 import numpy as np
 import six
 import torch
-
-from itertools import groupby
-
 from chainer import reporter
 
 from espnet.nets.e2e_asr_common import label_smoothing_dist
 from espnet.nets.pytorch_backend.ctc import CTC
-from espnet.nets.pytorch_backend.initialization import lecun_normal_init_parameters
-from espnet.nets.pytorch_backend.initialization import set_forget_bias_to_one
-from espnet.nets.pytorch_backend.nets_utils import get_subsample
-from espnet.nets.pytorch_backend.nets_utils import pad_list
-from espnet.nets.pytorch_backend.nets_utils import to_device
-from espnet.nets.pytorch_backend.nets_utils import to_torch_tensor
-from espnet.nets.pytorch_backend.rnn.argument import (
-    add_arguments_rnn_encoder_common,  # noqa: H301
-    add_arguments_rnn_decoder_common,  # noqa: H301
-    add_arguments_rnn_attention_common,  # noqa: H301
+from espnet.nets.pytorch_backend.initialization import (
+    lecun_normal_init_parameters,
+    set_forget_bias_to_one,
+)
+from espnet.nets.pytorch_backend.nets_utils import (
+    get_subsample,
+    pad_list,
+    to_device,
+    to_torch_tensor,
+)
+from espnet.nets.pytorch_backend.rnn.argument import (  # noqa: H301
+    add_arguments_rnn_attention_common,
+    add_arguments_rnn_decoder_common,
+    add_arguments_rnn_encoder_common,
 )
 from espnet.nets.pytorch_backend.rnn.attentions import att_for
 from espnet.nets.pytorch_backend.rnn.decoders import decoder_for

@@ -4,47 +4,50 @@
 """Training/decoding definition for the speech recognition task."""
 
 import copy
-from distutils.version import LooseVersion
 import itertools
 import json
 import logging
 import math
 import os
 
+import numpy as np
+import torch
 from chainer import reporter as reporter_module
 from chainer import training
 from chainer.training import extensions
 from chainer.training.updater import StandardUpdater
-import numpy as np
-import torch
+from packaging.version import parse as V
 from torch.nn.parallel import data_parallel
 
-from espnet.asr.asr_utils import adadelta_eps_decay
-from espnet.asr.asr_utils import add_results_to_json
-from espnet.asr.asr_utils import CompareValueTrigger
-from espnet.asr.asr_utils import format_mulenc_args
-from espnet.asr.asr_utils import get_model_conf
-from espnet.asr.asr_utils import plot_spectrogram
-from espnet.asr.asr_utils import restore_snapshot
-from espnet.asr.asr_utils import snapshot_object
-from espnet.asr.asr_utils import torch_load
-from espnet.asr.asr_utils import torch_resume
-from espnet.asr.asr_utils import torch_snapshot
-from espnet.asr.pytorch_backend.asr_init import freeze_modules
-from espnet.asr.pytorch_backend.asr_init import load_trained_model
-from espnet.asr.pytorch_backend.asr_init import load_trained_modules
 import espnet.lm.pytorch_backend.extlm as extlm_pytorch
+import espnet.nets.pytorch_backend.lm.default as lm_pytorch
+from espnet.asr.asr_utils import (
+    CompareValueTrigger,
+    adadelta_eps_decay,
+    add_results_to_json,
+    format_mulenc_args,
+    get_model_conf,
+    plot_spectrogram,
+    restore_snapshot,
+    snapshot_object,
+    torch_load,
+    torch_resume,
+    torch_snapshot,
+)
+from espnet.asr.pytorch_backend.asr_init import (
+    freeze_modules,
+    load_trained_model,
+    load_trained_modules,
+)
 from espnet.nets.asr_interface import ASRInterface
 from espnet.nets.beam_search_transducer import BeamSearchTransducer
 from espnet.nets.pytorch_backend.e2e_asr import pad_list
-import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.streaming.segment import SegmentStreamingE2E
 from espnet.nets.pytorch_backend.streaming.window import WindowStreamingE2E
 from espnet.transform.spectrogram import IStft
 from espnet.transform.transformation import Transformation
 from espnet.utils.cli_writers import file_writer_helper
-from espnet.utils.dataset import ChainerDataLoader
-from espnet.utils.dataset import TransformDataset
+from espnet.utils.dataset import ChainerDataLoader, TransformDataset
 from espnet.utils.deterministic_utils import set_deterministic_pytorch
 from espnet.utils.dynamic_import import dynamic_import
 from espnet.utils.io_utils import LoadInputsAndTargets
@@ -52,8 +55,7 @@ from espnet.utils.training.batchfy import make_batchset
 from espnet.utils.training.evaluator import BaseEvaluator
 from espnet.utils.training.iterators import ShufflingEnabler
 from espnet.utils.training.tensorboard_logger import TensorboardLogger
-from espnet.utils.training.train_utils import check_early_stop
-from espnet.utils.training.train_utils import set_early_stop
+from espnet.utils.training.train_utils import check_early_stop, set_early_stop
 
 
 def _recursive_to(xs, device):
@@ -989,7 +991,7 @@ def recog(args):
         # It seems quantized LSTM only supports non-packed sequence before torch 1.4.0.
         # Reference issue: https://github.com/pytorch/pytorch/issues/27963
         if (
-            torch.__version__ < LooseVersion("1.4.0")
+            V(torch.__version__) < V("1.4.0")
             and "lstm" in train_args.etype
             and torch.nn.LSTM in q_config
         ):
@@ -999,9 +1001,7 @@ def recog(args):
 
         # Dunno why but weight_observer from dynamic quantized module must have
         # dtype=torch.qint8 with torch < 1.5 although dtype=torch.float16 is supported.
-        if args.quantize_dtype == "float16" and torch.__version__ < LooseVersion(
-            "1.5.0"
-        ):
+        if args.quantize_dtype == "float16" and V(torch.__version__) < V("1.5.0"):
             raise ValueError(
                 "float16 dtype for dynamic quantization is not supported with torch "
                 "version < 1.5.0. Switching to qint8 dtype instead."

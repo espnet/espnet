@@ -73,13 +73,14 @@ class PITSolver(AbsLossWrapper):
             )
             # remove stats from unused permutations
             for k, v in stats.items():
-                # (B, len(all_permutations), ...)
+                # (B, num_spk * len(all_permutations), ...)
                 new_v = torch.stack(v, dim=1)
+                B, L, *rest = new_v.shape
+                assert L == num_spk * len(all_permutations), (L, num_spk)
+                new_v = new_v.view(B, L // num_spk, num_spk, *rest).mean(2)
                 if new_v.dim() > 2:
-                    shapes = [1 for _ in range(new_v.dim() - 2)]
-                    perm0 = perm_.view(perm_.shape[0], 1, *shapes).expand(
-                        -1, -1, *new_v.shape[2:]
-                    )
+                    shapes = [1 for _ in rest]
+                    perm0 = perm_.view(perm_.shape[0], 1, *shapes).expand(-1, -1, *rest)
                 else:
                     perm0 = perm_.unsqueeze(1)
                 stats[k] = new_v.gather(1, perm0.to(device=new_v.device)).unbind(1)

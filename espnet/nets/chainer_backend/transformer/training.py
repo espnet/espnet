@@ -4,16 +4,18 @@
 import collections
 import logging
 import math
-import six
 
+import numpy as np
+import six
 from chainer import cuda
 from chainer import functions as F
 from chainer import training
 from chainer.training import extension
-from chainer.training.updaters.multiprocess_parallel_updater import gather_grads
-from chainer.training.updaters.multiprocess_parallel_updater import gather_params
-from chainer.training.updaters.multiprocess_parallel_updater import scatter_grads
-import numpy as np
+from chainer.training.updaters.multiprocess_parallel_updater import (
+    gather_grads,
+    gather_params,
+    scatter_grads,
+)
 
 
 # copied from https://github.com/chainer/chainer/blob/master/chainer/optimizer.py

@@ -13,12 +13,13 @@
 
 
 import argparse
+import json
+import math
 import os
+
 import common
 import numpy as np
-import math
 import soundfile as sf
-import json
 
 parser = argparse.ArgumentParser()
 parser.add_argument("script", help="list of json")
