@@ -301,12 +301,11 @@ class Speech2Text:
             logging.info(
                 f"normalized log probability: {best.score / len(best.yseq):.2f}"
             )
-            if self.token_list is not None:
-                logging.info(
-                    "best hypo: "
-                    + "".join(self.converter.ids2tokens(best.yseq[1:]))
-                    + "\n"
-                )
+            logging.info(
+                "best hypo: "
+                + "".join(self.converter.ids2tokens(best.yseq[1:]))
+                + "\n"
+            )
         else:
             nbest_hyps = self.beam_search(
                 x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
