@@ -1,16 +1,13 @@
 import pytest
 import torch
 
-from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 
 
 @pytest.mark.parametrize(
-    "input_layer", ["linear", "conv2d", "conv2d2", "conv2d6", "conv2d8", "embed", None]
+    "input_layer", ["linear", "conv2d", "conv2d2", "conv2d6", "conv2d8", "embed"]
 )
-@pytest.mark.parametrize(
-    "use_linear_after_conv", [True, False]
-)
+@pytest.mark.parametrize("use_linear_after_conv", [True, False])
 @pytest.mark.parametrize(
     "rel_pos_type, pos_enc_layer_type, attention_layer_type",
     [
@@ -129,7 +126,7 @@ def test_encoder_invalid_cgmlp_weight():
         BranchformerEncoder(
             20,
             merge_method="fixed_ave",
-            cgmlp_weight=-1,
+            cgmlp_weight=-1.0,
         )
     with pytest.raises(ValueError):
         BranchformerEncoder(
@@ -150,7 +147,9 @@ def test_encoder_invalid_merge_method():
 def test_encoder_invalid_two_branches():
     with pytest.raises(AssertionError):
         BranchformerEncoder(
-            20, use_attn=False, use_cgmlp=False,
+            20,
+            use_attn=False,
+            use_cgmlp=False,
         )
 
 
