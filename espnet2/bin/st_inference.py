@@ -36,6 +36,8 @@ from espnet2.utils.types import str2triple_str
 from espnet2.utils.types import str_or_none
 from espnet2.bin.st_md_inference import inference_md
 
+from espnet.nets.pytorch_backend.beam_search_ctc import BeamSearchCTC
+
 
 class Speech2Text:
     """Speech2Text class
@@ -70,9 +72,12 @@ class Speech2Text:
         penalty: float = 0.0,
         nbest: int = 1,
         st_ctc_weight: float = 0.0,
+        time_synchronous: bool = False,
+        ctc_greedy: bool = False,
+        pruning_width: float = 18.0,
     ):
         assert check_argument_types()
-
+        # import pdb;pdb.set_trace()
         # 1. Build ST model
         scorers = {}
         st_model, st_train_args = STTask.build_model_from_file(
@@ -121,37 +126,48 @@ class Speech2Text:
             ngram=ngram_weight,
             length_bonus=penalty,
         )
-        beam_search = BeamSearch(
-            beam_size=beam_size,
-            weights=weights,
-            scorers=scorers,
-            sos=st_model.sos,
-            eos=st_model.eos,
-            vocab_size=len(token_list),
-            token_list=token_list,
-            pre_beam_score_key=None if st_ctc_weight == 1.0 else "full",
-        )
-        # TODO(karita): make all scorers batchfied
-        if batch_size == 1:
-            non_batch = [
-                k
-                for k, v in beam_search.full_scorers.items()
-                if not isinstance(v, BatchScorerInterface)
-            ]
-            if len(non_batch) == 0:
-                beam_search.__class__ = BatchBeamSearch
-                logging.info("BatchBeamSearch implementation is selected.")
-            else:
-                logging.warning(
-                    f"As non-batch scorers {non_batch} are found, "
-                    f"fall back to non-batch implementation."
-                )
-        beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
-        for scorer in scorers.values():
-            if isinstance(scorer, torch.nn.Module):
-                scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-        logging.info(f"Beam_search: {beam_search}")
-        logging.info(f"Decoding device={device}, dtype={dtype}")
+        if time_synchronous:
+            beam_search = BeamSearchCTC(
+                beam_size=beam_size,
+                ctc=st_model.mt_ctc,
+                sos=st_model.sos,
+                lm=decoder,
+                lm_weight=1.0-st_ctc_weight,
+                pruning_width=pruning_width,
+                insertion_bonus=penalty,
+            )
+        else:
+            beam_search = BeamSearch(
+                beam_size=beam_size,
+                weights=weights,
+                scorers=scorers,
+                sos=st_model.sos,
+                eos=st_model.eos,
+                vocab_size=len(token_list),
+                token_list=token_list,
+                pre_beam_score_key=None if st_ctc_weight == 1.0 else "full",
+            )
+            # TODO(karita): make all scorers batchfied
+            if batch_size == 1:
+                non_batch = [
+                    k
+                    for k, v in beam_search.full_scorers.items()
+                    if not isinstance(v, BatchScorerInterface)
+                ]
+                if len(non_batch) == 0:
+                    beam_search.__class__ = BatchBeamSearch
+                    logging.info("BatchBeamSearch implementation is selected.")
+                else:
+                    logging.warning(
+                        f"As non-batch scorers {non_batch} are found, "
+                        f"fall back to non-batch implementation."
+                    )
+            beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
+            for scorer in scorers.values():
+                if isinstance(scorer, torch.nn.Module):
+                    scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
+            logging.info(f"Beam_search: {beam_search}")
+            logging.info(f"Decoding device={device}, dtype={dtype}")
 
         # 4. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
@@ -181,6 +197,8 @@ class Speech2Text:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
+        self.time_synchronous = time_synchronous
+        self.ctc_greedy = ctc_greedy
 
     @torch.no_grad()
     def __call__(
@@ -215,35 +233,55 @@ class Speech2Text:
 
         # hier enc
         if hasattr(self.st_model, "encoder_hier") or hasattr(self.st_model, "encoder_hier0"):
-            if hasattr(self.st_model, "n_hier") and self.st_model.n_hier > 1:
-                x = enc
-                x_lens = enc_lens
-                for i in range(self.st_model.n_hier):
-                    new_x, new_x_lens, _ = getattr(self.st_model, "encoder_hier"+str(i))(x, x_lens)
-                    x = new_x
-                    x_lens = new_x_lens
-                enc_hier = x
-            else:
+            if self.ctc_greedy:
+                from itertools import groupby
                 enc_hier, _, _ = self.st_model.encoder_hier(enc, enc_lens)
+                lpz = self.st_model.mt_ctc.argmax(enc_hier)
+                collapsed_indices = [x[0] for x in groupby(lpz[0])]
+                hyp = [x for x in filter(lambda x: x != 0, collapsed_indices)]
+                nbest_hyps = [{"score": 0.0, "yseq": [self.st_model.sos] + hyp + [self.st_model.eos]}]
+                nbest_hyps = [Hypothesis(
+                                score=hyp["score"],
+                                yseq=torch.tensor(hyp["yseq"]),
+                            ) for hyp in nbest_hyps]
+            elif self.time_synchronous:
+                enc_hier, _, _ = self.st_model.encoder_hier(enc, enc_lens)
+                nbest_hyps = self.beam_search.search(enc_output=enc_hier)
+                nbest_hyps = [Hypothesis(
+                                score=hyp["score"],
+                                yseq=torch.tensor(hyp["yseq"]),
+                            ) for hyp in nbest_hyps]
+            else:
+                if hasattr(self.st_model, "n_hier") and self.st_model.n_hier > 1:
+                    x = enc
+                    x_lens = enc_lens
+                    for i in range(self.st_model.n_hier):
+                        new_x, new_x_lens, _ = getattr(self.st_model, "encoder_hier"+str(i))(x, x_lens)
+                        x = new_x
+                        x_lens = new_x_lens
+                    enc_hier = x
+                else:
+                    enc_hier, _, _ = self.st_model.encoder_hier(enc, enc_lens)
 
-            # speech attn
-            if hasattr(self.st_model, "speech_attn") and self.st_model.speech_attn == True:
-                reverse_sa = getattr(self.st_model, "reverse_sa", False)
-                if reverse_sa:
-                    # c. Passed the encoder result and the beam search
-                    nbest_hyps = self.beam_search(
-                        x=enc_hier[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x=enc[0]
-                    )
+                # speech attn
+                if hasattr(self.st_model, "speech_attn") and self.st_model.speech_attn == True:
+                    reverse_sa = getattr(self.st_model, "reverse_sa", False)
+                    if reverse_sa:
+                        # c. Passed the encoder result and the beam search
+                        nbest_hyps = self.beam_search(
+                            x=enc_hier[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x=enc[0]
+                        )
+                    else:
+                        # c. Passed the encoder result and the beam search
+                        nbest_hyps = self.beam_search(
+                            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x=enc_hier[0]
+                        )
                 else:
                     # c. Passed the encoder result and the beam search
                     nbest_hyps = self.beam_search(
-                        x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, md_x=enc_hier[0]
-                    )
-            else:
-                # c. Passed the encoder result and the beam search
-                nbest_hyps = self.beam_search(
-                    x=enc_hier[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+                        x=enc_hier[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
                 )
+            # import pdb;pdb.set_trace()
         # hacky way to check if it is hier ml
         elif hasattr(self.st_model, "encoder_hier3"):
             # check LID
@@ -342,6 +380,9 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
+    time_synchronous: bool,
+    ctc_greedy: bool,
+    pruning_width: float,
     **kwargs
 ):
     assert check_argument_types()
@@ -384,6 +425,9 @@ def inference(
         penalty=penalty,
         nbest=nbest,
         st_ctc_weight=st_ctc_weight,
+        time_synchronous=time_synchronous,
+        ctc_greedy=ctc_greedy,
+        pruning_width=pruning_width,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -649,6 +693,19 @@ def get_parser():
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
     )
+    group.add_argument(
+        "--time_synchronous",
+        type=str2bool,
+        default=False,
+        help="Use time sync",
+    )
+    group.add_argument(
+        "--ctc_greedy",
+        type=str2bool,
+        default=False,
+        help="Use ctc greedy",
+    )
+    group.add_argument("--pruning_width", type=float, default=18.0, help="pruning width")
 
     return parser
 
