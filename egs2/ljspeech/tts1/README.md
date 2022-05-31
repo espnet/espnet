@@ -14,6 +14,24 @@ See the following pages before asking the question:
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
 
+# SIXTH RESULTS
+
+- Initial JETS model
+
+## Environments
+- date: `Sat May 28 23:00:22 KST 2022`
+- python version: `3.7.11 (default, Jul 27 2021, 14:32:16) [GCC 7.5.0]`
+- espnet version: `espnet 202204`
+- pytorch version: `pytorch 1.10.1`
+- Git hash: `047d0c474c18a87c205e566948410be16787e477`
+  - Commit date: `Thu May 19 09:50:02 2022 -0400`
+
+## Pretrained Models
+
+### ljspeech_tts_train_jets_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+- https://huggingface.co/imdanboy/ljspeech_tts_train_jets_raw_phn_tacotron_g2p_en_no_space_train.total_count.ave
+
+
 # FIFTH RESULTS
 
 - Use espeak-ng based G2P
