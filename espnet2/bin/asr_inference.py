@@ -302,9 +302,7 @@ class Speech2Text:
                 f"normalized log probability: {best.score / len(best.yseq):.2f}"
             )
             logging.info(
-                "best hypo: "
-                + "".join(self.converter.ids2tokens(best.yseq[1:]))
-                + "\n"
+                "best hypo: " + "".join(self.converter.ids2tokens(best.yseq[1:])) + "\n"
             )
         else:
             nbest_hyps = self.beam_search(
