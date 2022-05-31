@@ -3,8 +3,6 @@
 
 """VITS module for GAN-TTS task."""
 
-from contextlib import contextmanager
-from distutils.version import LooseVersion
 from typing import Any
 from typing import Dict
 from typing import Optional
@@ -38,14 +36,6 @@ AVAILABLE_DISCRIMINATORS = {
     "hifigan_multi_scale_discriminator": HiFiGANMultiScaleDiscriminator,
     "hifigan_multi_scale_multi_period_discriminator": HiFiGANMultiScaleMultiPeriodDiscriminator,  # NOQA
 }
-
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):  # NOQA
-        yield
 
 
 class VITS(AbsGANTTS):
@@ -408,19 +398,18 @@ class VITS(AbsGANTTS):
             p = self.discriminator(speech_)
 
         # calculate losses
-        with autocast(enabled=False):
-            mel_loss = self.mel_loss(speech_hat_, speech_)
-            kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
-            dur_loss = torch.sum(dur_nll.float())
-            adv_loss = self.generator_adv_loss(p_hat)
-            feat_match_loss = self.feat_match_loss(p_hat, p)
+        mel_loss = self.mel_loss(speech_hat_, speech_)
+        kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
+        dur_loss = torch.sum(dur_nll.float())
+        adv_loss = self.generator_adv_loss(p_hat)
+        feat_match_loss = self.feat_match_loss(p_hat, p)
 
-            mel_loss = mel_loss * self.lambda_mel
-            kl_loss = kl_loss * self.lambda_kl
-            dur_loss = dur_loss * self.lambda_dur
-            adv_loss = adv_loss * self.lambda_adv
-            feat_match_loss = feat_match_loss * self.lambda_feat_match
-            loss = mel_loss + kl_loss + dur_loss + adv_loss + feat_match_loss
+        mel_loss = mel_loss * self.lambda_mel
+        kl_loss = kl_loss * self.lambda_kl
+        dur_loss = dur_loss * self.lambda_dur
+        adv_loss = adv_loss * self.lambda_adv
+        feat_match_loss = feat_match_loss * self.lambda_feat_match
+        loss = mel_loss + kl_loss + dur_loss + adv_loss + feat_match_loss
 
         stats = dict(
             generator_loss=loss.item(),
@@ -515,9 +504,8 @@ class VITS(AbsGANTTS):
         p = self.discriminator(speech_)
 
         # calculate losses
-        with autocast(enabled=False):
-            real_loss, fake_loss = self.discriminator_adv_loss(p_hat, p)
-            loss = real_loss + fake_loss
+        real_loss, fake_loss = self.discriminator_adv_loss(p_hat, p)
+        loss = real_loss + fake_loss
 
         stats = dict(
             discriminator_loss=loss.item(),

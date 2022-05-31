@@ -1,1 +1,0 @@
-../../TEMPLATE/mt1/db.sh

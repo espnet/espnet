@@ -53,7 +53,7 @@ def test_register(weight1, weight2):
             desired[k] /= weight1 + weight2
 
     for k1, k2 in reporter.get_all_keys():
-        if k2 in ("time", "total_count", "gpu_max_cached_mem_GB", "gpu_cached_mem_GB"):
+        if k2 in ("time", "total_count"):
             continue
         np.testing.assert_allclose(reporter.get_value(k1, k2), desired[k2])
 

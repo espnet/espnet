@@ -1,7 +1,7 @@
 # coding: utf-8
 
 import argparse
-from packaging.version import parse as V
+from distutils.version import LooseVersion
 import tempfile
 
 import json
@@ -15,7 +15,8 @@ from espnet.nets.pytorch_backend.e2e_asr_transducer import E2E
 import espnet.nets.pytorch_backend.lm.default as lm_pytorch
 from espnet.nets.pytorch_backend.transducer.blocks import build_blocks
 
-is_torch_1_5_plus = V(torch.__version__) >= V("1.5.0")
+is_torch_1_4_plus = LooseVersion(torch.__version__) >= LooseVersion("1.4.0")
+is_torch_1_5_plus = LooseVersion(torch.__version__) >= LooseVersion("1.5.0")
 
 
 def make_train_args(**kwargs):

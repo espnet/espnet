@@ -258,7 +258,7 @@ class STTask(AbsTask):
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default("required")
-        required += ["token_list"]
+        required += ["src_token_list", "token_list"]
 
         group.add_argument(
             "--token_list",

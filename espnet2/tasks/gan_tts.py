@@ -21,7 +21,6 @@ from typeguard import check_return_type
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
 from espnet2.gan_tts.espnet_model import ESPnetGANTTSModel
-from espnet2.gan_tts.jets import JETS
 from espnet2.gan_tts.joint import JointText2Wav
 from espnet2.gan_tts.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -71,7 +70,6 @@ tts_choices = ClassChoices(
     classes=dict(
         vits=VITS,
         joint_text2wav=JointText2Wav,
-        jets=JETS,
     ),
     type_check=AbsGANTTS,
     default="vits",
@@ -223,9 +221,7 @@ class GANTTSTask(AbsTask):
     ]:
         assert check_argument_types()
         return CommonCollateFn(
-            float_pad_value=0.0,
-            int_pad_value=0,
-            not_sequence=["spembs", "sids", "lids"],
+            float_pad_value=0.0, int_pad_value=0, not_sequence=["spembs", "sids"]
         )
 
     @classmethod
@@ -264,25 +260,10 @@ class GANTTSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = (
-                "spembs",
-                "durations",
-                "pitch",
-                "energy",
-                "sids",
-                "lids",
-            )
+            retval = ("spembs", "sids", "durations", "pitch", "energy")
         else:
             # Inference mode
-            retval = (
-                "spembs",
-                "speech",
-                "durations",
-                "pitch",
-                "energy",
-                "sids",
-                "lids",
-            )
+            retval = ("spembs", "sids", "speech", "durations", "pitch", "energy")
         return retval
 
     @classmethod

@@ -1,1 +1,0 @@
-../../asr1/local/run_beamform_2ch_track.sh

@@ -76,10 +76,8 @@ inference_model=valid.loss.ave.pth
 download_model=
 
 # Evaluation related
-scoring_protocol="STOI SDR SAR SIR SI_SNR"
+scoring_protocol="STOI SDR SAR SIR"
 ref_channel=0
-inference_tag=  # Prefix to the result dir for ENH inference.
-inference_enh_config= # Config for enhancement.
 score_with_asr=false
 asr_exp=""       # asr model for scoring WER
 lm_exp=""       # lm model for scoring WER
@@ -153,9 +151,8 @@ Options:
     --init_param    # pretrained model path and module name (default="${init_param}")
 
     # Enhancement related
-    --inference_args       # Arguments for enhancement in the inference stage (default="${inference_args}")
-    --inference_model      # Enhancement model path for inference (default="${inference_model}").
-    --inference_enh_config # Configuration file for overwriting some model attributes during SE inference. (default="${inference_enh_config}")
+    --inference_args   # Arguments for enhancement in the inference stage (default="${inference_args}")
+    --inference_model  # Enhancement model path for inference (default="${inference_model}").
 
     # Evaluation related
     --scoring_protocol    # Metrics to be used for scoring (default="${scoring_protocol}")
@@ -204,9 +201,6 @@ fi
 [ -z "${valid_set}" ] &&   { log "${help_message}"; log "Error: --valid_set is required"  ; exit 2; };
 [ -z "${test_sets}" ] && { log "${help_message}"; log "Error: --test_sets is required"; exit 2; };
 
-# Extra files for enhancement process
-utt_extra_files="utt2category"
-
 data_feats=${dumpdir}/raw
 
 
@@ -253,14 +247,6 @@ if [ -n "${speed_perturb_factors}" ]; then
   enh_exp="${enh_exp}_sp"
 fi
 
-if [ -z "${inference_tag}" ]; then
-    if [ -n "${inference_enh_config}" ]; then
-        inference_tag="$(basename "${inference_enh_config}" .yaml)"
-    else
-        inference_tag=enhanced
-    fi
-fi
-
 # ========================== Main stages start from here. ==========================
 
 if ! "${skip_data_prep}"; then
@@ -281,7 +267,7 @@ if ! "${skip_data_prep}"; then
 
            for factor in ${speed_perturb_factors}; do
                if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
-                   scripts/utils/perturb_enh_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}" "${_scp_list}"
+                   scripts/utils/perturb_enh_data_dir_speed.sh "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}" "${_scp_list}"
                    _dirs+="data/${train_set}_sp${factor} "
                else
                    # If speed factor is 1, same as the original
@@ -494,7 +480,7 @@ if ! "${skip_train}"; then
         #       but it's used only for deciding the sample ids.
 
 
-        # shellcheck disable=SC2046,SC2086
+        # shellcheck disable=SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.enh_train \
                 --collect_stats true \
@@ -504,7 +490,7 @@ if ! "${skip_train}"; then
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${enh_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
+                ${_opts} ${enh_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
@@ -628,7 +614,7 @@ if ! "${skip_eval}"; then
 
         for dset in "${valid_set}" ${test_sets}; do
             _data="${data_feats}/${dset}"
-            _dir="${enh_exp}/${inference_tag}_${dset}"
+            _dir="${enh_exp}/enhanced_${dset}"
             _logdir="${_dir}/logdir"
             mkdir -p "${_logdir}"
 
@@ -652,7 +638,7 @@ if ! "${skip_eval}"; then
 
             # 2. Submit inference jobs
             log "Enhancement started... log: '${_logdir}/enh_inference.*.log'"
-            # shellcheck disable=SC2046,SC2086
+            # shellcheck disable=SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/enh_inference.JOB.log \
                 ${python} -m espnet2.bin.enh_inference \
                     --ngpu "${_ngpu}" \
@@ -660,10 +646,9 @@ if ! "${skip_eval}"; then
                     --data_path_and_name_and_type "${_data}/${_scp},speech_mix,${_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --train_config "${enh_exp}"/config.yaml \
-                    ${inference_enh_config:+--inference_config "$inference_enh_config"} \
                     --model_file "${enh_exp}"/"${inference_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/enh_inference.*.log) ; exit 1; }
+                    ${_opts} ${inference_args}
 
 
             _spk_list=" "
@@ -701,7 +686,7 @@ if ! "${skip_eval}"; then
                 if "${score_obs}"; then
                     _dir="${data_feats}/${dset}/scoring"
                 else
-                    _dir="${enh_exp}/${inference_tag}_${dset}/scoring"
+                    _dir="${enh_exp}/enhanced_${dset}/scoring"
                 fi
 
                 _logdir="${_dir}/logdir"
@@ -728,7 +713,7 @@ if ! "${skip_eval}"; then
                         # To compute the score of observation, input original wav.scp
                         _inf_scp+="--inf_scp ${data_feats}/${dset}/wav.scp "
                     else
-                        _inf_scp+="--inf_scp ${enh_exp}/${inference_tag}_${dset}/spk${spk}.scp "
+                        _inf_scp+="--inf_scp ${enh_exp}/enhanced_${dset}/spk${spk}.scp "
                     fi
                 done
 
@@ -764,7 +749,7 @@ if ! "${skip_eval}"; then
             ./scripts/utils/show_enh_score.sh "${_dir}/../.." > "${_dir}/../../RESULTS.md"
         done
         log "Evaluation result for observation: ${data_feats}/RESULTS.md"
-        log "Evaluation result for enhancement: ${enh_exp}/RESULTS.md"
+        log "Evaluation result for enhancement: ${enh_exp}/enhanced/RESULTS.md"
 
     fi
 else
@@ -823,7 +808,7 @@ if "${score_with_asr}"; then
                         # Using same wav.scp for all speakers
                         cp "${_data}/wav.scp" "${_ddir}/wav.scp"
                     else
-                        cp "${enh_exp}/${inference_tag}_${dset}/scoring/wav_spk${spk}" "${_ddir}/wav.scp"
+                        cp "${enh_exp}/enhanced_${dset}/scoring/wav_spk${spk}" "${_ddir}/wav.scp"
                     fi
                     cp data/${dset}/text_spk${spk} ${_ddir}/text
                     cp ${_data}/{spk2utt,utt2spk,utt2num_samples,feats_type} ${_ddir}

@@ -1,8 +1,6 @@
 from collections import OrderedDict
-from packaging.version import parse as V
-from typing import Dict
+from distutils.version import LooseVersion
 from typing import List
-from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -18,7 +16,7 @@ from espnet2.enh.layers.complexnn import ComplexConvTranspose2d
 from espnet2.enh.layers.complexnn import NavieComplexLSTM
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
+is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 EPS = torch.finfo(torch.double).eps
 
 
@@ -161,18 +159,13 @@ class DCCRNSeparator(AbsSeparator):
         self.flatten_parameters()
 
     def forward(
-        self,
-        input: Union[torch.Tensor, ComplexTensor],
-        ilens: torch.Tensor,
-        additional: Optional[Dict] = None,
+        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
             input (torch.Tensor or ComplexTensor): Encoded feature [B, T, F]
             ilens (torch.Tensor): input lengths [Batch]
-            additional (Dict or None): other data included in model
-                NOTE: not used in this model
 
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, F), ...]

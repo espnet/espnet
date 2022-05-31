@@ -9,7 +9,7 @@ import importlib
 import shutil
 import sys
 
-from packaging.version import parse
+from distutils.version import LooseVersion
 
 module_list = [
     ("torchaudio", None, None),
@@ -77,7 +77,7 @@ def main():
         import chainer
 
         print(f"[x] chainer={chainer.__version__}")
-        if parse(chainer.__version__) != parse("6.0.0"):
+        if LooseVersion(chainer.__version__) != LooseVersion("6.0.0"):
             print(
                 f"Warning! chainer={chainer.__version__} is not supported. "
                 "Supported version is 6.0.0"

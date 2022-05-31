@@ -4,6 +4,7 @@
 
 import os
 
+from distutils.version import LooseVersion
 from setuptools import find_packages
 from setuptools import setup
 
@@ -11,7 +12,6 @@ from setuptools import setup
 requirements = {
     "install": [
         "setuptools>=38.5.1",
-        "packaging",
         "configargparse>=1.2.1",
         "typeguard>=2.7.0",
         "humanfriendly",
@@ -36,7 +36,6 @@ requirements = {
         # ENH
         "ci_sdr",
         "pytorch_wpe",
-        "fast-bss-eval==0.1.3",
     ],
     # train: The modules invoked when training only.
     "train": [
@@ -86,13 +85,12 @@ requirements = {
         "hacking>=2.0.0",
         "mock>=2.0.0",
         "pycodestyle",
-        "jsondiff<2.0.0,>=1.2.0",
+        "jsondiff>=1.2.0",
         "flake8>=3.7.8",
         "flake8-docstrings>=1.3.1",
         "black",
     ],
     "doc": [
-        "Jinja2<3.1",
         "Sphinx==2.1.2",
         "sphinx-rtd-theme>=0.2.4",
         "sphinx-argparse>=0.2.5",
@@ -141,7 +139,6 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "Operating System :: POSIX :: Linux",

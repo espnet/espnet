@@ -8,7 +8,6 @@ import torch
 
 
 class AbsLossWrapper(torch.nn.Module, ABC):
-    """Base class for all Enhancement loss wrapper modules."""
 
     # The weight for the current loss in the multi-task learning.
     # The overall training target will be combined as:

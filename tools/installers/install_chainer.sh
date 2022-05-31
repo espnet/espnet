@@ -16,16 +16,13 @@ if [ "${cuda_version}" = cpu ] || [ "${cuda_version}" = CPU ]; then
 fi
 
 
-if ! python -c "import packaging.version" &> /dev/null; then
-    python3 -m pip install packaging
-fi
 # espnet requires chiner=6.0.0
 chainer_version=6.0.0
 python_version=$(python3 -c "import sys; print(sys.version.split()[0])")
 cuda_version_without_dot="${cuda_version/\./}"
 python_plus(){
     python3 <<EOF
-from packaging.version import parse as L
+from distutils.version import LooseVersion as L
 if L('$python_version') >= L('$1'):
     print("true")
 else:
@@ -34,7 +31,7 @@ EOF
 }
 cuda_plus(){
     python3 <<EOF
-from packaging.version import parse as L
+from distutils.version import LooseVersion as L
 if L('$cuda_version') >= L('$1'):
     print("true")
 else:

@@ -22,7 +22,6 @@ src_case=lc.rm
 tgt_case=lc.rm
 
 ./st.sh \
-    --use_streaming false \
     --local_data_opts "--stage 0" \
     --audio_format "flac.ark" \
     --use_lm false \

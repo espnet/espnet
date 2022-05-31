@@ -8,7 +8,6 @@ EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
 class AbsEnhLoss(torch.nn.Module, ABC):
-    """Base class for all Enhancement loss modules."""
 
     # the name will be the key that appears in the reporter
     @property

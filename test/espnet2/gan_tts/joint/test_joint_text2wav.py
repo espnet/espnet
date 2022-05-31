@@ -3,7 +3,7 @@
 
 """Test VITS related modules."""
 
-from packaging.version import parse as V
+from distutils.version import LooseVersion
 
 import pytest
 import torch
@@ -190,7 +190,7 @@ def make_loss_args(**kwargs):
 
 
 @pytest.mark.skipif(
-    V(torch.__version__) < V("1.4"),
+    LooseVersion(torch.__version__) < LooseVersion("1.4"),
     reason="Pytorch >= 1.4 is required.",
 )
 @pytest.mark.skipif(

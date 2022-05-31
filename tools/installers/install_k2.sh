@@ -25,15 +25,12 @@ else
     use_conda=$([[ $(conda list -e -c -f --no-pip pytorch 2>/dev/null) =~ pytorch ]] && echo true || echo false)
 fi
 
-if ! python -c "import packaging.version" &> /dev/null; then
-    python3 -m pip install packaging
-fi
 
 python_36_plus=$(python3 <<EOF
-from packaging.version import parse as V
+from distutils.version import LooseVersion as V
 import sys
 
-if V("{}.{}.{}".format(*sys.version_info[:3])) >= V("3.6"):
+if V(sys.version) >= V("3.6"):
     print("true")
 else:
     print("false")
@@ -67,7 +64,7 @@ libc_version="$(${libc_path} | grep "GNU C Library" | grep -oP "version [0-9]*.[
 pytorch_plus(){
     python3 <<EOF
 import sys
-from packaging.version import parse as L
+from distutils.version import LooseVersion as L
 if L('$torch_version') >= L('$1'):
     print("true")
 else:
@@ -77,7 +74,7 @@ EOF
 libc_plus(){
     python3 <<EOF
 import sys
-from packaging.version import parse as L
+from distutils.version import LooseVersion as L
 if L('$libc_version') >= L('$1'):
     print("true")
 else:

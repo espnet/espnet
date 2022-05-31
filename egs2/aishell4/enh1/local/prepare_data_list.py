@@ -1,1 +1,0 @@
-../../../conferencingspeech21/enh1/local/prepare_data_list.py

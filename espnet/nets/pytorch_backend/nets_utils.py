@@ -151,8 +151,7 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
         raise ValueError("length_dim cannot be 0: {}".format(length_dim))
 
     if not isinstance(lengths, list):
-        lengths = lengths.long().tolist()
-
+        lengths = lengths.tolist()
     bs = int(len(lengths))
     if maxlen is None:
         if xs is None:

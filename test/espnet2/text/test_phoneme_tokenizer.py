@@ -303,7 +303,7 @@ def test_text2tokens(phoneme_tokenizer: PhonemeTokenizer):
             "ei2",
             "uai4",
             "s",
-            "uen1",
+            "un1",
             "uan2",
             "h",
             "ua2",

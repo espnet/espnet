@@ -7,7 +7,7 @@
 #     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
 
 from contextlib import contextmanager
-from packaging.version import parse as V
+from distutils.version import LooseVersion
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -28,7 +28,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
-if V(torch.__version__) >= V("1.6.0"):
+if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast
 else:
     # Nothing to do if torch<1.6.0
@@ -97,7 +97,6 @@ class HubertPretrainModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
-        **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Calc loss
 
@@ -106,7 +105,6 @@ class HubertPretrainModel(AbsESPnetModel):
             speech_lengths: (Batch, )
             text: (Batch, Length)
             text_lengths: (Batch,)
-            kwargs: "utt_id" is among the input.
         """
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
@@ -146,7 +144,6 @@ class HubertPretrainModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
-        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
         return {"feats": feats, "feats_lengths": feats_lengths}

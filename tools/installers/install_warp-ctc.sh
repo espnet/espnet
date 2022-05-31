@@ -8,11 +8,8 @@ if [ $# != 0 ]; then
     exit 1;
 fi
 
-if ! python -c "import packaging.version" &> /dev/null; then
-    python3 -m pip install packaging
-fi
 torch_17_plus=$(python3 <<EOF
-from packaging.version import parse as V
+from distutils.version import LooseVersion as V
 import torch
 
 if V(torch.__version__) >= V("1.7"):
@@ -23,7 +20,7 @@ EOF
 )
 
 torch_11_plus=$(python3 <<EOF
-from packaging.version import parse as V
+from distutils.version import LooseVersion as V
 import torch
 
 if V(torch.__version__) >= V("1.1"):
@@ -34,7 +31,7 @@ EOF
 )
 
 torch_10_plus=$(python3 <<EOF
-from packaging.version import parse as V
+from distutils.version import LooseVersion as V
 import torch
 
 if V(torch.__version__) >= V("1.0"):
