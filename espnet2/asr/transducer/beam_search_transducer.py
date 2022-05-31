@@ -9,6 +9,7 @@ import torch
 
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.transducer.joint_network import JointNetwork
+from espnet2.lm.transformer_lm import TransformerLM
 from espnet.nets.pytorch_backend.transducer.utils import (
     is_prefix,
     recombine_hyps,
@@ -97,19 +98,27 @@ class BeamSearchTransducer:
         elif search_type == "default":
             self.search_algorithm = self.default_beam_search
         elif search_type == "tsd":
+            if isinstance(lm, TransformerLM):
+                raise NotImplementedError
             self.max_sym_exp = max_sym_exp
 
             self.search_algorithm = self.time_sync_decoding
         elif search_type == "alsd":
+            if isinstance(lm, TransformerLM):
+                raise NotImplementedError
             self.u_max = u_max
 
             self.search_algorithm = self.align_length_sync_decoding
         elif search_type == "nsc":
+            if isinstance(lm, TransformerLM):
+                raise NotImplementedError
             self.nstep = nstep
             self.prefix_alpha = prefix_alpha
 
             self.search_algorithm = self.nsc_beam_search
         elif search_type == "maes":
+            if isinstance(lm, TransformerLM):
+                raise NotImplementedError
             self.nstep = nstep if nstep > 1 else 2
             self.prefix_alpha = prefix_alpha
             self.expansion_gamma = expansion_gamma
