@@ -189,6 +189,7 @@
     <span class="s2">&quot;g2pk_no_space&quot;</span><span class="p">,</span>
     <span class="s2">&quot;korean_jaso&quot;</span><span class="p">,</span>
     <span class="s2">&quot;korean_jaso_no_space&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;g2p_is&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
 
@@ -510,6 +511,38 @@
             <span class="k">return</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">]</span></div>
 
 
+<div class="viewcode-block" id="IsG2p"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.IsG2p">[docs]</a><span class="k">class</span> <span class="nc">IsG2p</span><span class="p">:</span>  <span class="c1"># pylint: disable=too-few-public-methods</span>
+    <span class="sd">&quot;&quot;&quot;Minimal wrapper for https://github.com/grammatek/ice-g2p</span>
+
+<span class="sd">    The g2p module uses a Bi-LSTM model along with</span>
+<span class="sd">    a pronunciation dictionary to generate phonemization</span>
+<span class="sd">    Unfortunately does not support multi-thread phonemization as of yet</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">dialect</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;standard&quot;</span><span class="p">,</span>
+        <span class="n">syllabify</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">word_sep</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="p">,</span>
+        <span class="n">use_dict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dialect</span> <span class="o">=</span> <span class="n">dialect</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">syllabify</span> <span class="o">=</span> <span class="n">syllabify</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_dict</span> <span class="o">=</span> <span class="n">use_dict</span>
+        <span class="kn">from</span> <span class="nn">ice_g2p.transcriber</span> <span class="kn">import</span> <span class="n">Transcriber</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">transcriber</span> <span class="o">=</span> <span class="n">Transcriber</span><span class="p">(</span>
+            <span class="n">use_dict</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">use_dict</span><span class="p">,</span>
+            <span class="n">syllab_symbol</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+            <span class="n">stress_label</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">word_sep</span><span class="o">=</span><span class="n">word_sep</span><span class="p">,</span>
+            <span class="n">lang_detect</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">transcriber</span><span class="o">.</span><span class="n">transcribe</span><span class="p">(</span><span class="n">text</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span></div>
+
+
 <div class="viewcode-block" id="PhonemeTokenizer"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.PhonemeTokenizer">[docs]</a><span class="k">class</span> <span class="nc">PhonemeTokenizer</span><span class="p">(</span><span class="n">AbsTokenizer</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -630,6 +663,10 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">Jaso</span><span class="p">(</span><span class="n">space_symbol</span><span class="o">=</span><span class="n">space_symbol</span><span class="p">,</span> <span class="n">no_space</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;korean_jaso_no_space&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">Jaso</span><span class="p">(</span><span class="n">no_space</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;g2p_is&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">IsG2p</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">g2p_type</span> <span class="o">==</span> <span class="s2">&quot;g2p_is_north&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">g2p</span> <span class="o">=</span> <span class="n">IsG2p</span><span class="p">(</span><span class="n">dialect</span><span class="o">=</span><span class="s2">&quot;north&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not supported: g2p_type=</span><span class="si">{</span><span class="n">g2p_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 

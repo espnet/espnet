@@ -233,6 +233,16 @@ As a workaround, g2pk.G2p is instantiated upon calling this class.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="espnet2.text.phoneme_tokenizer.IsG2p">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">IsG2p</code><span class="sig-paren">(</span><em class="sig-param">dialect: str = 'standard'</em>, <em class="sig-param">syllabify: bool = True</em>, <em class="sig-param">word_sep: str = '</em>, <em class="sig-param">'</em>, <em class="sig-param">use_dict: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#IsG2p"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.IsG2p" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Minimal wrapper for <a class="reference external" href="https://github.com/grammatek/ice-g2p">https://github.com/grammatek/ice-g2p</a></p>
+<p>The g2p module uses a Bi-LSTM model along with
+a pronunciation dictionary to generate phonemization
+Unfortunately does not support multi-thread phonemization as of yet</p>
+</dd></dl>
+
+<dl class="class">
 <dt id="espnet2.text.phoneme_tokenizer.Jaso">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">Jaso</code><span class="sig-paren">(</span><em class="sig-param">space_symbol=' '</em>, <em class="sig-param">no_space=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#Jaso"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.Jaso" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
