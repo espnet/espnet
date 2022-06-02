@@ -43,7 +43,7 @@
 
 
 
-# Branchformer: init
+# Branchformer: initial
 
 ## Environments
 - date: `Sun May 22 13:29:06 EDT 2022`
@@ -64,6 +64,29 @@
 |---|---|---|---|---|---|---|---|---|
 |beam10_ctc0.4/dev|14326|205341|96.0|4.0|0.1|0.1|4.1|32.7|
 |beam10_ctc0.4/test|7176|104765|95.7|4.2|0.1|0.1|4.4|34.1|
+
+
+
+# Branchformer: using fast_selfattn
+
+## Environments
+- date: `Sat May 28 16:09:35 EDT 2022`
+- python version: `3.9.12 (main, Apr  5 2022, 06:56:58)  [GCC 7.5.0]`
+- espnet version: `espnet 202205`
+- pytorch version: `pytorch 1.11.0`
+- Git hash: `69141f66a5f0ff3ca370f6abe5738d33819ff9ab`
+  - Commit date: `Fri May 27 22:12:20 2022 -0400`
+
+## Without LM
+- ASR config: [conf/tuning/train_asr_branchformer_fast_selfattn_e24_amp.yaml](conf/tuning/train_asr_branchformer_fast_selfattn_e24_amp.yaml)
+- #Params: 42.31 M
+- Model link: [https://huggingface.co/pyf98/aishell_branchformer_fast_selfattn_e24_amp](https://huggingface.co/pyf98/aishell_branchformer_fast_selfattn_e24_amp)
+
+### CER
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|beam10_ctc0.4/dev|14326|205341|95.8|4.1|0.1|0.1|4.3|33.3|
+|beam10_ctc0.4/test|7176|104765|95.5|4.4|0.1|0.1|4.6|35.2|
 
 
 
