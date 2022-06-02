@@ -63,6 +63,9 @@ from espnet2.st.espnet_model_md_hier_samp import ESPnetSTMDHierSampModel
 from espnet2.st.espnet_model_hier import ESPnetSTHierModel
 from espnet2.st.espnet_model_hier_v2 import ESPnetSTHierModelv2
 from espnet2.st.espnet_model_hier_ml import ESPnetSTHierMlModel
+from espnet2.st.espnet_model_hier_ablation import ESPnetSTHierAblationModel
+from espnet2.st.espnet_model_hier_fusion import ESPnetSTHierFusionModel
+
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -351,9 +354,21 @@ class STTask(AbsTask):
         )
         group.add_argument(
             "--use_v2",
-            type=int,
-            default=str2bool,
+            type=str2bool,
+            default=False,
             help="hier v2",
+        )
+        group.add_argument(
+            "--hier_ablation",
+            type=str2bool,
+            default=False,
+            help="ablation",
+        )
+        group.add_argument(
+            "--use_fusion",
+            type=str2bool,
+            default=False,
+            help="fusion",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
@@ -521,7 +536,9 @@ class STTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTMDModel, ESPnetSTMDHierModel, ESPnetSTMDSampModel, ESPnetSTMDHierSampModel, ESPnetSTHierModel, ESPnetSTHierMlModel, ESPnetSTHierModelv2]:
+    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTMDModel, \
+        ESPnetSTMDHierModel, ESPnetSTMDSampModel, ESPnetSTMDHierSampModel, ESPnetSTHierModel, \
+            ESPnetSTHierMlModel, ESPnetSTHierModelv2, ESPnetSTHierAblationModel, ESPnetSTHierFusionModel]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -781,6 +798,8 @@ class STTask(AbsTask):
 
             use_hier_ctc = getattr(args, "use_hier_ctc", False)
             use_v2 = getattr(args, "use_v2", False)
+            hier_ablation = getattr(args, "hier_ablation", False)
+            use_fusion = getattr(args, "use_fusion", False)
             if use_hier_ctc:
                 use_ml = getattr(args, "use_ml", False)
                 if use_ml:
@@ -831,6 +850,65 @@ class STTask(AbsTask):
                         normalize=normalize,
                         preencoder=preencoder,
                         encoder=encoder,
+                        postencoder=postencoder,
+                        decoder=decoder,
+                        ctc=ctc,
+                        mt_ctc=mt_ctc,
+                        extra_asr_decoder=extra_asr_decoder,
+                        extra_mt_decoder=extra_mt_decoder,
+                        token_list=token_list,
+                        src_token_list=src_token_list,
+                        **args.model_conf,
+                    )
+                elif hier_ablation:
+                    mt_ctc = CTC(
+                        odim=src_vocab_size,    # normal hier enc
+                        encoder_output_size=encoder_output_size,
+                        **args.ctc_conf,
+                    )
+                    encoder_hier_class = encoder_choices.get_class(args.encoder_hier)
+                    encoder_hier = encoder_hier_class(input_size=encoder_output_size, **args.encoder_hier_conf)
+
+                    # 8. Build model
+                    model = ESPnetSTHierAblationModel(
+                        vocab_size=vocab_size,
+                        src_vocab_size=src_vocab_size,
+                        frontend=frontend,
+                        specaug=specaug,
+                        normalize=normalize,
+                        preencoder=preencoder,
+                        encoder=encoder,
+                        encoder_hier=encoder_hier,
+                        postencoder=postencoder,
+                        decoder=decoder,
+                        ctc=ctc,
+                        mt_ctc=mt_ctc,
+                        extra_asr_decoder=extra_asr_decoder,
+                        extra_mt_decoder=extra_mt_decoder,
+                        token_list=token_list,
+                        src_token_list=src_token_list,
+                        **args.model_conf,
+                    )
+                elif use_fusion:
+                    encoder_hier_class = encoder_choices.get_class(args.encoder_hier)
+                    encoder_hier = encoder_hier_class(input_size=encoder_output_size, **args.encoder_hier_conf)
+
+                    mt_ctc = CTC(
+                        odim=vocab_size,
+                        encoder_output_size=encoder_output_size,
+                        **args.ctc_conf,
+                    )                    
+
+                    # 8. Build model
+                    model = ESPnetSTHierFusionModel(
+                        vocab_size=vocab_size,
+                        src_vocab_size=src_vocab_size,
+                        frontend=frontend,
+                        specaug=specaug,
+                        normalize=normalize,
+                        preencoder=preencoder,
+                        encoder=encoder,
+                        encoder_hier=encoder_hier,
                         postencoder=postencoder,
                         decoder=decoder,
                         ctc=ctc,

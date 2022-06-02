@@ -556,6 +556,7 @@ if ! "${skip_data_prep}"; then
             # i.e. the input file format and rate is same as the output.
 
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+            # for dset in ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                     _suf="/org"
                 else
@@ -1576,17 +1577,28 @@ if ! "${skip_eval}"; then
             perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
 
             # detokenizer
+            sed -i 's/^[ \t]*//;s/[ \t]*$//' "${_scoredir}/ref.trn"
+            sed -i 's/^[ \t]*//;s/[ \t]*$//' "${_scoredir}/hyp.trn"
             detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
             detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
 
             if [ ${tgt_case} = "tc" ]; then
                 echo "Case sensitive BLEU result (single-reference)" >> ${_scoredir}/result.tc.txt
-                sacrebleu "${_scoredir}/ref.trn.detok" \
-                          -i "${_scoredir}/hyp.trn.detok" \
-                          -m bleu chrf ter \
-                          >> ${_scoredir}/result.tc.txt
+                if [ ${tgt_lang} = "ja" ]; then
+                    sacrebleu "${_scoredir}/ref.trn.detok" \
+                            -i "${_scoredir}/hyp.trn.detok" \
+                            -m bleu chrf ter \
+                            -l en-ja \
+                            >> ${_scoredir}/result.tc.txt
+                else
+                    sacrebleu "${_scoredir}/ref.trn.detok" \
+                            -i "${_scoredir}/hyp.trn.detok" \
+                            -m bleu chrf ter \
+                            >> ${_scoredir}/result.tc.txt
+                fi
                 
                 log "Write a case-sensitive BLEU (single-reference) result in ${_scoredir}/result.tc.txt"
+                cat ${_scoredir}/result.tc.txt
             fi
 
             # detokenize & remove punctuation except apostrophe
@@ -1640,6 +1652,13 @@ if ! "${skip_eval}"; then
                     >> ${_scoredir}/result.lc.txt
                 log "Write a case-insensitve BLEU (multi-reference) result in ${_scoredir}/result.lc.txt"
             fi
+
+            python local/score_langs.py --utt2category data/${dset}/utt2category --dir ${_scoredir}
+            . ./local/score_langs.sh ${_scoredir}
+
+            cut -d' ' -f3- "${_data}/text.lc.rm.lid.all" > "${_scoredir}/src_ref.trn.lc.rm"
+            detokenizer.perl -l ${src_lang} -q < "${_scoredir}/src_ref.trn.lc.rm" > "${_scoredir}/src_ref.trn.detok.lc.rm"
+            python local/score_verbosity.py --utt2category data/${dset}/utt2category --dir ${_scoredir}
         done
 
         # Show results in Markdown syntax
