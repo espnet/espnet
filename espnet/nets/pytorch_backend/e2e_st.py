@@ -207,7 +207,7 @@ class E2E(STInterface, torch.nn.Module):
             self.embed_mt = torch.nn.Embedding(odim, args.eunits, padding_idx=self.pad)
             self.dropout_mt = torch.nn.Dropout(p=args.dropout_rate)
             self.enc_mt = encoder_for(
-                args, args.eunits, subsample=np.ones(args.elayers + 1, dtype=np.int)
+                args, args.eunits, subsample=np.ones(args.elayers + 1, dtype=np.int64)
             )
 
         # weight initialization
