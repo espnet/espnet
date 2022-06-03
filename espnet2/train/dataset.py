@@ -12,6 +12,7 @@ import humanfriendly
 import kaldiio
 import numpy as np
 import torch
+import math
 from torch.utils.data.dataset import Dataset
 from typeguard import check_argument_types, check_return_type
 
@@ -24,7 +25,7 @@ from espnet2.fileio.read_text import load_num_sequence_text, read_2column_text
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils.sized_dict import SizedDict
-
+from espnet2.fileio.vision_dataset import VisionDataset, VisionFileReader
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
     def __init__(self, loader, dtype=None):
@@ -32,9 +33,16 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
         self.loader = loader
         self.dtype = dtype
         self.rate = None
+        self.init_sample_rate()
 
     def keys(self):
         return self.loader.keys()
+
+    def init_sample_rate(self):
+        self.__getitem__(list(self.keys())[0])
+
+    def get_sample_rate(self):
+        return self.rate
 
     def __len__(self):
         return len(self.loader)
@@ -62,6 +70,7 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
                 raise RuntimeError(
                     f"Sampling rates are mismatched: {self.rate} != {rate}"
                 )
+
             self.rate = rate
             # Multichannel wave fie
             # array: (NSample, Channel) or (Nsample)
@@ -126,6 +135,12 @@ def rand_int_loader(filepath, loader_type):
         raise RuntimeError(f"e.g rand_int_3_10: but got {loader_type}")
     return IntRandomGenerateDataset(filepath, low, high)
 
+def vision_loader(path, sample_step = 1, float_dtype=None):
+    # audio_rate: audio frame rate
+    # vis_step: expected span of auudio frames per captured video image
+
+    loader = VisionFileReader(path)
+    return VisionDataset(loader, sample_step = sample_step, normalize = True, dtype = float_dtype)
 
 DATA_TYPES = {
     "sound": dict(
@@ -246,7 +261,37 @@ DATA_TYPES = {
         "    END     file1 <NA> 4023 <NA> <NA> <NA> <NA>"
         "   ...",
     ),
+    "vision": dict(
+        func=vision_loader,
+        kwargs=["sample_step", "float_dtype"],
+        help="vision file video stream loader, currently supports and tested on .mp4"
+        "\n\n"
+        "   utterance_id_a a.mp4\n"
+        "   utterance_id_b b.mp4\n"
+        "   ...",
+    ),
 }
+
+def truncate_align(rate_ratio:float, source_to_modify:torch.Tensor, source_unchanged:torch.Tensor, future_rate_change = 1.0) -> torch.Tensor:
+    assert check_argument_types()
+    indices = torch.round(torch.arange(0, len(source_unchanged) * future_rate_change) * rate_ratio).long()
+    indices = torch.clamp(indices, min = 0, max = len(source_to_modify) - 1)
+    return source_to_modify[indices]
+
+def avg_pool_align(rate_ratio:float, source_to_modify:torch.Tensor, source_unchanged:torch.Tensor, future_rate_change = 1.0) -> torch.Tensor:
+    assert check_argument_types()
+    indices = torch.round(torch.arange(0, len(source_unchanged) * future_rate_change) * rate_ratio).long()
+    indices = torch.clamp(indices, min = 0, max = len(source_to_modify) - 1)
+    prev_index = 0
+    avg_pool = []
+    for index in indices:
+        if index == 0: continue
+        avg_pool.append(torch.mean(source_to_modify[prev_index:index], 0).unsqueeze(0))
+        prev_index = index
+    return torch.cat(avg_pool)
+
+ALIGN_OPTIONS = {"truncate": truncate_align,
+                 "avg_pool": avg_pool_align}
 
 
 class AbsDataset(Dataset, ABC):
@@ -262,10 +307,8 @@ class AbsDataset(Dataset, ABC):
     def __getitem__(self, uid) -> Tuple[Any, Dict[str, np.ndarray]]:
         raise NotImplementedError
 
-
 class ESPnetDataset(AbsDataset):
     """Pytorch Dataset class for ESPNet.
-
     Examples:
         >>> dataset = ESPnetDataset([('wav.scp', 'input', 'sound'),
         ...                          ('token_int', 'output', 'text_int')],
@@ -324,7 +367,6 @@ class ESPnetDataset(AbsDataset):
         self, path: str, loader_type: str
     ) -> Mapping[str, Union[np.ndarray, torch.Tensor, str, numbers.Number]]:
         """Helper function to instantiate Loader.
-
         Args:
             path:  The file path
             loader_type:  loader_type. sound, npy, text_int, text_float, etc
@@ -444,3 +486,281 @@ class ESPnetDataset(AbsDataset):
         retval = uid, data
         assert check_return_type(retval)
         return retval
+
+class MMESPnetDataset(ESPnetDataset):
+    """Pytorch Dataset class for Multimodal ESPNet.
+
+    Examples:
+        >>> dataset = ESPnetDataset([('wav.scp', 'input', 'sound'),
+                                     ('vision.txt', 'input', 'vision'),
+        ...                          ('token_int', 'output', 'text_int'),],
+        ...                         )
+        ... uttid, data = dataset['uttid']
+        {'input': per_utt_array, 'output': per_utt_array}
+    """
+
+    def __init__(
+        self,
+        path_name_type_list: Collection[Tuple[str, str, str]],
+        preprocess: Callable[
+            [str, Dict[str, np.ndarray]], Dict[str, np.ndarray]
+        ] = None,
+        float_dtype: str = "float32",
+        int_dtype: str = "long",
+        max_cache_size: Union[float, int, str] = 0.0,
+        max_cache_fd: int = 0,
+        audio_input: bool = True,
+        vision_input: bool = False,
+        stack_order: int = 1,
+        sample_step: int = 1,
+        align_option: str = "truncate",
+        frontend_hopsize: int = 160,
+    ):
+        assert check_argument_types()
+        if len(path_name_type_list) == 0:
+            raise ValueError(
+                '1 or more elements are required for "path_name_type_list"'
+            )
+
+        path_name_type_list = copy.deepcopy(path_name_type_list)
+        self.preprocess = preprocess
+
+        self.float_dtype = float_dtype
+        self.int_dtype = int_dtype
+        self.max_cache_fd = max_cache_fd
+
+        self.stack_order = stack_order
+        self.sample_step = sample_step
+
+        self.speech_sample_rate = 0.0
+        self.curr_speech_sample_rate = 0.0
+        self.expected_speech_sample_rate = 0.0
+        self.vision_sample_rate = 0.0
+        self.align_option = align_option
+        self.frontend_hopsize = frontend_hopsize
+        self.MIN_SAMPLE_RATE = 1
+
+        if align_option not in ALIGN_OPTIONS.keys():
+            raise ValueError("align_option should be one of {}".format(ALIGN_OPTIONS))
+
+        self.loader_dict = {}
+        self.debug_info = {}
+        
+        for path, name, _type in path_name_type_list:
+            if name in self.loader_dict:
+                raise RuntimeError(f'"{name}" is duplicated for data-key')
+
+            loader = self._build_loader(path, _type)
+
+            # Fetch Sample Rates of different modalities
+            if(name == "speech"):
+                self.speech_sample_rate = loader.get_sample_rate()
+                self.curr_speech_sample_rate = self.speech_sample_rate / self.sample_step / self.stack_order
+                self.expected_speech_sample_rate = self.curr_speech_sample_rate / self.frontend_hopsize
+                if(self.expected_speech_sample_rate < self.MIN_SAMPLE_RATE):
+                    # Adjust parameters accordingly to achieve minimum sample rate
+                    self.curr_speech_sample_rate = self.MIN_SAMPLE_RATE * self.frontend_hopsize
+                    self.stack_order = int(max(self.speech_sample_rate * self.sample_step / self.speech_sample_rate, 1.0))
+                    self.sample_step = int(max(self.speech_sample_rate * self.stack_order / self.speech_sample_rate, 1.0))
+                    self.curr_speech_sample_rate =  self.speech_sample_rate / self.sample_step / self.stack_order
+                    self.expected_speech_sample_rate = self.curr_speech_sample_rate / self.frontend_hopsize
+            if(name == "vision"):
+                self.vision_sample_rate = loader.get_sample_rate()
+            
+            self.loader_dict[name] = loader
+            self.debug_info[name] = path, _type
+            if len(self.loader_dict[name]) == 0:
+                raise RuntimeError(f"{path} has no samples")
+
+            # TODO(kamo): Should check consistency of each utt-keys?
+        
+        assert(self.vision_sample_rate > self.MIN_SAMPLE_RATE 
+                    and self.curr_speech_sample_rate > self.MIN_SAMPLE_RATE)
+
+        logging.info("Max Audio Sample Rate Available : {} Hz, "
+                    "Current Sampling Rate is : {} Hz with Context : {}".format(
+                    self.speech_sample_rate, self.curr_speech_sample_rate, self.stack_order))
+        logging.info("Sampling Rate Report || Speech: {} Hz || Vision: {} fps ||"
+                    .format(self.curr_speech_sample_rate, self.vision_sample_rate))
+        
+        if isinstance(max_cache_size, str):
+            max_cache_size = humanfriendly.parse_size(max_cache_size)
+        self.max_cache_size = max_cache_size
+        if max_cache_size > 0:
+            self.cache = SizedDict(shared=True)
+        else:
+            self.cache = None
+
+    def _build_loader(
+        self, path: str, loader_type: str
+    ) -> Mapping[str, Union[np.ndarray, torch.Tensor, str, numbers.Number]]:
+        """Helper function to instantiate Loader.
+
+        Args:
+            path:  The file path
+            loader_type:  loader_type. sound, npy, text_int, text_float, etc
+        """
+        for key, dic in DATA_TYPES.items():
+            # e.g. loader_type="sound"
+            # -> return DATA_TYPES["sound"]["func"](path)
+            if re.match(key, loader_type):
+                kwargs = {}
+                for key2 in dic["kwargs"]:
+                    if key2 == "loader_type":
+                        kwargs["loader_type"] = loader_type
+                    elif key2 == "float_dtype":
+                        kwargs["float_dtype"] = self.float_dtype
+                    elif key2 == "int_dtype":
+                        kwargs["int_dtype"] = self.int_dtype
+                    elif key2 == "max_cache_fd":
+                        kwargs["max_cache_fd"] = self.max_cache_fd
+                    elif key2 == "sample_step":
+                        kwargs["sample_step"] = self.sample_step
+                    else:
+                        raise RuntimeError(f"Not implemented keyword argument: {key2}")
+
+                func = dic["func"]
+                try:
+                    return func(path, **kwargs)
+                except Exception:
+                    if hasattr(func, "__name__"):
+                        name = func.__name__
+                    else:
+                        name = str(func)
+                    logging.error(f"An error happened with {name}({path})")
+                    raise
+        else:
+            raise RuntimeError(f"Not supported: loader_type={loader_type}")
+
+    def has_name(self, name) -> bool:
+        return name in self.loader_dict
+
+    def names(self) -> Tuple[str, ...]:
+        return tuple(self.loader_dict)
+
+    def __iter__(self):
+        return iter(next(iter(self.loader_dict.values())))
+
+    def __repr__(self):
+        _mes = self.__class__.__name__
+        _mes += "("
+        for name, (path, _type) in self.debug_info.items():
+            _mes += f'\n  {name}: {{"path": "{path}", "type": "{_type}"}}'
+        _mes += f"\n  preprocess: {self.preprocess})"
+        return _mes
+
+    def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
+        assert check_argument_types()
+
+        # Change integer-id to string-id
+        if isinstance(uid, int):
+            d = next(iter(self.loader_dict.values()))
+            uid = list(d)[uid]
+
+        if self.cache is not None and uid in self.cache:
+            data = self.cache[uid]
+            return uid, data
+
+        data = {}
+        # 1. Load data from each loaders
+        for name, loader in self.loader_dict.items():
+            try:
+                value = loader[uid]
+                if isinstance(value, (list, tuple)):
+                    value = np.array(value)
+                if not isinstance(
+                    value, (np.ndarray, torch.Tensor, str, numbers.Number)
+                ):
+                    raise TypeError(
+                        f"Must be ndarray, torch.Tensor, str or Number: {type(value)}"
+                    )
+            except Exception:
+                path, _type = self.debug_info[name]
+                logging.error(
+                    f"Error happened with path={path}, type={_type}, id={uid}"
+                )
+                raise
+
+            # torch.Tensor is converted to ndarray
+            if isinstance(value, torch.Tensor):
+                value = value.numpy()
+            elif isinstance(value, numbers.Number):
+                value = np.array([value])
+            data[name] = value
+       
+        # 2. [Option] Apply preprocessing
+        #   e.g. espnet2.train.preprocessor:CommonPreprocessor
+        if self.preprocess is not None:
+            data = self.preprocess(uid, data)
+
+        # 3. Force data-precision
+        for name in data:
+            value = data[name]
+            if not isinstance(value, np.ndarray):
+                raise RuntimeError(
+                    f"All values must be converted to np.ndarray object "
+                    f'by preprocessing, but "{name}" is still {type(value)}.'
+                )
+
+            # Cast to desired type
+            if value.dtype.kind == "f":
+                value = value.astype(self.float_dtype)
+            elif value.dtype.kind == "i":
+                value = value.astype(self.int_dtype)
+            else:
+                raise NotImplementedError(f"Not supported dtype: {value.dtype}")
+            data[name] = value
+        
+        # 4. Align Multimodal Data Sources
+        data = self.stack_align_multimodal_features(data)
+
+        if self.cache is not None and self.cache.size < self.max_cache_size:
+            self.cache[uid] = data
+
+        retval = uid, data
+        assert check_return_type(retval)
+        return retval
+
+    def stack_align_multimodal_features(self, data: Dict[str, np.ndarray]):
+        """
+        Outputs Aligned Data for multiple modality sources
+        Performs stacking and sampling for 
+        """
+        assert check_argument_types()
+        
+        for name in data:
+            if name == "speech":
+                # Stack Audio Features
+                speech = data[name]
+                speech = torch.from_numpy(speech)
+                if(speech.dim() == 1):
+                    speech = speech.unsqueeze(-1)
+                T, F = speech.size()
+                pad_size = math.ceil(T / self.stack_order) * self.stack_order - T
+                speech = torch.nn.functional.pad(speech, (0, 0, 0, pad_size), "constant", 0.0)
+                speech = speech.reshape(-1, F * self.stack_order)
+
+                # Apply Sample Step to Audio Features
+                T, F = speech.size()
+                indices = torch.arange(0, T // self.sample_step) * self.sample_step
+                speech = speech[indices]
+
+            if name == "vision":
+                vision = data[name]
+                vision = torch.from_numpy(vision)
+        
+        align_func = ALIGN_OPTIONS[self.align_option]
+        if self.expected_speech_sample_rate == self.vision_sample_rate:
+            length = min(len(vision), len(speech))
+            speech = speech[:length * self.frontend_hopsize]
+            vision = vision[:length]
+        elif self.expected_speech_sample_rate > self.vision_sample_rate:
+            rate_ratio = self.expected_speech_sample_rate / self.vision_sample_rate
+            speech = align_func(rate_ratio, speech, vision, self.frontend_hopsize)
+        else:
+            rate_ratio = self.vision_sample_rate / self.expected_speech_sample_rate
+            vision = align_func(rate_ratio, vision, speech, self.frontend_hopsize)
+
+        data["speech"] = speech.numpy()
+        data["vision"] = vision.numpy()
+        return data
