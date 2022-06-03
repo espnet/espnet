@@ -30,6 +30,30 @@ def _pre_hook(
     if k in state_dict:
         state_dict.pop(k)
 
+class LearnedPositionalEncoding(torch.nn.Embedding):
+    """Learned Positional encoding.
+    Args:
+        d_model (int): Embedding dimension.
+        dropout_rate (float): Dropout rate.
+        max_len (int): Maximum input length.
+        class RelPositionalEncoding.
+    """
+
+    def __init__(self, d_model, dropout_rate=0.0, max_len=5000):
+        """Construct an Learned PositionalEncoding object."""
+        super(LearnedPositionalEncoding, self).__init__(max_len,d_model)
+        self.d_model = d_model
+        self.dropout = torch.nn.Dropout(p=dropout_rate)
+
+    def forward(self, x: torch.Tensor):
+        """Add positional encoding.
+        Args:
+            x (torch.Tensor): Input tensor (batch, time, `*`).
+        Returns:
+            torch.Tensor: Encoded tensor (batch, time, `*`).
+        """
+        x = super().forward(x)
+        return self.dropout(x)
 
 class PositionalEncoding(torch.nn.Module):
     """Positional encoding.
