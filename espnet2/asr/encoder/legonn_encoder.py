@@ -90,26 +90,26 @@ class LegoNNEncoder(AbsEncoder):
         self._output_size = output_size
 
 
-        self.encoder = TransformerEncoder(
-            input_size,
-            output_size,
-            attention_heads,
-            linear_units,
-            num_blocks,
-            dropout_rate,
-            positional_dropout_rate,
-            attention_dropout_rate,
-            input_layer,
-            pos_enc_class,
-            normalize_before,
-            concat_after,
-            positionwise_layer_type,
-            positionwise_conv_kernel_size,
-            padding_idx,
-            interctc_layer_idx,
-            interctc_use_conditioning,
-            final_layernorm,
-        )
+        # self.encoder = TransformerEncoder(
+        #     input_size,
+        #     output_size,
+        #     attention_heads,
+        #     linear_units,
+        #     num_blocks,
+        #     dropout_rate,
+        #     positional_dropout_rate,
+        #     attention_dropout_rate,
+        #     input_layer,
+        #     pos_enc_class,
+        #     normalize_before,
+        #     concat_after,
+        #     positionwise_layer_type,
+        #     positionwise_conv_kernel_size,
+        #     padding_idx,
+        #     interctc_layer_idx,
+        #     interctc_use_conditioning,
+        #     final_layernorm,
+        # )
 
         self.upsampling_rate = upsampling_rate
         logging.info("Upsampling factor is set to {}".format(self.upsampling_rate))
@@ -168,18 +168,22 @@ class LegoNNEncoder(AbsEncoder):
         Returns:
             position embedded tensor and mask
         """
-        encoder_out, encoder_out_lens, _ = self.encoder(
-            xs_pad,
-            ilens,
-            prev_states,
-            ctc
-        )
-
+        # encoder_out, encoder_out_lens, _ = self.encoder(
+        #     xs_pad,
+        #     ilens,
+        #     prev_states,
+        #     ctc
+        # )
+        encoder_out = xs_pad
+        encoder_out_lens = ilens
 
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
 
         # upsample masks - B x 1 x L'
-        upsample_masks = self.upsample(masks.float()).bool()
+        if self.upsampling_rate < 1:
+            upsample_masks = torch.nn.functional.interpolate(masks.float(), scale_factor=self.upsampling_rate, mode='nearest').bool()
+        else:
+            upsample_masks = self.upsample(masks.float()).bool()
         upsample_pos = (torch.cumsum(upsample_masks, dim=2) * upsample_masks).squeeze(1).long()
 
         if self.learned_positions:
