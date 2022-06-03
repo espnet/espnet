@@ -30,6 +30,7 @@ from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.st.decoder.transformer_md_decoder import TransformerMDDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.legonn_encoder import LegoNNEncoder
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertEncoder
 from espnet2.asr.encoder.hubert_encoder import FairseqHubertPretrainEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
@@ -121,6 +122,7 @@ encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
         conformer=ConformerEncoder,
+        legonnencoder=LegoNNEncoder,
         transformer=TransformerEncoder,
         contextual_block_transformer=ContextualBlockTransformerEncoder,
         vgg_rnn=VGGRNNEncoder,
