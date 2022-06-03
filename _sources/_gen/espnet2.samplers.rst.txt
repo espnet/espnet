@@ -4,34 +4,12 @@ espnet2.samplers package
 
 
 
-.. _espnet2.samplers.sorted_batch_sampler:
+.. _espnet2.samplers.build_batch_sampler:
 
-espnet2.samplers.sorted_batch_sampler
--------------------------------------
+espnet2.samplers.build_batch_sampler
+------------------------------------
 
-.. automodule:: espnet2.samplers.sorted_batch_sampler
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.samplers.unsorted_batch_sampler:
-
-espnet2.samplers.unsorted_batch_sampler
----------------------------------------
-
-.. automodule:: espnet2.samplers.unsorted_batch_sampler
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.samplers.abs_sampler:
-
-espnet2.samplers.abs_sampler
-----------------------------
-
-.. automodule:: espnet2.samplers.abs_sampler
+.. automodule:: espnet2.samplers.build_batch_sampler
     :members:
     :undoc-members:
     :show-inheritance:
@@ -59,12 +37,12 @@ espnet2.samplers.__init__
     :show-inheritance:
 
 
-.. _espnet2.samplers.folded_batch_sampler:
+.. _espnet2.samplers.abs_sampler:
 
-espnet2.samplers.folded_batch_sampler
--------------------------------------
+espnet2.samplers.abs_sampler
+----------------------------
 
-.. automodule:: espnet2.samplers.folded_batch_sampler
+.. automodule:: espnet2.samplers.abs_sampler
     :members:
     :undoc-members:
     :show-inheritance:
@@ -81,12 +59,34 @@ espnet2.samplers.length_batch_sampler
     :show-inheritance:
 
 
-.. _espnet2.samplers.build_batch_sampler:
+.. _espnet2.samplers.unsorted_batch_sampler:
 
-espnet2.samplers.build_batch_sampler
-------------------------------------
+espnet2.samplers.unsorted_batch_sampler
+---------------------------------------
 
-.. automodule:: espnet2.samplers.build_batch_sampler
+.. automodule:: espnet2.samplers.unsorted_batch_sampler
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.samplers.sorted_batch_sampler:
+
+espnet2.samplers.sorted_batch_sampler
+-------------------------------------
+
+.. automodule:: espnet2.samplers.sorted_batch_sampler
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.samplers.folded_batch_sampler:
+
+espnet2.samplers.folded_batch_sampler
+-------------------------------------
+
+.. automodule:: espnet2.samplers.folded_batch_sampler
     :members:
     :undoc-members:
     :show-inheritance:

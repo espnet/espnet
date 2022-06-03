@@ -793,7 +793,7 @@ asr_train.py
                             The initialization method (default: None)
       --input_size INPUT_SIZE
                             The number of input dimension of the feature (default: None)
-      --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {'dropout_rate': 0.0, 'ctc_type': 'builtin', 'reduce': True, 'ignore_nan_grad': True})
+      --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {'dropout_rate': 0.0, 'ctc_type': 'builtin', 'reduce': True, 'ignore_nan_grad': None, 'zero_infinity': True})
       --joint_net_conf JOINT_NET_CONF
                             The keyword arguments for joint network class. (default: None)
     
@@ -1893,7 +1893,7 @@ enh_s2t_train.py
                             The initialization method (default: None)
       --input_size INPUT_SIZE
                             The number of input dimension of the feature (default: None)
-      --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {'dropout_rate': 0.0, 'ctc_type': 'builtin', 'reduce': True, 'ignore_nan_grad': True})
+      --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {'dropout_rate': 0.0, 'ctc_type': 'builtin', 'reduce': True, 'ignore_nan_grad': None, 'zero_infinity': True})
       --enh_criterions ENH_CRITERIONS
                             The criterions binded with the loss wrappers. (default: [{'name': 'si_snr', 'conf': {}, 'wrapper': 'fixed_order', 'wrapper_conf': {}}])
       --enh_model_conf ENH_MODEL_CONF
@@ -5044,7 +5044,7 @@ st_train.py
                             The initialization method (default: None)
       --input_size INPUT_SIZE
                             The number of input dimension of the feature (default: None)
-      --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {'dropout_rate': 0.0, 'ctc_type': 'builtin', 'reduce': True, 'ignore_nan_grad': True})
+      --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {'dropout_rate': 0.0, 'ctc_type': 'builtin', 'reduce': True, 'ignore_nan_grad': None, 'zero_infinity': True})
       --model_conf MODEL_CONF
                             The keyword arguments for model class. (default: {'asr_weight': 0.0, 'mt_weight': 0.0, 'mtlalpha': 0.0, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'report_bleu': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'extract_feats_in_collect_stats': True})
     
