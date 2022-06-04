@@ -1,1 +1,1 @@
-C:/Users/Massa/Documents/GitHub/espnet/egs2/TEMPLATE/asr1/db.sh
+../../TEMPLATE/asr1/db.sh
