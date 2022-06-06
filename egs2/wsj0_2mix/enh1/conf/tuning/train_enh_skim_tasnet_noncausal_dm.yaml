@@ -3,7 +3,7 @@ max_epoch: 150
 batch_type: folded
 # When dynamic mixing is enabled, the actual batch_size will
 # be (batch_size / num_spk)
-batch_size: 32
+batch_size: 8
 iterator_type: chunk
 chunk_length: 16000
 num_workers: 2
@@ -31,9 +31,8 @@ scheduler_conf:
     step_size: 2
     gamma: 0.97
 
-model_conf:
-    dynamic_mixing: True
-    dynamic_mixing_gain_db: 2.0
+dynamic_mixing: True
+dynamic_mixing_gain_db: 2.0
 
 encoder: conv
 encoder_conf:

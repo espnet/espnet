@@ -54,6 +54,7 @@ from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
+from espnet2.train.preprocessor import DynamicMixingPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -199,6 +200,20 @@ class EnhancementTask(AbsTask):
             help="Apply preprocessing to data or not",
         )
 
+        group.add_argument(
+            "--dynamic_mixing",
+            type=str2bool,
+            default=False,
+            help="Apply dynamic mixing",
+        )
+
+        group.add_argument(
+            "--dynamic_mixing_gain_db",
+            type=float,
+            default=0.0,
+            help="Random gain (in dB) for dynamic mixing sources",
+        )
+
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -220,7 +235,15 @@ class EnhancementTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
-        retval = None
+        if args.dynamic_mixing:
+            retval = DynamicMixingPreprocessor(
+                train=train,
+                source_scp=args.train_data_path_and_name_and_type[0][0],
+                num_spk=args.separator_conf["num_spk"],
+                dynamic_mixing_gain_db=args.dynamic_mixing_gain_db,
+            )
+        else:
+            retval = None
         assert check_return_type(retval)
         return retval
 
@@ -229,7 +252,7 @@ class EnhancementTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("speech_mix", "speech_ref1")
+            retval = ("speech_ref1",)
         else:
             # Recognition mode
             retval = ("speech_mix",)
@@ -239,7 +262,10 @@ class EnhancementTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ["dereverb_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
+        retval = [
+            "speech_mix",
+        ]
+        retval += ["dereverb_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval += ["speech_ref{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
         retval += ["noise_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)]
         retval = tuple(retval)

@@ -1,3 +1,5 @@
+import math
+import random
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Collection, Dict, Iterable, List, Union
@@ -482,4 +484,107 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                 text_ints = self.token_id_converter[i].tokens2ids(tokens)
                 data[text_name] = np.array(text_ints, dtype=np.int64)
         assert check_return_type(data)
+        return data
+
+
+class DynamicMixingPreprocessor(AbsPreprocessor):
+    def __init__(
+        self,
+        train: bool,
+        source_scp: str = None,
+        num_spk: int = 2,
+        dynamic_mixing_gain_db: float = 0.0,
+        speech_name: str = "speech_mix",
+        speech_ref_name_prefix: str = "speech_ref",
+    ):
+
+        super().__init__(
+            train,
+        )
+        self.source_scp = source_scp
+        self.num_spk = num_spk
+        self.dynamic_mixing_gain_db = dynamic_mixing_gain_db
+        self.speech_name = speech_name
+        self.srnp = speech_ref_name_prefix
+
+        self.sources = {}
+        with open(source_scp, "r", encoding="utf-8") as f:
+            for line in f:
+                sps = line.strip().split(None, 1)
+                assert len(sps) == 2
+                self.sources[sps[0]] = sps[1]
+
+        self.source_keys = list(self.sources.keys())
+
+    def _pick_source_utterances_(self, uid):
+
+        source_keys = []
+
+        while len(source_keys) < self.num_spk - 1:
+            picked = random.choice(self.source_keys)
+            if picked not in source_keys:
+                source_keys.append(picked)
+
+        return source_keys
+
+    def _read_source_(self, key, speech_length):
+
+        source, _ = soundfile.read(
+            self.sources[key],
+            dtype=np.float32,
+            always_2d=False,
+        )
+
+        if speech_length > source.shape[0]:
+            pad = speech_length - source.shape[0]
+            source = np.pad(source, (0, pad), "reflect")
+        else:
+            source = source[0:speech_length]
+
+        assert speech_length == source.shape[0]
+
+        return source
+
+    def _mix_speech_(self, uid, data):
+
+        # pick sources
+        source_keys = self._pick_source_utterances_(uid)
+
+        # load audios
+        speech_length = data[f"{self.srnp}1"].shape[0]
+        ref_audios = [self._read_source_(key, speech_length) for key in source_keys]
+        ref_audios = [
+            data[f"{self.srnp}1"],
+        ] + ref_audios
+
+        # apply random gain to speech sources
+
+        gain_in_db = [
+            random.uniform(-self.dynamic_mixing_gain_db, self.dynamic_mixing_gain_db)
+            for i in range(len(ref_audios))
+        ]
+        gain = [math.pow(10, g_db / 20.0) for g_db in gain_in_db]
+
+        ref_audios = [ref * g for ref, g in zip(ref_audios, gain)]
+
+        speech_mix = np.sum(np.array(ref_audios), axis=0)
+
+        for i, ref in enumerate(ref_audios):
+            data[f"{self.srnp}{i+1}"] = ref
+        data[self.speech_name] = speech_mix
+
+        return data
+
+    def __call__(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+
+        # TODO(Chenda): need to test for multi-channel data.
+        assert (
+            len(data[f"{self.srnp}1"].shape) == 1
+        ), "Multi-channel input has not been tested"
+
+        if self.train:
+            data = self._mix_speech_(uid, data)
+
         return data

@@ -557,18 +557,33 @@ if ! "${skip_train}"; then
         _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
         _fold_length_param="--fold_length ${_fold_length} "
         
-        for spk in $(seq "${spk_num}"); do
-            if [ ${dynamic_mixing} ]; then
-                # TODO (Chenda): Not needed in the dynamic mixing mode. 
-                # Better to find a way to remove it without affecting compatibility.
-                _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk1.scp,speech_ref${spk},${_type} "
-            else
+        if [ ! ${dynamic_mixing} ]; then
+            # prepare train and valid data parameters
+            _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/${_scp},speech_mix,${_type} "
+            _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_mix_shape "
+            _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,${_type} "
+            _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
+            _fold_length_param="--fold_length ${_fold_length} "
+
+            for spk in $(seq "${spk_num}"); do
                 _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
-            fi
-            _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
+                _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
+                _fold_length_param+="--fold_length ${_fold_length} "
+            done
+        
+        else 
+            # prepare train and valid data parameters
+            _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/${_scp},speech_ref1,${_type} "
+            _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_ref1_shape "
+            _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,${_type} "
+            _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
+            _fold_length_param="--fold_length ${_fold_length} "
+
+        fi
+
+        for spk in $(seq "${spk_num}"); do
             _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
             _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/speech_ref${spk}_shape "
-            _fold_length_param+="--fold_length ${_fold_length} "
         done
 
         if $use_dereverb_ref; then
