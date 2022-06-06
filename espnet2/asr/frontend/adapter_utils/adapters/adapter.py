@@ -1,8 +1,15 @@
 import torch
 import torch.nn as nn
 
-from fairseq import utils
-from fairseq.modules import LayerNorm
+try:
+    from fairseq import utils
+    from fairseq.modules import LayerNorm
+
+    is_fairseq_available = True
+except ImportError:
+    is_fairseq_available = False
+
+
 
 
 class Adapter(nn.Module):
@@ -20,7 +27,13 @@ class Adapter(nn.Module):
         * activation_fn - activation type (default="gelu").
         """
         super().__init__()
-
+        if not is_fairseq_available:
+            raise ImportError(
+                "`fairseq` is not available. Please install it via `pip install"
+                " fairseq` or `cd /path/to/espnet/tools && . ./activate_python.sh"
+                " && ./installers/install_fairseq.sh`."
+            )
+        
         self.down_projection = nn.Linear(orig_dim, down_dim)
         self.up_projection = nn.Linear(down_dim, orig_dim)
         nn.init.xavier_uniform_(self.down_projection.weight)
