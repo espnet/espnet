@@ -239,6 +239,13 @@ class EnhancementTask(AbsTask):
             help="The range of signal-to-noise ratio (SNR) level in decibel.",
         )
         group.add_argument(
+            "--short_noise_thres",
+            type=float,
+            default=0.5,
+            help="If len(noise) / len(speech) is smaller than this threshold during "
+            "dynamic mixing, a warning will be displayed.",
+        )
+        group.add_argument(
             "--use_reverberant_ref",
             type=str2bool,
             default=False,
@@ -306,6 +313,9 @@ class EnhancementTask(AbsTask):
                 noise_db_range=args.noise_db_range
                 if hasattr(args, "noise_db_range")
                 else "13_15",
+                short_noise_thres=args.short_noise_thres
+                if hasattr(args, "short_noise_thres")
+                else 0.5,
                 speech_volume_normalize=args.speech_volume_normalize
                 if hasattr(args, "speech_volume_normalize")
                 else None,

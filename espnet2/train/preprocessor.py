@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import logging
 from pathlib import Path
 from typing import Collection, Dict, Iterable, List, Union
 
@@ -136,6 +137,7 @@ class CommonPreprocessor(AbsPreprocessor):
         noise_scp: str = None,
         noise_apply_prob: float = 1.0,
         noise_db_range: str = "3_10",
+        short_noise_thres: float = 0.5,
         speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: str = "text",
@@ -147,6 +149,7 @@ class CommonPreprocessor(AbsPreprocessor):
         self.speech_volume_normalize = speech_volume_normalize
         self.rir_apply_prob = rir_apply_prob
         self.noise_apply_prob = noise_apply_prob
+        self.short_noise_thres = short_noise_thres
 
         if token_type is not None:
             if token_list is None:
@@ -232,6 +235,11 @@ class CommonPreprocessor(AbsPreprocessor):
                 if f.frames == nsamples:
                     noise = f.read(dtype=np.float64, always_2d=True)
                 elif f.frames < nsamples:
+                    if f.frames / nsamples < self.short_noise_thres:
+                        logging.warning(
+                            f"Noise ({f.frames}) is much shorter than "
+                            f"speech ({nsamples}) in dynamic mixing"
+                        )
                     offset = np.random.randint(0, nsamples - f.frames)
                     # noise: (Time, Nmic)
                     noise = f.read(dtype=np.float64, always_2d=True)
@@ -413,6 +421,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         noise_scp: str = None,
         noise_apply_prob: float = 1.0,
         noise_db_range: str = "3_10",
+        short_noise_thres: float = 0.5,
         speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: List[str] = ["text"],
@@ -436,6 +445,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
             noise_scp=noise_scp,
             noise_apply_prob=noise_apply_prob,
             noise_db_range=noise_db_range,
+            short_noise_thres=short_noise_thres,
             speech_volume_normalize=speech_volume_normalize,
         )
 
@@ -500,6 +510,7 @@ class EnhPreprocessor(CommonPreprocessor):
         noise_scp: str = None,
         noise_apply_prob: float = 1.0,
         noise_db_range: str = "3_10",
+        short_noise_thres: float = 0.5,
         speech_volume_normalize: float = None,
         speech_name: str = "speech_mix",
         speech_ref_name_prefix: str = "speech_ref",
@@ -527,6 +538,7 @@ class EnhPreprocessor(CommonPreprocessor):
             noise_scp=noise_scp,
             noise_apply_prob=noise_apply_prob,
             noise_db_range=noise_db_range,
+            short_noise_thres=short_noise_thres,
             speech_volume_normalize=speech_volume_normalize,
             speech_name=speech_name,
         )
