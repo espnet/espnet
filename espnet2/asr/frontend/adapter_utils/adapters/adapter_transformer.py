@@ -1,11 +1,22 @@
 import torch
 import torch.nn as nn
 
-from fairseq.models.wav2vec.wav2vec2 import TransformerSentenceEncoderLayer
+try:
+    from fairseq.models.wav2vec.wav2vec2 import TransformerSentenceEncoderLayer
+    is_fairseq_available = True
+except ImportError:
+    is_fairseq_available = False
+
 
 from espnet2.asr.frontend.adapter_utils.adapters.adapter import Adapter
 
-
+if not is_fairseq_available:
+            raise ImportError(
+                "`fairseq` is not available. Please install it via `pip install"
+                " fairseq` or `cd /path/to/espnet/tools && . ./activate_python.sh"
+                " && ./installers/install_fairseq.sh`."
+            )
+        
 class AdapterTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
     """
     fairseq's TransformerSentenceEncoderLayer for wav2vec2 with adapters
