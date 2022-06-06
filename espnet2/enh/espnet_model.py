@@ -32,8 +32,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         stft_consistency: bool = False,
         loss_type: str = "mask_mse",
         mask_type: Optional[str] = None,
-        dynamic_mixing: bool = False,
-        dynamic_mixing_gain_db: float = 0.0,
     ):
         assert check_argument_types()
 
@@ -45,9 +43,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.loss_wrappers = loss_wrappers
         self.num_spk = separator.num_spk
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
-        self.dynamic_mixing = dynamic_mixing
-        # Max +/- gain (dB) of sources in dynamic_mixing
-        self.dynamic_mixing_gain_db = dynamic_mixing_gain_db
 
         # get mask type for TF-domain models
         # (only used when loss_type="mask_*") (deprecated, keep for compatibility)
