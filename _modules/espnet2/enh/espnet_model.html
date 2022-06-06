@@ -342,6 +342,8 @@
         <span class="n">o</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">loss_wrapper</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_wrappers</span><span class="p">:</span>
             <span class="n">criterion</span> <span class="o">=</span> <span class="n">loss_wrapper</span><span class="o">.</span><span class="n">criterion</span>
+            <span class="k">if</span> <span class="n">criterion</span><span class="o">.</span><span class="n">only_for_test</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+                <span class="k">continue</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">criterion</span><span class="p">,</span> <span class="n">TimeDomainLoss</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">speech_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
                     <span class="c1"># For multi-channel reference,</span>
@@ -382,6 +384,10 @@
             <span class="n">loss</span> <span class="o">+=</span> <span class="n">l</span> <span class="o">*</span> <span class="n">loss_wrapper</span><span class="o">.</span><span class="n">weight</span>
             <span class="n">stats</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                <span class="s2">&quot;At least one criterion must satisfy: only_for_test=False&quot;</span>
+            <span class="p">)</span>
         <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
 
         <span class="c1"># force_gatherable: to-device and to-tensor if scalar for DataParallel</span>

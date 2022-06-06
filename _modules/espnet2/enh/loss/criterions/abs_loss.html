@@ -166,6 +166,12 @@
     <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="ne">NotImplementedError</span>
 
+    <span class="c1"># This property specifies whether the criterion will only</span>
+    <span class="c1"># be evaluated during the inference stage</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">only_for_test</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
 <div class="viewcode-block" id="AbsEnhLoss.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss.forward">[docs]</a>    <span class="nd">@abstractmethod</span>
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>

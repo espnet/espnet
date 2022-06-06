@@ -1583,7 +1583,7 @@ others predicted data, e.g. masks: OrderedDict[</p>
 <span id="id23"></span><h2>espnet2.enh.loss.criterions.time_domain<a class="headerlink" href="#espnet2-enh-loss-criterions-time-domain" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.loss.criterions.time_domain"></span><dl class="class">
 <dt id="espnet2.enh.loss.criterions.time_domain.CISDRLoss">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">CISDRLoss</code><span class="sig-paren">(</span><em class="sig-param">filter_length=512</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#CISDRLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.CISDRLoss" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">CISDRLoss</code><span class="sig-paren">(</span><em class="sig-param">filter_length=512</em>, <em class="sig-param">name=None</em>, <em class="sig-param">only_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#CISDRLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.CISDRLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainLoss" title="espnet2.enh.loss.criterions.time_domain.TimeDomainLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.time_domain.TimeDomainLoss</span></code></a></p>
 <p>CI-SDR loss</p>
 <dl class="simple">
@@ -1623,16 +1623,11 @@ registered hooks while the latter silently ignores them.</p>
 </div>
 </dd></dl>
 
-<dl class="method">
-<dt id="espnet2.enh.loss.criterions.time_domain.CISDRLoss.name">
-<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.CISDRLoss.name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="class">
 <dt id="espnet2.enh.loss.criterions.time_domain.SDRLoss">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">SDRLoss</code><span class="sig-paren">(</span><em class="sig-param">filter_length=512</em>, <em class="sig-param">use_cg_iter=None</em>, <em class="sig-param">clamp_db=None</em>, <em class="sig-param">zero_mean=True</em>, <em class="sig-param">load_diag=None</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#SDRLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SDRLoss" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">SDRLoss</code><span class="sig-paren">(</span><em class="sig-param">filter_length=512</em>, <em class="sig-param">use_cg_iter=None</em>, <em class="sig-param">clamp_db=None</em>, <em class="sig-param">zero_mean=True</em>, <em class="sig-param">load_diag=None</em>, <em class="sig-param">name=None</em>, <em class="sig-param">only_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#SDRLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SDRLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainLoss" title="espnet2.enh.loss.criterions.time_domain.TimeDomainLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.time_domain.TimeDomainLoss</span></code></a></p>
 <p>SDR loss.</p>
 <dl class="simple">
@@ -1681,16 +1676,11 @@ estimated signal</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
-<dt id="espnet2.enh.loss.criterions.time_domain.SDRLoss.name">
-<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SDRLoss.name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="class">
 <dt id="espnet2.enh.loss.criterions.time_domain.SISNRLoss">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">SISNRLoss</code><span class="sig-paren">(</span><em class="sig-param">clamp_db=None</em>, <em class="sig-param">zero_mean=True</em>, <em class="sig-param">eps=None</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#SISNRLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SISNRLoss" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">SISNRLoss</code><span class="sig-paren">(</span><em class="sig-param">clamp_db=None</em>, <em class="sig-param">zero_mean=True</em>, <em class="sig-param">eps=None</em>, <em class="sig-param">name=None</em>, <em class="sig-param">only_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#SISNRLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SISNRLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainLoss" title="espnet2.enh.loss.criterions.time_domain.TimeDomainLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.time_domain.TimeDomainLoss</span></code></a></p>
 <p>SI-SNR (or named SI-SDR) loss</p>
 <p>A more stable SI-SNR loss with clamp from <cite>fast_bss_eval</cite>.</p>
@@ -1712,7 +1702,7 @@ When set to True, the mean of all signals is subtracted prior.</p>
 <dt id="espnet2.enh.loss.criterions.time_domain.SISNRLoss.eps">
 <code class="sig-name descname">eps</code><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SISNRLoss.eps" title="Permalink to this definition">¶</a></dt>
 <dd><p>float
-Deprecated. Keeped for compatibility.</p>
+Deprecated. Kept for compatibility.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1741,16 +1731,11 @@ estimated signal</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
-<dt id="espnet2.enh.loss.criterions.time_domain.SISNRLoss.name">
-<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SISNRLoss.name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="class">
 <dt id="espnet2.enh.loss.criterions.time_domain.SNRLoss">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">SNRLoss</code><span class="sig-paren">(</span><em class="sig-param">eps=1.1920928955078125e-07</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#SNRLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SNRLoss" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">SNRLoss</code><span class="sig-paren">(</span><em class="sig-param">eps=1.1920928955078125e-07</em>, <em class="sig-param">name=None</em>, <em class="sig-param">only_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#SNRLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SNRLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainLoss" title="espnet2.enh.loss.criterions.time_domain.TimeDomainLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.time_domain.TimeDomainLoss</span></code></a></p>
 <dl class="method">
 <dt id="espnet2.enh.loss.criterions.time_domain.SNRLoss.forward">
@@ -1766,16 +1751,11 @@ registered hooks while the latter silently ignores them.</p>
 </div>
 </dd></dl>
 
-<dl class="method">
-<dt id="espnet2.enh.loss.criterions.time_domain.SNRLoss.name">
-<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.SNRLoss.name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="class">
 <dt id="espnet2.enh.loss.criterions.time_domain.TimeDomainL1">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">TimeDomainL1</code><span class="sig-paren">(</span><em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#TimeDomainL1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainL1" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">TimeDomainL1</code><span class="sig-paren">(</span><em class="sig-param">name=None</em>, <em class="sig-param">only_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#TimeDomainL1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainL1" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainLoss" title="espnet2.enh.loss.criterions.time_domain.TimeDomainLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.time_domain.TimeDomainLoss</span></code></a></p>
 <dl class="method">
 <dt id="espnet2.enh.loss.criterions.time_domain.TimeDomainL1.forward">
@@ -1797,24 +1777,28 @@ registered hooks while the latter silently ignores them.</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.loss.criterions.time_domain.TimeDomainLoss">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">TimeDomainLoss</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">only_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#TimeDomainLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss" title="espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Base class for all time-domain Enhancement loss modules.</p>
 <dl class="method">
-<dt id="espnet2.enh.loss.criterions.time_domain.TimeDomainL1.name">
-<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainL1.name" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.enh.loss.criterions.time_domain.TimeDomainLoss.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainLoss.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.loss.criterions.time_domain.TimeDomainLoss.only_for_test">
+<em class="property">property </em><code class="sig-name descname">only_for_test</code><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainLoss.only_for_test" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="espnet2.enh.loss.criterions.time_domain.TimeDomainLoss">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">TimeDomainLoss</code><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#TimeDomainLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainLoss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss" title="espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
-<p>Base class for all time-domain Enhancement loss modules.</p>
-<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
-</dd></dl>
-
-<dl class="class">
 <dt id="espnet2.enh.loss.criterions.time_domain.TimeDomainMSE">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">TimeDomainMSE</code><span class="sig-paren">(</span><em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#TimeDomainMSE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainMSE" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.time_domain.</code><code class="sig-name descname">TimeDomainMSE</code><span class="sig-paren">(</span><em class="sig-param">name=None</em>, <em class="sig-param">only_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/time_domain.html#TimeDomainMSE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainMSE" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainLoss" title="espnet2.enh.loss.criterions.time_domain.TimeDomainLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.time_domain.TimeDomainLoss</span></code></a></p>
 <dl class="method">
 <dt id="espnet2.enh.loss.criterions.time_domain.TimeDomainMSE.forward">
@@ -1835,11 +1819,6 @@ registered hooks while the latter silently ignores them.</p>
 </dd>
 </dl>
 </dd></dl>
-
-<dl class="method">
-<dt id="espnet2.enh.loss.criterions.time_domain.TimeDomainMSE.name">
-<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.time_domain.TimeDomainMSE.name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 </dd></dl>
 
@@ -1874,6 +1853,11 @@ registered hooks while the latter silently ignores them.</p>
 <em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss.name" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="method">
+<dt id="espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss.only_for_test">
+<em class="property">property </em><code class="sig-name descname">only_for_test</code><a class="headerlink" href="#espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss.only_for_test" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </section>
@@ -1881,7 +1865,7 @@ registered hooks while the latter silently ignores them.</p>
 <span id="id26"></span><h2>espnet2.enh.loss.criterions.tf_domain<a class="headerlink" href="#espnet2-enh-loss-criterions-tf-domain" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.loss.criterions.tf_domain"></span><dl class="class">
 <dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.tf_domain.</code><code class="sig-name descname">FrequencyDomainAbsCoherence</code><span class="sig-paren">(</span><em class="sig-param">compute_on_mask=False</em>, <em class="sig-param">mask_type=None</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/tf_domain.html#FrequencyDomainAbsCoherence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.tf_domain.</code><code class="sig-name descname">FrequencyDomainAbsCoherence</code><span class="sig-paren">(</span><em class="sig-param">compute_on_mask=False</em>, <em class="sig-param">mask_type=None</em>, <em class="sig-param">name=None</em>, <em class="sig-param">only_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/tf_domain.html#FrequencyDomainAbsCoherence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss" title="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss</span></code></a></p>
 <dl class="method">
 <dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence.compute_on_mask">
@@ -1918,16 +1902,11 @@ Li et al 2020; <a class="reference external" href="https://arxiv.org/abs/2008.11
 <em class="property">property </em><code class="sig-name descname">mask_type</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence.mask_type" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence.name">
-<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainAbsCoherence.name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="class">
 <dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainCrossEntropy">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.tf_domain.</code><code class="sig-name descname">FrequencyDomainCrossEntropy</code><span class="sig-paren">(</span><em class="sig-param">compute_on_mask=False</em>, <em class="sig-param">mask_type=None</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/tf_domain.html#FrequencyDomainCrossEntropy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainCrossEntropy" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.tf_domain.</code><code class="sig-name descname">FrequencyDomainCrossEntropy</code><span class="sig-paren">(</span><em class="sig-param">compute_on_mask=False</em>, <em class="sig-param">mask_type=None</em>, <em class="sig-param">ignore_id=-100</em>, <em class="sig-param">name=None</em>, <em class="sig-param">only_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/tf_domain.html#FrequencyDomainCrossEntropy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainCrossEntropy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss" title="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss</span></code></a></p>
 <dl class="method">
 <dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainCrossEntropy.compute_on_mask">
@@ -1959,16 +1938,11 @@ Li et al 2020; <a class="reference external" href="https://arxiv.org/abs/2008.11
 <em class="property">property </em><code class="sig-name descname">mask_type</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainCrossEntropy.mask_type" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainCrossEntropy.name">
-<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainCrossEntropy.name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="class">
 <dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainDPCL">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.tf_domain.</code><code class="sig-name descname">FrequencyDomainDPCL</code><span class="sig-paren">(</span><em class="sig-param">compute_on_mask=False</em>, <em class="sig-param">mask_type='IBM'</em>, <em class="sig-param">loss_type='dpcl'</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/tf_domain.html#FrequencyDomainDPCL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainDPCL" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.tf_domain.</code><code class="sig-name descname">FrequencyDomainDPCL</code><span class="sig-paren">(</span><em class="sig-param">compute_on_mask=False</em>, <em class="sig-param">mask_type='IBM'</em>, <em class="sig-param">loss_type='dpcl'</em>, <em class="sig-param">name=None</em>, <em class="sig-param">only_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/tf_domain.html#FrequencyDomainDPCL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainDPCL" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss" title="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss</span></code></a></p>
 <dl class="method">
 <dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainDPCL.compute_on_mask">
@@ -2009,16 +1983,11 @@ Li et al 2020; <a class="reference external" href="https://arxiv.org/abs/2008.11
 <em class="property">property </em><code class="sig-name descname">mask_type</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainDPCL.mask_type" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainDPCL.name">
-<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainDPCL.name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="class">
 <dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainL1">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.tf_domain.</code><code class="sig-name descname">FrequencyDomainL1</code><span class="sig-paren">(</span><em class="sig-param">compute_on_mask=False</em>, <em class="sig-param">mask_type='IBM'</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/tf_domain.html#FrequencyDomainL1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainL1" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.tf_domain.</code><code class="sig-name descname">FrequencyDomainL1</code><span class="sig-paren">(</span><em class="sig-param">compute_on_mask=False</em>, <em class="sig-param">mask_type='IBM'</em>, <em class="sig-param">name=None</em>, <em class="sig-param">only_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/tf_domain.html#FrequencyDomainL1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainL1" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss" title="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss</span></code></a></p>
 <dl class="method">
 <dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainL1.compute_on_mask">
@@ -2050,19 +2019,13 @@ Li et al 2020; <a class="reference external" href="https://arxiv.org/abs/2008.11
 <em class="property">property </em><code class="sig-name descname">mask_type</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainL1.mask_type" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainL1.name">
-<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainL1.name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="class">
 <dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.tf_domain.</code><code class="sig-name descname">FrequencyDomainLoss</code><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/tf_domain.html#FrequencyDomainLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.tf_domain.</code><code class="sig-name descname">FrequencyDomainLoss</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">only_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/tf_domain.html#FrequencyDomainLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss" title="espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
 <p>Base class for all frequence-domain Enhancement loss modules.</p>
-<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
 <dl class="method">
 <dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss.compute_on_mask">
 <em class="property">abstract property </em><code class="sig-name descname">compute_on_mask</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss.compute_on_mask" title="Permalink to this definition">¶</a></dt>
@@ -2078,11 +2041,21 @@ Li et al 2020; <a class="reference external" href="https://arxiv.org/abs/2008.11
 <em class="property">abstract property </em><code class="sig-name descname">mask_type</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss.mask_type" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="method">
+<dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss.only_for_test">
+<em class="property">property </em><code class="sig-name descname">only_for_test</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss.only_for_test" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
 <dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.tf_domain.</code><code class="sig-name descname">FrequencyDomainMSE</code><span class="sig-paren">(</span><em class="sig-param">compute_on_mask=False</em>, <em class="sig-param">mask_type='IBM'</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/tf_domain.html#FrequencyDomainMSE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.criterions.tf_domain.</code><code class="sig-name descname">FrequencyDomainMSE</code><span class="sig-paren">(</span><em class="sig-param">compute_on_mask=False</em>, <em class="sig-param">mask_type='IBM'</em>, <em class="sig-param">name=None</em>, <em class="sig-param">only_for_test=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/criterions/tf_domain.html#FrequencyDomainMSE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss" title="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss</span></code></a></p>
 <dl class="method">
 <dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE.compute_on_mask">
@@ -2112,11 +2085,6 @@ Li et al 2020; <a class="reference external" href="https://arxiv.org/abs/2008.11
 <dl class="method">
 <dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE.mask_type">
 <em class="property">property </em><code class="sig-name descname">mask_type</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE.mask_type" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE.name">
-<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainMSE.name" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
