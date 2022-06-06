@@ -207,6 +207,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.initialize</span> <span class="kn">import</span> <span class="n">initialize</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.class_choices</span> <span class="kn">import</span> <span class="n">ClassChoices</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.collate_fn</span> <span class="kn">import</span> <span class="n">CommonCollateFn</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.preprocessor</span> <span class="kn">import</span> <span class="n">EnhPreprocessor</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.trainer</span> <span class="kn">import</span> <span class="n">Trainer</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.get_default_kwargs</span> <span class="kn">import</span> <span class="n">get_default_kwargs</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.nested_dict_action</span> <span class="kn">import</span> <span class="n">NestedDictAction</span>
@@ -349,7 +350,84 @@
             <span class="s2">&quot;--use_preprocessor&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply preprocessing to data or not&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to apply preprocessing to data or not&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--speech_volume_normalize&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Scale the maximum amplitude to the given value or range. &quot;</span>
+            <span class="s2">&quot;e.g. --speech_volume_normalize 1.0 scales it to 1.0.</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;--speech_volume_normalize 0.5_1.0 scales it to a random number in &quot;</span>
+            <span class="s2">&quot;the range [0.5, 1.0)&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--rir_scp&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The file path of rir scp file.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--rir_apply_prob&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;THe probability for applying RIR convolution.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--noise_scp&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The file path of noise scp file.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--noise_apply_prob&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The probability applying Noise adding.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--noise_db_range&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;13_15&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The range of signal-to-noise ratio (SNR) level in decibel.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--short_noise_thres&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If len(noise) / len(speech) is smaller than this threshold during &quot;</span>
+            <span class="s2">&quot;dynamic mixing, a warning will be displayed.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--use_reverberant_ref&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to use reverberant speech references &quot;</span>
+            <span class="s2">&quot;instead of anechoic ones&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--num_spk&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of speakers in the input signal.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--num_noise_type&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of noise types.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--sample_rate&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">8000</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sampling rate of the data (in Hz).&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--force_single_channel&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to force all data to be single-channel.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">class_choices</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">class_choices_list</span><span class="p">:</span>
@@ -373,7 +451,41 @@
         <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">]],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]:</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
-        <span class="n">retval</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">use_preprocessor</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="n">EnhPreprocessor</span><span class="p">(</span>
+                <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
+                <span class="c1"># NOTE(kamo): Check attribute existence for backward compatibility</span>
+                <span class="n">rir_scp</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">rir_scp</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;rir_scp&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">rir_apply_prob</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">rir_apply_prob</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;rir_apply_prob&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span>
+                <span class="n">noise_scp</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">noise_scp</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;noise_scp&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">noise_apply_prob</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">noise_apply_prob</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;noise_apply_prob&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span>
+                <span class="n">noise_db_range</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">noise_db_range</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;noise_db_range&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="s2">&quot;13_15&quot;</span><span class="p">,</span>
+                <span class="n">short_noise_thres</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">short_noise_thres</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;short_noise_thres&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="mf">0.5</span><span class="p">,</span>
+                <span class="n">speech_volume_normalize</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">speech_volume_normalize</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;speech_volume_normalize&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">use_reverberant_ref</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">use_reverberant_ref</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_reverberant_ref&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">num_spk</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_spk</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;num_spk&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">num_noise_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_noise_type</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;num_noise_type&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">sample_rate</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">sample_rate</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;sample_rate&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">8000</span><span class="p">,</span>
+                <span class="n">force_single_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">force_single_channel</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;force_single_channel&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">retval</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">retval</span></div>
 
@@ -415,7 +527,8 @@
             <span class="c1"># This check is for the compatibility when load models</span>
             <span class="c1"># that packed by older version</span>
             <span class="k">for</span> <span class="n">ctr</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">criterions</span><span class="p">:</span>
-                <span class="n">criterion</span> <span class="o">=</span> <span class="n">criterion_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])(</span><span class="o">**</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;conf&quot;</span><span class="p">])</span>
+                <span class="n">criterion_conf</span> <span class="o">=</span> <span class="n">ctr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;conf&quot;</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="n">criterion</span> <span class="o">=</span> <span class="n">criterion_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])(</span><span class="o">**</span><span class="n">criterion_conf</span><span class="p">)</span>
                 <span class="n">loss_wrapper</span> <span class="o">=</span> <span class="n">loss_wrapper_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;wrapper&quot;</span><span class="p">])(</span>
                     <span class="n">criterion</span><span class="o">=</span><span class="n">criterion</span><span class="p">,</span> <span class="o">**</span><span class="n">ctr</span><span class="p">[</span><span class="s2">&quot;wrapper_conf&quot;</span><span class="p">]</span>
                 <span class="p">)</span>

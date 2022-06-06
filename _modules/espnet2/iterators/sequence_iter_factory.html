@@ -151,7 +151,9 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.iterators.sequence_iter_factory</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
+<span></span><span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
@@ -159,6 +161,13 @@
 
 <span class="kn">from</span> <span class="nn">espnet2.iterators.abs_iter_factory</span> <span class="kn">import</span> <span class="n">AbsIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.samplers.abs_sampler</span> <span class="kn">import</span> <span class="n">AbsSampler</span>
+
+
+<div class="viewcode-block" id="worker_init_fn"><a class="viewcode-back" href="../../../_gen/espnet2.iterators.html#espnet2.iterators.sequence_iter_factory.worker_init_fn">[docs]</a><span class="k">def</span> <span class="nf">worker_init_fn</span><span class="p">(</span><span class="n">worker_id</span><span class="p">,</span> <span class="n">base_seed</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set random seed for each worker in DataLoader.&quot;&quot;&quot;</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="n">base_seed</span> <span class="o">+</span> <span class="n">worker_id</span>
+    <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="RawSampler"><a class="viewcode-back" href="../../../_gen/espnet2.iterators.html#espnet2.iterators.sequence_iter_factory.RawSampler">[docs]</a><span class="k">class</span> <span class="nc">RawSampler</span><span class="p">(</span><span class="n">AbsSampler</span><span class="p">):</span>
@@ -290,6 +299,7 @@
             <span class="n">batch_sampler</span><span class="o">=</span><span class="n">batches</span><span class="p">,</span>
             <span class="n">num_workers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_workers</span><span class="p">,</span>
             <span class="n">pin_memory</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">pin_memory</span><span class="p">,</span>
+            <span class="n">worker_init_fn</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">worker_init_fn</span><span class="p">,</span> <span class="n">base_seed</span><span class="o">=</span><span class="n">epoch</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">),</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span></div></div>
 </pre></div>

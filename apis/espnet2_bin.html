@@ -636,6 +636,7 @@ Text converter related:
                     [--noise_scp NOISE_SCP]
                     [--noise_apply_prob NOISE_APPLY_PROB]
                     [--noise_db_range NOISE_DB_RANGE]
+                    [--short_noise_thres SHORT_NOISE_THRES]
                     [--frontend {default,sliding_window,s3prl,fused}]
                     [--frontend_conf FRONTEND_CONF] [--specaug {specaug,None}]
                     [--specaug_conf SPECAUG_CONF]
@@ -657,21 +658,6 @@ optional arguments:
   --config CONFIG       Give config file in yaml format (default: None)
   --non_linguistic_symbols NON_LINGUISTIC_SYMBOLS
                         non_linguistic_symbols file path (default: None)
-  --cleaner {None,tacotron,jaconv,vietnamese}
-                        Apply text cleaning (default: None)
-  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}
-                        Specify g2p method if --token_type=phn (default: None)
-  --speech_volume_normalize SPEECH_VOLUME_NORMALIZE
-                        Scale the maximum amplitude to the given value. (default: None)
-  --rir_scp RIR_SCP     The file path of rir scp file. (default: None)
-  --rir_apply_prob RIR_APPLY_PROB
-                        THe probability for applying RIR convolution. (default: 1.0)
-  --noise_scp NOISE_SCP
-                        The file path of noise scp file. (default: None)
-  --noise_apply_prob NOISE_APPLY_PROB
-                        The probability applying Noise adding. (default: 1.0)
-  --noise_db_range NOISE_DB_RANGE
-                        The range of noise decibel level. (default: 13_15)
 
 Common configuration:
   --print_config        Print the config file and exit (default: False)
@@ -1000,6 +986,23 @@ Optimizer related:
   --token_type {bpe,char,word,phn}
                         The text will be tokenized in the specified level token (default: bpe)
   --bpemodel BPEMODEL   The model file of sentencepiece (default: None)
+  --cleaner {None,tacotron,jaconv,vietnamese}
+                        Apply text cleaning (default: None)
+  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}
+                        Specify g2p method if --token_type=phn (default: None)
+  --speech_volume_normalize SPEECH_VOLUME_NORMALIZE
+                        Scale the maximum amplitude to the given value. (default: None)
+  --rir_scp RIR_SCP     The file path of rir scp file. (default: None)
+  --rir_apply_prob RIR_APPLY_PROB
+                        THe probability for applying RIR convolution. (default: 1.0)
+  --noise_scp NOISE_SCP
+                        The file path of noise scp file. (default: None)
+  --noise_apply_prob NOISE_APPLY_PROB
+                        The probability applying Noise adding. (default: 1.0)
+  --noise_db_range NOISE_DB_RANGE
+                        The range of noise decibel level. (default: 13_15)
+  --short_noise_thres SHORT_NOISE_THRES
+                        If len(noise) / len(speech) is smaller than this threshold during dynamic mixing, a warning will be displayed. (default: 0.5)
   --frontend {default,sliding_window,s3prl,fused}
                         The frontend type (default: default)
   --frontend_conf FRONTEND_CONF
@@ -1756,12 +1759,6 @@ base parser
 
 optional arguments:
   --config CONFIG       Give config file in yaml format (default: None)
-  --non_linguistic_symbols NON_LINGUISTIC_SYMBOLS
-                        non_linguistic_symbols file path (default: None)
-  --cleaner {None,tacotron,jaconv,vietnamese}
-                        Apply text cleaning (default: None)
-  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}
-                        Specify g2p method if --token_type=phn (default: None)
 
 Common configuration:
   --print_config        Print the config file and exit (default: False)
@@ -2106,6 +2103,12 @@ Optimizer related:
                         The source text will be tokenized in the specified level token (default: bpe)
   --src_bpemodel SRC_BPEMODEL
                         The model file of sentencepiece (for source language) (default: None)
+  --non_linguistic_symbols NON_LINGUISTIC_SYMBOLS
+                        non_linguistic_symbols file path (default: None)
+  --cleaner {None,tacotron,jaconv,vietnamese}
+                        Apply text cleaning (default: None)
+  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}
+                        Specify g2p method if --token_type=phn (default: None)
   --enh_encoder {stft,conv,same}
                         The enh_encoder type (default: stft)
   --enh_encoder_conf ENH_ENCODER_CONF
@@ -2274,6 +2277,16 @@ Input data related:
                     [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                     [--model_conf MODEL_CONF] [--criterions CRITERIONS]
                     [--use_preprocessor USE_PREPROCESSOR]
+                    [--speech_volume_normalize SPEECH_VOLUME_NORMALIZE]
+                    [--rir_scp RIR_SCP] [--rir_apply_prob RIR_APPLY_PROB]
+                    [--noise_scp NOISE_SCP]
+                    [--noise_apply_prob NOISE_APPLY_PROB]
+                    [--noise_db_range NOISE_DB_RANGE]
+                    [--short_noise_thres SHORT_NOISE_THRES]
+                    [--use_reverberant_ref USE_REVERBERANT_REF]
+                    [--num_spk NUM_SPK] [--num_noise_type NUM_NOISE_TYPE]
+                    [--sample_rate SAMPLE_RATE]
+                    [--force_single_channel FORCE_SINGLE_CHANNEL]
                     [--encoder {stft,conv,same}] [--encoder_conf ENCODER_CONF]
                     [--separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer}]
                     [--separator_conf SEPARATOR_CONF]
@@ -2604,7 +2617,30 @@ Optimizer related:
   Preprocess related
 
   --use_preprocessor USE_PREPROCESSOR
-                        Apply preprocessing to data or not (default: False)
+                        Whether to apply preprocessing to data or not (default: False)
+  --speech_volume_normalize SPEECH_VOLUME_NORMALIZE
+                        Scale the maximum amplitude to the given value or range. e.g. --speech_volume_normalize 1.0 scales it to 1.0.
+                        --speech_volume_normalize 0.5_1.0 scales it to a random number in the range [0.5, 1.0) (default: None)
+  --rir_scp RIR_SCP     The file path of rir scp file. (default: None)
+  --rir_apply_prob RIR_APPLY_PROB
+                        THe probability for applying RIR convolution. (default: 1.0)
+  --noise_scp NOISE_SCP
+                        The file path of noise scp file. (default: None)
+  --noise_apply_prob NOISE_APPLY_PROB
+                        The probability applying Noise adding. (default: 1.0)
+  --noise_db_range NOISE_DB_RANGE
+                        The range of signal-to-noise ratio (SNR) level in decibel. (default: 13_15)
+  --short_noise_thres SHORT_NOISE_THRES
+                        If len(noise) / len(speech) is smaller than this threshold during dynamic mixing, a warning will be displayed. (default: 0.5)
+  --use_reverberant_ref USE_REVERBERANT_REF
+                        Whether to use reverberant speech references instead of anechoic ones (default: False)
+  --num_spk NUM_SPK     Number of speakers in the input signal. (default: 1)
+  --num_noise_type NUM_NOISE_TYPE
+                        Number of noise types. (default: 1)
+  --sample_rate SAMPLE_RATE
+                        Sampling rate of the data (in Hz). (default: 8000)
+  --force_single_channel FORCE_SINGLE_CHANNEL
+                        Whether to force all data to be single-channel. (default: False)
   --encoder {stft,conv,same}
                         The encoder type (default: stft)
   --encoder_conf ENCODER_CONF
@@ -3201,23 +3237,6 @@ base parser
 
 optional arguments:
   --config CONFIG       Give config file in yaml format (default: None)
-  --non_linguistic_symbols NON_LINGUISTIC_SYMBOLS
-                        non_linguistic_symbols file path (default: None)
-  --cleaner {None,tacotron,jaconv,vietnamese}
-                        Apply text cleaning (default: None)
-  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}
-                        Specify g2p method if --token_type=phn (default: None)
-  --speech_volume_normalize SPEECH_VOLUME_NORMALIZE
-                        Scale the maximum amplitude to the given value. (default: None)
-  --rir_scp RIR_SCP     The file path of rir scp file. (default: None)
-  --rir_apply_prob RIR_APPLY_PROB
-                        THe probability for applying RIR convolution. (default: 1.0)
-  --noise_scp NOISE_SCP
-                        The file path of noise scp file. (default: None)
-  --noise_apply_prob NOISE_APPLY_PROB
-                        The probability applying Noise adding. (default: 1.0)
-  --noise_db_range NOISE_DB_RANGE
-                        The range of noise decibel level. (default: 13_15)
   --pred_masked_weight PRED_MASKED_WEIGHT
                         weight for predictive loss for masked frames (default: 1.0)
   --pred_nomask_weight PRED_NOMASK_WEIGHT
@@ -3553,6 +3572,23 @@ Optimizer related:
   --token_type {bpe,char,word,phn}
                         The text will be tokenized in the specified level token (default: bpe)
   --bpemodel BPEMODEL   The model file of sentencepiece (default: None)
+  --non_linguistic_symbols NON_LINGUISTIC_SYMBOLS
+                        non_linguistic_symbols file path (default: None)
+  --cleaner {None,tacotron,jaconv,vietnamese}
+                        Apply text cleaning (default: None)
+  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}
+                        Specify g2p method if --token_type=phn (default: None)
+  --speech_volume_normalize SPEECH_VOLUME_NORMALIZE
+                        Scale the maximum amplitude to the given value. (default: None)
+  --rir_scp RIR_SCP     The file path of rir scp file. (default: None)
+  --rir_apply_prob RIR_APPLY_PROB
+                        THe probability for applying RIR convolution. (default: 1.0)
+  --noise_scp NOISE_SCP
+                        The file path of noise scp file. (default: None)
+  --noise_apply_prob NOISE_APPLY_PROB
+                        The probability applying Noise adding. (default: 1.0)
+  --noise_db_range NOISE_DB_RANGE
+                        The range of noise decibel level. (default: 13_15)
   --frontend {default,sliding_window}
                         The frontend type (default: default)
   --frontend_conf FRONTEND_CONF
@@ -4848,6 +4884,7 @@ Text converter related:
                    [--noise_scp NOISE_SCP]
                    [--noise_apply_prob NOISE_APPLY_PROB]
                    [--noise_db_range NOISE_DB_RANGE]
+                   [--short_noise_thres SHORT_NOISE_THRES]
                    [--frontend {default,sliding_window,s3prl}]
                    [--frontend_conf FRONTEND_CONF] [--specaug {specaug,None}]
                    [--specaug_conf SPECAUG_CONF]
@@ -4870,23 +4907,6 @@ base parser
 
 optional arguments:
   --config CONFIG       Give config file in yaml format (default: None)
-  --non_linguistic_symbols NON_LINGUISTIC_SYMBOLS
-                        non_linguistic_symbols file path (default: None)
-  --cleaner {None,tacotron,jaconv,vietnamese}
-                        Apply text cleaning (default: None)
-  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}
-                        Specify g2p method if --token_type=phn (default: None)
-  --speech_volume_normalize SPEECH_VOLUME_NORMALIZE
-                        Scale the maximum amplitude to the given value. (default: None)
-  --rir_scp RIR_SCP     The file path of rir scp file. (default: None)
-  --rir_apply_prob RIR_APPLY_PROB
-                        THe probability for applying RIR convolution. (default: 1.0)
-  --noise_scp NOISE_SCP
-                        The file path of noise scp file. (default: None)
-  --noise_apply_prob NOISE_APPLY_PROB
-                        The probability applying Noise adding. (default: 1.0)
-  --noise_db_range NOISE_DB_RANGE
-                        The range of noise decibel level. (default: 13_15)
 
 Common configuration:
   --print_config        Print the config file and exit (default: False)
@@ -5221,6 +5241,25 @@ Optimizer related:
   --bpemodel BPEMODEL   The model file of sentencepiece (for target language) (default: None)
   --src_bpemodel SRC_BPEMODEL
                         The model file of sentencepiece (for source language) (default: None)
+  --non_linguistic_symbols NON_LINGUISTIC_SYMBOLS
+                        non_linguistic_symbols file path (default: None)
+  --cleaner {None,tacotron,jaconv,vietnamese}
+                        Apply text cleaning (default: None)
+  --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}
+                        Specify g2p method if --token_type=phn (default: None)
+  --speech_volume_normalize SPEECH_VOLUME_NORMALIZE
+                        Scale the maximum amplitude to the given value. (default: None)
+  --rir_scp RIR_SCP     The file path of rir scp file. (default: None)
+  --rir_apply_prob RIR_APPLY_PROB
+                        THe probability for applying RIR convolution. (default: 1.0)
+  --noise_scp NOISE_SCP
+                        The file path of noise scp file. (default: None)
+  --noise_apply_prob NOISE_APPLY_PROB
+                        The probability applying Noise adding. (default: 1.0)
+  --noise_db_range NOISE_DB_RANGE
+                        The range of noise decibel level. (default: 13_15)
+  --short_noise_thres SHORT_NOISE_THRES
+                        If len(noise) / len(speech) is smaller than this threshold during dynamic mixing, a warning will be displayed. (default: 0.5)
   --frontend {default,sliding_window,s3prl}
                         The frontend type (default: default)
   --frontend_conf FRONTEND_CONF
