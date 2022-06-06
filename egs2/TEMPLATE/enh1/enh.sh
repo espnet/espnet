@@ -550,12 +550,6 @@ if ! "${skip_train}"; then
         fi
         _fold_length="$((enh_speech_fold_length * 100))"
 
-        # prepare train and valid data parameters
-        _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/${_scp},speech_mix,${_type} "
-        _train_shape_param="--train_shape_file ${enh_stats_dir}/train/speech_mix_shape "
-        _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,${_type} "
-        _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
-        _fold_length_param="--fold_length ${_fold_length} "
         
         if [ ! ${dynamic_mixing} ]; then
             # prepare train and valid data parameters
