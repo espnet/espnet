@@ -66,6 +66,8 @@ dereverb_ref_num=1
 # Training data related
 use_dereverb_ref=false
 use_noise_ref=false
+use_preprocessor=false
+extra_wav_list= # Extra list of scp files for wav formatting
 
 # Pretrained model related
 # The number of --init_param must be same.
@@ -150,6 +152,8 @@ Options:
                          for training a dereverberation model (default="${use_dereverb_ref}")
     --use_noise_ref    # Whether or not to use noise signal as an additional reference
                          for training a denoising model (default="${use_noise_ref}")
+    --use_preprocessor # Whether or not to apply preprocessing (default="${use_preprocessor}")
+    --extra_wav_list   # Extra list of scp files for wav formatting (default="${extra_wav_list}")
 
     # Pretrained model related
     --init_param    # pretrained model path and module name (default="${init_param}")
@@ -221,7 +225,7 @@ if [ -z "${enh_tag}" ]; then
     fi
     # Add overwritten arg's info
     if [ -n "${enh_args}" ]; then
-        enh_tag+="$(echo "${enh_args}" | sed -e "s/--/\_/g" -e "s/[ |=]//g")"
+        enh_tag+="$(echo "${enh_args}" | sed -e "s/--\|\//\_/g" -e "s/[ |=]//g")"
     fi
 fi
 
@@ -355,6 +359,18 @@ if ! "${skip_data_prep}"; then
                     "${data_feats}${_suf}/${dset}/logs/${spk}" "${data_feats}${_suf}/${dset}/data/${spk}"
 
             done
+
+            for f in $extra_wav_list; do
+                if [ -e "data/${dset}/$f" ]; then
+                    # shellcheck disable=SC2086
+                    scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                        --out-filename "$f" \
+                        --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
+                        "data/${dset}/$f" "${data_feats}/${dset}" \
+                        "${data_feats}/${dset}/logs/${f%.*}" "${data_feats}/${dset}/data/${f%.*}"
+                fi
+            done
+
             echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
 
         done
@@ -502,7 +518,7 @@ if ! "${skip_train}"; then
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.enh_train \
                 --collect_stats true \
-                --use_preprocessor true \
+                ${use_preprocessor:+--use_preprocessor $use_preprocessor} \
                 ${_train_data_param} \
                 ${_valid_data_param} \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
@@ -622,6 +638,7 @@ if ! "${skip_train}"; then
             --init_file_prefix "${enh_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
             ${python} -m espnet2.bin.enh_train \
+                ${use_preprocessor:+--use_preprocessor $use_preprocessor} \
                 ${_train_data_param} \
                 ${_valid_data_param} \
                 ${_train_shape_param} \

@@ -24,6 +24,8 @@ requirements = {
         "torch>=1.3.0",
         "torch_complex",
         "nltk>=3.4.5",
+        # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
+        "protobuf<=3.20.1",
         # ASR
         "sentencepiece",
         "ctc-segmentation<1.8,>=1.6.6",
@@ -73,7 +75,7 @@ requirements = {
         "gtn==0.0.0",
     ],
     "setup": [
-        "numpy<=1.21.3",
+        "numpy",
         "pytest-runner",
     ],
     "test": [

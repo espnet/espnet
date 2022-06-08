@@ -13,6 +13,12 @@ class AbsEnhLoss(torch.nn.Module, ABC):
     def name(self) -> str:
         return NotImplementedError
 
+    # This property specifies whether the criterion will only
+    # be evaluated during the inference stage
+    @property
+    def only_for_test(self) -> bool:
+        return False
+
     @abstractmethod
     def forward(
         self,

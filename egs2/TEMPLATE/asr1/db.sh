@@ -7,6 +7,7 @@ AISHELL=downloads
 AISHELL3=downloads
 AISHELL4=downloads
 ALFFA=downloads
+AMERICASNLP22=downloads
 AN4=downloads
 AUDIOSET=
 DIRHA_ENGLISH_PHDEV=
@@ -142,6 +143,7 @@ ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
 HARPERVALLEY=downloads
+TALROMUR=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

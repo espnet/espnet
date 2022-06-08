@@ -190,6 +190,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         o = {}
         for loss_wrapper in self.loss_wrappers:
             criterion = loss_wrapper.criterion
+            if criterion.only_for_test and self.training:
+                continue
             if isinstance(criterion, TimeDomainLoss):
                 if speech_ref[0].dim() == 3:
                     # For multi-channel reference,
@@ -230,6 +232,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             loss += l * loss_wrapper.weight
             stats.update(s)
 
+        if self.training and isinstance(loss, float):
+            raise AttributeError(
+                "At least one criterion must satisfy: only_for_test=False"
+            )
         stats["loss"] = loss.detach()
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
