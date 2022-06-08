@@ -235,7 +235,7 @@ class EnhancementTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
-        if args.dynamic_mixing:
+        if getattr(args, "dynamic_mixing", False):
             retval = DynamicMixingPreprocessor(
                 train=train,
                 source_scp=args.train_data_path_and_name_and_type[0][0],
