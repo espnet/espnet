@@ -515,22 +515,35 @@ class Trainer:
                 continue
 
             if iiter == 1 and summary_writer is not None:
-                try:
-                    args = kwargs2args(model.forward, batch)
-                except (ValueError, TypeError):
-                    logging.warning(
-                        "inpect.signature() is failed for the model. "
-                        "The graph can't be added for tensorboard."
-                    )
+                if distributed:
+                    _model = getattr(model, "module")
                 else:
-                    try:
-                        summary_writer.add_graph(model, args, use_strict_trace=False)
-                    except Exception:
+                    _model = model
+                    if _model is not None:
+                        try:
+                            _args = kwargs2args(_model.forward, batch)
+                        except (ValueError, TypeError):
+                            logging.warning(
+                                "inpect.signature() is failed for the model. "
+                                "The graph can't be added for tensorboard."
+                            )
+                        else:
+                            try:
+                                summary_writer.add_graph(
+                                    _model, _args, use_strict_trace=False
+                                )
+                            except Exception:
+                                logging.warning(
+                                    "summary_writer.add_graph() "
+                                    "is failed for the model. "
+                                    "The graph can't be added for tensorboard."
+                                )
+                            del _args
+                    else:
                         logging.warning(
-                            "summary_writer.add_graph() is failed for the model. "
-                            "The graph can't be added for tensorboard."
+                            "model.module is not found (This should be a bug.)"
                         )
-                    del args
+                del _model
 
             with autocast(scaler is not None):
                 with reporter.measure_time("forward_time"):
