@@ -120,6 +120,7 @@ def test_criterion_behavior(encoder, decoder, separator, training):
         encoder=encoder,
         separator=separator,
         decoder=decoder,
+        mask_module=None,
         loss_wrappers=[PITSolver(criterion=SISNRLoss(only_for_test=True))],
     )
 
