@@ -224,7 +224,7 @@ Note that you need to setup your environment correctly to use distributed traini
 - [Using Job scheduling system](./parallelization.md)
 
 
-## Relationship between mini-batch size and number of GPUs
+### Relationship between mini-batch size and number of GPUs
 
 The behavior of batch size in ESPnet2 during multi-GPU training is different from that in ESPnet1. **In ESPnet2, the total batch size is not changed regardless of the number of GPUs.** Therefore, you need to manually increase the batch size if you increase the number of GPUs. Please refer to this [doc](https://espnet.github.io/espnet/espnet2_training_option.html#the-relation-between-mini-batch-size-and-number-of-gpus) for more information.
 
