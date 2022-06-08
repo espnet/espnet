@@ -1,0 +1,2 @@
+md_ctc_weight: 0.1
+beam_size: 30
