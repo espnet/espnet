@@ -671,6 +671,10 @@ class BranchformerEncoder(AbsEncoder):
                 self.embed = None
             else:
                 self.embed = torch.nn.Linear(input_size, output_size)
+        elif input_layer=="md":
+            self.embed = torch.nn.Sequential(
+                pos_enc_class(output_size, positional_dropout_rate),
+            )
         else:
             raise ValueError("unknown input_layer: " + input_layer)
 

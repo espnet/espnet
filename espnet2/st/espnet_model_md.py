@@ -49,11 +49,12 @@ class ESPnetSTMDModel(AbsESPnetModel):
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
-        encoder_mt: AbsEncoder,
         postencoder: Optional[AbsPostEncoder],
-        decoder: AbsDecoder,
         asr_decoder: AbsDecoder,
         ctc: CTC,
+        encoder_mt: Optional[AbsEncoder],
+        decoder: Optional[AbsDecoder],
+        token_decoder: Optional[AbsEncoder],
         src_vocab_size: int = 0,
         src_token_list: Union[Tuple[str, ...], List[str]] = [],
         asr_weight: float = 0.0,
@@ -99,6 +100,7 @@ class ESPnetSTMDModel(AbsESPnetModel):
         self.encoder = encoder
         self.encoder_mt = encoder_mt
         self.decoder = decoder
+        self.token_decoder=token_decoder
 
         self.criterion_st = LabelSmoothingLoss(
             size=vocab_size,
@@ -212,11 +214,17 @@ class ESPnetSTMDModel(AbsESPnetModel):
 
         # 3a. MT Encoder
         dec_asr_lengths = src_text_lengths + 1
-        encoder_mt_out, encoder_mt_out_lens, _ = self.encoder_mt(hs_dec_asr, dec_asr_lengths)
+        if self.encoder_mt is not None:
+            encoder_mt_out, encoder_mt_out_lens, _ = self.encoder_mt(hs_dec_asr, dec_asr_lengths)
+        else:
+            encoder_mt_out, encoder_mt_out_lens = hs_dec_asr, dec_asr_lengths
 
         if self.speech_attn:
             speech_out = encoder_out
             speech_lens = encoder_out_lens
+        else:
+            speech_out = None
+            speech_lens = None
         # 2a. Attention-decoder branch (ST)
         loss_st_att, acc_st_att, bleu_st_att = self._calc_mt_att_loss(
             encoder_mt_out, encoder_mt_out_lens, text, text_lengths, speech_out, speech_lens
@@ -348,18 +356,25 @@ class ESPnetSTMDModel(AbsESPnetModel):
         speech: Optional[torch.Tensor],
         speech_lens: Optional[torch.Tensor],
     ):
+
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
 
-        # 1. Forward decoder
-        if self.speech_attn:
-            decoder_out, _ = self.decoder(
-                encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens, speech, speech_lens
-            )
+        if self.token_decoder is not None:
+            if self.speech_attn:
+                decoder_out = self.token_decoder(encoder_out, encoder_out_lens, speech=speech, speech_lens=speech_lens)
+            else:
+                decoder_out = self.token_decoder(encoder_out, encoder_out_lens)
         else:
-            decoder_out, _ = self.decoder(
-                encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
-            )
+            # 1. Forward decoder
+            if self.speech_attn:
+                decoder_out, _ = self.decoder(
+                    encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens, speech, speech_lens
+                )
+            else:
+                decoder_out, _ = self.decoder(
+                    encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
+                )
 
         # 2. Compute attention loss
         loss_att = self.criterion_st(decoder_out, ys_out_pad)
@@ -370,7 +385,7 @@ class ESPnetSTMDModel(AbsESPnetModel):
         )
 
         # Compute cer/wer using attention-decoder
-        if self.training or self.mt_error_calculator is None:
+        if self.training or self.token_decoder is not None or self.mt_error_calculator is None:
             bleu_att = None
         else:
             ys_hat = decoder_out.argmax(dim=-1)

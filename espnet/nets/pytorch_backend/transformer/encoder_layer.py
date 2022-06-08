@@ -43,22 +43,28 @@ class EncoderLayer(nn.Module):
         normalize_before=True,
         concat_after=False,
         stochastic_depth_rate=0.0,
+        speech_attn=None,
     ):
         """Construct an EncoderLayer object."""
         super(EncoderLayer, self).__init__()
+        self.speech_attn=speech_attn
         self.self_attn = self_attn
         self.feed_forward = feed_forward
         self.norm1 = LayerNorm(size)
         self.norm2 = LayerNorm(size)
+        if speech_attn is not None:
+            self.norm3=LayerNorm(size)
         self.dropout = nn.Dropout(dropout_rate)
         self.size = size
         self.normalize_before = normalize_before
         self.concat_after = concat_after
         if self.concat_after:
             self.concat_linear = nn.Linear(size + size, size)
+            if speech_attn is not None:
+                self.concat_linear2 = nn.Linear(size+size,size)
         self.stochastic_depth_rate = stochastic_depth_rate
 
-    def forward(self, x, mask, cache=None):
+    def forward(self, x, mask, speech=None, speech_mask=None, cache=None):
         """Compute encoded features.
 
         Args:
@@ -105,6 +111,20 @@ class EncoderLayer(nn.Module):
             )
         if not self.normalize_before:
             x = self.norm1(x)
+
+        if speech is not None and self.speech_attn is not None:
+            residual = x
+            if self.normalize_before:
+                x = self.norm3(x)
+            if self.concat_after:
+                x_concat = torch.cat((x, self.speech_attn(x, speech, speech, speech_mask)), dim=-1)
+                x = residual + stoch_layer_coeff * self.concat_linear(x_concat)
+            else:
+                x = residual + stoch_layer_coeff * self.dropout(
+                    self.speech_attn(x, speech, speech, speech_mask)
+                )
+            if not self.normalize_before:
+                x = self.norm3(x)
 
         residual = x
         if self.normalize_before:

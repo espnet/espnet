@@ -319,7 +319,7 @@ utt_extra_files="text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}"
 [ -z "${lm_test_text}" ] && lm_test_text="${data_feats}/${test_sets%% *}/text.${tgt_case}.${tgt_lang}"
 
 # Check tokenization type
-token_listdir=data/${src_lang}_${tgt_lang}_token_list
+token_listdir=data/token_list
 # The tgt bpedir is set for all cases when using bpe
 tgt_bpedir="${token_listdir}/tgt_bpe_${tgt_bpemode}${tgt_nbpe}"
 tgt_bpeprefix="${tgt_bpedir}"/bpe
@@ -394,7 +394,7 @@ if [ -z "${st_tag}" ]; then
     else
         st_tag="train_${feats_type}"
     fi
-    st_tag+="_${src_lang}_${tgt_lang}_${tgt_token_type}_${tgt_case}"
+    st_tag+="_${tgt_token_type}_${tgt_case}"
     if [ "${tgt_token_type}" = bpe ]; then
         st_tag+="${tgt_nbpe}"
     fi
@@ -424,7 +424,7 @@ fi
 
 # The directory used for collect-stats mode
 if [ -z "${st_stats_dir}" ]; then
-    st_stats_dir="${expdir}/st_stats_${feats_type}_${src_lang}_${tgt_lang}_${tgt_token_type}"
+    st_stats_dir="${expdir}/st_stats_${feats_type}_${tgt_token_type}"
     if [ "${tgt_token_type}" = bpe ]; then
         st_stats_dir+="${tgt_nbpe}"
     fi

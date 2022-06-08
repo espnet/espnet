@@ -77,6 +77,7 @@ class TransformerEncoder(AbsEncoder):
         padding_idx: int = -1,
         interctc_layer_idx: List[int] = [],
         interctc_use_conditioning: bool = False,
+        speech_attn: bool = False,
     ):
         assert check_argument_types()
         super().__init__()
@@ -136,19 +137,38 @@ class TransformerEncoder(AbsEncoder):
             )
         else:
             raise NotImplementedError("Support only linear or conv1d.")
-        self.encoders = repeat(
-            num_blocks,
-            lambda lnum: EncoderLayer(
-                output_size,
-                MultiHeadedAttention(
-                    attention_heads, output_size, attention_dropout_rate
+        self.speech_attn = speech_attn
+        if speech_attn:
+            self.encoders = repeat(
+                num_blocks,
+                lambda lnum: EncoderLayer(
+                    output_size,
+                    MultiHeadedAttention(
+                        attention_heads, output_size, attention_dropout_rate
+                    ),
+                    positionwise_layer(*positionwise_layer_args),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                    speech_attn=MultiHeadedAttention(
+                        attention_heads, output_size, attention_dropout_rate
+                    ),
                 ),
-                positionwise_layer(*positionwise_layer_args),
-                dropout_rate,
-                normalize_before,
-                concat_after,
-            ),
-        )
+            )
+        else:
+            self.encoders = repeat(
+                num_blocks,
+                lambda lnum: EncoderLayer(
+                    output_size,
+                    MultiHeadedAttention(
+                        attention_heads, output_size, attention_dropout_rate
+                    ),
+                    positionwise_layer(*positionwise_layer_args),
+                    dropout_rate,
+                    normalize_before,
+                    concat_after,
+                ),
+            )
         if self.normalize_before:
             self.after_norm = LayerNorm(output_size)
 
@@ -167,6 +187,8 @@ class TransformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
         ctc: CTC = None,
+        speech: torch.Tensor = None,
+        speech_lens: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Embed positions in tensor.
 
@@ -178,6 +200,11 @@ class TransformerEncoder(AbsEncoder):
             position embedded tensor and mask
         """
         masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+
+        if speech_lens is not None:
+            speech_masks = (~make_pad_mask(speech_lens)[:, None, :]).to(xs_pad.device)
+        else:
+            speech_masks= None
 
         if self.embed is None:
             xs_pad = xs_pad
@@ -201,7 +228,10 @@ class TransformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
-            xs_pad, masks = self.encoders(xs_pad, masks)
+            if self.speech_attn:
+                xs_pad, masks = self.encoders(xs_pad, masks, speech, speech_masks)
+            else:
+                xs_pad, masks = self.encoders(xs_pad, masks)
         else:
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs_pad, masks = encoder_layer(xs_pad, masks)

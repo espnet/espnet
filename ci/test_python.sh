@@ -7,16 +7,11 @@ set -euo pipefail
 
 modules="espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/*/pyscripts tools/*.py ci/*.py"
 
-# black
-if ! black --check ${modules}; then
-    printf '[INFO] Please apply black:\n    $ black %s\n' "${modules}"
-    exit 1
-fi
-# isort
-if ! isort -c -v ${modules}; then
-    printf '[INFO] Please apply isort:\n    $ isort %s\n' "${modules}"
-    exit 1
-fi
+# # black
+# if ! black --check ${modules}; then
+#     printf 'Please apply:\n    $ black %s\n' "${modules}"
+#     exit 1
+# fi
 
 # flake8
 "$(dirname $0)"/test_flake8.sh

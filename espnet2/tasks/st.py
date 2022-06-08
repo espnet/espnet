@@ -34,6 +34,7 @@ from espnet2.asr.encoder.hubert_encoder import (
 )
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
+from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
@@ -44,6 +45,7 @@ from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
 )
+from espnet2.st.token_classification import LinearDecoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
@@ -116,6 +118,7 @@ encoder_choices = ClassChoices(
         contextual_block_transformer=ContextualBlockTransformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
+        branchformer=BranchformerEncoder,
         wav2vec2=FairSeqWav2Vec2Encoder,
         hubert=FairseqHubertEncoder,
         hubert_pretrain=FairseqHubertPretrainEncoder,
@@ -144,7 +147,8 @@ decoder_choices = ClassChoices(
         rnn=RNNDecoder,
     ),
     type_check=AbsDecoder,
-    default="rnn",
+    default=None,
+    optional=True,
 )
 extra_asr_decoder_choices = ClassChoices(
     "extra_asr_decoder",
@@ -193,9 +197,11 @@ encoder_mt_choices = ClassChoices(
         contextual_block_transformer=ContextualBlockTransformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
+        branchformer=BranchformerEncoder,
     ),
     type_check=AbsEncoder,
-    default="rnn",
+    default=None,
+    optional=True,
 )
 encoder_hier_choices = ClassChoices(
     "encoder_hier",
@@ -208,6 +214,15 @@ encoder_hier_choices = ClassChoices(
     ),
     type_check=AbsEncoder,
     default="rnn",
+)
+token_decoder_choices = ClassChoices(
+    "token_decoder",
+    classes=dict(
+        linear=LinearDecoder,
+    ),
+    type_check=torch.nn.Module,
+    default=None,
+    optional=True,
 )
 
 
@@ -240,6 +255,8 @@ class STTask(AbsTask):
         # --encoder_mt and --encoder_mt_conf
         encoder_mt_choices,
         encoder_hier_choices,
+        # --token_decoder and --token_decoder_conf
+        token_decoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -599,17 +616,21 @@ class STTask(AbsTask):
             postencoder = None
 
         # 5. Decoder
-        decoder_class = decoder_choices.get_class(args.decoder)
-        if args.decoder == "transformer_md":
-            speech_attn=True
-        else:
-            speech_attn=False
+        if getattr(args, "decoder", None) is not None:
+            decoder_class = decoder_choices.get_class(args.decoder)
+            if args.decoder == "transformer_md":
+                speech_attn=True
+            else:
+                speech_attn=False
 
-        decoder = decoder_class(
-            vocab_size=vocab_size,
-            encoder_output_size=encoder_output_size,
-            **args.decoder_conf,
-        )
+            decoder = decoder_class(
+                vocab_size=vocab_size,
+                encoder_output_size=encoder_output_size,
+                **args.decoder_conf,
+            )
+        else:
+            decoder = None
+            speech_attn=False
 
         # 6. CTC
         if src_token_list is not None:
@@ -620,6 +641,22 @@ class STTask(AbsTask):
             )
         else:
             ctc = None
+
+
+        if getattr(args, "token_decoder", None) is not None:
+            token_decoder_class = token_decoder_choices.get_class(args.token_decoder)
+            token_decoder = token_decoder_class(
+                    encoder_output_size=encoder_output_size,
+                    num_labels=vocab_size,
+                    **args.token_decoder_conf,
+                )
+            if "speech_attn" in args.token_decoder_conf:
+                speech_attn=args.token_decoder_conf["speech_attn"]
+            else:
+                speech_attn=False
+        else:
+            token_decoder=None
+            speech_attn=False
 
         use_md_model = getattr(args, "use_multidecoder", False)
         if use_md_model:
@@ -635,8 +672,11 @@ class STTask(AbsTask):
             asr_decoder_output_size_bf_softmax = asr_decoder.output_size_bf_softmax()
 
             # 8. Encoder MT
-            encoder_mt_class = encoder_mt_choices.get_class(args.encoder_mt)
-            encoder_mt = encoder_mt_class(input_size=asr_decoder_output_size_bf_softmax, **args.encoder_mt_conf)
+            if getattr(args, "encoder_mt", None) is not None:
+                encoder_mt_class = encoder_mt_choices.get_class(args.encoder_mt)
+                encoder_mt = encoder_mt_class(input_size=asr_decoder_output_size_bf_softmax, **args.encoder_mt_conf)
+            else:
+                encoder_mt= None
 
             use_hier_ctc = getattr(args, "use_hier_ctc", False)
             use_ctc_samp = getattr(args, "use_ctc_samp", False)
@@ -740,6 +780,7 @@ class STTask(AbsTask):
                     token_list=token_list,
                     src_token_list=src_token_list,
                     speech_attn = speech_attn,
+                    token_decoder=token_decoder,
                     **args.model_conf,
                 )
 

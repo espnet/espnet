@@ -10,6 +10,7 @@ valid_set="devel"
 test_sets="test devel"
 
 asr_config=conf/tuning/train_asr_conformer_yifan.yaml
+inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
     --lang en \
@@ -17,7 +18,9 @@ asr_config=conf/tuning/train_asr_conformer_yifan.yaml
     --nj 32 \
     --inference_nj 32 \
     --use_lm false \
-    --stop_stage 11\
+    --stage 13\
+    --stop_stage 13\
+    --gpu_inference true\
     --nbpe 5000 \
     --token_type word \
     --feats_type raw \
