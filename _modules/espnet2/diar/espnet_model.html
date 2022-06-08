@@ -160,6 +160,7 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
@@ -201,6 +202,7 @@
         <span class="n">encoder</span><span class="p">:</span> <span class="n">AbsEncoder</span><span class="p">,</span>
         <span class="n">decoder</span><span class="p">:</span> <span class="n">AbsDecoder</span><span class="p">,</span>
         <span class="n">attractor</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsAttractor</span><span class="p">],</span>
+        <span class="n">diar_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">attractor_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
@@ -212,6 +214,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="o">=</span> <span class="n">frontend</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">specaug</span> <span class="o">=</span> <span class="n">specaug</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">label_aggregator</span> <span class="o">=</span> <span class="n">label_aggregator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">diar_weight</span> <span class="o">=</span> <span class="n">diar_weight</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attractor_weight</span> <span class="o">=</span> <span class="n">attractor_weight</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attractor</span> <span class="o">=</span> <span class="n">attractor</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
@@ -247,7 +250,12 @@
         <span class="n">batch_size</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="c1"># 1. Encoder</span>
-        <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
+        <span class="c1"># Use bottleneck_feats if exist. Only for &quot;enh + diar&quot; task.</span>
+        <span class="n">bottleneck_feats</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;bottleneck_feats&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">bottleneck_feats_lengths</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;bottleneck_feats_lengths&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+            <span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">,</span> <span class="n">bottleneck_feats</span><span class="p">,</span> <span class="n">bottleneck_feats_lengths</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">attractor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># 2a. Decoder (baiscally a predction layer after encoder_out)</span>
@@ -296,7 +304,7 @@
                 <span class="n">pred</span><span class="p">,</span> <span class="n">spk_labels</span><span class="p">,</span> <span class="n">encoder_out_lens</span>
             <span class="p">)</span>
             <span class="n">loss_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attractor_loss</span><span class="p">(</span><span class="n">att_prob</span><span class="p">,</span> <span class="n">spk_labels</span><span class="p">)</span>
-            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_pit</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">attractor_weight</span> <span class="o">*</span> <span class="n">loss_att</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diar_weight</span> <span class="o">*</span> <span class="n">loss_pit</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">attractor_weight</span> <span class="o">*</span> <span class="n">loss_att</span>
         <span class="p">(</span>
             <span class="n">correct</span><span class="p">,</span>
             <span class="n">num_frames</span><span class="p">,</span>
@@ -350,13 +358,18 @@
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;feats&quot;</span><span class="p">:</span> <span class="n">feats</span><span class="p">,</span> <span class="s2">&quot;feats_lengths&quot;</span><span class="p">:</span> <span class="n">feats_lengths</span><span class="p">}</span></div>
 
 <div class="viewcode-block" id="ESPnetDiarizationModel.encode"><a class="viewcode-back" href="../../../_gen/espnet2.diar.html#espnet2.diar.espnet_model.ESPnetDiarizationModel.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">bottleneck_feats</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">bottleneck_feats_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Frontend + Encoder</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            speech: (Batch, Length, ...)</span>
 <span class="sd">            speech_lengths: (Batch,)</span>
+<span class="sd">            bottleneck_feats: (Batch, Length, ...): used for enh + diar</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="n">autocast</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
             <span class="c1"># 1. Extract feats</span>
@@ -373,7 +386,24 @@
             <span class="c1"># 4. Forward encoder</span>
             <span class="c1"># feats: (Batch, Length, Dim)</span>
             <span class="c1"># -&gt; encoder_out: (Batch, Length2, Dim)</span>
-            <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">bottleneck_feats</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># use only bottleneck feature</span>
+                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span>
+                    <span class="n">bottleneck_feats</span><span class="p">,</span> <span class="n">bottleneck_feats_lengths</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># use both frontend and bottleneck feats</span>
+                <span class="c1"># interpolate (copy) feats frames</span>
+                <span class="c1"># to match the length with bottleneck_feats</span>
+                <span class="n">feats</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">interpolate</span><span class="p">(</span>
+                    <span class="n">feats</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">bottleneck_feats</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="c1"># concatenate frontend LMF feature and bottleneck feature</span>
+                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">bottleneck_feats</span><span class="p">,</span> <span class="n">feats</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">bottleneck_feats_lengths</span>
+                <span class="p">)</span>
 
         <span class="k">assert</span> <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="p">(</span>
             <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span>

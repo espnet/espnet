@@ -162,6 +162,7 @@
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.ctc</span> <span class="kn">import</span> <span class="n">CTC</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetASRModel</span>
+<span class="kn">from</span> <span class="nn">espnet2.diar.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetDiarizationModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.espnet_enh_s2t_model</span> <span class="kn">import</span> <span class="n">ESPnetEnhS2TModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetEnhancementModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.abs_task</span> <span class="kn">import</span> <span class="n">AbsTask</span>
@@ -172,9 +173,18 @@
 <span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">postencoder_choices</span> <span class="k">as</span> <span class="n">asr_postencoder_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">preencoder_choices</span> <span class="k">as</span> <span class="n">asr_preencoder_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.asr</span> <span class="kn">import</span> <span class="n">specaug_choices</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.diar</span> <span class="kn">import</span> <span class="n">DiarizationTask</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.diar</span> <span class="kn">import</span> <span class="n">attractor_choices</span> <span class="k">as</span> <span class="n">diar_attractor_choices_</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.diar</span> <span class="kn">import</span> <span class="n">decoder_choices</span> <span class="k">as</span> <span class="n">diar_decoder_choices_</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.diar</span> <span class="kn">import</span> <span class="n">encoder_choices</span> <span class="k">as</span> <span class="n">diar_encoder_choices_</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.diar</span> <span class="kn">import</span> <span class="n">frontend_choices</span> <span class="k">as</span> <span class="n">diar_front_end_choices_</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.diar</span> <span class="kn">import</span> <span class="n">label_aggregator_choices</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.diar</span> <span class="kn">import</span> <span class="n">normalize_choices</span> <span class="k">as</span> <span class="n">diar_normalize_choices_</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.diar</span> <span class="kn">import</span> <span class="n">specaug_choices</span> <span class="k">as</span> <span class="n">diar_specaug_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.enh</span> <span class="kn">import</span> <span class="n">EnhancementTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.enh</span> <span class="kn">import</span> <span class="n">decoder_choices</span> <span class="k">as</span> <span class="n">enh_decoder_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.enh</span> <span class="kn">import</span> <span class="n">encoder_choices</span> <span class="k">as</span> <span class="n">enh_encoder_choices_</span>
+<span class="kn">from</span> <span class="nn">espnet2.tasks.enh</span> <span class="kn">import</span> <span class="n">mask_module_choices</span> <span class="k">as</span> <span class="n">enh_mask_module_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.enh</span> <span class="kn">import</span> <span class="n">separator_choices</span> <span class="k">as</span> <span class="n">enh_separator_choices_</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.st</span> <span class="kn">import</span> <span class="n">STTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.st</span> <span class="kn">import</span> <span class="n">decoder_choices</span> <span class="k">as</span> <span class="n">st_decoder_choices_</span>
@@ -187,6 +197,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.initialize</span> <span class="kn">import</span> <span class="n">initialize</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.collate_fn</span> <span class="kn">import</span> <span class="n">CommonCollateFn</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.preprocessor</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CommonPreprocessor</span><span class="p">,</span>
     <span class="n">CommonPreprocessor_multi</span><span class="p">,</span>
     <span class="n">MutliTokenizerCommonPreprocessor</span><span class="p">,</span>
 <span class="p">)</span>
@@ -202,6 +213,8 @@
 <span class="n">enh_decoder_choices</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;enh_decoder&quot;</span>
 <span class="n">enh_separator_choices</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">enh_separator_choices_</span><span class="p">)</span>
 <span class="n">enh_separator_choices</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;enh_separator&quot;</span>
+<span class="n">enh_mask_module_choices</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">enh_mask_module_choices_</span><span class="p">)</span>
+<span class="n">enh_mask_module_choices</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;enh_mask_module&quot;</span>
 
 <span class="c1"># ASR (also SLU)</span>
 <span class="n">asr_preencoder_choices</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">asr_preencoder_choices_</span><span class="p">)</span>
@@ -227,12 +240,28 @@
 <span class="n">st_extra_mt_decoder_choices</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">st_extra_mt_decoder_choices_</span><span class="p">)</span>
 <span class="n">st_extra_mt_decoder_choices</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;st_extra_mt_decoder&quot;</span>
 
+<span class="c1"># DIAR</span>
+<span class="n">diar_frontend_choices</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">diar_front_end_choices_</span><span class="p">)</span>
+<span class="n">diar_frontend_choices</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;diar_frontend&quot;</span>
+<span class="n">diar_specaug_choices</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">diar_specaug_choices_</span><span class="p">)</span>
+<span class="n">diar_specaug_choices</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;diar_specaug&quot;</span>
+<span class="n">diar_normalize_choices</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">diar_normalize_choices_</span><span class="p">)</span>
+<span class="n">diar_normalize_choices</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;diar_normalize&quot;</span>
+<span class="n">diar_encoder_choices</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">diar_encoder_choices_</span><span class="p">)</span>
+<span class="n">diar_encoder_choices</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;diar_encoder&quot;</span>
+<span class="n">diar_decoder_choices</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">diar_decoder_choices_</span><span class="p">)</span>
+<span class="n">diar_decoder_choices</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;diar_decoder&quot;</span>
+<span class="n">diar_attractor_choices</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">diar_attractor_choices_</span><span class="p">)</span>
+<span class="n">diar_attractor_choices</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;diar_attractor&quot;</span>
+
+
 <span class="n">MAX_REFERENCE_NUM</span> <span class="o">=</span> <span class="mi">100</span>
 
 <span class="n">name2task</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
     <span class="n">enh</span><span class="o">=</span><span class="n">EnhancementTask</span><span class="p">,</span>
     <span class="n">asr</span><span class="o">=</span><span class="n">ASRTask</span><span class="p">,</span>
     <span class="n">st</span><span class="o">=</span><span class="n">STTask</span><span class="p">,</span>
+    <span class="n">diar</span><span class="o">=</span><span class="n">DiarizationTask</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="c1"># More can be added to the following attributes</span>
@@ -241,6 +270,8 @@
     <span class="s2">&quot;encoder_conf&quot;</span><span class="p">,</span>
     <span class="s2">&quot;separator&quot;</span><span class="p">,</span>
     <span class="s2">&quot;separator_conf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mask_module&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mask_module_conf&quot;</span><span class="p">,</span>
     <span class="s2">&quot;decoder&quot;</span><span class="p">,</span>
     <span class="s2">&quot;decoder_conf&quot;</span><span class="p">,</span>
     <span class="s2">&quot;criterions&quot;</span><span class="p">,</span>
@@ -291,6 +322,25 @@
     <span class="s2">&quot;extra_mt_decoder_conf&quot;</span><span class="p">,</span>
 <span class="p">]</span>
 
+<span class="n">diar_attributes</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;input_size&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;num_spk&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;frontend&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;frontend_conf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;specaug&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;specaug_conf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;normalize&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;normalize_conf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;encoder&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;encoder_conf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;decoder&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;decoder_conf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;attractor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;attractor_conf&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;label_aggregator&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;label_aggregator_conf&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
 
 <div class="viewcode-block" id="EnhS2TTask"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.enh_s2t.EnhS2TTask">[docs]</a><span class="k">class</span> <span class="nc">EnhS2TTask</span><span class="p">(</span><span class="n">AbsTask</span><span class="p">):</span>
     <span class="c1"># If you need more than one optimizers, change this value</span>
@@ -304,6 +354,8 @@
         <span class="n">enh_separator_choices</span><span class="p">,</span>
         <span class="c1"># --enh_decoder and --enh_decoder_conf</span>
         <span class="n">enh_decoder_choices</span><span class="p">,</span>
+        <span class="c1"># --enh_mask_module and --enh_mask_module_conf</span>
+        <span class="n">enh_mask_module_choices</span><span class="p">,</span>
         <span class="c1"># --frontend and --frontend_conf</span>
         <span class="n">frontend_choices</span><span class="p">,</span>
         <span class="c1"># --specaug and --specaug_conf</span>
@@ -330,6 +382,20 @@
         <span class="n">st_extra_asr_decoder_choices</span><span class="p">,</span>
         <span class="c1"># --st_extra_mt_decoder and --st_extra_mt_decoder_conf</span>
         <span class="n">st_extra_mt_decoder_choices</span><span class="p">,</span>
+        <span class="c1"># --diar_frontend and --diar_frontend_conf</span>
+        <span class="n">diar_frontend_choices</span><span class="p">,</span>
+        <span class="c1"># --diar_specaug and --diar_specaug_conf</span>
+        <span class="n">diar_specaug_choices</span><span class="p">,</span>
+        <span class="c1"># --diar_normalize and --diar_normalize_conf</span>
+        <span class="n">diar_normalize_choices</span><span class="p">,</span>
+        <span class="c1"># --diar_encoder and --diar_encoder_conf</span>
+        <span class="n">diar_encoder_choices</span><span class="p">,</span>
+        <span class="c1"># --diar_decoder and --diar_decoder_conf</span>
+        <span class="n">diar_decoder_choices</span><span class="p">,</span>
+        <span class="c1"># --label_aggregator and --label_aggregator_conf</span>
+        <span class="n">label_aggregator_choices</span><span class="p">,</span>
+        <span class="c1"># --diar_attractor and --diar_attractor_conf</span>
+        <span class="n">diar_attractor_choices</span><span class="p">,</span>
     <span class="p">]</span>
 
     <span class="c1"># If you need to modify train() or eval() procedures, change Trainer class here</span>
@@ -338,11 +404,6 @@
 <div class="viewcode-block" id="EnhS2TTask.add_task_arguments"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.enh_s2t.EnhS2TTask.add_task_arguments">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">add_task_arguments</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Task related&quot;</span><span class="p">)</span>
-
-        <span class="c1"># NOTE(kamo): add_arguments(..., required=True) can&#39;t be used</span>
-        <span class="c1"># to provide --print_config mode. Instead of it, do as</span>
-        <span class="n">required</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_default</span><span class="p">(</span><span class="s2">&quot;required&quot;</span><span class="p">)</span>
-        <span class="n">required</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;token_list&quot;</span><span class="p">]</span>
 
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--token_list&quot;</span><span class="p">,</span>
@@ -400,6 +461,20 @@
         <span class="p">)</span>
 
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--diar_num_spk&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">int_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The number of speakers (for each recording) for diar submodel class&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--diar_input_size&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">int_or_none</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The number of input dimension of the feature&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--enh_model_conf&quot;</span><span class="p">,</span>
             <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="n">get_default_kwargs</span><span class="p">(</span><span class="n">ESPnetEnhancementModel</span><span class="p">),</span>
@@ -421,11 +496,18 @@
         <span class="p">)</span>
 
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--diar_model_conf&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">get_default_kwargs</span><span class="p">(</span><span class="n">ESPnetDiarizationModel</span><span class="p">),</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for diar submodel class.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--subtask_series&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
             <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;enh&quot;</span><span class="p">,</span> <span class="s2">&quot;asr&quot;</span><span class="p">),</span>
-            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;enh&quot;</span><span class="p">,</span> <span class="s2">&quot;asr&quot;</span><span class="p">,</span> <span class="s2">&quot;st&quot;</span><span class="p">],</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;enh&quot;</span><span class="p">,</span> <span class="s2">&quot;asr&quot;</span><span class="p">,</span> <span class="s2">&quot;st&quot;</span><span class="p">,</span> <span class="s2">&quot;diar&quot;</span><span class="p">],</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The series of subtasks in the pipeline.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -541,6 +623,8 @@
                     <span class="n">speech_name</span><span class="o">=</span><span class="s2">&quot;speech&quot;</span><span class="p">,</span>
                     <span class="n">text_name</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;src_text&quot;</span><span class="p">],</span>
                 <span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;diar&quot;</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">subtask_series</span><span class="p">:</span>
+                <span class="n">retval</span> <span class="o">=</span> <span class="n">CommonPreprocessor</span><span class="p">(</span><span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">retval</span> <span class="o">=</span> <span class="n">CommonPreprocessor_multi</span><span class="p">(</span>
                     <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
@@ -598,7 +682,7 @@
                     <span class="k">else</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
                 <span class="p">)</span>
 
-            <span class="k">if</span> <span class="n">subtask</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;asr&quot;</span><span class="p">,</span> <span class="s2">&quot;st&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">subtask</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;asr&quot;</span><span class="p">,</span> <span class="s2">&quot;st&quot;</span><span class="p">,</span> <span class="s2">&quot;diar&quot;</span><span class="p">]:</span>
                 <span class="n">m_subtask</span> <span class="o">=</span> <span class="s2">&quot;s2t&quot;</span>
             <span class="k">elif</span> <span class="n">subtask</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;enh&quot;</span><span class="p">]:</span>
                 <span class="n">m_subtask</span> <span class="o">=</span> <span class="n">subtask</span>

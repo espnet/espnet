@@ -161,7 +161,13 @@
 
 
 <div class="viewcode-block" id="PITSolver"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.wrappers.pit_solver.PITSolver">[docs]</a><span class="k">class</span> <span class="nc">PITSolver</span><span class="p">(</span><span class="n">AbsLossWrapper</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">criterion</span><span class="p">:</span> <span class="n">AbsEnhLoss</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">independent_perm</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">criterion</span><span class="p">:</span> <span class="n">AbsEnhLoss</span><span class="p">,</span>
+        <span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">independent_perm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">flexible_numspk</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Permutation Invariant Training Solver.</span>
 
 <span class="sd">        Args:</span>
@@ -174,11 +180,15 @@
 <span class="sd">                inherited.</span>
 <span class="sd">                NOTE (wangyou): You should be careful about the ordering of loss</span>
 <span class="sd">                    wrappers defined in the yaml config, if this argument is False.</span>
+<span class="sd">            flexible_numspk (bool):</span>
+<span class="sd">                If True, num_spk will be taken from inf to handle flexible numbers of</span>
+<span class="sd">                speakers. This is because ref may include dummy data in this case.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">criterion</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">independent_perm</span> <span class="o">=</span> <span class="n">independent_perm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flexible_numspk</span> <span class="o">=</span> <span class="n">flexible_numspk</span>
 
 <div class="viewcode-block" id="PITSolver.forward"><a class="viewcode-back" href="../../../../../_gen/espnet2.enh.html#espnet2.enh.loss.wrappers.pit_solver.PITSolver.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">inf</span><span class="p">,</span> <span class="n">others</span><span class="o">=</span><span class="p">{}):</span>
         <span class="sd">&quot;&quot;&quot;PITSolver forward.</span>
@@ -194,8 +204,11 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">perm</span> <span class="o">=</span> <span class="n">others</span><span class="p">[</span><span class="s2">&quot;perm&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;perm&quot;</span> <span class="ow">in</span> <span class="n">others</span> <span class="k">else</span> <span class="kc">None</span>
 
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">inf</span><span class="p">),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">inf</span><span class="p">))</span>
-        <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">flexible_numspk</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">inf</span><span class="p">),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">inf</span><span class="p">))</span>
+            <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">inf</span><span class="p">)</span>
 
         <span class="n">stats</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
 

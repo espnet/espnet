@@ -158,6 +158,9 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.diar.layers.abs_mask</span> <span class="kn">import</span> <span class="n">AbsMask</span>
+<span class="kn">from</span> <span class="nn">espnet2.diar.layers.multi_mask</span> <span class="kn">import</span> <span class="n">MultiMask</span>
+<span class="kn">from</span> <span class="nn">espnet2.diar.separator.tcn_separator_nomask</span> <span class="kn">import</span> <span class="n">TCNSeparatorNomask</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.decoder.conv_decoder</span> <span class="kn">import</span> <span class="n">ConvDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.decoder.null_decoder</span> <span class="kn">import</span> <span class="n">NullDecoder</span>
@@ -238,9 +241,17 @@
         <span class="n">tcn</span><span class="o">=</span><span class="n">TCNSeparator</span><span class="p">,</span>
         <span class="n">transformer</span><span class="o">=</span><span class="n">TransformerSeparator</span><span class="p">,</span>
         <span class="n">wpe_beamformer</span><span class="o">=</span><span class="n">NeuralBeamformer</span><span class="p">,</span>
+        <span class="n">tcn_nomask</span><span class="o">=</span><span class="n">TCNSeparatorNomask</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsSeparator</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;rnn&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">mask_module_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;mask_module&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">multi_mask</span><span class="o">=</span><span class="n">MultiMask</span><span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsMask</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">&quot;multi_mask&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">decoder_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
@@ -296,6 +307,8 @@
         <span class="n">separator_choices</span><span class="p">,</span>
         <span class="c1"># --decoder and --decoder_conf</span>
         <span class="n">decoder_choices</span><span class="p">,</span>
+        <span class="c1"># --mask_module and --mask_module_conf</span>
+        <span class="n">mask_module_choices</span><span class="p">,</span>
     <span class="p">]</span>
 
     <span class="c1"># If you need to modify train() or eval() procedures, change Trainer class here</span>
@@ -520,6 +533,13 @@
             <span class="n">encoder</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">separator_conf</span>
         <span class="p">)</span>
         <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">decoder</span><span class="p">)(</span><span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">separator</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;nomask&quot;</span><span class="p">):</span>
+            <span class="n">mask_module</span> <span class="o">=</span> <span class="n">mask_module_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">mask_module</span><span class="p">)(</span>
+                <span class="n">input_dim</span><span class="o">=</span><span class="n">encoder</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">mask_module_conf</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mask_module</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="n">loss_wrappers</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -540,7 +560,8 @@
             <span class="n">separator</span><span class="o">=</span><span class="n">separator</span><span class="p">,</span>
             <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
             <span class="n">loss_wrappers</span><span class="o">=</span><span class="n">loss_wrappers</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span>
+            <span class="n">mask_module</span><span class="o">=</span><span class="n">mask_module</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># FIXME(kamo): Should be done in model?</span>

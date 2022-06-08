@@ -857,9 +857,12 @@ diar_inference.py
                              [--train_config TRAIN_CONFIG]
                              [--model_file MODEL_FILE] [--model_tag MODEL_TAG]
                              [--batch_size BATCH_SIZE]
-                             [--segment_size SEGMENT_SIZE]
+                             [--segment_size SEGMENT_SIZE] [--hop_size HOP_SIZE]
                              [--show_progressbar SHOW_PROGRESSBAR]
-                             [--num_spk NUM_SPK]
+                             [--num_spk NUM_SPK] [--enh_s2t_task ENH_S2T_TASK]
+                             [--normalize_segment_scale NORMALIZE_SEGMENT_SCALE]
+                             [--normalize_output_wav NORMALIZE_OUTPUT_WAV]
+                             [--multiply_diar_result MULTIPLY_DIAR_RESULT]
     
     Speaker Diarization inference
     
@@ -899,11 +902,27 @@ diar_inference.py
       --segment_size SEGMENT_SIZE
                             Segment length in seconds for segment-wise speaker
                             diarization (default: None)
+      --hop_size HOP_SIZE   Hop length in seconds for segment-wise speech
+                            enhancement/separation (default: None)
       --show_progressbar SHOW_PROGRESSBAR
                             Whether to show a progress bar when performing
                             segment-wise speaker diarization (default: False)
       --num_spk NUM_SPK     Predetermined number of speakers for inference
                             (default: None)
+    
+    Enh + Diar related:
+      --enh_s2t_task ENH_S2T_TASK
+                            enhancement and diarization joint model (default:
+                            False)
+      --normalize_segment_scale NORMALIZE_SEGMENT_SCALE
+                            Whether to normalize the energy of the separated
+                            streams in each segment (default: False)
+      --normalize_output_wav NORMALIZE_OUTPUT_WAV
+                            Whether to normalize the predicted wav to [-1~1]
+                            (default: False)
+      --multiply_diar_result MULTIPLY_DIAR_RESULT
+                            Whether to multiply diar results to separated waves
+                            (default: False)
 .. _diar_train.py:
 
 diar_train.py
@@ -983,7 +1002,7 @@ diar_train.py
                          [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                          [--input_size INPUT_SIZE] [--model_conf MODEL_CONF]
                          [--use_preprocessor USE_PREPROCESSOR]
-                         [--frontend {default,sliding_window,s3prl}]
+                         [--frontend {default,sliding_window,s3prl,None}]
                          [--frontend_conf FRONTEND_CONF]
                          [--specaug {specaug,None}] [--specaug_conf SPECAUG_CONF]
                          [--normalize {global_mvn,utterance_mvn,None}]
@@ -1317,13 +1336,13 @@ diar_train.py
       --input_size INPUT_SIZE
                             The number of input dimension of the feature (default: None)
       --model_conf MODEL_CONF
-                            The keyword arguments for model class. (default: {'attractor_weight': 1.0})
+                            The keyword arguments for model class. (default: {'diar_weight': 1.0, 'attractor_weight': 1.0})
     
       Preprocess related
     
       --use_preprocessor USE_PREPROCESSOR
                             Apply preprocessing to data or not (default: True)
-      --frontend {default,sliding_window,s3prl}
+      --frontend {default,sliding_window,s3prl,None}
                             The frontend type (default: default)
       --frontend_conf FRONTEND_CONF
                             The keyword arguments for frontend (default: {})
@@ -1336,7 +1355,7 @@ diar_train.py
       --normalize_conf NORMALIZE_CONF
                             The keyword arguments for normalize (default: {})
       --encoder {conformer,transformer,rnn}
-                            The encoder type (default: rnn)
+                            The encoder type (default: transformer)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})
       --decoder {linear}    The decoder type (default: linear)
@@ -1521,10 +1540,13 @@ enh_s2t_train.py
                             [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                             [--input_size INPUT_SIZE] [--ctc_conf CTC_CONF]
                             [--enh_criterions ENH_CRITERIONS]
+                            [--diar_num_spk DIAR_NUM_SPK]
+                            [--diar_input_size DIAR_INPUT_SIZE]
                             [--enh_model_conf ENH_MODEL_CONF]
                             [--asr_model_conf ASR_MODEL_CONF]
                             [--st_model_conf ST_MODEL_CONF]
-                            [--subtask_series {enh,asr,st} [{enh,asr,st} ...]]
+                            [--diar_model_conf DIAR_MODEL_CONF]
+                            [--subtask_series {enh,asr,st,diar} [{enh,asr,st,diar} ...]]
                             [--model_conf MODEL_CONF]
                             [--use_preprocessor USE_PREPROCESSOR]
                             [--token_type {bpe,char,word,phn}]
@@ -1536,10 +1558,12 @@ enh_s2t_train.py
                             [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,g2pk,g2pk_no_space,korean_jaso,korean_jaso_no_space,g2p_is}]
                             [--enh_encoder {stft,conv,same}]
                             [--enh_encoder_conf ENH_ENCODER_CONF]
-                            [--enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer}]
+                            [--enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask}]
                             [--enh_separator_conf ENH_SEPARATOR_CONF]
                             [--enh_decoder {stft,conv,same}]
                             [--enh_decoder_conf ENH_DECODER_CONF]
+                            [--enh_mask_module {multi_mask}]
+                            [--enh_mask_module_conf ENH_MASK_MODULE_CONF]
                             [--frontend {default,sliding_window,s3prl,fused}]
                             [--frontend_conf FRONTEND_CONF]
                             [--specaug {specaug,None}]
@@ -1566,6 +1590,20 @@ enh_s2t_train.py
                             [--st_extra_asr_decoder_conf ST_EXTRA_ASR_DECODER_CONF]
                             [--st_extra_mt_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}]
                             [--st_extra_mt_decoder_conf ST_EXTRA_MT_DECODER_CONF]
+                            [--diar_frontend {default,sliding_window,s3prl,None}]
+                            [--diar_frontend_conf DIAR_FRONTEND_CONF]
+                            [--diar_specaug {specaug,None}]
+                            [--diar_specaug_conf DIAR_SPECAUG_CONF]
+                            [--diar_normalize {global_mvn,utterance_mvn,None}]
+                            [--diar_normalize_conf DIAR_NORMALIZE_CONF]
+                            [--diar_encoder {conformer,transformer,rnn}]
+                            [--diar_encoder_conf DIAR_ENCODER_CONF]
+                            [--diar_decoder {linear}]
+                            [--diar_decoder_conf DIAR_DECODER_CONF]
+                            [--label_aggregator {label_aggregator}]
+                            [--label_aggregator_conf LABEL_AGGREGATOR_CONF]
+                            [--diar_attractor {rnn,None}]
+                            [--diar_attractor_conf DIAR_ATTRACTOR_CONF]
     
     base parser
     
@@ -1893,13 +1931,19 @@ enh_s2t_train.py
       --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {'dropout_rate': 0.0, 'ctc_type': 'builtin', 'reduce': True, 'ignore_nan_grad': None, 'zero_infinity': True})
       --enh_criterions ENH_CRITERIONS
                             The criterions binded with the loss wrappers. (default: [{'name': 'si_snr', 'conf': {}, 'wrapper': 'fixed_order', 'wrapper_conf': {}}])
+      --diar_num_spk DIAR_NUM_SPK
+                            The number of speakers (for each recording) for diar submodel class (default: None)
+      --diar_input_size DIAR_INPUT_SIZE
+                            The number of input dimension of the feature (default: None)
       --enh_model_conf ENH_MODEL_CONF
                             The keyword arguments for enh submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None})
       --asr_model_conf ASR_MODEL_CONF
                             The keyword arguments for asr submodel class. (default: {'ctc_weight': 0.5, 'interctc_weight': 0.0, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'extract_feats_in_collect_stats': True})
       --st_model_conf ST_MODEL_CONF
                             The keyword arguments for st submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None})
-      --subtask_series {enh,asr,st} [{enh,asr,st} ...]
+      --diar_model_conf DIAR_MODEL_CONF
+                            The keyword arguments for diar submodel class. (default: {'diar_weight': 1.0, 'attractor_weight': 1.0})
+      --subtask_series {enh,asr,st,diar} [{enh,asr,st,diar} ...]
                             The series of subtasks in the pipeline. (default: ('enh', 'asr'))
       --model_conf MODEL_CONF
                             The keyword arguments for model class. (default: {'calc_enh_loss': True, 'bypass_enh_prob': 0})
@@ -1925,7 +1969,7 @@ enh_s2t_train.py
                             The enh_encoder type (default: stft)
       --enh_encoder_conf ENH_ENCODER_CONF
                             The keyword arguments for enh_encoder (default: {})
-      --enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer}
+      --enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask}
                             The enh_separator type (default: rnn)
       --enh_separator_conf ENH_SEPARATOR_CONF
                             The keyword arguments for enh_separator (default: {})
@@ -1933,6 +1977,10 @@ enh_s2t_train.py
                             The enh_decoder type (default: stft)
       --enh_decoder_conf ENH_DECODER_CONF
                             The keyword arguments for enh_decoder (default: {})
+      --enh_mask_module {multi_mask}
+                            The enh_mask_module type (default: multi_mask)
+      --enh_mask_module_conf ENH_MASK_MODULE_CONF
+                            The keyword arguments for enh_mask_module (default: {})
       --frontend {default,sliding_window,s3prl,fused}
                             The frontend type (default: default)
       --frontend_conf FRONTEND_CONF
@@ -1985,6 +2033,34 @@ enh_s2t_train.py
                             The st_extra_mt_decoder type (default: rnn)
       --st_extra_mt_decoder_conf ST_EXTRA_MT_DECODER_CONF
                             The keyword arguments for st_extra_mt_decoder (default: {})
+      --diar_frontend {default,sliding_window,s3prl,None}
+                            The diar_frontend type (default: default)
+      --diar_frontend_conf DIAR_FRONTEND_CONF
+                            The keyword arguments for diar_frontend (default: {})
+      --diar_specaug {specaug,None}
+                            The diar_specaug type (default: None)
+      --diar_specaug_conf DIAR_SPECAUG_CONF
+                            The keyword arguments for diar_specaug (default: {})
+      --diar_normalize {global_mvn,utterance_mvn,None}
+                            The diar_normalize type (default: utterance_mvn)
+      --diar_normalize_conf DIAR_NORMALIZE_CONF
+                            The keyword arguments for diar_normalize (default: {})
+      --diar_encoder {conformer,transformer,rnn}
+                            The diar_encoder type (default: transformer)
+      --diar_encoder_conf DIAR_ENCODER_CONF
+                            The keyword arguments for diar_encoder (default: {})
+      --diar_decoder {linear}
+                            The diar_decoder type (default: linear)
+      --diar_decoder_conf DIAR_DECODER_CONF
+                            The keyword arguments for diar_decoder (default: {})
+      --label_aggregator {label_aggregator}
+                            The label_aggregator type (default: label_aggregator)
+      --label_aggregator_conf LABEL_AGGREGATOR_CONF
+                            The keyword arguments for label_aggregator (default: {})
+      --diar_attractor {rnn,None}
+                            The diar_attractor type (default: None)
+      --diar_attractor_conf DIAR_ATTRACTOR_CONF
+                            The keyword arguments for diar_attractor (default: {})
 .. _enh_scoring.py:
 
 enh_scoring.py
@@ -1998,6 +2074,7 @@ enh_scoring.py
                           [--dtype {float16,float32,float64}] --ref_scp REF_SCP
                           --inf_scp INF_SCP [--key_file KEY_FILE]
                           [--ref_channel REF_CHANNEL]
+                          [--flexible_numspk FLEXIBLE_NUMSPK]
     
     Frontend inference
     
@@ -2014,6 +2091,7 @@ enh_scoring.py
       --inf_scp INF_SCP
       --key_file KEY_FILE
       --ref_channel REF_CHANNEL
+      --flexible_numspk FLEXIBLE_NUMSPK
 .. _enh_train.py:
 
 enh_train.py
@@ -2104,9 +2182,11 @@ enh_train.py
                         [--sample_rate SAMPLE_RATE]
                         [--force_single_channel FORCE_SINGLE_CHANNEL]
                         [--encoder {stft,conv,same}] [--encoder_conf ENCODER_CONF]
-                        [--separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer}]
+                        [--separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask}]
                         [--separator_conf SEPARATOR_CONF]
                         [--decoder {stft,conv,same}] [--decoder_conf DECODER_CONF]
+                        [--mask_module {multi_mask}]
+                        [--mask_module_conf MASK_MODULE_CONF]
     
     base parser
     
@@ -2461,7 +2541,7 @@ enh_train.py
                             The encoder type (default: stft)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})
-      --separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer}
+      --separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask}
                             The separator type (default: rnn)
       --separator_conf SEPARATOR_CONF
                             The keyword arguments for separator (default: {})
@@ -2469,6 +2549,10 @@ enh_train.py
                             The decoder type (default: stft)
       --decoder_conf DECODER_CONF
                             The keyword arguments for decoder (default: {})
+      --mask_module {multi_mask}
+                            The mask_module type (default: multi_mask)
+      --mask_module_conf MASK_MODULE_CONF
+                            The keyword arguments for mask_module (default: {})
 .. _gan_tts_train.py:
 
 gan_tts_train.py

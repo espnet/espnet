@@ -1496,7 +1496,7 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 <span id="id25"></span><h2>espnet2.bin.diar_inference<a class="headerlink" href="#espnet2-bin-diar-inference" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.bin.diar_inference"></span><dl class="class">
 <dt id="espnet2.bin.diar_inference.DiarizeSpeech">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.diar_inference.</code><code class="sig-name descname">DiarizeSpeech</code><span class="sig-paren">(</span><em class="sig-param">train_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">model_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">segment_size: Optional[float] = None</em>, <em class="sig-param">normalize_segment_scale: bool = False</em>, <em class="sig-param">show_progressbar: bool = False</em>, <em class="sig-param">num_spk: Optional[int] = None</em>, <em class="sig-param">device: str = 'cpu'</em>, <em class="sig-param">dtype: str = 'float32'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#DiarizeSpeech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.DiarizeSpeech" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.diar_inference.</code><code class="sig-name descname">DiarizeSpeech</code><span class="sig-paren">(</span><em class="sig-param">train_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">model_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">segment_size: Optional[float] = None</em>, <em class="sig-param">hop_size: Optional[float] = None</em>, <em class="sig-param">normalize_segment_scale: bool = False</em>, <em class="sig-param">show_progressbar: bool = False</em>, <em class="sig-param">normalize_output_wav: bool = False</em>, <em class="sig-param">num_spk: Optional[int] = None</em>, <em class="sig-param">device: str = 'cpu'</em>, <em class="sig-param">dtype: str = 'float32'</em>, <em class="sig-param">enh_s2t_task: bool = False</em>, <em class="sig-param">multiply_diar_result: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#DiarizeSpeech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.DiarizeSpeech" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>DiarizeSpeech class</p>
 <p class="rubric">Examples</p>
@@ -1507,6 +1507,37 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 <span class="go">[(spk_id, start, end), (spk_id2, start2, end2)]</span>
 </pre></div>
 </div>
+<dl class="method">
+<dt id="espnet2.bin.diar_inference.DiarizeSpeech.cal_permumation">
+<code class="sig-name descname">cal_permumation</code><span class="sig-paren">(</span><em class="sig-param">ref_wavs</em>, <em class="sig-param">enh_wavs</em>, <em class="sig-param">criterion='si_snr'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#DiarizeSpeech.cal_permumation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.DiarizeSpeech.cal_permumation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the permutation between seaprated streams in two adjacent segments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ref_wavs</strong> (<em>List</em><em>[</em><em>torch.Tensor</em><em>]</em>) – [(Batch, Nsamples)]</p></li>
+<li><p><strong>enh_wavs</strong> (<em>List</em><em>[</em><em>torch.Tensor</em><em>]</em>) – [(Batch, Nsamples)]</p></li>
+<li><p><strong>criterion</strong> (<em>str</em>) – one of (“si_snr”, “mse”, “corr)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>permutation for enh_wavs (Batch, num_spk)</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>perm (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.bin.diar_inference.DiarizeSpeech.decode">
+<code class="sig-name descname">decode</code><span class="sig-paren">(</span><em class="sig-param">encoder_out</em>, <em class="sig-param">encoder_out_lens</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#DiarizeSpeech.decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.DiarizeSpeech.decode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.bin.diar_inference.DiarizeSpeech.encode">
+<code class="sig-name descname">encode</code><span class="sig-paren">(</span><em class="sig-param">speech</em>, <em class="sig-param">lengths</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#DiarizeSpeech.encode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.DiarizeSpeech.encode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="espnet2.bin.diar_inference.DiarizeSpeech.from_pretrained">
 <em class="property">static </em><code class="sig-name descname">from_pretrained</code><span class="sig-paren">(</span><em class="sig-param">model_tag: Optional[str] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#DiarizeSpeech.from_pretrained"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.DiarizeSpeech.from_pretrained" title="Permalink to this definition">¶</a></dt>
@@ -1525,6 +1556,11 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 </dl>
 </dd></dl>
 
+<dl class="method">
+<dt id="espnet2.bin.diar_inference.DiarizeSpeech.permute_diar">
+<code class="sig-name descname">permute_diar</code><span class="sig-paren">(</span><em class="sig-param">waves</em>, <em class="sig-param">spk_prediction</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#DiarizeSpeech.permute_diar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.DiarizeSpeech.permute_diar" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="function">
@@ -1534,7 +1570,7 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 
 <dl class="function">
 <dt id="espnet2.bin.diar_inference.inference">
-<code class="sig-prename descclassname">espnet2.bin.diar_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, fs: int, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], train_config: Optional[str], model_file: Optional[str], model_tag: Optional[str], allow_variable_data_keys: bool, segment_size: Optional[float], show_progressbar: bool, num_spk: Optional[int]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">espnet2.bin.diar_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, fs: int, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], train_config: Optional[str], model_file: Optional[str], model_tag: Optional[str], allow_variable_data_keys: bool, segment_size: Optional[float], hop_size: Optional[float], normalize_segment_scale: bool, show_progressbar: bool, num_spk: Optional[int], normalize_output_wav: bool, multiply_diar_result: bool, enh_s2t_task: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/diar_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.diar_inference.inference" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -1574,7 +1610,7 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 
 <dl class="function">
 <dt id="espnet2.bin.enh_scoring.scoring">
-<code class="sig-prename descclassname">espnet2.bin.enh_scoring.</code><code class="sig-name descname">scoring</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, dtype: str, log_level: Union[int, str], key_file: str, ref_scp: List[str], inf_scp: List[str], ref_channel: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_scoring.html#scoring"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_scoring.scoring" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">espnet2.bin.enh_scoring.</code><code class="sig-name descname">scoring</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, dtype: str, log_level: Union[int, str], key_file: str, ref_scp: List[str], inf_scp: List[str], ref_channel: int, flexible_numspk: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_scoring.html#scoring"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_scoring.scoring" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </section>
