@@ -186,6 +186,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.train.distributed_utils</span> <span class="kn">import</span> <span class="n">DistributedOption</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.reporter</span> <span class="kn">import</span> <span class="n">Reporter</span><span class="p">,</span> <span class="n">SubReporter</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.build_dataclass</span> <span class="kn">import</span> <span class="n">build_dataclass</span>
+<span class="kn">from</span> <span class="nn">espnet2.utils.kwargs2args</span> <span class="kn">import</span> <span class="n">kwargs2args</span>
 
 <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
     <span class="kn">from</span> <span class="nn">torch.distributed</span> <span class="kn">import</span> <span class="n">ReduceOp</span>
@@ -665,6 +666,24 @@
             <span class="k">if</span> <span class="n">no_forward_run</span><span class="p">:</span>
                 <span class="n">all_steps_are_invalid</span> <span class="o">=</span> <span class="kc">False</span>
                 <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">iiter</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">summary_writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">args</span> <span class="o">=</span> <span class="n">kwargs2args</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">forward</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
+                <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;inpect.signature() is failed for the model. &quot;</span>
+                        <span class="s2">&quot;The graph can&#39;t be added for tensorboard.&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">summary_writer</span><span class="o">.</span><span class="n">add_graph</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">use_strict_trace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                            <span class="s2">&quot;summary_writer.add_graph() is failed for the model. &quot;</span>
+                            <span class="s2">&quot;The graph can&#39;t be added for tensorboard.&quot;</span>
+                        <span class="p">)</span>
+                    <span class="k">del</span> <span class="n">args</span>
 
             <span class="k">with</span> <span class="n">autocast</span><span class="p">(</span><span class="n">scaler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
                 <span class="k">with</span> <span class="n">reporter</span><span class="o">.</span><span class="n">measure_time</span><span class="p">(</span><span class="s2">&quot;forward_time&quot;</span><span class="p">):</span>

@@ -102,3 +102,14 @@ espnet2.utils.nested_dict_action
     :undoc-members:
     :show-inheritance:
 
+
+.. _espnet2.utils.kwargs2args:
+
+espnet2.utils.kwargs2args
+-------------------------
+
+.. automodule:: espnet2.utils.kwargs2args
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
