@@ -1,6 +1,6 @@
+import logging
 import math
 import random
-import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Collection, Dict, Iterable, List, Union
@@ -601,9 +601,9 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         if self.train:
             data = self._mix_speech_(uid, data)
 
-        
         assert check_return_type(data)
         return data
+
 
 class EnhPreprocessor(CommonPreprocessor):
     """Preprocessor for Speech Enhancement (Enh) task."""

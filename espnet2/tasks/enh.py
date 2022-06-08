@@ -54,8 +54,7 @@ from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import DynamicMixingPreprocessor
-from espnet2.train.preprocessor import EnhPreprocessor
+from espnet2.train.preprocessor import DynamicMixingPreprocessor, EnhPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -317,16 +316,20 @@ class EnhancementTask(AbsTask):
         dynamic_mixing = getattr(args, "dynamic_mixing", False)
         use_preprocessor = getattr(args, "use_preprocessor", False)
 
-        assert (dynamic_mixing and  use_preprocessor) is not True, \
-             "'dynamic_mixing' and 'use_preprocessor' should not both be 'True'"
+        assert (
+            dynamic_mixing and use_preprocessor
+        ) is not True, (
+            "'dynamic_mixing' and 'use_preprocessor' should not both be 'True'"
+        )
 
-        if getattr(args, "dynamic_mixing", False):
+        if dynamic_mixing:
             retval = DynamicMixingPreprocessor(
                 train=train,
                 source_scp=args.train_data_path_and_name_and_type[0][0],
                 num_spk=args.separator_conf["num_spk"],
-                dynamic_mixing_gain_db=args.dynamic_mixing_gain_db,)
-        if args.use_preprocessor:
+                dynamic_mixing_gain_db=args.dynamic_mixing_gain_db,
+            )
+        elif use_preprocessor:
             retval = EnhPreprocessor(
                 train=train,
                 # NOTE(kamo): Check attribute existence for backward compatibility
