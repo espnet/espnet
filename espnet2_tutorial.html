@@ -68,7 +68,10 @@
 <li class="toctree-l2"><a class="reference internal" href="#start-from-a-specified-stage-and-stop-at-a-specified-stage">Start from a specified stage and stop at a specified stage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#change-the-configuration-for-training">Change the configuration for training</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#change-the-number-of-parallel-jobs">Change the number of parallel jobs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#multi-gpus-training-and-distributed-training">Multi GPUs training and distributed training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#multi-gpus-training-and-distributed-training">Multi GPUs training and distributed training</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#relationship-between-mini-batch-size-and-number-of-gpus">Relationship between mini-batch size and number of GPUs</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#use-specified-experiment-directory-for-evaluation">Use specified experiment directory for evaluation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#evaluation-without-training-using-pretrained-model">Evaluation without training using pretrained model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#packing-and-sharing-your-trained-model">Packing and sharing your trained model</a></li>
@@ -430,6 +433,10 @@ You need to do one of the following two ways to change the training configuratio
 <li><p><a class="reference internal" href="espnet2_distributed.html"><span class="doc">Distributed training</span></a></p></li>
 <li><p><a class="reference internal" href="parallelization.html"><span class="doc">Using Job scheduling system</span></a></p></li>
 </ul>
+<section id="relationship-between-mini-batch-size-and-number-of-gpus">
+<h3>Relationship between mini-batch size and number of GPUs<a class="headerlink" href="#relationship-between-mini-batch-size-and-number-of-gpus" title="Permalink to this headline">¶</a></h3>
+<p>The behavior of batch size in ESPnet2 during multi-GPU training is different from that in ESPnet1. <strong>In ESPnet2, the total batch size is not changed regardless of the number of GPUs.</strong> Therefore, you need to manually increase the batch size if you increase the number of GPUs. Please refer to this <a class="reference external" href="https://espnet.github.io/espnet/espnet2_training_option.html#the-relation-between-mini-batch-size-and-number-of-gpus">doc</a> for more information.</p>
+</section>
 </section>
 <section id="use-specified-experiment-directory-for-evaluation">
 <h2>Use specified experiment directory for evaluation<a class="headerlink" href="#use-specified-experiment-directory-for-evaluation" title="Permalink to this headline">¶</a></h2>

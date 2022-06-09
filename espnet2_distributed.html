@@ -242,6 +242,7 @@
 </tbody>
 </table><section id="examples">
 <h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<p>Note: The behavior of batch size in ESPnet2 during multi-GPU training is different from that in ESPnet1. <strong>In ESPnet2, the total batch size is not changed regardless of the number of GPUs.</strong> Therefore, you need to manually increase the batch size if you increase the number of GPUs. Please refer to this <a class="reference external" href="https://espnet.github.io/espnet/espnet2_training_option.html#the-relation-between-mini-batch-size-and-number-of-gpus">doc</a> for more information.</p>
 <section id="single-node-with-4gpus-with-distributed-mode">
 <h3>Single node with 4GPUs with distributed mode<a class="headerlink" href="#single-node-with-4gpus-with-distributed-mode" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>% python -m espnet2.bin.asr_train --ngpu <span class="m">4</span> --multiprocessing_distributed <span class="nb">true</span>
