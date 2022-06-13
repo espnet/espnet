@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-lang=tav # bzd (Bribri), gug (Guarani), gvc (Kotiria), qwe (Quechua), tav (Wa'ikhana)
+lang=tav # bzd (Bribri), gn (Guarani), gvc (Kotiria), quy (Quechua), tav (Wa'ikhana)
 
 train_set="train_${lang}"
 valid_set="dev_${lang}"
