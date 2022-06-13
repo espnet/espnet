@@ -140,7 +140,6 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 if is_final:
                     h = x
                     block_is_final = True
-                    logging.info("received final input.")
                 else:
                     break
 

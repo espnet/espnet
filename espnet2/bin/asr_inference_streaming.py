@@ -108,7 +108,6 @@ class Speech2TextStreaming:
             length_bonus=penalty,
         )
 
-        assert "frontend_conf" in asr_train_args
         assert "encoder_conf" in asr_train_args
         assert "look_ahead" in asr_train_args.encoder_conf
         assert "hop_size" in asr_train_args.encoder_conf
@@ -194,22 +193,7 @@ class Speech2TextStreaming:
         else:
             self.win_length = self.n_fft
 
-        if "fs" in asr_train_args.frontend_conf:
-            self.fs = asr_train_args.frontend_conf["fs"]
-        else:
-            raise RuntimeError("Sample frequency 'fs' entry missing in "
-                "config file %s" % asr_train_config)
-        if "8k" == self.fs:
-            self.fs = 8000
-        elif "16k" == self.fs:
-            self.fs = 16000
-        else:
-            self.fs = int(self.fs)
-        
         self.reset()
-
-    def get_sample_rate(self):
-        return self.fs
 
     def reset(self):
         self.frontend_states = None
@@ -447,7 +431,6 @@ def inference(
         decoder_text_length_limit=decoder_text_length_limit,
         encoded_feat_length_limit=encoded_feat_length_limit,
     )
-    sample_rate = speech2text.get_sample_rate()
 
     # 3. Build data-iterator
     loader = ASRTask.build_streaming_iterator(
@@ -473,10 +456,6 @@ def inference(
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
             assert len(batch.keys()) == 1
 
-            # log number of 10ms input frames needed for RTF calculations
-            num_frames = int(len(batch["speech"]) / sample_rate * 1000 / 10)
-            logging.info("input lengths: %s" % num_frames)
-
             try:
                 if sim_chunk_length == 0:
                     # N-best list of (text, token, token_int, hyp_object)
@@ -497,7 +476,6 @@ def inference(
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
                 results = [[" ", ["<space>"], [2], hyp]] * nbest
-            logging.info("prediction complete.\n")
 
             # Only supporting batch_size==1
             key = keys[0]

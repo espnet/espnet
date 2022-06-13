@@ -1256,9 +1256,11 @@ if ! "${skip_eval}"; then
                     ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
 
             # 3. Calculate and report RTF based on decoding logs
-            log "Calculating RTF & latency ... log: '${_logdir}/calculate_rtf.log'"
-            ../../../utils/calculate_rtf.py --log-dir ${_logdir} \
-                --log-name "asr_inference" >"${_logdir}/calculate_rtf.log"
+            if [ $asr_inference_tool == "espnet2.bin.asr_inference" ]; then
+                log "Calculating RTF & latency ... log: '${_logdir}/calculate_rtf.log'"
+                ../../../utils/calculate_rtf.py --log-dir ${_logdir} \
+                    --log-name "asr_inference" >"${_logdir}/calculate_rtf.log"
+            fi
 
             # 4. Concatenates the output files from each jobs
             for f in token token_int score text; do
