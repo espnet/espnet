@@ -38,16 +38,16 @@ lang_name=""
 
 if [ "${lang}" = "bzd" ]; then
     lang_name="Bribri"
-elif [ "${lang}" = "gug" ]; then
+elif [ "${lang}" = "gn" ]; then
     lang_name="Guarani"
 elif [ "${lang}" = "gvc" ]; then
     lang_name="Kotiria"
-elif [ "${lang}" = "qwe" ]; then
+elif [ "${lang}" = "quy" ]; then
     lang_name="Quechua"
 elif [ "${lang}" = "tav" ]; then
     lang_name="Waikhana"
 else
-    log "Language is \"${lang}\", but it must be one of: bzd, gug, gvc, qwe, tav"
+    log "Language is \"${lang}\", but it must be one of: bzd, gn, gvc, quy, tav"
     log "Pass a correct language value in the \`--lang\` argument"
     exit 1
 fi
