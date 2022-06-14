@@ -61,13 +61,13 @@ def main():
     decode_sec = 0
     n_utt = 0
 
-    audio_durations = []
-    start_times = []
-    end_times = []
     log_files = args.log_name + ".*.log"
     start_times_marker = "INFO: " + args.start_times_marker
     end_times_marker = "INFO: " + args.end_times_marker
     for x in glob.glob(os.path.join(args.log_dir, log_files)):
+        audio_durations = []
+        start_times = []
+        end_times = []
         with codecs.open(x, "r", "utf-8") as f:
             for line in f:
                 x = line.strip()
