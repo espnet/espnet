@@ -21,6 +21,7 @@ from espnet.nets.pytorch_backend.rnn.attentions import (
     NoAtt,
 )
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
+from espnet2.gan_tts.jets.alignments import AlignmentModule
 
 
 @torch.no_grad()
@@ -97,6 +98,10 @@ def calculate_all_attentions(
             ):
                 c, w = output
                 att_w = w.detach().cpu()
+                outputs.setdefault(name, []).append(att_w)
+            elif isinstance(module, AlignmentModule):
+                w = output
+                att_w = torch.exp(w).detach().cpu()
                 outputs.setdefault(name, []).append(att_w)
 
         handle = modu.register_forward_hook(hook)
