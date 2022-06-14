@@ -296,7 +296,7 @@ def main():
 
     if not is_vis_preprocess_pkgs_avail:
         raise ImportError(
-            " You must have'dlib, cv2, skimage, skvideo' available. Please install it via 
+            " You must have'dlib, cv2, skimage, skvideo' available. Please install it via" 
             " 'pip install dlib==19.17.0'"
             " 'pip install opencv-python'"
             " 'pip install sk-video'"

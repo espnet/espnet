@@ -44,10 +44,10 @@ if $download_and_untar; then
     local/download_and_untar.sh --remove-archive ${LRS3} ${lrs3_username} ${lrs3_password}
 fi
 
-if $mp4_to_wav; then
-    log "Extacting .wav files from .mp4 files and storing it under the same directory"
-    local/mp4_to_wav.sh ${LRS3}
-fi
+# if $mp4_to_wav; then
+#     log "Extacting .wav files from .mp4 files and storing it under the same directory"
+#     local/mp4_to_wav.sh ${LRS3}
+# fi
 
 # Make the Folders where ESPNet data-prep files will be stored
 for dataset in train dev test; do
