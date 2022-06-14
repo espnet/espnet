@@ -19,8 +19,6 @@ nbpe=4000
 
 ./asr.sh \
     --use_lm false \
-    --stage 1 \
-    --stop_stage 13 \
     --local_data_opts "${tgt_lang}" \
     --audio_format "flac.ark" \
     --nj 40 \

@@ -25,8 +25,6 @@ src_case=lc.rm
 tgt_case=tc
 
 ./st.sh \
-    --stage 1 \
-    --stop_stage 13 \
     --local_data_opts "${tgt_lang}" \
     --audio_format "flac.ark" \
     --nj 40 \

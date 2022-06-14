@@ -43,7 +43,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && [ ! -d "${MUST_C}" ]; then
     log "stage 1: Data Download"
-    mkdir ${MUST_C}
+    mkdir -p ${MUST_C}
     local/download_and_untar.sh ${MUST_C} ${lang} "v2"
 fi
 
