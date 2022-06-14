@@ -24,7 +24,31 @@ def get_parser():
         "--log-name",
         type=str,
         default="decode",
-        help="name of logfile, e.g., 'decode' or 'asr_inference'",
+        choices=['decode', 'asr_inference'],
+        help="name of logfile, e.g., 'decode' (espnet1) and "
+             "'asr_inference' (espnet2)",
+    )
+    parser.add_argument(
+        "--input-shift",
+        type=float,
+        default=10.0,
+        help="shift of inputs in milliseconds",
+    )
+    parser.add_argument(
+        "--start-times-marker",
+        type=str,
+        default="input length",
+        choices=['input length', 'speech length'],
+        help="String marking start of decoding in logfile, e.g., "
+             "'input length' (espnet1) and 'speech length' (espnet2)",
+    )
+    parser.add_argument(
+       "--end-times-marker",
+        type=str,
+        default="prediction",
+        choices=['prediction', 'best hypo'],
+        help="String marking end of decoding in logfile, e.g., "
+             "'prediction' (espnet1) and 'best hypo' (espnet2)",
     )
     return parser
 
@@ -41,21 +65,23 @@ def main():
     start_times = []
     end_times = []
     log_files = args.log_name + ".*.log"
+    start_times_marker = "INFO: " + args.start_times_marker
+    end_times_marker = "INFO: " + args.end_times_marker
     for x in glob.glob(os.path.join(args.log_dir, log_files)):
         with codecs.open(x, "r", "utf-8") as f:
             for line in f:
                 x = line.strip()
-                if "INFO: input lengths" in x:
-                    audio_durations += [int(x.split("input lengths: ")[1])]
+                if start_times_marker in x:
+                    audio_durations += [int(x.split(args.start_times_marker + ": ")[1])]
                     start_times += [parser.parse(x.split("(")[0])]
-                elif "INFO: prediction" in x:
+                elif end_times_marker in x:
                     end_times += [parser.parse(x.split("(")[0])]
         assert len(audio_durations) == len(end_times), (
             len(audio_durations),
             len(end_times),
         )
         assert len(start_times) == len(end_times), (len(start_times), len(end_times))
-        audio_sec += sum(audio_durations) / 100  # [sec]
+        audio_sec += sum(audio_durations) * args.input_shift / 1000  # [sec]
         decode_sec += sum(
             [
                 (end - start).total_seconds()

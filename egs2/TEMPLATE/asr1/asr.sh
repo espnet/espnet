@@ -1257,9 +1257,15 @@ if ! "${skip_eval}"; then
 
             # 3. Calculate and report RTF based on decoding logs
             if [ $asr_inference_tool == "espnet2.bin.asr_inference" ]; then
-                log "Calculating RTF & latency ... log: '${_logdir}/calculate_rtf.log'"
-                ../../../utils/calculate_rtf.py --log-dir ${_logdir} \
-                    --log-name "asr_inference" >"${_logdir}/calculate_rtf.log"
+                log "Calculating RTF & latency... log: '${_logdir}/calculate_rtf.log'"
+                _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
+                _sample_shift=$(python3 -c "print(1 / ${_fs} * 1000)") # in ms
+                ../../../utils/calculate_rtf.py \
+                    --log-dir ${_logdir} \
+                    --log-name "asr_inference" \
+                    --input-shift ${_sample_shift} \
+                    --start-times-marker "speech length" \
+                    --end-times-marker "best hypo" >"${_logdir}/calculate_rtf.log"
             fi
 
             # 4. Concatenates the output files from each jobs
