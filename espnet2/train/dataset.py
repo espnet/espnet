@@ -135,12 +135,13 @@ def rand_int_loader(filepath, loader_type):
         raise RuntimeError(f"e.g rand_int_3_10: but got {loader_type}")
     return IntRandomGenerateDataset(filepath, low, high)
 
-def vision_loader(path, sample_step = 1, float_dtype=None):
+def vision_loader(path, vision_sample_step = 1, float_dtype=None):
     # audio_rate: audio frame rate
     # vis_step: expected span of auudio frames per captured video image
 
     loader = VisionFileReader(path)
-    return VisionDataset(loader, sample_step = sample_step, normalize = True, dtype = float_dtype)
+    return VisionDataset(loader, sample_step = vision_sample_step, 
+                            normalize = True, dtype = float_dtype)
 
 DATA_TYPES = {
     "sound": dict(
@@ -263,7 +264,7 @@ DATA_TYPES = {
     ),
     "vision": dict(
         func=vision_loader,
-        kwargs=["sample_step", "float_dtype"],
+        kwargs=["vision_sample_step", "float_dtype"],
         help="vision file video stream loader, currently supports and tested on .mp4"
         "\n\n"
         "   utterance_id_a a.mp4\n"
@@ -271,28 +272,6 @@ DATA_TYPES = {
         "   ...",
     ),
 }
-
-def truncate_align(rate_ratio:float, source_to_modify:torch.Tensor, source_unchanged:torch.Tensor, future_rate_change = 1.0) -> torch.Tensor:
-    assert check_argument_types()
-    indices = torch.round(torch.arange(0, len(source_unchanged) * future_rate_change) * rate_ratio).long()
-    indices = torch.clamp(indices, min = 0, max = len(source_to_modify) - 1)
-    return source_to_modify[indices]
-
-def avg_pool_align(rate_ratio:float, source_to_modify:torch.Tensor, source_unchanged:torch.Tensor, future_rate_change = 1.0) -> torch.Tensor:
-    assert check_argument_types()
-    indices = torch.round(torch.arange(0, len(source_unchanged) * future_rate_change) * rate_ratio).long()
-    indices = torch.clamp(indices, min = 0, max = len(source_to_modify) - 1)
-    prev_index = 0
-    avg_pool = []
-    for index in indices:
-        if index == 0: continue
-        avg_pool.append(torch.mean(source_to_modify[prev_index:index], 0).unsqueeze(0))
-        prev_index = index
-    return torch.cat(avg_pool)
-
-ALIGN_OPTIONS = {"truncate": truncate_align,
-                 "avg_pool": avg_pool_align}
-
 
 class AbsDataset(Dataset, ABC):
     @abstractmethod
@@ -509,14 +488,17 @@ class MMESPnetDataset(ESPnetDataset):
         int_dtype: str = "long",
         max_cache_size: Union[float, int, str] = 0.0,
         max_cache_fd: int = 0,
+        audio_sample_step: int = 1,
+        vision_sample_step: int = 1,
         audio_input: bool = True,
         vision_input: bool = False,
-        stack_order: int = 1,
-        sample_step: int = 1,
-        align_option: str = "truncate",
-        frontend_hopsize: int = 160,
     ):
         assert check_argument_types()
+        assert audio_input or vision_input, (
+            "At least one modality must be used for avsr task!",
+            audio_input,
+            vision_input,
+        )
         if len(path_name_type_list) == 0:
             raise ValueError(
                 '1 or more elements are required for "path_name_type_list"'
@@ -529,19 +511,15 @@ class MMESPnetDataset(ESPnetDataset):
         self.int_dtype = int_dtype
         self.max_cache_fd = max_cache_fd
 
-        self.stack_order = stack_order
-        self.sample_step = sample_step
+        self.audio_sample_step = audio_sample_step
+        self.vision_sample_step = vision_sample_step
+        self.audio_input = audio_input
+        self.vision_input = vision_input
 
-        self.speech_sample_rate = 0.0
-        self.curr_speech_sample_rate = 0.0
-        self.expected_speech_sample_rate = 0.0
-        self.vision_sample_rate = 0.0
-        self.align_option = align_option
-        self.frontend_hopsize = frontend_hopsize
-        self.MIN_SAMPLE_RATE = 1
-
-        if align_option not in ALIGN_OPTIONS.keys():
-            raise ValueError("align_option should be one of {}".format(ALIGN_OPTIONS))
+        self.source_ssr = 0.0 # ssr stands for speech sample rate
+        self.curr_ssr = 0.0   # ssr stands for speech sample rate
+        self.vsr = 0.0        # vsr stands for vision (video) sample rate
+        self.MIN_SAMPLE_RATES = {"speech": 10.0, "vision": 1.0}
 
         self.loader_dict = {}
         self.debug_info = {}
@@ -554,34 +532,41 @@ class MMESPnetDataset(ESPnetDataset):
 
             # Fetch Sample Rates of different modalities
             if(name == "speech"):
-                self.speech_sample_rate = loader.get_sample_rate()
-                self.curr_speech_sample_rate = self.speech_sample_rate / self.sample_step / self.stack_order
-                self.expected_speech_sample_rate = self.curr_speech_sample_rate / self.frontend_hopsize
-                if(self.expected_speech_sample_rate < self.MIN_SAMPLE_RATE):
+                self.source_ssr = loader.get_sample_rate()
+                self.curr_ssr = self.source_ssr / self.audio_sample_step
+                if(self.curr_ssr < self.MIN_SAMPLE_RATES[name]):
                     # Adjust parameters accordingly to achieve minimum sample rate
-                    self.curr_speech_sample_rate = self.MIN_SAMPLE_RATE * self.frontend_hopsize
-                    self.stack_order = int(max(self.speech_sample_rate * self.sample_step / self.speech_sample_rate, 1.0))
-                    self.sample_step = int(max(self.speech_sample_rate * self.stack_order / self.speech_sample_rate, 1.0))
-                    self.curr_speech_sample_rate =  self.speech_sample_rate / self.sample_step / self.stack_order
-                    self.expected_speech_sample_rate = self.curr_speech_sample_rate / self.frontend_hopsize
+                    self.curr_ssr = self.MIN_SAMPLE_RATES[name]
+                    self.audio_sample_step = int(max(self.source_ssr / self.curr_ssr, 1.0))
+                    self.curr_ssr =  self.source_ssr / self.audio_sample_step
+
             if(name == "vision"):
-                self.vision_sample_rate = loader.get_sample_rate()
-            
+                self.vsr = loader.get_sample_rate()
+                if(self.vsr < self.MIN_SAMPLE_RATES[name]):
+                    self.vsr = self.MIN_SAMPLE_RATES[name]
+                    self.vision_sample_step = loader.set_sample_rate(self.MIN_SAMPLE_RATES[name])
+
             self.loader_dict[name] = loader
             self.debug_info[name] = path, _type
             if len(self.loader_dict[name]) == 0:
                 raise RuntimeError(f"{path} has no samples")
 
             # TODO(kamo): Should check consistency of each utt-keys?
-        
-        assert(self.vision_sample_rate > self.MIN_SAMPLE_RATE 
-                    and self.curr_speech_sample_rate > self.MIN_SAMPLE_RATE)
+
+        assert (not self.audio_input) or self.curr_ssr > self.MIN_SAMPLE_RATES["speech"], (
+            self.audio_input,
+            self.curr_ssr,
+        )
+        assert (not self.vision_input) or self.vsr > self.MIN_SAMPLE_RATES["vision"], (
+            self.vision_input,
+            self.vsr,
+        )
 
         logging.info("Max Audio Sample Rate Available : {} Hz, "
-                    "Current Sampling Rate is : {} Hz with Context : {}".format(
-                    self.speech_sample_rate, self.curr_speech_sample_rate, self.stack_order))
+                    "Current Sampling Rate is : {} Hz ".format(
+                    self.source_ssr, self.curr_ssr))
         logging.info("Sampling Rate Report || Speech: {} Hz || Vision: {} fps ||"
-                    .format(self.curr_speech_sample_rate, self.vision_sample_rate))
+                    .format(self.curr_ssr, self.vsr))
         
         if isinstance(max_cache_size, str):
             max_cache_size = humanfriendly.parse_size(max_cache_size)
@@ -614,8 +599,8 @@ class MMESPnetDataset(ESPnetDataset):
                         kwargs["int_dtype"] = self.int_dtype
                     elif key2 == "max_cache_fd":
                         kwargs["max_cache_fd"] = self.max_cache_fd
-                    elif key2 == "sample_step":
-                        kwargs["sample_step"] = self.sample_step
+                    elif key2 == "vision_sample_step":
+                        kwargs["vision_sample_step"] = self.vision_sample_step
                     else:
                         raise RuntimeError(f"Not implemented keyword argument: {key2}")
 
@@ -711,9 +696,17 @@ class MMESPnetDataset(ESPnetDataset):
                 raise NotImplementedError(f"Not supported dtype: {value.dtype}")
             data[name] = value
         
-        # 4. Align Multimodal Data Sources
-        data = self.stack_align_multimodal_features(data)
-
+        # 4. Apply Sample Step
+        for name in data:
+            if name == "speech":
+                speech = data[name]
+                speech = torch.from_numpy(speech)
+                if(speech.dim() == 1):
+                    speech = speech.unsqueeze(-1)
+                T, F = speech.size()
+                indices = torch.arange(0, T//self.audio_sample_step)*self.audio_sample_step
+                speech = speech[indices]
+                data[name] = speech.numpy()
         if self.cache is not None and self.cache.size < self.max_cache_size:
             self.cache[uid] = data
 
@@ -721,46 +714,6 @@ class MMESPnetDataset(ESPnetDataset):
         assert check_return_type(retval)
         return retval
 
-    def stack_align_multimodal_features(self, data: Dict[str, np.ndarray]):
-        """
-        Outputs Aligned Data for multiple modality sources
-        Performs stacking and sampling for 
-        """
-        assert check_argument_types()
-        
-        for name in data:
-            if name == "speech":
-                # Stack Audio Features
-                speech = data[name]
-                speech = torch.from_numpy(speech)
-                if(speech.dim() == 1):
-                    speech = speech.unsqueeze(-1)
-                T, F = speech.size()
-                pad_size = math.ceil(T / self.stack_order) * self.stack_order - T
-                speech = torch.nn.functional.pad(speech, (0, 0, 0, pad_size), "constant", 0.0)
-                speech = speech.reshape(-1, F * self.stack_order)
-
-                # Apply Sample Step to Audio Features
-                T, F = speech.size()
-                indices = torch.arange(0, T // self.sample_step) * self.sample_step
-                speech = speech[indices]
-
-            if name == "vision":
-                vision = data[name]
-                vision = torch.from_numpy(vision)
-        
-        align_func = ALIGN_OPTIONS[self.align_option]
-        if self.expected_speech_sample_rate == self.vision_sample_rate:
-            length = min(len(vision), len(speech))
-            speech = speech[:length * self.frontend_hopsize]
-            vision = vision[:length]
-        elif self.expected_speech_sample_rate > self.vision_sample_rate:
-            rate_ratio = self.expected_speech_sample_rate / self.vision_sample_rate
-            speech = align_func(rate_ratio, speech, vision, self.frontend_hopsize)
-        else:
-            rate_ratio = self.vision_sample_rate / self.expected_speech_sample_rate
-            vision = align_func(rate_ratio, vision, speech, self.frontend_hopsize)
-
-        data["speech"] = speech.numpy()
-        data["vision"] = vision.numpy()
-        return data
+    def get_min_sample_rate():
+        return self.MIN_SAMPLE_RATES
+    

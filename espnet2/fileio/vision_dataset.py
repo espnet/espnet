@@ -1,12 +1,18 @@
 import collections.abc
 import numpy as np
 
-import cv2
 import math
 
 from typeguard import check_argument_types
 from espnet2.fileio.read_text import read_2column_text
 import logging
+
+try:
+    import cv2
+    is_cv2_avail = True
+except ImportError:
+    is_cv2_avail = False
+
 
 class VisionFileReader(collections.abc.Mapping):
     """Reader class for 'vision'.
@@ -24,6 +30,12 @@ class VisionFileReader(collections.abc.Mapping):
         self,
         fname,
     ):
+        if not is_cv2_avail:
+            raise ImportError(
+                "'cv2' is not available. Please install it via 'pip install opencv-python'"
+                " or 'cd path/'to/espnet/tools && . ./activate_python.sh"
+                " && ./installers/install_vision.sh ."
+            )
         assert check_argument_types()
         self.fname = fname
         self.data = read_2column_text(fname)
@@ -80,6 +92,16 @@ class VisionDataset(collections.abc.Mapping):
 
     def get_sample_rate(self):
         return self.sample_rate
+    
+    def set_sample_rate(self, vsr):
+        self.sample_rate = vsr
+        if self.sample_step * vsr > self.vid_rate:
+            self.sample_step = max(self.vid_rate // vsr, 1)
+        self.vid_rate = self.sample_step * self.sample_rate
+        return self.sample_step
+    
+    def set_sample_step(self, step: int):
+        self.sample_step = step
 
     def __len__(self):
         return len(self.loader)

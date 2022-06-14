@@ -1,6 +1,6 @@
 preencoder: linear
 preencoder_conf:
-  input_size: 416 # Note: If the upstream is changed, please change this value accordingly.
+  input_size: 288 # Note: If the upstream is changed, please change this value accordingly.
   output_size: 80
 
 encoder: conformer
@@ -33,7 +33,7 @@ decoder_conf:
     src_attention_dropout_rate: 0.1
 
 model_conf:
-    ctc_weight: 0.3
+    ctc_weight: 0.3 # Set this to 1.0 to only use CTC
     lsm_weight: 0.1
     length_normalized_loss: false
 
@@ -44,14 +44,14 @@ frontend_conf:
 
 seed: 2022
 log_interval: 400   
-num_att_plot: 0     
-num_workers: 4      
+num_att_plot: 0 
+num_workers: 4 
 sort_in_batch: descending       # how to sort data in making batch
 sort_batch: descending          # how to sort created batches
 batch_type: numel
-batch_bins: 16000000
+batch_bins: 800000
 accum_grad: 4
-max_epoch: 70
+max_epoch: 40
 patience: none
 init: none
 best_model_criterion:
@@ -91,6 +91,6 @@ specaug_conf:
 # Vision Related Configurations
 vision_encoder_conf:
     input_size: 224
-    output_size: 256
+    output_size: 128
     pretrained: true
     fine_tune: false

@@ -146,13 +146,18 @@ asr_text_fold_length=150   # fold_length for text data during ASR training.
 lm_fold_length=150         # fold_length for LM training.
 
 # Multimodal Related 
-multimodal=false        # true to use multimodal ESPNet option
-audio_input=true        # true to use audio input
-vision_input=false      # true to use vision input
-mouth_roi=false         # true to use mouth_roi cropped video as vision input
-sample_step=1           # Number of steps you require to sample audio/vision features (1 = sample every frame)
-stack_order=1           # Number of neighboring frames for audio features to concatenate 
-align_option="truncate" # Option to use for aligning multi-modal features Options: "truncate", "avg_pool"
+multimodal=false          # true to use multimodal ESPNet option
+audio_input=true          # true to use audio input
+vision_input=false        # true to use vision input
+mouth_roi=false           # true to use mouth_roi cropped video as vision input
+audio_sample_step=1       # Number of steps you require to sample audio features (1 = sample every frame)
+vision_sample_step=1      # Number of steps you require to sample vision features (1 = sample every frame)
+stack_order=1             # Number of neighboring frames for audio features to concatenate - way to reduce T dim of audio features
+avg_pool_width=1          # Number of neighboring frames for audio features to avg_pool - way to reduce T dim of audio features
+align_option="duplicate"  # Option to use for aligning multi-modal features Options: "truncate", "avg_pool", "duplicate"
+fusion_stage="" # Last stage before performing multi-modal fusion Options: "frontend, "
+fusion_type="concat"    # Option to use for multi-modal fusion Options: "concat",
+
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
 
@@ -256,13 +261,17 @@ Options:
     --lm_fold_length         # fold_length for LM training (default="${lm_fold_length}").
 
     # Multimodal Related
-    --multimodal    # true to use multimodal ESPNet option
-    --audio_input   # true to use audio input
-    --vision_input  # true to use vision input
-    --mouth_roi     # true to use mouth_roi cropped video as vision input
-    --sample_step   # Number of steps you require to sample audio/vision features (1 = sample every frame)
-    --stack_order   # Number of neighboring frames for audio features to concatenate 
-    --align_option  # Option to use for aligning multi-modal features Options: "truncate", "avg_pool"
+    --multimodal         # true to use multimodal ESPNet option
+    --audio_input        # true to use audio input
+    --vision_input       # true to use vision input
+    --mouth_roi          # true to use mouth_roi cropped video as vision input
+    --audio_sample_step  # Number of steps you require to sample audio features (1 = sample every frame)
+    --vision_sample_step # Number of steps you require to sample vision features (1 = sample every frame)
+    --stack_order        # Number of neighboring frames for audio features to concatenate 
+    --avg_pool_width     # Number of neighboring frames for audio features to avg_pool - way to reduce T dim of audio features
+    --align_option       # Option to use for aligning multi-modal features Options: "truncate", "avg_pool", "duplicate"
+    --fusion_stage       # Last stage before performing multi-modal fusion Options: "frontend"
+    --fusion_type        # Option to use for multi-modal fusion Options: "concat"
 EOF
 )
 
@@ -418,7 +427,7 @@ if [ -z "${lm_stats_dir}" ]; then
 fi
 # The directory used for training commands
 if [ -z "${asr_exp}" ]; then
-    asr_exp="${expdir}/asr_${asr_tag}"
+    asr_exp="${expdir}/avsr_${asr_tag}"
 fi
 if [ -z "${lm_exp}" ]; then
     lm_exp="${expdir}/lm_${lm_tag}"
@@ -1175,9 +1184,13 @@ if ! "${skip_train}"; then
                 --multimodal "${multimodal}" \
                 --audio_input "${audio_input}" \
                 --vision_input "${vision_input}" \
-                --sample_step "${sample_step}" \
+                --audio_sample_step "${audio_sample_step}" \
+                --vision_sample_step "${vision_sample_step}" \
                 --stack_order "${stack_order}" \
+                --avg_pool_width "${avg_pool_width}" \
                 --align_option "${align_option}" \
+                --fusion_stage "${fusion_stage}" \
+                --fusion_type "${fusion_type}" \
                 ${_opts} ${asr_args}
     fi
 else

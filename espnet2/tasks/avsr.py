@@ -44,7 +44,6 @@ from espnet2.asr.encoder.contextual_block_conformer_encoder import (
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.espnet_model import ESPnetASRModel
-from espnet2.asr.espnet_avsr_model import ESPnetAVSRModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
@@ -80,9 +79,12 @@ from espnet2.utils.types import int_or_none
 from espnet2.utils.types import str2bool
 from espnet2.utils.types import str_or_none
 
-# Adding Vision Encoders
-from espnet2.asr.encoder.vision_encoder import ResNet
-from espnet2.asr.encoder.vision_encoder import VisionTransformer
+# Adding Multimodal Model Definitions
+from espnet2.avsr.encoder.vision_encoder import ResNet
+from espnet2.avsr.encoder.vision_encoder import VisionTransformer
+from espnet2.avsr.espnet_avsr_model import ESPnetAVSRModel
+from distutils.util import strtobool as stb
+def strtobool(s: str) -> bool: return bool(stb(s))
 
 # Overwriting build_sequence_iter_factory
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
@@ -91,6 +93,7 @@ from espnet2.train.dataset import DATA_TYPES, AbsDataset, ESPnetDataset, MMESPne
 from pathlib import Path
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sampler
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
+
 
 frontend_choices = ClassChoices(
     name="frontend",
@@ -232,7 +235,7 @@ class AVSRTask(AbsTask):
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default("required")
-        required += ["token_list"]
+        required += ["token_list", "multimodal"]
 
         group.add_argument(
             "--token_list",
@@ -359,27 +362,33 @@ class AVSRTask(AbsTask):
         group = parser.add_argument_group(description="Multimodal related")
         group.add_argument(
             "--multimodal",
-            type=bool,
+            type=strtobool,
             default=False,
             help="True to use multimodal EspNet option",
         )
         group.add_argument(
             "--audio_input",
-            type=bool,
+            type=strtobool,
             default=True,
             help="True to use audio source",
         )
         group.add_argument(
             "--vision_input",
-            type=bool,
+            type=strtobool,
             default=False,
             help="True to use vision source",
         )
         group.add_argument(
-            "--sample_step",
+            "--audio_sample_step",
             type=int,
             default=1,
-            help="Number of steps you require to sample audio/vision features",
+            help="Number of steps you require to sample audio features",
+        )
+        group.add_argument(
+            "--vision_sample_step",
+            type=int,
+            default=1,
+            help="Number of steps you require to sample vision features",
         )
         group.add_argument(
             "--stack_order",
@@ -388,10 +397,28 @@ class AVSRTask(AbsTask):
             help="Number of neighboring frames for audio features to concatenate",
         )
         group.add_argument(
+            "--avg_pool_width",
+            type=int,
+            default=1,
+            help="Number of neighboring frames for audio features to pool",
+        )
+        group.add_argument(
             "--align_option",
             type=str,
-            default="truncate",
-            help="Option to use for aligning multi-modal features Options: truncate, avg_pool",
+            default="duplicate",
+            help="Option to use for aligning multi-modal features Options: truncate, avg_pool, duplicate",
+        )
+        group.add_argument(
+            "--fusion_stage",
+            type=str,
+            default="frontend",
+            help="Last stage before performing multimodal fusion",
+        )
+        group.add_argument(
+            "--fusion_type",
+            type=str,
+            default="concat",
+            help="Type of multimodal fusion algorithm to use",
         )
 
     @classmethod
@@ -472,12 +499,10 @@ class AVSRTask(AbsTask):
                         preprocess=iter_options.preprocess_fn,
                         max_cache_size=iter_options.max_cache_size,
                         max_cache_fd=iter_options.max_cache_fd,
+                        audio_sample_step=args.audio_sample_step,
+                        vision_sample_step=args.vision_sample_step,
                         audio_input=args.audio_input,
                         vision_input=args.vision_input,
-                        stack_order=args.stack_order,
-                        sample_step=args.sample_step,
-                        align_option = args.align_option,
-                        frontend_hopsize = args.frontend_conf["hop_length"],
                     )
         else:
             dataset = ESPnetDataset(
@@ -663,6 +688,7 @@ class AVSRTask(AbsTask):
 
         model = model_class(
             vocab_size=vocab_size,
+            token_list=token_list,
             frontend=frontend,
             specaug=specaug,
             normalize=normalize,
@@ -673,10 +699,13 @@ class AVSRTask(AbsTask):
             decoder=decoder,
             ctc=ctc,
             joint_network=joint_network,
-            token_list=token_list,
             audio_input = args.audio_input,
             vision_input = args.vision_input,
             stack_order = args.stack_order,
+            avg_pool_width = args.avg_pool_width,
+            align_option = args.align_option,
+            fusion_stage = args.fusion_stage,
+            fusion_type = args.fusion_type,
             **args.model_conf,
         )
 

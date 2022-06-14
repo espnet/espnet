@@ -8,6 +8,7 @@ from typing import Tuple
 from typing import Union
 
 import torch
+import math 
 from typeguard import check_argument_types
 
 from espnet.nets.e2e_asr_common import ErrorCalculator
@@ -29,6 +30,10 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
+# Multimodal Related
+from espnet2.avsr.mm_align import MM_Aligner
+from espnet2.avsr.mm_fusion import MM_Fuser
+
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
     from torch.cuda.amp import autocast
 else:
@@ -36,7 +41,6 @@ else:
     @contextmanager
     def autocast(enabled=True):
         yield
-
 
 class ESPnetAVSRModel(AbsESPnetModel):
     """CTC-attention hybrid Encoder-Decoder model"""
@@ -68,10 +72,15 @@ class ESPnetAVSRModel(AbsESPnetModel):
         audio_input: bool = True,
         vision_input: bool = False,
         stack_order: int = 1,
+        avg_pool_width: int = 1,
+        align_option: str = "duplicate",
+        fusion_stage: str = "frontend",
+        fusion_type: str = "concat",
     ):
         assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
         assert 0.0 <= interctc_weight < 1.0, interctc_weight
+        assert audio_input or vision_input, "You should input at least one modality"
 
         super().__init__()
         # note that eos is the same as sos (equivalent ID)
@@ -91,10 +100,15 @@ class ESPnetAVSRModel(AbsESPnetModel):
         self.postencoder = postencoder
         self.encoder = encoder
         
+        # Multimodal Related
         self.vision_encoder = vision_encoder
         self.audio_input = audio_input
         self.vision_input = vision_input
         self.stack_order = stack_order
+        self.avg_pool_width = avg_pool_width
+        self.fusion_stage = fusion_stage
+        self.aligner = MM_Aligner(align_option)
+        self.fuser = MM_Fuser(fusion_type)
 
         if not hasattr(self.encoder, "interctc_use_conditioning"):
             self.encoder.interctc_use_conditioning = False
@@ -166,12 +180,12 @@ class ESPnetAVSRModel(AbsESPnetModel):
 
     def forward(
         self,
-        speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
         text: torch.Tensor,
         text_lengths: torch.Tensor,
-        vision: torch.Tensor,
-        vision_lengths: torch.Tensor,
+        speech: torch.Tensor = None,
+        speech_lengths: torch.Tensor = None,
+        vision: torch.Tensor = None,
+        vision_lengths: torch.Tensor = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
@@ -186,14 +200,29 @@ class ESPnetAVSRModel(AbsESPnetModel):
 
         assert text_lengths.dim() == 1, text_lengths.shape
         # Check that batch_size is unified
-        assert (
-            speech.shape[0]
-            == speech_lengths.shape[0]
-            == text.shape[0]
-            == text_lengths.shape[0]
-            == vision.shape[0]
-            == vision_lengths.shape[0]
-        ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)
+        if not self.audio_input:
+            assert (
+                text.shape[0]
+                == text_lengths.shape[0]
+                == vision.shape[0]
+                == vision_lengths.shape[0]
+            ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)        
+        elif not self.vision_input:
+            assert (
+                speech.shape[0]
+                == speech_lengths.shape[0]
+                == text.shape[0]
+                == text_lengths.shape[0]
+            ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)
+        else:
+            assert (
+                speech.shape[0]
+                == speech_lengths.shape[0]
+                == text.shape[0]
+                == text_lengths.shape[0]
+                == vision.shape[0]
+                == vision_lengths.shape[0]
+            ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)
         batch_size = speech.shape[0]
 
         # for data-parallel
@@ -328,33 +357,39 @@ class ESPnetAVSRModel(AbsESPnetModel):
         """ 
         with autocast(False):
             # 1. Extract feats
-            B, T, F = speech.size()
-            speech = speech.reshape(B, T * self.stack_order, -1).squeeze()
-            speech_lengths = speech_lengths * self.stack_order
-            feats, feats_lengths = self._extract_feats(speech, speech_lengths)
-            vision_feats, vision_lengths = self._extract_vision_feats(vision, vision_lengths)
-            # 2. Data augmentation
-            if self.specaug is not None and self.training:
-                feats, feats_lengths = self.specaug(feats, feats_lengths)
-
-            # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
-            if self.normalize is not None:
-                feats, feats_lengths = self.normalize(feats, feats_lengths)
-        
-        # Adapt to Frame Rate Change from Stages 2, 3
-        B, new_T, F = feats.size()
-        new_T = new_T // self.stack_order * self.stack_order
-        feats = feats[:,:new_T,:]
-        feats = feats.reshape(B, -1, F * self.stack_order)
-        feats_lengths = (feats_lengths / self.stack_order).long()
-        
-        if self.audio_input and self.vision_input:
-            feats, feats_lengths = self.concat_audio_vision_features(feats, vision_feats, feats_lengths, vision_lengths)
-        elif self.video_input:
-            feats, feats_lengths = vision_feats, vision_lengths
+            if self.audio_input:
+                feats, feats_lengths = self._extract_feats(speech, speech_lengths)
+                # 2. Data augmentation
+                if self.specaug is not None and self.training:
+                    feats, feats_lengths = self.specaug(feats, feats_lengths)
+                # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
+                if self.normalize is not None:
+                    feats, feats_lengths = self.normalize(feats, feats_lengths)         
+                # 4. Performr Stacking / Pooling for audio features                
+                feats, feats_lengths = self.reduce_audio_seq(feats, feats_lengths)
             
+            if self.vision_input:
+                vision_feats, vision_lengths = self._extract_vision_feats(vision, vision_lengths)
+            
+        # Align audio, vision features
+        if self.audio_input and self.vision_input:
+            feats, vision_feats, feats_lengths = self.aligner.align(
+                feats, feats_lengths, vision_feats, vision_lengths)
+        
+        if not self.audio_input:
+            B, T, F = vision_feats.size()
+            feats = torch.zeros((B, T, self.frontend.output_size() * self.stack_order)).detach()
+            feats = feats.to(vision_feats.device)
+        if not self.vision_input:
+            B, T, F = feats.size()
+            vision_feats = torch.zeros((B, T, self.vision_encoder.output_size())).detach()
+            vision_feats = vision_feats.to(feats.device)
 
-        # Pre-encoder, e.g. used for raw input data
+        # Multimodal Fusion Step
+        if self.fusion_stage == "frontend":
+            feats, feats_lenghts = self.fuser.fuse(feats, vision_feats, feats_lengths)
+
+        # 3-2. Pre-encoder, e.g. used for raw input data
         if self.preencoder is not None:
             feats, feats_lengths = self.preencoder(feats, feats_lengths)
 
@@ -372,7 +407,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
             intermediate_outs = encoder_out[1]
             encoder_out = encoder_out[0]
 
-        # Post-encoder, e.g. NLU
+        # 4-2. Post-encoder, e.g. NLU
         if self.postencoder is not None:
             encoder_out, encoder_out_lens = self.postencoder(
                 encoder_out, encoder_out_lens
@@ -402,15 +437,6 @@ class ESPnetAVSRModel(AbsESPnetModel):
         vision_features, vision_lengths, _ = self.vision_encoder(vision, vision_lengths)
         return vision_features, vision_lengths
 
-    def concat_audio_vision_features(self, speech_feats: torch.Tensor, 
-        vision_feats: torch.Tensor, speech_lengths: torch.Tensor, vision_lengths: torch.Tensor):
-        assert(speech_feats.size(0) == vision_feats.size(0))
-        length = min(speech_feats.size(1), vision_feats.size(1))
-        speech_feats = speech_feats[:,:length,:]
-        vision_feats = vision_feats[:,:length,:]
-        feats_lengths = torch.min(torch.cat([speech_lengths.unsqueeze(0), vision_lengths.unsqueeze(0)]), dim = 0)[0]
-        return torch.cat([speech_feats, vision_feats], dim = -1), feats_lengths
-
     def _extract_feats(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -429,6 +455,29 @@ class ESPnetAVSRModel(AbsESPnetModel):
             # No frontend and no feature extract
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
+
+    def reduce_audio_seq(self, speech: torch.Tensor, speech_lengths: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        assert speech_lengths.dim() == 1, speech_lengths.shape
+        if(speech.dim() == 2): 
+            speech = speech.unsqueeze(-1)
+        B, T, F = speech.size()
+        pad_size = math.ceil(T / self.stack_order) * self.stack_order - T
+        speech = torch.nn.functional.pad(speech, (0, 0, 0, pad_size, 0, 0), "constant", 0.0)
+        speech = speech.reshape(B, -1, F * self.stack_order)
+        speech_lengths = torch.ceil(speech_lengths / self.stack_order).to(speech_lengths.dtype)
+        
+        _, T, stack_F = speech.size()
+        pad_size = math.ceil(T / self.avg_pool_width) * self.avg_pool_width - T
+        speech = torch.nn.functional.pad(speech, (0, 0, 0, pad_size, 0, 0), "constant", 0.0)
+        speech = speech.reshape(B, -1, self.avg_pool_width, stack_F)
+        speech = torch.mean(speech, dim = 2)
+        speech_lengths = torch.ceil(speech_lengths / self.avg_pool_width).to(speech_lengths.dtype)
+
+        assert stack_F == self.stack_order * F
+        assert B == speech.size(0) and stack_F == speech.size(2)
+        return speech, speech_lengths
+
 
     def nll(
         self,

@@ -90,8 +90,12 @@ packaging.done: activate_python.sh
 
 pytorch.done: activate_python.sh packaging.done
 ifeq ($(strip $(USE_CONDA)),)
+	# NOTE(kan-bayashi): Temporary fixed numpy version
+	. ./activate_python.sh && pip install "numpy<=1.21.3"
 	. ./activate_python.sh && ./installers/install_torch.sh "false" "${TH_VERSION}" "${CUDA_VERSION}"
 else
+	# NOTE(kan-bayashi): Temporary fixed numpy version
+	. ./activate_python.sh && conda install -y "numpy<=1.21.3"
 	. ./activate_python.sh && ./installers/install_torch.sh "true" "${TH_VERSION}" "${CUDA_VERSION}"
 endif
 	touch pytorch.done
@@ -201,6 +205,10 @@ transformers.done: espnet.done
 longformer.done: espnet.done
 	. ./activate_python.sh && ./installers/install_longformer.sh
 	touch longformer.done
+
+multimodal.done: espnet.done
+	. ./activate_python && ./installers/install_multimodal.sh
+	touch multimodal.done
 
 check_install: python
 	. ./activate_python.sh; . ./extra_path.sh; python3 check_install.py

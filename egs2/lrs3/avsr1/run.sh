@@ -10,9 +10,11 @@ valid_set="dev"
 test_sets="test dev"
 
 
-asr_tag=train_avsr_transformer
+asr_tag=train_avsr_transformer_audio_only
 asr_config=conf/train_avsr_transformer.yaml
 lm_config=conf/train_lm.yaml  # Not Used, as use_lm=false
+
+export CUDA_VISIBLE_DEVICES=3
 
 ./avsr.sh \
     --skip_data_prep false \
@@ -21,8 +23,8 @@ lm_config=conf/train_lm.yaml  # Not Used, as use_lm=false
     --stage 1 \
     --lang en \
     --ngpu 1 \
-    --nj 32 \
-    --inference_nj 32 \
+    --nj 16 \
+    --inference_nj 16 \
     --nbpe 5000 \
     --max_wav_duration 30 \
     --audio_format "wav" \
@@ -40,7 +42,10 @@ lm_config=conf/train_lm.yaml  # Not Used, as use_lm=false
     --audio_input true \
     --vision_input true \
     --mouth_roi true \
-    --sample_step 1 \
-    --stack_order 1 \
-    --align_option "truncate" \
-    # --speed_perturb_factors "0.9 1.0 1.1" \
+    --audio_sample_step 1 \
+    --vision_sample_step 10 \
+    --stack_order 2 \
+    --avg_pool_width 1 \
+    --align_option "duplicate" \
+    --fusion_stage "frontend" \
+    --fusion_type "concat" \

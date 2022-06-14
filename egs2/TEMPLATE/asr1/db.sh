@@ -7,6 +7,7 @@ AISHELL=downloads
 AISHELL3=downloads
 AISHELL4=downloads
 ALFFA=downloads
+AMERICASNLP22=downloads
 AN4=downloads
 AUDIOSET=
 DIRHA_ENGLISH_PHDEV=

@@ -32,6 +32,7 @@ module_list = [
     ("longformer", None, "installers/install_longformer.sh"),
     ("nlg-eval", None, "installers/install_longformer.sh"),
     ("datasets", None, "installers/install_longformer.sh"),
+    ("multimodal", None, "installers/install_multimodal.sh"),
 ]
 
 executable_list = [
