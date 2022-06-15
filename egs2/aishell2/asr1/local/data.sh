@@ -55,10 +55,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     echo "Exclude train utterances with English tokens. "
-    echo "Set train_set to train in run.sh if you don't want this" 
+    echo "Set \$train_set to train in run.sh if you don't want this" 
     mkdir -p data/train_noeng 
     cp data/train/{wav.scp,spk2utt,utt2spk} data/train_noeng
-    cat data/train/text | awk 'eng=0;{for(i=2;i<=NF;i++)if($i ~ /^.*[A-Z]+.*$/)eng=1}{if(eng==0)print $0}' > data/train_noeng/text
+    awk 'eng=0;{for(i=2;i<=NF;i++)if($i ~ /^.*[A-Z]+.*$/)eng=1}{if(eng==0)print $0}' data/train/text > data/train_noeng/text
     utils/fix_data_dir.sh data/train_noeng/
 
 fi
