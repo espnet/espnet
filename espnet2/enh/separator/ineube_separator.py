@@ -1,14 +1,10 @@
 import torch
-import asteroid_filterbanks.transforms as af_transforms
 from collections import OrderedDict
 from typing import List
 from typing import Tuple
 from typing import Union
 from torch_complex.tensor import ComplexTensor
 from espnet2.enh.separator.abs_separator import AbsSeparator
-from asteroid.dsp.beamforming import condition_scm
-from asteroid_filterbanks import make_enc_dec
-from asteroid.utils.torch_utils import pad_x_to_y
 from espnet2.enh.layers.tcndenseunet import TCNDenseUNet
 
 
@@ -27,11 +23,16 @@ class iNeuBe(AbsSeparator):
         tcn_repeats=4,
         tcn_blocks=7,
         tcn_channels=384,
-        activation=torch.nn.ELU,
+        activation="elu",
+        input_from="dnn1",
+        n_chunks=3,
+        freeze_dnn1=False,
     ):
         super().__init__()
         self.n_spk = n_spk
-        assert self.n_spk == 1, "not tested"
+        self.input_from = input_from
+        self.n_chunks = n_chunks
+        self.freeze_dnn1 = freeze_dnn1
 
         if window == "hanning":
             window = torch.hann_window(n_fft)
@@ -109,36 +110,44 @@ class iNeuBe(AbsSeparator):
 
         return beamformed
 
+    @staticmethod
+    def pad2(input_tensor, target_len):
+        input_tensor = torch.nn.functional.pad(input_tensor, (0, target_len - input_tensor.shape[0]))
+        return input_tensor
+
     def forward(
         self,
         input: Union[torch.Tensor, ComplexTensor],
-        ilens: torch.Tensor,
-        output_from="dnn1",
-        n_chunks=3,
-        freeze_dnn1=False,
-    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+        ilens: torch.Tensor, **kwargs) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+
+        mixture_len = input.shape[2]
 
         mix_stft = self.enc(input)
         others = OrderedDict()
         est_dnn1 = self.dnn1(mix_stft)
-        if freeze_dnn1:
+        if self.freeze_dnn1:
             est_dnn1 = est_dnn1.detach()
 
-        if output_from == "dnn1":
-            return [pad_x_to_y(self.dec(est_dnn1), input)], ilens, others
-        elif output_from == "beam":
-            others["dnn1"] = pad_x_to_y(self.dec(est_dnn1), input)
-            est_mfmcwf = self.mfmcwf(mix_stft, est_dnn1, n_chunks)
-            return [pad_x_to_y(self.dec(est_mfmcwf), input)], ilens, others
-        elif output_from == "dnn2":
-            others["dnn1"] = pad_x_to_y(self.dec(est_dnn1), input)
-            est_mfmcwf = self.mfmcwf(mix_stft, est_dnn1, n_chunks)
-            others["beam"] = pad_x_to_y(self.dec(est_mfmcwf), input)
-            est_dnn2 = self.dnn2(
-                torch.cat((mix_stft, est_dnn1.unsqueeze(1), est_mfmcwf.unsqueeze(1)), 1)
-            )
-            est_dnn2 = pad_x_to_y(self.dec(est_dnn2), input)
-            return [est_dnn2], ilens, others
+        output_dnn1 = self.pad2(self.dec(est_dnn1), mixture_len)
+        output_dnn1 = [output_dnn1[:, src] for src in range(output_dnn1.shape[1])]
+        if self.output_from == "dnn1":
+            return output_dnn1, ilens, others
+        elif self.output_from in ["beam", "dnn2"]:
+            others["dnn1"] = output_dnn1
+            est_mfmcwf = self.mfmcwf(mix_stft, est_dnn1, self.n_chunks)
+            output_mfmcwf = self.pad2(self.dec(est_mfmcwf), mixture_len)
+            if self.output_from == "mfmcwf":
+                return [output_mfmcwf[:, src] for src in range(output_mfmcwf.shape[1])], ilens, others
+            elif self.output_from == "dnn2":
+                others["dnn1"] = output_dnn1
+                others["beam"] = output_mfmcwf
+                est_dnn2 = self.dnn2(
+                    torch.cat((mix_stft, est_dnn1.unsqueeze(1), est_mfmcwf.unsqueeze(1)), 1)
+                )
+                est_dnn2 = self.pad2(self.dec(est_dnn2), mixture_len)
+                return [est_dnn2[:, src] for src in est_dnn2.shape[1]], ilens, others
+            else:
+                raise NotImplementedError
         else:
             raise NotImplementedError
 
