@@ -71,7 +71,7 @@ for x in dev test tr; do
   split_data=$splitdir/L3DAS22_Task1_${x}*
   mkdir -p $data/${ddir}_multich
   mkdir -p $data/${ddir}_singlech
-  mkdir -p $tmpdir/${ddir}_single_channel
+  mkdir -p $tmpdir/${ddir}
 
   for mic in A B; do
     for ch in {1..4}; do
@@ -99,7 +99,7 @@ for x in dev test tr; do
       sort -u>  $data/${ddir}_multich/spk1.scp
   fi
   cp $data/${ddir}_multich/* $data/${ddir}_singlech
-  cp $tmpdir/${ddir}_single_channel/wav_micA_ch1.scp $data/${ddir}_singlech/wav.scp
+  cp $tmpdir/${ddir}/wav_micA_ch1.scp $data/${ddir}_singlech/wav.scp
 done
 
 
