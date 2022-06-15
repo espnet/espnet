@@ -37,10 +37,10 @@ def get_parser():
     parser.add_argument(
         "--start-times-marker",
         type=str,
-        default="input length",
-        choices=["input length", "speech length"],
+        default="input lengths",
+        choices=["input lengths", "speech length"],
         help="String marking start of decoding in logfile, e.g., "
-        "'input length' (espnet1) and 'speech length' (espnet2)",
+        "'input lengths' (espnet1) and 'speech length' (espnet2)",
     )
     parser.add_argument(
         "--end-times-marker",
