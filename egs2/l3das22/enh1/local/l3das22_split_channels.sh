@@ -4,18 +4,19 @@
 
 
 help_message=$(cat << EOF
-Usage: $0 [L3DAS path]
+Usage: $0 [L3DAS22 path] [split path]
   required argument:
-    L3DAS path: path to the L3DAS directory
+    L3DAS22 path: path to the L3DAS22 directory
+    split path: path to split the L3DAS22 wavfiles directory
     NOTE:
-        You can download it manually from
-            https://www.kaggle.com/datasets/l3dasteam/l3das22
+      You can download L3DAS22 manually from
+        https://www.kaggle.com/datasets/l3dasteam/l3das22
 EOF
 )
 
 
 
-if [ $# -ne 1 ]; then
+if [ $# -ne 2 ]; then
   echo "${help_message}"
   exit 1;
 fi
@@ -33,30 +34,28 @@ nj=16
 . utils/parse_options.sh
 
 L3DAS22=$1
+splitdir=$2
 
 # check if the wav dirs exist.
 for ddir in L3DAS22_Task1_dev L3DAS22_Task1_test L3DAS22_Task1_train100 L3DAS22_Task1_train360_1 L3DAS22_Task1_train360_2; do
-  f=${L3DAS22}/${ddir}
+  f=$L3DAS22/${ddir}
   if [ ! -d $f ]; then
     echo "Error: $f is not a directory."
     exit 1;
   fi
 done
 
-
-wavdata=./data/L3DAS22_Multi
-
-dev_dir=${L3DAS22}/L3DAS22_Task1_dev
-test_dir=${L3DAS22}/L3DAS22_Task1_test
-train_dir100=${L3DAS22}/L3DAS22_Task1_train100
-train_dir360_1=${L3DAS22}/L3DAS22_Task1_train360_1
-train_dir360_2=${L3DAS22}/L3DAS22_Task1_train360_2
+dev_dir=$L3DAS22/L3DAS22_Task1_dev
+test_dir=$L3DAS22/L3DAS22_Task1_test
+train_dir100=$L3DAS22/L3DAS22_Task1_train100
+train_dir360_1=$L3DAS22/L3DAS22_Task1_train360_1
+train_dir360_2=$L3DAS22/L3DAS22_Task1_train360_2
 
 
-echo "Building multi-channel data"
+echo "Spliting multi-channel data"
 
-tmpdir=data/temp
-mkdir -p $tmpdir 
+trap 'rm -rf "$tmpdir"' EXIT
+tmpdir=$(mktemp -d /tmp/l3das22.XXXXXX)
 
 find $train_dir100 -name '*A.wav' -o -name '*B.wav' | sort -u | awk '{n=split($1, lst, "/"); split(lst[n], wav, "."); print(wav[1],$1)}' > $tmpdir/tr100.flist
 find $train_dir360_1 -name '*A.wav' -o -name '*B.wav' | sort -u | awk '{n=split($1, lst, "/"); split(lst[n], wav, "."); print(wav[1],$1)}' > $tmpdir/tr360.flist
@@ -68,12 +67,12 @@ find $test_dir -name '*A.wav' -o -name '*B.wav' | sort -u | awk '{n=split($1, ls
 # create multi-channel files
 for x in dev test tr100 tr360; do
   ddir=L3DAS22_Task1_${x}
-  mkdir -p ${wavdata}/${ddir}
+  mkdir -p $splitdir/${ddir}
 
   #create sh for sox
   rm $tmpdir/${x}.sh 2>/dev/null || true
   for channel in {1..4}; do
-    awk -v out="$wavdata/$ddir" -v ch="$channel" \
+    awk -v out="$splitdir/$ddir" -v ch="$channel" \
     '{print "sox", $2, out"/"$1"_CH"ch".wav", "remix", ch }' $tmpdir/${x}.flist >> $tmpdir/${x}.sh
   done
 
@@ -88,7 +87,6 @@ for x in dev test tr100 tr360; do
   ${train_cmd} JOB=1:$nj $tmpdir/log/${x}/sox.JOB.log $tmpdir/log/${x}/sox_JOB.sh
 done
 
-rm -r $tmpdir 2>/dev/null || true
 
 
 

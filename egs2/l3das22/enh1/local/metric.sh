@@ -5,8 +5,8 @@
 
 
 echo "Apply jiwer and transformers for calculating the official metric of the L3DAS22 challenge Task1"
-pip show -f jiwer >/dev/null || pip install jiwer
-pip show -f transformers >/dev/null || pip install transformers
+python -m pip show -f jiwer >/dev/null || python -m pip install jiwer
+python -m pip show -f transformers >/dev/null || python -m pip install transformers
 
 if [ $# -ne 2 ]; then
     echo "Usage: local/metric.sh <predicted scp> <target scp>"
