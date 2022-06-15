@@ -24,9 +24,9 @@ def get_parser():
         "--log-name",
         type=str,
         default="decode",
-        choices=['decode', 'asr_inference'],
+        choices=["decode", "asr_inference"],
         help="name of logfile, e.g., 'decode' (espnet1) and "
-             "'asr_inference' (espnet2)",
+        "'asr_inference' (espnet2)",
     )
     parser.add_argument(
         "--input-shift",
@@ -38,17 +38,17 @@ def get_parser():
         "--start-times-marker",
         type=str,
         default="input length",
-        choices=['input length', 'speech length'],
+        choices=["input length", "speech length"],
         help="String marking start of decoding in logfile, e.g., "
-             "'input length' (espnet1) and 'speech length' (espnet2)",
+        "'input length' (espnet1) and 'speech length' (espnet2)",
     )
     parser.add_argument(
-       "--end-times-marker",
+        "--end-times-marker",
         type=str,
         default="prediction",
-        choices=['prediction', 'best hypo'],
+        choices=["prediction", "best hypo"],
         help="String marking end of decoding in logfile, e.g., "
-             "'prediction' (espnet1) and 'best hypo' (espnet2)",
+        "'prediction' (espnet1) and 'best hypo' (espnet2)",
     )
     return parser
 
