@@ -73,8 +73,8 @@ class Conv2dSubsampling(chainer.Chain):
         xs = self.out(F.swapaxes(xs, 1, 2).reshape(batch * length, -1))
         xs = self.pe(xs.reshape(batch, length, -1))
         # change ilens accordingly
-        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
-        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int)
+        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int64)
+        ilens = np.ceil(np.array(ilens, dtype=np.float32) / 2).astype(np.int64)
         return xs, ilens
 
 
