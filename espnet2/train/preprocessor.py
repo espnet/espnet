@@ -510,6 +510,7 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         dynamic_mixing_gain_db: float = 0.0,
         speech_name: str = "speech_mix",
         speech_ref_name_prefix: str = "speech_ref",
+        utt2spk: str = None,
     ):
 
         super().__init__(
@@ -528,18 +529,43 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
                 assert len(sps) == 2
                 self.sources[sps[0]] = sps[1]
 
+        self.utt2spk = {}
+        if utt2spk is None:
+            # if utt2spk is not provided, create a dummy utt2spk with uid.
+            for key in self.sources.keys():
+                self.utt2spk[key] = key
+        else:
+            with open(utt2spk, "r", encoding="utf-8") as f:
+                for line in f:
+                    sps = line.strip().split(None, 1)
+                    assert len(sps) == 2
+                    self.utt2spk[sps[0]] = sps[1]
+
+            for key in self.sources.keys():
+                assert key in self.utt2spk
+
         self.source_keys = list(self.sources.keys())
 
     def _pick_source_utterances_(self, uid):
+        # return (num_spk - 1) uid of reference sources.
 
-        source_keys = []
+        source_keys = [
+            uid,
+        ]
 
-        while len(source_keys) < self.num_spk - 1:
+        spk_ids = [
+            self.utt2spk[uid],
+        ]
+
+        while len(source_keys) < self.num_spk:
             picked = random.choice(self.source_keys)
-            if picked not in source_keys:
+            spk_id = self.utt2spk[picked]
+
+            # make one utterance or one speaker only appears once in mixing.
+            if (picked not in source_keys) and (spk_id not in spk_ids):
                 source_keys.append(picked)
 
-        return source_keys
+        return source_keys[1:]
 
     def _read_source_(self, key, speech_length):
 

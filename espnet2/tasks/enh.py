@@ -285,6 +285,13 @@ class EnhancementTask(AbsTask):
         )
 
         group.add_argument(
+            "--utt2spk",
+            type=str_or_none,
+            default=None,
+            help="The file path of utt2spk file. Only used in dynamic_mixing mode.",
+        )
+
+        group.add_argument(
             "--dynamic_mixing_gain_db",
             type=float,
             default=0.0,
@@ -328,6 +335,7 @@ class EnhancementTask(AbsTask):
                 source_scp=args.train_data_path_and_name_and_type[0][0],
                 num_spk=args.separator_conf["num_spk"],
                 dynamic_mixing_gain_db=args.dynamic_mixing_gain_db,
+                utt2spk=args.utt2spk,
             )
         elif use_preprocessor:
             retval = EnhPreprocessor(
