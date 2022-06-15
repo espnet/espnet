@@ -1253,7 +1253,7 @@ if ! "${skip_eval}"; then
                     --asr_train_config "${asr_exp}"/config.yaml \
                     --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    "${_opts}" "${inference_args}" || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
+                    ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
 
             # 3. Calculate and report RTF based on decoding logs
             if [ $asr_inference_tool == "espnet2.bin.asr_inference" ]; then
