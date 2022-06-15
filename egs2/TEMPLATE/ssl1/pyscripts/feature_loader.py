@@ -7,14 +7,13 @@
 #     Paper: https://arxiv.org/pdf/2106.07447.pdf
 #     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
 
-"""Extract MFCC & intermediate embedding from the Hubert model for k-means clustering."""
+"""Extract MFCC & intermediate embedding from the Hubert model for k-means clustering"""
 
 import logging
 import os
 import sys
 
 import fairseq
-
 import soundfile as sf
 import torch
 import torchaudio

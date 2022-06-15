@@ -1,10 +1,10 @@
 # -*- coding: UTF-8 -*-
 
-from argparse import ArgumentParser
 import os
 import re
 import string
 import sys
+from argparse import ArgumentParser
 from xml.dom.minidom import parse
 
 s = "".join(chr(c) for c in range(sys.maxunicode + 1))

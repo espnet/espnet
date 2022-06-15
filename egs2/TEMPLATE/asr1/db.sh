@@ -7,6 +7,7 @@ AISHELL=downloads
 AISHELL3=downloads
 AISHELL4=downloads
 ALFFA=downloads
+AMERICASNLP22=downloads
 AN4=downloads
 AUDIOSET=
 DIRHA_ENGLISH_PHDEV=
@@ -46,10 +47,13 @@ LIBRISPEECH=
 LIBRILIGHT_LIMITED=
 FSC=
 SLURP=
+SLURP_S= # Output file path
+LIBRITRANS_S= # Output file path
 VOXCELEB=
 MEDIASPEECH=downloads
 MINI_LIBRISPEECH=downloads
 MISP2021=
+L3DAS22=
 LIBRIMIX=downloads
 LIBRITTS=
 LJSPEECH=downloads
@@ -142,6 +146,7 @@ ST_CMDS=downloads
 MS_INDIC_IS18=
 MARATHI=downloads
 HARPERVALLEY=downloads
+TALROMUR=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

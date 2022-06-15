@@ -1,6 +1,6 @@
-from espnet2.asr.preencoder.sinc import LightweightSincConvs
-from espnet2.asr.preencoder.sinc import SpatialDropout
 import torch
+
+from espnet2.asr.preencoder.sinc import LightweightSincConvs, SpatialDropout
 
 
 def test_spatial_dropout():

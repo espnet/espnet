@@ -16,19 +16,19 @@ jobs:
       matrix:
         os: [ubuntu-18.04]
         python-version: [3.7]
-        pytorch-version: [1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1, 1.10.1]
+        pytorch-version: [1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1, 1.10.2, 1.11.0]
         chainer-version: [6.0.0]
         # NOTE(kamo): Conda is tested by Circle-CI
         use-conda: [false]
         include:
           - os: ubuntu-20.04
             python-version: 3.8
-            pytorch-version: 1.10.1
+            pytorch-version: 1.11.0
             chainer-verssion: 6.0.0
             use-conda: false
           - os: ubuntu-20.04
             python-version: 3.9
-            pytorch-version: 1.10.1
+            pytorch-version: 1.11.0
             chainer-verssion: 6.0.0
             use-conda: false
     steps:

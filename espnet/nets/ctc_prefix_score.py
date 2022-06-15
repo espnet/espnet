@@ -3,10 +3,9 @@
 # Copyright 2018 Mitsubishi Electric Research Labs (Takaaki Hori)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-import torch
-
 import numpy as np
 import six
+import torch
 
 
 class CTCPrefixScoreTH(object):

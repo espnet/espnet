@@ -2,17 +2,15 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 from itertools import permutations
-from typing import Dict
-from typing import Optional
-from typing import Tuple
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import torch
+import torch.nn.functional as F
+from packaging.version import parse as V
 from typeguard import check_argument_types
 
-from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
@@ -21,8 +19,9 @@ from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from espnet.nets.pytorch_backend.nets_utils import to_device
 
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
+if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:
     # Nothing to do if torch<1.6.0
@@ -50,6 +49,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         encoder: AbsEncoder,
         decoder: AbsDecoder,
         attractor: Optional[AbsAttractor],
+        diar_weight: float = 1.0,
         attractor_weight: float = 1.0,
     ):
         assert check_argument_types()
@@ -61,6 +61,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         self.frontend = frontend
         self.specaug = specaug
         self.label_aggregator = label_aggregator
+        self.diar_weight = diar_weight
         self.attractor_weight = attractor_weight
         self.attractor = attractor
         self.decoder = decoder
@@ -96,7 +97,12 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         batch_size = speech.shape[0]
 
         # 1. Encoder
-        encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
+        # Use bottleneck_feats if exist. Only for "enh + diar" task.
+        bottleneck_feats = kwargs.get("bottleneck_feats", None)
+        bottleneck_feats_lengths = kwargs.get("bottleneck_feats_lengths", None)
+        encoder_out, encoder_out_lens = self.encode(
+            speech, speech_lengths, bottleneck_feats, bottleneck_feats_lengths
+        )
 
         if self.attractor is None:
             # 2a. Decoder (baiscally a predction layer after encoder_out)
@@ -145,7 +151,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
                 pred, spk_labels, encoder_out_lens
             )
             loss_att = self.attractor_loss(att_prob, spk_labels)
-            loss = loss_pit + self.attractor_weight * loss_att
+            loss = self.diar_weight * loss_pit + self.attractor_weight * loss_att
         (
             correct,
             num_frames,
@@ -199,13 +205,18 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+        self,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        bottleneck_feats: torch.Tensor,
+        bottleneck_feats_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Frontend + Encoder
 
         Args:
             speech: (Batch, Length, ...)
             speech_lengths: (Batch,)
+            bottleneck_feats: (Batch, Length, ...): used for enh + diar
         """
         with autocast(False):
             # 1. Extract feats
@@ -222,7 +233,24 @@ class ESPnetDiarizationModel(AbsESPnetModel):
             # 4. Forward encoder
             # feats: (Batch, Length, Dim)
             # -> encoder_out: (Batch, Length2, Dim)
-            encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
+            if bottleneck_feats is None:
+                encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
+            elif self.frontend is None:
+                # use only bottleneck feature
+                encoder_out, encoder_out_lens, _ = self.encoder(
+                    bottleneck_feats, bottleneck_feats_lengths
+                )
+            else:
+                # use both frontend and bottleneck feats
+                # interpolate (copy) feats frames
+                # to match the length with bottleneck_feats
+                feats = F.interpolate(
+                    feats.transpose(1, 2), size=bottleneck_feats.shape[1]
+                ).transpose(1, 2)
+                # concatenate frontend LMF feature and bottleneck feature
+                encoder_out, encoder_out_lens, _ = self.encoder(
+                    torch.cat((bottleneck_feats, feats), 2), bottleneck_feats_lengths
+                )
 
         assert encoder_out.size(0) == speech.size(0), (
             encoder_out.size(),

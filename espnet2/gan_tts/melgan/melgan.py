@@ -8,10 +8,7 @@ This code is modified from https://github.com/kan-bayashi/ParallelWaveGAN.
 """
 
 import logging
-
-from typing import Any
-from typing import Dict
-from typing import List
+from typing import Any, Dict, List
 
 import numpy as np
 import torch

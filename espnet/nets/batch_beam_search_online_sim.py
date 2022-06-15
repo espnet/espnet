@@ -4,9 +4,8 @@ import logging
 from pathlib import Path
 from typing import List
 
-import yaml
-
 import torch
+import yaml
 
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import Hypothesis

@@ -551,7 +551,7 @@ if ! "${skip_data_prep}"; then
             done
             utils/combine_data.sh --extra_files "${utt_extra_files} ${_scp_list}" "data/${train_set}_sp" ${_dirs}
             for extra_file in ${utt_extra_files}; do
-                python pyscripts/utils/remove_duplicate_keys.py data/"${train_set}_sp"/${extra_file} > data/"${train_set}_sp"/${extra_file}.tmp 
+                python pyscripts/utils/remove_duplicate_keys.py data/"${train_set}_sp"/${extra_file} > data/"${train_set}_sp"/${extra_file}.tmp
                 mv data/"${train_set}_sp"/${extra_file}.tmp data/"${train_set}_sp"/${extra_file}
             done
         else
@@ -593,7 +593,7 @@ if ! "${skip_data_prep}"; then
                         fi
                         cp ${single_file} "${data_feats}${_suf}/${dset}"
                         expand_utt_extra_files="${expand_utt_extra_files} $(basename ${single_file})"
-                    done 
+                    done
                 done
                 echo "${expand_utt_extra_files}"
                 utils/fix_data_dir.sh --utt_extra_files "${expand_utt_extra_files}" "${data_feats}${_suf}/${dset}"
@@ -727,9 +727,9 @@ if ! "${skip_data_prep}"; then
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
             for utt_extra_file in ${utt_extra_files}; do
                 python pyscripts/utils/remove_duplicate_keys.py ${data_feats}/${dset}/${utt_extra_file} \
-                    > ${data_feats}/${dset}/${utt_extra_file}.tmp 
+                    > ${data_feats}/${dset}/${utt_extra_file}.tmp
                 mv ${data_feats}/${dset}/${utt_extra_file}.tmp ${data_feats}/${dset}/${utt_extra_file}
-            done 
+            done
         done
 
         # shellcheck disable=SC2002
@@ -934,7 +934,7 @@ if ! "${skip_train}"; then
             log "LM collect-stats started... log: '${_logdir}/stats.*.log'"
             # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
             #       but it's used only for deciding the sample ids.
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
                 ${python} -m espnet2.bin.lm_train \
                     --collect_stats true \
@@ -950,7 +950,7 @@ if ! "${skip_train}"; then
                     --train_shape_file "${_logdir}/train.JOB.scp" \
                     --valid_shape_file "${_logdir}/dev.JOB.scp" \
                     --output_dir "${_logdir}/stats.JOB" \
-                    ${_opts} ${lm_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                    ${_opts} ${lm_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
             # 4. Aggregate shape files
             _opts=
@@ -1078,7 +1078,7 @@ if ! "${skip_train}"; then
         if "${use_ngram}"; then
             log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
             cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
-            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin 
+            build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin
         else
             log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
         fi
@@ -1148,7 +1148,7 @@ if ! "${skip_train}"; then
         #       but it's used only for deciding the sample ids.
 
         # TODO(jiatong): fix different bpe model
-        # shellcheck disable=SC2086
+        # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.enh_s2t_train \
                 --collect_stats true \
@@ -1173,7 +1173,7 @@ if ! "${skip_train}"; then
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
-                ${_opts} ${enh_st_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                ${_opts} ${enh_st_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1; }
 
         # 4. Aggregate shape files
         _opts=
@@ -1436,7 +1436,7 @@ if ! "${skip_eval}"; then
 
             # 2. Submit decoding jobs
             log "Decoding started... log: '${_logdir}/st_inference.*.log'"
-            # shellcheck disable=SC2086
+            # shellcheck disable=SC2046,SC2086
             ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/st_inference.JOB.log \
                 ${python} -m ${st_inference_tool} \
                     --enh_s2t_task true \
@@ -1447,7 +1447,7 @@ if ! "${skip_eval}"; then
                     --st_train_config "${enh_st_exp}"/config.yaml \
                     --st_model_file "${enh_st_exp}"/"${inference_enh_st_model}" \
                     --output_dir "${_logdir}"/output.JOB \
-                    ${_opts} ${st_inference_args}
+                    ${_opts} ${st_inference_args} || { cat $(grep -l -i error "${_logdir}"/st_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
             for f in token token_int score text; do
@@ -1773,11 +1773,11 @@ if ! "${skip_upload_hf}"; then
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \
             log "ERROR: You need to install git-lfs first" && \
-            exit 1             
-  
+            exit 1
+
         dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
         [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
-  
+
         if command -v git &> /dev/null; then
             _creator_name="$(git config user.name)"
             _checkout="git checkout $(git show -s --format=%H)"
@@ -1790,13 +1790,13 @@ if ! "${skip_upload_hf}"; then
         # foo/asr1 -> foo
         _corpus="${_task%/*}"
         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-  
+
         # copy files in ${dir_repo}
         unzip -o ${packed_model} -d ${dir_repo}
         # Generate description file
         # shellcheck disable=SC2034
         hf_task=speech-enhancement-translation
-        # shellcheck disable=SC2034     
+        # shellcheck disable=SC2034
         espnet_task=EnhS2T
         # shellcheck disable=SC2034
         task_exp=${enh_st_exp}

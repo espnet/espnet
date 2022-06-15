@@ -1,7 +1,7 @@
 from typing import Tuple
 
-from pytorch_wpe import wpe_one_iteration
 import torch
+from pytorch_wpe import wpe_one_iteration
 from torch_complex.tensor import ComplexTensor
 
 from espnet.nets.pytorch_backend.frontends.mask_estimator import MaskEstimator

@@ -6,7 +6,6 @@ import os
 import subprocess
 import sys
 
-
 is_python2 = sys.version_info[0] == 2
 
 
@@ -29,9 +28,7 @@ def get_parser():
 
 
 def main(args):
-    from utils import json2trn
-    from utils import trn2ctm
-    from utils import trn2stm
+    from utils import json2trn, trn2ctm, trn2stm
 
     parser = get_parser()
     args = parser.parse_args(args)

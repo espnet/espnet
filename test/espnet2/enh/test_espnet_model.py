@@ -1,7 +1,6 @@
-from distutils.version import LooseVersion
-
 import pytest
 import torch
+from packaging.version import parse as V
 
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
@@ -10,8 +9,7 @@ from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1
-from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
+from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainL1, FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.fixed_order import FixedOrderSolver
 from espnet2.enh.loss.wrappers.multilayer_pit_solver import MultiLayerPITSolver
@@ -25,8 +23,7 @@ from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 
-
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 stft_encoder = STFTEncoder(
@@ -112,6 +109,40 @@ fix_order_solver = FixedOrderSolver(criterion=tf_mse_loss)
 
 
 @pytest.mark.parametrize(
+    "encoder, decoder, separator", [(stft_encoder, stft_decoder, rnn_separator)]
+)
+@pytest.mark.parametrize("training", [True, False])
+def test_criterion_behavior(encoder, decoder, separator, training):
+    inputs = torch.randn(2, 300)
+    ilens = torch.LongTensor([300, 200])
+    speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]
+    enh_model = ESPnetEnhancementModel(
+        encoder=encoder,
+        separator=separator,
+        decoder=decoder,
+        mask_module=None,
+        loss_wrappers=[PITSolver(criterion=SISNRLoss(only_for_test=True))],
+    )
+
+    if training:
+        enh_model.train()
+    else:
+        enh_model.eval()
+
+    kwargs = {
+        "speech_mix": inputs,
+        "speech_mix_lengths": ilens,
+        **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(2)},
+    }
+
+    if training:
+        with pytest.raises(AttributeError):
+            loss, stats, weight = enh_model(**kwargs)
+    else:
+        loss, stats, weight = enh_model(**kwargs)
+
+
+@pytest.mark.parametrize(
     "encoder, decoder",
     [
         (stft_encoder, stft_decoder),
@@ -146,6 +177,7 @@ def test_single_channel_model(encoder, decoder, separator, training, loss_wrappe
         encoder=encoder,
         separator=separator,
         decoder=decoder,
+        mask_module=None,
         loss_wrappers=loss_wrappers,
     )
 
@@ -184,6 +216,7 @@ def test_svoice_model(encoder, decoder, separator, training, loss_wrappers):
         encoder=encoder,
         separator=separator,
         decoder=decoder,
+        mask_module=None,
         loss_wrappers=loss_wrappers,
     )
 
@@ -299,6 +332,7 @@ def test_forward_with_beamformer_net(
         encoder=encoder,
         decoder=decoder,
         separator=beamformer,
+        mask_module=None,
         loss_type=loss_type,
         mask_type=mask_type,
         loss_wrappers=loss_wrappers,

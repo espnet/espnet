@@ -1,54 +1,57 @@
 import argparse
 import copy
 import logging
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from typeguard import check_argument_types
-from typeguard import check_return_type
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.espnet_model import ESPnetASRModel
+from espnet2.diar.espnet_model import ESPnetDiarizationModel
 from espnet2.enh.espnet_enh_s2t_model import ESPnetEnhS2TModel
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.asr import decoder_choices as asr_decoder_choices_
 from espnet2.tasks.asr import encoder_choices as asr_encoder_choices_
-from espnet2.tasks.asr import frontend_choices
-from espnet2.tasks.asr import normalize_choices
+from espnet2.tasks.asr import frontend_choices, normalize_choices
 from espnet2.tasks.asr import postencoder_choices as asr_postencoder_choices_
 from espnet2.tasks.asr import preencoder_choices as asr_preencoder_choices_
 from espnet2.tasks.asr import specaug_choices
+from espnet2.tasks.diar import DiarizationTask
+from espnet2.tasks.diar import attractor_choices as diar_attractor_choices_
+from espnet2.tasks.diar import decoder_choices as diar_decoder_choices_
+from espnet2.tasks.diar import encoder_choices as diar_encoder_choices_
+from espnet2.tasks.diar import frontend_choices as diar_front_end_choices_
+from espnet2.tasks.diar import label_aggregator_choices
+from espnet2.tasks.diar import normalize_choices as diar_normalize_choices_
+from espnet2.tasks.diar import specaug_choices as diar_specaug_choices_
+from espnet2.tasks.enh import EnhancementTask
 from espnet2.tasks.enh import decoder_choices as enh_decoder_choices_
 from espnet2.tasks.enh import encoder_choices as enh_encoder_choices_
-from espnet2.tasks.enh import EnhancementTask
+from espnet2.tasks.enh import mask_module_choices as enh_mask_module_choices_
 from espnet2.tasks.enh import separator_choices as enh_separator_choices_
+from espnet2.tasks.st import STTask
 from espnet2.tasks.st import decoder_choices as st_decoder_choices_
 from espnet2.tasks.st import encoder_choices as st_encoder_choices_
 from espnet2.tasks.st import extra_asr_decoder_choices as st_extra_asr_decoder_choices_
 from espnet2.tasks.st import extra_mt_decoder_choices as st_extra_mt_decoder_choices_
 from espnet2.tasks.st import postencoder_choices as st_postencoder_choices_
 from espnet2.tasks.st import preencoder_choices as st_preencoder_choices_
-from espnet2.tasks.st import STTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import CommonPreprocessor_multi
-from espnet2.train.preprocessor import MutliTokenizerCommonPreprocessor
+from espnet2.train.preprocessor import (
+    CommonPreprocessor,
+    CommonPreprocessor_multi,
+    MutliTokenizerCommonPreprocessor,
+)
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import int_or_none
-from espnet2.utils.types import str2bool
-from espnet2.utils.types import str_or_none
-
+from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 # Enhancement
 enh_encoder_choices = copy.deepcopy(enh_encoder_choices_)
@@ -57,6 +60,8 @@ enh_decoder_choices = copy.deepcopy(enh_decoder_choices_)
 enh_decoder_choices.name = "enh_decoder"
 enh_separator_choices = copy.deepcopy(enh_separator_choices_)
 enh_separator_choices.name = "enh_separator"
+enh_mask_module_choices = copy.deepcopy(enh_mask_module_choices_)
+enh_mask_module_choices.name = "enh_mask_module"
 
 # ASR (also SLU)
 asr_preencoder_choices = copy.deepcopy(asr_preencoder_choices_)
@@ -82,12 +87,28 @@ st_extra_asr_decoder_choices.name = "st_extra_asr_decoder"
 st_extra_mt_decoder_choices = copy.deepcopy(st_extra_mt_decoder_choices_)
 st_extra_mt_decoder_choices.name = "st_extra_mt_decoder"
 
+# DIAR
+diar_frontend_choices = copy.deepcopy(diar_front_end_choices_)
+diar_frontend_choices.name = "diar_frontend"
+diar_specaug_choices = copy.deepcopy(diar_specaug_choices_)
+diar_specaug_choices.name = "diar_specaug"
+diar_normalize_choices = copy.deepcopy(diar_normalize_choices_)
+diar_normalize_choices.name = "diar_normalize"
+diar_encoder_choices = copy.deepcopy(diar_encoder_choices_)
+diar_encoder_choices.name = "diar_encoder"
+diar_decoder_choices = copy.deepcopy(diar_decoder_choices_)
+diar_decoder_choices.name = "diar_decoder"
+diar_attractor_choices = copy.deepcopy(diar_attractor_choices_)
+diar_attractor_choices.name = "diar_attractor"
+
+
 MAX_REFERENCE_NUM = 100
 
 name2task = dict(
     enh=EnhancementTask,
     asr=ASRTask,
     st=STTask,
+    diar=DiarizationTask,
 )
 
 # More can be added to the following attributes
@@ -96,6 +117,8 @@ enh_attributes = [
     "encoder_conf",
     "separator",
     "separator_conf",
+    "mask_module",
+    "mask_module_conf",
     "decoder",
     "decoder_conf",
     "criterions",
@@ -146,6 +169,25 @@ st_attributes = [
     "extra_mt_decoder_conf",
 ]
 
+diar_attributes = [
+    "input_size",
+    "num_spk",
+    "frontend",
+    "frontend_conf",
+    "specaug",
+    "specaug_conf",
+    "normalize",
+    "normalize_conf",
+    "encoder",
+    "encoder_conf",
+    "decoder",
+    "decoder_conf",
+    "attractor",
+    "attractor_conf",
+    "label_aggregator",
+    "label_aggregator_conf",
+]
+
 
 class EnhS2TTask(AbsTask):
     # If you need more than one optimizers, change this value
@@ -159,6 +201,8 @@ class EnhS2TTask(AbsTask):
         enh_separator_choices,
         # --enh_decoder and --enh_decoder_conf
         enh_decoder_choices,
+        # --enh_mask_module and --enh_mask_module_conf
+        enh_mask_module_choices,
         # --frontend and --frontend_conf
         frontend_choices,
         # --specaug and --specaug_conf
@@ -185,6 +229,20 @@ class EnhS2TTask(AbsTask):
         st_extra_asr_decoder_choices,
         # --st_extra_mt_decoder and --st_extra_mt_decoder_conf
         st_extra_mt_decoder_choices,
+        # --diar_frontend and --diar_frontend_conf
+        diar_frontend_choices,
+        # --diar_specaug and --diar_specaug_conf
+        diar_specaug_choices,
+        # --diar_normalize and --diar_normalize_conf
+        diar_normalize_choices,
+        # --diar_encoder and --diar_encoder_conf
+        diar_encoder_choices,
+        # --diar_decoder and --diar_decoder_conf
+        diar_decoder_choices,
+        # --label_aggregator and --label_aggregator_conf
+        label_aggregator_choices,
+        # --diar_attractor and --diar_attractor_conf
+        diar_attractor_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -193,11 +251,6 @@ class EnhS2TTask(AbsTask):
     @classmethod
     def add_task_arguments(cls, parser: argparse.ArgumentParser):
         group = parser.add_argument_group(description="Task related")
-
-        # NOTE(kamo): add_arguments(..., required=True) can't be used
-        # to provide --print_config mode. Instead of it, do as
-        required = parser.get_default("required")
-        required += ["token_list"]
 
         group.add_argument(
             "--token_list",
@@ -255,6 +308,20 @@ class EnhS2TTask(AbsTask):
         )
 
         group.add_argument(
+            "--diar_num_spk",
+            type=int_or_none,
+            default=None,
+            help="The number of speakers (for each recording) for diar submodel class",
+        )
+
+        group.add_argument(
+            "--diar_input_size",
+            type=int_or_none,
+            default=None,
+            help="The number of input dimension of the feature",
+        )
+
+        group.add_argument(
             "--enh_model_conf",
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetEnhancementModel),
@@ -276,11 +343,18 @@ class EnhS2TTask(AbsTask):
         )
 
         group.add_argument(
+            "--diar_model_conf",
+            action=NestedDictAction,
+            default=get_default_kwargs(ESPnetDiarizationModel),
+            help="The keyword arguments for diar submodel class.",
+        )
+
+        group.add_argument(
             "--subtask_series",
             type=str,
             nargs="+",
             default=("enh", "asr"),
-            choices=["enh", "asr", "st"],
+            choices=["enh", "asr", "st", "diar"],
             help="The series of subtasks in the pipeline.",
         )
 
@@ -324,19 +398,19 @@ class EnhS2TTask(AbsTask):
             default=None,
             help="The model file of sentencepiece (for source language)",
         )
-        parser.add_argument(
+        group.add_argument(
             "--non_linguistic_symbols",
             type=str_or_none,
             help="non_linguistic_symbols file path",
         )
-        parser.add_argument(
+        group.add_argument(
             "--cleaner",
             type=str_or_none,
             choices=[None, "tacotron", "jaconv", "vietnamese"],
             default=None,
             help="Apply text cleaning",
         )
-        parser.add_argument(
+        group.add_argument(
             "--g2p",
             type=str_or_none,
             choices=g2p_choices,
@@ -387,12 +461,17 @@ class EnhS2TTask(AbsTask):
                     noise_db_range=args.noise_db_range
                     if hasattr(args, "noise_db_range")
                     else "13_15",
+                    short_noise_thres=args.short_noise_thres
+                    if hasattr(args, "short_noise_thres")
+                    else 0.5,
                     speech_volume_normalize=args.speech_volume_normalize
                     if hasattr(args, "speech_volume_normalize")
                     else None,
                     speech_name="speech",
                     text_name=["text", "src_text"],
                 )
+            elif "diar" in args.subtask_series:
+                retval = CommonPreprocessor(train=train)
             else:
                 retval = CommonPreprocessor_multi(
                     train=train,
@@ -450,7 +529,7 @@ class EnhS2TTask(AbsTask):
                     else getattr(args, attr, None)
                 )
 
-            if subtask in ["asr", "st"]:
+            if subtask in ["asr", "st", "diar"]:
                 m_subtask = "s2t"
             elif subtask in ["enh"]:
                 m_subtask = subtask
