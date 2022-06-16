@@ -1,7 +1,11 @@
-import asteroid_filterbanks.transforms as af_transforms
 import torch
-from asteroid.masknn import activations
+from espnet2.torch_utils.get_layer_from_string import get_layer
 
+from packaging.version import parse as V
+from torch_complex.tensor import ComplexTensor
+
+
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 class Conv2DActNorm(torch.nn.Module):
     def __init__(
@@ -24,7 +28,7 @@ class Conv2DActNorm(torch.nn.Module):
             conv = torch.nn.Conv2d(
                 in_channels, out_channels, ksz, stride, padding, padding_mode="reflect"
             )
-        act = activations.get(activation)()
+        act = get_layer(activation)()
         norm = torch.nn.GroupNorm(out_channels, out_channels, eps=1e-8)
         self.layer = torch.nn.Sequential(conv, act, norm)
 
@@ -158,7 +162,7 @@ class TCNResBlock(torch.nn.Module):
 
         self.layer = torch.nn.Sequential(
             torch.nn.GroupNorm(in_chan, in_chan, eps=1e-8),
-            activations.get(activation)(),
+            get_layer(activation)(),
             dconv,
             point_conv,
         )
@@ -354,8 +358,7 @@ class TCNDenseUNet(torch.nn.Module):
         bsz, mics, _, frames = tf_rep.shape
         assert mics == self.mic_channels
 
-        inp_feats = af_transforms.to_torch_complex(tf_rep)
-        inp_feats = torch.cat((inp_feats.real, inp_feats.imag), 1)
+        inp_feats = torch.cat((tf_rep.real, tf_rep.imag), 1)
         inp_feats = inp_feats.transpose(-1, -2)
         inp_feats = inp_feats.reshape(
             bsz, self.mic_channels * 2, frames, self.in_channels
@@ -375,8 +378,12 @@ class TCNDenseUNet(torch.nn.Module):
             c_input = torch.cat((buffer, enc_out[-(indx + 1)]), 1)
             buffer = dec_layer(c_input)
 
-        if self.n_spk > 1:
-            buffer = buffer.reshape(bsz, 2, self.n_spk, -1, self.in_channels)
-        out = torch.cat((buffer[:, 0], buffer[:, 1]), -1)
+
+        buffer = buffer.reshape(bsz, 2, self.n_spk, -1, self.in_channels)
+
+        if is_torch_1_9_plus:
+            out = torch.complex(buffer[:, 0], buffer[:, 1])
+        else:
+            out = ComplexTensor(buffer[:, 0], buffer[:, 1])
         # bsz, complex_chans, frames or bsz, spk, complex_chans, frames
-        return out.transpose(1, 2)  # bsz, spk, time, freq -> bsz, time, spk, freq
+        return out # bsz, spk, time, freq -> bsz, time, spk, freq
