@@ -5,7 +5,7 @@ import pandas as pd
 
 try:
     from datasets import load_dataset
-except:
+except Exception:
     traceback.print_exc()
     print("Error importing datasets library")
     print("datasets can be installed via espnet/tools/installers/install_datasets")
@@ -29,8 +29,8 @@ parser.add_argument(
 args = parser.parse_args()
 
 """
-We use the fleurs portion of "google/xtreme_s" instead of "google/fleurs".
-google/fleurs data does not include the full path to the downloaded audio clips, making it harder to process.
+Use the fleurs portion of "google/xtreme_s" instead of "google/fleurs".
+google/fleurs data does not include the path to the downloaded audio clips
 """
 fleurs_asr = load_dataset(
     "google/xtreme_s", f"fleurs.{ args.lang}", cache_dir="downloads/cache/"
@@ -47,8 +47,8 @@ def add_lang_ids(sample):
 
 
 """
-kaldi data validation fails on certain white space characters, those are replaced here
-see https://apps.timwhitlock.info/unicode/inspect/hex/2000-206F for details on replaced chars
+kaldi data validation fails on certain white space characters, those are replaced here.
+See https://apps.timwhitlock.info/unicode/inspect/hex/2000-206F
 """
 
 
