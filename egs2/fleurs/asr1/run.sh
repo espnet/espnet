@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-lang=cy # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk
+lang=all # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk
 
 train_set=train_"$(echo "${lang}" | tr - _)"
 train_dev=dev_"$(echo "${lang}" | tr - _)"
@@ -43,7 +43,7 @@ if [[ "all" == *"${lang}"* ]]; then
       --valid_set "${train_dev}" \
       --test_sets "${test_set}" \
       --bpe_train_text "data/${train_set}/text" \
-      --lm_train_text "data/${train_set}/text" "$@" \ 
+      --lm_train_text "data/${train_set}/text" "$@" \
       --local_score_opts "--score_lang_id true" "$@"
 else
   ./asr.sh \
@@ -62,4 +62,4 @@ else
       --test_sets "${test_set}" \
       --bpe_train_text "data/${train_set}/text" \
       --lm_train_text "data/${train_set}/text" "$@" 
-
+fi

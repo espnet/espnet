@@ -12,6 +12,7 @@ stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
 lang=af_za # see https://huggingface.co/datasets/google/fleurs#dataset-structure for list of all langs
+nlsyms_txt=data/local/nlsyms.txt
 
  . utils/parse_options.sh || exit 1;
 
@@ -40,7 +41,7 @@ log "data preparation started"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
     log "stage1: Download data to ${COMMONVOICE}"
-    python create_dataset.py --lang ${lang} --nlsyms_txt ${nlsyms_txt}
+    python local/create_dataset.py --lang ${lang} --nlsyms_txt ${nlsyms_txt}
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then

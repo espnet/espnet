@@ -15,7 +15,7 @@ parser.add_argument('--nlsyms_txt', default="nlsyms_txt.txt", type=str, help='a 
 
 args = parser.parse_args()
 
-fleurs_asr = load_dataset("fleurs", args.lang)
+fleurs_asr = load_dataset("google/fleurs", args.lang, cache_dir='downloads/cache/')
 lang_iso_map = fleurs_asr["train"].features["lang_id"].names
 
 def add_lang_ids(sample):
