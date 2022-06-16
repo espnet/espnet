@@ -5,10 +5,9 @@ from abc import ABC
 import ci_sdr
 import fast_bss_eval
 import torch
+from espnet2.layers.stft import Stft
 
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
-import asteroid_filterbanks.transforms as af_transforms
-from asteroid_filterbanks import make_enc_dec
 
 
 class TimeDomainLoss(AbsEnhLoss, ABC):
@@ -281,7 +280,13 @@ class MultiResL1SpecLoss(TimeDomainLoss):
         self.eps = eps
         self.stft_encoders = torch.nn.ModuleList([])
         for w, h in zip(self.window_sz, self.hop_sz):
-            stft_enc, _ = make_enc_dec("torch_stft", w, w, h)
+            stft_enc = Stft(n_fft=w,
+            win_length=w,
+            hop_length=h,
+            window=None,
+            center=True,
+            normalized=False,
+            onesided=True)
             self.stft_encoders.append(stft_enc)
 
     @property
@@ -297,21 +302,17 @@ class MultiResL1SpecLoss(TimeDomainLoss):
         scaling_factor = torch.sum(estimate * target, -1, keepdim=True) / (
             torch.sum(estimate**2, -1, keepdim=True) + self.eps
         )
-        time_domain_loss = torch.mean((estimate * scaling_factor - target).abs())
+        time_domain_loss = torch.sum((estimate * scaling_factor - target).abs())
 
         if len(self.stft_encoders) == 0:
             return time_domain_loss
         else:
             spectral_loss = torch.zeros_like(time_domain_loss)
             for stft_enc in self.stft_encoders:
-                target_stft = stft_enc(target)
-                estimate_stft = stft_enc(estimate * scaling_factor)
-                c_loss = torch.mean(
-                    (
-                        af_transforms.mag(estimate_stft)
-                        - af_transforms.mag(target_stft)
-                    ).abs()
-                )
+                target_mag = stft_enc(target).abs()
+                estimate_mag = stft_enc(estimate * scaling_factor).abs()
+                c_loss = torch.sum(
+                    (estimate_mag - target_mag).abs())
                 spectral_loss += c_loss
 
             return time_domain_loss * self.time_domain_weight + (
