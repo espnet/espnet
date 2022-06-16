@@ -6,7 +6,9 @@ from typing import Union
 from torch_complex.tensor import ComplexTensor
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.layers.tcndenseunet import TCNDenseUNet
-
+from espnet2.enh.layers.beamformer import tik_reg, to_double
+from espnet2.enh.encoder.stft_encoder import STFTEncoder
+from espnet2.enh.decoder.stft_decoder import STFTDecoder
 
 class iNeuBe(AbsSeparator):
     def __init__(
@@ -14,7 +16,7 @@ class iNeuBe(AbsSeparator):
         n_spk=1,
         n_fft=512,
         stride=128,
-        window="hanning",
+        window="hann",
         mic_channels=1,
         hid_chans=32,
         hid_chans_dense=32,
@@ -27,25 +29,19 @@ class iNeuBe(AbsSeparator):
         input_from="dnn1",
         n_chunks=3,
         freeze_dnn1=False,
+        tik_eps=1e-8
     ):
         super().__init__()
         self.n_spk = n_spk
         self.input_from = input_from
         self.n_chunks = n_chunks
         self.freeze_dnn1 = freeze_dnn1
-
-        if window == "hanning":
-            window = torch.hann_window(n_fft)
-        elif window == "hamming":
-            window = torch.hamming_window(n_fft)
-        elif window is None:
-            pass
-        else:
-            raise NotImplementedError
+        self.tik_eps = tik_eps
         fft_c_channels = n_fft // 2 + 1
-        self.enc, self.dec = make_enc_dec(
-            "torch_stft", n_fft, n_fft, stride, window=window
-        )
+
+        self.enc = STFTEncoder(n_fft, n_fft, stride, window=window)
+        self.dec = STFTDecoder(n_fft, n_fft, stride, window=window)
+
         self.dnn1 = TCNDenseUNet(
             n_spk,
             fft_c_channels,
@@ -74,7 +70,8 @@ class iNeuBe(AbsSeparator):
             activation=activation,
         )
 
-    def unfold(self, tf_rep, chunk_size):
+    @staticmethod
+    def unfold(tf_rep, chunk_size):
         bsz, freq, _ = tf_rep.shape
 
         est_unfolded = torch.nn.functional.unfold(
@@ -90,54 +87,58 @@ class iNeuBe(AbsSeparator):
         est_unfolded = est_unfolded.transpose(1, 2)
         return est_unfolded
 
-    def mfmcwf(self, mixture, estimate, n_chunks):
+    @staticmethod
+    def mfmcwf(mixture, estimate, n_chunks, tik_eps):
+
         bsz, mics, _, frames = mixture.shape
-        mix_unfolded = self.unfold(
+        mix_unfolded = iNeuBe.unfold(
             mixture.reshape(bsz * mics, -1, frames), n_chunks
         ).reshape(bsz, mics * (2 * n_chunks + 1), -1, frames)
 
-        mix_unfolded = af_transforms.to_torch_complex(mix_unfolded.double())
-        estimate1 = af_transforms.to_torch_complex(estimate.double())
+        mix_unfolded = to_double(mix_unfolded)
+        estimate1 = to_double(estimate)
         zeta = torch.einsum("bmft, bft->bmf", mix_unfolded, estimate1.conj())
         scm_mix = torch.einsum("bmft, bnft->bmnf", mix_unfolded, mix_unfolded.conj())
         inv_scm_mix = torch.inverse(
-            condition_scm(scm_mix.permute(0, 3, 1, 2), 1e-4)
+            tik_reg(scm_mix.permute(0, 3, 1, 2), tik_eps)
         ).permute(0, 2, 3, 1)
         bf_vector = torch.einsum("bmnf, bnf->bmf", inv_scm_mix, zeta)
 
         beamformed = torch.einsum("...mf,...mft->...ft", bf_vector.conj(), mix_unfolded)
-        beamformed = af_transforms.from_torch_complex(beamformed).float()
+        beamformed = beamformed.to(mixture)
 
         return beamformed
 
     @staticmethod
     def pad2(input_tensor, target_len):
-        input_tensor = torch.nn.functional.pad(input_tensor, (0, target_len - input_tensor.shape[0]))
+        input_tensor = torch.nn.functional.pad(input_tensor, (0, 0, 0, target_len - input_tensor.shape[0]))
         return input_tensor
 
     def forward(
         self,
         input: Union[torch.Tensor, ComplexTensor],
         ilens: torch.Tensor, **kwargs) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
-
-        mixture_len = input.shape[2]
+        # B, T, C
+        bsz, mixture_len, mics = input.shape
 
         mix_stft = self.enc(input)
-        others = OrderedDict()
+        # B, T, C, F
+        mix_stft = mix_stft.permute(0, 2, 3, 1)
         est_dnn1 = self.dnn1(mix_stft)
         if self.freeze_dnn1:
             est_dnn1 = est_dnn1.detach()
 
         output_dnn1 = self.pad2(self.dec(est_dnn1), mixture_len)
-        output_dnn1 = [output_dnn1[:, src] for src in range(output_dnn1.shape[1])]
+        output_dnn1 = [output_dnn1[..., src] for src in range(output_dnn1.shape[-1])]
+        others = OrderedDict()
         if self.output_from == "dnn1":
             return output_dnn1, ilens, others
         elif self.output_from in ["beam", "dnn2"]:
             others["dnn1"] = output_dnn1
-            est_mfmcwf = self.mfmcwf(mix_stft, est_dnn1, self.n_chunks)
+            est_mfmcwf = iNeuBe.mfmcwf(mix_stft, est_dnn1, self.n_chunks, self.tik_eps)
             output_mfmcwf = self.pad2(self.dec(est_mfmcwf), mixture_len)
             if self.output_from == "mfmcwf":
-                return [output_mfmcwf[:, src] for src in range(output_mfmcwf.shape[1])], ilens, others
+                return [output_mfmcwf[..., src] for src in range(output_mfmcwf.shape[-1])], ilens, others
             elif self.output_from == "dnn2":
                 others["dnn1"] = output_dnn1
                 others["beam"] = output_mfmcwf
@@ -145,7 +146,7 @@ class iNeuBe(AbsSeparator):
                     torch.cat((mix_stft, est_dnn1.unsqueeze(1), est_mfmcwf.unsqueeze(1)), 1)
                 )
                 est_dnn2 = self.pad2(self.dec(est_dnn2), mixture_len)
-                return [est_dnn2[:, src] for src in est_dnn2.shape[1]], ilens, others
+                return [est_dnn2[..., src] for src in est_dnn2.shape[-1]], ilens, others
             else:
                 raise NotImplementedError
         else:

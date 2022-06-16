@@ -349,8 +349,8 @@ class TCNDenseUNet(torch.nn.Module):
         return freqs
 
     def forward(self, tf_rep):
-        # bsz, mics, complex_stft_chans, frames
-
+        # B, T, C, F
+        tf_rep = tf_rep.permute(0, 2, 3, 1)
         bsz, mics, _, frames = tf_rep.shape
         assert mics == self.mic_channels
 
@@ -379,4 +379,4 @@ class TCNDenseUNet(torch.nn.Module):
             buffer = buffer.reshape(bsz, 2, self.n_spk, -1, self.in_channels)
         out = torch.cat((buffer[:, 0], buffer[:, 1]), -1)
         # bsz, complex_chans, frames or bsz, spk, complex_chans, frames
-        return out.transpose(-1, -2)
+        return out.transpose(1, 2) # bsz, spk, time, freq -> bsz, time, spk, freq
