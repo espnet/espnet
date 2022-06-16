@@ -1,14 +1,15 @@
-import torch
 from collections import OrderedDict
-from typing import List
-from typing import Tuple
-from typing import Union
+from typing import List, Tuple, Union
+
+import torch
 from torch_complex.tensor import ComplexTensor
-from espnet2.enh.separator.abs_separator import AbsSeparator
-from espnet2.enh.layers.tcndenseunet import TCNDenseUNet
-from espnet2.enh.layers.beamformer import tik_reg, to_double
-from espnet2.enh.encoder.stft_encoder import STFTEncoder
+
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
+from espnet2.enh.encoder.stft_encoder import STFTEncoder
+from espnet2.enh.layers.beamformer import tik_reg, to_double
+from espnet2.enh.layers.tcndenseunet import TCNDenseUNet
+from espnet2.enh.separator.abs_separator import AbsSeparator
+
 
 class iNeuBe(AbsSeparator):
     def __init__(
@@ -29,7 +30,7 @@ class iNeuBe(AbsSeparator):
         input_from="dnn1",
         n_chunks=3,
         freeze_dnn1=False,
-        tik_eps=1e-8
+        tik_eps=1e-8,
     ):
         super().__init__()
         self.n_spk = n_spk
@@ -111,13 +112,14 @@ class iNeuBe(AbsSeparator):
 
     @staticmethod
     def pad2(input_tensor, target_len):
-        input_tensor = torch.nn.functional.pad(input_tensor, (0, 0, 0, target_len - input_tensor.shape[0]))
+        input_tensor = torch.nn.functional.pad(
+            input_tensor, (0, 0, 0, target_len - input_tensor.shape[0])
+        )
         return input_tensor
 
     def forward(
-        self,
-        input: Union[torch.Tensor, ComplexTensor],
-        ilens: torch.Tensor, **kwargs) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
+        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor, **kwargs
+    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         # B, T, C
         bsz, mixture_len, mics = input.shape
 
@@ -138,12 +140,18 @@ class iNeuBe(AbsSeparator):
             est_mfmcwf = iNeuBe.mfmcwf(mix_stft, est_dnn1, self.n_chunks, self.tik_eps)
             output_mfmcwf = self.pad2(self.dec(est_mfmcwf), mixture_len)
             if self.output_from == "mfmcwf":
-                return [output_mfmcwf[..., src] for src in range(output_mfmcwf.shape[-1])], ilens, others
+                return (
+                    [output_mfmcwf[..., src] for src in range(output_mfmcwf.shape[-1])],
+                    ilens,
+                    others,
+                )
             elif self.output_from == "dnn2":
                 others["dnn1"] = output_dnn1
                 others["beam"] = output_mfmcwf
                 est_dnn2 = self.dnn2(
-                    torch.cat((mix_stft, est_dnn1.unsqueeze(1), est_mfmcwf.unsqueeze(1)), 1)
+                    torch.cat(
+                        (mix_stft, est_dnn1.unsqueeze(1), est_mfmcwf.unsqueeze(1)), 1
+                    )
                 )
                 est_dnn2 = self.pad2(self.dec(est_dnn2), mixture_len)
                 return [est_dnn2[..., src] for src in est_dnn2.shape[-1]], ilens, others

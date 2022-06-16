@@ -5,9 +5,13 @@ from abc import ABC
 import ci_sdr
 import fast_bss_eval
 import torch
-from espnet2.layers.stft import Stft
+from packaging.version import parse as V
+from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
+from espnet2.layers.stft import Stft
+
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class TimeDomainLoss(AbsEnhLoss, ABC):
@@ -280,18 +284,28 @@ class MultiResL1SpecLoss(TimeDomainLoss):
         self.eps = eps
         self.stft_encoders = torch.nn.ModuleList([])
         for w, h in zip(self.window_sz, self.hop_sz):
-            stft_enc = Stft(n_fft=w,
-            win_length=w,
-            hop_length=h,
-            window=None,
-            center=True,
-            normalized=False,
-            onesided=True)
+            stft_enc = Stft(
+                n_fft=w,
+                win_length=w,
+                hop_length=h,
+                window=None,
+                center=True,
+                normalized=False,
+                onesided=True,
+            )
             self.stft_encoders.append(stft_enc)
 
     @property
     def name(self) -> str:
         return "l1_timedomain+magspec_loss"
+
+    def get_magnitude(self, stft):
+        if is_torch_1_9_plus and self.use_builtin_complex:
+            stft = torch.complex(stft[..., 0], stft[..., 1])
+        else:
+            stft = ComplexTensor(stft[..., 0], stft[..., 1])
+
+        return stft.abs()
 
     def forward(
         self,
@@ -310,9 +324,9 @@ class MultiResL1SpecLoss(TimeDomainLoss):
             spectral_loss = torch.zeros_like(time_domain_loss)
             for stft_enc in self.stft_encoders:
                 target_mag = stft_enc(target).abs()
+
                 estimate_mag = stft_enc(estimate * scaling_factor).abs()
-                c_loss = torch.sum(
-                    (estimate_mag - target_mag).abs())
+                c_loss = torch.sum((estimate_mag - target_mag).abs())
                 spectral_loss += c_loss
 
             return time_domain_loss * self.time_domain_weight + (

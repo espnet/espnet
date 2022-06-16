@@ -1,6 +1,6 @@
+import asteroid_filterbanks.transforms as af_transforms
 import torch
 from asteroid.masknn import activations
-import asteroid_filterbanks.transforms as af_transforms
 
 
 class Conv2DActNorm(torch.nn.Module):
@@ -379,4 +379,4 @@ class TCNDenseUNet(torch.nn.Module):
             buffer = buffer.reshape(bsz, 2, self.n_spk, -1, self.in_channels)
         out = torch.cat((buffer[:, 0], buffer[:, 1]), -1)
         # bsz, complex_chans, frames or bsz, spk, complex_chans, frames
-        return out.transpose(1, 2) # bsz, spk, time, freq -> bsz, time, spk, freq
+        return out.transpose(1, 2)  # bsz, spk, time, freq -> bsz, time, spk, freq

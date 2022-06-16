@@ -47,8 +47,8 @@ from espnet2.enh.separator.dpcl_e2e_separator import DPCLE2ESeparator
 from espnet2.enh.separator.dpcl_separator import DPCLSeparator
 from espnet2.enh.separator.dprnn_separator import DPRNNSeparator
 from espnet2.enh.separator.fasnet_separator import FaSNetSeparator
-from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.ineube_separator import iNeuBe
+from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.skim_separator import SkiMSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator

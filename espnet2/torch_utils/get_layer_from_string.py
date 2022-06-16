@@ -1,5 +1,6 @@
-import torch
 import difflib
+
+import torch
 
 
 def get_layer(l_name, library=torch.nn):
