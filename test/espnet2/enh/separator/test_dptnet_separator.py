@@ -7,13 +7,13 @@ from espnet2.enh.separator.dptnet_separator import DPTNetSeparator
 
 
 @pytest.mark.parametrize("input_dim", [8])
-@pytest.mark.parametrize("feature_dim", [8])
+@pytest.mark.parametrize("post_enc_relu", [True, False])
 @pytest.mark.parametrize("rnn_type", ["lstm", "gru"])
 @pytest.mark.parametrize("bidirectional", [True, False])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("unit", [8])
 @pytest.mark.parametrize("att_heads", [4])
-@pytest.mark.parametrize("dropout", [0.0, 0.2])
+@pytest.mark.parametrize("dropout", [0.2])
 @pytest.mark.parametrize("activation", ["relu"])
 @pytest.mark.parametrize("norm_type", ["gLN"])
 @pytest.mark.parametrize("layer", [1, 3])
@@ -21,7 +21,7 @@ from espnet2.enh.separator.dptnet_separator import DPTNetSeparator
 @pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
 def test_dptnet_separator_forward_backward_complex(
     input_dim,
-    feature_dim,
+    post_enc_relu,
     rnn_type,
     bidirectional,
     num_spk,
@@ -36,7 +36,7 @@ def test_dptnet_separator_forward_backward_complex(
 ):
     model = DPTNetSeparator(
         input_dim=input_dim,
-        feature_dim=feature_dim,
+        post_enc_relu=post_enc_relu,
         rnn_type=rnn_type,
         bidirectional=bidirectional,
         num_spk=num_spk,
@@ -65,13 +65,13 @@ def test_dptnet_separator_forward_backward_complex(
 
 
 @pytest.mark.parametrize("input_dim", [8])
-@pytest.mark.parametrize("feature_dim", [8])
+@pytest.mark.parametrize("post_enc_relu", [True, False])
 @pytest.mark.parametrize("rnn_type", ["lstm", "gru"])
 @pytest.mark.parametrize("bidirectional", [True, False])
 @pytest.mark.parametrize("num_spk", [1, 2])
 @pytest.mark.parametrize("unit", [8])
 @pytest.mark.parametrize("att_heads", [4])
-@pytest.mark.parametrize("dropout", [0.0, 0.2])
+@pytest.mark.parametrize("dropout", [0.2])
 @pytest.mark.parametrize("activation", ["relu"])
 @pytest.mark.parametrize("norm_type", ["gLN"])
 @pytest.mark.parametrize("layer", [1, 3])
@@ -79,7 +79,7 @@ def test_dptnet_separator_forward_backward_complex(
 @pytest.mark.parametrize("nonlinear", ["relu", "sigmoid", "tanh"])
 def test_dptnet_separator_forward_backward_real(
     input_dim,
-    feature_dim,
+    post_enc_relu,
     rnn_type,
     bidirectional,
     num_spk,
@@ -94,7 +94,7 @@ def test_dptnet_separator_forward_backward_real(
 ):
     model = DPTNetSeparator(
         input_dim=input_dim,
-        feature_dim=feature_dim,
+        post_enc_relu=post_enc_relu,
         rnn_type=rnn_type,
         bidirectional=bidirectional,
         num_spk=num_spk,
@@ -124,7 +124,6 @@ def test_dptnet_separator_invalid_args():
     with pytest.raises(ValueError):
         DPTNetSeparator(
             input_dim=8,
-            feature_dim=8,
             rnn_type="rnn",
             num_spk=2,
             unit=10,
@@ -136,7 +135,6 @@ def test_dptnet_separator_invalid_args():
     with pytest.raises(AssertionError):
         DPTNetSeparator(
             input_dim=10,
-            feature_dim=8,
             rnn_type="rnn",
             num_spk=2,
             unit=10,
@@ -155,7 +153,6 @@ def test_dptnet_separator_output():
     for num_spk in range(1, 3):
         model = DPTNetSeparator(
             input_dim=8,
-            feature_dim=8,
             rnn_type="rnn",
             num_spk=2,
             unit=10,

@@ -11,7 +11,7 @@ from espnet2.enh.layers.tcn import choose_norm
 from espnet.nets.pytorch_backend.nets_utils import get_activation
 
 
-class SingleTransformer(nn.Module):
+class ImprovedTransformerLayer(nn.Module):
     """Container module of the (improved) Transformer proposed in [1].
 
     Reference:
@@ -128,7 +128,7 @@ class DPTNet(nn.Module):
         self.col_transformer = nn.ModuleList()
         for i in range(num_layers):
             self.row_transformer.append(
-                SingleTransformer(
+                ImprovedTransformerLayer(
                     rnn_type,
                     input_size,
                     att_heads,
@@ -140,7 +140,7 @@ class DPTNet(nn.Module):
                 )
             )  # intra-segment RNN is always noncausal
             self.col_transformer.append(
-                SingleTransformer(
+                ImprovedTransformerLayer(
                     rnn_type,
                     input_size,
                     att_heads,
@@ -160,7 +160,6 @@ class DPTNet(nn.Module):
         # apply Transformer on dim1 first and then dim2
         # output shape: B, output_size, dim1, dim2
         # input = input.to(device)
-        batch_size, _, dim1, dim2 = input.shape
         output = input
         for i in range(len(self.row_transformer)):
             output = self.intra_chunk_process(output, i)

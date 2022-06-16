@@ -17,7 +17,7 @@ class DPTNetSeparator(AbsSeparator):
     def __init__(
         self,
         input_dim: int,
-        feature_dim: int = 64,
+        post_enc_relu: bool = True,
         rnn_type: str = "lstm",
         bidirectional: bool = True,
         num_spk: int = 2,
@@ -34,7 +34,6 @@ class DPTNetSeparator(AbsSeparator):
 
         Args:
             input_dim: input feature dimension
-            feature_dim: intermediate feature dimension for separation
             rnn_type: string, select from 'RNN', 'LSTM' and 'GRU'.
             bidirectional: bool, whether the inter-chunk RNN layers are bidirectional.
             num_spk: number of speakers
@@ -52,9 +51,9 @@ class DPTNetSeparator(AbsSeparator):
         super().__init__()
 
         self._num_spk = num_spk
-        self.feature_dim = feature_dim
         self.segment_size = segment_size
 
+        self.post_enc_relu = post_enc_relu
         self.enc_LN = choose_norm(norm_type, input_dim)
         self.dptnet = DPTNet(
             rnn_type=rnn_type,
@@ -112,9 +111,11 @@ class DPTNetSeparator(AbsSeparator):
 
         # if complex spectrum,
         if is_complex(input):
-            feature = torch.nn.functional.relu(abs(input))
-        else:
+            feature = abs(input)
+        elif self.post_enc_relu:
             feature = torch.nn.functional.relu(input)
+        else:
+            feature = input
 
         B, T, N = feature.shape
 

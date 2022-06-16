@@ -49,9 +49,7 @@ dccrn_separator = DCCRNSeparator(input_dim=17, num_spk=1, kernel_num=[32, 64, 12
 
 dprnn_separator = DPRNNSeparator(input_dim=17, layer=1, unit=10, segment_size=4)
 
-dptnet_separator = DPTNetSeparator(
-    input_dim=16, feature_dim=8, layer=1, unit=10, segment_size=4
-)
+dptnet_separator = DPTNetSeparator(input_dim=16, layer=1, unit=10, segment_size=4)
 
 rnn_separator = RNNSeparator(input_dim=17, layer=1, unit=10)
 
