@@ -54,7 +54,7 @@ while(<CSV>) {
   }
   print TEXT "$uttId"," ","$text","\n";
   print GNDR "$uttId"," ","$gender","\n";
-  print WAV "$uttId"," ffmpeg -i $db_base/$filepath -f wav -ar 16000 -ab 16 -ac 1 - |\n";
+  print WAV "$uttId"," ffmpeg -i $db_base/clips/$filepath -f wav -ar 16000 -ab 16 -ac 1 - |\n";
   print SPKR "$uttId"," $spkr","\n";
 }
 close(SPKR) || die;
