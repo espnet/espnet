@@ -37,7 +37,7 @@ if [[ "all" == *"${lang}"* ]]; then
       --lm_config "${lm_config}" \
       --token_type bpe \
       --nbpe $nbpe \
-      --bpe_nlsyms "{$nlsyms_txt}" \
+      --bpe_nlsyms "${nlsyms_txt}" \
       --feats_type raw \
       --speed_perturb_factors "0.9 1.0 1.1" \
       --asr_config "${asr_config}" \

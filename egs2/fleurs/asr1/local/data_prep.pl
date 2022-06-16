@@ -6,7 +6,7 @@
 # Usage: data_prep.pl /export/data/cv_corpus_v1/cv-valid-train valid_train
 
 if (@ARGV != 3) {
-  print STDERR "Usage: $0 <path-to-commonvoice-corpus> <dataset> <valid-train|valid-dev|valid-test>\n";
+  print STDERR "Usage: $0 <path-to-fleurs-corpus> <dataset> <valid-train|valid-dev|valid-test>\n";
   print STDERR "e.g. $0 /export/data/cv_corpus_v1 cv-valid-train valid-train\n";
   exit(1);
 }
