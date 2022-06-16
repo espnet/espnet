@@ -30,14 +30,19 @@ decoder_conf:
 joint_net_conf:
     joint_space_size: 512
 
+# Auxiliary CTC
+model_conf:
+    ctc_weight: 0.0
+
 # minibatch related
 batch_type: numel
-batch_bins: 12000000
+batch_bins: 16000000
+num_workers: 4
 
 # optimization related
 accum_grad: 4
 grad_clip: 5
-max_epoch: 80
+max_epoch: 50
 val_scheduler_criterion:
     - valid
     - acc
@@ -49,7 +54,7 @@ keep_nbest_models: 10
 
 optim: adam
 optim_conf:
-   lr: 0.0025
+   lr: 0.001
 scheduler: warmuplr
 scheduler_conf:
    warmup_steps: 30000
