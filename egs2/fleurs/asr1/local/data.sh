@@ -10,9 +10,9 @@
 # general configuration
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
+nlsyms_txt=data/nlsyms.txt
 SECONDS=0
 lang=af_za # see https://huggingface.co/datasets/google/fleurs#dataset-structure for list of all langs
-nlsyms_txt=data/local/nlsyms.txt
 
  . utils/parse_options.sh || exit 1;
 
@@ -41,19 +41,19 @@ log "data preparation started"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
     log "stage1: Download data to ${COMMONVOICE}"
+    mkdir -p "downloads/${lang}"
     python local/create_dataset.py --lang ${lang} --nlsyms_txt ${nlsyms_txt}
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage2: Preparing data for commonvoice"
     ### Task dependent. You have to make data the following preparation part by yourself.
-    for part in "validated" "test" "dev"; do
+    for part in "train" "test" "dev"; do
         # use underscore-separated names in data directories.
-        local/data_prep.pl "${COMMONVOICE}/cv-corpus-5.1-2020-06-22/${lang}" ${part} data/"$(echo "${part}_${lang}" | tr - _)"
+        local/data_prep.pl "${COMMONVOICE}/${lang}" ${part} data/"$(echo "${part}_${lang}" | tr - _)"
     done
 
     # remove test&dev data from validated sentences
-    utils/copy_data_dir.sh data/"$(echo "validated_${lang}" | tr - _)" data/${train_set}
     utils/filter_scp.pl --exclude data/${train_dev}/wav.scp data/${train_set}/wav.scp > data/${train_set}/temp_wav.scp
     utils/filter_scp.pl --exclude data/${test_set}/wav.scp data/${train_set}/temp_wav.scp > data/${train_set}/wav.scp
     utils/fix_data_dir.sh data/${train_set}
