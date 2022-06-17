@@ -1,6 +1,6 @@
 preencoder: linear
 preencoder_conf:
-  input_size: 288 # Note: If the upstream is changed, please change this value accordingly.
+  input_size: 208 # Note: If the upstream is changed, please change this value accordingly.
   output_size: 80
 
 encoder: conformer

@@ -10,11 +10,12 @@ valid_set="dev"
 test_sets="test dev"
 
 
-asr_tag=train_avsr_transformer_audio_only
+# asr_tag=train_avsr_ctc_baseline
+asr_tag=train_avsr_trans_mm
 asr_config=conf/train_avsr_transformer.yaml
 lm_config=conf/train_lm.yaml  # Not Used, as use_lm=false
 
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=2
 
 ./avsr.sh \
     --skip_data_prep false \
@@ -44,7 +45,7 @@ export CUDA_VISIBLE_DEVICES=3
     --mouth_roi true \
     --audio_sample_step 1 \
     --vision_sample_step 10 \
-    --stack_order 2 \
+    --stack_order 1 \
     --avg_pool_width 1 \
     --align_option "duplicate" \
     --fusion_stage "frontend" \

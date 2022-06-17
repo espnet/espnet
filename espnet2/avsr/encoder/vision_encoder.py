@@ -20,10 +20,10 @@ import torch.nn as nn
 
 try:
     from torchvision import models, transforms
+
     is_torchvision_avail = True
 except ImportError:
     is_torchvision_avail = False
-
 
 
 class ResNet(AbsEncoder):
@@ -41,7 +41,7 @@ class ResNet(AbsEncoder):
         fine_tune: bool = False,
     ):
         assert check_argument_types()
-        assert(pretrained or fine_tune)
+        assert pretrained or fine_tune
         super().__init__()
         if not is_torchvision_avail:
             raise ImportError(
@@ -50,18 +50,24 @@ class ResNet(AbsEncoder):
                 " && ./installers/install_vision.sh ."
             )
         model = models.resnet18(pretrained=pretrained)
-        model = nn.Sequential(*list(model.children())[:-1]) 
-        RESNET_EMBEDDING_DIM = 512 # ResNET-18 output embedding is dimension 512
-        
+        model = nn.Sequential(*list(model.children())[:-1])
+        RESNET_EMBEDDING_DIM = 512  # ResNET-18 output embedding is dimension 512
+
         self.fine_tune = fine_tune
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.encoders = model.to(self.device)
         # self.pretrained_params = copy.deepcopy(model.state_dict())
-        self.transform = transforms.Compose([
+        self.transform = transforms.Compose(
+            [
                 transforms.Resize(input_size),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-            ])
-        self.projection_layer = nn.Linear(RESNET_EMBEDDING_DIM, output_size) if output_size != RESNET_EMBEDDING_DIM else nn.Identity()
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            ]
+        )
+        self.projection_layer = (
+            nn.Linear(RESNET_EMBEDDING_DIM, output_size)
+            if output_size != RESNET_EMBEDDING_DIM
+            else nn.Identity()
+        )
         self._output_size = output_size
         self.MAX_BATCH_SIZE = 32
 
@@ -69,10 +75,7 @@ class ResNet(AbsEncoder):
         return self._output_size
 
     def forward(
-        self,
-        x: torch.Tensor,
-        ilens: torch.Tensor,
-        prev_states: torch.Tensor = None,
+        self, x: torch.Tensor, ilens: torch.Tensor, prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Forward ResNET Encoder.
         Args:
@@ -87,7 +90,7 @@ class ResNet(AbsEncoder):
         B = x.size(0)
         T = x.size(1)
         if x.size(-1) == 3:
-            x = x.permute(0,1,4,2,3)
+            x = x.permute(0, 1, 4, 2, 3)
         c = x.size(2)
         h = x.size(3)
         w = x.size(4)
@@ -112,9 +115,9 @@ class ResNet(AbsEncoder):
         # x = torch.cat(result)
         # x = x.reshape(B, T, self._output_size)
         if self.fine_tune:
-                x = self.transform(x)
-                x = self.encoders(x)
-                x = x.squeeze()
+            x = self.transform(x)
+            x = self.encoders(x)
+            x = x.squeeze()
         else:
             with torch.no_grad():
                 x = self.transform(x)
@@ -122,12 +125,12 @@ class ResNet(AbsEncoder):
                 x = x.squeeze()
 
         x = self.projection_layer(x)
-        x = x.reshape(B, T,  self._output_size)
+        x = x.reshape(B, T, self._output_size)
         return x, ilens, None
 
     def reload_pretrained_parameters(self):
         model = models.resnet18(pretrained=True)
-        model = nn.Sequential(*list(model.children())[:-1]) 
+        model = nn.Sequential(*list(model.children())[:-1])
         self.encoders = model
         logging.info("Pretrained ResNet-18 model parameters reloaded!")
 
@@ -140,10 +143,7 @@ class VisionTransformer(AbsEncoder):
     """
 
     def __init__(
-        self,
-        input_size: int,
-        output_size: int,
-
+        self, input_size: int, output_size: int,
     ):
         assert check_argument_types()
         super().__init__()
@@ -162,10 +162,7 @@ class VisionTransformer(AbsEncoder):
         return self._output_size
 
     def forward(
-        self,
-        x: torch.Tensor,
-        ilens: torch.Tensor,
-        prev_states: torch.Tensor = None,
+        self, x: torch.Tensor, ilens: torch.Tensor, prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Forward FairSeqWav2Vec2 Encoder.
         Args:

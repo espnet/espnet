@@ -9,6 +9,7 @@ import logging
 
 try:
     import cv2
+
     is_cv2_avail = True
 except ImportError:
     is_cv2_avail = False
@@ -27,8 +28,7 @@ class VisionFileReader(collections.abc.Mapping):
     """
 
     def __init__(
-        self,
-        fname,
+        self, fname,
     ):
         if not is_cv2_avail:
             raise ImportError(
@@ -40,12 +40,12 @@ class VisionFileReader(collections.abc.Mapping):
         self.fname = fname
         self.data = read_2column_text(fname)
         self.speed = 1.0
-        
+
     def __getitem__(self, key):
         # Returns a cv2 video capture instance
         mp4 = self.data[key]
         vid = cv2.VideoCapture(mp4)
-        rate = vid.get(cv2.CAP_PROP_FPS) #fps
+        rate = vid.get(cv2.CAP_PROP_FPS)  # fps
         return rate, vid
 
     def get_path(self, key):
@@ -66,8 +66,9 @@ class VisionFileReader(collections.abc.Mapping):
     def keys(self):
         return self.data.keys()
 
+
 class VisionDataset(collections.abc.Mapping):
-    def __init__(self, loader, sample_step = 1, normalize=True, dtype="float32"):
+    def __init__(self, loader, sample_step=1, normalize=True, dtype="float32"):
         assert check_argument_types()
         self.loader = loader
         self.dtype = dtype
@@ -77,8 +78,10 @@ class VisionDataset(collections.abc.Mapping):
         self.normalize = normalize
         self.img_size = None
         self.init_sample_rate()
-        logging.info("Max Video Sample Rate Available : {} fps, "
-            "Current Sampling Rate : {} fps".format(self.vid_rate, self.sample_rate))
+        logging.info(
+            "Max Video Sample Rate Available : {} fps, "
+            "Current Sampling Rate : {} fps".format(self.vid_rate, self.sample_rate)
+        )
 
     def init_sample_rate(self):
         retval = self.loader[list(self.keys())[0]]
@@ -92,14 +95,14 @@ class VisionDataset(collections.abc.Mapping):
 
     def get_sample_rate(self):
         return self.sample_rate
-    
+
     def set_sample_rate(self, vsr):
         self.sample_rate = vsr
         if self.sample_step * vsr > self.vid_rate:
             self.sample_step = max(self.vid_rate // vsr, 1)
         self.vid_rate = self.sample_step * self.sample_rate
         return self.sample_step
-    
+
     def set_sample_step(self, step: int):
         self.sample_step = step
 
@@ -112,7 +115,7 @@ class VisionDataset(collections.abc.Mapping):
     def __getitem__(self, key: str) -> np.ndarray:
         retval = self.loader[key]
         assert len(retval) == 2, len(retval)
-        rate, vid = retval # Multichannel mp4 file
+        rate, vid = retval  # Multichannel mp4 file
         if self.vid_rate != rate:
             vid.set(cv2.CAP_PROP_FPS, self.vid_rate)
         array = self.capture_video(vid)
@@ -137,15 +140,18 @@ class VisionDataset(collections.abc.Mapping):
         success = True
         success, image = vidcap.read()
         h, w, c = np.array(image).shape
-        if self.img_size is None: self.img_size = h, w
+        if self.img_size is None:
+            self.img_size = h, w
         h, w = self.img_size
         while success:
             if count % self.sample_step == 0:
                 if self.normalize:
-                    image = cv2.normalize(image, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX)
+                    image = cv2.normalize(
+                        image, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX
+                    )
                 image = cv2.resize(image, self.img_size)
                 image = np.asarray(image)
-                if((h,w,c) == image.shape):
+                if (h, w, c) == image.shape:
                     data.append(image)
                     if prev_failure:
                         # Roll Back Count to the Correct Time-Stamp
@@ -158,12 +164,12 @@ class VisionDataset(collections.abc.Mapping):
                     failure_count += 1
                     if failure_count >= self.sample_step:
                         # move onto next sample capture
-                        data.append(np.zeros(h,w,c))
+                        data.append(np.zeros(h, w, c))
                         count += failure_count
                         failure_count = 0
                         prev_failure = False
-            success,image = vidcap.read()
+            success, image = vidcap.read()
             count += 1
-        if(len(data) == 0):
+        if len(data) == 0:
             data = np.zeros((total_length // self.sample_step + 1, h, w, c))
         return np.array(data)

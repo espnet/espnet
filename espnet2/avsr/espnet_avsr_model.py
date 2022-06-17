@@ -8,7 +8,7 @@ from typing import Tuple
 from typing import Union
 
 import torch
-import math 
+import math
 from typeguard import check_argument_types
 
 from espnet.nets.e2e_asr_common import ErrorCalculator
@@ -41,6 +41,7 @@ else:
     @contextmanager
     def autocast(enabled=True):
         yield
+
 
 class ESPnetAVSRModel(AbsESPnetModel):
     """CTC-attention hybrid Encoder-Decoder model"""
@@ -99,7 +100,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
         self.preencoder = preencoder
         self.postencoder = postencoder
         self.encoder = encoder
-        
+
         # Multimodal Related
         self.vision_encoder = vision_encoder
         self.audio_input = audio_input
@@ -128,8 +129,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
             self.joint_network = joint_network
 
             self.criterion_transducer = RNNTLoss(
-                blank=self.blank_id,
-                fastemit_lambda=0.0,
+                blank=self.blank_id, fastemit_lambda=0.0,
             )
 
             if report_cer or report_wer:
@@ -206,7 +206,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
                 == text_lengths.shape[0]
                 == vision.shape[0]
                 == vision_lengths.shape[0]
-            ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)        
+            ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)
         elif not self.vision_input:
             assert (
                 speech.shape[0]
@@ -229,7 +229,9 @@ class ESPnetAVSRModel(AbsESPnetModel):
         text = text[:, : text_lengths.max()]
 
         # 1. Encoder
-        encoder_out, encoder_out_lens = self.encode(speech, speech_lengths, vision, vision_lengths)
+        encoder_out, encoder_out_lens = self.encode(
+            speech, speech_lengths, vision, vision_lengths
+        )
         intermediate_outs = None
         if isinstance(encoder_out, tuple):
             intermediate_outs = encoder_out[1]
@@ -280,11 +282,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
                 loss_transducer,
                 cer_transducer,
                 wer_transducer,
-            ) = self._calc_transducer_loss(
-                encoder_out,
-                encoder_out_lens,
-                text,
-            )
+            ) = self._calc_transducer_loss(encoder_out, encoder_out_lens, text,)
 
             if loss_ctc is not None:
                 loss = loss_transducer + (self.ctc_weight * loss_ctc)
@@ -346,7 +344,11 @@ class ESPnetAVSRModel(AbsESPnetModel):
         return {"feats": feats, "feats_lengths": feats_lengths}
 
     def encode(
-        self, speech: torch.Tensor, speech_lengths: torch.Tensor, vision: torch.Tensor, vision_lengths: torch.Tensor
+        self,
+        speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
+        vision: torch.Tensor,
+        vision_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Frontend + Encoder. Note that this method is used by asr_inference.py
         Args:
@@ -354,7 +356,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
             speech_lengths: (Batch, )
             vision: (Batch, Length, H, W, C)
             vision_lengths: (Batch, )
-        """ 
+        """
         with autocast(False):
             # 1. Extract feats
             if self.audio_input:
@@ -364,25 +366,32 @@ class ESPnetAVSRModel(AbsESPnetModel):
                     feats, feats_lengths = self.specaug(feats, feats_lengths)
                 # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
                 if self.normalize is not None:
-                    feats, feats_lengths = self.normalize(feats, feats_lengths)         
-                # 4. Performr Stacking / Pooling for audio features                
+                    feats, feats_lengths = self.normalize(feats, feats_lengths)
+                # 4. Performr Stacking / Pooling for audio features
                 feats, feats_lengths = self.reduce_audio_seq(feats, feats_lengths)
-            
+
             if self.vision_input:
-                vision_feats, vision_lengths = self._extract_vision_feats(vision, vision_lengths)
-            
+                vision_feats, vision_lengths = self._extract_vision_feats(
+                    vision, vision_lengths
+                )
+
         # Align audio, vision features
         if self.audio_input and self.vision_input:
             feats, vision_feats, feats_lengths = self.aligner.align(
-                feats, feats_lengths, vision_feats, vision_lengths)
-        
+                feats, feats_lengths, vision_feats, vision_lengths
+            )
+
         if not self.audio_input:
             B, T, F = vision_feats.size()
-            feats = torch.zeros((B, T, self.frontend.output_size() * self.stack_order)).detach()
+            feats = torch.zeros(
+                (B, T, self.frontend.output_size() * self.stack_order)
+            ).detach()
             feats = feats.to(vision_feats.device)
         if not self.vision_input:
             B, T, F = feats.size()
-            vision_feats = torch.zeros((B, T, self.vision_encoder.output_size())).detach()
+            vision_feats = torch.zeros(
+                (B, T, self.vision_encoder.output_size())
+            ).detach()
             vision_feats = vision_feats.to(feats.device)
 
         # Multimodal Fusion Step
@@ -412,7 +421,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
             encoder_out, encoder_out_lens = self.postencoder(
                 encoder_out, encoder_out_lens
             )
- 
+
         assert encoder_out.size(0) == speech.size(0), (
             encoder_out.size(),
             speech.size(0),
@@ -432,7 +441,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         assert vision_lengths.dim() == 1, vision_lengths.size()
         assert vision.dim() == 5, vision.size()
-        
+
         # 1. Extract Vision Features with vision encoder (ResNET-18, ViT)
         vision_features, vision_lengths, _ = self.vision_encoder(vision, vision_lengths)
         return vision_features, vision_lengths
@@ -456,28 +465,36 @@ class ESPnetAVSRModel(AbsESPnetModel):
             feats, feats_lengths = speech, speech_lengths
         return feats, feats_lengths
 
-    def reduce_audio_seq(self, speech: torch.Tensor, speech_lengths: torch.Tensor
+    def reduce_audio_seq(
+        self, speech: torch.Tensor, speech_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         assert speech_lengths.dim() == 1, speech_lengths.shape
-        if(speech.dim() == 2): 
+        if speech.dim() == 2:
             speech = speech.unsqueeze(-1)
         B, T, F = speech.size()
         pad_size = math.ceil(T / self.stack_order) * self.stack_order - T
-        speech = torch.nn.functional.pad(speech, (0, 0, 0, pad_size, 0, 0), "constant", 0.0)
+        speech = torch.nn.functional.pad(
+            speech, (0, 0, 0, pad_size, 0, 0), "constant", 0.0
+        )
         speech = speech.reshape(B, -1, F * self.stack_order)
-        speech_lengths = torch.ceil(speech_lengths / self.stack_order).to(speech_lengths.dtype)
-        
+        speech_lengths = torch.ceil(speech_lengths / self.stack_order).to(
+            speech_lengths.dtype
+        )
+
         _, T, stack_F = speech.size()
         pad_size = math.ceil(T / self.avg_pool_width) * self.avg_pool_width - T
-        speech = torch.nn.functional.pad(speech, (0, 0, 0, pad_size, 0, 0), "constant", 0.0)
+        speech = torch.nn.functional.pad(
+            speech, (0, 0, 0, pad_size, 0, 0), "constant", 0.0
+        )
         speech = speech.reshape(B, -1, self.avg_pool_width, stack_F)
-        speech = torch.mean(speech, dim = 2)
-        speech_lengths = torch.ceil(speech_lengths / self.avg_pool_width).to(speech_lengths.dtype)
+        speech = torch.mean(speech, dim=2)
+        speech_lengths = torch.ceil(speech_lengths / self.avg_pool_width).to(
+            speech_lengths.dtype
+        )
 
         assert stack_F == self.stack_order * F
         assert B == speech.size(0) and stack_F == speech.size(2)
         return speech, speech_lengths
-
 
     def nll(
         self,
@@ -627,10 +644,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
             wer_transducer: Word Error Rate for Transducer.
         """
         decoder_in, target, t_len, u_len = get_transducer_task_io(
-            labels,
-            encoder_out_lens,
-            ignore_id=self.ignore_id,
-            blank_id=self.blank_id,
+            labels, encoder_out_lens, ignore_id=self.ignore_id, blank_id=self.blank_id,
         )
 
         self.decoder.set_device(encoder_out.device)
@@ -640,12 +654,7 @@ class ESPnetAVSRModel(AbsESPnetModel):
             encoder_out.unsqueeze(2), decoder_out.unsqueeze(1)
         )
 
-        loss_transducer = self.criterion_transducer(
-            joint_out,
-            target,
-            t_len,
-            u_len,
-        )
+        loss_transducer = self.criterion_transducer(joint_out, target, t_len, u_len,)
 
         cer_transducer, wer_transducer = None, None
         if not self.training and self.error_calculator_trans is not None:

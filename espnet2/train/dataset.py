@@ -27,6 +27,7 @@ from espnet2.fileio.sound_scp import SoundScpReader
 from espnet2.utils.sized_dict import SizedDict
 from espnet2.fileio.vision_dataset import VisionDataset, VisionFileReader
 
+
 class AdapterForSoundScpReader(collections.abc.Mapping):
     def __init__(self, loader, dtype=None):
         assert check_argument_types()
@@ -135,13 +136,16 @@ def rand_int_loader(filepath, loader_type):
         raise RuntimeError(f"e.g rand_int_3_10: but got {loader_type}")
     return IntRandomGenerateDataset(filepath, low, high)
 
-def vision_loader(path, vision_sample_step = 1, float_dtype=None):
+
+def vision_loader(path, vision_sample_step=1, float_dtype=None):
     # audio_rate: audio frame rate
     # vis_step: expected span of auudio frames per captured video image
 
     loader = VisionFileReader(path)
-    return VisionDataset(loader, sample_step = vision_sample_step, 
-                            normalize = True, dtype = float_dtype)
+    return VisionDataset(
+        loader, sample_step=vision_sample_step, normalize=True, dtype=float_dtype
+    )
+
 
 DATA_TYPES = {
     "sound": dict(
@@ -273,6 +277,7 @@ DATA_TYPES = {
     ),
 }
 
+
 class AbsDataset(Dataset, ABC):
     @abstractmethod
     def has_name(self, name) -> bool:
@@ -285,6 +290,7 @@ class AbsDataset(Dataset, ABC):
     @abstractmethod
     def __getitem__(self, uid) -> Tuple[Any, Dict[str, np.ndarray]]:
         raise NotImplementedError
+
 
 class ESPnetDataset(AbsDataset):
     """Pytorch Dataset class for ESPNet.
@@ -466,6 +472,7 @@ class ESPnetDataset(AbsDataset):
         assert check_return_type(retval)
         return retval
 
+
 class MMESPnetDataset(ESPnetDataset):
     """Pytorch Dataset class for Multimodal ESPNet.
 
@@ -516,14 +523,14 @@ class MMESPnetDataset(ESPnetDataset):
         self.audio_input = audio_input
         self.vision_input = vision_input
 
-        self.source_ssr = 0.0 # ssr stands for speech sample rate
-        self.curr_ssr = 0.0   # ssr stands for speech sample rate
-        self.vsr = 0.0        # vsr stands for vision (video) sample rate
+        self.source_ssr = 0.0  # ssr stands for speech sample rate
+        self.curr_ssr = 0.0  # ssr stands for speech sample rate
+        self.vsr = 0.0  # vsr stands for vision (video) sample rate
         self.MIN_SAMPLE_RATES = {"speech": 10.0, "vision": 1.0}
 
         self.loader_dict = {}
         self.debug_info = {}
-        
+
         for path, name, _type in path_name_type_list:
             if name in self.loader_dict:
                 raise RuntimeError(f'"{name}" is duplicated for data-key')
@@ -531,20 +538,24 @@ class MMESPnetDataset(ESPnetDataset):
             loader = self._build_loader(path, _type)
 
             # Fetch Sample Rates of different modalities
-            if(name == "speech"):
+            if name == "speech":
                 self.source_ssr = loader.get_sample_rate()
                 self.curr_ssr = self.source_ssr / self.audio_sample_step
-                if(self.curr_ssr < self.MIN_SAMPLE_RATES[name]):
+                if self.curr_ssr < self.MIN_SAMPLE_RATES[name]:
                     # Adjust parameters accordingly to achieve minimum sample rate
                     self.curr_ssr = self.MIN_SAMPLE_RATES[name]
-                    self.audio_sample_step = int(max(self.source_ssr / self.curr_ssr, 1.0))
-                    self.curr_ssr =  self.source_ssr / self.audio_sample_step
+                    self.audio_sample_step = int(
+                        max(self.source_ssr / self.curr_ssr, 1.0)
+                    )
+                    self.curr_ssr = self.source_ssr / self.audio_sample_step
 
-            if(name == "vision"):
+            if name == "vision":
                 self.vsr = loader.get_sample_rate()
-                if(self.vsr < self.MIN_SAMPLE_RATES[name]):
+                if self.vsr < self.MIN_SAMPLE_RATES[name]:
                     self.vsr = self.MIN_SAMPLE_RATES[name]
-                    self.vision_sample_step = loader.set_sample_rate(self.MIN_SAMPLE_RATES[name])
+                    self.vision_sample_step = loader.set_sample_rate(
+                        self.MIN_SAMPLE_RATES[name]
+                    )
 
             self.loader_dict[name] = loader
             self.debug_info[name] = path, _type
@@ -553,7 +564,9 @@ class MMESPnetDataset(ESPnetDataset):
 
             # TODO(kamo): Should check consistency of each utt-keys?
 
-        assert (not self.audio_input) or self.curr_ssr > self.MIN_SAMPLE_RATES["speech"], (
+        assert (not self.audio_input) or self.curr_ssr > self.MIN_SAMPLE_RATES[
+            "speech"
+        ], (
             self.audio_input,
             self.curr_ssr,
         )
@@ -562,12 +575,16 @@ class MMESPnetDataset(ESPnetDataset):
             self.vsr,
         )
 
-        logging.info("Max Audio Sample Rate Available : {} Hz, "
-                    "Current Sampling Rate is : {} Hz ".format(
-                    self.source_ssr, self.curr_ssr))
-        logging.info("Sampling Rate Report || Speech: {} Hz || Vision: {} fps ||"
-                    .format(self.curr_ssr, self.vsr))
-        
+        logging.info(
+            "Max Audio Sample Rate Available : {} Hz, "
+            "Current Sampling Rate is : {} Hz ".format(self.source_ssr, self.curr_ssr)
+        )
+        logging.info(
+            "Sampling Rate Report || Speech: {} Hz || Vision: {} fps ||".format(
+                self.curr_ssr, self.vsr
+            )
+        )
+
         if isinstance(max_cache_size, str):
             max_cache_size = humanfriendly.parse_size(max_cache_size)
         self.max_cache_size = max_cache_size
@@ -672,7 +689,7 @@ class MMESPnetDataset(ESPnetDataset):
             elif isinstance(value, numbers.Number):
                 value = np.array([value])
             data[name] = value
-       
+
         # 2. [Option] Apply preprocessing
         #   e.g. espnet2.train.preprocessor:CommonPreprocessor
         if self.preprocess is not None:
@@ -695,16 +712,19 @@ class MMESPnetDataset(ESPnetDataset):
             else:
                 raise NotImplementedError(f"Not supported dtype: {value.dtype}")
             data[name] = value
-        
+
         # 4. Apply Sample Step
         for name in data:
             if name == "speech":
                 speech = data[name]
                 speech = torch.from_numpy(speech)
-                if(speech.dim() == 1):
+                if speech.dim() == 1:
                     speech = speech.unsqueeze(-1)
                 T, F = speech.size()
-                indices = torch.arange(0, T//self.audio_sample_step)*self.audio_sample_step
+                indices = (
+                    torch.arange(0, T // self.audio_sample_step)
+                    * self.audio_sample_step
+                )
                 speech = speech[indices]
                 data[name] = speech.numpy()
         if self.cache is not None and self.cache.size < self.max_cache_size:
@@ -716,4 +736,3 @@ class MMESPnetDataset(ESPnetDataset):
 
     def get_min_sample_rate():
         return self.MIN_SAMPLE_RATES
-    

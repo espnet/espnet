@@ -57,10 +57,23 @@ class Utils:
             "--train_val_path", type=str, help="Path to the Train/ Validation files"
         )
         parser.add_argument("--test_path", type=str, help="Path to the Test files")
-        parser.add_argument("--audio_input", type=bool, default = True, help="True for Using Audio source")
-        parser.add_argument("--vision_input", type=bool, default = False, help="True for Using Vision source")
-        parser.add_argument("--mouth_roi", type=bool, default = False, help="True for using Mouth ROI cropped Vision source")
+        parser.add_argument(
+            "--audio_input", type=bool, default=True, help="True for Using Audio source"
+        )
+        parser.add_argument(
+            "--vision_input",
+            type=bool,
+            default=False,
+            help="True for Using Vision source",
+        )
+        parser.add_argument(
+            "--mouth_roi",
+            type=bool,
+            default=False,
+            help="True for using Mouth ROI cropped Vision source",
+        )
         return parser
+
 
 class DatasetUtils:
     @staticmethod
@@ -153,7 +166,9 @@ class DatasetUtils:
         return utt2spk, text, wav
 
     @staticmethod
-    def generate_espnet_vision_data(speaker_folders: list, dataset: str, mouth_roi: bool = False) -> List[str]:
+    def generate_espnet_vision_data(
+        speaker_folders: list, dataset: str, mouth_roi: bool = False
+    ) -> List[str]:
         """Generates the mp4 data required by ESPNET Multimodal
         Args:
         speaker_folders (list): The folders from where to extract data
@@ -205,7 +220,9 @@ class DatasetUtils:
         Utils.save_list_to_file(text, text_file)
         Utils.save_list_to_file(wav, wav_file)
 
-    def perform_vision_data_prep(speaker_folders: list, dataset: str, mouth_roi: bool = False) -> None:
+    def perform_vision_data_prep(
+        speaker_folders: list, dataset: str, mouth_roi: bool = False
+    ) -> None:
         """Performs ESPNET related Data-Preparation.
         Generates the vision files (list of file paths to vision input data)
 
@@ -213,9 +230,12 @@ class DatasetUtils:
         speaker_folders (list): The folders from where to extract data
         dataset (str): The dataset we are working with (train, test, dev)
         """
-        vision = DatasetUtils.generate_espnet_vision_data(speaker_folders, dataset, mouth_roi)
+        vision = DatasetUtils.generate_espnet_vision_data(
+            speaker_folders, dataset, mouth_roi
+        )
         vision_file = os.path.join("data", dataset, "vision.txt")
         Utils.save_list_to_file(vision, vision_file)
+
 
 def main():
     parser = Utils.get_parser()
@@ -235,16 +255,22 @@ def main():
 
         logging.info(f"Performing Data Preparation for DEV")
         DatasetUtils.perform_audio_data_prep(dev_folders, "dev")
-    
+
     if args.vision_input:
         logging.info(f"Performing Data Preparation for TEST")
-        DatasetUtils.perform_vision_data_prep(test_folders, "test", mouth_roi = args.mouth_roi)
+        DatasetUtils.perform_vision_data_prep(
+            test_folders, "test", mouth_roi=args.mouth_roi
+        )
 
         logging.info(f"Performing Data Preparation for TRAIN")
-        DatasetUtils.perform_vision_data_prep(train_folders, "train", mouth_roi = args.mouth_roi)
+        DatasetUtils.perform_vision_data_prep(
+            train_folders, "train", mouth_roi=args.mouth_roi
+        )
 
         logging.info(f"Performing Data Preparation for DEV")
-        DatasetUtils.perform_vision_data_prep(dev_folders, "dev", mouth_roi = args.mouth_roi)
+        DatasetUtils.perform_vision_data_prep(
+            dev_folders, "dev", mouth_roi=args.mouth_roi
+        )
 
 
 if __name__ == "__main__":
