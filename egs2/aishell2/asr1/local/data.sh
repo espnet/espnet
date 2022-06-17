@@ -5,6 +5,10 @@ set -e
 set -u
 set -o pipefail
 
+. ./path.sh
+. ./cmd.sh
+. ./db.sh
+
 log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
@@ -22,13 +26,10 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
-. ./path.sh
-. ./cmd.sh
-. ./db.sh
-
 
 if [ -z "${AISHELL2}" ]; then
   log "Error: \$AISHELL2 is not set in db.sh."
+  log "You may request the AISHELL2 dataset from https://www.aishelltech.com/aishell_2"
   exit 2
 fi
 
