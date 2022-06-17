@@ -4,23 +4,23 @@ espnet2.fileio package
 
 
 
-.. _espnet2.fileio.__init__:
-
-espnet2.fileio.__init__
------------------------
-
-.. automodule:: espnet2.fileio.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.fileio.rttm:
 
 espnet2.fileio.rttm
 -------------------
 
 .. automodule:: espnet2.fileio.rttm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.fileio.rand_gen_dataset:
+
+espnet2.fileio.rand_gen_dataset
+-------------------------------
+
+.. automodule:: espnet2.fileio.rand_gen_dataset
     :members:
     :undoc-members:
     :show-inheritance:
@@ -48,17 +48,6 @@ espnet2.fileio.read_text
     :show-inheritance:
 
 
-.. _espnet2.fileio.datadir_writer:
-
-espnet2.fileio.datadir_writer
------------------------------
-
-.. automodule:: espnet2.fileio.datadir_writer
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.fileio.sound_scp:
 
 espnet2.fileio.sound_scp
@@ -70,12 +59,23 @@ espnet2.fileio.sound_scp
     :show-inheritance:
 
 
-.. _espnet2.fileio.rand_gen_dataset:
+.. _espnet2.fileio.datadir_writer:
 
-espnet2.fileio.rand_gen_dataset
--------------------------------
+espnet2.fileio.datadir_writer
+-----------------------------
 
-.. automodule:: espnet2.fileio.rand_gen_dataset
+.. automodule:: espnet2.fileio.datadir_writer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.fileio.__init__:
+
+espnet2.fileio.__init__
+-----------------------
+
+.. automodule:: espnet2.fileio.__init__
     :members:
     :undoc-members:
     :show-inheritance:

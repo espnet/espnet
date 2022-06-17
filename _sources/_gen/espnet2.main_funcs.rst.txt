@@ -4,12 +4,12 @@ espnet2.main_funcs package
 
 
 
-.. _espnet2.main_funcs.__init__:
+.. _espnet2.main_funcs.collect_stats:
 
-espnet2.main_funcs.__init__
----------------------------
+espnet2.main_funcs.collect_stats
+--------------------------------
 
-.. automodule:: espnet2.main_funcs.__init__
+.. automodule:: espnet2.main_funcs.collect_stats
     :members:
     :undoc-members:
     :show-inheritance:
@@ -48,12 +48,12 @@ espnet2.main_funcs.pack_funcs
     :show-inheritance:
 
 
-.. _espnet2.main_funcs.collect_stats:
+.. _espnet2.main_funcs.__init__:
 
-espnet2.main_funcs.collect_stats
---------------------------------
+espnet2.main_funcs.__init__
+---------------------------
 
-.. automodule:: espnet2.main_funcs.collect_stats
+.. automodule:: espnet2.main_funcs.__init__
     :members:
     :undoc-members:
     :show-inheritance:

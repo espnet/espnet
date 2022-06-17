@@ -20,8 +20,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="espnet.tts package" href="espnet.tts.html" />
-    <link rel="prev" title="espnet.nets package" href="espnet.nets.html" /> 
+    <link rel="next" title="espnet.st package" href="espnet.st.html" />
+    <link rel="prev" title="ESPnet real time E2E-TTS demonstration" href="../notebook/tts_realtime_demo.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -85,60 +85,60 @@
 </ul>
 <p><span class="caption-text">Package Reference:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet.utils package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-io-utils">espnet.utils.io_utils</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-init">espnet.utils.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-check-kwargs">espnet.utils.check_kwargs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-utils-dataset">espnet.utils.dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-check-kwargs">espnet.utils.check_kwargs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-io-utils">espnet.utils.io_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-cli-utils">espnet.utils.cli_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-cli-writers">espnet.utils.cli_writers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-fill-missing-args">espnet.utils.fill_missing_args</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-utils-deterministic-utils">espnet.utils.deterministic_utils</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-utils-dynamic-import">espnet.utils.dynamic_import</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-fill-missing-args">espnet.utils.fill_missing_args</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-cli-writers">espnet.utils.cli_writers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-cli-utils">espnet.utils.cli_utils</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-spec-augment">espnet.utils.spec_augment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-init">espnet.utils.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-utils-cli-readers">espnet.utils.cli_readers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-spec-augment">espnet.utils.spec_augment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-training-tensorboard-logger">espnet.utils.training.tensorboard_logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-training-train-utils">espnet.utils.training.train_utils</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-utils-training-evaluator">espnet.utils.training.evaluator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-utils-training-batchfy">espnet.utils.training.batchfy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-utils-training-iterators">espnet.utils.training.iterators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-utils-training-init">espnet.utils.training.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-training-tensorboard-logger">espnet.utils.training.tensorboard_logger</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet-utils-training-train-utils">espnet.utils.training.train_utils</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.st.html">espnet.st package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.lm.html">espnet.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.transform.html">espnet.transform package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet.bin.html">espnet.bin package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.enh.html">espnet2.enh package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.mt.html">espnet2.mt package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet.asr.html">espnet.asr package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.st.html">espnet2.st package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
-<li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.train.html">espnet2.train package</a></li>
 </ul>
 <p><span class="caption-text">Tool Reference:</span></p>
 <ul>
@@ -199,8 +199,84 @@
 <section id="espnet-utils-package">
 <h1>espnet.utils package<a class="headerlink" href="#espnet-utils-package" title="Permalink to this headline">¶</a></h1>
 <p>Initialize sub package.</p>
+<section id="espnet-utils-dataset">
+<span id="id1"></span><h2>espnet.utils.dataset<a class="headerlink" href="#espnet-utils-dataset" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.utils.dataset"></span><p>pytorch dataset and dataloader implementation for chainer training.</p>
+<dl class="class">
+<dt id="espnet.utils.dataset.ChainerDataLoader">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.dataset.</code><code class="sig-name descname">ChainerDataLoader</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dataset.html#ChainerDataLoader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dataset.ChainerDataLoader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Pytorch dataloader in chainer style.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args for torch.utils.data.dataloader.Dataloader</strong> (<em>all</em>) – </p>
+</dd>
+</dl>
+<p>Init function.</p>
+<dl class="method">
+<dt id="espnet.utils.dataset.ChainerDataLoader.epoch_detail">
+<em class="property">property </em><code class="sig-name descname">epoch_detail</code><a class="headerlink" href="#espnet.utils.dataset.ChainerDataLoader.epoch_detail" title="Permalink to this definition">¶</a></dt>
+<dd><p>Epoch_detail required by chainer.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.utils.dataset.ChainerDataLoader.finalize">
+<code class="sig-name descname">finalize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dataset.html#ChainerDataLoader.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dataset.ChainerDataLoader.finalize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implement finalize function.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.utils.dataset.ChainerDataLoader.next">
+<code class="sig-name descname">next</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dataset.html#ChainerDataLoader.next"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dataset.ChainerDataLoader.next" title="Permalink to this definition">¶</a></dt>
+<dd><p>Implement next function.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.utils.dataset.ChainerDataLoader.serialize">
+<code class="sig-name descname">serialize</code><span class="sig-paren">(</span><em class="sig-param">serializer</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dataset.html#ChainerDataLoader.serialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dataset.ChainerDataLoader.serialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serialize and deserialize function.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.utils.dataset.ChainerDataLoader.start_shuffle">
+<code class="sig-name descname">start_shuffle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dataset.html#ChainerDataLoader.start_shuffle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dataset.ChainerDataLoader.start_shuffle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shuffle function for sortagrad.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.utils.dataset.TransformDataset">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.dataset.</code><code class="sig-name descname">TransformDataset</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">transform</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dataset.html#TransformDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dataset.TransformDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.Dataset</span></code></p>
+<p>Transform Dataset for pytorch backend.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – list object from make_batchset</p></li>
+<li><p><strong>transform</strong> – transform function</p></li>
+</ul>
+</dd>
+</dl>
+<p>Init function.</p>
+</dd></dl>
+
+</section>
+<section id="espnet-utils-check-kwargs">
+<span id="id2"></span><h2>espnet.utils.check_kwargs<a class="headerlink" href="#espnet-utils-check-kwargs" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.utils.check_kwargs"></span><dl class="function">
+<dt id="espnet.utils.check_kwargs.check_kwargs">
+<code class="sig-prename descclassname">espnet.utils.check_kwargs.</code><code class="sig-name descname">check_kwargs</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">kwargs</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/check_kwargs.html#check_kwargs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.check_kwargs.check_kwargs" title="Permalink to this definition">¶</a></dt>
+<dd><p>check kwargs are valid for func</p>
+<p>If kwargs are invalid, raise TypeError as same as python default
+:param function func: function to be validated
+:param dict kwargs: keyword arguments for func
+:param str name: name used in TypeError (default is func name)</p>
+</dd></dl>
+
+</section>
 <section id="espnet-utils-io-utils">
-<span id="id1"></span><h2>espnet.utils.io_utils<a class="headerlink" href="#espnet-utils-io-utils" title="Permalink to this headline">¶</a></h2>
+<span id="id3"></span><h2>espnet.utils.io_utils<a class="headerlink" href="#espnet-utils-io-utils" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.utils.io_utils"></span><dl class="class">
 <dt id="espnet.utils.io_utils.LoadInputsAndTargets">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.utils.io_utils.</code><code class="sig-name descname">LoadInputsAndTargets</code><span class="sig-paren">(</span><em class="sig-param">mode='asr'</em>, <em class="sig-param">preprocess_conf=None</em>, <em class="sig-param">load_input=True</em>, <em class="sig-param">load_output=True</em>, <em class="sig-param">sort_in_input_length=True</em>, <em class="sig-param">use_speaker_embedding=False</em>, <em class="sig-param">use_second_target=False</em>, <em class="sig-param">preprocess_args=None</em>, <em class="sig-param">keep_all_data_on_mem=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/io_utils.html#LoadInputsAndTargets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.io_utils.LoadInputsAndTargets" title="Permalink to this definition">¶</a></dt>
@@ -303,165 +379,31 @@ of the input length</p>
 </dd></dl>
 
 </section>
-<section id="espnet-utils-init">
-<span id="id2"></span><h2>espnet.utils.__init__<a class="headerlink" href="#espnet-utils-init" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet.utils.__init__"></span><p>Initialize sub package.</p>
-</section>
-<section id="espnet-utils-check-kwargs">
-<span id="id3"></span><h2>espnet.utils.check_kwargs<a class="headerlink" href="#espnet-utils-check-kwargs" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet.utils.check_kwargs"></span><dl class="function">
-<dt id="espnet.utils.check_kwargs.check_kwargs">
-<code class="sig-prename descclassname">espnet.utils.check_kwargs.</code><code class="sig-name descname">check_kwargs</code><span class="sig-paren">(</span><em class="sig-param">func</em>, <em class="sig-param">kwargs</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/check_kwargs.html#check_kwargs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.check_kwargs.check_kwargs" title="Permalink to this definition">¶</a></dt>
-<dd><p>check kwargs are valid for func</p>
-<p>If kwargs are invalid, raise TypeError as same as python default
-:param function func: function to be validated
-:param dict kwargs: keyword arguments for func
-:param str name: name used in TypeError (default is func name)</p>
-</dd></dl>
-
-</section>
-<section id="espnet-utils-dataset">
-<span id="id4"></span><h2>espnet.utils.dataset<a class="headerlink" href="#espnet-utils-dataset" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet.utils.dataset"></span><p>pytorch dataset and dataloader implementation for chainer training.</p>
-<dl class="class">
-<dt id="espnet.utils.dataset.ChainerDataLoader">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.dataset.</code><code class="sig-name descname">ChainerDataLoader</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dataset.html#ChainerDataLoader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dataset.ChainerDataLoader" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Pytorch dataloader in chainer style.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>args for torch.utils.data.dataloader.Dataloader</strong> (<em>all</em>) – </p>
-</dd>
-</dl>
-<p>Init function.</p>
-<dl class="method">
-<dt id="espnet.utils.dataset.ChainerDataLoader.epoch_detail">
-<em class="property">property </em><code class="sig-name descname">epoch_detail</code><a class="headerlink" href="#espnet.utils.dataset.ChainerDataLoader.epoch_detail" title="Permalink to this definition">¶</a></dt>
-<dd><p>Epoch_detail required by chainer.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet.utils.dataset.ChainerDataLoader.finalize">
-<code class="sig-name descname">finalize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dataset.html#ChainerDataLoader.finalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dataset.ChainerDataLoader.finalize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Implement finalize function.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet.utils.dataset.ChainerDataLoader.next">
-<code class="sig-name descname">next</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dataset.html#ChainerDataLoader.next"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dataset.ChainerDataLoader.next" title="Permalink to this definition">¶</a></dt>
-<dd><p>Implement next function.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet.utils.dataset.ChainerDataLoader.serialize">
-<code class="sig-name descname">serialize</code><span class="sig-paren">(</span><em class="sig-param">serializer</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dataset.html#ChainerDataLoader.serialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dataset.ChainerDataLoader.serialize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Serialize and deserialize function.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="espnet.utils.dataset.ChainerDataLoader.start_shuffle">
-<code class="sig-name descname">start_shuffle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dataset.html#ChainerDataLoader.start_shuffle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dataset.ChainerDataLoader.start_shuffle" title="Permalink to this definition">¶</a></dt>
-<dd><p>Shuffle function for sortagrad.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="espnet.utils.dataset.TransformDataset">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.dataset.</code><code class="sig-name descname">TransformDataset</code><span class="sig-paren">(</span><em class="sig-param">data</em>, <em class="sig-param">transform</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dataset.html#TransformDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dataset.TransformDataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.utils.data.dataset.Dataset</span></code></p>
-<p>Transform Dataset for pytorch backend.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> – list object from make_batchset</p></li>
-<li><p><strong>transform</strong> – transform function</p></li>
-</ul>
-</dd>
-</dl>
-<p>Init function.</p>
-</dd></dl>
-
-</section>
-<section id="espnet-utils-deterministic-utils">
-<span id="id5"></span><h2>espnet.utils.deterministic_utils<a class="headerlink" href="#espnet-utils-deterministic-utils" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet.utils.deterministic_utils"></span><dl class="function">
-<dt id="espnet.utils.deterministic_utils.set_deterministic_chainer">
-<code class="sig-prename descclassname">espnet.utils.deterministic_utils.</code><code class="sig-name descname">set_deterministic_chainer</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/deterministic_utils.html#set_deterministic_chainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.deterministic_utils.set_deterministic_chainer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Ensures chainer produces deterministic results depending on the program arguments</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>args</strong> (<em>Namespace</em>) – The program arguments</p>
-</dd>
-</dl>
-</dd></dl>
+<section id="espnet-utils-cli-utils">
+<span id="id4"></span><h2>espnet.utils.cli_utils<a class="headerlink" href="#espnet-utils-cli-utils" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.utils.cli_utils"></span><dl class="function">
+<dt id="espnet.utils.cli_utils.assert_scipy_wav_style">
+<code class="sig-prename descclassname">espnet.utils.cli_utils.</code><code class="sig-name descname">assert_scipy_wav_style</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_utils.html#assert_scipy_wav_style"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_utils.assert_scipy_wav_style" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="function">
-<dt id="espnet.utils.deterministic_utils.set_deterministic_pytorch">
-<code class="sig-prename descclassname">espnet.utils.deterministic_utils.</code><code class="sig-name descname">set_deterministic_pytorch</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/deterministic_utils.html#set_deterministic_pytorch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.deterministic_utils.set_deterministic_pytorch" title="Permalink to this definition">¶</a></dt>
-<dd><p>Ensures pytorch produces deterministic results depending on the program arguments</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>args</strong> (<em>Namespace</em>) – The program arguments</p>
-</dd>
-</dl>
-</dd></dl>
+<dt id="espnet.utils.cli_utils.get_commandline_args">
+<code class="sig-prename descclassname">espnet.utils.cli_utils.</code><code class="sig-name descname">get_commandline_args</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_utils.html#get_commandline_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_utils.get_commandline_args" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
-</section>
-<section id="espnet-utils-dynamic-import">
-<span id="id6"></span><h2>espnet.utils.dynamic_import<a class="headerlink" href="#espnet-utils-dynamic-import" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet.utils.dynamic_import"></span><dl class="function">
-<dt id="espnet.utils.dynamic_import.dynamic_import">
-<code class="sig-prename descclassname">espnet.utils.dynamic_import.</code><code class="sig-name descname">dynamic_import</code><span class="sig-paren">(</span><em class="sig-param">import_path</em>, <em class="sig-param">alias={}</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dynamic_import.html#dynamic_import"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dynamic_import.dynamic_import" title="Permalink to this definition">¶</a></dt>
-<dd><p>dynamic import module and class</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>import_path</strong> (<em>str</em>) – syntax ‘module_name:class_name’
-e.g., ‘espnet.transform.add_deltas:AddDeltas’</p></li>
-<li><p><strong>alias</strong> (<em>dict</em>) – shortcut for registered class</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>imported class</p>
-</dd>
-</dl>
-</dd></dl>
+<dl class="function">
+<dt id="espnet.utils.cli_utils.is_scipy_wav_style">
+<code class="sig-prename descclassname">espnet.utils.cli_utils.</code><code class="sig-name descname">is_scipy_wav_style</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_utils.html#is_scipy_wav_style"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_utils.is_scipy_wav_style" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
-</section>
-<section id="espnet-utils-fill-missing-args">
-<span id="id7"></span><h2>espnet.utils.fill_missing_args<a class="headerlink" href="#espnet-utils-fill-missing-args" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet.utils.fill_missing_args"></span><dl class="function">
-<dt id="espnet.utils.fill_missing_args.fill_missing_args">
-<code class="sig-prename descclassname">espnet.utils.fill_missing_args.</code><code class="sig-name descname">fill_missing_args</code><span class="sig-paren">(</span><em class="sig-param">args</em>, <em class="sig-param">add_arguments</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/fill_missing_args.html#fill_missing_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.fill_missing_args.fill_missing_args" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fill missing arguments in args.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>args</strong> (<em>Namespace</em><em> or </em><em>None</em>) – Namesapce containing hyperparameters.</p></li>
-<li><p><strong>add_arguments</strong> (<em>function</em>) – Function to add arguments.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Arguments whose missing ones are filled with default value.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Namespace</p>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_tts_tacotron2</span> <span class="kn">import</span> <span class="n">Tacotron2</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">args</span> <span class="o">=</span> <span class="n">Namespace</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">fill_missing_args</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">Tacotron2</span><span class="o">.</span><span class="n">add_arguments_fn</span><span class="p">)</span>
-<span class="go">Namespace(aconv_chans=32, aconv_filts=15, adim=512, atype=&#39;location&#39;, ...)</span>
-</pre></div>
-</div>
-</dd></dl>
+<dl class="function">
+<dt id="espnet.utils.cli_utils.strtobool">
+<code class="sig-prename descclassname">espnet.utils.cli_utils.</code><code class="sig-name descname">strtobool</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_utils.html#strtobool"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_utils.strtobool" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </section>
 <section id="espnet-utils-cli-writers">
-<span id="id8"></span><h2>espnet.utils.cli_writers<a class="headerlink" href="#espnet-utils-cli-writers" title="Permalink to this headline">¶</a></h2>
+<span id="id5"></span><h2>espnet.utils.cli_writers<a class="headerlink" href="#espnet-utils-cli-writers" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.utils.cli_writers"></span><dl class="class">
 <dt id="espnet.utils.cli_writers.BaseWriter">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.utils.cli_writers.</code><code class="sig-name descname">BaseWriter</code><a class="reference internal" href="../_modules/espnet/utils/cli_writers.html#BaseWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_writers.BaseWriter" title="Permalink to this definition">¶</a></dt>
@@ -578,31 +520,151 @@ for some use-case. e.g. Concatenation, Splitting.</p>
 </dd></dl>
 
 </section>
-<section id="espnet-utils-cli-utils">
-<span id="id9"></span><h2>espnet.utils.cli_utils<a class="headerlink" href="#espnet-utils-cli-utils" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet.utils.cli_utils"></span><dl class="function">
-<dt id="espnet.utils.cli_utils.assert_scipy_wav_style">
-<code class="sig-prename descclassname">espnet.utils.cli_utils.</code><code class="sig-name descname">assert_scipy_wav_style</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_utils.html#assert_scipy_wav_style"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_utils.assert_scipy_wav_style" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<section id="espnet-utils-fill-missing-args">
+<span id="id6"></span><h2>espnet.utils.fill_missing_args<a class="headerlink" href="#espnet-utils-fill-missing-args" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.utils.fill_missing_args"></span><dl class="function">
+<dt id="espnet.utils.fill_missing_args.fill_missing_args">
+<code class="sig-prename descclassname">espnet.utils.fill_missing_args.</code><code class="sig-name descname">fill_missing_args</code><span class="sig-paren">(</span><em class="sig-param">args</em>, <em class="sig-param">add_arguments</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/fill_missing_args.html#fill_missing_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.fill_missing_args.fill_missing_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fill missing arguments in args.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> (<em>Namespace</em><em> or </em><em>None</em>) – Namesapce containing hyperparameters.</p></li>
+<li><p><strong>add_arguments</strong> (<em>function</em>) – Function to add arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Arguments whose missing ones are filled with default value.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Namespace</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">argparse</span> <span class="kn">import</span> <span class="n">Namespace</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.e2e_tts_tacotron2</span> <span class="kn">import</span> <span class="n">Tacotron2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">args</span> <span class="o">=</span> <span class="n">Namespace</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fill_missing_args</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">Tacotron2</span><span class="o">.</span><span class="n">add_arguments_fn</span><span class="p">)</span>
+<span class="go">Namespace(aconv_chans=32, aconv_filts=15, adim=512, atype=&#39;location&#39;, ...)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+<section id="espnet-utils-deterministic-utils">
+<span id="id7"></span><h2>espnet.utils.deterministic_utils<a class="headerlink" href="#espnet-utils-deterministic-utils" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.utils.deterministic_utils"></span><dl class="function">
+<dt id="espnet.utils.deterministic_utils.set_deterministic_chainer">
+<code class="sig-prename descclassname">espnet.utils.deterministic_utils.</code><code class="sig-name descname">set_deterministic_chainer</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/deterministic_utils.html#set_deterministic_chainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.deterministic_utils.set_deterministic_chainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensures chainer produces deterministic results depending on the program arguments</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> (<em>Namespace</em>) – The program arguments</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="function">
-<dt id="espnet.utils.cli_utils.get_commandline_args">
-<code class="sig-prename descclassname">espnet.utils.cli_utils.</code><code class="sig-name descname">get_commandline_args</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_utils.html#get_commandline_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_utils.get_commandline_args" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="espnet.utils.deterministic_utils.set_deterministic_pytorch">
+<code class="sig-prename descclassname">espnet.utils.deterministic_utils.</code><code class="sig-name descname">set_deterministic_pytorch</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/deterministic_utils.html#set_deterministic_pytorch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.deterministic_utils.set_deterministic_pytorch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensures pytorch produces deterministic results depending on the program arguments</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> (<em>Namespace</em>) – The program arguments</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="espnet-utils-dynamic-import">
+<span id="id8"></span><h2>espnet.utils.dynamic_import<a class="headerlink" href="#espnet-utils-dynamic-import" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.utils.dynamic_import"></span><dl class="function">
+<dt id="espnet.utils.dynamic_import.dynamic_import">
+<code class="sig-prename descclassname">espnet.utils.dynamic_import.</code><code class="sig-name descname">dynamic_import</code><span class="sig-paren">(</span><em class="sig-param">import_path</em>, <em class="sig-param">alias={}</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/dynamic_import.html#dynamic_import"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.dynamic_import.dynamic_import" title="Permalink to this definition">¶</a></dt>
+<dd><p>dynamic import module and class</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>import_path</strong> (<em>str</em>) – syntax ‘module_name:class_name’
+e.g., ‘espnet.transform.add_deltas:AddDeltas’</p></li>
+<li><p><strong>alias</strong> (<em>dict</em>) – shortcut for registered class</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>imported class</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="espnet-utils-init">
+<span id="id9"></span><h2>espnet.utils.__init__<a class="headerlink" href="#espnet-utils-init" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.utils.__init__"></span><p>Initialize sub package.</p>
+</section>
+<section id="espnet-utils-cli-readers">
+<span id="id10"></span><h2>espnet.utils.cli_readers<a class="headerlink" href="#espnet-utils-cli-readers" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.utils.cli_readers"></span><dl class="class">
+<dt id="espnet.utils.cli_readers.HDF5Reader">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.cli_readers.</code><code class="sig-name descname">HDF5Reader</code><span class="sig-paren">(</span><em class="sig-param">rspecifier</em>, <em class="sig-param">return_shape=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_readers.html#HDF5Reader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_readers.HDF5Reader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.utils.cli_readers.KaldiReader">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.cli_readers.</code><code class="sig-name descname">KaldiReader</code><span class="sig-paren">(</span><em class="sig-param">rspecifier</em>, <em class="sig-param">return_shape=False</em>, <em class="sig-param">segments=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_readers.html#KaldiReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_readers.KaldiReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.utils.cli_readers.SoundHDF5Reader">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.cli_readers.</code><code class="sig-name descname">SoundHDF5Reader</code><span class="sig-paren">(</span><em class="sig-param">rspecifier</em>, <em class="sig-param">return_shape=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_readers.html#SoundHDF5Reader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_readers.SoundHDF5Reader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.utils.cli_readers.SoundReader">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.cli_readers.</code><code class="sig-name descname">SoundReader</code><span class="sig-paren">(</span><em class="sig-param">rspecifier</em>, <em class="sig-param">return_shape=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_readers.html#SoundReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_readers.SoundReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
 
 <dl class="function">
-<dt id="espnet.utils.cli_utils.is_scipy_wav_style">
-<code class="sig-prename descclassname">espnet.utils.cli_utils.</code><code class="sig-name descname">is_scipy_wav_style</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_utils.html#is_scipy_wav_style"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_utils.is_scipy_wav_style" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="espnet.utils.cli_utils.strtobool">
-<code class="sig-prename descclassname">espnet.utils.cli_utils.</code><code class="sig-name descname">strtobool</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_utils.html#strtobool"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_utils.strtobool" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="espnet.utils.cli_readers.file_reader_helper">
+<code class="sig-prename descclassname">espnet.utils.cli_readers.</code><code class="sig-name descname">file_reader_helper</code><span class="sig-paren">(</span><em class="sig-param">rspecifier: str</em>, <em class="sig-param">filetype: str = 'mat'</em>, <em class="sig-param">return_shape: bool = False</em>, <em class="sig-param">segments: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_readers.html#file_reader_helper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_readers.file_reader_helper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read uttid and array in kaldi style</p>
+<p>This function might be a bit confusing as “ark” is used
+for HDF5 to imitate “kaldi-rspecifier”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rspecifier</strong> – Give as “ark:feats.ark” or “scp:feats.scp”</p></li>
+<li><p><strong>filetype</strong> – “mat” is kaldi-martix, “hdf5”: HDF5</p></li>
+<li><p><strong>return_shape</strong> – Return the shape of the matrix,
+instead of the matrix. This can reduce IO cost for HDF5.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Generator[Tuple[str, np.ndarray], None, None]</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Read from kaldi-matrix ark file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">file_reader_helper</span><span class="p">(</span><span class="s1">&#39;ark:feats.ark&#39;</span><span class="p">,</span> <span class="s1">&#39;mat&#39;</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">array</span>
+</pre></div>
+</div>
+<p>Read from HDF5 file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">file_reader_helper</span><span class="p">(</span><span class="s1">&#39;ark:feats.h5&#39;</span><span class="p">,</span> <span class="s1">&#39;hdf5&#39;</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">array</span>
+</pre></div>
+</div>
+</dd></dl>
 
 </section>
 <section id="espnet-utils-spec-augment">
-<span id="id10"></span><h2>espnet.utils.spec_augment<a class="headerlink" href="#espnet-utils-spec-augment" title="Permalink to this headline">¶</a></h2>
+<span id="id11"></span><h2>espnet.utils.spec_augment<a class="headerlink" href="#espnet-utils-spec-augment" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.utils.spec_augment"></span><p>This implementation is modified from <a class="reference external" href="https://github.com/zcaceres/spec_augment">https://github.com/zcaceres/spec_augment</a></p>
 <p>MIT License</p>
 <p>Copyright (c) 2019 Zach Caceres</p>
@@ -839,70 +901,66 @@ if False, filled with mean</p></li>
 </dd></dl>
 
 </section>
-<section id="espnet-utils-cli-readers">
-<span id="id11"></span><h2>espnet.utils.cli_readers<a class="headerlink" href="#espnet-utils-cli-readers" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet.utils.cli_readers"></span><dl class="class">
-<dt id="espnet.utils.cli_readers.HDF5Reader">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.cli_readers.</code><code class="sig-name descname">HDF5Reader</code><span class="sig-paren">(</span><em class="sig-param">rspecifier</em>, <em class="sig-param">return_shape=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_readers.html#HDF5Reader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_readers.HDF5Reader" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-</dd></dl>
-
-<dl class="class">
-<dt id="espnet.utils.cli_readers.KaldiReader">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.cli_readers.</code><code class="sig-name descname">KaldiReader</code><span class="sig-paren">(</span><em class="sig-param">rspecifier</em>, <em class="sig-param">return_shape=False</em>, <em class="sig-param">segments=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_readers.html#KaldiReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_readers.KaldiReader" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-</dd></dl>
-
-<dl class="class">
-<dt id="espnet.utils.cli_readers.SoundHDF5Reader">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.cli_readers.</code><code class="sig-name descname">SoundHDF5Reader</code><span class="sig-paren">(</span><em class="sig-param">rspecifier</em>, <em class="sig-param">return_shape=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_readers.html#SoundHDF5Reader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_readers.SoundHDF5Reader" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-</dd></dl>
-
-<dl class="class">
-<dt id="espnet.utils.cli_readers.SoundReader">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.cli_readers.</code><code class="sig-name descname">SoundReader</code><span class="sig-paren">(</span><em class="sig-param">rspecifier</em>, <em class="sig-param">return_shape=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_readers.html#SoundReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_readers.SoundReader" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-</dd></dl>
-
-<dl class="function">
-<dt id="espnet.utils.cli_readers.file_reader_helper">
-<code class="sig-prename descclassname">espnet.utils.cli_readers.</code><code class="sig-name descname">file_reader_helper</code><span class="sig-paren">(</span><em class="sig-param">rspecifier: str</em>, <em class="sig-param">filetype: str = 'mat'</em>, <em class="sig-param">return_shape: bool = False</em>, <em class="sig-param">segments: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/cli_readers.html#file_reader_helper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.cli_readers.file_reader_helper" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read uttid and array in kaldi style</p>
-<p>This function might be a bit confusing as “ark” is used
-for HDF5 to imitate “kaldi-rspecifier”.</p>
+<section id="espnet-utils-training-tensorboard-logger">
+<span id="id12"></span><h2>espnet.utils.training.tensorboard_logger<a class="headerlink" href="#espnet-utils-training-tensorboard-logger" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.utils.training.tensorboard_logger"></span><dl class="class">
+<dt id="espnet.utils.training.tensorboard_logger.TensorboardLogger">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.training.tensorboard_logger.</code><code class="sig-name descname">TensorboardLogger</code><span class="sig-paren">(</span><em class="sig-param">logger</em>, <em class="sig-param">att_reporter=None</em>, <em class="sig-param">ctc_reporter=None</em>, <em class="sig-param">entries=None</em>, <em class="sig-param">epoch=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/training/tensorboard_logger.html#TensorboardLogger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.training.tensorboard_logger.TensorboardLogger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.training.extension.Extension</span></code></p>
+<p>A tensorboard logger extension</p>
+<p>Init the extension</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>rspecifier</strong> – Give as “ark:feats.ark” or “scp:feats.scp”</p></li>
-<li><p><strong>filetype</strong> – “mat” is kaldi-martix, “hdf5”: HDF5</p></li>
-<li><p><strong>return_shape</strong> – Return the shape of the matrix,
-instead of the matrix. This can reduce IO cost for HDF5.</p></li>
+<li><p><strong>logger</strong> (<em>SummaryWriter</em>) – The logger to use</p></li>
+<li><p><strong>att_reporter</strong> (<em>PlotAttentionReporter</em>) – The (optional) PlotAttentionReporter</p></li>
+<li><p><strong>entries</strong> – The entries to watch</p></li>
+<li><p><strong>epoch</strong> (<em>int</em>) – The starting epoch</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p></p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>Generator[Tuple[str, np.ndarray], None, None]</p>
+</dl>
+<dl class="attribute">
+<dt id="espnet.utils.training.tensorboard_logger.TensorboardLogger.default_name">
+<code class="sig-name descname">default_name</code><em class="property"> = 'espnet_tensorboard_logger'</em><a class="headerlink" href="#espnet.utils.training.tensorboard_logger.TensorboardLogger.default_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet-utils-training-train-utils">
+<span id="id13"></span><h2>espnet.utils.training.train_utils<a class="headerlink" href="#espnet-utils-training-train-utils" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.utils.training.train_utils"></span><dl class="function">
+<dt id="espnet.utils.training.train_utils.check_early_stop">
+<code class="sig-prename descclassname">espnet.utils.training.train_utils.</code><code class="sig-name descname">check_early_stop</code><span class="sig-paren">(</span><em class="sig-param">trainer</em>, <em class="sig-param">epochs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/training/train_utils.html#check_early_stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.training.train_utils.check_early_stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks an early stopping trigger and warns the user if it’s the case</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>trainer</strong> – The trainer used for training</p></li>
+<li><p><strong>epochs</strong> – The maximum number of epochs</p></li>
+</ul>
 </dd>
 </dl>
-<p class="rubric">Examples</p>
-<p>Read from kaldi-matrix ark file:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">file_reader_helper</span><span class="p">(</span><span class="s1">&#39;ark:feats.ark&#39;</span><span class="p">,</span> <span class="s1">&#39;mat&#39;</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="n">array</span>
-</pre></div>
-</div>
-<p>Read from HDF5 file:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">file_reader_helper</span><span class="p">(</span><span class="s1">&#39;ark:feats.h5&#39;</span><span class="p">,</span> <span class="s1">&#39;hdf5&#39;</span><span class="p">):</span>
-<span class="gp">... </span>    <span class="n">array</span>
-</pre></div>
-</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet.utils.training.train_utils.set_early_stop">
+<code class="sig-prename descclassname">espnet.utils.training.train_utils.</code><code class="sig-name descname">set_early_stop</code><span class="sig-paren">(</span><em class="sig-param">trainer</em>, <em class="sig-param">args</em>, <em class="sig-param">is_lm=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/training/train_utils.html#set_early_stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.training.train_utils.set_early_stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the early stop trigger given the program arguments</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>trainer</strong> – The trainer used for training</p></li>
+<li><p><strong>args</strong> – The program arguments</p></li>
+<li><p><strong>is_lm</strong> – If the trainer is for a LM (epoch instead of epochs)</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
 <section id="espnet-utils-training-evaluator">
-<span id="id12"></span><h2>espnet.utils.training.evaluator<a class="headerlink" href="#espnet-utils-training-evaluator" title="Permalink to this headline">¶</a></h2>
+<span id="id14"></span><h2>espnet.utils.training.evaluator<a class="headerlink" href="#espnet-utils-training-evaluator" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.utils.training.evaluator"></span><dl class="class">
 <dt id="espnet.utils.training.evaluator.BaseEvaluator">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.utils.training.evaluator.</code><code class="sig-name descname">BaseEvaluator</code><span class="sig-paren">(</span><em class="sig-param">iterator</em>, <em class="sig-param">target</em>, <em class="sig-param">converter=&lt;function concat_examples&gt;</em>, <em class="sig-param">device=None</em>, <em class="sig-param">eval_hook=None</em>, <em class="sig-param">eval_func=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/training/evaluator.html#BaseEvaluator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.training.evaluator.BaseEvaluator" title="Permalink to this definition">¶</a></dt>
@@ -912,7 +970,7 @@ instead of the matrix. This can reduce IO cost for HDF5.</p></li>
 
 </section>
 <section id="espnet-utils-training-batchfy">
-<span id="id13"></span><h2>espnet.utils.training.batchfy<a class="headerlink" href="#espnet-utils-training-batchfy" title="Permalink to this headline">¶</a></h2>
+<span id="id15"></span><h2>espnet.utils.training.batchfy<a class="headerlink" href="#espnet-utils-training-batchfy" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.utils.training.batchfy"></span><dl class="function">
 <dt id="espnet.utils.training.batchfy.batchfy_by_bin">
 <code class="sig-prename descclassname">espnet.utils.training.batchfy.</code><code class="sig-name descname">batchfy_by_bin</code><span class="sig-paren">(</span><em class="sig-param">sorted_data</em>, <em class="sig-param">batch_bins</em>, <em class="sig-param">num_batches=0</em>, <em class="sig-param">min_batch_size=1</em>, <em class="sig-param">shortest_first=False</em>, <em class="sig-param">ikey='input'</em>, <em class="sig-param">okey='output'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/training/batchfy.html#batchfy_by_bin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.training.batchfy.batchfy_by_bin" title="Permalink to this definition">¶</a></dt>
@@ -1051,7 +1109,7 @@ reserved for future research, -1 means all axis.)</p></li>
 
 </section>
 <section id="espnet-utils-training-iterators">
-<span id="id14"></span><h2>espnet.utils.training.iterators<a class="headerlink" href="#espnet-utils-training-iterators" title="Permalink to this headline">¶</a></h2>
+<span id="id16"></span><h2>espnet.utils.training.iterators<a class="headerlink" href="#espnet-utils-training-iterators" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.utils.training.iterators"></span><dl class="class">
 <dt id="espnet.utils.training.iterators.ShufflingEnabler">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.utils.training.iterators.</code><code class="sig-name descname">ShufflingEnabler</code><span class="sig-paren">(</span><em class="sig-param">iterators</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/training/iterators.html#ShufflingEnabler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.training.iterators.ShufflingEnabler" title="Permalink to this definition">¶</a></dt>
@@ -1119,66 +1177,8 @@ reserved for future research, -1 means all axis.)</p></li>
 
 </section>
 <section id="espnet-utils-training-init">
-<span id="id15"></span><h2>espnet.utils.training.__init__<a class="headerlink" href="#espnet-utils-training-init" title="Permalink to this headline">¶</a></h2>
+<span id="id17"></span><h2>espnet.utils.training.__init__<a class="headerlink" href="#espnet-utils-training-init" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet.utils.training.__init__"></span><p>Initialize sub package.</p>
-</section>
-<section id="espnet-utils-training-tensorboard-logger">
-<span id="id16"></span><h2>espnet.utils.training.tensorboard_logger<a class="headerlink" href="#espnet-utils-training-tensorboard-logger" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet.utils.training.tensorboard_logger"></span><dl class="class">
-<dt id="espnet.utils.training.tensorboard_logger.TensorboardLogger">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.utils.training.tensorboard_logger.</code><code class="sig-name descname">TensorboardLogger</code><span class="sig-paren">(</span><em class="sig-param">logger</em>, <em class="sig-param">att_reporter=None</em>, <em class="sig-param">ctc_reporter=None</em>, <em class="sig-param">entries=None</em>, <em class="sig-param">epoch=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/training/tensorboard_logger.html#TensorboardLogger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.training.tensorboard_logger.TensorboardLogger" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">chainer.training.extension.Extension</span></code></p>
-<p>A tensorboard logger extension</p>
-<p>Init the extension</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>logger</strong> (<em>SummaryWriter</em>) – The logger to use</p></li>
-<li><p><strong>att_reporter</strong> (<em>PlotAttentionReporter</em>) – The (optional) PlotAttentionReporter</p></li>
-<li><p><strong>entries</strong> – The entries to watch</p></li>
-<li><p><strong>epoch</strong> (<em>int</em>) – The starting epoch</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="attribute">
-<dt id="espnet.utils.training.tensorboard_logger.TensorboardLogger.default_name">
-<code class="sig-name descname">default_name</code><em class="property"> = 'espnet_tensorboard_logger'</em><a class="headerlink" href="#espnet.utils.training.tensorboard_logger.TensorboardLogger.default_name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-</section>
-<section id="espnet-utils-training-train-utils">
-<span id="id17"></span><h2>espnet.utils.training.train_utils<a class="headerlink" href="#espnet-utils-training-train-utils" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet.utils.training.train_utils"></span><dl class="function">
-<dt id="espnet.utils.training.train_utils.check_early_stop">
-<code class="sig-prename descclassname">espnet.utils.training.train_utils.</code><code class="sig-name descname">check_early_stop</code><span class="sig-paren">(</span><em class="sig-param">trainer</em>, <em class="sig-param">epochs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/training/train_utils.html#check_early_stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.training.train_utils.check_early_stop" title="Permalink to this definition">¶</a></dt>
-<dd><p>Checks an early stopping trigger and warns the user if it’s the case</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>trainer</strong> – The trainer used for training</p></li>
-<li><p><strong>epochs</strong> – The maximum number of epochs</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="espnet.utils.training.train_utils.set_early_stop">
-<code class="sig-prename descclassname">espnet.utils.training.train_utils.</code><code class="sig-name descname">set_early_stop</code><span class="sig-paren">(</span><em class="sig-param">trainer</em>, <em class="sig-param">args</em>, <em class="sig-param">is_lm=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/utils/training/train_utils.html#set_early_stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.utils.training.train_utils.set_early_stop" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sets the early stop trigger given the program arguments</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>trainer</strong> – The trainer used for training</p></li>
-<li><p><strong>args</strong> – The program arguments</p></li>
-<li><p><strong>is_lm</strong> – If the trainer is for a LM (epoch instead of epochs)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
 </section>
 </section>
 
@@ -1186,8 +1186,8 @@ reserved for future research, -1 means all axis.)</p></li>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="espnet.nets.html" class="btn btn-neutral float-left" title="espnet.nets package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="espnet.tts.html" class="btn btn-neutral float-right" title="espnet.tts package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../notebook/tts_realtime_demo.html" class="btn btn-neutral float-left" title="ESPnet real time E2E-TTS demonstration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="espnet.st.html" class="btn btn-neutral float-right" title="espnet.st package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

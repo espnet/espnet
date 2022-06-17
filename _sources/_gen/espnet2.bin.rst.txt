@@ -4,100 +4,23 @@ espnet2.bin package
 
 
 
-.. _espnet2.bin.asr_inference_k2:
+.. _espnet2.bin.asr_align:
 
-espnet2.bin.asr_inference_k2
-----------------------------
-
-.. automodule:: espnet2.bin.asr_inference_k2
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.launch:
-
-espnet2.bin.launch
-------------------
-
-.. automodule:: espnet2.bin.launch
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.tts_train:
-
-espnet2.bin.tts_train
+espnet2.bin.asr_align
 ---------------------
 
-.. automodule:: espnet2.bin.tts_train
+.. automodule:: espnet2.bin.asr_align
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.bin.st_train:
+.. _espnet2.bin.asr_inference_streaming:
 
-espnet2.bin.st_train
---------------------
+espnet2.bin.asr_inference_streaming
+-----------------------------------
 
-.. automodule:: espnet2.bin.st_train
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.tokenize_text:
-
-espnet2.bin.tokenize_text
--------------------------
-
-.. automodule:: espnet2.bin.tokenize_text
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.tts_inference:
-
-espnet2.bin.tts_inference
--------------------------
-
-.. automodule:: espnet2.bin.tts_inference
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.asr_inference:
-
-espnet2.bin.asr_inference
--------------------------
-
-.. automodule:: espnet2.bin.asr_inference
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.st_inference_streaming:
-
-espnet2.bin.st_inference_streaming
-----------------------------------
-
-.. automodule:: espnet2.bin.st_inference_streaming
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.__init__:
-
-espnet2.bin.__init__
---------------------
-
-.. automodule:: espnet2.bin.__init__
+.. automodule:: espnet2.bin.asr_inference_streaming
     :members:
     :undoc-members:
     :show-inheritance:
@@ -114,67 +37,45 @@ espnet2.bin.split_scps
     :show-inheritance:
 
 
-.. _espnet2.bin.asr_train:
+.. _espnet2.bin.gan_tts_train:
 
-espnet2.bin.asr_train
----------------------
-
-.. automodule:: espnet2.bin.asr_train
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.aggregate_stats_dirs:
-
-espnet2.bin.aggregate_stats_dirs
---------------------------------
-
-.. automodule:: espnet2.bin.aggregate_stats_dirs
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.mt_train:
-
-espnet2.bin.mt_train
---------------------
-
-.. automodule:: espnet2.bin.mt_train
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.asr_align:
-
-espnet2.bin.asr_align
----------------------
-
-.. automodule:: espnet2.bin.asr_align
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.enh_s2t_train:
-
-espnet2.bin.enh_s2t_train
+espnet2.bin.gan_tts_train
 -------------------------
 
-.. automodule:: espnet2.bin.enh_s2t_train
+.. automodule:: espnet2.bin.gan_tts_train
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.bin.enh_train:
+.. _espnet2.bin.diar_inference:
 
-espnet2.bin.enh_train
----------------------
+espnet2.bin.diar_inference
+--------------------------
 
-.. automodule:: espnet2.bin.enh_train
+.. automodule:: espnet2.bin.diar_inference
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.enh_scoring:
+
+espnet2.bin.enh_scoring
+-----------------------
+
+.. automodule:: espnet2.bin.enh_scoring
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.lm_calc_perplexity:
+
+espnet2.bin.lm_calc_perplexity
+------------------------------
+
+.. automodule:: espnet2.bin.lm_calc_perplexity
     :members:
     :undoc-members:
     :show-inheritance:
@@ -191,12 +92,111 @@ espnet2.bin.diar_train
     :show-inheritance:
 
 
-.. _espnet2.bin.lm_calc_perplexity:
+.. _espnet2.bin.enh_train:
 
-espnet2.bin.lm_calc_perplexity
-------------------------------
+espnet2.bin.enh_train
+---------------------
 
-.. automodule:: espnet2.bin.lm_calc_perplexity
+.. automodule:: espnet2.bin.enh_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.asr_inference_maskctc:
+
+espnet2.bin.asr_inference_maskctc
+---------------------------------
+
+.. automodule:: espnet2.bin.asr_inference_maskctc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.st_inference_streaming:
+
+espnet2.bin.st_inference_streaming
+----------------------------------
+
+.. automodule:: espnet2.bin.st_inference_streaming
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.asr_train:
+
+espnet2.bin.asr_train
+---------------------
+
+.. automodule:: espnet2.bin.asr_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.st_train:
+
+espnet2.bin.st_train
+--------------------
+
+.. automodule:: espnet2.bin.st_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.enh_s2t_train:
+
+espnet2.bin.enh_s2t_train
+-------------------------
+
+.. automodule:: espnet2.bin.enh_s2t_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.tts_inference:
+
+espnet2.bin.tts_inference
+-------------------------
+
+.. automodule:: espnet2.bin.tts_inference
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.lm_train:
+
+espnet2.bin.lm_train
+--------------------
+
+.. automodule:: espnet2.bin.lm_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.asr_inference_k2:
+
+espnet2.bin.asr_inference_k2
+----------------------------
+
+.. automodule:: espnet2.bin.asr_inference_k2
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.aggregate_stats_dirs:
+
+espnet2.bin.aggregate_stats_dirs
+--------------------------------
+
+.. automodule:: espnet2.bin.aggregate_stats_dirs
     :members:
     :undoc-members:
     :show-inheritance:
@@ -224,39 +224,6 @@ espnet2.bin.pack
     :show-inheritance:
 
 
-.. _espnet2.bin.asr_inference_streaming:
-
-espnet2.bin.asr_inference_streaming
------------------------------------
-
-.. automodule:: espnet2.bin.asr_inference_streaming
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.asr_inference_maskctc:
-
-espnet2.bin.asr_inference_maskctc
----------------------------------
-
-.. automodule:: espnet2.bin.asr_inference_maskctc
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.gan_tts_train:
-
-espnet2.bin.gan_tts_train
--------------------------
-
-.. automodule:: espnet2.bin.gan_tts_train
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.bin.enh_inference:
 
 espnet2.bin.enh_inference
@@ -268,45 +235,45 @@ espnet2.bin.enh_inference
     :show-inheritance:
 
 
-.. _espnet2.bin.diar_inference:
+.. _espnet2.bin.__init__:
 
-espnet2.bin.diar_inference
---------------------------
-
-.. automodule:: espnet2.bin.diar_inference
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.bin.lm_train:
-
-espnet2.bin.lm_train
+espnet2.bin.__init__
 --------------------
 
-.. automodule:: espnet2.bin.lm_train
+.. automodule:: espnet2.bin.__init__
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.bin.enh_scoring:
+.. _espnet2.bin.tts_train:
 
-espnet2.bin.enh_scoring
------------------------
+espnet2.bin.tts_train
+---------------------
 
-.. automodule:: espnet2.bin.enh_scoring
+.. automodule:: espnet2.bin.tts_train
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet2.bin.st_inference:
+.. _espnet2.bin.asr_inference:
 
-espnet2.bin.st_inference
-------------------------
+espnet2.bin.asr_inference
+-------------------------
 
-.. automodule:: espnet2.bin.st_inference
+.. automodule:: espnet2.bin.asr_inference
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.tokenize_text:
+
+espnet2.bin.tokenize_text
+-------------------------
+
+.. automodule:: espnet2.bin.tokenize_text
     :members:
     :undoc-members:
     :show-inheritance:
@@ -318,6 +285,39 @@ espnet2.bin.hubert_train
 ------------------------
 
 .. automodule:: espnet2.bin.hubert_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.mt_train:
+
+espnet2.bin.mt_train
+--------------------
+
+.. automodule:: espnet2.bin.mt_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.launch:
+
+espnet2.bin.launch
+------------------
+
+.. automodule:: espnet2.bin.launch
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.st_inference:
+
+espnet2.bin.st_inference
+------------------------
+
+.. automodule:: espnet2.bin.st_inference
     :members:
     :undoc-members:
     :show-inheritance:

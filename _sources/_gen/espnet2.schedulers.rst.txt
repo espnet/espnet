@@ -15,17 +15,6 @@ espnet2.schedulers.noam_lr
     :show-inheritance:
 
 
-.. _espnet2.schedulers.__init__:
-
-espnet2.schedulers.__init__
----------------------------
-
-.. automodule:: espnet2.schedulers.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.schedulers.warmup_lr:
 
 espnet2.schedulers.warmup_lr
@@ -43,6 +32,17 @@ espnet2.schedulers.abs_scheduler
 --------------------------------
 
 .. automodule:: espnet2.schedulers.abs_scheduler
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.schedulers.__init__:
+
+espnet2.schedulers.__init__
+---------------------------
+
+.. automodule:: espnet2.schedulers.__init__
     :members:
     :undoc-members:
     :show-inheritance:
