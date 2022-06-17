@@ -50,6 +50,9 @@ class DiarizeSpeech:
         train_config: Union[Path, str] = None,
         model_file: Union[Path, str] = None,
         segment_size: Optional[float] = None,
+        buffer_size: Optional[float] = None,
+        feats_frame_shift: Optional[int] = None,
+        diar_frame_shift: Optional[int] = None,
         hop_size: Optional[float] = None,
         normalize_segment_scale: bool = False,
         show_progressbar: bool = False,
@@ -89,6 +92,11 @@ class DiarizeSpeech:
         # only used when processing long speech, i.e.
         # segment_size is not None and hop_size is not None
         self.segment_size = segment_size
+        self.buffer_size = buffer_size
+        self.feats_frame_shift = feats_frame_shift
+        self.diar_frame_shift = (
+            diar_frame_shift if diar_frame_shift is not None else feats_frame_shift
+        )
         self.hop_size = hop_size
         self.normalize_segment_scale = normalize_segment_scale
         self.normalize_output_wav = normalize_output_wav
@@ -102,13 +110,22 @@ class DiarizeSpeech:
         self.multiply_diar_result = multiply_diar_result
         self.enh_s2t_task = enh_s2t_task
 
-        self.segmenting_diar = segment_size is not None and not enh_s2t_task
+        self.segmenting_diar = (
+            segment_size is not None
+            and buffer_size is not None
+            and feats_frame_shift is not None
+            and not enh_s2t_task
+        )
         self.segmenting_enh_diar = (
             segment_size is not None and hop_size is not None and enh_s2t_task
         )
         if self.segmenting_diar:
             logging.info("Perform segment-wise speaker diarization")
-            logging.info("Segment length = {} sec".format(segment_size))
+            logging.info(
+                "Segment length = {} sec, Buffer length = {} sec".format(
+                    segment_size, buffer_size
+                )
+            )
         elif self.segmenting_enh_diar:
             logging.info("Perform segment-wise speech separation and diarization")
             logging.info(
@@ -152,12 +169,15 @@ class DiarizeSpeech:
 
         if self.segmenting_diar and lengths[0] > self.segment_size * fs:
             # Segment-wise speaker diarization
-            # Note that the segments are processed independently for now
-            # i.e., no speaker tracing is performed
+            # This is based on FLEX-STB (https://arxiv.org/abs/2101.08473)
             num_segments = int(np.ceil(speech.size(1) / (self.segment_size * fs)))
+            feats_buffer_lens = int(self.buffer_size * fs / self.feats_frame_shift)
+            diar_buffer_lens = int(self.buffer_size * fs / self.diar_frame_shift)
             t = T = int(self.segment_size * fs)
             pad_shape = speech[:, :T].shape
             diarized_wavs = []
+            feats_buffer = None
+            diar_buffer = None
             range_ = trange if self.show_progressbar else range
             for i in range_(num_segments):
                 st = int(i * self.segment_size * fs)
@@ -175,14 +195,43 @@ class DiarizeSpeech:
                 lengths_seg = speech.new_full(
                     [batch_size], dtype=torch.long, fill_value=T
                 )
-                # b. Diarization Forward
-                encoder_out, encoder_out_lens = self.encode(
+                # b. Diarization Forward using buffer
+                encoder_out, encoder_out_lens, feats = self.encode_buffer(
                     speech_seg,
                     lengths_seg,
+                    feats_buffer,
                 )
                 spk_prediction, _ = self.decode(encoder_out, encoder_out_lens)
-                # List[torch.Tensor(B, T, num_spks)]
-                diarized_wavs.append(spk_prediction)
+                if i == 0:
+                    # List[torch.Tensor(B, T, num_spks)]
+                    diarized_wavs.append(spk_prediction)
+                    # update buffer
+                    feats_buffer, diar_buffer = self.update_buffer(
+                        feats,
+                        spk_prediction,
+                        feats_buffer,
+                        diar_buffer,
+                        feats_buffer_lens,
+                        diar_buffer_lens,
+                    )
+
+                else:
+                    # permute diar result (spk_prediction) using buffer
+                    spk_prediction, _ = self.permute_diar_buffer(
+                        spk_prediction, diar_buffer
+                    )
+                    # List[torch.Tensor(B, T, num_spks)]
+                    diarized_wavs.append(spk_prediction[:, diar_buffer.shape[1] :, :])
+                    # update buffer
+                    feats_buffer, diar_buffer = self.update_buffer(
+                        feats,
+                        spk_prediction,
+                        feats_buffer,
+                        diar_buffer,
+                        feats_buffer_lens,
+                        diar_buffer_lens,
+                    )
+
             # Determine maximum estimated number of speakers among the segments
             max_len = max([x.size(2) for x in diarized_wavs])
             # pad tensors in diarized_wavs with "float('-inf')" to have same size
@@ -318,7 +367,10 @@ class DiarizeSpeech:
         spk_prediction = spk_prediction.cpu().numpy()
         spk_prediction = 1 / (1 + np.exp(-spk_prediction))
 
-        return waves, spk_prediction if self.enh_s2t_task else spk_prediction
+        if self.enh_s2t_task:
+            return waves, spk_prediction
+        else:
+            return spk_prediction
 
     @torch.no_grad()
     def cal_permumation(self, ref_wavs, enh_wavs, criterion="si_snr"):
@@ -410,6 +462,103 @@ class DiarizeSpeech:
             )
         return encoder_out, encoder_out_lens
 
+    def encode_buffer(self, speech, lengths, feats_buffer=None):
+        # 1. Extract feats
+        feats, feats_lengths = self.diar_model._extract_feats(speech, lengths)
+        # 2. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
+        if self.diar_model.normalize is not None:
+            feats, feats_lengths = self.diar_model.normalize(feats, feats_lengths)
+        # 3. Concatenate feats_buffer and feats (time axis)
+        if feats_buffer is not None:
+            feats = torch.cat((feats_buffer, feats), 1)
+            feats_lengths = feats.new_full(
+                [feats.size(0)], dtype=torch.long, fill_value=feats.size(1)
+            )
+        # 4. Forward encoder
+        encoder_out, encoder_out_lens, _ = self.diar_model.encoder(feats, feats_lengths)
+
+        return encoder_out, encoder_out_lens, feats
+
+    def update_buffer(
+        self,
+        feats,
+        diar,
+        feats_buffer,
+        diar_buffer,
+        feats_buffer_lens,
+        diar_buffer_lens,
+    ):
+        if feats_buffer is None:
+            feats_buffer = feats
+            diar_buffer = diar
+        elif feats.shape[1] <= feats_buffer_lens:
+            assert diar.shape[1] <= diar_buffer_lens
+            feats_buffer = feats
+            diar_buffer = torch.cat(
+                (diar_buffer, diar[:, diar_buffer.shape[1] :, :]), dim=1
+            )
+        else:
+            assert diar.shape[1] > diar_buffer_lens
+            tmp_diar = torch.cat(
+                (diar_buffer, diar[:, diar_buffer.shape[1] :, :]), dim=1
+            )
+            feats_idx = []
+            diar_idx = []
+            # uniform sampling
+            for i in range(feats_buffer_lens):
+                feats_idx.append(int(feats.shape[1] / feats_buffer_lens * i))
+            for i in range(diar_buffer_lens):
+                diar_idx.append(int(diar.shape[1] / diar_buffer_lens * i))
+            feats_buffer = feats[:, feats_idx, :]
+            diar_buffer = tmp_diar[:, diar_idx, :]
+
+        return feats_buffer, diar_buffer
+
+    def permute_diar_buffer(self, spk_prediction, diar_buffer):
+        # Permute the diarization result using the correlation
+        # between diar_buffer and corresponding part of spk_prediction
+
+        # 0-padding if num_spk differs
+        if spk_prediction.shape[-1] > diar_buffer.shape[-1]:
+            torch.nn.functional.pad(
+                diar_buffer,
+                (0, spk_prediction.shape[-1] - diar_buffer.shape[-1]),
+                "constant",
+                float("-inf"),
+            )
+            num_spk = spk_prediction.shape[-1]
+        elif spk_prediction.shape[-1] < diar_buffer.shape[-1]:
+            torch.nn.functional.pad(
+                spk_prediction,
+                (0, diar_buffer.shape[-1] - spk_prediction.shape[-1]),
+                "constant",
+                float("-inf"),
+            )
+            num_spk = diar_buffer.shape[-1]
+        else:
+            num_spk = diar_buffer.shape[-1]
+
+        # transform logit to probability
+        prob_spk_prediction = 1 / (1 + np.exp(-spk_prediction.cpu().numpy()))
+        prob_diar_buffer = 1 / (1 + np.exp(-diar_buffer.cpu().numpy()))
+
+        permute_list = [np.array(p) for p in permutations(range(num_spk))]
+        corr_list = []
+        for p in permute_list:
+            diar_perm = prob_spk_prediction[:, :, p]
+            corr_perm = [0]
+            for q in range(num_spk):
+                corr_perm += np.corrcoef(
+                    prob_diar_buffer[:, :, q],
+                    diar_perm[:, : diar_buffer.shape[1], q],
+                )[0, 1]
+            corr_list.append(corr_perm)
+        max_corr, max_idx = torch.max(torch.from_numpy(np.array(corr_list)), dim=0)
+        return (
+            spk_prediction[:, :, permute_list[max_idx]],
+            permute_list[max_idx],
+        )
+
     def decode(self, encoder_out, encoder_out_lens):
         # SA-EEND
         if self.diar_model.attractor is None:
@@ -478,6 +627,9 @@ def inference(
     model_tag: Optional[str],
     allow_variable_data_keys: bool,
     segment_size: Optional[float],
+    buffer_size: Optional[float],
+    feats_frame_shift: Optional[int],
+    diar_frame_shift: Optional[int],
     hop_size: Optional[float],
     normalize_segment_scale: bool,
     show_progressbar: bool,
@@ -510,6 +662,9 @@ def inference(
         train_config=train_config,
         model_file=model_file,
         segment_size=segment_size,
+        buffer_size=buffer_size,
+        feats_frame_shift=feats_frame_shift,
+        diar_frame_shift=diar_frame_shift,
         hop_size=hop_size,
         normalize_segment_scale=normalize_segment_scale,
         show_progressbar=show_progressbar,
@@ -670,6 +825,24 @@ def get_parser():
         type=float,
         default=None,
         help="Segment length in seconds for segment-wise speaker diarization",
+    )
+    group.add_argument(
+        "--buffer_size",
+        type=float,
+        default=None,
+        help="buffer length in seconds for segment-wise speaker diarization",
+    )
+    group.add_argument(
+        "--feats_frame_shift",
+        type=int,
+        default=None,
+        help="frame shift length of features in samples for segment-wise speaker diarization",
+    )
+    group.add_argument(
+        "--diar_frame_shift",
+        type=int,
+        default=None,
+        help="frame shift length of prediction in samples for segment-wise speaker diarization",
     )
     group.add_argument(
         "--hop_size",
