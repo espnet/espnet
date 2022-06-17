@@ -173,7 +173,7 @@ def test_single_channel_model(encoder, decoder, separator, training, loss_wrappe
         return
     inputs = torch.randn(2, 300)
     ilens = torch.LongTensor([300, 200])
-    speech_refs = [torch.randn(2, 300).float()]
+    speech_refs = [torch.randn(2, 300).float(), torch.randn(2, 300).float()]
     enh_model = ESPnetEnhancementModel(
         encoder=encoder,
         separator=separator,
