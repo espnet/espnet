@@ -9,6 +9,7 @@ except Exception:
     traceback.print_exc()
     print("Error importing datasets library")
     print("datasets can be installed via espnet/tools/installers/install_datasets")
+    exit()
 
 common_voice_split_map = {"train": "train", "validation": "dev", "test": "test"}
 
