@@ -10,7 +10,8 @@ def get_layer(l_name, library=torch.nn):
 
         Args:
             l_name (string): Case insensitive name for layer in library (e.g. .'elu').
-            library (module): Name of library/module where to search for object handler with l_name e.g. "torch.nn"
+            library (module): Name of library/module where to search for object handler
+            with l_name e.g. "torch.nn"
         Returns:
             layer_handler (object): handler for the requested layer e.g. (torch.nn.ELU)
     """
@@ -30,9 +31,8 @@ def get_layer(l_name, library=torch.nn):
             l_name, [x.lower() for x in all_torch_layers]
         )
         raise NotImplementedError(
-            "Multiple matchse for layer with name {} not found in {}.\n All matches: {}".format(
-                l_name, str(library), close_matches
-            )
+            "Multiple matchs for layer with name {} not found in {}.\n "
+            "All matches: {}".format(l_name, str(library), close_matches)
         )
     else:
         # valid

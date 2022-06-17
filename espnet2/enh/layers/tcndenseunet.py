@@ -1,11 +1,11 @@
 import torch
-from espnet2.torch_utils.get_layer_from_string import get_layer
-
 from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
+from espnet2.torch_utils.get_layer_from_string import get_layer
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
+
 
 class Conv2DActNorm(torch.nn.Module):
     def __init__(
@@ -378,7 +378,6 @@ class TCNDenseUNet(torch.nn.Module):
             c_input = torch.cat((buffer, enc_out[-(indx + 1)]), 1)
             buffer = dec_layer(c_input)
 
-
         buffer = buffer.reshape(bsz, 2, self.n_spk, -1, self.in_channels)
 
         if is_torch_1_9_plus:
@@ -386,4 +385,4 @@ class TCNDenseUNet(torch.nn.Module):
         else:
             out = ComplexTensor(buffer[:, 0], buffer[:, 1])
         # bsz, complex_chans, frames or bsz, spk, complex_chans, frames
-        return out # bsz, spk, time, freq -> bsz, time, spk, freq
+        return out  # bsz, spk, time, freq -> bsz, time, spk, freq

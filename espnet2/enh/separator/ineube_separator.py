@@ -116,12 +116,15 @@ class iNeuBe(AbsSeparator):
     @staticmethod
     def pad2(input_tensor, target_len):
         input_tensor = torch.nn.functional.pad(
-            input_tensor, (0, target_len - input_tensor.shape[0])
+            input_tensor, (0, target_len - input_tensor.shape[-1])
         )
         return input_tensor
 
     def forward(
-        self, input: Union[torch.Tensor, ComplexTensor], ilens: torch.Tensor, additional: Optional[Dict] = None,
+        self,
+        input: Union[torch.Tensor, ComplexTensor],
+        ilens: torch.Tensor,
+        additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         # B, T, C
         bsz, mixture_len, mics = input.shape
@@ -132,7 +135,9 @@ class iNeuBe(AbsSeparator):
         if self.freeze_dnn1:
             est_dnn1 = est_dnn1.detach()
         _, _, frames, freq = est_dnn1.shape
-        output_dnn1 = self.dec(est_dnn1.reshape(bsz*self.num_spk, frames, freq), ilens)[0]
+        output_dnn1 = self.dec(
+            est_dnn1.reshape(bsz * self.num_spk, frames, freq), ilens
+        )[0]
         output_dnn1 = self.pad2(output_dnn1.reshape(bsz, self.num_spk, -1), mixture_len)
         output_dnn1 = [output_dnn1[:, src] for src in range(output_dnn1.shape[1])]
         others = OrderedDict()
@@ -140,9 +145,18 @@ class iNeuBe(AbsSeparator):
             return output_dnn1, ilens, others
         elif self.output_from in ["mfmcwf", "dnn2"]:
             others["dnn1"] = output_dnn1
-            est_mfmcwf = iNeuBe.mfmcwf(mix_stft, est_dnn1.reshape(bsz*self.n_spk, frames, freq), self.n_chunks, self.tik_eps).reshape(bsz, self.n_spk, frames, freq)
-            output_mfmcwf = self.dec(est_mfmcwf.reshape(bsz * self.num_spk, frames, freq), ilens)[0]
-            output_mfmcwf = self.pad2(output_mfmcwf.reshape(bsz, self.num_spk, -1), mixture_len)
+            est_mfmcwf = iNeuBe.mfmcwf(
+                mix_stft,
+                est_dnn1.reshape(bsz * self.n_spk, frames, freq),
+                self.n_chunks,
+                self.tik_eps,
+            ).reshape(bsz, self.n_spk, frames, freq)
+            output_mfmcwf = self.dec(
+                est_mfmcwf.reshape(bsz * self.num_spk, frames, freq), ilens
+            )[0]
+            output_mfmcwf = self.pad2(
+                output_mfmcwf.reshape(bsz, self.num_spk, -1), mixture_len
+            )
             if self.output_from == "mfmcwf":
                 return (
                     [output_mfmcwf[:, src] for src in range(output_mfmcwf.shape[1])],
@@ -154,13 +168,28 @@ class iNeuBe(AbsSeparator):
                 others["beam"] = output_mfmcwf
                 est_dnn2 = self.dnn2(
                     torch.cat(
-                        (mix_stft, est_dnn1.reshape(bsz*self.num_spk, frames, freq).unsqueeze(2), est_mfmcwf.reshape(bsz*self.num_spk, frames, freq).unsqueeze(2)), 2
+                        (
+                            mix_stft.repeat(self.num_spk, 1, 1, 1),
+                            est_dnn1.reshape(
+                                bsz * self.num_spk, frames, freq
+                            ).unsqueeze(2),
+                            est_mfmcwf.reshape(
+                                bsz * self.num_spk, frames, freq
+                            ).unsqueeze(2),
+                        ),
+                        2,
                     )
                 )
 
                 output_dnn2 = self.dec(est_dnn2[:, 0], ilens)[0]
-                output_dnn2 = self.pad2(output_dnn2.reshape(bsz, self.num_spk, -1), mixture_len)
-                return [output_dnn2[:, src] for src in range(est_dnn2.shape[1])], ilens, others
+                output_dnn2 = self.pad2(
+                    output_dnn2.reshape(bsz, self.num_spk, -1), mixture_len
+                )
+                return (
+                    [output_dnn2[:, src] for src in range(output_dnn2.shape[1])],
+                    ilens,
+                    others,
+                )
             else:
                 raise NotImplementedError
         else:
