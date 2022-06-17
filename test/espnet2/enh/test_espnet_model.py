@@ -239,6 +239,8 @@ def test_svoice_model(encoder, decoder, separator, training, loss_wrappers):
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
 @pytest.mark.parametrize("output_from", ["dnn1", "dnn2"])
 def test_ineube(n_mics, training, loss_wrappers, output_from):
+    if not is_torch_1_9_plus:
+        return
     inputs = torch.randn(1, 300, n_mics)
     ilens = torch.LongTensor([300])
     speech_refs = [torch.randn(1, 300).float(), torch.randn(1, 300).float()]
