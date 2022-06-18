@@ -156,6 +156,7 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.gan_tts.jets.alignments</span> <span class="kn">import</span> <span class="n">AlignmentModule</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.rnn.attentions</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">AttAdd</span><span class="p">,</span>
@@ -250,6 +251,10 @@
             <span class="p">):</span>
                 <span class="n">c</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">output</span>
                 <span class="n">att_w</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+                <span class="n">outputs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">att_w</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">AlignmentModule</span><span class="p">):</span>
+                <span class="n">w</span> <span class="o">=</span> <span class="n">output</span>
+                <span class="n">att_w</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">w</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
                 <span class="n">outputs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">att_w</span><span class="p">)</span>
 
         <span class="n">handle</span> <span class="o">=</span> <span class="n">modu</span><span class="o">.</span><span class="n">register_forward_hook</span><span class="p">(</span><span class="n">hook</span><span class="p">)</span>
