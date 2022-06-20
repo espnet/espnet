@@ -4,7 +4,7 @@
 set -e
 set -u
 set -o pipefail
-
+set -evx
 fs=16000
 n_fft=1024
 n_shift=256
