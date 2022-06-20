@@ -42,13 +42,13 @@ if [ ! -e "${db_root}/cmu_us_all_arctic/txt.done.data" ]; then
     for spk in slt clb bdl rms jmk awb ksp
     do
         echo "Combine Speaker: "$spk
-        if [ $(find ${db_root}/cmu_us_all_arctic/wav/ -maxdepth 1 -name ${spk}* | wc -l) -lt 1132 ]; then
+        if [ $(ls ${db_root}/cmu_us_all_arctic/wav/${spk}* | wc -l) -lt 1132 ]; then
             find ${db_root}/cmu_us_${spk}_arctic/wav -name "arctic*.wav" -follow | sort | while read -r filename;do
                 cp ${filename} ${db_root}/cmu_us_all_arctic/wav/${spk}_$(basename $filename)
             done
         fi
 
-        if [ $(find ${db_root}/cmu_us_all_arctic/lab/ -maxdepth 1 -name ${spk}* | wc -l) -lt 1132 ]; then
+        if [ $(ls ${db_root}/cmu_us_all_arctic/lab/${spk}* | wc -l) -lt 1132 ]; then
             find ${db_root}/cmu_us_${spk}_arctic/lab -name "arctic*.lab" -follow | sort | while read -r filename;do
                 cp ${filename} ${db_root}/cmu_us_all_arctic/lab/${spk}_$(basename $filename)
             done
