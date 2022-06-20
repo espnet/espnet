@@ -14,6 +14,7 @@
 import multiprocessing
 import os
 import signal
+import socket
 import time
 
 
@@ -67,6 +68,19 @@ def set_start_method(method):
     return multiprocessing.set_start_method(method)
 
 
+def free_port():
+    """Find free port using bind().
+    There are some interval between finding this port and using it
+    and the other process might catch the port by that time.
+    Thus it is not guaranteed that the port is really empty.
+    """
+    # This method is copied from ESPnet v2's utility below.
+    # https://github.com/espnet/espnet/blob/43ce0c69fb32961235534b348700dc6c74ad5792/espnet2/train/distributed_utils.py#L187-L198
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("", 0))
+        return sock.getsockname()[1]
+
+
 def _kill_processes(processes):
     # TODO: This implementation can't stop all processes which have
     # grandchildren processes launched within each child process
@@ -86,12 +100,15 @@ def _kill_processes(processes):
             pass
 
 
-def launch(func, args, nprocs, master_addr="localhost", master_port=29500):
+def launch(func, args, nprocs, master_addr="localhost", master_port=None):
     """
     Launch processes with a given function and given arguments.
 
     .. note:: Current implementaiton supports only single node case.
     """
+
+    if master_port is None:
+        master_port = free_port()
 
     # Set PyTorch distributed related environmental variables
     # NOTE: in contrast to subprocess.Popen,
