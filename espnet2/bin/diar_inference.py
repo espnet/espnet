@@ -836,16 +836,16 @@ def get_parser():
         "--feats_frame_shift",
         type=int,
         default=None,
-        help="frame shift length of features in samples" 
+        help="frame shift length of features in samples"
         "for segment-wise speaker diarization",
     )
     group.add_argument(
         "--diar_frame_shift",
         type=int,
         default=None,
-        help="frame shift length of diar prediction in samples" 
+        help="frame shift length of diar prediction in samples"
         "for segment-wise speaker diarization"
-        "This needs to be specified if the frame shift length" 
+        "This needs to be specified if the frame shift length"
         "differs from that of the features",
     )
     group.add_argument(
