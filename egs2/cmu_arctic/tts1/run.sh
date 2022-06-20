@@ -10,7 +10,7 @@ n_fft=1024
 n_shift=256
 win_length=null
 
-spk=all
+spk=awb
 
 opts="--audio_format wav --local_data_opts ${spk} "
 
