@@ -1,1 +1,0 @@
-../../TEMPLATE/tts1/path.sh
