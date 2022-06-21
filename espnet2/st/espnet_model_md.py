@@ -6,6 +6,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
+from torchcrf import CRF
 
 import torch
 from typeguard import check_argument_types
@@ -17,6 +18,8 @@ from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (
     LabelSmoothingLoss,  # noqa: H301
 )
+from espnet.nets.pytorch_backend.nets_utils import pad_list
+from sklearn.metrics import f1_score
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -70,6 +73,8 @@ class ESPnetSTMDModel(AbsESPnetModel):
         sym_blank: str = "<blank>",
         extract_feats_in_collect_stats: bool = True,
         speech_attn: bool = False,
+        CRF_loss:bool = False,
+        token_normalized_loss: bool = False,
     ):
         assert check_argument_types()
         assert 0.0 < asr_weight < 1.0, "asr_weight should be (0.0, 1.0)"
@@ -91,6 +96,7 @@ class ESPnetSTMDModel(AbsESPnetModel):
         self.token_list = token_list.copy()
         self.src_token_list = src_token_list.copy()
         self.speech_attn = speech_attn
+        self.CRF_loss = CRF_loss
 
         self.frontend = frontend
         self.specaug = specaug
@@ -102,12 +108,16 @@ class ESPnetSTMDModel(AbsESPnetModel):
         self.decoder = decoder
         self.token_decoder=token_decoder
 
-        self.criterion_st = LabelSmoothingLoss(
-            size=vocab_size,
-            padding_idx=ignore_id,
-            smoothing=lsm_weight,
-            normalize_length=length_normalized_loss,
-        )
+        if self.CRF_loss:
+            self.criterion_st = CRF(self.vocab_size,batch_first=True)
+            # we should check the normalization that we provide in this.
+        else:
+            self.criterion_st = LabelSmoothingLoss(
+                size=vocab_size,
+                padding_idx=ignore_id,
+                smoothing=lsm_weight,
+                normalize_length=token_normalized_loss,
+            )
 
         self.criterion_asr = LabelSmoothingLoss(
             size=src_vocab_size,
@@ -376,16 +386,33 @@ class ESPnetSTMDModel(AbsESPnetModel):
                     encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
                 )
 
+        ignore = ys_out_pad != self.ignore_id  # (B,)
         # 2. Compute attention loss
-        loss_att = self.criterion_st(decoder_out, ys_out_pad)
-        acc_att = th_accuracy(
-            decoder_out.view(-1, self.vocab_size),
-            ys_out_pad,
-            ignore_label=self.ignore_id,
-        )
+        if self.CRF_loss:
+            #We should verify if what's going inside is acurate. 
+            loss_att = -1 * self.criterion_st(decoder_out, ys_out_pad, mask=ignore,reduction="mean")
+            y_pred= self.criterion_st.decode(decoder_out, mask=ignore)
+            y_pred = [torch.tensor(x, dtype=ys_out_pad.dtype, device=ys_out_pad.device) for x in y_pred]
+            y_pred_pad=pad_list(y_pred,self.ignore_id)
+            numerator = torch.sum(
+                y_pred_pad.masked_select(ignore) == ys_out_pad.masked_select(ignore)
+            )
+            denominator = torch.sum(ignore)
+            acc_att = float(numerator) / float(denominator)
+            y_pred_pad = y_pred_pad * ignore
+        else:
+            loss_att = self.criterion_st(decoder_out, ys_out_pad)
+            acc_att = th_accuracy(
+                decoder_out.view(-1, self.vocab_size),
+                ys_out_pad,
+                ignore_label=self.ignore_id,
+            )
+            y_pred_pad = decoder_out.argmax(2) * ignore
 
-        # Compute cer/wer using attention-decoder
-        if self.training or self.token_decoder is not None or self.mt_error_calculator is None:
+        if self.token_decoder is not None:
+            ys_out = (ys_out_pad * ignore).view(-1).tolist()
+            bleu_att = f1_score(ys_out,y_pred_pad.view(-1).tolist(),labels=range(-1,self.vocab_size),average="micro")
+        elif self.training or self.mt_error_calculator is None:
             bleu_att = None
         else:
             ys_hat = decoder_out.argmax(dim=-1)
