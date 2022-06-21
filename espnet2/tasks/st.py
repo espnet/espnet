@@ -615,6 +615,7 @@ class STTask(AbsTask):
         else:
             postencoder = None
 
+        speech_attn=False
         # 5. Decoder
         if getattr(args, "decoder", None) is not None:
             decoder_class = decoder_choices.get_class(args.decoder)
@@ -630,7 +631,7 @@ class STTask(AbsTask):
             )
         else:
             decoder = None
-            speech_attn=False
+            
 
         # 6. CTC
         if src_token_list is not None:
@@ -656,7 +657,6 @@ class STTask(AbsTask):
                 speech_attn=False
         else:
             token_decoder=None
-            speech_attn=False
 
         use_md_model = getattr(args, "use_multidecoder", False)
         if use_md_model:
