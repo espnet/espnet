@@ -421,8 +421,8 @@ class Speech2Text:
                     Hypothesis(
                         score=None,
                         yseq=ys_hat[0],
-                        scores=None,
-                        states=None,
+                        scores={'decoder':1.0},
+                        states={'decoder':1.0},
                         hs=hs_dec_asr[0])
                     ]
         else:
@@ -483,12 +483,16 @@ class Speech2Text:
                 dec_out = self.st_model.token_decoder(asr_hs, asr_hs_lengths)
             if self.CRF_loss:
                 ys_hat = torch.Tensor(self.st_model.criterion_st.decode(dec_out)).long()
+                emissions = dec_out.transpose(0, 1)
+                mask = emissions.new_ones(emissions.shape[:2], dtype=torch.uint8)
+                score=self.st_model.criterion_st._compute_normalizer(emissions,mask).item()                
             else:
                 dec_out[:,:,self.st_model.eos] = -float('inf')
                 ys_hat = dec_out.argmax(dim=-1) #it is trained to predict eos unfortunately. So we probably need to remove that from it's prediction. We should also consider masking them during training
+                score=1.0
             nbest_hyps = [
                     Hypothesis(
-                        score=1.0,
+                        score=score,
                         yseq=ys_hat[0],
                         scores=asr_nbest_hyps[0].scores,
                         states=asr_nbest_hyps[0].states,
@@ -592,7 +596,7 @@ class Speech2Text:
                 text = self.tokenizer.tokens2text(token)
             else:
                 text = None
-            logging.info(f"Token Outputs: {text}")
+            logging.info(f"Token Outputs: {text} {score}")
             results.append((asr_src_text,text, token, token_int, hyp))
 
         assert check_return_type(results)

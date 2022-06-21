@@ -33,10 +33,7 @@ class LinearDecoder(TransformerEncoder):
         padding_idx: int = -1,
         speech_attn: bool = False,
         model_name_or_path: str = "na",
-<<<<<<< Updated upstream
         use_bert: bool = False,
-=======
->>>>>>> Stashed changes
     ):
         super().__init__(
             input_size = encoder_output_size,
@@ -103,12 +100,8 @@ class LinearDecoder(TransformerEncoder):
             ilens (torch.Tensor): input lengths [Batch]
         """
         if self.model_name_or_path!="na":
-<<<<<<< Updated upstream
             if not self.use_bert:
                 input = self.linear_in(input)
-=======
-            input = self.linear_in(input)
->>>>>>> Stashed changes
             args = {"return_dict": True}
 
             mask = (~make_pad_mask(ilens)).to(input.device).float()

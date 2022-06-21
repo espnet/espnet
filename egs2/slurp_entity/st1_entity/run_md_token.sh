@@ -10,7 +10,7 @@ tgt_lang=en
 
 train_set=train
 train_dev=devel
-test_set="test"
+test_set="test devel"
 
 st_config=conf/md_token_8.yaml
 # inference_config=conf/decode_md.yaml

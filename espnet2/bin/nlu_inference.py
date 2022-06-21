@@ -74,8 +74,13 @@ class Text2Text:
             nlu_train_config, nlu_model_file, device
         )
         nlu_model.to(dtype=getattr(torch, dtype)).eval()
-        import pdb;pdb.set_trace()
-        decoder = nlu_model.decoder
+        if getattr(nlu_model, "token_decoder",None) is not None:
+            decoder = nlu_model.token_decoder
+            self.token_decoder=True
+        else:
+            self.token_decoder=False
+            decoder = nlu_model.decoder
+
         token_list = nlu_model.token_list
         scorers.update(
             decoder=decoder,
@@ -103,44 +108,46 @@ class Text2Text:
             ngram = None
         scorers["ngram"] = ngram
 
-        # 4. Build BeamSearch object
-        weights = dict(
-            decoder=1.0,
-            lm=lm_weight,
-            ngram=ngram_weight,
-            length_bonus=penalty,
-        )
-        beam_search = BeamSearch(
-            beam_size=beam_size,
-            weights=weights,
-            scorers=scorers,
-            sos=nlu_model.sos,
-            eos=nlu_model.eos,
-            vocab_size=len(token_list),
-            token_list=token_list,
-            pre_beam_score_key="full",
-        )
-        # TODO(karita): make all scorers batchfied
-        if batch_size == 1:
-            non_batch = [
-                k
-                for k, v in beam_search.full_scorers.items()
-                if not isinstance(v, BatchScorerInterface)
-            ]
-            if len(non_batch) == 0:
-                beam_search.__class__ = BatchBeamSearch
-                logging.info("BatchBeamSearch implementation is selected.")
-            else:
-                logging.warning(
-                    f"As non-batch scorers {non_batch} are found, "
-                    f"fall back to non-batch implementation."
-                )
-        beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
-        for scorer in scorers.values():
-            if isinstance(scorer, torch.nn.Module):
-                scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
-        logging.info(f"Beam_search: {beam_search}")
-        logging.info(f"Decoding device={device}, dtype={dtype}")
+        if not self.token_decoder:
+            # 4. Build BeamSearch object
+            weights = dict(
+                decoder=1.0,
+                lm=lm_weight,
+                ngram=ngram_weight,
+                length_bonus=penalty,
+            )
+            beam_search = BeamSearch(
+                beam_size=beam_size,
+                weights=weights,
+                scorers=scorers,
+                sos=nlu_model.sos,
+                eos=nlu_model.eos,
+                vocab_size=len(token_list),
+                token_list=token_list,
+                pre_beam_score_key="full",
+            )
+            # TODO(karita): make all scorers batchfied
+            if batch_size == 1:
+                non_batch = [
+                    k
+                    for k, v in beam_search.full_scorers.items()
+                    if not isinstance(v, BatchScorerInterface)
+                ]
+                if len(non_batch) == 0:
+                    beam_search.__class__ = BatchBeamSearch
+                    logging.info("BatchBeamSearch implementation is selected.")
+                else:
+                    logging.warning(
+                        f"As non-batch scorers {non_batch} are found, "
+                        f"fall back to non-batch implementation."
+                    )
+            beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
+            for scorer in scorers.values():
+                if isinstance(scorer, torch.nn.Module):
+                    scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
+            logging.info(f"Beam_search: {beam_search}")
+            logging.info(f"Decoding device={device}, dtype={dtype}")
+            self.beam_search = beam_search
 
         # 4. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
@@ -164,7 +171,7 @@ class Text2Text:
         self.nlu_train_args = nlu_train_args
         self.converter = converter
         self.tokenizer = tokenizer
-        self.beam_search = beam_search
+        
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
         self.device = device
@@ -199,14 +206,28 @@ class Text2Text:
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
-        enc, _ = self.nlu_model.encode(**batch)
+        enc, enc_lens = self.nlu_model.encode(**batch)
         assert len(enc) == 1, len(enc)
 
-        # c. Passed the encoder result and the beam search
-        nbest_hyps = self.beam_search(
-            x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
-        )
-        nbest_hyps = nbest_hyps[: self.nbest]
+        if self.token_decoder:
+            dec_out = self.nlu_model.token_decoder(enc,enc_lens)
+            dec_out[:,:,self.nlu_model.eos] = -float('inf')
+            ys_hat = dec_out.argmax(dim=-1)
+            nbest_hyps = [
+                Hypothesis(
+                    score=1.0,
+                    yseq = ys_hat[0],
+                    scores={'decoder':1.0},
+                    states={'decoder':1.0},
+                    hs=[]
+                )
+            ]
+        else:
+            # c. Passed the encoder result and the beam search
+            nbest_hyps = self.beam_search(
+                x=enc[0], maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+            )
+            nbest_hyps = nbest_hyps[: self.nbest]
 
         results = []
         for hyp in nbest_hyps:
@@ -216,8 +237,8 @@ class Text2Text:
             # token_int = hyp.yseq[1:-1].tolist()
             # TODO(sdalmia): check why the above line doesn't work
             token_int = hyp.yseq.tolist()
-            token_int = list(filter(lambda x: x != self.nlu_model.sos, token_int))
-            token_int = list(filter(lambda x: x != self.nlu_model.eos, token_int))
+            # token_int = list(filter(lambda x: x != self.nlu_model.sos, token_int))
+            # token_int = list(filter(lambda x: x != self.nlu_model.eos, token_int))
 
             # remove blank symbol id, which is assumed to be 0
             token_int = list(filter(lambda x: x != 0, token_int))
