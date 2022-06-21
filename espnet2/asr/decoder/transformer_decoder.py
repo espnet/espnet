@@ -57,6 +57,8 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         use_output_layer: bool = True,
         pos_enc_class=PositionalEncoding,
         normalize_before: bool = True,
+        use_bert: bool = False,
+        use_output_embed: bool = False,
     ):
         assert check_argument_types()
         super().__init__()
@@ -81,11 +83,21 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         self.normalize_before = normalize_before
         if self.normalize_before:
             self.after_norm = LayerNorm(attention_dim)
-        if use_output_layer:
-            self.output_layer = torch.nn.Linear(attention_dim, vocab_size)
+        if use_bert:
+            self.use_bert=True
+            self.bert_layer = torch.nn.Linear(attention_dim, 768)
+            if use_output_layer:
+                self.output_layer = torch.nn.Linear(768, vocab_size)
+            else:
+                self.output_layer = None
         else:
-            self.output_layer = None
+            self.use_bert=False
+            if use_output_layer:
+                self.output_layer = torch.nn.Linear(attention_dim, vocab_size)
+            else:
+                self.output_layer = None
 
+        self.use_output_embed = use_output_embed
         self._output_size_bf_softmax = attention_dim
         # Must set by the inheritance
         self.decoders = None
@@ -142,8 +154,18 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             x = self.after_norm(x)
             if return_hidden:
                 hs_asr = x
+
+        if self.use_bert:
+            x = self.bert_layer(x)
+            if return_hidden:
+                hs_asr = x
+
         if self.output_layer is not None:
             x = self.output_layer(x)
+
+        if self.use_output_embed and return_hidden:
+            #weighted logsoftmax embeddings
+            hs_asr = torch.nn.functional.linear(torch.log_softmax(x,dim=-1), self.output_layer.weight.T)
 
         olens = tgt_mask.sum(1)
 
@@ -191,11 +213,18 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         else:
             y = x[:, -1]
 
+        if self.use_bert:
+            y = self.bert_layer(y)
+
         if return_hidden:
             h_asr = y
 
         if self.output_layer is not None:
             y = torch.log_softmax(self.output_layer(y), dim=-1)
+
+        if self.use_output_embed and return_hidden:
+            #weighted logsoftmax embeddings
+            hs_asr = torch.nn.functional(y, self.output_layer.weight.T)
 
         if return_hidden:
             return y, h_asr, new_cache
@@ -277,6 +306,8 @@ class TransformerDecoder(BaseTransformerDecoder):
         pos_enc_class=PositionalEncoding,
         normalize_before: bool = True,
         concat_after: bool = False,
+        use_bert: bool = False,
+        use_output_embed: bool = False,
     ):
         assert check_argument_types()
         super().__init__(
@@ -288,6 +319,8 @@ class TransformerDecoder(BaseTransformerDecoder):
             use_output_layer=use_output_layer,
             pos_enc_class=pos_enc_class,
             normalize_before=normalize_before,
+            use_bert=use_bert,
+            use_output_embed=use_output_embed,
         )
 
         attention_dim = encoder_output_size
